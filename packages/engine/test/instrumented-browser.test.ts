@@ -8,6 +8,11 @@ describe("PlaywrightInstrumentedBrowser", () => {
     expect(b).toBeInstanceOf(PlaywrightInstrumentedBrowser);
   });
 
+  it("accepts a connectOverCdp option (attach to a running Chrome instead of launching one)", () => {
+    const b = new PlaywrightInstrumentedBrowser({ connectOverCdp: "http://localhost:9222" });
+    expect(b).toBeInstanceOf(PlaywrightInstrumentedBrowser);
+  });
+
   it("uses security-lowered Chromium args (so the injected capture helper works across SSO redirects)", () => {
     expect(SECURITY_LOWERED_ARGS).toContain("--disable-web-security");
     expect(SECURITY_LOWERED_ARGS).toContain("--disable-features=IsolateOrigins,site-per-process");

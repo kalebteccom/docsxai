@@ -102,6 +102,8 @@ site-docs capture-auth "$WORKSPACE" --auth-cookie "<the-cookie-you-identified>" 
 
 `capture-auth` reports `expires <ISO>  (from auth-cookie "<name>" | ttl | 1h default)` — confirm it says `auth-cookie "<name>"`. If `run` later says "session expired", re-run this step (re-login).
 
+**Optional — one login, not two:** by default `capture-auth` launches its own instrumented Chrome, so the engineer logs in there *and* (separately) in their Claude-in-Chrome session for discovery. To avoid the double login, have the engineer start a single Chrome that *both* tools attach to: `chrome --remote-debugging-port=9222 --disable-web-security --disable-features=IsolateOrigins,site-per-process --user-data-dir=/tmp/site-docs-chrome <app-url>` — Claude in Chrome drives it for discovery, the engineer logs in once, then `site-docs capture-auth "$WORKSPACE" --cdp http://localhost:9222` reads that browser's session (it won't close it). *(Caveat: whether the Claude-in-Chrome extension attaches cleanly to a Chrome launched this way needs verifying in practice — if it doesn't, just use the default two-session flow above; it works.)*
+
 ## Step 4 — get the flow-files (calibrate)
 
 - **If the human has a structured flow-guide** (a `.flow.yaml`, or a `.md` with a ```yaml fenced block — the the first-consumer testing guide shape: prerequisites + locators + per-step actions + success criteria):

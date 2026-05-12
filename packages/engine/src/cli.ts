@@ -26,7 +26,7 @@ Usage:
   site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors]
   site-docs render <workspace-dir>
-  site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--headless] [--ignore-https-errors]
+  site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--headless] [--ignore-https-errors]
   site-docs --help
 
 Notes:
@@ -40,6 +40,10 @@ Notes:
     engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you
     can identify the app's real auth/session cookie.
+  • --cdp <endpoint> makes capture-auth *attach to an already-running Chrome* (start it with
+    --remote-debugging-port=N --disable-web-security --user-data-dir=<dir>) instead of launching a fresh one —
+    use this to capture from the same Chrome the engineer is already logged into (and that Claude in Chrome is
+    driving for discovery), so they don't log in twice. site-docs won't close that Chrome.
   • auth_cookie (set via \`init --auth-cookie\`, \`capture-auth --auth-cookie\`, or hand-edited into
     auth/strategy.yaml) names that cookie; when set, the cached session's expiry tracks *that* cookie's
     expiry rather than the \`ttl\` guess (an interactive SSO login leaves ephemeral IdP scratch cookies, so
@@ -218,6 +222,7 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
   const headless = flags.get("headless") === true;
   const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
   const authCookie = typeof flags.get("auth-cookie") === "string" ? (flags.get("auth-cookie") as string) : undefined;
+  const cdp = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
 
   const descriptorPath = path.join(projectDir, "auth", "strategy.yaml");
   let descriptorText: string;
@@ -253,7 +258,9 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
 
   let strategy;
   try {
-    strategy = makeStrategy(roleAuth, { instrumentedBrowser: () => new PlaywrightInstrumentedBrowser({ headless, ignoreHTTPSErrors }) });
+    strategy = makeStrategy(roleAuth, {
+      instrumentedBrowser: () => new PlaywrightInstrumentedBrowser({ headless, ignoreHTTPSErrors, ...(cdp ? { connectOverCdp: cdp } : {}) }),
+    });
   } catch (e) {
     process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
     return 1;
