@@ -20,6 +20,8 @@ const CAPTURE_BINDING = "__siteDocs_capture";
 export interface PlaywrightInstrumentedBrowserOptions {
   /** Headed by default (the human logs in there). Set true to run headless — for automated tests only. */
   headless?: boolean;
+  /** Accept self-signed / invalid TLS certs (e.g. the target app's local HTTPS dev cert). Default: false. */
+  ignoreHTTPSErrors?: boolean;
   /** Extra Chromium args appended after {@link SECURITY_LOWERED_ARGS}. */
   extraArgs?: string[];
 }
@@ -59,7 +61,10 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
       headless: this.opts.headless ?? false,
       args: [...SECURITY_LOWERED_ARGS, ...(this.opts.extraArgs ?? [])],
     });
-    this.context = await this.browser.newContext({ baseURL });
+    this.context = await this.browser.newContext({
+      baseURL,
+      ...(this.opts.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
+    });
     // Node-side capture trigger; available on every page in the context (survives navigations).
     await this.context.exposeFunction(CAPTURE_BINDING, () => {
       this.resolveCaptured();

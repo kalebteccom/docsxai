@@ -18,14 +18,15 @@ import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser
 const USAGE = `site-docs — deterministic execution CLI
 
 Usage:
-  site-docs run <project-dir> [--flow <name>] [--base-url <url>] [--headed]
+  site-docs run <project-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors]
   site-docs render <project-dir>
-  site-docs capture-auth <project-dir> --base-url <url> [--role <role>] [--headless]
+  site-docs capture-auth <project-dir> --base-url <url> [--role <role>] [--headless] [--ignore-https-errors]
   site-docs --help
 
 Notes:
   • <project-dir> holds flows/<flow>.flow.yaml and (optionally) auth/strategy.yaml.
   • run launches Chromium; if no browser binary is present, install one:  npx playwright install chromium
+  • --ignore-https-errors accepts self-signed/invalid TLS (e.g. an app's local HTTPS dev cert)
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
     engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
     it to <project-dir>/.auth/<role>.json for subsequent \`run\`s.
@@ -94,6 +95,7 @@ async function cmdRun(args: string[]): Promise<number> {
   const onlyFlow = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const baseURL = typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined;
   const headed = flags.get("headed") === true;
+  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true;
 
   let flowPaths: string[];
   try {
@@ -122,7 +124,7 @@ async function cmdRun(args: string[]): Promise<number> {
 
   let session;
   try {
-    session = await launchPlaywrightSession({ baseURL, headed, storageState, docPackRoot: projectDir });
+    session = await launchPlaywrightSession({ baseURL, headed, ignoreHTTPSErrors, storageState, docPackRoot: projectDir });
   } catch (e) {
     const msg = (e as Error).message;
     if (/Executable doesn't exist|browserType\.launch|playwright install/i.test(msg)) {
@@ -195,6 +197,7 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
     return 2;
   }
   const headless = flags.get("headless") === true;
+  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true;
 
   const descriptorPath = path.join(projectDir, "auth", "strategy.yaml");
   let descriptorText: string;
@@ -230,7 +233,7 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
 
   let strategy;
   try {
-    strategy = makeStrategy(roleAuth, { instrumentedBrowser: () => new PlaywrightInstrumentedBrowser({ headless }) });
+    strategy = makeStrategy(roleAuth, { instrumentedBrowser: () => new PlaywrightInstrumentedBrowser({ headless, ignoreHTTPSErrors }) });
   } catch (e) {
     process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
     return 1;

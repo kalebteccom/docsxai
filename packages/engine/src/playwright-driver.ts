@@ -21,6 +21,8 @@ export interface PlaywrightSessionOptions {
   storageState?: StorageState;
   /** Run headed (useful for `manual-capture` and debugging). Default: headless. */
   headed?: boolean;
+  /** Accept self-signed / invalid TLS certs (e.g. an app's local HTTPS dev cert). Default: false. */
+  ignoreHTTPSErrors?: boolean;
   /** Extra Chromium args (e.g. the security-lowered flags `manual-capture` uses). */
   chromiumArgs?: string[];
   /** Doc-pack root that screenshot paths are resolved against. */
@@ -48,6 +50,7 @@ export async function launchPlaywrightSession(opts: PlaywrightSessionOptions = {
   const context = await browser.newContext({
     ...(opts.baseURL ? { baseURL: opts.baseURL } : {}),
     ...(opts.storageState ? { storageState: opts.storageState } : {}),
+    ...(opts.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
   });
   const page = await context.newPage();
   const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".");
