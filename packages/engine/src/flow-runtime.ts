@@ -36,7 +36,8 @@ export interface BrowserDriver {
   waitForNetworkIdle(): Promise<void>;
   waitForLoad(): Promise<void>;
   waitForElementStable(selector: string): Promise<void>;
-  waitForSelector(selector: string): Promise<void>;
+  /** Wait for `selector` to appear. `timeoutMs` overrides the driver's default (use for slow backend ops). */
+  waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
   waitForTimeout(ms: number): Promise<void>;
 
   isVisible(selector: string): Promise<boolean>;
@@ -71,6 +72,8 @@ export interface RunFlowOptions {
   screenshotPath?: (flow: string, stepId: string) => string;
   /** If false, skip screenshot/annotation capture (pure flow validation). Default: true. */
   captureDocs?: boolean;
+  /** If set, stop after executing the step with this id — run only a prefix of the flow (for calibration). */
+  stopAfter?: string;
 }
 
 export interface ExecutedStep {
@@ -108,8 +111,8 @@ async function applyWait(driver: BrowserDriver, wait: WaitSpec, resolve: (v: str
     // element_stable without a selector is a no-op signal in this prototype; a real driver may track layout.
     return;
   }
+  if ("selector" in wait) return driver.waitForSelector(resolve(wait.selector), wait.timeout_ms);
   if ("timeout_ms" in wait) return driver.waitForTimeout(wait.timeout_ms);
-  if ("selector" in wait) return driver.waitForSelector(resolve(wait.selector));
 }
 
 async function checkSuccess(
@@ -218,6 +221,7 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
       });
     }
     executed.push(ex);
+    if (opts.stopAfter && step.id === opts.stopAfter) break;
   }
 
   return {

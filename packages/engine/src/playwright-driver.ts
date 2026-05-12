@@ -107,8 +107,8 @@ export class PlaywrightDriver implements BrowserDriver {
     await this.page.locator(selector).waitFor({ state: "visible" });
     await this.page.waitForTimeout(100);
   }
-  waitForSelector(selector: string): Promise<void> {
-    return this.page.waitForSelector(selector).then(() => undefined);
+  waitForSelector(selector: string, timeoutMs?: number): Promise<void> {
+    return this.page.waitForSelector(selector, timeoutMs ? { timeout: timeoutMs } : {}).then(() => undefined);
   }
   waitForTimeout(ms: number): Promise<void> {
     return this.page.waitForTimeout(ms);

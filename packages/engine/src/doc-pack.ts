@@ -51,11 +51,16 @@ export const ActionType = z.enum([
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 
-/** What to wait for after a step's action settles. `network_idle` / `element_stable` / `load` are named primitives. */
+/**
+ * What to wait for after a step's action settles. `network_idle` / `element_stable` / `load` are named
+ * primitives; `{ selector }` waits for an element to appear (Playwright's default timeout, ~30s) — give it
+ * `timeout_ms` to override that (e.g. waiting on a multi-minute backend op that mounts a "done" element);
+ * `{ timeout_ms }` alone is a blind sleep (last resort — for animations, not state).
+ */
 export const WaitSpec = z.union([
   z.enum(["network_idle", "element_stable", "load"]),
   z.object({ timeout_ms: z.number().int().positive() }).strict(),
-  z.object({ selector: LocatorRef }).strict(),
+  z.object({ selector: LocatorRef, timeout_ms: z.number().int().positive().optional() }).strict(),
 ]);
 export type WaitSpec = z.infer<typeof WaitSpec>;
 

@@ -25,7 +25,7 @@ Usage:
                                  [--persist tmp] [--force]
   site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--headed] [--role <role>]
-  site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors]
+  site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--pause]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   site-docs --help
@@ -37,6 +37,10 @@ Notes:
   • run / capture-auth read app_url + ignore_https_errors from .site-docs.json if you don't pass the flags.
   • run launches Chromium; if no browser binary is present, install one:  npx playwright install chromium
   • --ignore-https-errors accepts self-signed/invalid TLS (e.g. an app's local HTTPS dev cert)
+  • run --stop-after <step-id> runs only a prefix of the flow (up to & incl. that step); --pause keeps the
+    (headed) browser open at the last step run — so you can inspect the live state mid-flow when calibrating
+    (pair with --flow <name>). For waiting on a slow backend op, give a step a wait_for of the form
+    { selector: $x, timeout_ms: 180000 } — a per-step override of the default ~30s selector-wait timeout.
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
     engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you
@@ -121,7 +125,9 @@ async function cmdRun(args: string[]): Promise<number> {
     return 2;
   }
   const onlyFlow = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
-  const headed = flags.get("headed") === true;
+  const stopAfter = typeof flags.get("stop-after") === "string" ? (flags.get("stop-after") as string) : undefined;
+  const pause = flags.get("pause") === true;
+  const headed = flags.get("headed") === true || pause; // --pause implies --headed
   const wsCfg = await loadWorkspaceConfig(projectDir);
   const baseURL = (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ?? wsCfg?.app_url;
   const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
@@ -166,7 +172,7 @@ async function cmdRun(args: string[]): Promise<number> {
 
   try {
     for (const flow of flows) {
-      const result = await runFlow(flow, session.driver, { resolveLocator: (n) => flow.locators[n] });
+      const result = await runFlow(flow, session.driver, { resolveLocator: (n) => flow.locators[n], ...(stopAfter ? { stopAfter } : {}) });
       const docsDir = path.join(projectDir, "docs", flow.name);
       await fs.mkdir(docsDir, { recursive: true });
       await fs.writeFile(
@@ -181,6 +187,10 @@ async function cmdRun(args: string[]): Promise<number> {
     process.stderr.write(`run: ${(e as Error).message}\n`);
     return 1;
   } finally {
+    if (pause) {
+      process.stdout.write("run: --pause — browser is open at the last step run; close it to exit.\n");
+      await new Promise<void>((resolve) => session.browser.on("disconnected", () => resolve()));
+    }
     await session.close();
   }
 }

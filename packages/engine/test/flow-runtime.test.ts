@@ -44,8 +44,8 @@ class FakeDriver implements BrowserDriver {
   async waitForElementStable(s: string) {
     this.rec(`waitStable ${s}`);
   }
-  async waitForSelector(s: string) {
-    this.rec(`waitSelector ${s}`);
+  async waitForSelector(s: string, t?: number) {
+    this.rec(`waitSelector ${s}${t ? ` (${t}ms)` : ""}`);
   }
   async waitForTimeout(ms: number) {
     this.rec(`waitTimeout ${ms}`);
@@ -150,6 +150,32 @@ describe("runFlow", () => {
     };
     const flow = parseFlowFile(FLOW);
     expect(await runFlow(flow, mk())).toEqual(await runFlow(flow, mk()));
+  });
+
+  it("stopAfter runs only a prefix of the flow (up to & including that step)", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    const flow = parseFlowFile(FLOW);
+    const r = await runFlow(flow, d, { stopAfter: "open-sidebar" });
+    expect(r.steps.map((s) => s.id)).toEqual(["open-app", "open-sidebar"]); // not "type-title"
+    expect(d.calls).not.toContain("fill #title=My recap");
+  });
+
+  it("passes a per-step timeout_ms to waitForSelector (the 'wait for a slow backend op' primitive)", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#done");
+    const flow = parseFlowFile(`
+name: slow
+locators: { done: '#done' }
+steps:
+  - id: kick
+    action: click
+    target: '#go'
+    wait_for: { selector: $done, timeout_ms: 180000 }
+    success: { visible: $done }
+`);
+    await runFlow(flow, d, { captureDocs: false });
+    expect(d.calls).toContain("waitSelector #done (180000ms)");
   });
 
   it("throws on an unresolved locator ref via a custom resolver", async () => {
