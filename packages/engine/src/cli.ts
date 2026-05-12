@@ -10,6 +10,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { LocalStorageStateCache, makeStrategy, parseAuthStrategyFile, resolveCredsEnv, type StorageState } from "./auth.js";
+import { calibrate } from "./calibrate.js";
 import { parseFlowFile } from "./flow-file.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
@@ -22,6 +23,7 @@ Usage:
   site-docs init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>]
                                  [--ttl <dur>] [--capture-trigger console|button] [--ignore-https-errors]
                                  [--persist tmp] [--force]
+  site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--headless] [--ignore-https-errors]
@@ -37,7 +39,10 @@ Notes:
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
     engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s.
-  • Calibration (calibrate/diagnose/style-learn) runs in an agent context — see the plugin, not this CLI.`;
+  • calibrate takes a *structured flow-guide* (a flow-file in YAML, or a .md with a yaml fenced block) and
+    writes flows/<name>.flow.yaml + a default docs/style.yaml. Loose-prose descriptions / live element-picking
+    need the host agent — that's the /site-docs:calibrate *skill* (see the plugin), which then refines/produces
+    the flow-file; this CLI command covers only the deterministic structured-input case.`;
 
 function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
   const positionals: string[] = [];
@@ -306,6 +311,38 @@ async function cmdInit(args: string[]): Promise<number> {
   }
 }
 
+async function cmdCalibrate(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  const workspaceDir = positionals[0];
+  if (!workspaceDir) {
+    process.stderr.write("calibrate: missing <workspace-dir>\n\n" + USAGE + "\n");
+    return 2;
+  }
+  const from = typeof flags.get("from") === "string" ? (flags.get("from") as string) : undefined;
+  if (!from) {
+    process.stderr.write("calibrate: --from <flow.md|.yaml> is required (the structured flow-guide)\n");
+    return 2;
+  }
+  const flowName = typeof flags.get("name") === "string" ? (flags.get("name") as string) : undefined;
+  let text: string;
+  try {
+    text = await fs.readFile(from, "utf8");
+  } catch {
+    process.stderr.write(`calibrate: cannot read ${from}\n`);
+    return 1;
+  }
+  try {
+    const r = await calibrate({ workspaceDir, fromText: text, fromSource: from, ...(flowName ? { flowName } : {}) });
+    process.stdout.write(`calibrate: wrote ${r.flowFilePath}  (${r.flow.steps.length} steps)\n`);
+    if (r.wroteStyle) process.stdout.write(`calibrate: wrote default ${r.stylePath}\n`);
+    process.stdout.write(`  next: site-docs run ${workspaceDir}  (then: site-docs render ${workspaceDir})\n`);
+    return 0;
+  } catch (e) {
+    process.stderr.write(`calibrate: ${(e as Error).message}\n`);
+    return 1;
+  }
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -317,6 +354,8 @@ export async function main(argv: string[]): Promise<number> {
       return 0;
     case "init":
       return cmdInit(rest);
+    case "calibrate":
+      return cmdCalibrate(rest);
     case "run":
       return cmdRun(rest);
     case "render":

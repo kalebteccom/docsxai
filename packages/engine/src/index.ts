@@ -12,6 +12,7 @@ export * from "./flow-file.js";
 export * from "./flow-runtime.js";
 export * from "./pipeline.js";
 export * from "./auth.js";
+export * from "./calibrate.js";
 export * from "./playwright-driver.js";
 export * from "./playwright-instrumented-browser.js";
 export * from "./workspace.js";
