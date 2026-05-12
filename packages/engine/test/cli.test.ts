@@ -74,6 +74,14 @@ describe("site-docs CLI — main()", () => {
     expect(err).toMatch(/cannot read/);
   });
 
+  it("inspect requires a workspace dir and a URL (flag or .site-docs.json)", async () => {
+    expect(await main(["inspect"])).toBe(2);
+    expect(err).toMatch(/missing <workspace-dir>/);
+    err = "";
+    expect(await main(["inspect", "/some/ws-without-config"])).toBe(2);
+    expect(err).toMatch(/no URL/);
+  });
+
   it("capture-auth requires a project dir and --base-url, and a real auth descriptor", async () => {
     expect(await main(["capture-auth"])).toBe(2);
     expect(err).toMatch(/missing <project-dir>/);

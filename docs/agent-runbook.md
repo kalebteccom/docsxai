@@ -85,7 +85,7 @@ node -e "const f='$WORKSPACE/.site-docs.json',j=require(f);j.app_url='$APP_URL';
 site-docs capture-auth "$WORKSPACE"        # reads app_url + ignore_https_errors from .site-docs.json
 ```
 
-An instrumented Chrome opens (headed). The **human** logs in interactively (SSO / MFA / conditional access — whatever they click through). When they're in, they run `window.__siteDocs.capture()` in the devtools console (or click the injected "Capture session" button if `--capture-trigger button` was set). The session is cached to `$WORKSPACE/.auth/<role>.json`. **Tell the human these steps** — you can't log in for them.
+An instrumented Chrome opens (headed). The **human** logs in interactively (SSO / MFA / conditional access — whatever they click through). When they're in, they run `window.__siteDocs.capture()` in the devtools console (or click the injected "Capture session" button if `--capture-trigger button` was set). The session is cached to `$WORKSPACE/.auth/<role>.json`. **Tell the human these steps** — you can't log in for them. `capture-auth` keeps a persistent Chrome profile at `$WORKSPACE/.auth/chrome-profile/` (gitignored), so once they've logged in once, **re-running `capture-auth` reuses that session — usually they just trigger capture again, no re-login**. `--fresh` forces a clean profile.
 
 `capture-auth` prints the captured cookie jar. **Identify the app's real auth/session cookie** and pin it so the cache tracks its actual expiry — otherwise the cache falls back to the `ttl` guess (which is what stops a freshly-captured SSO session from being "born expired": the jar has ephemeral IdP scratch cookies whose expiry is seconds out, so `min(cookie.expires)` ≈ now and must NOT be trusted — but `ttl` is still a guess; the real auth cookie's expiry is the true bound). The auth cookie is:
 - on the **app's own domain** (e.g. `app.example.com` / `localhost:<port>` — *not* the identity provider's domain: `login.microsoftonline.com`, `accounts.google.com`, `*.okta.com`, …),
@@ -112,7 +112,7 @@ site-docs capture-auth "$WORKSPACE" --auth-cookie "<the-cookie-you-identified>" 
   site-docs calibrate "$WORKSPACE" --from path/to/flow-guide.md     # writes $WORKSPACE/flows/<name>.flow.yaml + a default docs/style.yaml
   ```
 
-- **If the description is loose prose, or a the first-consumer testing guide** (whose fenced blocks are numbered prose pseudo-steps — `1. SETUP …`, `VERIFY …` — not flow-file YAML, so `--from` *won't* take them), or you need to pin elements against the live page: author the flow-file yourself. With the dev server up and the human authed in their Claude-in-Chrome session, walk each step on the live app, pick **one canonical locator per step** (prefer role/text/test-id), add `wait_for`/`success` criteria, and write `$WORKSPACE/flows/<flow>.flow.yaml` by hand. The full playbook is `$TOOL_REPO/packages/plugin/skills/calibrate/SKILL.md`. (A one-command agent-driven `/site-docs:calibrate` that does this via an MCP server is not built yet.)
+- **If the description is loose prose, or a manual-testing-guide** (whose fenced blocks are numbered prose pseudo-steps — `1. SETUP …`, `VERIFY …` — not flow-file YAML, so `--from` *won't* take them), or you need to pin elements against the live page: author the flow-file yourself. Walk each step on the live app, pick **one canonical locator per step** (prefer role/text/`data-testid`), add `wait_for`/`success`, and write `$WORKSPACE/flows/<flow>.flow.yaml` by hand. To inspect the *authed* live page for locators — note you **can't** load the captured session into a browser your MCP/automation controls (the app's auth cookie is usually `httpOnly`, so not settable via `document.cookie`) — use **`site-docs inspect "$WORKSPACE"`**: it opens the app headless with `.auth/<role>.json` loaded and prints the page's `[data-testid]` elements (✓ = visible); `--selector '<css>'` dumps matching elements' HTML; `--headed` watches; `--url <url>` for a sub-page. Iterate: `inspect` → write a step → `site-docs run` → repeat. The full playbook is `$TOOL_REPO/packages/plugin/skills/calibrate/SKILL.md`. (A one-command agent-driven `/site-docs:calibrate` via an MCP server isn't built yet.)
 
 The flow-file format (validate by running `calibrate` or `run`):
 
@@ -121,11 +121,15 @@ name: <flow-name>
 prerequisites: [ { logged_in_as: editor } ]      # optional
 locators: { play_button: '#play', recap_panel: '#recap' }   # one canonical selector per name; no fallbacks
 steps:
+  - id: open-app
+    action: navigate
+    value: /dashboard                            # `navigate` takes `value` (a path resolved against the workspace app_url, or an absolute URL) — NOT `target`
+    wait_for: load                               # network_idle | load | element_stable | { selector: $x } | { timeout_ms: N }
   - id: open-sidebar
-    action: click                                # navigate|click|fill|press|hover|select|check|uncheck|wait
-    target: $play_button                         # $name (from locators) or an inline selector
-    wait_for: { selector: $recap_panel }         # network_idle | load | element_stable | { selector } | { timeout_ms }
-    success: { visible: $recap_panel }           # visible | hidden | { url_matches } | { text_contains: { selector, text } } — halts on failure
+    action: click                                # navigate|click|fill|press|hover|select|check|uncheck|wait. click/hover/check/uncheck take `target`; fill/select/press take `target` + `value`; navigate takes `value`
+    target: $play_button                         # $name (from `locators`) or an inline selector
+    wait_for: { selector: $recap_panel }
+    success: { visible: $recap_panel }           # visible | hidden | { url_matches: '...' } | { text_contains: { selector: $x, text: '...' } } — halts on failure
     annotation: { copy: "Click Play to open the recap sidebar", arrow: top-right }
 ```
 

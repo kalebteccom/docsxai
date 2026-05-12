@@ -25,6 +25,13 @@ export interface PlaywrightInstrumentedBrowserOptions {
   /** Extra Chromium args appended after {@link SECURITY_LOWERED_ARGS}. (Ignored when attaching.) */
   extraArgs?: string[];
   /**
+   * If set, launch with a **persistent profile** at this directory (a `userDataDir`) — cookies, localStorage and
+   * login state survive between captures, so re-running `capture-auth` reuses the login instead of a fresh Chrome.
+   * `capture-auth` defaults this to `<workspace>/.auth/chrome-profile/` (gitignored, never leaves the machine).
+   * Mutually exclusive with `connectOverCdp` (attach short-circuits launching).
+   */
+  profileDir?: string;
+  /**
    * If set, **attach to an already-running Chrome** at this CDP endpoint (e.g. `http://localhost:9222`) instead
    * of launching a fresh one. Use this to capture from the *same* Chrome the engineer is already logged into —
    * and that Claude in Chrome is driving for discovery — so they don't log in twice. Start that Chrome with
@@ -57,6 +64,7 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
   private context?: BrowserContext;
   private page?: Page;
   private attached = false;
+  private persistent = false;
   private captured: Promise<void> = Promise.resolve();
   private resolveCaptured: () => void = () => {};
 
@@ -82,8 +90,28 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
       return;
     }
 
-    // Launch a fresh, security-lowered, instrumented Chrome.
     this.attached = false;
+
+    if (this.opts.profileDir) {
+      // Launch with a persistent profile — cookies/login survive between captures.
+      this.persistent = true;
+      this.context = await chromium.launchPersistentContext(this.opts.profileDir, {
+        headless: this.opts.headless ?? false,
+        args: [...SECURITY_LOWERED_ARGS, ...(this.opts.extraArgs ?? [])],
+        ...(this.opts.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
+        ...(baseURL ? { baseURL } : {}),
+      });
+      this.browser = this.context.browser() ?? undefined;
+      await this.context.exposeFunction(CAPTURE_BINDING, () => {
+        this.resolveCaptured();
+      });
+      this.page = this.context.pages()[0] ?? (await this.context.newPage());
+      await this.page.goto(baseURL);
+      return;
+    }
+
+    // Launch a fresh, ephemeral, security-lowered, instrumented Chrome.
+    this.persistent = false;
     this.browser = await chromium.launch({
       headless: this.opts.headless ?? false,
       args: [...SECURITY_LOWERED_ARGS, ...(this.opts.extraArgs ?? [])],
@@ -122,8 +150,9 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
       this.page = undefined;
       return;
     }
+    // For a persistent context, `context.close()` flushes the profile to disk and closes the browser.
     await this.context?.close().catch(() => undefined);
-    await this.browser?.close().catch(() => undefined);
+    if (!this.persistent) await this.browser?.close().catch(() => undefined);
     this.context = undefined;
     this.browser = undefined;
     this.page = undefined;

@@ -24,9 +24,10 @@ Usage:
                                  [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                  [--persist tmp] [--force]
   site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
+  site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--headed] [--role <role>]
   site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors]
   site-docs render <workspace-dir>
-  site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--headless] [--ignore-https-errors]
+  site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   site-docs --help
 
 Notes:
@@ -40,14 +41,20 @@ Notes:
     engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you
     can identify the app's real auth/session cookie.
+  • capture-auth keeps a persistent Chrome profile at <workspace>/.auth/chrome-profile/ (gitignored) — re-running
+    it reuses the login (just trigger capture again). Use --fresh for a clean profile (forces a fresh login).
   • --cdp <endpoint> makes capture-auth *attach to an already-running Chrome* (start it with
     --remote-debugging-port=N --disable-web-security --user-data-dir=<dir>) instead of launching a fresh one —
     use this to capture from the same Chrome the engineer is already logged into (and that Claude in Chrome is
-    driving for discovery), so they don't log in twice. site-docs won't close that Chrome.
+    driving for discovery), so they don't log in twice. site-docs won't close that Chrome. (--cdp ignores --fresh.)
   • auth_cookie (set via \`init --auth-cookie\`, \`capture-auth --auth-cookie\`, or hand-edited into
     auth/strategy.yaml) names that cookie; when set, the cached session's expiry tracks *that* cookie's
     expiry rather than the \`ttl\` guess (an interactive SSO login leaves ephemeral IdP scratch cookies, so
     \`min(cookie.expires)\` ≈ now — don't rely on it). If unset/unfound, \`ttl\` (or a 1h default) is used.
+  • inspect opens the app in a headless (or --headed) browser *with the cached session loaded* and prints the
+    page's [data-testid] elements (or, with --selector, matching elements' HTML) — for pinning locators when
+    hand-authoring a flow-file (the captured session can't be replayed in a browser the agent's MCP controls
+    because the auth cookie is usually httpOnly; inspect does the storageState→Playwright bridge for you).
   • calibrate takes a *structured flow-guide* (a flow-file in YAML, or a .md with a yaml fenced block) and
     writes flows/<name>.flow.yaml + a default docs/style.yaml. Loose-prose descriptions / live element-picking
     need the host agent — that's the /site-docs:calibrate *skill* (see the plugin), which then refines/produces
@@ -223,6 +230,9 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
   const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
   const authCookie = typeof flags.get("auth-cookie") === "string" ? (flags.get("auth-cookie") as string) : undefined;
   const cdp = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
+  const fresh = flags.get("fresh") === true;
+  // Persistent Chrome profile under the workspace — re-running capture-auth reuses the login. (Not when attaching, or with --fresh.)
+  const profileDir = fresh || cdp ? undefined : path.join(projectDir, ".auth", "chrome-profile");
 
   const descriptorPath = path.join(projectDir, "auth", "strategy.yaml");
   let descriptorText: string;
@@ -259,7 +269,13 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
   let strategy;
   try {
     strategy = makeStrategy(roleAuth, {
-      instrumentedBrowser: () => new PlaywrightInstrumentedBrowser({ headless, ignoreHTTPSErrors, ...(cdp ? { connectOverCdp: cdp } : {}) }),
+      instrumentedBrowser: () =>
+        new PlaywrightInstrumentedBrowser({
+          headless,
+          ignoreHTTPSErrors,
+          ...(cdp ? { connectOverCdp: cdp } : {}),
+          ...(profileDir ? { profileDir } : {}),
+        }),
     });
   } catch (e) {
     process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
@@ -267,7 +283,9 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
   }
 
   try {
-    process.stdout.write(`capture-auth: launching browser for role "${role}" (${roleAuth.strategy}) — log in, then trigger capture…\n`);
+    process.stdout.write(
+      `capture-auth: launching browser for role "${role}" (${roleAuth.strategy})${cdp ? ` — attaching to ${cdp}` : profileDir ? " — reusing saved profile if present" : " — fresh profile"}; log in if prompted, then trigger capture…\n`,
+    );
     const result = await strategy.authenticate({ creds, options: roleAuth.options, baseURL, role });
 
     const cookies = result.storageState.cookies ?? [];
@@ -380,6 +398,92 @@ async function cmdCalibrate(args: string[]): Promise<number> {
   }
 }
 
+async function cmdInspect(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  const workspaceDir = positionals[0];
+  if (!workspaceDir) {
+    process.stderr.write("inspect: missing <workspace-dir>\n\n" + USAGE + "\n");
+    return 2;
+  }
+  const wsCfg = await loadWorkspaceConfig(workspaceDir);
+  const url = (typeof flags.get("url") === "string" ? (flags.get("url") as string) : undefined) ?? wsCfg?.app_url;
+  if (!url) {
+    process.stderr.write("inspect: no URL — pass --url <url> or set app_url in the workspace's .site-docs.json\n");
+    return 2;
+  }
+  const selector = typeof flags.get("selector") === "string" ? (flags.get("selector") as string) : undefined;
+  const headed = flags.get("headed") === true;
+  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
+
+  let role = typeof flags.get("role") === "string" ? (flags.get("role") as string) : undefined;
+  if (!role) {
+    try {
+      role = parseAuthStrategyFile(await fs.readFile(path.join(workspaceDir, "auth", "strategy.yaml"), "utf8")).default_role;
+    } catch {
+      role = "editor";
+    }
+  }
+  const storageState = (await new LocalStorageStateCache(path.join(workspaceDir, ".auth")).load(role)) ?? undefined;
+  if (!storageState) {
+    process.stderr.write(`inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`site-docs capture-auth\` first if the app needs login)\n`);
+  }
+
+  let session;
+  try {
+    session = await launchPlaywrightSession({ baseURL: url, headed, ignoreHTTPSErrors, ...(storageState ? { storageState } : {}), docPackRoot: workspaceDir });
+  } catch (e) {
+    const msg = (e as Error).message;
+    if (/Executable doesn't exist|playwright install/i.test(msg)) {
+      process.stderr.write("inspect: no Chromium binary — `npx playwright install chromium`\n");
+      return 1;
+    }
+    process.stderr.write(`inspect: failed to launch browser: ${msg}\n`);
+    return 1;
+  }
+  try {
+    await session.page.goto(url, { waitUntil: "domcontentloaded" }).catch(() => undefined);
+    await session.page.waitForTimeout(300);
+    process.stdout.write(`inspect: ${session.page.url()}\n  title: ${await session.page.title().catch(() => "(?)")}\n`);
+    if (selector) {
+      const els = await session.page.locator(selector).all();
+      process.stdout.write(`  ${els.length} element(s) matching ${selector} (first 20):\n`);
+      for (const el of els.slice(0, 20)) {
+        const html = (await el.evaluate((e) => e.outerHTML).catch(() => "")).replace(/\s+/g, " ").slice(0, 400);
+        process.stdout.write(`    ${html}\n`);
+      }
+    } else {
+      const items = await session.page
+        .$$eval("[data-testid]", (els) =>
+          els.map((e) => ({
+            testid: e.getAttribute("data-testid") ?? "",
+            tag: e.tagName.toLowerCase(),
+            text: (e.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 60),
+            visible:
+              typeof (e as unknown as { checkVisibility?: () => boolean }).checkVisibility === "function"
+                ? (e as unknown as { checkVisibility: () => boolean }).checkVisibility()
+                : (e as unknown as { offsetParent?: unknown }).offsetParent != null,
+          })),
+        )
+        .catch(() => [] as Array<{ testid: string; tag: string; text: string; visible: boolean }>);
+      process.stdout.write(`  ${items.length} [data-testid] element(s) (✓ = visible) — pin these as locators:\n`);
+      for (const it of items) {
+        process.stdout.write(`    ${it.visible ? "✓" : " "} [data-testid="${it.testid}"]  <${it.tag}>  ${it.text ? `"${it.text}"` : ""}\n`);
+      }
+      process.stdout.write(`  (--selector '<css>' dumps matching elements' HTML; --headed opens the browser; --url <url> for a sub-page)\n`);
+    }
+    if (headed) {
+      process.stdout.write("inspect: browser is open — close it to exit.\n");
+      await new Promise<void>((resolve) => session!.browser.on("disconnected", () => resolve()));
+    }
+    return 0;
+  } catch (e) {
+    process.stderr.write(`inspect: ${(e as Error).message}\n`);
+    return 1;
+  } finally {
+    if (!headed) await session.close();
+  }
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -393,6 +497,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdInit(rest);
     case "calibrate":
       return cmdCalibrate(rest);
+    case "inspect":
+      return cmdInspect(rest);
     case "run":
       return cmdRun(rest);
     case "render":

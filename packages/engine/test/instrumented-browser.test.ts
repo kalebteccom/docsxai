@@ -13,6 +13,11 @@ describe("PlaywrightInstrumentedBrowser", () => {
     expect(b).toBeInstanceOf(PlaywrightInstrumentedBrowser);
   });
 
+  it("accepts a profileDir option (persistent profile — login survives between captures)", () => {
+    const b = new PlaywrightInstrumentedBrowser({ profileDir: "/tmp/site-docs-chrome-profile" });
+    expect(b).toBeInstanceOf(PlaywrightInstrumentedBrowser);
+  });
+
   it("uses security-lowered Chromium args (so the injected capture helper works across SSO redirects)", () => {
     expect(SECURITY_LOWERED_ARGS).toContain("--disable-web-security");
     expect(SECURITY_LOWERED_ARGS).toContain("--disable-features=IsolateOrigins,site-per-process");
