@@ -54,8 +54,10 @@ export function extractFlowFile(text: string, source = "<flow-guide>"): FlowFile
   }
   throw new CalibrateError(
     `${source}: not a structured flow-guide (no parseable flow-file YAML found).\n` +
-      `This input looks like loose prose — author the flow-file with the agent: the /site-docs:calibrate skill\n` +
-      `(walk the live app via Claude in Chrome, pin one canonical locator per step), then re-run calibrate or run.`,
+      `\`calibrate --from\` only takes a flow-file in YAML, or a Markdown doc with a \`\`\`yaml fenced block that *is* one.\n` +
+      `Loose prose — e.g. a hand-written test guide whose fenced blocks are numbered prose pseudo-steps for an agent\n` +
+      `to *test* rather than flow-file YAML — must be turned into a flow-file by hand: follow the /site-docs:calibrate skill\n` +
+      `(walk the live app via Claude in Chrome, pin one canonical locator per step), then \`calibrate --from\` it or just \`run\`.`,
   );
 }
 

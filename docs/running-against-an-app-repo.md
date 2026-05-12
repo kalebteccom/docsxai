@@ -1,5 +1,10 @@
 # Running site-docs against an app repo — without leaving a trace
 
+> The step-by-step that's kept current (incl. field notes from real test drives — `auth_cookie` pinning,
+> copying gitignored `.env`/dev-cert into the worktree, dev-server port collisions, the `pnpm link` gotcha,
+> loose-prose/test-guides needing hand-authoring) lives in **[`agent-runbook.md`](./agent-runbook.md)**. This file is the
+> conceptual overview; where the two differ, the agent runbook wins. The one-command setup is `site-docs init`.
+
 site-docs documents a **running web app**, not a source tree. If the app you want to document is built and
 served from a local repo (e.g. a the target app / `example-app` checkout), the rule is: **site-docs operates *on* that
 app from outside — it never writes into the app repo, and you never install it *into* the app repo.** Everything
@@ -154,8 +159,8 @@ git -C "$APP_REPO" status                                # should be clean — y
 
 ## Caveats / known gaps
 
-- **Calibration stages aren't built** — for now, "calibrate" = follow the playbook manually with Claude Code + Claude-in-Chrome. The deterministic `run` / `render` / `capture-auth` are real.
-- **Plugin install from a monorepo subdir** isn't validated yet (`PHASE-0.md` "plugin packaging prototype"). If `claude plugin install` doesn't pick up `packages/plugin/`, copy that directory somewhere it can be installed from, or just use the playbook + CLIs.
-- **`--persist tmp`** (ephemeral workspace, no on-disk doc pack) isn't implemented yet — for now your "workspace" is just whatever directory you point at, and you can `rm -rf "$WORKSPACE"` to discard everything.
-- **HTTPS dev certs:** pass `--ignore-https-errors`. The `manual-capture` browser also runs with security-lowered Chromium flags so the injected capture helper works across SSO-redirect origins.
-- **Session expiry:** `manual-capture` sessions are short (≈ the app's cookie lifetime). `run` will fail fast with "session expired" — re-run `capture-auth` and log in again. A callable login endpoint / a test-only login endpoint on the app would make this unattended; for the target app that's an open ask to the first consumer (`first-consumer-prep.md`).
+- **Agent-driven calibration isn't built** — `site-docs calibrate --from` handles *structured* flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / the first-consumer testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init` / `calibrate`(structured) / `run` / `render` / `capture-auth` are real.
+- **Plugin install from a monorepo subdir** isn't validated yet (`PHASE-0.md` "plugin packaging prototype"). If `claude plugin install` doesn't pick up `packages/plugin/`, copy that dir somewhere installable, or just use the playbook + CLIs.
+- **`--persist tmp`** is implemented for `init` (an ephemeral workspace in a temp dir); `rm -rf` it when done.
+- **HTTPS dev certs:** pass `--ignore-https-errors` (or bake it into `.site-docs.json` via `init`). The `manual-capture` browser also runs security-lowered so the injected capture helper works across SSO-redirect origins. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot.
+- **Session expiry:** `manual-capture` sessions last ≈ the app's auth-cookie lifetime. Pin `cache.auth_cookie` (`capture-auth` prints the jar; or `init --auth-cookie` / `--auth-cookie`) so the cache tracks the real cookie, not a `ttl` guess. `run` fails fast with "session expired" → re-run `capture-auth` (re-login). A callable login / test-only login endpoint on the app would make it unattended; if there isn't one, expect periodic re-capture.
