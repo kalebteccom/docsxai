@@ -11,7 +11,7 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { LocalStorageStateCache, makeStrategy, parseAuthStrategyFile, resolveCredsEnv, type StorageState } from "./auth.js";
 import { calibrate } from "./calibrate.js";
-import { parseFlowFile } from "./flow-file.js";
+import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
@@ -141,9 +141,30 @@ async function cmdRun(args: string[]): Promise<number> {
     process.stderr.write(`run: ${(e as Error).message}\n`);
     return 1;
   }
+  const flowsDir = path.join(projectDir, "flows");
+  const loadFlowFile = async (name: string) => {
+    const fp = path.join(flowsDir, `${name}.flow.yaml`);
+    let text: string;
+    try {
+      text = await fs.readFile(fp, "utf8");
+    } catch {
+      throw new FlowFileError(`\`extends\`: no flow named "${name}" at ${fp}`);
+    }
+    return parseFlowFile(text, fp);
+  };
   const flows = [];
   for (const fp of flowPaths) {
-    const flow = parseFlowFile(await fs.readFile(fp, "utf8"), fp);
+    let flow;
+    try {
+      const parsed = parseFlowFile(await fs.readFile(fp, "utf8"), fp);
+      flow = parsed.extends ? await resolveFlowExtends(parsed, loadFlowFile) : parsed;
+    } catch (e) {
+      if (e instanceof FlowFileError) {
+        process.stderr.write(`run: ${e.message}\n`);
+        return 1;
+      }
+      throw e;
+    }
     if (!onlyFlow || flow.name === onlyFlow) flows.push(flow);
   }
   if (flows.length === 0) {

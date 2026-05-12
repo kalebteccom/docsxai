@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FlowFileError, locatorRefName, parseFlowFile, serializeFlowFile } from "../src/flow-file.js";
+import { FlowFileError, locatorRefName, parseFlowFile, resolveFlowExtends, serializeFlowFile } from "../src/flow-file.js";
 
 const SAMPLE = `
 name: recap-create
@@ -88,5 +88,86 @@ describe("locatorRefName", () => {
     expect(locatorRefName("$play_button")).toBe("play_button");
     expect(locatorRefName("#raw-selector")).toBeNull();
     expect(locatorRefName('[data-testid="x"]')).toBeNull();
+  });
+});
+
+describe("resolveFlowExtends", () => {
+  const PARENT = `
+name: preamble
+locators: { open_btn: '#open' }
+steps:
+  - id: nav
+    action: navigate
+    value: /app
+  - id: open-thing
+    action: click
+    target: $open_btn
+`;
+  const CHILD = `
+name: edit-thing
+extends: preamble
+locators: { save_btn: '#save' }
+steps:
+  - id: do-edit
+    action: fill
+    target: $open_btn          # references a parent locator — only resolves after the merge
+    value: hello
+  - id: save
+    action: click
+    target: $save_btn
+`;
+  const flows: Record<string, string> = { preamble: PARENT, "edit-thing": CHILD };
+  const load = (name: string) => {
+    const t = flows[name];
+    if (t === undefined) throw new Error(`no flow ${name}`);
+    return parseFlowFile(t, `${name}.flow.yaml`);
+  };
+
+  it("parses a flow with `extends`, deferring the locator-ref check to resolution", () => {
+    expect(parseFlowFile(CHILD, "child.flow.yaml").extends).toBe("preamble"); // `$open_btn` ref doesn't fail here
+  });
+
+  it("a flow without `extends` is returned unchanged", async () => {
+    const f = parseFlowFile(PARENT);
+    expect(await resolveFlowExtends(f, load)).toBe(f);
+  });
+
+  it("merges: parent steps first, then this flow's; locators (child wins) + prerequisites; drops `extends`", async () => {
+    const merged = await resolveFlowExtends(parseFlowFile(CHILD), load);
+    expect(merged.extends).toBeUndefined();
+    expect(merged.name).toBe("edit-thing");
+    expect(merged.steps.map((s) => s.id)).toEqual(["nav", "open-thing", "do-edit", "save"]);
+    expect(merged.locators).toEqual({ open_btn: "#open", save_btn: "#save" });
+  });
+
+  it("follows chains (A extends B extends C)", async () => {
+    const chain: Record<string, string> = {
+      c: `name: c\nlocators: { x: '#x' }\nsteps:\n  - id: c1\n    action: click\n    target: $x\n`,
+      b: `name: b\nextends: c\nsteps:\n  - id: b1\n    action: wait\n`,
+      a: `name: a\nextends: b\nsteps:\n  - id: a1\n    action: wait\n`,
+    };
+    const merged = await resolveFlowExtends(parseFlowFile(chain.a!), (n) => parseFlowFile(chain[n]!, `${n}.flow.yaml`));
+    expect(merged.steps.map((s) => s.id)).toEqual(["c1", "b1", "a1"]);
+  });
+
+  it("rejects a step-id collision across the merge", async () => {
+    const bad = parseFlowFile(`name: c\nextends: preamble\nsteps:\n  - id: nav\n    action: wait\n`);
+    await expect(resolveFlowExtends(bad, load)).rejects.toThrow(/collides with a step inherited via `extends`/);
+  });
+
+  it("rejects an `extends` cycle", async () => {
+    const cyclic: Record<string, string> = {
+      a: `name: a\nextends: b\nsteps:\n  - id: sa\n    action: wait\n`,
+      b: `name: b\nextends: a\nsteps:\n  - id: sb\n    action: wait\n`,
+    };
+    await expect(resolveFlowExtends(parseFlowFile(cyclic.a!), (n) => parseFlowFile(cyclic[n]!, `${n}.flow.yaml`))).rejects.toThrow(/cycle/i);
+  });
+
+  it("surfaces a missing `extends` target", async () => {
+    await expect(resolveFlowExtends(parseFlowFile(`name: c\nextends: nonexistent\nsteps:\n  - id: s\n    action: wait\n`), load)).rejects.toThrow(/nonexistent/);
+  });
+
+  it("rejects a locator ref unresolved in both parent and child after the merge", async () => {
+    await expect(resolveFlowExtends(parseFlowFile(`name: c\nextends: preamble\nsteps:\n  - id: s\n    action: click\n    target: $nowhere\n`), load)).rejects.toThrow(/unresolved locator/i);
   });
 });

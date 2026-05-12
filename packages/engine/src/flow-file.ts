@@ -38,7 +38,9 @@ export function parseFlowFile(yamlText: string, source = "<flow-file>"): FlowFil
     throw new FlowFileError(`${source}: invalid flow-file:\n${formatZodIssues(result.error)}`, result.error);
   }
   const flow = result.data;
-  assertLocatorRefsResolve(flow, source);
+  // A flow with `extends` may reference locators it inherits from the parent — defer the ref check to
+  // `resolveFlowExtends`, which runs it on the merged flow.
+  if (!flow.extends) assertLocatorRefsResolve(flow, source);
   assertStepIdsUnique(flow, source);
   return flow;
 }
@@ -101,4 +103,46 @@ function assertStepIdsUnique(flow: FlowFile, source: string): void {
   if (dupes.size) {
     throw new FlowFileError(`${source}: duplicate step ids: ${[...dupes].map((d) => `"${d}"`).join(", ")}`);
   }
+}
+
+/**
+ * Resolve a flow's `extends` chain into a single flow: parent's steps first, then this flow's. `locators` and
+ * `prerequisites` are merged (this flow wins on locator-name collisions); step ids must be unique across the
+ * merge. Chains are followed recursively; cycles throw. `loadFlowFile(name)` parses `flows/<name>.flow.yaml`
+ * (a flow with its own `extends` un-resolved — this function recurses). The result has no `extends`.
+ */
+export async function resolveFlowExtends(
+  flow: FlowFile,
+  loadFlowFile: (name: string) => Promise<FlowFile> | FlowFile,
+  visited: Set<string> = new Set(),
+): Promise<FlowFile> {
+  if (!flow.extends) return flow;
+  if (visited.has(flow.name)) {
+    throw new FlowFileError(`flow "${flow.name}": \`extends\` cycle (chain: ${[...visited, flow.name].join(" → ")})`);
+  }
+  visited.add(flow.name);
+
+  let parentRaw: FlowFile;
+  try {
+    parentRaw = await loadFlowFile(flow.extends);
+  } catch (e) {
+    throw e instanceof FlowFileError ? e : new FlowFileError(`flow "${flow.name}": cannot load \`extends\` target "${flow.extends}": ${(e as Error).message}`, e);
+  }
+  const parent = await resolveFlowExtends(parentRaw, loadFlowFile, visited);
+
+  const parentStepIds = new Set(parent.steps.map((s) => s.id));
+  for (const s of flow.steps) {
+    if (parentStepIds.has(s.id)) {
+      throw new FlowFileError(`flow "${flow.name}": step id "${s.id}" collides with a step inherited via \`extends\` from "${flow.extends}"`);
+    }
+  }
+
+  const merged: FlowFile = {
+    name: flow.name,
+    prerequisites: [...parent.prerequisites, ...flow.prerequisites],
+    locators: { ...parent.locators, ...flow.locators },
+    steps: [...parent.steps, ...flow.steps],
+  };
+  assertLocatorRefsResolve(merged, `<resolved flow "${flow.name}">`);
+  return merged;
 }

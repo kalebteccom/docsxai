@@ -103,6 +103,14 @@ export type Prerequisite = z.infer<typeof Prerequisite>;
 export const FlowFile = z
   .object({
     name: z.string().min(1),
+    /**
+     * Name of another flow whose steps run *first* (composition). The parent's `locators` + `prerequisites`
+     * are merged in (this flow wins on collisions); step ids must be unique across the merge. Chains allowed
+     * (A extends B extends C); cycles are rejected. Resolved at run time against `flows/<name>.flow.yaml`.
+     * Typical use: factor out a shared preamble (Library → open a video → editor) so dependent flows don't
+     * re-walk it every run. (`run --stop-after` operates on the merged step list.)
+     */
+    extends: z.string().min(1).optional(),
     prerequisites: z.array(Prerequisite).default([]),
     /** Named canonical locators referenced from steps as `$name`. One per name; no fallback lists. */
     locators: z.record(z.string(), z.string()).default({}),
