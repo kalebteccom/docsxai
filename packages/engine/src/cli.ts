@@ -242,7 +242,14 @@ async function cmdRender(args: string[]): Promise<number> {
       }
       resolve(1);
     });
-    child.on("exit", (code) => resolve(code ?? 1));
+    child.on("exit", (code) => {
+      if ((code ?? 1) === 0) {
+        process.stdout.write(
+          `render: open ${path.join(outDir, "index.html")}  (the index links the flows; each flow page shows the screenshots — hover a pulsing halo to read its callout)\n`,
+        );
+      }
+      resolve(code ?? 1);
+    });
   });
 }
 
