@@ -32,8 +32,10 @@ export interface InitWorkspaceOptions {
   /** `manual-capture` (default) writes an `auth/strategy.yaml`; `none` skips it. */
   auth?: "manual-capture" | "none";
   role?: string;
-  /** Cache TTL for the captured session (`session`, or a duration like `1h`/`30m`). Default `1h`. */
+  /** Cache TTL for the captured session (`session`, or a duration like `1h`/`30m`). Default `1h` — a *fallback* used only when `authCookie` isn't set/found. */
   ttl?: string;
+  /** Name of the app's auth/session cookie — when set, the cached session's expiry tracks this cookie, not `ttl`. */
+  authCookie?: string;
   captureTrigger?: "console" | "button";
   ignoreHttpsErrors?: boolean;
   /** Allow scaffolding into a non-empty directory. */
@@ -128,7 +130,7 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
         [role]: {
           strategy: "manual-capture",
           options: { capture_trigger: trigger },
-          cache: { enabled: true, store: "local", ttl },
+          cache: { enabled: true, store: "local", ttl, ...(opts.authCookie ? { auth_cookie: opts.authCookie } : {}) },
         },
       },
     };

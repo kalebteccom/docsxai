@@ -20,13 +20,13 @@ import { initWorkspace, loadWorkspaceConfig } from "./workspace.js";
 const USAGE = `site-docs — deterministic execution CLI
 
 Usage:
-  site-docs init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>]
-                                 [--ttl <dur>] [--capture-trigger console|button] [--ignore-https-errors]
+  site-docs init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>] [--ttl <dur>]
+                                 [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                  [--persist tmp] [--force]
   site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors]
   site-docs render <workspace-dir>
-  site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--headless] [--ignore-https-errors]
+  site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--headless] [--ignore-https-errors]
   site-docs --help
 
 Notes:
@@ -38,7 +38,12 @@ Notes:
   • --ignore-https-errors accepts self-signed/invalid TLS (e.g. an app's local HTTPS dev cert)
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
     engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
-    it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s.
+    it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you
+    can identify the app's real auth/session cookie.
+  • auth_cookie (set via \`init --auth-cookie\`, \`capture-auth --auth-cookie\`, or hand-edited into
+    auth/strategy.yaml) names that cookie; when set, the cached session's expiry tracks *that* cookie's
+    expiry rather than the \`ttl\` guess (an interactive SSO login leaves ephemeral IdP scratch cookies, so
+    \`min(cookie.expires)\` ≈ now — don't rely on it). If unset/unfound, \`ttl\` (or a 1h default) is used.
   • calibrate takes a *structured flow-guide* (a flow-file in YAML, or a .md with a yaml fenced block) and
     writes flows/<name>.flow.yaml + a default docs/style.yaml. Loose-prose descriptions / live element-picking
     need the host agent — that's the /site-docs:calibrate *skill* (see the plugin), which then refines/produces
@@ -212,6 +217,7 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
   }
   const headless = flags.get("headless") === true;
   const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
+  const authCookie = typeof flags.get("auth-cookie") === "string" ? (flags.get("auth-cookie") as string) : undefined;
 
   const descriptorPath = path.join(projectDir, "auth", "strategy.yaml");
   let descriptorText: string;
@@ -256,9 +262,31 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
   try {
     process.stdout.write(`capture-auth: launching browser for role "${role}" (${roleAuth.strategy}) — log in, then trigger capture…\n`);
     const result = await strategy.authenticate({ creds, options: roleAuth.options, baseURL, role });
-    await new LocalStorageStateCache(path.join(projectDir, ".auth")).save(role, result, roleAuth);
-    const when = result.expiresAt ? new Date(result.expiresAt).toISOString() : "(session lifetime)";
-    process.stdout.write(`capture-auth: cached ${role} → ${path.join(projectDir, ".auth", role + ".json")}  (expires ${when})\n`);
+
+    const cookies = result.storageState.cookies ?? [];
+    process.stdout.write(`capture-auth: captured ${cookies.length} cookie(s)${cookies.length ? " (newest expiry first):" : ""}\n`);
+    for (const c of [...cookies].sort((a, b) => (b.expires || 0) - (a.expires || 0))) {
+      const exp = c.expires && c.expires > 0 ? new Date(c.expires * 1000).toISOString() : "(session)";
+      process.stdout.write(`    ${c.name}  @${c.domain}  expires ${exp}\n`);
+    }
+
+    const { expiresAt, source } = await new LocalStorageStateCache(path.join(projectDir, ".auth")).save(
+      role,
+      result,
+      roleAuth,
+      Date.now(),
+      authCookie ? { authCookie } : {},
+    );
+    process.stdout.write(
+      `capture-auth: cached ${role} → ${path.join(projectDir, ".auth", role + ".json")}\n` +
+        `  expires ${new Date(expiresAt).toISOString()}  (from ${source}; re-run when it lapses)\n`,
+    );
+    if (!/^auth-cookie/.test(source)) {
+      process.stdout.write(
+        `  tip: pick the app's auth/session cookie from the list above and set 'cache.auth_cookie: <name>' in\n` +
+          `       ${path.join(projectDir, "auth", "strategy.yaml")} (or pass --auth-cookie <name>) so the cache tracks its real expiry.\n`,
+      );
+    }
     return 0;
   } catch (e) {
     process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
@@ -288,6 +316,7 @@ async function cmdInit(args: string[]): Promise<number> {
   const appUrl = str("app-url");
   const role = str("role");
   const ttl = str("ttl");
+  const authCookie = str("auth-cookie");
   try {
     const r = await initWorkspace({
       ...(dir ? { dir } : {}),
@@ -297,6 +326,7 @@ async function cmdInit(args: string[]): Promise<number> {
       ...(role ? { role } : {}),
       ...(ttl ? { ttl } : {}),
       ...(trigger ? { captureTrigger: trigger } : {}),
+      ...(authCookie ? { authCookie } : {}),
       ignoreHttpsErrors: flags.get("ignore-https-errors") === true,
       force: flags.get("force") === true,
     });

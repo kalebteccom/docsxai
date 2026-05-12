@@ -1,10 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { promises as fs } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   AuthStrategyConfigError,
   type InstrumentedBrowser,
+  LocalStorageStateCache,
   ManualCaptureStrategy,
   NotImplementedStrategyError,
   type StorageState,
+  cookieExpiryByName,
   earliestCookieExpiry,
   makeStrategy,
   parseAuthStrategyFile,
@@ -124,16 +129,76 @@ describe("ManualCaptureStrategy", () => {
     expect(browser.events).toEqual(["open:https://app.example.test", "capture:console", "storageState", "close"]);
   });
 
-  it("reports expiresAt from the earliest non-session cookie", async () => {
-    const oneHour = Math.floor(Date.now() / 1000) + 3600;
-    const s = new ManualCaptureStrategy(() => new FakeBrowser(fakeState(oneHour)));
+  it("does not report an expiresAt (the cache's ttl / auth_cookie is the contract, not raw cookie expiry)", async () => {
+    const s = new ManualCaptureStrategy(() => new FakeBrowser(fakeState(Math.floor(Date.now() / 1000) + 3600)));
     const r = await s.authenticate({ creds: {}, options: {}, baseURL: "https://x", role: "editor" });
-    expect(r.expiresAt).toBe(oneHour * 1000);
+    expect(r.expiresAt).toBeUndefined();
   });
 });
 
-describe("earliestCookieExpiry", () => {
-  it("ignores session cookies (expires <= 0)", () => {
+describe("cookie expiry helpers", () => {
+  it("earliestCookieExpiry ignores session cookies (expires <= 0)", () => {
     expect(earliestCookieExpiry(fakeState(-1))).toBeUndefined();
+  });
+  it("cookieExpiryByName returns the named cookie's expiry, or undefined for absent/session cookies", () => {
+    const sec = Math.floor(Date.now() / 1000) + 3600;
+    expect(cookieExpiryByName(fakeState(sec), "session")).toBe(sec * 1000);
+    expect(cookieExpiryByName(fakeState(sec), "nonexistent")).toBeUndefined();
+    expect(cookieExpiryByName(fakeState(-1), "session")).toBeUndefined();
+  });
+});
+
+describe("LocalStorageStateCache — expiry priority: auth_cookie > ttl > default", () => {
+  let dir = "";
+  beforeEach(async () => {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-cache-"));
+  });
+  afterEach(async () => {
+    await fs.rm(dir, { recursive: true, force: true });
+  });
+  const now = 1_700_000_000_000;
+  const roleAuth = (cache: Record<string, unknown>) =>
+    parseAuthStrategyFile(
+      `schema: site-docs/auth-strategy@1\ndefault_role: editor\nroles: { editor: { strategy: manual-capture, cache: ${JSON.stringify(cache)} } }`,
+    ).roles.editor!;
+
+  it("uses the auth_cookie's real expiry when set and present — ignoring ttl entirely", async () => {
+    const cache = new LocalStorageStateCache(path.join(dir, ".auth"));
+    const cookieSec = Math.floor(now / 1000) + 7200; // 2h out
+    const r = await cache.save("editor", { storageState: fakeState(cookieSec) }, roleAuth({ enabled: true, store: "local", ttl: "1h", auth_cookie: "session" }), now);
+    expect(r.expiresAt).toBe(cookieSec * 1000);
+    expect(r.source).toMatch(/auth-cookie "session"/);
+    expect(await cache.load("editor", now + 1000)).not.toBeNull(); // valid right after capture
+  });
+
+  it("an --auth-cookie override beats the descriptor's auth_cookie", async () => {
+    const cache = new LocalStorageStateCache(path.join(dir, ".auth"));
+    const cookieSec = Math.floor(now / 1000) + 3600;
+    const r = await cache.save("editor", { storageState: fakeState(cookieSec) }, roleAuth({ enabled: true, store: "local", ttl: "session", auth_cookie: "wrongName" }), now, { authCookie: "session" });
+    expect(r.expiresAt).toBe(cookieSec * 1000);
+  });
+
+  it("falls back to ttl when auth_cookie is set but the cookie is absent / session-only", async () => {
+    const cache = new LocalStorageStateCache(path.join(dir, ".auth"));
+    const r1 = await cache.save("editor", { storageState: fakeState(-1) }, roleAuth({ enabled: true, store: "local", ttl: "1h", auth_cookie: "session" }), now);
+    expect(r1.expiresAt).toBe(now + 3_600_000);
+    expect(r1.source).toMatch(/ttl/);
+    const r2 = await cache.save("editor", { storageState: fakeState(-1) }, roleAuth({ enabled: true, store: "local", ttl: "30m", auth_cookie: "nope" }), now);
+    expect(r2.expiresAt).toBe(now + 1_800_000);
+  });
+
+  it("uses ttl when no auth_cookie is set — NOT the raw cookie min (this was the AAD-SSO blocker)", async () => {
+    const cache = new LocalStorageStateCache(path.join(dir, ".auth"));
+    // a near-now strategy-reported expiresAt (as old code would compute from min(cookie.expires)) must NOT win
+    const r = await cache.save("editor", { storageState: fakeState(-1), expiresAt: now + 2300 }, roleAuth({ enabled: true, store: "local", ttl: "1h" }), now);
+    expect(r.expiresAt).toBe(now + 3_600_000);
+    expect(r.source).toBe("ttl");
+  });
+
+  it("ttl: session with no usable expiry → 1h default", async () => {
+    const cache = new LocalStorageStateCache(path.join(dir, ".auth"));
+    const r = await cache.save("editor", { storageState: fakeState(-1) }, roleAuth({ enabled: true, store: "local", ttl: "session" }), now);
+    expect(r.expiresAt).toBe(now + 3_600_000);
+    expect(r.source).toBe("1h default");
   });
 });

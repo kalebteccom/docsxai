@@ -199,7 +199,15 @@ export const RoleAuth = z
       .object({
         enabled: z.boolean().default(false),
         store: z.enum(["local", "backend"]).default("local"),
+        /** Fallback expiry when no `auth_cookie` is set/found: a duration, or `session` (→ a 1h default). */
         ttl: CacheTtl.default("session"),
+        /**
+         * Name of the app's actual auth/session cookie. When set, the cached session's `expiresAt` is *that*
+         * cookie's expiry — the real bound — rather than the `ttl` guess. Identify it from the captured jar
+         * (`capture-auth` prints it): it's on the app's domain, long-lived (not an ephemeral IdP scratch
+         * cookie), e.g. `AppSession.Production` / `.AspNetCore.Cookies` / `session`. Optional.
+         */
+        auth_cookie: z.string().min(1).optional(),
       })
       .strict()
       .default({ enabled: false, store: "local", ttl: "session" }),
