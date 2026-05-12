@@ -16,6 +16,9 @@
   "files": [
     "dist"
   ],
+  "bin": {
+    "site-docs-backend": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
