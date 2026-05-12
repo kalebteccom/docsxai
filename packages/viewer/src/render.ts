@@ -103,6 +103,12 @@ const STYLE = `
   details { margin-top: 0.5rem; } pre { white-space: pre-wrap; background: #f6f6f6; padding: 0.75rem; border-radius: 6px; }
   nav a { display: block; padding: 0.25rem 0; }
   .meta { color: #888; font-size: 0.8rem; }
+  .flow-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+  .flow-card { display: block; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; background: #fff; transition: box-shadow .15s; }
+  .flow-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+  .flow-card img { display: block; width: 100%; height: 130px; object-fit: cover; object-position: top left; background: #f6f6f6; border-bottom: 1px solid #eee; }
+  .flow-card .thumb-missing { height: 130px; display: grid; place-items: center; color: #999; font-size: .8rem; background: #f6f6f6; border-bottom: 1px solid #eee; }
+  .flow-card-meta { padding: .6rem .75rem; } .flow-card-meta strong { display: block; } .flow-card-meta span { color: #777; font-size: .8rem; }
 `;
 
 // Inlined at the bottom of each flow page. For each screenshot with an annotation: draw a pulsing halo around
@@ -195,10 +201,24 @@ function flowPageHtml(flow: string, steps: Array<{ id: string; screenshot: strin
 <body><p><a href="../index.html">← all flows</a></p><h1>${esc(flow)}</h1>${body}<script>${OVERLAY_JS}</script></body></html>`;
 }
 
-function indexHtml(flows: string[]): string {
-  const links = flows.map((f) => `<a href="${esc(f)}/index.html">${esc(f)}</a>`).join("\n");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Docs</title><style>${STYLE}</style></head>
-<body><h1>Documentation</h1><nav>${links || "<p class='meta'>(no flows)</p>"}</nav></body></html>`;
+interface FlowSummary {
+  flow: string;
+  steps: number;
+  annotations: number;
+  /** Path (relative to the viewer root) of a representative screenshot, or `null` if the flow has none. */
+  thumb: string | null;
+}
+
+function indexHtml(meta: FlowSummary[]): string {
+  const cards = meta
+    .map((m) => {
+      const img = m.thumb ? `<img src="${esc(m.thumb)}" alt="">` : `<div class="thumb-missing">no screenshot</div>`;
+      const sub = `${m.steps} step${m.steps === 1 ? "" : "s"}${m.annotations ? `, ${m.annotations} annotation${m.annotations === 1 ? "" : "s"}` : ""}`;
+      return `<a class="flow-card" href="${esc(m.flow)}/index.html">${img}<div class="flow-card-meta"><strong>${esc(m.flow)}</strong><span>${sub}</span></div></a>`;
+    })
+    .join("\n");
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Documentation</title><style>${STYLE}</style></head>
+<body><h1>Documentation</h1>${cards ? `<div class="flow-grid">${cards}</div>` : "<p class='meta'>(no flows yet — run <code>site-docs run</code>, then <code>site-docs render</code>)</p>"}</body></html>`;
 }
 
 /** Build the static viewer. Returns the generated page paths (relative to `outDir`), index first. */
@@ -206,6 +226,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
   const flows = opts.flows ?? (await discoverFlows(opts.docsDir));
   await fs.mkdir(opts.outDir, { recursive: true });
   const pages: string[] = ["index.html"];
+  const flowSummaries: FlowSummary[] = [];
 
   for (const flow of flows) {
     const flowSrc = path.join(opts.docsDir, flow);
@@ -238,8 +259,16 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     await fs.mkdir(path.join(opts.outDir, flow), { recursive: true });
     await fs.writeFile(path.join(opts.outDir, flow, "index.html"), flowPageHtml(flow, steps), "utf8");
     pages.push(`${flow}/index.html`);
+
+    const thumbStep = steps.find((s) => s.screenshot);
+    flowSummaries.push({
+      flow,
+      steps: steps.length,
+      annotations: steps.filter((s) => s.ann).length,
+      thumb: thumbStep ? `${flow}/${thumbStep.screenshot}` : null,
+    });
   }
 
-  await fs.writeFile(path.join(opts.outDir, "index.html"), indexHtml(flows), "utf8");
+  await fs.writeFile(path.join(opts.outDir, "index.html"), indexHtml(flowSummaries), "utf8");
   return { pages };
 }
