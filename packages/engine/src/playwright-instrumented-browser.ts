@@ -138,7 +138,33 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
 
   async storageState(): Promise<StorageState> {
     if (!this.context) throw new Error("storageState() called before open()");
-    return (await this.context.storageState()) as unknown as StorageState;
+    const state = (await this.context.storageState()) as unknown as StorageState;
+    // Belt-and-braces: Playwright's `storageState()` on a *CDP-attached* context doesn't reliably harvest
+    // localStorage from already-open pages, so origins comes back `[]` for apps that keep auth/state there.
+    // Read it directly off each open same-origin page and merge. (String-form `evaluate` to avoid pulling in
+    // the DOM lib for the engine tsconfig.)
+    for (const page of this.context.pages()) {
+      try {
+        const u = page.url();
+        if (!/^https?:/.test(u)) continue;
+        const origin = new URL(u).origin;
+        const pairs = (await page.evaluate(
+          "(() => { const o = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k != null) o.push([k, localStorage.getItem(k) ?? '']); } return o; })()",
+        )) as Array<[string, string]>;
+        if (!Array.isArray(pairs) || pairs.length === 0) continue;
+        const items = pairs.map(([name, value]) => ({ name, value }));
+        const existing = state.origins.find((o) => o.origin === origin);
+        if (existing) {
+          const known = new Set(existing.localStorage.map((e) => e.name));
+          for (const it of items) if (!known.has(it.name)) existing.localStorage.push(it);
+        } else {
+          state.origins.push({ origin, localStorage: items });
+        }
+      } catch {
+        // skip a page we can't read (cross-origin, closed, etc.)
+      }
+    }
+    return state;
   }
 
   async close(): Promise<void> {

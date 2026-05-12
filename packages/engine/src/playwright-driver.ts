@@ -27,6 +27,8 @@ export interface PlaywrightSessionOptions {
   chromiumArgs?: string[];
   /** Doc-pack root that screenshot paths are resolved against. */
   docPackRoot?: string;
+  /** If set, attach to a running Chrome at this CDP endpoint (e.g. `http://localhost:9222`) instead of launching one. `close()` won't close it. */
+  connectOverCdp?: string;
 }
 
 /** A launched Playwright browser + context + page, plus the driver bound to it. Call `close()` when done. */
@@ -40,8 +42,24 @@ export interface PlaywrightSession {
   close(): Promise<void>;
 }
 
-/** Launch Chromium and return a {@link PlaywrightSession}. */
+/** Launch Chromium (or, with `connectOverCdp`, attach to a running one) and return a {@link PlaywrightSession}. */
 export async function launchPlaywrightSession(opts: PlaywrightSessionOptions = {}): Promise<PlaywrightSession> {
+  if (opts.connectOverCdp) {
+    const browser = await chromium.connectOverCDP(opts.connectOverCdp);
+    const context = browser.contexts()[0] ?? (await browser.newContext());
+    const pages = context.pages();
+    const page = pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await context.newPage());
+    const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".");
+    return {
+      browser,
+      context,
+      page,
+      driver,
+      storageState: () => context.storageState() as Promise<StorageState>,
+      // Attached — don't close the browser; just let the connection drop.
+      close: async () => {},
+    };
+  }
   const browser = await chromium.launch({
     headless: !opts.headed,
     ...(opts.chromiumArgs ? { args: opts.chromiumArgs } : {}),

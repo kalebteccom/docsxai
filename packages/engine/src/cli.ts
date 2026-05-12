@@ -24,7 +24,7 @@ Usage:
                                  [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                  [--persist tmp] [--force]
   site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
-  site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--headed] [--role <role>]
+  site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
   site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--pause]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
@@ -58,7 +58,9 @@ Notes:
   • inspect opens the app in a headless (or --headed) browser *with the cached session loaded* and prints the
     page's [data-testid] elements (or, with --selector, matching elements' HTML) — for pinning locators when
     hand-authoring a flow-file (the captured session can't be replayed in a browser the agent's MCP controls
-    because the auth cookie is usually httpOnly; inspect does the storageState→Playwright bridge for you).
+    because the auth cookie is usually httpOnly; inspect does the storageState→Playwright bridge for you). On a
+    slow SPA, settle before the snapshot with --wait <ms> (default 800) or --wait-for '<css>'. --cdp <endpoint>
+    attaches to an already-running Chrome (e.g. the one from capture-auth --cdp) instead of launching one.
   • calibrate takes a *structured flow-guide* (a flow-file in YAML, or a .md with a yaml fenced block) and
     writes flows/<name>.flow.yaml + a default docs/style.yaml. Loose-prose descriptions / live element-picking
     need the host agent — that's the /site-docs:calibrate *skill* (see the plugin), which then refines/produces
@@ -416,31 +418,43 @@ async function cmdInspect(args: string[]): Promise<number> {
     return 2;
   }
   const wsCfg = await loadWorkspaceConfig(workspaceDir);
-  const url = (typeof flags.get("url") === "string" ? (flags.get("url") as string) : undefined) ?? wsCfg?.app_url;
-  if (!url) {
-    process.stderr.write("inspect: no URL — pass --url <url> or set app_url in the workspace's .site-docs.json\n");
+  const cdp = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
+  const explicitUrl = typeof flags.get("url") === "string" ? (flags.get("url") as string) : undefined;
+  const url = explicitUrl ?? wsCfg?.app_url;
+  if (!cdp && !url) {
+    process.stderr.write("inspect: no URL — pass --url <url>, set app_url in .site-docs.json, or use --cdp <endpoint>\n");
     return 2;
   }
   const selector = typeof flags.get("selector") === "string" ? (flags.get("selector") as string) : undefined;
   const headed = flags.get("headed") === true;
   const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
+  const waitForSel = typeof flags.get("wait-for") === "string" ? (flags.get("wait-for") as string) : undefined;
+  const waitMs = typeof flags.get("wait") === "string" ? Math.max(0, Number(flags.get("wait")) || 0) : 800;
 
-  let role = typeof flags.get("role") === "string" ? (flags.get("role") as string) : undefined;
-  if (!role) {
-    try {
-      role = parseAuthStrategyFile(await fs.readFile(path.join(workspaceDir, "auth", "strategy.yaml"), "utf8")).default_role;
-    } catch {
-      role = "editor";
+  let storageState: import("./auth.js").StorageState | undefined;
+  if (!cdp) {
+    let role = typeof flags.get("role") === "string" ? (flags.get("role") as string) : undefined;
+    if (!role) {
+      try {
+        role = parseAuthStrategyFile(await fs.readFile(path.join(workspaceDir, "auth", "strategy.yaml"), "utf8")).default_role;
+      } catch {
+        role = "editor";
+      }
     }
-  }
-  const storageState = (await new LocalStorageStateCache(path.join(workspaceDir, ".auth")).load(role)) ?? undefined;
-  if (!storageState) {
-    process.stderr.write(`inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`site-docs capture-auth\` first if the app needs login)\n`);
+    storageState = (await new LocalStorageStateCache(path.join(workspaceDir, ".auth")).load(role)) ?? undefined;
+    if (!storageState) {
+      process.stderr.write(`inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`site-docs capture-auth\` first if the app needs login)\n`);
+    }
   }
 
   let session;
   try {
-    session = await launchPlaywrightSession({ baseURL: url, headed, ignoreHTTPSErrors, ...(storageState ? { storageState } : {}), docPackRoot: workspaceDir });
+    session = await launchPlaywrightSession({
+      ...(cdp
+        ? { connectOverCdp: cdp }
+        : { ...(url ? { baseURL: url } : {}), headed, ignoreHTTPSErrors, ...(storageState ? { storageState } : {}) }),
+      docPackRoot: workspaceDir,
+    });
   } catch (e) {
     const msg = (e as Error).message;
     if (/Executable doesn't exist|playwright install/i.test(msg)) {
@@ -451,8 +465,10 @@ async function cmdInspect(args: string[]): Promise<number> {
     return 1;
   }
   try {
-    await session.page.goto(url, { waitUntil: "domcontentloaded" }).catch(() => undefined);
-    await session.page.waitForTimeout(300);
+    // In CDP-attach mode without an explicit --url, inspect whatever the attached browser already has open.
+    if (url && (!cdp || explicitUrl)) await session.page.goto(url, { waitUntil: "domcontentloaded" }).catch(() => undefined);
+    if (waitForSel) await session.page.waitForSelector(waitForSel, { timeout: 30_000 }).catch(() => undefined);
+    else if (waitMs > 0) await session.page.waitForTimeout(waitMs);
     process.stdout.write(`inspect: ${session.page.url()}\n  title: ${await session.page.title().catch(() => "(?)")}\n`);
     if (selector) {
       const els = await session.page.locator(selector).all();
@@ -479,9 +495,11 @@ async function cmdInspect(args: string[]): Promise<number> {
       for (const it of items) {
         process.stdout.write(`    ${it.visible ? "✓" : " "} [data-testid="${it.testid}"]  <${it.tag}>  ${it.text ? `"${it.text}"` : ""}\n`);
       }
-      process.stdout.write(`  (--selector '<css>' dumps matching elements' HTML; --headed opens the browser; --url <url> for a sub-page)\n`);
+      process.stdout.write(
+        `  (--selector '<css>' dumps matching elements' HTML; --url <url> for a sub-page; --wait <ms> / --wait-for '<css>' to settle a slow SPA before snapshot; --cdp <endpoint> to attach to a running Chrome instead of launching; --headed to open it)\n`,
+      );
     }
-    if (headed) {
+    if (headed && !cdp) {
       process.stdout.write("inspect: browser is open — close it to exit.\n");
       await new Promise<void>((resolve) => session!.browser.on("disconnected", () => resolve()));
     }
