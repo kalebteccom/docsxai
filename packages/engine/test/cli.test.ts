@@ -47,8 +47,8 @@ describe("site-docs CLI — main()", () => {
     expect(err).toMatch(/no flows directory/);
   });
 
-  it("render is not yet implemented (exits 2)", async () => {
-    expect(await main(["render", "/some/dir"])).toBe(2);
-    expect(err).toMatch(/not yet implemented/);
+  it("render without a project dir exits 2", async () => {
+    expect(await main(["render"])).toBe(2);
+    expect(err).toMatch(/missing <project-dir>/);
   });
 });

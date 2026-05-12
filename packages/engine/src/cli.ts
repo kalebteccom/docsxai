@@ -5,6 +5,7 @@
 // `render` (build the viewer — stubbed until the viewer package exists). Calibration subcommands run in an
 // agent context and are exposed by the plugin, not here.
 
+import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -150,12 +151,30 @@ async function cmdRun(args: string[]): Promise<number> {
 
 async function cmdRender(args: string[]): Promise<number> {
   const { positionals } = parseFlags(args);
-  if (!positionals[0]) {
+  const projectDir = positionals[0];
+  if (!projectDir) {
     process.stderr.write("render: missing <project-dir>\n\n" + USAGE + "\n");
     return 2;
   }
-  process.stderr.write("render: not yet implemented — the viewer package is still a Phase-0 prototype TODO.\n");
-  return 2;
+  const docsDir = path.join(projectDir, "docs");
+  const outDir = path.join(projectDir, ".viewer");
+  // The viewer is its own package/bin; shell out to it so the engine doesn't depend on it at build time.
+  return new Promise<number>((resolve) => {
+    const child = spawn("site-docs-viewer", ["build", docsDir, outDir], { stdio: "inherit" });
+    child.on("error", (e: NodeJS.ErrnoException) => {
+      if (e.code === "ENOENT") {
+        process.stderr.write(
+          "render: `site-docs-viewer` not found on PATH.\n" +
+            `  Run it directly:  site-docs-viewer build ${docsDir} ${outDir}\n` +
+            "  (it's the @kalebtec/site-docs-viewer bin; in this workspace: pnpm exec site-docs-viewer …)\n",
+        );
+      } else {
+        process.stderr.write(`render: ${e.message}\n`);
+      }
+      resolve(1);
+    });
+    child.on("exit", (code) => resolve(code ?? 1));
+  });
 }
 
 export async function main(argv: string[]): Promise<number> {
