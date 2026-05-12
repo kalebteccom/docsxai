@@ -9,21 +9,26 @@ import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import { parseAuthStrategyFile, LocalStorageStateCache, type StorageState } from "./auth.js";
+import { LocalStorageStateCache, makeStrategy, parseAuthStrategyFile, resolveCredsEnv, type StorageState } from "./auth.js";
 import { parseFlowFile } from "./flow-file.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
+import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
 
 const USAGE = `site-docs — deterministic execution CLI
 
 Usage:
   site-docs run <project-dir> [--flow <name>] [--base-url <url>] [--headed]
   site-docs render <project-dir>
+  site-docs capture-auth <project-dir> --base-url <url> [--role <role>] [--headless]
   site-docs --help
 
 Notes:
   • <project-dir> holds flows/<flow>.flow.yaml and (optionally) auth/strategy.yaml.
   • run launches Chromium; if no browser binary is present, install one:  npx playwright install chromium
+  • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
+    engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
+    it to <project-dir>/.auth/<role>.json for subsequent \`run\`s.
   • Calibration (calibrate/diagnose/style-learn) runs in an agent context — see the plugin, not this CLI.`;
 
 function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
@@ -177,6 +182,73 @@ async function cmdRender(args: string[]): Promise<number> {
   });
 }
 
+async function cmdCaptureAuth(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  const projectDir = positionals[0];
+  if (!projectDir) {
+    process.stderr.write("capture-auth: missing <project-dir>\n\n" + USAGE + "\n");
+    return 2;
+  }
+  const baseURL = typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined;
+  if (!baseURL) {
+    process.stderr.write("capture-auth: --base-url <url> is required\n");
+    return 2;
+  }
+  const headless = flags.get("headless") === true;
+
+  const descriptorPath = path.join(projectDir, "auth", "strategy.yaml");
+  let descriptorText: string;
+  try {
+    descriptorText = await fs.readFile(descriptorPath, "utf8");
+  } catch {
+    process.stderr.write(`capture-auth: no auth descriptor at ${descriptorPath}\n`);
+    return 1;
+  }
+  let role: string;
+  let roleAuth;
+  try {
+    const descriptor = parseAuthStrategyFile(descriptorText, descriptorPath);
+    role = typeof flags.get("role") === "string" ? (flags.get("role") as string) : descriptor.default_role;
+    const ra = descriptor.roles[role];
+    if (!ra) {
+      process.stderr.write(`capture-auth: role "${role}" not in ${descriptorPath}\n`);
+      return 1;
+    }
+    roleAuth = ra;
+  } catch (e) {
+    process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
+    return 1;
+  }
+
+  let creds: Record<string, string>;
+  try {
+    creds = resolveCredsEnv(roleAuth);
+  } catch (e) {
+    process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
+    return 1;
+  }
+
+  let strategy;
+  try {
+    strategy = makeStrategy(roleAuth, { instrumentedBrowser: () => new PlaywrightInstrumentedBrowser({ headless }) });
+  } catch (e) {
+    process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
+    return 1;
+  }
+
+  try {
+    process.stdout.write(`capture-auth: launching browser for role "${role}" (${roleAuth.strategy}) — log in, then trigger capture…\n`);
+    const result = await strategy.authenticate({ creds, options: roleAuth.options, baseURL, role });
+    await new LocalStorageStateCache(path.join(projectDir, ".auth")).save(role, result, roleAuth);
+    const when = result.expiresAt ? new Date(result.expiresAt).toISOString() : "(session lifetime)";
+    process.stdout.write(`capture-auth: cached ${role} → ${path.join(projectDir, ".auth", role + ".json")}  (expires ${when})\n`);
+    return 0;
+  } catch (e) {
+    process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
+    return 1;
+  }
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -190,6 +262,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdRun(rest);
     case "render":
       return cmdRender(rest);
+    case "capture-auth":
+      return cmdCaptureAuth(rest);
     default:
       process.stderr.write(`unknown command: ${cmd}\n\n${USAGE}\n`);
       return 2;

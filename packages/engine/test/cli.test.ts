@@ -51,4 +51,15 @@ describe("site-docs CLI — main()", () => {
     expect(await main(["render"])).toBe(2);
     expect(err).toMatch(/missing <project-dir>/);
   });
+
+  it("capture-auth requires a project dir and --base-url, and a real auth descriptor", async () => {
+    expect(await main(["capture-auth"])).toBe(2);
+    expect(err).toMatch(/missing <project-dir>/);
+    err = "";
+    expect(await main(["capture-auth", "/some/dir"])).toBe(2);
+    expect(err).toMatch(/--base-url .* required/);
+    err = "";
+    expect(await main(["capture-auth", "/definitely/not/real", "--base-url", "https://x"])).toBe(1);
+    expect(err).toMatch(/no auth descriptor/);
+  });
 });
