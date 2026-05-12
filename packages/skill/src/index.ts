@@ -1,7 +1,24 @@
-// @kalebtec/site-docs-skill
-// Optional colocated .claude/skills/ fallback that delegates to the installed plugin. Secondary path for teams that want to vendor / version-pin.
+// @kalebtec/site-docs-skill — the vendorable colocated `.claude/skills/site-docs/` fallback.
 //
-// Phase 0 scaffold — see PHASE-0.md at the repo root and the spec/roadmap in
-// the project-ideas portfolio (projects/automated-site-documentation-bot/).
+// Secondary path: teams that want to pin site-docs behavior into a project copy this bundle into their
+// repo. It carries no logic — it delegates to the @kalebtec/site-docs plugin's commands/skills and the
+// `site-docs` CLI. `vendorSkill()` does the copy.
 
-export const name = "@kalebtec/site-docs-skill";
+import { promises as fs } from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
+/** Absolute path to the vendorable bundle (`skill/`), which contains `site-docs/SKILL.md`. */
+export const vendoredSkillDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "skill");
+
+/**
+ * Copy the vendored skill bundle into `<projectDir>/.claude/skills/`.
+ * @returns the destination path (`<projectDir>/.claude/skills/site-docs`).
+ */
+export async function vendorSkill(projectDir: string): Promise<string> {
+  const src = path.join(vendoredSkillDir, "site-docs");
+  const dest = path.join(projectDir, ".claude", "skills", "site-docs");
+  await fs.mkdir(dest, { recursive: true });
+  await fs.cp(src, dest, { recursive: true });
+  return dest;
+}

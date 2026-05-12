@@ -1,0 +1,7 @@
+{
+  "name": "site-docs",
+  "version": "0.0.0",
+  "description": "Walk a web app, follow written flows, emit screenshot-rich docs. Calibration runs in this agent context (the host supplies inference; the engine never calls a model API); deterministic execution runs headlessly via the site-docs CLI.",
+  "author": { "name": "Kalebtec" },
+  "homepage": "https://github.com/kalebteccom/automated-site-documentation-bot"
+}
