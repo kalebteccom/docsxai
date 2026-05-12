@@ -193,7 +193,10 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
     const selector = step.target ? resolve(step.target) : null;
     try {
       await executeAction(driver, step, selector);
-      if (step.wait_for) await applyWait(driver, step.wait_for, resolve);
+      if (step.wait_for) {
+        if (step.wait_for === "element_stable" && selector) await driver.waitForElementStable(selector);
+        else await applyWait(driver, step.wait_for, resolve);
+      }
       if (step.success) await checkSuccess(driver, step.success, resolve, step.id);
     } catch (e) {
       if (e instanceof FlowExecutionError) throw e;

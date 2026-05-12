@@ -16,12 +16,16 @@
   "files": [
     "dist"
   ],
+  "bin": {
+    "site-docs": "./dist/cli.js"
+  },
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "playwright-core": "^1.47.0",
     "yaml": "^2.5.0",
     "zod": "^3.23.0"
   }
