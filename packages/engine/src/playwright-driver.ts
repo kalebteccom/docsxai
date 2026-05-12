@@ -139,8 +139,18 @@ export class PlaywrightDriver implements BrowserDriver {
     return new RegExp(pattern).test(this.page.url());
   }
   async textContains(selector: string, text: string): Promise<boolean> {
-    const t = (await this.page.locator(selector).textContent()) ?? "";
+    const t = (await this.page.locator(selector).first().textContent().catch(() => null)) ?? "";
     return t.includes(text);
+  }
+
+  currentUrl(): Promise<string> {
+    return Promise.resolve(this.page.url());
+  }
+  count(selector: string): Promise<number> {
+    return this.page.locator(selector).count();
+  }
+  textOf(selector: string): Promise<string | null> {
+    return this.page.locator(selector).first().textContent().catch(() => null);
   }
 
   async boundingBox(selector: string): Promise<BoundingBox | null> {

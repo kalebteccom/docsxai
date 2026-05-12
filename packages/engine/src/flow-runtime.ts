@@ -44,6 +44,14 @@ export interface BrowserDriver {
   urlMatches(pattern: string): Promise<boolean>;
   textContains(selector: string, text: string): Promise<boolean>;
 
+  // — context for richer halt messages —
+  /** Current page URL. */
+  currentUrl(): Promise<string>;
+  /** How many elements `selector` matches (so a halt can say "0" vs "8 stale ones"). */
+  count(selector: string): Promise<number>;
+  /** Text content of the first match of `selector`, or `null`. */
+  textOf(selector: string): Promise<string | null>;
+
   /** Bounding box of an element, in page pixels, if it exists. */
   boundingBox(selector: string): Promise<BoundingBox | null>;
   /** Capture a clean screenshot (no baked annotations) and return where it was written, relative to the doc pack. */
@@ -121,28 +129,39 @@ async function checkSuccess(
   resolve: (v: string) => string,
   stepId: string,
 ): Promise<void> {
+  const at = async () => `at ${await driver.currentUrl().catch(() => "?")}`;
   if ("visible" in success) {
-    if (!(await driver.isVisible(resolve(success.visible)))) {
-      throw new FlowExecutionError(`expected ${success.visible} to be visible`, stepId);
+    const sel = resolve(success.visible);
+    if (!(await driver.isVisible(sel))) {
+      throw new FlowExecutionError(
+        `expected ${success.visible} to be visible — ${await at()}; ${await driver.count(sel).catch(() => "?")} element(s) match the selector`,
+        stepId,
+      );
     }
     return;
   }
   if ("hidden" in success) {
-    if (await driver.isVisible(resolve(success.hidden))) {
-      throw new FlowExecutionError(`expected ${success.hidden} to be hidden`, stepId);
+    const sel = resolve(success.hidden);
+    if (await driver.isVisible(sel)) {
+      throw new FlowExecutionError(
+        `expected ${success.hidden} to be hidden but a match is visible — ${await at()}; ${await driver.count(sel).catch(() => "?")} element(s) match`,
+        stepId,
+      );
     }
     return;
   }
   if ("url_matches" in success) {
     if (!(await driver.urlMatches(success.url_matches))) {
-      throw new FlowExecutionError(`expected URL to match ${success.url_matches}`, stepId);
+      throw new FlowExecutionError(`expected URL to match /${success.url_matches}/ — actual: ${await driver.currentUrl().catch(() => "?")}`, stepId);
     }
     return;
   }
   if ("text_contains" in success) {
     const { selector, text } = success.text_contains;
-    if (!(await driver.textContains(resolve(selector), text))) {
-      throw new FlowExecutionError(`expected ${selector} to contain ${JSON.stringify(text)}`, stepId);
+    const sel = resolve(selector);
+    if (!(await driver.textContains(sel, text))) {
+      const actual = ((await driver.textOf(sel).catch(() => null)) ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+      throw new FlowExecutionError(`expected ${selector} to contain ${JSON.stringify(text)} — ${await at()}; actual text: ${JSON.stringify(actual)}`, stepId);
     }
   }
 }
@@ -203,7 +222,8 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
       if (step.success) await checkSuccess(driver, step.success, resolve, step.id);
     } catch (e) {
       if (e instanceof FlowExecutionError) throw e;
-      throw new FlowExecutionError(`step "${step.id}" (${step.action}) failed: ${(e as Error).message}`, step.id, e);
+      const where = await driver.currentUrl().catch(() => "?");
+      throw new FlowExecutionError(`step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}`, step.id, e);
     }
 
     const ex: ExecutedStep = { id: step.id, action: step.action, ...(selector ? { selector } : {}) };

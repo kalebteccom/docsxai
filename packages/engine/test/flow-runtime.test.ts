@@ -59,6 +59,15 @@ class FakeDriver implements BrowserDriver {
   async textContains(s: string, t: string) {
     return (this.texts.get(s) ?? "").includes(t);
   }
+  async currentUrl() {
+    return this.url;
+  }
+  async count(s: string) {
+    return this.visible.has(s) ? 1 : 0;
+  }
+  async textOf(s: string) {
+    return this.texts.get(s) ?? null;
+  }
   async boundingBox(s: string) {
     return this.boxes.get(s) ?? null;
   }
@@ -130,6 +139,12 @@ describe("runFlow", () => {
       name: "FlowExecutionError",
       stepId: "open-sidebar",
     });
+  });
+
+  it("a halt message carries context (the current URL + match count)", async () => {
+    const d = new FakeDriver(); // #recap never visible
+    d.url = "https://app.example/dash";
+    await expect(runFlow(parseFlowFile(FLOW), d)).rejects.toThrow(/app\.example\/dash.*element\(s\) match/s);
   });
 
   it("skips screenshot/annotation capture when captureDocs is false", async () => {
