@@ -14,22 +14,29 @@ import { parseFlowFile } from "./flow-file.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
+import { initWorkspace, loadWorkspaceConfig } from "./workspace.js";
 
 const USAGE = `site-docs — deterministic execution CLI
 
 Usage:
-  site-docs run <project-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors]
-  site-docs render <project-dir>
-  site-docs capture-auth <project-dir> --base-url <url> [--role <role>] [--headless] [--ignore-https-errors]
+  site-docs init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>]
+                                 [--ttl <dur>] [--capture-trigger console|button] [--ignore-https-errors]
+                                 [--persist tmp] [--force]
+  site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors]
+  site-docs render <workspace-dir>
+  site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--headless] [--ignore-https-errors]
   site-docs --help
 
 Notes:
-  • <project-dir> holds flows/<flow>.flow.yaml and (optionally) auth/strategy.yaml.
+  • A *workspace* (created by \`init\`) holds flows/<flow>.flow.yaml, docs/, auth/strategy.yaml, .auth/, .viewer/,
+    and a .site-docs.json config. Put it OUTSIDE the app's source repo — site-docs documents a running app from
+    outside and never writes into the app repo.
+  • run / capture-auth read app_url + ignore_https_errors from .site-docs.json if you don't pass the flags.
   • run launches Chromium; if no browser binary is present, install one:  npx playwright install chromium
   • --ignore-https-errors accepts self-signed/invalid TLS (e.g. an app's local HTTPS dev cert)
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
     engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
-    it to <project-dir>/.auth/<role>.json for subsequent \`run\`s.
+    it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s.
   • Calibration (calibrate/diagnose/style-learn) runs in an agent context — see the plugin, not this CLI.`;
 
 function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
@@ -93,9 +100,10 @@ async function cmdRun(args: string[]): Promise<number> {
     return 2;
   }
   const onlyFlow = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
-  const baseURL = typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined;
   const headed = flags.get("headed") === true;
-  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true;
+  const wsCfg = await loadWorkspaceConfig(projectDir);
+  const baseURL = (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ?? wsCfg?.app_url;
+  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
 
   let flowPaths: string[];
   try {
@@ -191,13 +199,14 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
     process.stderr.write("capture-auth: missing <project-dir>\n\n" + USAGE + "\n");
     return 2;
   }
-  const baseURL = typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined;
+  const wsCfg = await loadWorkspaceConfig(projectDir);
+  const baseURL = (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ?? wsCfg?.app_url;
   if (!baseURL) {
-    process.stderr.write("capture-auth: --base-url <url> is required\n");
+    process.stderr.write("capture-auth: --base-url <url> is required (or set app_url in the workspace's .site-docs.json)\n");
     return 2;
   }
   const headless = flags.get("headless") === true;
-  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true;
+  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
 
   const descriptorPath = path.join(projectDir, "auth", "strategy.yaml");
   let descriptorText: string;
@@ -252,6 +261,51 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
   }
 }
 
+async function cmdInit(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  const persistTmp = flags.get("persist") === "tmp";
+  const dir = positionals[0];
+  if (!persistTmp && !dir) {
+    process.stderr.write("init: missing <workspace-dir> (or use --persist tmp)\n\n" + USAGE + "\n");
+    return 2;
+  }
+  const str = (k: string): string | undefined => (typeof flags.get(k) === "string" ? (flags.get(k) as string) : undefined);
+  const auth = str("auth");
+  if (auth !== undefined && auth !== "manual-capture" && auth !== "none") {
+    process.stderr.write("init: --auth must be 'manual-capture' or 'none'\n");
+    return 2;
+  }
+  const trigger = str("capture-trigger");
+  if (trigger !== undefined && trigger !== "console" && trigger !== "button") {
+    process.stderr.write("init: --capture-trigger must be 'console' or 'button'\n");
+    return 2;
+  }
+  const appUrl = str("app-url");
+  const role = str("role");
+  const ttl = str("ttl");
+  try {
+    const r = await initWorkspace({
+      ...(dir ? { dir } : {}),
+      persistTmp,
+      ...(appUrl ? { appUrl } : {}),
+      ...(auth ? { auth } : {}),
+      ...(role ? { role } : {}),
+      ...(ttl ? { ttl } : {}),
+      ...(trigger ? { captureTrigger: trigger } : {}),
+      ignoreHttpsErrors: flags.get("ignore-https-errors") === true,
+      force: flags.get("force") === true,
+    });
+    process.stdout.write(`init: workspace ${r.ephemeral ? "(ephemeral) " : ""}at ${r.dir}\n  created: ${r.created.join(", ")}\n`);
+    process.stdout.write(
+      `  next: ${appUrl ? "" : "(set app_url in .site-docs.json, then) "}site-docs capture-auth ${r.dir}  →  …calibrate…  →  site-docs run ${r.dir}  →  site-docs render ${r.dir}\n`,
+    );
+    return 0;
+  } catch (e) {
+    process.stderr.write(`init: ${(e as Error).message}\n`);
+    return 1;
+  }
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -261,6 +315,8 @@ export async function main(argv: string[]): Promise<number> {
     case "help":
       process.stdout.write(USAGE + "\n");
       return 0;
+    case "init":
+      return cmdInit(rest);
     case "run":
       return cmdRun(rest);
     case "render":

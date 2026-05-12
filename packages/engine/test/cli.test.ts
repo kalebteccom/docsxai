@@ -52,6 +52,17 @@ describe("site-docs CLI — main()", () => {
     expect(err).toMatch(/missing <project-dir>/);
   });
 
+  it("init requires a workspace dir (unless --persist tmp) and validates enums", async () => {
+    expect(await main(["init"])).toBe(2);
+    expect(err).toMatch(/missing <workspace-dir>/);
+    err = "";
+    expect(await main(["init", "/some/dir", "--auth", "bogus"])).toBe(2);
+    expect(err).toMatch(/--auth must be/);
+    err = "";
+    expect(await main(["init", "/some/dir", "--capture-trigger", "telepathy"])).toBe(2);
+    expect(err).toMatch(/--capture-trigger must be/);
+  });
+
   it("capture-auth requires a project dir and --base-url, and a real auth descriptor", async () => {
     expect(await main(["capture-auth"])).toBe(2);
     expect(err).toMatch(/missing <project-dir>/);

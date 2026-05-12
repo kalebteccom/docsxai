@@ -14,3 +14,4 @@ export * from "./pipeline.js";
 export * from "./auth.js";
 export * from "./playwright-driver.js";
 export * from "./playwright-instrumented-browser.js";
+export * from "./workspace.js";
