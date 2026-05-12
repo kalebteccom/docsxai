@@ -88,52 +88,95 @@ const STYLE = `
   .step { margin: 1.5rem 0 2.5rem; }
   .shot { position: relative; display: inline-block; border: 1px solid #ddd; max-width: 100%; }
   .shot img { display: block; max-width: 100%; height: auto; }
-  .box { position: absolute; border: 2px solid #e8590c; border-radius: 3px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.03); pointer-events: none; }
-  .callout { position: absolute; background: #1c1c1c; color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; max-width: 260px; }
-  .callout::after { content: ""; position: absolute; border: 6px solid transparent; }
-  .callout.top::after { border-bottom-color: #1c1c1c; top: -12px; left: 12px; }
-  .callout.bottom::after { border-top-color: #1c1c1c; bottom: -12px; left: 12px; }
-  .callout.left::after { border-right-color: #1c1c1c; left: -12px; top: 10px; }
-  .callout.right::after { border-left-color: #1c1c1c; right: -12px; top: 10px; }
+  /* Default: just a blinking halo around the target — does NOT cover the UI. The callout is hidden until you hover the halo. */
+  .sd-halo { position: absolute; box-sizing: border-box; border: 2px solid #e8590c; border-radius: 4px; box-shadow: 0 0 0 3px rgba(232,89,12,.35); animation: sd-pulse 1.7s ease-in-out infinite; cursor: help; }
+  @keyframes sd-pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(232,89,12,.35); } 50% { box-shadow: 0 0 0 8px rgba(232,89,12,.08); } }
+  .sd-callout, .sd-arrow { position: absolute; display: none; z-index: 3; pointer-events: none; }
+  .sd-callout { background: #1c1c1c; color: #fff; padding: 8px 11px; border-radius: 7px; font-size: .85rem; line-height: 1.35; box-shadow: 0 4px 14px rgba(0,0,0,.32); }
+  .sd-arrow { width: 0; height: 0; }
+  .sd-arrow.top { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid #1c1c1c; }       /* callout above → arrow points down */
+  .sd-arrow.bottom { border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 8px solid #1c1c1c; } /* callout below → arrow points up */
+  .sd-arrow.left { border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-left: 8px solid #1c1c1c; }     /* callout left → arrow points right */
+  .sd-arrow.right { border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-right: 8px solid #1c1c1c; }   /* callout right → arrow points left */
+  .sd-halo:hover ~ .sd-callout, .sd-halo:hover ~ .sd-arrow { display: block; }
   .caption { color: #555; font-size: 0.9rem; margin-top: 0.5rem; }
   details { margin-top: 0.5rem; } pre { white-space: pre-wrap; background: #f6f6f6; padding: 0.75rem; border-radius: 6px; }
   nav a { display: block; padding: 0.25rem 0; }
   .meta { color: #888; font-size: 0.8rem; }
 `;
 
-// Inlined at the bottom of each flow page; positions overlays from the embedded annotations data.
+// Inlined at the bottom of each flow page. For each screenshot with an annotation: draw a pulsing halo around
+// the target's bounding box (scaled to the displayed image), and a hover-revealed callout placed Popper-style
+// so it never covers the target and stays inside the image. (This is a hand-port of src/placement.ts —
+// keep the two in sync.)
 const OVERLAY_JS = `
 (function () {
-  function place() {
-    document.querySelectorAll(".shot[data-ann]").forEach(function (shot) {
-      var img = shot.querySelector("img");
-      if (!img || !img.naturalWidth) return;
-      var ann = JSON.parse(shot.getAttribute("data-ann") || "null");
-      if (!ann || !ann.bounding_box) return;
-      var bb = ann.bounding_box;
-      var sx = img.clientWidth / img.naturalWidth, sy = img.clientHeight / img.naturalHeight;
-      var box = document.createElement("div");
-      box.className = "box";
-      box.style.left = (bb.x * sx) + "px"; box.style.top = (bb.y * sy) + "px";
-      box.style.width = (bb.width * sx) + "px"; box.style.height = (bb.height * sy) + "px";
-      shot.appendChild(box);
-      if (ann.copy) {
-        var side = (ann.arrow_style || "top").split("-")[0]; // top|bottom|left|right
-        var c = document.createElement("div");
-        c.className = "callout " + (["top","bottom","left","right"].indexOf(side) >= 0 ? side : "top");
-        c.textContent = ann.copy;
-        var left = bb.x * sx, top = bb.y * sy;
-        if (side === "top") top -= 44;
-        else if (side === "bottom") top += bb.height * sy + 12;
-        else if (side === "left") left -= 280;
-        else if (side === "right") left += bb.width * sx + 12;
-        c.style.left = Math.max(0, left) + "px"; c.style.top = Math.max(0, top) + "px";
-        shot.appendChild(c);
-      }
-    });
+  var GAP = 10;
+  function fits(s, im, t, c) {
+    if (s === "top") return t.y - GAP - c.h >= 0;
+    if (s === "bottom") return t.y + t.h + GAP + c.h <= im.h;
+    if (s === "left") return t.x - GAP - c.w >= 0;
+    return t.x + t.w + GAP + c.w <= im.w;
   }
-  if (document.readyState === "complete") place();
-  else window.addEventListener("load", place);
+  function room(s, im, t) {
+    if (s === "top") return t.y;
+    if (s === "bottom") return im.h - (t.y + t.h);
+    if (s === "left") return t.x;
+    return im.w - (t.x + t.w);
+  }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function place(im, t, c, pref) {
+    var SIDES = ["top", "bottom", "right", "left"];
+    var order = [pref].concat(SIDES.filter(function (x) { return x !== pref; }));
+    var side = null, i;
+    for (i = 0; i < order.length; i++) if (fits(order[i], im, t, c)) { side = order[i]; break; }
+    if (!side) side = order.slice().sort(function (a, b) { return room(b, im, t) - room(a, im, t); })[0];
+    var cx = t.x + t.w / 2, cy = t.y + t.h / 2, x, y, ax, ay;
+    if (side === "top") { x = cx - c.w / 2; y = t.y - GAP - c.h; ax = clamp(cx, 0, im.w); ay = t.y; }
+    else if (side === "bottom") { x = cx - c.w / 2; y = t.y + t.h + GAP; ax = clamp(cx, 0, im.w); ay = t.y + t.h; }
+    else if (side === "left") { x = t.x - GAP - c.w; y = cy - c.h / 2; ax = t.x; ay = clamp(cy, 0, im.h); }
+    else { x = t.x + t.w + GAP; y = cy - c.h / 2; ax = t.x + t.w; ay = clamp(cy, 0, im.h); }
+    x = clamp(x, 0, Math.max(0, im.w - c.w));
+    y = clamp(y, 0, Math.max(0, im.h - c.h));
+    return { side: side, x: x, y: y, ax: ax, ay: ay };
+  }
+  function render(shot) {
+    var img = shot.querySelector("img");
+    if (!img || !img.naturalWidth) return;
+    var ann; try { ann = JSON.parse(shot.getAttribute("data-ann") || "null"); } catch (e) { return; }
+    if (!ann || !ann.bounding_box) return;
+    var bb = ann.bounding_box;
+    var sx = img.clientWidth / img.naturalWidth, sy = img.clientHeight / img.naturalHeight;
+    var t = { x: bb.x * sx, y: bb.y * sy, w: bb.width * sx, h: bb.height * sy };
+    var im = { w: img.clientWidth, h: img.clientHeight };
+    var halo = document.createElement("div");
+    halo.className = "sd-halo";
+    halo.style.cssText = "left:" + t.x + "px;top:" + t.y + "px;width:" + t.w + "px;height:" + t.h + "px";
+    if (ann.copy) halo.title = ann.copy; // native tooltip fallback
+    shot.appendChild(halo);
+    if (!ann.copy) return;
+    var co = document.createElement("div");
+    co.className = "sd-callout";
+    co.textContent = ann.copy;
+    co.style.cssText = "max-width:280px;visibility:hidden;display:block";
+    shot.appendChild(co);
+    var c = { w: Math.min(co.offsetWidth, 280), h: co.offsetHeight };
+    var pref = String(ann.arrow_style || "top").split("-")[0];
+    if (["top", "bottom", "left", "right"].indexOf(pref) < 0) pref = "top";
+    var p = place(im, t, c, pref);
+    co.style.cssText = "left:" + p.x + "px;top:" + p.y + "px;max-width:" + c.w + "px";
+    var ar = document.createElement("div");
+    ar.className = "sd-arrow " + p.side;
+    var L, T;
+    if (p.side === "top") { L = p.ax - 7; T = p.ay - 8; }
+    else if (p.side === "bottom") { L = p.ax - 7; T = p.ay; }
+    else if (p.side === "left") { L = p.ax - 8; T = p.ay - 7; }
+    else { L = p.ax; T = p.ay - 7; }
+    ar.style.cssText = "left:" + L + "px;top:" + T + "px";
+    shot.appendChild(ar); // appended after the halo so the ".sd-halo:hover ~ ..." CSS works
+  }
+  function go() { Array.prototype.forEach.call(document.querySelectorAll(".shot[data-ann]"), render); }
+  if (document.readyState === "complete") go(); else window.addEventListener("load", go);
 })();
 `;
 

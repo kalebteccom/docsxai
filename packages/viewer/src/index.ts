@@ -8,6 +8,7 @@
 import { pathToFileURL } from "node:url";
 
 export { buildViewer, type BuildViewerOptions, type BuildViewerResult } from "./render.js";
+export { placeCallout, type Side, type Rect, type PlaceInput, type Placement } from "./placement.js";
 
 import { buildViewer } from "./render.js";
 
