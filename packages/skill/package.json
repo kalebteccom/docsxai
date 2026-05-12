@@ -1,0 +1,17 @@
+{
+  "name": "@kalebtec/site-docs-skill",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional colocated .claude/skills/ fallback that delegates to the installed plugin. Secondary path for teams that want to vendor / version-pin.",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}

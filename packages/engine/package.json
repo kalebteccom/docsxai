@@ -1,0 +1,17 @@
+{
+  "name": "@kalebtec/site-docs-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LLM-agnostic engine: calibration pipeline stages (discovery, mapping+testing, commit) + flow-file parser/runtime + the target-site auth-strategy layer.",
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}
