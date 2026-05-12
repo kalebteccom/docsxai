@@ -1,0 +1,18 @@
+# Fixture flow for the calibration→execution reproducibility keystone test (runs against test/fixtures/toy-site).
+name: recap-open
+locators:
+  play_button: '#play-recap'
+  recap_panel: '#recap-sidebar'
+steps:
+  - id: open-app
+    action: navigate
+    value: index.html
+    wait_for: load
+  - id: open-sidebar
+    action: click
+    target: $play_button
+    wait_for: { selector: $recap_panel }
+    success: { visible: $recap_panel }
+    annotation:
+      copy: "Click Play to open the Recap sidebar"
+      arrow: top-right
