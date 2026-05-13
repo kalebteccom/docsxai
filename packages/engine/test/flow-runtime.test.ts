@@ -68,7 +68,9 @@ class FakeDriver implements BrowserDriver {
   async textOf(s: string) {
     return this.texts.get(s) ?? null;
   }
+  boundingBoxError?: Error;
   async boundingBox(s: string) {
+    if (this.boundingBoxError) throw this.boundingBoxError;
     return this.boxes.get(s) ?? null;
   }
   async screenshot(p: string) {
@@ -191,6 +193,42 @@ steps:
 `);
     await runFlow(flow, d, { captureDocs: false });
     expect(d.calls).toContain("waitSelector #done (180000ms)");
+  });
+
+  it("dumps a halt screenshot (docs/<flow>/halts/<step>.png) when a step halts, and the error message points at it", async () => {
+    const d = new FakeDriver(); // #recap never visible → checkSuccess throws
+    await expect(runFlow(parseFlowFile(FLOW), d)).rejects.toThrow(/halt screenshot: docs\/recap-open\/halts\/open-sidebar\.png/);
+    expect(d.calls).toContain("screenshot docs/recap-open/halts/open-sidebar.png");
+  });
+
+  it("skips an annotation when its target's boundingBox fails (action transitioned the UI away) — run continues", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    d.boundingBoxError = new Error("locator.boundingBox: Timeout 2000ms exceeded");
+    const r = await runFlow(parseFlowFile(FLOW), d); // does not throw
+    expect(r.steps.map((s) => s.id)).toEqual(["open-app", "open-sidebar", "type-title"]);
+    expect(r.annotations.annotations).toHaveLength(0); // the annotation was skipped, not the run
+  });
+
+  it("annotation.target overrides the anchor (point the halo at a *new* element when the action target vanishes)", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    d.boxes.set("#editor", { x: 100, y: 50, width: 200, height: 60 });
+    const flow = parseFlowFile(`
+name: f
+locators: { play: '#play', recap: '#recap', editor: '#editor' }
+steps:
+  - id: kick
+    action: click
+    target: $play
+    wait_for: { selector: $recap }
+    success: { visible: $recap }
+    annotation: { copy: "the editor opened", arrow: top, target: $editor }
+`);
+    const r = await runFlow(flow, d);
+    expect(r.annotations.annotations).toHaveLength(1);
+    expect(r.annotations.annotations[0]!.selector).toBe("#editor");
+    expect(r.annotations.annotations[0]!.bounding_box).toEqual({ x: 100, y: 50, width: 200, height: 60 });
   });
 
   it("throws on an unresolved locator ref via a custom resolver", async () => {

@@ -153,8 +153,8 @@ export class PlaywrightDriver implements BrowserDriver {
     return this.page.locator(selector).first().textContent().catch(() => null);
   }
 
-  async boundingBox(selector: string): Promise<BoundingBox | null> {
-    return this.page.locator(selector).boundingBox();
+  async boundingBox(selector: string, timeoutMs?: number): Promise<BoundingBox | null> {
+    return this.page.locator(selector).boundingBox(timeoutMs !== undefined ? { timeout: timeoutMs } : undefined);
   }
   async screenshot(relPath: string): Promise<void> {
     const abs = path.resolve(this.docPackRoot, relPath);

@@ -77,6 +77,13 @@ export const StepAnnotation = z
   .object({
     copy: z.string().min(1),
     arrow: ArrowStyle.optional(),
+    /**
+     * Optional override: the locator to anchor the halo/arrow to. Default = the step's `target`. Use this on
+     * a step whose action *transitions the UI* (e.g. clicking "Generate" replaces the empty state with an
+     * editor) — the action target vanishes, but a *new* element is what you want to highlight. Point this at
+     * the surviving / appearing element.
+     */
+    target: LocatorRef.optional(),
   })
   .strict();
 export type StepAnnotation = z.infer<typeof StepAnnotation>;

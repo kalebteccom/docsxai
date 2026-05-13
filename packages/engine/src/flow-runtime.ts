@@ -52,8 +52,8 @@ export interface BrowserDriver {
   /** Text content of the first match of `selector`, or `null`. */
   textOf(selector: string): Promise<string | null>;
 
-  /** Bounding box of an element, in page pixels, if it exists. */
-  boundingBox(selector: string): Promise<BoundingBox | null>;
+  /** Bounding box of an element, in page pixels. Pass `timeoutMs` (default = driver default) so this fails fast when the target has vanished. Returns `null` on miss. */
+  boundingBox(selector: string, timeoutMs?: number): Promise<BoundingBox | null>;
   /** Capture a clean screenshot (no baked annotations) and return where it was written, relative to the doc pack. */
   screenshot(relPath: string): Promise<void>;
 }
@@ -221,24 +221,40 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
       }
       if (step.success) await checkSuccess(driver, step.success, resolve, step.id);
     } catch (e) {
-      if (e instanceof FlowExecutionError) throw e;
+      // Halt: dump a screenshot for triage (best-effort), then surface step id + url + halt-shot path
+      // (uniformly — both FlowExecutionError and raw driver errors).
+      const haltShot = `docs/${flow.name}/halts/${step.id}.png`;
+      if (captureDocs) await driver.screenshot(haltShot).catch(() => undefined);
+      const suffix = captureDocs ? ` (halt screenshot: ${haltShot})` : "";
+      if (e instanceof FlowExecutionError) {
+        throw new FlowExecutionError(`${e.message}${suffix}`, e.stepId, e.cause);
+      }
       const where = await driver.currentUrl().catch(() => "?");
-      throw new FlowExecutionError(`step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}`, step.id, e);
+      throw new FlowExecutionError(`step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`, step.id, e);
     }
 
     const ex: ExecutedStep = { id: step.id, action: step.action, ...(selector ? { selector } : {}) };
+    // Doc capture is best-effort. A step whose action transitions the UI (e.g. click "Generate" → empty
+    // state replaced by editor) leaves the action target *vanished*; `boundingBox` would hang for the
+    // driver's default 30s. Short timeout + try/catch → continue with no annotation for this step.
+    // `annotation.target` (if set) overrides the anchor — point the halo at a *new* / surviving element.
     if (captureDocs && step.annotation) {
-      const shot = screenshotPathOf(flow.name, step.id);
-      await driver.screenshot(shot);
-      ex.screenshot = shot;
-      const bbox = selector ? await driver.boundingBox(selector) : null;
-      annotations.push({
-        step: step.id,
-        selector: selector ?? "",
-        ...(bbox ? { bounding_box: bbox } : {}),
-        copy: step.annotation.copy,
-        ...(step.annotation.arrow ? { arrow_style: step.annotation.arrow } : {}),
-      });
+      try {
+        const shot = screenshotPathOf(flow.name, step.id);
+        await driver.screenshot(shot);
+        ex.screenshot = shot;
+        const annSelector = step.annotation.target ? resolve(step.annotation.target) : selector;
+        const bbox = annSelector ? await driver.boundingBox(annSelector, 2000) : null;
+        annotations.push({
+          step: step.id,
+          selector: annSelector ?? "",
+          ...(bbox ? { bounding_box: bbox } : {}),
+          copy: step.annotation.copy,
+          ...(step.annotation.arrow ? { arrow_style: step.annotation.arrow } : {}),
+        });
+      } catch (e) {
+        process.stderr.write(`runFlow: step "${step.id}" — annotation capture skipped (${(e as Error).message})\n`);
+      }
     }
     executed.push(ex);
     if (opts.stopAfter && step.id === opts.stopAfter) break;
