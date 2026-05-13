@@ -154,7 +154,45 @@ export class PlaywrightDriver implements BrowserDriver {
   }
 
   async boundingBox(selector: string, timeoutMs?: number): Promise<BoundingBox | null> {
-    return this.page.locator(selector).boundingBox(timeoutMs !== undefined ? { timeout: timeoutMs } : undefined);
+    // Visible rect, not the element's own rect — intersect with each clipping ancestor (overflow != visible)
+    // and the viewport. Playwright's `Locator.boundingBox()` returns the element's geometry, which for an
+    // element inside a scroll container includes parts that are clipped *off-screen-within-the-scroller* —
+    // the screenshot doesn't show those, so a halo drawn from that rect overflows into the void.
+    const loc = this.page.locator(selector).first();
+    try {
+      await loc.waitFor({ state: "visible", ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}) });
+    } catch {
+      return null;
+    }
+    return loc
+      .evaluate((el: unknown) => {
+        const e = el as { getBoundingClientRect: () => { left: number; top: number; right: number; bottom: number }; parentElement: unknown; ownerDocument: { defaultView: { innerWidth: number; innerHeight: number; getComputedStyle: (n: unknown) => { overflow: string; overflowX: string; overflowY: string } } } };
+        const view = e.ownerDocument.defaultView;
+        const r = e.getBoundingClientRect();
+        let x = r.left,
+          y = r.top,
+          right = r.right,
+          bottom = r.bottom;
+        let cur = e.parentElement as { getBoundingClientRect: () => { left: number; top: number; right: number; bottom: number }; parentElement: unknown } | null;
+        while (cur) {
+          const cs = view.getComputedStyle(cur);
+          if (cs.overflow !== "visible" || cs.overflowX !== "visible" || cs.overflowY !== "visible") {
+            const cr = cur.getBoundingClientRect();
+            if (cr.left > x) x = cr.left;
+            if (cr.top > y) y = cr.top;
+            if (cr.right < right) right = cr.right;
+            if (cr.bottom < bottom) bottom = cr.bottom;
+          }
+          cur = cur.parentElement as typeof cur;
+        }
+        if (x < 0) x = 0;
+        if (y < 0) y = 0;
+        if (right > view.innerWidth) right = view.innerWidth;
+        if (bottom > view.innerHeight) bottom = view.innerHeight;
+        if (right <= x || bottom <= y) return null;
+        return { x, y, width: right - x, height: bottom - y };
+      })
+      .catch(() => null);
   }
   async screenshot(relPath: string): Promise<void> {
     const abs = path.resolve(this.docPackRoot, relPath);

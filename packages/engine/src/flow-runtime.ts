@@ -234,10 +234,10 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
     }
 
     const ex: ExecutedStep = { id: step.id, action: step.action, ...(selector ? { selector } : {}) };
-    // Doc capture is best-effort. A step whose action transitions the UI (e.g. click "Generate" → empty
-    // state replaced by editor) leaves the action target *vanished*; `boundingBox` would hang for the
-    // driver's default 30s. Short timeout + try/catch → continue with no annotation for this step.
-    // `annotation.target` (if set) overrides the anchor — point the halo at a *new* / surviving element.
+    // Doc capture is best-effort. When a step's action *transitions the UI* the action target is often
+    // unmounted by the time we capture — `boundingBox` would hang for the driver's default 30s. Short
+    // timeout + try/catch → continue with no annotation for this step. `annotation.target` (if set)
+    // overrides the anchor — point the halo at a different element that *does* exist in the new state.
     if (captureDocs && step.annotation) {
       try {
         const shot = screenshotPathOf(flow.name, step.id);

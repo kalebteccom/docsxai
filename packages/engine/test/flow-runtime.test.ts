@@ -201,7 +201,7 @@ steps:
     expect(d.calls).toContain("screenshot docs/recap-open/halts/open-sidebar.png");
   });
 
-  it("skips an annotation when its target's boundingBox fails (action transitioned the UI away) — run continues", async () => {
+  it("skips an annotation when its target's boundingBox fails (e.g. the target was unmounted post-action) — run continues", async () => {
     const d = new FakeDriver();
     d.visible.add("#recap");
     d.boundingBoxError = new Error("locator.boundingBox: Timeout 2000ms exceeded");
@@ -210,24 +210,24 @@ steps:
     expect(r.annotations.annotations).toHaveLength(0); // the annotation was skipped, not the run
   });
 
-  it("annotation.target overrides the anchor (point the halo at a *new* element when the action target vanishes)", async () => {
+  it("annotation.target overrides the anchor — point the halo at a different element from the action's target", async () => {
     const d = new FakeDriver();
     d.visible.add("#recap");
-    d.boxes.set("#editor", { x: 100, y: 50, width: 200, height: 60 });
+    d.boxes.set("#appeared", { x: 100, y: 50, width: 200, height: 60 });
     const flow = parseFlowFile(`
 name: f
-locators: { play: '#play', recap: '#recap', editor: '#editor' }
+locators: { trigger: '#trigger', recap: '#recap', appeared: '#appeared' }
 steps:
-  - id: kick
+  - id: act
     action: click
-    target: $play
+    target: $trigger
     wait_for: { selector: $recap }
     success: { visible: $recap }
-    annotation: { copy: "the editor opened", arrow: top, target: $editor }
+    annotation: { copy: "the new state", arrow: top, target: $appeared }
 `);
     const r = await runFlow(flow, d);
     expect(r.annotations.annotations).toHaveLength(1);
-    expect(r.annotations.annotations[0]!.selector).toBe("#editor");
+    expect(r.annotations.annotations[0]!.selector).toBe("#appeared");
     expect(r.annotations.annotations[0]!.bounding_box).toEqual({ x: 100, y: 50, width: 200, height: 60 });
   });
 
