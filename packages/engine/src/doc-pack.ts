@@ -98,9 +98,21 @@ export const Step = z
     value: z.string().optional(),
     wait_for: WaitSpec.optional(),
     success: SuccessSpec.optional(),
+    /** Single call-out on this step's screenshot. Shorthand for a one-element `annotations` array. */
     annotation: StepAnnotation.optional(),
+    /**
+     * Multiple call-outs on the same screenshot — rendered as numbered badges (1, 2, …) so the reader sees
+     * up front that there's more than one thing to look at without having to hover everything. Each entry
+     * has its own `target` (defaults to the step's `target`) and `copy` / `arrow` — see {@link StepAnnotation}.
+     * Mutually exclusive with `annotation`.
+     */
+    annotations: z.array(StepAnnotation).min(1).optional(),
   })
-  .strict();
+  .strict()
+  .refine((s) => !(s.annotation && s.annotations), {
+    message: "step has both `annotation` and `annotations`; use one (`annotations: [...]` for the multi-callout form)",
+    path: ["annotations"],
+  });
 export type Step = z.infer<typeof Step>;
 
 /** A precondition the flow assumes (e.g. `{ logged_in_as: "editor" }`, `{ feature_flag: "recap.enabled" }`). */
@@ -142,6 +154,8 @@ export const AnnotationRecord = z
     bounding_box: BoundingBox.optional(),
     copy: z.string().min(1),
     arrow_style: ArrowStyle.optional(),
+    /** 1-based index of this annotation *within its step's screenshot* — set only when the step has > 1 annotation, so the viewer can render a numbered badge. Absent → render as a plain (un-numbered) halo. */
+    index: z.number().int().positive().optional(),
   })
   .strict();
 export type AnnotationRecord = z.infer<typeof AnnotationRecord>;

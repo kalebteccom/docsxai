@@ -238,20 +238,28 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
     // unmounted by the time we capture — `boundingBox` would hang for the driver's default 30s. Short
     // timeout + try/catch → continue with no annotation for this step. `annotation.target` (if set)
     // overrides the anchor — point the halo at a different element that *does* exist in the new state.
-    if (captureDocs && step.annotation) {
+    // A step can also have `annotations: [...]` to put multiple numbered call-outs on the same screenshot —
+    // each becomes one record with a 1-based `index`; an `annotation` (singular) emits one record without
+    // `index` (un-numbered, back-compat).
+    const anns = step.annotations ?? (step.annotation ? [step.annotation] : []);
+    if (captureDocs && anns.length > 0) {
       try {
         const shot = screenshotPathOf(flow.name, step.id);
         await driver.screenshot(shot);
         ex.screenshot = shot;
-        const annSelector = step.annotation.target ? resolve(step.annotation.target) : selector;
-        const bbox = annSelector ? await driver.boundingBox(annSelector, 2000) : null;
-        annotations.push({
-          step: step.id,
-          selector: annSelector ?? "",
-          ...(bbox ? { bounding_box: bbox } : {}),
-          copy: step.annotation.copy,
-          ...(step.annotation.arrow ? { arrow_style: step.annotation.arrow } : {}),
-        });
+        for (let i = 0; i < anns.length; i++) {
+          const ann = anns[i]!;
+          const annSelector = ann.target ? resolve(ann.target) : selector;
+          const bbox = annSelector ? await driver.boundingBox(annSelector, 2000) : null;
+          annotations.push({
+            step: step.id,
+            selector: annSelector ?? "",
+            ...(bbox ? { bounding_box: bbox } : {}),
+            copy: ann.copy,
+            ...(ann.arrow ? { arrow_style: ann.arrow } : {}),
+            ...(anns.length > 1 ? { index: i + 1 } : {}),
+          });
+        }
       } catch (e) {
         process.stderr.write(`runFlow: step "${step.id}" — annotation capture skipped (${(e as Error).message})\n`);
       }

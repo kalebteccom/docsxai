@@ -11,6 +11,7 @@ import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { LocalStorageStateCache, makeStrategy, parseAuthStrategyFile, resolveCredsEnv, type StorageState } from "./auth.js";
 import { calibrate } from "./calibrate.js";
+import { type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
@@ -25,7 +26,7 @@ Usage:
                                  [--persist tmp] [--force]
   site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
-  site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--pause]
+  site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--pause] [--concurrency <N>]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   site-docs --help
@@ -41,6 +42,9 @@ Notes:
     (headed) browser open at the last step run — so you can inspect the live state mid-flow when calibrating
     (pair with --flow <name>). For waiting on a slow backend op, give a step a wait_for of the form
     { selector: $x, timeout_ms: 180000 } — a per-step override of the default ~30s selector-wait timeout.
+  • run --concurrency <N> runs up to N flows in parallel (each its own Chromium session, isolated; default 1).
+    Useful when several flows share a long preamble — total wall time = max(per-flow), not sum. Force-clamped
+    to 1 when --pause / --stop-after is set. The target app must tolerate multiple sessions from one user.
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
     engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you
@@ -121,11 +125,11 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
 
 async function cmdRun(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  const projectDir = positionals[0];
-  if (!projectDir) {
+  if (!positionals[0]) {
     process.stderr.write("run: missing <project-dir>\n\n" + USAGE + "\n");
     return 2;
   }
+  const projectDir: string = positionals[0];
   const onlyFlow = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const stopAfter = typeof flags.get("stop-after") === "string" ? (flags.get("stop-after") as string) : undefined;
   const pause = flags.get("pause") === true;
@@ -152,9 +156,9 @@ async function cmdRun(args: string[]): Promise<number> {
     }
     return parseFlowFile(text, fp);
   };
-  const flows = [];
+  const flows: FlowFile[] = [];
   for (const fp of flowPaths) {
-    let flow;
+    let flow: FlowFile;
     try {
       const parsed = parseFlowFile(await fs.readFile(fp, "utf8"), fp);
       flow = parsed.extends ? await resolveFlowExtends(parsed, loadFlowFile) : parsed;
@@ -180,42 +184,62 @@ async function cmdRun(args: string[]): Promise<number> {
     return 1;
   }
 
-  let session;
-  try {
-    session = await launchPlaywrightSession({ baseURL, headed, ignoreHTTPSErrors, storageState, docPackRoot: projectDir });
-  } catch (e) {
-    const msg = (e as Error).message;
-    if (/Executable doesn't exist|browserType\.launch|playwright install/i.test(msg)) {
-      process.stderr.write(`run: no Chromium binary found.\n  Install one:  npx playwright install chromium\n`);
-      return 1;
-    }
-    process.stderr.write(`run: failed to launch browser: ${msg}\n`);
-    return 1;
+  // Parallel runners: each flow gets its own Playwright session, so flows are isolated and can run together.
+  // `--concurrency N` (default 1) caps how many run at once. `--pause` / `--stop-after` force concurrency=1
+  // (they're single-flow calibration aids; mixing them with parallelism would be chaos).
+  const concurrencyRaw = typeof flags.get("concurrency") === "string" ? Number(flags.get("concurrency")) : 1;
+  const requestedConcurrency = Math.max(1, Math.floor(concurrencyRaw || 1));
+  const concurrency = pause || stopAfter ? 1 : requestedConcurrency;
+  if ((pause || stopAfter) && requestedConcurrency > 1) {
+    process.stderr.write(`run: --pause / --stop-after force --concurrency 1 (ignoring --concurrency ${requestedConcurrency})\n`);
   }
+  const tag = concurrency > 1 ? (name: string) => `run [${name}]: ` : () => "run: ";
 
-  try {
-    for (const flow of flows) {
+  async function runOne(flow: FlowFile): Promise<boolean> {
+    const name = flow.name;
+    let session;
+    try {
+      session = await launchPlaywrightSession({ baseURL, headed, ignoreHTTPSErrors, storageState, docPackRoot: projectDir });
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (/Executable doesn't exist|browserType\.launch|playwright install/i.test(msg)) {
+        process.stderr.write(`${tag(name)}no Chromium binary found.  Install one:  npx playwright install chromium\n`);
+      } else {
+        process.stderr.write(`${tag(name)}failed to launch browser: ${msg}\n`);
+      }
+      return false;
+    }
+    try {
       const result = await runFlow(flow, session.driver, { resolveLocator: (n) => flow.locators[n], ...(stopAfter ? { stopAfter } : {}) });
       const docsDir = path.join(projectDir, "docs", flow.name);
       await fs.mkdir(docsDir, { recursive: true });
-      await fs.writeFile(
-        path.join(docsDir, "annotations.json"),
-        JSON.stringify(result.annotations, null, 2) + "\n",
-        "utf8",
-      );
-      process.stdout.write(`run: ${flow.name} — ${result.steps.length} steps, ${result.annotations.annotations.length} annotation(s)\n`);
+      await fs.writeFile(path.join(docsDir, "annotations.json"), JSON.stringify(result.annotations, null, 2) + "\n", "utf8");
+      process.stdout.write(`${tag(name)}${name} — ${result.steps.length} steps, ${result.annotations.annotations.length} annotation(s)\n`);
+      return true;
+    } catch (e) {
+      process.stderr.write(`${tag(name)}${(e as Error).message}\n`);
+      return false;
+    } finally {
+      if (pause) {
+        process.stdout.write("run: --pause — browser is open at the last step run; close it to exit.\n");
+        await new Promise<void>((resolve) => session!.browser.on("disconnected", () => resolve()));
+      }
+      await session.close();
     }
-    return 0;
-  } catch (e) {
-    process.stderr.write(`run: ${(e as Error).message}\n`);
-    return 1;
-  } finally {
-    if (pause) {
-      process.stdout.write("run: --pause — browser is open at the last step run; close it to exit.\n");
-      await new Promise<void>((resolve) => session.browser.on("disconnected", () => resolve()));
-    }
-    await session.close();
   }
+
+  let idx = 0;
+  let anyFailed = false;
+  async function worker(): Promise<void> {
+    while (idx < flows.length) {
+      const flow = flows[idx++]!;
+      if (!(await runOne(flow))) anyFailed = true;
+    }
+  }
+  const workers = Math.min(concurrency, flows.length);
+  if (workers > 1) process.stdout.write(`run: running ${flows.length} flows with ${workers} parallel worker(s)…\n`);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return anyFailed ? 1 : 0;
 }
 
 async function cmdRender(args: string[]): Promise<number> {

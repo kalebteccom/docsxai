@@ -210,6 +210,40 @@ steps:
     expect(r.annotations.annotations).toHaveLength(0); // the annotation was skipped, not the run
   });
 
+  it("a step with `annotations: [...]` produces one indexed record per call-out (1-based)", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    d.boxes.set("#a", { x: 1, y: 2, width: 3, height: 4 });
+    d.boxes.set("#b", { x: 5, y: 6, width: 7, height: 8 });
+    const flow = parseFlowFile(`
+name: f
+locators: { play: '#play', recap: '#recap', a: '#a', b: '#b' }
+steps:
+  - id: act
+    action: click
+    target: $play
+    wait_for: { selector: $recap }
+    success: { visible: $recap }
+    annotations:
+      - { copy: "first thing", target: $a, arrow: top }
+      - { copy: "second thing", target: $b, arrow: bottom }
+`);
+    const r = await runFlow(flow, d);
+    expect(r.annotations.annotations).toHaveLength(2);
+    expect(r.annotations.annotations[0]).toMatchObject({ step: "act", selector: "#a", copy: "first thing", index: 1 });
+    expect(r.annotations.annotations[1]).toMatchObject({ step: "act", selector: "#b", copy: "second thing", index: 2 });
+  });
+
+  it("a single `annotation` (back-compat) produces one record with NO index (un-numbered)", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    d.boxes.set("#play", { x: 1, y: 1, width: 10, height: 10 });
+    const r = await runFlow(parseFlowFile(FLOW), d);
+    const ann = r.annotations.annotations.find((a) => a.step === "open-sidebar")!;
+    expect(ann.copy).toBe("Click Play to open the recap sidebar");
+    expect(ann.index).toBeUndefined();
+  });
+
   it("annotation.target overrides the anchor — point the halo at a different element from the action's target", async () => {
     const d = new FakeDriver();
     d.visible.add("#recap");

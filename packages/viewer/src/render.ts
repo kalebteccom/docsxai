@@ -88,9 +88,12 @@ const STYLE = `
   .step { margin: 1.5rem 0 2.5rem; }
   .shot { position: relative; display: inline-block; border: 1px solid #ddd; max-width: 100%; }
   .shot img { display: block; max-width: 100%; height: auto; }
-  /* Default: just a blinking halo around the target — does NOT cover the UI. The callout is hidden until you hover the halo. */
-  .sd-halo { position: absolute; box-sizing: border-box; border: 2px solid #e8590c; border-radius: 4px; box-shadow: 0 0 0 3px rgba(232,89,12,.35); animation: sd-pulse 1.7s ease-in-out infinite; cursor: help; }
+  /* Default: a blinking halo around the target (+ a numbered badge when a screenshot has > 1 call-out) —
+     does NOT cover the UI. The callout text is hidden until you hover the halo or its badge. */
+  .sd-ann { position: absolute; left: 0; top: 0; pointer-events: none; }
+  .sd-halo { position: absolute; box-sizing: border-box; border: 2px solid #e8590c; border-radius: 4px; box-shadow: 0 0 0 3px rgba(232,89,12,.35); animation: sd-pulse 1.7s ease-in-out infinite; cursor: help; pointer-events: auto; }
   @keyframes sd-pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(232,89,12,.35); } 50% { box-shadow: 0 0 0 8px rgba(232,89,12,.08); } }
+  .sd-badge { position: absolute; min-width: 22px; height: 22px; padding: 0 6px; line-height: 22px; text-align: center; font-weight: 700; font-size: 12px; color: #fff; background: #e8590c; border: 2px solid #fff; border-radius: 11px; box-sizing: content-box; box-shadow: 0 2px 6px rgba(0,0,0,.32); pointer-events: auto; cursor: help; }
   .sd-callout, .sd-arrow { position: absolute; display: none; z-index: 3; pointer-events: none; }
   .sd-callout { background: #1c1c1c; color: #fff; padding: 8px 11px; border-radius: 7px; font-size: .85rem; line-height: 1.35; box-shadow: 0 4px 14px rgba(0,0,0,.32); }
   .sd-arrow { width: 0; height: 0; }
@@ -98,8 +101,10 @@ const STYLE = `
   .sd-arrow.bottom { border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 8px solid #1c1c1c; } /* callout below → arrow points up */
   .sd-arrow.left { border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-left: 8px solid #1c1c1c; }     /* callout left → arrow points right */
   .sd-arrow.right { border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-right: 8px solid #1c1c1c; }   /* callout right → arrow points left */
-  .sd-halo:hover ~ .sd-callout, .sd-halo:hover ~ .sd-arrow { display: block; }
+  .sd-ann:hover .sd-callout, .sd-ann:hover .sd-arrow { display: block; }
   .caption { color: #555; font-size: 0.9rem; margin-top: 0.5rem; }
+  ol.caption-list { color: #555; font-size: 0.9rem; margin: 0.5rem 0 0; padding-left: 1.5rem; }
+  ol.caption-list li { margin: 0.15rem 0; }
   details { margin-top: 0.5rem; } pre { white-space: pre-wrap; background: #f6f6f6; padding: 0.75rem; border-radius: 6px; }
   nav a { display: block; padding: 0.25rem 0; }
   .meta { color: #888; font-size: 0.8rem; }
@@ -146,53 +151,79 @@ const OVERLAY_JS = `
     y = clamp(y, 0, Math.max(0, im.h - c.h));
     return { side: side, x: x, y: y, ax: ax, ay: ay };
   }
-  function render(shot) {
-    var img = shot.querySelector("img");
-    if (!img || !img.naturalWidth) return;
-    var ann; try { ann = JSON.parse(shot.getAttribute("data-ann") || "null"); } catch (e) { return; }
-    if (!ann || !ann.bounding_box) return;
+  function renderOne(shot, ann, sx, sy, im) {
+    if (!ann.bounding_box) return;
     var bb = ann.bounding_box;
-    var sx = img.clientWidth / img.naturalWidth, sy = img.clientHeight / img.naturalHeight;
     var t = { x: bb.x * sx, y: bb.y * sy, w: bb.width * sx, h: bb.height * sy };
-    var im = { w: img.clientWidth, h: img.clientHeight };
+    var wrap = document.createElement("div");
+    wrap.className = "sd-ann";
+    // halo
     var halo = document.createElement("div");
     halo.className = "sd-halo";
     halo.style.cssText = "left:" + t.x + "px;top:" + t.y + "px;width:" + t.w + "px;height:" + t.h + "px";
-    if (ann.copy) halo.title = ann.copy; // native tooltip fallback
-    shot.appendChild(halo);
-    if (!ann.copy) return;
-    var co = document.createElement("div");
-    co.className = "sd-callout";
-    co.textContent = ann.copy;
-    co.style.cssText = "max-width:280px;visibility:hidden;display:block";
-    shot.appendChild(co);
-    var c = { w: Math.min(co.offsetWidth, 280), h: co.offsetHeight };
-    var pref = String(ann.arrow_style || "top").split("-")[0];
-    if (["top", "bottom", "left", "right"].indexOf(pref) < 0) pref = "top";
-    var p = place(im, t, c, pref);
-    co.style.cssText = "left:" + p.x + "px;top:" + p.y + "px;max-width:" + c.w + "px";
-    var ar = document.createElement("div");
-    ar.className = "sd-arrow " + p.side;
-    var L, T;
-    if (p.side === "top") { L = p.ax - 7; T = p.ay - 8; }
-    else if (p.side === "bottom") { L = p.ax - 7; T = p.ay; }
-    else if (p.side === "left") { L = p.ax - 8; T = p.ay - 7; }
-    else { L = p.ax; T = p.ay - 7; }
-    ar.style.cssText = "left:" + L + "px;top:" + T + "px";
-    shot.appendChild(ar); // appended after the halo so the ".sd-halo:hover ~ ..." CSS works
+    if (ann.copy) halo.title = (typeof ann.index === "number" ? ann.index + ". " : "") + ann.copy;
+    wrap.appendChild(halo);
+    // numbered badge — only when this image has > 1 call-out (ann.index set by the engine in that case)
+    if (typeof ann.index === "number") {
+      var b = document.createElement("div");
+      b.className = "sd-badge";
+      b.textContent = String(ann.index);
+      // top-left of the halo, pulled slightly outside it; clamped to the image
+      var bx = Math.max(0, Math.min(t.x - 8, im.w - 22));
+      var by = Math.max(0, Math.min(t.y - 8, im.h - 22));
+      b.style.cssText = "left:" + bx + "px;top:" + by + "px";
+      if (ann.copy) b.title = ann.index + ". " + ann.copy;
+      wrap.appendChild(b);
+    }
+    if (ann.copy) {
+      var co = document.createElement("div");
+      co.className = "sd-callout";
+      co.textContent = (typeof ann.index === "number" ? ann.index + ". " : "") + ann.copy;
+      co.style.cssText = "max-width:280px;visibility:hidden;display:block";
+      wrap.appendChild(co);
+      var c = { w: Math.min(co.offsetWidth, 280), h: co.offsetHeight };
+      var pref = String(ann.arrow_style || "top").split("-")[0];
+      if (["top", "bottom", "left", "right"].indexOf(pref) < 0) pref = "top";
+      var p = place(im, t, c, pref);
+      co.style.cssText = "left:" + p.x + "px;top:" + p.y + "px;max-width:" + c.w + "px";
+      var ar = document.createElement("div");
+      ar.className = "sd-arrow " + p.side;
+      var L, T;
+      if (p.side === "top") { L = p.ax - 7; T = p.ay - 8; }
+      else if (p.side === "bottom") { L = p.ax - 7; T = p.ay; }
+      else if (p.side === "left") { L = p.ax - 8; T = p.ay - 7; }
+      else { L = p.ax; T = p.ay - 7; }
+      ar.style.cssText = "left:" + L + "px;top:" + T + "px";
+      wrap.appendChild(ar);
+    }
+    shot.appendChild(wrap);
   }
-  function go() { Array.prototype.forEach.call(document.querySelectorAll(".shot[data-ann]"), render); }
+  function render(shot) {
+    var img = shot.querySelector("img");
+    if (!img || !img.naturalWidth) return;
+    var anns; try { anns = JSON.parse(shot.getAttribute("data-anns") || "[]"); } catch (e) { return; }
+    if (!anns || !anns.length) return;
+    var sx = img.clientWidth / img.naturalWidth, sy = img.clientHeight / img.naturalHeight;
+    var im = { w: img.clientWidth, h: img.clientHeight };
+    for (var i = 0; i < anns.length; i++) renderOne(shot, anns[i], sx, sy, im);
+  }
+  function go() { Array.prototype.forEach.call(document.querySelectorAll(".shot[data-anns]"), render); }
   if (document.readyState === "complete") go(); else window.addEventListener("load", go);
 })();
 `;
 
-function flowPageHtml(flow: string, steps: Array<{ id: string; screenshot: string | null; ann: AnnotationRecord | null; md: string | null }>): string {
+function flowPageHtml(flow: string, steps: Array<{ id: string; screenshot: string | null; anns: AnnotationRecord[]; md: string | null }>): string {
   const body = steps
     .map((s) => {
       const shot = s.screenshot
-        ? `<div class="shot"${s.ann ? ` data-ann='${escAttrSingle(JSON.stringify(s.ann))}'` : ""}><img src="${esc(s.screenshot)}" alt="${esc(s.id)}"></div>`
+        ? `<div class="shot"${s.anns.length ? ` data-anns='${escAttrSingle(JSON.stringify(s.anns))}'` : ""}><img src="${esc(s.screenshot)}" alt="${esc(s.id)}"></div>`
         : `<p class="meta">(no screenshot for step ${esc(s.id)})</p>`;
-      const cap = s.ann?.copy ? `<div class="caption">${esc(s.ann.copy)}</div>` : "";
+      const cap =
+        s.anns.length === 0
+          ? ""
+          : s.anns.length === 1
+            ? `<div class="caption">${esc(s.anns[0]!.copy)}</div>`
+            : `<ol class="caption-list">${s.anns.map((a) => `<li>${esc(a.copy)}</li>`).join("")}</ol>`;
       const md = s.md ? `<details><summary>Step write-up</summary><pre>${esc(s.md)}</pre></details>` : "";
       return `<section class="step"><h2>${esc(s.id)}</h2>${shot}${cap}${md}</section>`;
     })
@@ -231,10 +262,16 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
   for (const flow of flows) {
     const flowSrc = path.join(opts.docsDir, flow);
     const annFile = await readJsonIfExists<AnnotationsFile>(path.join(flowSrc, "annotations.json"));
-    const annByStep = new Map<string, AnnotationRecord>((annFile?.annotations ?? []).map((a) => [a.step, a]));
+    const annsByStep = new Map<string, AnnotationRecord[]>();
+    for (const a of annFile?.annotations ?? []) {
+      const list = annsByStep.get(a.step) ?? [];
+      list.push(a);
+      annsByStep.set(a.step, list);
+    }
 
-    // Step order: annotation order if available, else screenshot files.
-    let stepIds = (annFile?.annotations ?? []).map((a) => a.step);
+    // Step order: first occurrence of each step in the annotation list (multi-annotation steps appear once);
+    // else fall back to the screenshot filenames.
+    let stepIds = [...new Set((annFile?.annotations ?? []).map((a) => a.step))];
     if (stepIds.length === 0) {
       const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
       stepIds = shots.filter((s) => s.endsWith(".png")).map((s) => s.replace(/\.png$/, "")).sort();
@@ -251,7 +288,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
       steps.push({
         id,
         screenshot: hasShot ? shotRel : null,
-        ann: annByStep.get(id) ?? null,
+        anns: annsByStep.get(id) ?? [],
         md: await readTextIfExists(path.join(flowSrc, `${id}.md`)),
       });
     }
@@ -264,7 +301,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     flowSummaries.push({
       flow,
       steps: steps.length,
-      annotations: steps.filter((s) => s.ann).length,
+      annotations: steps.reduce((n, s) => n + s.anns.length, 0),
       thumb: thumbStep ? `${flow}/${thumbStep.screenshot}` : null,
     });
   }

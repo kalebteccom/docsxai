@@ -70,6 +70,19 @@ steps:
     expect(() => parseFlowFile(bad)).toThrow(/unresolved locator/i);
   });
 
+  it("rejects a step that sets BOTH `annotation` and `annotations` (use one — annotations: [...] is the multi form)", () => {
+    const bad = `
+name: f
+steps:
+  - id: s
+    action: wait
+    annotation: { copy: "x" }
+    annotations:
+      - { copy: "y" }
+`;
+    expect(() => parseFlowFile(bad)).toThrow(/both `annotation` and `annotations`/);
+  });
+
   it("rejects duplicate step ids", () => {
     const bad = `
 name: f

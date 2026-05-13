@@ -75,6 +75,8 @@ function collectLocatorRefs(step: Step): string[] {
     else if ("hidden" in step.success) push(step.success.hidden);
     else if ("text_contains" in step.success) push(step.success.text_contains.selector);
   }
+  if (step.annotation?.target) push(step.annotation.target);
+  if (step.annotations) for (const a of step.annotations) if (a.target) push(a.target);
   return refs;
 }
 

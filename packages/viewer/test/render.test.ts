@@ -42,7 +42,7 @@ describe("buildViewer", () => {
     const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
     expect(flowHtml).toContain('src="screenshots/open-sidebar.png"');
     expect(flowHtml).toContain("Click Play to open the recap sidebar");
-    expect(flowHtml).toContain("data-ann="); // overlay data embedded
+    expect(flowHtml).toContain("data-anns="); // overlay data embedded (an array — one element per call-out)
     expect(flowHtml).toContain('"bounding_box":{"x":10,"y":20,"width":30,"height":12}');
     expect(flowHtml).toContain("Step write-up"); // the .md is included in a <details>
 
@@ -58,6 +58,34 @@ describe("buildViewer", () => {
     const r = await buildViewer({ docsDir: path.join(tmp, "nonexistent-docs"), outDir });
     expect(r.pages).toEqual(["index.html"]);
     expect(await fs.readFile(path.join(outDir, "index.html"), "utf8")).toContain("no flows");
+  });
+
+  it("renders multiple call-outs on the same screenshot as a numbered list + indexed records in data-anns", async () => {
+    const flowDir = path.join(tmp, "docs", "recap-open");
+    await fs.writeFile(
+      path.join(flowDir, "annotations.json"),
+      JSON.stringify({
+        schema: "site-docs/annotations@1",
+        flow: "recap-open",
+        annotations: [
+          { step: "open-sidebar", selector: "#a", bounding_box: { x: 1, y: 2, width: 3, height: 4 }, copy: "first thing", index: 1 },
+          { step: "open-sidebar", selector: "#b", bounding_box: { x: 5, y: 6, width: 7, height: 8 }, copy: "second thing", index: 2 },
+        ],
+      }),
+    );
+    const outDir = path.join(tmp, "out-multi");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
+    expect(flowHtml).toContain('"index":1');
+    expect(flowHtml).toContain('"index":2');
+    expect(flowHtml).toContain('<ol class="caption-list">');
+    expect(flowHtml).toContain("first thing");
+    expect(flowHtml).toContain("second thing");
+    // both bboxes in the embedded JSON array
+    expect(flowHtml).toContain('"bounding_box":{"x":1,"y":2,"width":3,"height":4}');
+    expect(flowHtml).toContain('"bounding_box":{"x":5,"y":6,"width":7,"height":8}');
+    // a single shot (one step) carries both annotations, so the array length is 2
+    expect((flowHtml.match(/data-anns=/g) || []).length).toBe(1);
   });
 
   it("escapes HTML in annotation copy", async () => {
