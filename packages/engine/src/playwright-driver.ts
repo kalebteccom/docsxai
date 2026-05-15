@@ -11,7 +11,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
 import { type BoundingBox } from "./doc-pack.js";
-import { type BrowserDriver } from "./flow-runtime.js";
+import { type ActionableState, type BrowserDriver } from "./flow-runtime.js";
 import { type StorageState } from "./auth.js";
 
 export interface PlaywrightSessionOptions {
@@ -198,5 +198,60 @@ export class PlaywrightDriver implements BrowserDriver {
     const abs = path.resolve(this.docPackRoot, relPath);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await this.page.screenshot({ path: abs });
+  }
+
+  async actionable(selector: string, timeoutMs = 300): Promise<ActionableState> {
+    const loc = this.page.locator(selector);
+    let count: number;
+    try {
+      count = await loc.count();
+    } catch {
+      return "not-found";
+    }
+    if (count === 0) return "not-found";
+    if (count > 1) return "multiple-matches";
+
+    const first = loc.first();
+    try {
+      const attached = await first.evaluate((el: unknown) => (el as { isConnected?: boolean }).isConnected ?? false);
+      if (!attached) return "detached";
+    } catch {
+      return "detached";
+    }
+
+    const visible = await first.isVisible().catch(() => false);
+    if (!visible) return "not-visible";
+
+    // Off-screen check via the visible-rect bbox we already compute (intersects with clipping ancestors
+    // + the viewport). `null` from bbox here means fully clipped — caller's most useful framing is
+    // "off-screen" rather than "not-visible" since CSS-wise the element IS visible.
+    const bbox = await this.boundingBox(selector, timeoutMs).catch(() => null);
+    if (!bbox) return "off-screen";
+
+    const enabled = await first.isEnabled().catch(() => true);
+    if (!enabled) return "disabled";
+
+    // "Covered" — hit-test the bbox center; if elementFromPoint returns something that isn't this
+    // element or a descendant of it, another layer is on top.
+    try {
+      const covered = await first.evaluate((el: unknown) => {
+        const e = el as {
+          getBoundingClientRect: () => { left: number; top: number; width: number; height: number };
+          contains: (n: unknown) => boolean;
+          ownerDocument: { elementFromPoint: (x: number, y: number) => unknown };
+        };
+        const r = e.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const top = e.ownerDocument.elementFromPoint(cx, cy);
+        if (!top || top === el) return false;
+        return !e.contains(top);
+      });
+      if (covered) return "covered";
+    } catch {
+      // ignore — covered check is best-effort
+    }
+
+    return "actionable";
   }
 }

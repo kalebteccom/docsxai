@@ -56,7 +56,35 @@ export interface BrowserDriver {
   boundingBox(selector: string, timeoutMs?: number): Promise<BoundingBox | null>;
   /** Capture a clean screenshot (no baked annotations) and return where it was written, relative to the doc pack. */
   screenshot(relPath: string): Promise<void>;
+
+  /**
+   * Probe the actionability state of `selector` at write-time / calibration-time, without trying
+   * to act on it. Returns one of {@link ActionableState}. Designed to mirror the same Playwright
+   * actionability checks the runtime would hit at execution-time — so a calibration agent (or an
+   * MCP browser bridge consuming this driver's contract) can decide "no point fill'ing a disabled
+   * input" or "scope this selector with `:visible` — it matches multiple" *before* the step is
+   * written into a flow-file. `timeoutMs` is the *budget per check*, not a wait — keep small
+   * (≤500 ms) to avoid stalling calibration. The runtime itself doesn't call this on every step
+   * (Playwright's per-action actionability already covers that); it's an exposed contract for
+   * consumers that want to read the state without acting.
+   */
+  actionable(selector: string, timeoutMs?: number): Promise<ActionableState>;
 }
+
+/**
+ * The contract `actionable()` returns. Mirrors Playwright's per-action actionability checks
+ * + a couple of states Playwright either throws on (multiple matches) or surfaces awkwardly
+ * (off-screen, covered). Listed in the order calibration usually cares about them.
+ */
+export type ActionableState =
+  | "actionable" // ready to act
+  | "not-found" // selector matched 0 elements
+  | "multiple-matches" // selector matched > 1 element (strict-mode violation)
+  | "detached" // matched, but not attached to the DOM
+  | "not-visible" // hidden / 0-size / display:none / clipped to nothing
+  | "off-screen" // visible CSS-wise but fully outside the viewport
+  | "covered" // another element receives clicks at this element's bbox center
+  | "disabled"; // disabled attribute / aria-disabled / not-enabled
 
 // ---------------------------------------------------------------------------
 // Errors

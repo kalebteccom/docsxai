@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseFlowFile } from "../src/flow-file.js";
 import { type BoundingBox } from "../src/doc-pack.js";
-import { type BrowserDriver, FlowExecutionError, inferHaltCause, runFlow } from "../src/flow-runtime.js";
+import { type ActionableState, type BrowserDriver, FlowExecutionError, inferHaltCause, runFlow } from "../src/flow-runtime.js";
 
 class FakeDriver implements BrowserDriver {
   calls: string[] = [];
@@ -75,6 +75,10 @@ class FakeDriver implements BrowserDriver {
   }
   async screenshot(p: string) {
     this.rec(`screenshot ${p}`);
+  }
+  actionableMap = new Map<string, ActionableState>();
+  async actionable(s: string): Promise<ActionableState> {
+    return this.actionableMap.get(s) ?? "actionable";
   }
 }
 
