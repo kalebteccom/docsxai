@@ -102,7 +102,7 @@ site-docs capture-auth "$WORKSPACE" --auth-cookie "<the-cookie-you-identified>" 
 
 `capture-auth` reports `expires <ISO>  (from auth-cookie "<name>" | ttl | 1h default)` — confirm it says `auth-cookie "<name>"`. If `run` later says "session expired", re-run this step (re-login).
 
-**Optional — one login, not two:** by default `capture-auth` launches its own instrumented Chrome, so the engineer logs in there *and* (separately) in whatever browser the host agent uses for discovery (Step 4). To avoid the double login, have the engineer start a single Chrome that *both* tools attach to: `chrome --remote-debugging-port=9222 --disable-web-security --disable-features=IsolateOrigins,site-per-process --user-data-dir=/tmp/site-docs-chrome <app-url>` — the engineer logs in once, then `site-docs capture-auth "$WORKSPACE" --cdp http://localhost:9222` reads that browser's session (it won't close it), and Step 4's discovery driver attaches over CDP to the same endpoint. *(Caveat: whether your specific discovery driver — browxai, the legacy Claude-in-Chrome extension, or raw Playwright-over-CDP — attaches cleanly to a Chrome launched this way needs verifying in practice; if it doesn't, fall back to the default two-session flow above; it works.)*
+**Optional — one login, not two:** by default `capture-auth` launches its own instrumented Chrome, so the engineer logs in there *and* (separately) in whatever browser the host agent uses for discovery (Step 4). To avoid the double login, have the engineer start a single Chrome that *both* tools attach to. The clean way is **`browxai chrome start --insecure`** (owns the lifecycle, persistent profile at `$BROWX_WORKSPACE/chrome-profile/`, `--insecure` adds `--disable-web-security` for security-lowered dev targets); manual equivalent: `chrome --remote-debugging-port=9222 --disable-web-security --disable-features=IsolateOrigins,site-per-process --user-data-dir=/tmp/site-docs-chrome <app-url>`. Either way, the engineer logs in once, then `site-docs capture-auth "$WORKSPACE" --cdp http://localhost:9222` reads that browser's session (it won't close it), and Step 4's `browxai-attached` MCP entry drives discovery against the same Chrome.
 
 ## Step 4 — get the flow-files (calibrate)
 
@@ -141,21 +141,21 @@ steps:
 
 **Discovery driver (locator finding against the authed live page).** The canonical, model-agnostic driver is **[browxai](https://github.com/kalebteccom/browxai)** — Kalebtec's MCP-native browser bridge; portfolio entry `projects/agent-browser-bridge/`. Phase 1 + a same-day Phase-1.5 pass against the first adoption (the target app 2026-05-13) have shipped: the host agent gets `find(query)` (ranked candidate locators with `selectorHint` + `stability: high|medium|low` + visible-rect bbox + evidence), `snapshot()` (compact a11y tree **augmented with a DOM walk on every snapshot** — interactive elements via `[role], button, a[href], input, select, textarea, [onclick], [tabindex], [contenteditable]` plus any test-attr bearer, merged under the same root with `[from-dom]` / `[from-both]` source markers so heavy-SPA targets like Reflux / legacy-React aren't sparse), persistent refs within a session, action primitives that return what changed, `await_human({kind:"acknowledge", prompt})` checkpoints, plus screenshots / console / network reads.
 
-**Setup — dual MCP registration.** Browxai supports two session modes; until auto-default attach lands (Phase-1.5 polish), register both so you pick at use time:
+**Setup — one command.** Browxai now ships its own bootstrap. From the consumer-workspace dir, run:
 
 ```bash
-# managed (default — browxai launches its own Chromium under BROWX_WORKSPACE/profile/)
-JSON='{"command":"node","args":["<absolute path>/browxai/dist/cli.js"],"env":{"BROWX_WORKSPACE":"'"$WORKSPACE"'/.browxai","BROWX_TEST_ATTRIBUTES":"data-testid,data-test,data-cy,data-qa"}}'
-claude mcp add-json -s user browxai "$JSON"
-
-# attached (BYOB — attaches to the capture-auth --cdp Chrome on loopback:9222)
-JSON='{"command":"node","args":["<absolute path>/browxai/dist/cli.js"],"env":{"BROWX_WORKSPACE":"'"$WORKSPACE"'/.browxai","BROWX_TEST_ATTRIBUTES":"data-testid,data-test,data-cy,data-qa","BROWX_ATTACH_CDP":"http://127.0.0.1:9222"}}'
-claude mcp add-json -s user browxai-attached "$JSON"
+browxai init "$WORKSPACE/.browxai"   # creates the workspace dir, writes a workspace-scope .mcp.json
+                                      # with both managed + attached MCP entries, sniffs the codebase
+                                      # for the dominant test-attribute convention
+browxai doctor                        # health-check: build, workspace, test-attrs, cdp reachability,
+                                      # chromium binary, capabilities, confirm-hooks, origins
 ```
 
-For site-docs runs against an authed target: use **`browxai-attached`** once Step 3's `capture-auth --cdp http://localhost:9222` Chrome is up — same authed session, no second login. Use plain `browxai` for ad-hoc public-site discovery where no `--cdp` Chrome exists.
+Pick `browxai` for ad-hoc / public-target work; pick `browxai-attached` when a `--cdp` Chrome is already up. (Manual `claude mcp add-json` / TOML-`mcp_servers` block recipes are still valid alternatives — see [`<browxai>/AGENT-RUNBOOK.md`](https://github.com/kalebteccom/browxai) for both.)
 
-**Configure `BROWX_TEST_ATTRIBUTES` for your target's codebase.** Comma-separated, **order-sensitive, first match wins** — put the most-trusted convention first. Default if unset: `data-testid,data-test,data-cy,data-qa`. If the target codebase anchors interactivity on a non-standard attribute, add it (e.g. the target app uses `data-type` rather than `data-testid` on most interactive elements — its config would be `data-testid,data-type,data-test,data-cy,data-qa`). This flag flows through a11y enrichment, the DOM walk, `selectorHint` tier-1 emission, and locator resolution. Tier-1 doesn't gate on a `role` wrapper — a `<div data-type="x">` gets `stability: "high"` directly with hint `[data-type="x"]`.
+**Configure `BROWX_TEST_ATTRIBUTES` for your target's codebase.** `browxai init` sniffs it for you; override manually if needed. Comma-separated, **order-sensitive, first match wins**. Default if unset: `data-testid,data-test,data-cy,data-qa`. If the target codebase anchors interactivity on a non-standard attribute, put it in the list (e.g. a codebase using `data-type` rather than `data-testid` would set `data-testid,data-type,data-test,data-cy,data-qa`). Flows through a11y enrichment, the DOM walk, `selectorHint` tier-1 emission, and locator resolution. Tier-1 doesn't gate on a `role` wrapper — `<div data-type="x">` gets `stability: "high"` directly with hint `[data-type="x"]`.
+
+**Calibration accelerator — record the walk, get a draft flow-file.** Instead of hand-authoring `flows/<name>.flow.yaml` step-by-step, drive the live walk through browxai's action tools while `start_recording({ flowName: "<name>" })` is active; `end_recording()` emits a site-docs-flavoured YAML draft (`locators:` + `steps:` with `selectorHint`-derived targets) you can review, edit, and commit. Annotations are captured per step via `record_annotate({ copy, arrow?, … })`. Pair with `site-docs run --start-from --cdp` to validate each step in seconds after edits.
 
 **Canonical browxai-operational reference.** Snapshot output legend (`stats:` block, `warnings:`, `[from-dom]` / `[from-both]` markers), locator-disambiguation idioms (`:visible`, `nth-match` for hidden-duplicate testids), `stability` semantics (snapshot-disambiguator vs deploy-stable — content-keyed IDs come back `stability: "high"` and need rewriting before they go into a flow-file), `find()`-query-matching surface (name + role + test-attribute *values*; icon-only `title="…"` tabs need keyword reframing), and any other operational gotchas live in **`<browxai>/AGENT-RUNBOOK.md`** — site-docs doesn't duplicate that content. Read it before driving a fresh calibration; it's the single source of truth for "how to actually use the tools."
 

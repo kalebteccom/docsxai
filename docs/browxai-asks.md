@@ -132,6 +132,23 @@ Exact testid in the query failed to surface a matching `<input>` element because
 
 ---
 
+## Round 4 — post-contract Phase-2 wave from browxai (no asks; site-docs benefits)
+
+After the contract closed on 2026-05-15, browxai continued shipping its own Phase-2 work without an asks list from site-docs. Site-docs benefits directly from these — the runbook + calibrate skill now reference them as the recommended path. Full descriptions in **`<browxai>/AGENT-RUNBOOK.md`**; summarised here so future readers see the chronology:
+
+- **`browxai init <workspace>`** — bootstraps a per-consumer workspace dir, writes a workspace-scope `.mcp.json` with both managed + BYOB MCP entries, sniffs the codebase for the dominant test-attribute convention. Replaces the manual `claude mcp add-json` dual-registration recipe in earlier versions of site-docs's runbook.
+- **`browxai chrome [start|stop|status]`** — owns the `--cdp` Chrome lifecycle. Persistent profile at `$BROWX_WORKSPACE/chrome-profile/`; `--insecure` opts into `--disable-web-security`. Replaces the manual `chrome --remote-debugging-port=9222 …` recipe.
+- **`browxai doctor`** — environment + connectivity health-check (build / workspace / test-attrs / cdp / chromium / capabilities / confirm-hooks / origins). One-line fixes per ✗.
+- **`start_recording` / `end_recording` / `record_annotate`** — record a calibration walk; emit a draft site-docs flow-file YAML. Replaces the inspect → hand-write loop for the happy case.
+- **`name_ref` / `list_named_refs`** — bind a mnemonic to a ref; subsequent action calls accept `named: "<name>"` instead of re-finding the element.
+- **`find_feedback({ query, ref })`** — session-scoped learned ranking. Tell browxai which candidate was right; subsequent finds with overlapping tokens get a boost.
+- **`eval_js({ expr })`** — escape-hatch JS evaluation. **Off by default** (the `eval` capability isn't in `DEFAULT_CAPABILITIES`); return value is treated as untrusted page content.
+- **Capability / allowlist / confirm-hook layer** — `BROWX_CAPABILITIES` (default `read,navigation,action,human`), `BROWX_ALLOWED_ORIGINS` (comma-separated, wildcards supported), `BROWX_BLOCKED_ORIGINS`, `BROWX_CONFIRM_REQUIRED` (policy hooks that route through `await_human` first). Threat model documented at `<browxai>/docs/threat-model.md`. Site-docs's discovery / calibration workflows don't need to enable any non-default capability for ordinary runs.
+
+No new asks here — site-docs reaps the benefits. The next contract round opens if/when site-docs hits a real friction point browxai's surface doesn't cover.
+
+---
+
 ## Deferred to Phase 1.5 / Phase 2 (still applies)
 
 - `dump_storage_state` MCP tool (Phase 2; only needed when browxai owns the profile end-to-end).
