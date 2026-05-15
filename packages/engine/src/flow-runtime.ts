@@ -69,6 +69,32 @@ export class FlowExecutionError extends Error {
   }
 }
 
+/**
+ * Best-effort 1-line cause extracted from a Playwright actionability log (or similar driver
+ * error). Returns undefined when nothing matches — keeps the halt message short rather than
+ * guessing. Surfaced as a `[cause]` prefix on the halt message so the agent doesn't have to
+ * scan the multi-line actionability log.
+ */
+export function inferHaltCause(rawError: string): string | undefined {
+  const hints: Array<[RegExp, string]> = [
+    [/element is disabled\b/i, "target is disabled"],
+    [/element is not enabled\b/i, "target is not enabled"],
+    [/element is not visible\b/i, "target is not visible (display:none / visibility:hidden / zero-sized)"],
+    [/element is not attached\b/i, "target was detached from the DOM (likely unmounted by an earlier action)"],
+    [/element is outside of the viewport\b/i, "target is outside the visible viewport"],
+    [/element is not stable\b/i, "target is animating / not yet stable"],
+    [/intercepts? pointer events\b/i, "target is covered by another element"],
+    [/strict mode violation\b/i, "selector matched multiple elements (strict-mode violation) — scope with :visible / :nth-match"],
+    [/timeout .* exceeded.*waiting for/is, "timeout waiting for selector — element didn't appear in time (consider raising timeout_ms or revisiting the locator)"],
+  ];
+  for (const [re, msg] of hints) {
+    if (re.test(rawError)) return msg;
+  }
+  const resolved = rawError.match(/locator resolved to (<[^>\n]*>)/);
+  if (resolved) return `target resolved to ${resolved[1]}`;
+  return undefined;
+}
+
 // ---------------------------------------------------------------------------
 // runFlow
 // ---------------------------------------------------------------------------
@@ -221,16 +247,19 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
       }
       if (step.success) await checkSuccess(driver, step.success, resolve, step.id);
     } catch (e) {
-      // Halt: dump a screenshot for triage (best-effort), then surface step id + url + halt-shot path
-      // (uniformly — both FlowExecutionError and raw driver errors).
+      // Halt: dump a screenshot for triage (best-effort), prepend a 1-line inferred cause
+      // (parsed from Playwright's actionability log so the agent doesn't have to scan ~20 lines
+      //  to know why), then surface step id + url + halt-shot path uniformly.
       const haltShot = `docs/${flow.name}/halts/${step.id}.png`;
       if (captureDocs) await driver.screenshot(haltShot).catch(() => undefined);
       const suffix = captureDocs ? ` (halt screenshot: ${haltShot})` : "";
+      const cause = inferHaltCause((e as Error).message ?? "");
+      const causePrefix = cause ? `[${cause}] ` : "";
       if (e instanceof FlowExecutionError) {
-        throw new FlowExecutionError(`${e.message}${suffix}`, e.stepId, e.cause);
+        throw new FlowExecutionError(`${causePrefix}${e.message}${suffix}`, e.stepId, e.cause);
       }
       const where = await driver.currentUrl().catch(() => "?");
-      throw new FlowExecutionError(`step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`, step.id, e);
+      throw new FlowExecutionError(`${causePrefix}step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`, step.id, e);
     }
 
     const ex: ExecutedStep = { id: step.id, action: step.action, ...(selector ? { selector } : {}) };

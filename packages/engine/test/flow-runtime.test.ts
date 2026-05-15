@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseFlowFile } from "../src/flow-file.js";
 import { type BoundingBox } from "../src/doc-pack.js";
-import { type BrowserDriver, FlowExecutionError, runFlow } from "../src/flow-runtime.js";
+import { type BrowserDriver, FlowExecutionError, inferHaltCause, runFlow } from "../src/flow-runtime.js";
 
 class FakeDriver implements BrowserDriver {
   calls: string[] = [];
@@ -269,5 +269,55 @@ steps:
     const flow = parseFlowFile(`name: f\nlocators: { a: '#a' }\nsteps:\n  - id: s1\n    action: click\n    target: $a\n`);
     const d = new FakeDriver();
     await expect(runFlow(flow, d, { resolveLocator: () => undefined })).rejects.toThrow(/unresolved locator/i);
+  });
+
+  it("prepends a `[cause: …]` prefix to the halt message when the underlying error names a Playwright actionability state", async () => {
+    class DisabledDriver extends FakeDriver {
+      override async fill(s: string, v: string) {
+        // Simulate Playwright's actionability log for a disabled input
+        throw new Error(
+          `page.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('${s}')\n  - locator resolved to <input value="00" disabled />\n  - element is disabled\n  - retrying...`,
+        );
+      }
+    }
+    const d = new DisabledDriver();
+    const flow = parseFlowFile(`
+name: f
+locators: { t: '#t' }
+steps:
+  - id: edit
+    action: fill
+    target: $t
+    value: '00'
+`);
+    await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(/^\[target is disabled\]/);
+  });
+});
+
+describe("inferHaltCause", () => {
+  it("recognises 'element is disabled'", () => {
+    expect(inferHaltCause("page.fill: ... element is disabled, retrying...")).toMatch(/disabled/i);
+  });
+
+  it("recognises 'element is not visible'", () => {
+    expect(inferHaltCause("page.click: ... element is not visible")).toMatch(/not visible/i);
+  });
+
+  it("recognises 'strict mode violation' and suggests the disambiguation", () => {
+    expect(inferHaltCause("page.click: strict mode violation: resolved to 3 elements")).toMatch(/:visible \/ :nth-match/);
+  });
+
+  it("recognises 'element is not attached' (the unmounted-target case)", () => {
+    expect(inferHaltCause("page.click: ... element is not attached to the DOM")).toMatch(/detached/i);
+  });
+
+  it("falls back to 'target resolved to <…>' when no actionability hint matches (captures the opening tag — which is where Playwright puts the attributes)", () => {
+    expect(inferHaltCause("page.fill: Timeout exceeded.\nlocator resolved to <input disabled value=\"00\" />")).toMatch(
+      /target resolved to <input disabled value="00" \/>/,
+    );
+  });
+
+  it("returns undefined when the error doesn't match any known pattern", () => {
+    expect(inferHaltCause("network error: ECONNREFUSED")).toBeUndefined();
   });
 });
