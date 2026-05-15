@@ -41,7 +41,16 @@ export interface PlaywrightInstrumentedBrowserOptions {
   connectOverCdp?: string;
 }
 
-function helperScript(trigger: CaptureTrigger): string {
+/**
+ * The injected page-side helper. Self-cleans when the Node-side binding is gone (which happens
+ * when the Playwright client detaches — e.g. `capture-auth` finishes and disconnects from a
+ * shared `--cdp` Chrome that stays alive). Without this guard, a stale `__siteDocs.capture()`
+ * call after detach throws `Function "__siteDocs_capture" is not exposed` in the page console —
+ * cosmetic, but alarming to operators sharing the Chrome with another tool.
+ *
+ * Exported for unit-testing (run the returned script in a `vm` sandbox against a mock window).
+ */
+export function helperScript(trigger: CaptureTrigger): string {
   const button =
     trigger === "button"
       ? `if (!document.getElementById("__siteDocs_btn")) {
@@ -54,7 +63,21 @@ function helperScript(trigger: CaptureTrigger): string {
       : "";
   return `(function () {
     window.__siteDocs = window.__siteDocs || {};
-    window.__siteDocs.capture = function () { return window.${CAPTURE_BINDING}(); };
+    window.__siteDocs.capture = function () {
+      if (typeof window.${CAPTURE_BINDING} !== "function") {
+        // Backing binding is gone (the Playwright client that injected this helper has detached).
+        // Self-clean: drop the button + the helper, log a friendly note. Reload or re-run
+        // \`site-docs capture-auth\` to install a fresh helper.
+        var staleBtn = document.getElementById("__siteDocs_btn");
+        if (staleBtn) staleBtn.remove();
+        delete window.__siteDocs.capture;
+        if (typeof console !== "undefined" && console.info) {
+          console.info("[site-docs] capture helper detached; reload the page or re-run \`site-docs capture-auth\` to re-install.");
+        }
+        return undefined;
+      }
+      return window.${CAPTURE_BINDING}();
+    };
     ${button}
   })();`;
 }
@@ -169,8 +192,10 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
 
   async close(): Promise<void> {
     if (this.attached) {
-      // Don't touch the engineer's Chrome — just detach. (The injected `__siteDocs` helper lingers on their
-      // pages until they navigate/reload; harmless.)
+      // Don't touch the engineer's Chrome — just detach. The injected `__siteDocs` helper detects
+      // the backing binding is gone on its next invocation, removes its injected button if any,
+      // logs a friendly info message, and self-deletes from `window.__siteDocs.capture`. Safe to
+      // share the Chrome with other automation clients.
       this.context = undefined;
       this.browser = undefined;
       this.page = undefined;

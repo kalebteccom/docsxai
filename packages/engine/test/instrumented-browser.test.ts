@@ -1,6 +1,7 @@
+import * as vm from "node:vm";
 import { describe, expect, it } from "vitest";
 import { ManualCaptureStrategy } from "../src/auth.js";
-import { PlaywrightInstrumentedBrowser, SECURITY_LOWERED_ARGS } from "../src/playwright-instrumented-browser.js";
+import { helperScript, PlaywrightInstrumentedBrowser, SECURITY_LOWERED_ARGS } from "../src/playwright-instrumented-browser.js";
 
 describe("PlaywrightInstrumentedBrowser", () => {
   it("constructs without launching a browser", () => {
@@ -31,5 +32,83 @@ describe("PlaywrightInstrumentedBrowser", () => {
   it("plugs into ManualCaptureStrategy as the InstrumentedBrowser factory", () => {
     const s = new ManualCaptureStrategy(() => new PlaywrightInstrumentedBrowser({ headless: true }));
     expect(s.name).toBe("manual-capture");
+  });
+});
+
+// The injected page-side `__siteDocs.capture()` helper has a tricky lifecycle: when its
+// Node-side `exposeFunction` binding is gone (e.g. capture-auth detached from a shared --cdp
+// Chrome), the bare-bones implementation would throw a TypeError on the page. These tests run
+// the helper script in a node:vm sandbox against a mock `window` to verify the graceful path.
+
+function runHelperInSandbox(trigger: "console" | "button", bindingPresent: boolean) {
+  const info: unknown[] = [];
+  const removed: string[] = [];
+  // Mock `document` — buttons / removals track for the `button` trigger case.
+  const document = {
+    getElementById: (id: string) => {
+      // Pretend the stale button exists when we want to verify removal.
+      if (id === "__siteDocs_btn") return { remove: () => removed.push("__siteDocs_btn") };
+      return null;
+    },
+    createElement: (_tag: string) => {
+      return { id: "", textContent: "", style: { cssText: "" }, onclick: () => {} };
+    },
+    body: { appendChild: () => {} },
+    documentElement: { appendChild: () => {} },
+  };
+  const win: Record<string, unknown> = {};
+  if (bindingPresent) win.__siteDocs_capture = () => "captured";
+  const ctx: Record<string, unknown> = {
+    window: win,
+    document,
+    console: { info: (msg: unknown) => info.push(msg) },
+  };
+  // Mirror the script's `window.X` writes onto the ctx for direct access in tests
+  // (vm-context globals are also window-properties under the hood with this shape).
+  vm.runInNewContext(helperScript(trigger), ctx);
+  return { win, info, removed, ctx };
+}
+
+describe("helperScript (page-side __siteDocs.capture lifecycle)", () => {
+  it("installs window.__siteDocs.capture which invokes the binding when present", () => {
+    const r = runHelperInSandbox("console", true);
+    const siteDocs = r.win.__siteDocs as { capture: () => unknown };
+    expect(typeof siteDocs.capture).toBe("function");
+    expect(siteDocs.capture()).toBe("captured");
+  });
+
+  it("when the backing binding is missing, capture() logs a friendly info note and returns undefined", () => {
+    const r = runHelperInSandbox("console", false);
+    const siteDocs = r.win.__siteDocs as { capture?: () => unknown };
+    expect(siteDocs.capture).toBeDefined();
+    expect(siteDocs.capture!()).toBeUndefined();
+    expect(r.info).toHaveLength(1);
+    expect(String(r.info[0])).toMatch(/capture helper detached/i);
+  });
+
+  it("when the backing binding is missing, capture() self-deletes from window.__siteDocs", () => {
+    const r = runHelperInSandbox("console", false);
+    const siteDocs = r.win.__siteDocs as { capture?: () => unknown };
+    siteDocs.capture!();
+    expect(siteDocs.capture).toBeUndefined();
+  });
+
+  it("when the binding is missing AND a stale __siteDocs_btn exists, the button is removed", () => {
+    const r = runHelperInSandbox("button", false);
+    const siteDocs = r.win.__siteDocs as { capture?: () => unknown };
+    siteDocs.capture!();
+    expect(r.removed).toContain("__siteDocs_btn");
+  });
+
+  it("doesn't double-overwrite a pre-existing window.__siteDocs (preserves namespacing)", () => {
+    const ctx: Record<string, unknown> = {
+      window: { __siteDocs: { sentinel: "preserve-me" }, __siteDocs_capture: () => "x" },
+      document: { getElementById: () => null },
+      console: { info: () => {} },
+    };
+    vm.runInNewContext(helperScript("console"), ctx);
+    const siteDocs = (ctx.window as { __siteDocs: { sentinel: string; capture: () => unknown } }).__siteDocs;
+    expect(siteDocs.sentinel).toBe("preserve-me");
+    expect(typeof siteDocs.capture).toBe("function");
   });
 });
