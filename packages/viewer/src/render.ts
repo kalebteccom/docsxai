@@ -223,7 +223,21 @@ const OVERLAY_JS = `
 })();
 `;
 
-function flowPageHtml(flow: string, steps: Array<{ id: string; screenshot: string | null; anns: AnnotationRecord[]; md: string | null }>): string {
+// `file://` pages with inlined JS/CSS get cached hard by browsers — a re-render then looks
+// stale on a normal reload. These metas + the visible "rendered <ts>" footer below let you
+// see at a glance whether you're looking at a fresh render (and tell browsers not to cache).
+const HEAD_NOCACHE =
+  '<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">';
+
+function renderedFooter(renderedAt: string): string {
+  return `<footer class="meta" style="margin-top:2rem;opacity:.6;font-size:.8rem">rendered ${esc(renderedAt)} — hard-reload (⌘⇧R) if this looks stale</footer>`;
+}
+
+function flowPageHtml(
+  flow: string,
+  steps: Array<{ id: string; screenshot: string | null; anns: AnnotationRecord[]; md: string | null }>,
+  renderedAt: string,
+): string {
   const body = steps
     .map((s) => {
       const shot = s.screenshot
@@ -239,8 +253,8 @@ function flowPageHtml(flow: string, steps: Array<{ id: string; screenshot: strin
       return `<section class="step"><h2>${esc(s.id)}</h2>${shot}${cap}${md}</section>`;
     })
     .join("\n");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(flow)}</title><style>${STYLE}</style></head>
-<body><p><a href="../index.html">← all flows</a></p><h1>${esc(flow)}</h1>${body}<script>${OVERLAY_JS}</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_NOCACHE}<title>${esc(flow)}</title><style>${STYLE}</style></head>
+<body><p><a href="../index.html">← all flows</a></p><h1>${esc(flow)}</h1>${body}${renderedFooter(renderedAt)}<script>${OVERLAY_JS}</script></body></html>`;
 }
 
 interface FlowSummary {
@@ -251,7 +265,7 @@ interface FlowSummary {
   thumb: string | null;
 }
 
-function indexHtml(meta: FlowSummary[]): string {
+function indexHtml(meta: FlowSummary[], renderedAt: string): string {
   const cards = meta
     .map((m) => {
       const img = m.thumb ? `<img src="${esc(m.thumb)}" alt="">` : `<div class="thumb-missing">no screenshot</div>`;
@@ -259,14 +273,15 @@ function indexHtml(meta: FlowSummary[]): string {
       return `<a class="flow-card" href="${esc(m.flow)}/index.html">${img}<div class="flow-card-meta"><strong>${esc(m.flow)}</strong><span>${sub}</span></div></a>`;
     })
     .join("\n");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Documentation</title><style>${STYLE}</style></head>
-<body><h1>Documentation</h1>${cards ? `<div class="flow-grid">${cards}</div>` : "<p class='meta'>(no flows yet — run <code>site-docs run</code>, then <code>site-docs render</code>)</p>"}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_NOCACHE}<title>Documentation</title><style>${STYLE}</style></head>
+<body><h1>Documentation</h1>${cards ? `<div class="flow-grid">${cards}</div>` : "<p class='meta'>(no flows yet — run <code>site-docs run</code>, then <code>site-docs render</code>)</p>"}${renderedFooter(renderedAt)}</body></html>`;
 }
 
 /** Build the static viewer. Returns the generated page paths (relative to `outDir`), index first. */
 export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewerResult> {
   const flows = opts.flows ?? (await discoverFlows(opts.docsDir));
   await fs.mkdir(opts.outDir, { recursive: true });
+  const renderedAt = new Date().toISOString();
   const pages: string[] = ["index.html"];
   const flowSummaries: FlowSummary[] = [];
 
@@ -305,7 +320,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     }
 
     await fs.mkdir(path.join(opts.outDir, flow), { recursive: true });
-    await fs.writeFile(path.join(opts.outDir, flow, "index.html"), flowPageHtml(flow, steps), "utf8");
+    await fs.writeFile(path.join(opts.outDir, flow, "index.html"), flowPageHtml(flow, steps, renderedAt), "utf8");
     pages.push(`${flow}/index.html`);
 
     const thumbStep = steps.find((s) => s.screenshot);
@@ -317,6 +332,6 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     });
   }
 
-  await fs.writeFile(path.join(opts.outDir, "index.html"), indexHtml(flowSummaries), "utf8");
+  await fs.writeFile(path.join(opts.outDir, "index.html"), indexHtml(flowSummaries, renderedAt), "utf8");
   return { pages };
 }
