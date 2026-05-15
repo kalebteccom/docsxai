@@ -182,7 +182,11 @@ const OVERLAY_JS = `
       var co = document.createElement("div");
       co.className = "sd-callout";
       co.textContent = (typeof ann.index === "number" ? ann.index + ". " : "") + ann.copy;
-      co.style.cssText = "max-width:280px;visibility:hidden;display:block";
+      // width:max-content + max-width:280px = shrink-to-content-width, capped at 280px.
+      // Without a width declaration, an absolutely-positioned block shrinks to its longest
+      // unbreakable word (browsers' shrink-to-fit) — text wraps after every space and the
+      // callout becomes a tall single-character column. max-content fixes that.
+      co.style.cssText = "width:max-content;max-width:280px;visibility:hidden;display:block";
       wrap.appendChild(co);
       var c = { w: Math.min(co.offsetWidth, 280), h: co.offsetHeight };
       var pref = String(ann.arrow_style || "top").split("-")[0];
@@ -192,7 +196,7 @@ const OVERLAY_JS = `
       // Lets the author shift a callout aside when two annotations would otherwise overlap.
       var nx = (ann.nudge && typeof ann.nudge.x === "number") ? ann.nudge.x : 0;
       var ny = (ann.nudge && typeof ann.nudge.y === "number") ? ann.nudge.y : 0;
-      co.style.cssText = "left:" + (p.x + nx) + "px;top:" + (p.y + ny) + "px;max-width:" + c.w + "px";
+      co.style.cssText = "left:" + (p.x + nx) + "px;top:" + (p.y + ny) + "px;width:max-content;max-width:" + c.w + "px";
       var ar = document.createElement("div");
       ar.className = "sd-arrow " + p.side;
       var L, T;

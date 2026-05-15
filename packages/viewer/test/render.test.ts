@@ -88,6 +88,16 @@ describe("buildViewer", () => {
     expect((flowHtml.match(/data-anns=/g) || []).length).toBe(1);
   });
 
+  it("the inline OVERLAY_JS uses width:max-content + max-width to avoid single-word-per-line callouts", async () => {
+    const outDir = path.join(tmp, "out-callout-width");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
+    // Both phases (measurement + final placement) must set width:max-content so the callout's
+    // text wraps within max-width instead of shrinking to the longest-word width.
+    expect(flowHtml).toMatch(/width:max-content;max-width:280px/);
+    expect((flowHtml.match(/width:max-content/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+
   it("propagates an annotation's `nudge` offset into the embedded data + viewer JS applies it to callout/arrow only", async () => {
     const flowDir = path.join(tmp, "docs", "recap-open");
     await fs.writeFile(
