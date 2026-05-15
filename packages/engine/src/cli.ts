@@ -13,7 +13,9 @@ import { LocalStorageStateCache, makeStrategy, parseAuthStrategyFile, resolveCre
 import { calibrate } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
+import { BackendClient, BackendClientError } from "./backend-client.js";
 import { buildDiagnoseReport, type DiagnoseReport, formatReportText, probeLive } from "./diagnose.js";
+import { type DocPackPayloads, readDocPack, writeDocPack } from "./doc-pack-io.js";
 import { formatIssuesText, type LintIssue, lintFlow } from "./flow-lint.js";
 import { runFlow } from "./flow-runtime.js";
 import { buildFlowTree, formatTreeText } from "./flow-tree.js";
@@ -37,6 +39,9 @@ Usage:
   site-docs diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
   site-docs style <workspace-dir> [--check] [--format text|json]
   site-docs zip <workspace-dir> [--out <output.zip>] [--include-viewer]
+  site-docs login --backend-url <url>
+  site-docs push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
+  site-docs pull <workspace-dir> [--rev <id>]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   site-docs --help
@@ -114,7 +119,16 @@ Notes:
     (operator-local session state), **/halts/ (debug screenshots), .viewer/ by default (re-renderable
     from the doc pack; pass --include-viewer to bundle it). Defaults output to <workspace-name>.zip
     in the current dir; override with -o <path>. Requires the system 'zip' binary (preinstalled on
-    macOS / Linux / WSL).`;
+    macOS / Linux / WSL).
+  • login validates a bearer token against a backend URL — hits /v1/health, /v1/workspaces. Reads
+    the token from SITE_DOCS_TOKEN env var. Prints what the backend sees if the call succeeds,
+    or a clear error if not. Stateless: doesn't store anything; configure the env var in your shell.
+  • push serialises the workspace's doc pack (flows + annotations + screenshots + style + locators)
+    and POSTs it as a new revision against the backend named in .site-docs.json (backend_url +
+    optionally backend_workspace_id / backend_project_id; created on first push if absent and
+    persisted to the config). --kind defaults to "calibrate"; --author defaults to the OS user.
+  • pull fetches a revision's artifacts back into the workspace files (default: HEAD). Useful for
+    syncing with a different operator's edits or rolling back to a named revision.`;
 
 function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
   const positionals: string[] = [];
@@ -936,6 +950,165 @@ async function cmdZip(args: string[]): Promise<number> {
   }
 }
 
+async function cmdLogin(args: string[]): Promise<number> {
+  const { flags } = parseFlags(args);
+  const backendUrl = typeof flags.get("backend-url") === "string" ? (flags.get("backend-url") as string) : undefined;
+  if (!backendUrl) {
+    process.stderr.write(`login: --backend-url <url> required\n`);
+    return 2;
+  }
+  if (!process.env.SITE_DOCS_TOKEN) {
+    process.stderr.write(`login: SITE_DOCS_TOKEN env var not set. Export it before running: SITE_DOCS_TOKEN=<token> site-docs login --backend-url ${backendUrl}\n`);
+    return 2;
+  }
+  let client: BackendClient;
+  try {
+    client = new BackendClient({ baseUrl: backendUrl });
+  } catch (e) {
+    process.stderr.write(`login: ${(e as Error).message}\n`);
+    return 1;
+  }
+  try {
+    const h = await client.health();
+    if (!h.ok) {
+      process.stderr.write(`login: backend health-check returned ok=false\n`);
+      return 1;
+    }
+    const wss = await client.listWorkspaces();
+    process.stdout.write(`login: ok. ${wss.length} workspace${wss.length !== 1 ? "s" : ""} visible at ${backendUrl}\n`);
+    return 0;
+  } catch (e) {
+    if (e instanceof BackendClientError) {
+      process.stderr.write(`login: ${e.message}\n`);
+      return 1;
+    }
+    throw e;
+  }
+}
+
+/** Ensure the workspace has a backend workspace + project to push to; create them on first push. */
+async function ensureBackendBinding(
+  client: BackendClient,
+  projectDir: string,
+  cfg: { backend_workspace_id?: string; backend_project_id?: string },
+  workspaceName: string,
+): Promise<{ wsId: string; projectId: string; createdAny: boolean }> {
+  let wsId = cfg.backend_workspace_id;
+  let projectId = cfg.backend_project_id;
+  let createdAny = false;
+  if (!wsId) {
+    const ws = await client.createWorkspace(workspaceName);
+    wsId = ws.id;
+    createdAny = true;
+  }
+  if (!projectId) {
+    const proj = await client.createProject(wsId, workspaceName);
+    projectId = proj.id;
+    createdAny = true;
+  }
+  return { wsId, projectId, createdAny };
+}
+
+async function cmdPush(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  if (!positionals[0]) {
+    process.stderr.write(`push: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const wsCfg = await loadWorkspaceConfig(projectDir);
+  if (!wsCfg?.backend_url) {
+    process.stderr.write(`push: no backend_url in ${path.join(projectDir, ".site-docs.json")}. Set it before pushing.\n`);
+    return 2;
+  }
+  const kindArg = typeof flags.get("kind") === "string" ? (flags.get("kind") as string) : "calibrate";
+  if (kindArg !== "calibrate" && kindArg !== "run" && kindArg !== "edit") {
+    process.stderr.write(`push: --kind must be calibrate | run | edit (got "${kindArg}")\n`);
+    return 2;
+  }
+  const author = (typeof flags.get("author") === "string" ? (flags.get("author") as string) : null) ?? process.env.USER ?? "unknown";
+
+  let client: BackendClient;
+  try {
+    client = new BackendClient({ baseUrl: wsCfg.backend_url });
+  } catch (e) {
+    process.stderr.write(`push: ${(e as Error).message}\n`);
+    return 1;
+  }
+
+  try {
+    const binding = await ensureBackendBinding(client, projectDir, wsCfg, path.basename(path.resolve(projectDir)));
+    if (binding.createdAny) {
+      // Persist the new IDs back to .site-docs.json so subsequent push/pull don't re-create.
+      const updated = { ...wsCfg, backend_workspace_id: binding.wsId, backend_project_id: binding.projectId };
+      await fs.writeFile(path.join(projectDir, ".site-docs.json"), JSON.stringify(updated, null, 2) + "\n", "utf8");
+    }
+
+    const rev = await client.createRevision(binding.wsId, binding.projectId, { kind: kindArg, author });
+    const payloads = await readDocPack(projectDir);
+    let pushed = 0;
+    for (const [key, p] of Object.entries(payloads) as Array<[keyof DocPackPayloads, DocPackPayloads[keyof DocPackPayloads]]>) {
+      if (p === null) continue;
+      await client.putArtifact(binding.wsId, binding.projectId, rev.id, key, p);
+      pushed++;
+    }
+    process.stdout.write(`push: revision ${rev.id} (${kindArg}, ${author}) — ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded\n`);
+    return 0;
+  } catch (e) {
+    if (e instanceof BackendClientError) {
+      process.stderr.write(`push: ${e.message}\n`);
+      return 1;
+    }
+    throw e;
+  }
+}
+
+async function cmdPull(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  if (!positionals[0]) {
+    process.stderr.write(`pull: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const wsCfg = await loadWorkspaceConfig(projectDir);
+  if (!wsCfg?.backend_url || !wsCfg.backend_workspace_id || !wsCfg.backend_project_id) {
+    process.stderr.write(`pull: workspace isn't bound to a backend yet. Run \`push\` first (or hand-edit .site-docs.json's backend_workspace_id / backend_project_id).\n`);
+    return 2;
+  }
+  const revArg = typeof flags.get("rev") === "string" ? (flags.get("rev") as string) : "head";
+
+  let client: BackendClient;
+  try {
+    client = new BackendClient({ baseUrl: wsCfg.backend_url });
+  } catch (e) {
+    process.stderr.write(`pull: ${(e as Error).message}\n`);
+    return 1;
+  }
+
+  try {
+    const rev = await client.getRevision(wsCfg.backend_workspace_id, wsCfg.backend_project_id, revArg);
+    const payloads: Partial<DocPackPayloads> = {};
+    for (const artifact of rev.artifacts) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (payloads as any)[artifact] = await client.getArtifact(
+        wsCfg.backend_workspace_id,
+        wsCfg.backend_project_id,
+        rev.id,
+        artifact,
+      );
+    }
+    const r = await writeDocPack(projectDir, payloads);
+    process.stdout.write(`pull: revision ${rev.id} (${rev.kind}, ${rev.author}) — wrote ${r.filesWritten} file(s)\n`);
+    return 0;
+  } catch (e) {
+    if (e instanceof BackendClientError) {
+      process.stderr.write(`pull: ${e.message}\n`);
+      return 1;
+    }
+    throw e;
+  }
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -967,6 +1140,12 @@ export async function main(argv: string[]): Promise<number> {
       return cmdStyle(rest);
     case "zip":
       return cmdZip(rest);
+    case "login":
+      return cmdLogin(rest);
+    case "push":
+      return cmdPush(rest);
+    case "pull":
+      return cmdPull(rest);
     default:
       process.stderr.write(`unknown command: ${cmd}\n\n${USAGE}\n`);
       return 2;

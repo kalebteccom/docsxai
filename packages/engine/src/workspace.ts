@@ -20,6 +20,12 @@ export interface WorkspaceConfig {
   app_url?: string;
   /** Accept self-signed/invalid TLS for `app_url` (e.g. a local HTTPS dev cert). */
   ignore_https_errors?: boolean;
+  /** Backend stub/service URL for `push`/`pull` (e.g. `http://localhost:4477`). Optional — workspaces operate fully locally without it. */
+  backend_url?: string;
+  /** Backend workspace ID, set by `push` after first round-trip. */
+  backend_workspace_id?: string;
+  /** Backend project ID, set by `push` after first round-trip. */
+  backend_project_id?: string;
   created_at: string;
 }
 

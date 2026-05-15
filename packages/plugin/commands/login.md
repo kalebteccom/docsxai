@@ -1,13 +1,14 @@
 ---
-description: Authenticate to the site-docs backend (interactive OAuth) or show how to set a CI token.
+description: Validate the SITE_DOCS_TOKEN bearer token against a backend URL.
+argument-hint: --backend-url <url>
 ---
 
-Run:
+Validate the current bearer token:
 
 ```
-site-docs login
+site-docs login $ARGUMENTS
 ```
 
-This starts the standard OAuth 2.1 authorization-code-with-PKCE flow against the backend — the same handshake
-Claude Code runs for any MCP server. For CI / non-interactive use, the backend is reached with a pre-issued,
-workspace-scoped bearer token in `SITE_DOCS_TOKEN` (no interactive login) — explain that if asked.
+Hits `/v1/health` (no-auth) + `/v1/workspaces` (bearer-gated) against the named backend and prints what it sees. Reads the token from `SITE_DOCS_TOKEN`; doesn't store anything.
+
+The interactive OAuth 2.1 authorization-code-with-PKCE flow that production will use is Phase-2 — until then, mint a workspace-scoped bearer token out-of-band and export it as `SITE_DOCS_TOKEN`. For CI, the same env-var path applies.

@@ -36,5 +36,8 @@
     "playwright-core": "^1.47.0",
     "yaml": "^2.5.0",
     "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@kalebtec/site-docs-backend": "workspace:*"
   }
 }
