@@ -28,7 +28,7 @@ Usage:
                                  [--persist tmp] [--force]
   site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
-  site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--pause] [--concurrency <N>]
+  site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
   site-docs lint <workspace-dir> [--flow <name>] [--format text|json]
   site-docs flow-tree <workspace-dir> [--format text|json]
   site-docs render <workspace-dir>
@@ -48,7 +48,16 @@ Notes:
     { selector: $x, timeout_ms: 180000 } — a per-step override of the default ~30s selector-wait timeout.
   • run --concurrency <N> runs up to N flows in parallel (each its own Chromium session, isolated; default 1).
     Useful when several flows share a long preamble — total wall time = max(per-flow), not sum. Force-clamped
-    to 1 when --pause / --stop-after is set. The target app must tolerate multiple sessions from one user.
+    to 1 when --pause / --stop-after / --start-from / --cdp is set. The target app must tolerate multiple sessions from one user.
+  • run --start-from <step-id> --flow <name> SKIPS every step before <step-id> and starts execution there —
+    the inverse of --stop-after. Pair with --cdp to attach to a Chrome that's already in the post-prior-steps
+    state (e.g. left over from a paused previous run) and iterate on the new tail step in seconds rather
+    than re-walking the whole extends chain. New annotations MERGE into the existing annotations.json by
+    step id; the prior steps' annotations and screenshots are preserved.
+  • run --cdp <endpoint> attaches to a running Chrome (start it with --remote-debugging-port=N) instead of
+    launching one. site-docs won't close that Chrome. When --cdp is set, the cached storageState is NOT
+    loaded into the context — the operator's Chrome owns its auth state. Useful with --start-from for the
+    sub-3-sec iteration loop on long-async flows.
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
     engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you
@@ -144,8 +153,14 @@ async function cmdRun(args: string[]): Promise<number> {
   const projectDir: string = positionals[0];
   const onlyFlow = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const stopAfter = typeof flags.get("stop-after") === "string" ? (flags.get("stop-after") as string) : undefined;
+  const startFrom = typeof flags.get("start-from") === "string" ? (flags.get("start-from") as string) : undefined;
+  const cdpEndpoint = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
   const pause = flags.get("pause") === true;
   const headed = flags.get("headed") === true || pause; // --pause implies --headed
+  if (startFrom && !onlyFlow) {
+    process.stderr.write(`run: --start-from requires --flow <name> (single-flow calibration aid)\n`);
+    return 2;
+  }
   const wsCfg = await loadWorkspaceConfig(projectDir);
   const baseURL = (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ?? wsCfg?.app_url;
   const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
@@ -201,9 +216,10 @@ async function cmdRun(args: string[]): Promise<number> {
   // (they're single-flow calibration aids; mixing them with parallelism would be chaos).
   const concurrencyRaw = typeof flags.get("concurrency") === "string" ? Number(flags.get("concurrency")) : 1;
   const requestedConcurrency = Math.max(1, Math.floor(concurrencyRaw || 1));
-  const concurrency = pause || stopAfter ? 1 : requestedConcurrency;
-  if ((pause || stopAfter) && requestedConcurrency > 1) {
-    process.stderr.write(`run: --pause / --stop-after force --concurrency 1 (ignoring --concurrency ${requestedConcurrency})\n`);
+  const forceSingle = pause || stopAfter || startFrom || cdpEndpoint;
+  const concurrency = forceSingle ? 1 : requestedConcurrency;
+  if (forceSingle && requestedConcurrency > 1) {
+    process.stderr.write(`run: --pause / --stop-after / --start-from / --cdp force --concurrency 1 (ignoring --concurrency ${requestedConcurrency})\n`);
   }
   const tag = concurrency > 1 ? (name: string) => `run [${name}]: ` : () => "run: ";
 
@@ -211,7 +227,15 @@ async function cmdRun(args: string[]): Promise<number> {
     const name = flow.name;
     let session;
     try {
-      session = await launchPlaywrightSession({ baseURL, headed, ignoreHTTPSErrors, storageState, docPackRoot: projectDir });
+      // When attaching to an existing Chrome via --cdp, the operator owns its auth state — don't
+      // load cached `storageState` over it (would replace cookies). When launching fresh, do.
+      session = await launchPlaywrightSession({
+        baseURL,
+        headed,
+        ignoreHTTPSErrors,
+        ...(cdpEndpoint ? { connectOverCdp: cdpEndpoint } : { storageState }),
+        docPackRoot: projectDir,
+      });
     } catch (e) {
       const msg = (e as Error).message;
       if (/Executable doesn't exist|browserType\.launch|playwright install/i.test(msg)) {
@@ -222,11 +246,34 @@ async function cmdRun(args: string[]): Promise<number> {
       return false;
     }
     try {
-      const result = await runFlow(flow, session.driver, { resolveLocator: (n) => flow.locators[n], ...(stopAfter ? { stopAfter } : {}) });
+      const result = await runFlow(flow, session.driver, {
+        resolveLocator: (n) => flow.locators[n],
+        ...(stopAfter ? { stopAfter } : {}),
+        ...(startFrom ? { startFrom } : {}),
+      });
       const docsDir = path.join(projectDir, "docs", flow.name);
       await fs.mkdir(docsDir, { recursive: true });
-      await fs.writeFile(path.join(docsDir, "annotations.json"), JSON.stringify(result.annotations, null, 2) + "\n", "utf8");
-      process.stdout.write(`${tag(name)}${name} — ${result.steps.length} steps, ${result.annotations.annotations.length} annotation(s)\n`);
+      const annotationsPath = path.join(docsDir, "annotations.json");
+      // With `startFrom`, only the post-startFrom steps emit annotations — merge them into the
+      // existing file (if any) by step id so the prior steps' annotations stay in place. Same
+      // story for screenshots (they live as separate PNGs and are simply not re-captured).
+      let toWrite = result.annotations;
+      if (startFrom) {
+        try {
+          const existingText = await fs.readFile(annotationsPath, "utf8");
+          const existing = JSON.parse(existingText) as typeof result.annotations;
+          const newStepIds = new Set(result.annotations.annotations.map((a) => a.step));
+          const merged = [
+            ...existing.annotations.filter((a) => !newStepIds.has(a.step)),
+            ...result.annotations.annotations,
+          ];
+          toWrite = { ...result.annotations, annotations: merged };
+        } catch {
+          // No existing file (or unreadable) — just write what we have.
+        }
+      }
+      await fs.writeFile(annotationsPath, JSON.stringify(toWrite, null, 2) + "\n", "utf8");
+      process.stdout.write(`${tag(name)}${name} — ${result.steps.length} step(s) executed, ${result.annotations.annotations.length} annotation(s) ${startFrom ? "merged" : "written"}\n`);
       return true;
     } catch (e) {
       process.stderr.write(`${tag(name)}${(e as Error).message}\n`);

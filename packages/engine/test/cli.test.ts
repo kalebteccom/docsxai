@@ -47,6 +47,11 @@ describe("site-docs CLI — main()", () => {
     expect(err).toMatch(/no flows directory/);
   });
 
+  it("run --start-from without --flow exits 2 (start-from is a single-flow calibration aid)", async () => {
+    expect(await main(["run", "/some/ws", "--start-from", "edit-timing"])).toBe(2);
+    expect(err).toMatch(/--start-from requires --flow/);
+  });
+
   it("render without a project dir exits 2", async () => {
     expect(await main(["render"])).toBe(2);
     expect(err).toMatch(/missing <project-dir>/);

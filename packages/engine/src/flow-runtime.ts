@@ -108,6 +108,14 @@ export interface RunFlowOptions {
   captureDocs?: boolean;
   /** If set, stop after executing the step with this id — run only a prefix of the flow (for calibration). */
   stopAfter?: string;
+  /**
+   * If set, **skip** every step *before* the one with this id — start executing from this step onward.
+   * Assumes the browser is already in the state the prior steps would have produced (typical use:
+   * paired with `connectOverCdp` to attach to a Chrome that's already been driven there manually or
+   * by an earlier partial run). The skipped steps emit no annotations / screenshots / executed records;
+   * the caller is responsible for preserving the previous run's artifacts for them.
+   */
+  startFrom?: string;
 }
 
 export interface ExecutedStep {
@@ -237,7 +245,18 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
   const executed: ExecutedStep[] = [];
   const annotations: AnnotationRecord[] = [];
 
+  // startFrom validation: if set, must name an actual step id in this (already-merged) flow.
+  // Catching the typo here is cheaper than running, halting, and reading the wall of Playwright noise.
+  if (opts.startFrom && !flow.steps.some((s) => s.id === opts.startFrom)) {
+    throw new Error(`startFrom: no step with id "${opts.startFrom}" in flow "${flow.name}"`);
+  }
+  let skipping = !!opts.startFrom;
+
   for (const step of flow.steps) {
+    if (skipping) {
+      if (step.id === opts.startFrom) skipping = false;
+      else continue;
+    }
     const selector = step.target ? resolve(step.target) : null;
     try {
       await executeAction(driver, step, selector);

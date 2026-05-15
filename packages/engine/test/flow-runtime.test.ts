@@ -169,6 +169,29 @@ describe("runFlow", () => {
     expect(await runFlow(flow, mk())).toEqual(await runFlow(flow, mk()));
   });
 
+  it("startFrom skips every step BEFORE the named one (the inverse of stopAfter); execution resumes there", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    const flow = parseFlowFile(FLOW);
+    const r = await runFlow(flow, d, { startFrom: "open-sidebar" });
+    expect(r.steps.map((s) => s.id)).toEqual(["open-sidebar", "type-title"]);
+    expect(d.calls).not.toContain("goto https://app.example/dash"); // first step was skipped
+    expect(d.calls).toContain("click #play"); // execution resumed at open-sidebar
+  });
+
+  it("startFrom + stopAfter together run an arbitrary [first, last] range", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    const r = await runFlow(parseFlowFile(FLOW), d, { startFrom: "open-sidebar", stopAfter: "open-sidebar" });
+    expect(r.steps.map((s) => s.id)).toEqual(["open-sidebar"]);
+  });
+
+  it("startFrom throws fast if the named step doesn't exist (catch the typo before launching)", async () => {
+    await expect(runFlow(parseFlowFile(FLOW), new FakeDriver(), { startFrom: "no-such-step" })).rejects.toThrow(
+      /startFrom: no step with id "no-such-step"/,
+    );
+  });
+
   it("stopAfter runs only a prefix of the flow (up to & including that step)", async () => {
     const d = new FakeDriver();
     d.visible.add("#recap");
