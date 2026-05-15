@@ -15,6 +15,7 @@ import { type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
 import { formatIssuesText, type LintIssue, lintFlow } from "./flow-lint.js";
 import { runFlow } from "./flow-runtime.js";
+import { buildFlowTree, formatTreeText } from "./flow-tree.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
 import { initWorkspace, loadWorkspaceConfig } from "./workspace.js";
@@ -29,6 +30,7 @@ Usage:
   site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
   site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--pause] [--concurrency <N>]
   site-docs lint <workspace-dir> [--flow <name>] [--format text|json]
+  site-docs flow-tree <workspace-dir> [--format text|json]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   site-docs --help
@@ -75,7 +77,10 @@ Notes:
     R001 (deep extends chain), R002 (annotation anchored to a likely-unmounting click/navigate target —
     suggest annotation.target override), R003 (wait_for with no timeout_ms on a long-async-looking step),
     R004 (bare [data-*=…] selector — may have hidden duplicates; suggest :visible / :has-text qualifier).
-    Exit 1 if any warning/error; 0 otherwise. --format json emits machine-readable output for tooling.`;
+    Exit 1 if any warning/error; 0 otherwise. --format json emits machine-readable output for tooling.
+  • flow-tree prints the workspace's extends graph (root flows + their descendants), plus any orphans
+    (flows whose extends parent isn't in the workspace) and resolution issues (cycles / step-id collisions
+    across the merge). Pure-static, ~no I/O beyond reading the flow files. Exit 1 if any issues.`;
 
 function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
   const positionals: string[] = [];
@@ -637,6 +642,51 @@ async function cmdLint(args: string[]): Promise<number> {
   return issues.some((i) => i.severity === "error" || i.severity === "warning") ? 1 : 0;
 }
 
+async function cmdFlowTree(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  if (!positionals[0]) {
+    process.stderr.write(`flow-tree: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
+  if (format !== "text" && format !== "json") {
+    process.stderr.write(`flow-tree: --format must be "text" or "json"\n`);
+    return 2;
+  }
+
+  let flowPaths: string[];
+  try {
+    flowPaths = await listFlowFiles(projectDir);
+  } catch (e) {
+    process.stderr.write(`flow-tree: ${(e as Error).message}\n`);
+    return 2;
+  }
+
+  const flowsByName = new Map<string, FlowFile>();
+  for (const p of flowPaths) {
+    try {
+      const text = await fs.readFile(p, "utf8");
+      const flow = parseFlowFile(text, path.basename(p));
+      flowsByName.set(flow.name, flow);
+    } catch (e) {
+      const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
+      process.stderr.write(`flow-tree: parse error in ${p}: ${msg}\n`);
+      return 1;
+    }
+  }
+
+  const tree = await buildFlowTree(flowsByName);
+
+  if (format === "json") {
+    process.stdout.write(JSON.stringify(tree, null, 2) + "\n");
+  } else {
+    process.stdout.write(formatTreeText(tree));
+  }
+
+  return tree.issues.length > 0 || tree.orphans.length > 0 ? 1 : 0;
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -660,6 +710,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdCaptureAuth(rest);
     case "lint":
       return cmdLint(rest);
+    case "flow-tree":
+      return cmdFlowTree(rest);
     default:
       process.stderr.write(`unknown command: ${cmd}\n\n${USAGE}\n`);
       return 2;
