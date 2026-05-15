@@ -17,6 +17,7 @@ import { buildDiagnoseReport, type DiagnoseReport, formatReportText, probeLive }
 import { formatIssuesText, type LintIssue, lintFlow } from "./flow-lint.js";
 import { runFlow } from "./flow-runtime.js";
 import { buildFlowTree, formatTreeText } from "./flow-tree.js";
+import { formatJargonHitsText, initStyleIfAbsent, loadStyle, scanWorkspaceForJargon, StyleError, writeStyle } from "./style.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
 import { initWorkspace, loadWorkspaceConfig } from "./workspace.js";
@@ -33,6 +34,7 @@ Usage:
   site-docs lint <workspace-dir> [--flow <name>] [--format text|json]
   site-docs flow-tree <workspace-dir> [--format text|json]
   site-docs diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
+  site-docs style <workspace-dir> [--check] [--format text|json]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   site-docs --help
@@ -97,7 +99,14 @@ Notes:
     page) and prints recommendations (selector / wait_for / success / annotation_target / split_step /
     investigate). The engine never patches the flow-file itself — that's the agent's explicit opt-in
     action. --format json emits machine-readable output for an agent to act on. Pair with
-    --start-from <step-id> --cdp on a follow-up run to validate the fix in seconds.`;
+    --start-from <step-id> --cdp on a follow-up run to validate the fix in seconds.
+  • style initialises docs/style.yaml + derived docs/style.json if absent (otherwise validates the
+    existing YAML against the schema and rederives the JSON). --check additionally scans every
+    docs/<flow>/<step>.md user-facing write-up for jargon leaks against the style's pruning_rules
+    (e.g. VERIFY / WAIT / data-testid leaking into user-facing prose). The engine never re-shapes
+    prose itself (LLM-agnostic) — the agent does that at calibration time; this command is the
+    enforcement layer for the semantic-reshape exit criterion. --format json emits machine-readable
+    output for tooling.`;
 
 function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
   const positionals: string[] = [];
@@ -838,6 +847,60 @@ async function cmdDiagnose(args: string[]): Promise<number> {
   return 0;
 }
 
+async function cmdStyle(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  if (!positionals[0]) {
+    process.stderr.write(`style: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const check = flags.get("check") === true;
+  const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
+  if (format !== "text" && format !== "json") {
+    process.stderr.write(`style: --format must be "text" or "json"\n`);
+    return 2;
+  }
+
+  // init-if-absent (idempotent); then load + validate; then rederive JSON; then optional jargon check.
+  const { created } = await initStyleIfAbsent(projectDir);
+  let style;
+  try {
+    style = await loadStyle(projectDir);
+  } catch (e) {
+    if (e instanceof StyleError) {
+      process.stderr.write(`style: ${e.message}\n`);
+      return 1;
+    }
+    throw e;
+  }
+  if (!style) {
+    // Shouldn't happen after initStyleIfAbsent, but defensive.
+    process.stderr.write(`style: failed to initialise style.yaml in ${projectDir}\n`);
+    return 1;
+  }
+  // Always rewrite to ensure derived JSON stays in sync with YAML (idempotent).
+  const paths = await writeStyle(projectDir, style);
+
+  let hits: Awaited<ReturnType<typeof scanWorkspaceForJargon>> = [];
+  if (check) {
+    hits = await scanWorkspaceForJargon(projectDir, style);
+  }
+
+  if (format === "json") {
+    process.stdout.write(JSON.stringify({ style, paths, created, jargonLeaks: check ? hits : undefined }, null, 2) + "\n");
+  } else {
+    process.stdout.write(
+      `style: ${created ? "created" : "validated"} ${path.relative(projectDir, paths.yamlPath)}; rederived ${path.relative(projectDir, paths.jsonPath)}\n`,
+    );
+    if (check) {
+      process.stdout.write("\n");
+      process.stdout.write(formatJargonHitsText(hits));
+    }
+  }
+
+  return check && hits.length > 0 ? 1 : 0;
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -865,6 +928,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdFlowTree(rest);
     case "diagnose":
       return cmdDiagnose(rest);
+    case "style":
+      return cmdStyle(rest);
     default:
       process.stderr.write(`unknown command: ${cmd}\n\n${USAGE}\n`);
       return 2;

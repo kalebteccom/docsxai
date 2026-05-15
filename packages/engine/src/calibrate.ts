@@ -12,9 +12,9 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { stringify as stringifyYaml } from "yaml";
-import { type FlowFile, type StyleArtifact } from "./doc-pack.js";
+import { type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, serializeFlowFile } from "./flow-file.js";
+import { initStyleIfAbsent } from "./style.js";
 
 export class CalibrateError extends Error {
   constructor(message: string, readonly cause?: unknown) {
@@ -61,14 +61,7 @@ export function extractFlowFile(text: string, source = "<flow-guide>"): FlowFile
   );
 }
 
-const DEFAULT_STYLE: StyleArtifact = {
-  schema: "site-docs/style@1",
-  voice: { tone: "concise, instructional, second-person ('you')", audience: "end users (not engineers)" },
-  structure: { per_step: "one short imperative sentence + a screenshot; no internal jargon" },
-  terminology: {},
-  // testing-jargon categories the commit stage must strip from user-facing prose:
-  pruning_rules: ["VERIFY/EXPECT/ASSERT directives", "WAIT directives", "internal locator names", "network-verification blocks"],
-};
+// Default style is owned by the style module so `site-docs style init` and `calibrate` agree.
 
 export interface CalibrateOptions {
   workspaceDir: string;
@@ -100,16 +93,6 @@ export async function calibrate(opts: CalibrateOptions): Promise<CalibrateResult
   const flowFilePath = path.join(flowsDir, `${name}.flow.yaml`);
   await fs.writeFile(flowFilePath, serializeFlowFile(flow), "utf8");
 
-  const docsDir = path.join(opts.workspaceDir, "docs");
-  await fs.mkdir(docsDir, { recursive: true });
-  const stylePath = path.join(docsDir, "style.yaml");
-  let wroteStyle = false;
-  try {
-    await fs.access(stylePath);
-  } catch {
-    await fs.writeFile(stylePath, stringifyYaml(DEFAULT_STYLE, { lineWidth: 100 }), "utf8");
-    wroteStyle = true;
-  }
-
-  return { flow, flowFilePath, stylePath, wroteStyle };
+  const { paths, created } = await initStyleIfAbsent(opts.workspaceDir);
+  return { flow, flowFilePath, stylePath: paths.yamlPath, wroteStyle: created };
 }
