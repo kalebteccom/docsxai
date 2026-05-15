@@ -12,7 +12,7 @@ Two-mode architecture:
 - **Execution** (deterministic, continuous) — replays the doc pack through headless
   Playwright with zero LLM involvement and re-emits fresh docs. CI-friendly.
 
-First target: the first consumer' the target app (the feature area).
+First target: a representative consumer-grade SPA — multiple chained user flows in a single feature area, documented end-to-end as one consolidated guide.
 
 ## Where the design lives
 

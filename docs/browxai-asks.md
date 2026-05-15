@@ -1,6 +1,6 @@
 # site-docs ↔ browxai: the integration contract
 
-> **Status (2026-05-15): closed.** Phase-1 met on both sides. Round-3 re-adoption run against the first consumer the target app on 2026-05-15 was a WIN — one new flow (`recap-edit-timing`) calibrated end-to-end through `browxai-attached`, eight Recap flows now in the workspace, no-trace contract held, replay determinism through `site-docs run` intact. Five non-architectural follow-on asks (#12–#16) tracked below.
+> **Status (2026-05-15): closed.** Phase-1 met on both sides. Round-3 re-adoption run against the first-consumer target app on 2026-05-15 was a WIN — one new flow (`recap-edit-timing`) calibrated end-to-end through `browxai-attached`, eight Recap flows now in the workspace, no-trace contract held, replay determinism through `site-docs run` intact. Five non-architectural follow-on asks (#12–#16) tracked below.
 >
 > Written 2026-05-13 morning as a list of pending pre-shipping asks (Round 1, #1–#6). Browxai's Phase-1 implementation pass landed all six the same day. The **first adoption run** later that day surfaced five more asks (#7–#11) about heavy-SPA `snapshot()` / `find()` behaviour — all shipped same day as a Phase-1.5 pass. Round 3 (the re-adoption) confirmed those fixes work and surfaced #12–#16 as polish, not blockers.
 >
@@ -50,7 +50,7 @@ The Phase-1.5 deferrals are explicit in browxai's `docs/phase-1-design.md` §7 �
 
 ---
 
-## Round 2 — from the 2026-05-13 the target app adoption run
+## Round 2 — from the 2026-05-13 first-consumer adoption run
 
 The first end-to-end run against an authed heavy-SPA target (the target app: Reflux + legacy React) found orchestration was solid but `find()` was blunted because the a11y tree on those shapes is sparse, and the target app's interactive elements anchor on `data-type` rather than the assumed `data-testid`. Five concrete asks; browxai shipped all five the same day.
 
