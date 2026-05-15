@@ -73,10 +73,22 @@ export const SuccessSpec = z.union([
 ]);
 export type SuccessSpec = z.infer<typeof SuccessSpec>;
 
+export const NudgeOffset = z
+  .object({ x: z.number(), y: z.number() })
+  .strict();
+export type NudgeOffset = z.infer<typeof NudgeOffset>;
+
 export const StepAnnotation = z
   .object({
     copy: z.string().min(1),
     arrow: ArrowStyle.optional(),
+    /**
+     * Optional pixel offset applied to the callout + arrow after Popper-like placement. The halo (which
+     * highlights the target element) stays on the target. Use this when two annotations on the same
+     * screenshot would otherwise overlap each other — nudge one aside so both are readable.
+     * Image-space pixels; small values (5–40 px in either direction) typically suffice.
+     */
+    nudge: NudgeOffset.optional(),
     /**
      * Optional override: the locator to anchor the halo/arrow to. Default = the step's `target`. Use this on
      * a step whose action *transitions the UI* — the action target vanishes (gets unmounted / replaced) and
@@ -154,6 +166,8 @@ export const AnnotationRecord = z
     bounding_box: BoundingBox.optional(),
     copy: z.string().min(1),
     arrow_style: ArrowStyle.optional(),
+    /** Optional pixel offset applied to the callout + arrow at render time — see {@link NudgeOffset}. */
+    nudge: NudgeOffset.optional(),
     /** 1-based index of this annotation *within its step's screenshot* — set only when the step has > 1 annotation, so the viewer can render a numbered badge. Absent → render as a plain (un-numbered) halo. */
     index: z.number().int().positive().optional(),
   })

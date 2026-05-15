@@ -244,6 +244,25 @@ steps:
     expect(ann.index).toBeUndefined();
   });
 
+  it("propagates `annotation.nudge` from the flow-file into the emitted AnnotationRecord", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    d.boxes.set("#play", { x: 1, y: 2, width: 3, height: 4 });
+    const flow = parseFlowFile(`
+name: f
+locators: { play: '#play', recap: '#recap' }
+steps:
+  - id: act
+    action: click
+    target: $play
+    wait_for: { selector: $recap }
+    success: { visible: $recap }
+    annotation: { copy: "nudged", target: $play, nudge: { x: 30, y: -12 } }
+`);
+    const r = await runFlow(flow, d);
+    expect(r.annotations.annotations[0]!.nudge).toEqual({ x: 30, y: -12 });
+  });
+
   it("annotation.target overrides the anchor — point the halo at a different element from the action's target", async () => {
     const d = new FakeDriver();
     d.visible.add("#recap");

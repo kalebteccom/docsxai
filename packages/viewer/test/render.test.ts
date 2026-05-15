@@ -88,6 +88,33 @@ describe("buildViewer", () => {
     expect((flowHtml.match(/data-anns=/g) || []).length).toBe(1);
   });
 
+  it("propagates an annotation's `nudge` offset into the embedded data + viewer JS applies it to callout/arrow only", async () => {
+    const flowDir = path.join(tmp, "docs", "recap-open");
+    await fs.writeFile(
+      path.join(flowDir, "annotations.json"),
+      JSON.stringify({
+        schema: "site-docs/annotations@1",
+        flow: "recap-open",
+        annotations: [
+          {
+            step: "open-sidebar",
+            selector: "#play",
+            bounding_box: { x: 10, y: 20, width: 30, height: 12 },
+            copy: "nudged",
+            nudge: { x: 25, y: -10 },
+          },
+        ],
+      }),
+    );
+    const outDir = path.join(tmp, "out-nudge");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
+    // payload embedded
+    expect(flowHtml).toContain('"nudge":{"x":25,"y":-10}');
+    // viewer JS applies the offset
+    expect(flowHtml).toContain("ann.nudge");
+  });
+
   it("escapes HTML in annotation copy", async () => {
     const flowDir = path.join(tmp, "docs", "recap-open");
     await fs.writeFile(

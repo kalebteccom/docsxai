@@ -286,6 +286,7 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
             ...(bbox ? { bounding_box: bbox } : {}),
             copy: ann.copy,
             ...(ann.arrow ? { arrow_style: ann.arrow } : {}),
+            ...(ann.nudge ? { nudge: ann.nudge } : {}),
             ...(anns.length > 1 ? { index: i + 1 } : {}),
           });
         }

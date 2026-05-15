@@ -17,6 +17,9 @@ interface AnnotationRecord {
   bounding_box?: { x: number; y: number; width: number; height: number };
   copy: string;
   arrow_style?: string;
+  /** Optional pixel offset applied to the callout + arrow after Popper-like placement; halo stays put. */
+  nudge?: { x: number; y: number };
+  index?: number;
 }
 interface AnnotationsFile {
   schema: string;
@@ -185,7 +188,11 @@ const OVERLAY_JS = `
       var pref = String(ann.arrow_style || "top").split("-")[0];
       if (["top", "bottom", "left", "right"].indexOf(pref) < 0) pref = "top";
       var p = place(im, t, c, pref);
-      co.style.cssText = "left:" + p.x + "px;top:" + p.y + "px;max-width:" + c.w + "px";
+      // Optional nudge — moves callout + arrow together; halo (which highlights the target) stays put.
+      // Lets the author shift a callout aside when two annotations would otherwise overlap.
+      var nx = (ann.nudge && typeof ann.nudge.x === "number") ? ann.nudge.x : 0;
+      var ny = (ann.nudge && typeof ann.nudge.y === "number") ? ann.nudge.y : 0;
+      co.style.cssText = "left:" + (p.x + nx) + "px;top:" + (p.y + ny) + "px;max-width:" + c.w + "px";
       var ar = document.createElement("div");
       ar.className = "sd-arrow " + p.side;
       var L, T;
@@ -193,7 +200,7 @@ const OVERLAY_JS = `
       else if (p.side === "bottom") { L = p.ax - 7; T = p.ay; }
       else if (p.side === "left") { L = p.ax - 8; T = p.ay - 7; }
       else { L = p.ax; T = p.ay - 7; }
-      ar.style.cssText = "left:" + L + "px;top:" + T + "px";
+      ar.style.cssText = "left:" + (L + nx) + "px;top:" + (T + ny) + "px";
       wrap.appendChild(ar);
     }
     shot.appendChild(wrap);
