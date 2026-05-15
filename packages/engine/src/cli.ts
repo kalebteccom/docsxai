@@ -13,6 +13,7 @@ import { LocalStorageStateCache, makeStrategy, parseAuthStrategyFile, resolveCre
 import { calibrate } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
+import { formatIssuesText, type LintIssue, lintFlow } from "./flow-lint.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
@@ -27,6 +28,7 @@ Usage:
   site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
   site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--pause] [--concurrency <N>]
+  site-docs lint <workspace-dir> [--flow <name>] [--format text|json]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   site-docs --help
@@ -68,7 +70,12 @@ Notes:
   • calibrate takes a *structured flow-guide* (a flow-file in YAML, or a .md with a yaml fenced block) and
     writes flows/<name>.flow.yaml + a default docs/style.yaml. Loose-prose descriptions / live element-picking
     need the host agent — that's the /site-docs:calibrate *skill* (see the plugin), which then refines/produces
-    the flow-file; this CLI command covers only the deterministic structured-input case.`;
+    the flow-file; this CLI command covers only the deterministic structured-input case.
+  • lint runs pure-static checks across the workspace's flow-files — no Playwright, no live page. Rules:
+    R001 (deep extends chain), R002 (annotation anchored to a likely-unmounting click/navigate target —
+    suggest annotation.target override), R003 (wait_for with no timeout_ms on a long-async-looking step),
+    R004 (bare [data-*=…] selector — may have hidden duplicates; suggest :visible / :has-text qualifier).
+    Exit 1 if any warning/error; 0 otherwise. --format json emits machine-readable output for tooling.`;
 
 function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
   const positionals: string[] = [];
@@ -564,6 +571,72 @@ async function cmdInspect(args: string[]): Promise<number> {
   }
 }
 
+async function cmdLint(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  if (!positionals[0]) {
+    process.stderr.write(`lint: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const flowFilter = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
+  const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
+  if (format !== "text" && format !== "json") {
+    process.stderr.write(`lint: --format must be "text" or "json"\n`);
+    return 2;
+  }
+
+  let flowPaths: string[];
+  try {
+    flowPaths = await listFlowFiles(projectDir);
+  } catch (e) {
+    process.stderr.write(`lint: ${(e as Error).message}\n`);
+    return 2;
+  }
+
+  const flowsByName = new Map<string, FlowFile>();
+  for (const p of flowPaths) {
+    try {
+      const text = await fs.readFile(p, "utf8");
+      const flow = parseFlowFile(text, path.basename(p));
+      flowsByName.set(flow.name, flow);
+    } catch (e) {
+      const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
+      process.stderr.write(`lint: parse error in ${p}: ${msg}\n`);
+      return 1;
+    }
+  }
+
+  const targets = flowFilter
+    ? flowsByName.has(flowFilter)
+      ? [flowsByName.get(flowFilter)!]
+      : []
+    : Array.from(flowsByName.values());
+  if (flowFilter && targets.length === 0) {
+    process.stderr.write(`lint: flow not found: ${flowFilter}\n`);
+    return 2;
+  }
+
+  const loadFlow = async (name: string) => {
+    const f = flowsByName.get(name);
+    if (!f) throw new Error(`extends target not found: ${name}`);
+    return f;
+  };
+
+  const issues: LintIssue[] = [];
+  for (const flow of targets) {
+    const result = await lintFlow(flow, { loadFlow });
+    issues.push(...result);
+  }
+
+  if (format === "json") {
+    process.stdout.write(JSON.stringify(issues, null, 2) + "\n");
+  } else {
+    process.stdout.write(formatIssuesText(issues));
+  }
+
+  return issues.some((i) => i.severity === "error" || i.severity === "warning") ? 1 : 0;
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -585,6 +658,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdRender(rest);
     case "capture-auth":
       return cmdCaptureAuth(rest);
+    case "lint":
+      return cmdLint(rest);
     default:
       process.stderr.write(`unknown command: ${cmd}\n\n${USAGE}\n`);
       return 2;
