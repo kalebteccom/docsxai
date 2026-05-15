@@ -18,6 +18,7 @@ import { formatIssuesText, type LintIssue, lintFlow } from "./flow-lint.js";
 import { runFlow } from "./flow-runtime.js";
 import { buildFlowTree, formatTreeText } from "./flow-tree.js";
 import { formatJargonHitsText, initStyleIfAbsent, loadStyle, scanWorkspaceForJargon, StyleError, writeStyle } from "./style.js";
+import { ZipError, zipDocPack } from "./zip.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
 import { initWorkspace, loadWorkspaceConfig } from "./workspace.js";
@@ -35,6 +36,7 @@ Usage:
   site-docs flow-tree <workspace-dir> [--format text|json]
   site-docs diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
   site-docs style <workspace-dir> [--check] [--format text|json]
+  site-docs zip <workspace-dir> [--out <output.zip>] [--include-viewer]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   site-docs --help
@@ -106,7 +108,13 @@ Notes:
     (e.g. VERIFY / WAIT / data-testid leaking into user-facing prose). The engine never re-shapes
     prose itself (LLM-agnostic) — the agent does that at calibration time; this command is the
     enforcement layer for the semantic-reshape exit criterion. --format json emits machine-readable
-    output for tooling.`;
+    output for tooling.
+  • zip packages the workspace's doc pack into a single archive for hand-off. Includes flows/, docs/,
+    .site-docs.json, auth/strategy.yaml (env-var names only, no creds), README.md. Excludes .auth/
+    (operator-local session state), **/halts/ (debug screenshots), .viewer/ by default (re-renderable
+    from the doc pack; pass --include-viewer to bundle it). Defaults output to <workspace-name>.zip
+    in the current dir; override with -o <path>. Requires the system 'zip' binary (preinstalled on
+    macOS / Linux / WSL).`;
 
 function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
   const positionals: string[] = [];
@@ -901,6 +909,33 @@ async function cmdStyle(args: string[]): Promise<number> {
   return check && hits.length > 0 ? 1 : 0;
 }
 
+async function cmdZip(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  if (!positionals[0]) {
+    process.stderr.write(`zip: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const output =
+    typeof flags.get("out") === "string"
+      ? (flags.get("out") as string)
+      : path.join(process.cwd(), `${path.basename(path.resolve(projectDir))}.zip`);
+  const includeViewer = flags.get("include-viewer") === true;
+
+  try {
+    const r = await zipDocPack({ workspace: projectDir, output, includeViewer });
+    const kb = (r.bytes / 1024).toFixed(1);
+    process.stdout.write(`zip: wrote ${r.output} (${kb} KB)\n`);
+    return 0;
+  } catch (e) {
+    if (e instanceof ZipError) {
+      process.stderr.write(`zip: ${e.message}\n`);
+      return 1;
+    }
+    throw e;
+  }
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -930,6 +965,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdDiagnose(rest);
     case "style":
       return cmdStyle(rest);
+    case "zip":
+      return cmdZip(rest);
     default:
       process.stderr.write(`unknown command: ${cmd}\n\n${USAGE}\n`);
       return 2;
