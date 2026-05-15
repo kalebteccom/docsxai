@@ -5,6 +5,14 @@
   "type": "module",
   "description": "Vitest-based interactive docs-app generator: overlays arrows + popups from annotations.json over clean screenshots at render time.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalebteccom/automated-site-documentation-bot.git",
+    "directory": "packages/viewer"
+  },
+  "homepage": "https://github.com/kalebteccom/automated-site-documentation-bot#readme",
+  "bugs": "https://github.com/kalebteccom/automated-site-documentation-bot/issues",
+  "keywords": ["site-docs", "documentation", "playwright", "claude-code", "agent"],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

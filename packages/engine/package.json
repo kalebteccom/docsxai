@@ -5,6 +5,14 @@
   "type": "module",
   "description": "LLM-agnostic engine: calibration pipeline stages (discovery, mapping+testing, commit) + flow-file parser/runtime + the target-site auth-strategy layer.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalebteccom/automated-site-documentation-bot.git",
+    "directory": "packages/engine"
+  },
+  "homepage": "https://github.com/kalebteccom/automated-site-documentation-bot#readme",
+  "bugs": "https://github.com/kalebteccom/automated-site-documentation-bot/issues",
+  "keywords": ["site-docs", "documentation", "playwright", "claude-code", "agent"],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

@@ -5,6 +5,14 @@
   "type": "module",
   "description": "Optional colocated .claude/skills/ fallback that delegates to the installed plugin. Secondary path for teams that want to vendor / version-pin.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalebteccom/automated-site-documentation-bot.git",
+    "directory": "packages/skill"
+  },
+  "homepage": "https://github.com/kalebteccom/automated-site-documentation-bot#readme",
+  "bugs": "https://github.com/kalebteccom/automated-site-documentation-bot/issues",
+  "keywords": ["site-docs", "documentation", "playwright", "claude-code", "agent"],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
