@@ -1,10 +1,14 @@
 # site-docs ↔ browxai: the integration contract
 
-> Originally written 2026-05-13 morning as a list of pending asks site-docs was sending to the browxai-side agent. Browxai's Phase-1 implementation pass landed all six asks the same day. The **first adoption run** against the first consumer the target app then ran later that day — modest win, surfaced five more asks (#7–#11) about how `snapshot()` / `find()` behave on heavy-SPA targets — **all of which browxai also shipped same day** as a Phase-1.5 pass. This doc now records the **agreed integration contract** across both rounds. Next move: a **re-adoption run** that exercises `find()` against the augmented snapshot. That run is also browxai's headline Phase-1 exit criterion.
+> **Status (2026-05-15): closed.** Phase-1 met on both sides. Round-3 re-adoption run against the first consumer the target app on 2026-05-15 was a WIN — one new flow (`recap-edit-timing`) calibrated end-to-end through `browxai-attached`, eight Recap flows now in the workspace, no-trace contract held, replay determinism through `site-docs run` intact. Five non-architectural follow-on asks (#12–#16) tracked below.
 >
-> Canonical browxai-side status board: `kalebteccom/browxai/docs/first-consumer-asks.md`. Canonical adoption-run report: `kalebteccom/browxai/docs/adoption-report-example-2026-05-13.md`. Portfolio entry: `projects/agent-browser-bridge/progress.md`.
+> Written 2026-05-13 morning as a list of pending pre-shipping asks (Round 1, #1–#6). Browxai's Phase-1 implementation pass landed all six the same day. The **first adoption run** later that day surfaced five more asks (#7–#11) about heavy-SPA `snapshot()` / `find()` behaviour — all shipped same day as a Phase-1.5 pass. Round 3 (the re-adoption) confirmed those fixes work and surfaced #12–#16 as polish, not blockers.
+>
+> **Canonical operational reference**: `kalebteccom/browxai/AGENT-RUNBOOK.md` — for snapshot output legend (`stats:`, `warnings:`, `[from-dom]` / `[from-both]` markers), locator-disambiguation idioms (`:visible`, `nth-match`), `stability` semantics (snapshot-disambiguator vs. deploy-stable), and known-issue workarounds. This doc does **not** duplicate that content; it tracks the contract shape only.
+>
+> Other canonical sources: `kalebteccom/browxai/docs/first-consumer-asks.md` (per-ask status board); adoption reports `kalebteccom/browxai/docs/adoption-report-example-2026-05-{13,15}.md`; portfolio entry `projects/agent-browser-bridge/progress.md`.
 
-Status legend: ✅ **landed** · 🟡 **partial** (Phase-1 shape landed; remainder is Phase-1.5 / Phase-2) · 📅 **adoption-gated** ("done in code; the proof is the re-adoption run").
+Status legend: ✅ **landed** · 🟡 **partial** (Phase-1 shape landed; remainder Phase-1.5 / Phase-2) · 📅 **adoption-gated**.
 
 ---
 
@@ -98,19 +102,37 @@ When the a11y tree has fewer than five interactive descendants under root, `snap
 
 ---
 
-## What's left: the re-adoption run
+---
 
-> Re-drive site-docs's discovery/calibration end-to-end through the `browxai-attached` MCP registration (attached to the `capture-auth --cdp` Chrome) on a real authed target — this time with `BROWX_TEST_ATTRIBUTES` set for the target codebase (e.g. for the target app: `data-testid,data-type,data-test,data-cy,data-qa`), exercising `find()` against the **augmented** snapshot (a11y + DOM walk) that round 2 shipped.
+## Round 3 — re-adoption verdict (2026-05-15): WIN, Phase 1 closed
 
-The run closes browxai Phase 1 if:
+Re-ran site-docs discovery/calibration end-to-end through `browxai-attached` against authed the target app, with `BROWX_TEST_ATTRIBUTES=data-testid,data-type,data-test,data-cy,data-qa`. Scope: author one new flow (`recap-edit-timing` — Recap Flow 3 "Edit Script Timing"). Result: flow file authored entirely through browxai's MCP surface, replayed cleanly through `site-docs run` (headless, no browxai dependency), no-trace contract held. Phase-1 exit criteria met both sides. Full report: `kalebteccom/browxai/docs/adoption-report-example-2026-05-15.md`.
 
-- `find()` reliably surfaces ranked candidates for steps where round 1 returned nothing useful (the DOM-walk + test-attr work landing).
-- selectorHint transcribes mechanically — most flow-file `locators:` entries come straight from `find().selectorHint` with `stability: high` (tier 1 against the project's test attr) or `medium` (tier 2 role+name).
-- The no-trace contract holds: `git -C <app-repo> status` clean after the session.
+Five non-architectural follow-on asks surfaced; none gates further site-docs work, none block adoption against new targets. Their canonical home is `kalebteccom/browxai/docs/first-consumer-asks.md` (round-3 table) and they'll be addressed on the browxai side as Phase-1.5 cleanup or fold into Phase 2. Listed here for contract completeness:
 
-If tier-3-or-4 hints come up missing on a step the agent confidently wanted them for, that's the signal to expedite Phase-1.5 selectorHint tier-3/4 — file it on the browxai side rather than work around it.
+### 12. 🟡 `wait_for.timeoutMs` schema cap (currently 120 s)
 
-## Deferred to Phase 1.5 / Phase 2 (explicitly out of scope for the re-adoption)
+Backend-async ops (script generation, translation, TTS) routinely exceed the 120 000 ms cap. Site-docs's own flow-file `timeout_ms` is unbounded; the discovery-side primitive should at least match. Suggested: raise to ~600 000 ms, or add `pollIntervalMs`, or document the polling idiom. Schema-only change, no semantic risk.
+
+### 13. 🟡 `selectorHint` disambiguation for duplicate DOM matches
+
+When `find()` returns the visible candidate via its interaction filter but the bare `[data-type="x"]` matches multiple DOM nodes (visible + hidden duplicate), the emitted hint should disambiguate (`:visible`, `nth-match`, or a further-attribute qualifier). Without it, mechanical transcription re-introduces the round-6 hidden-duplicate `boundingBox` hang the runbook's "Locator gotchas" block documents. Browxai's `AGENT-RUNBOOK.md` carries the workaround agents apply manually in the meantime.
+
+### 14. 🟡 `find()` scoring weight for test-attribute string matches
+
+Exact testid in the query failed to surface a matching `<input>` element because role+name surface was empty (no `aria-label`). Three options on browxai's side: score testId hits independently of role/name, boost `role == "input"` + testid-keyword match, or signal "no confident candidate" so the agent falls through to reading the testid off the snapshot row. Highest-leverage round-3 ask — it's the gap between "find() ranked what I asked for" and "I read the testid off the snapshot row manually."
+
+### 15. 🟢 CDP-attached bbox
+
+`find().bbox` returns `null + clipped: true` for plainly-visible elements on the BYOB path even though managed-mode bbox is byte-correct. Likely the attached context has no default viewport — set one in `src/session/byob.ts`, or read it off `Page.viewportSize()`. Doesn't block calibration (bbox is "evidence" not "locator"); promote to load-bearing if any agent surface starts depending on it.
+
+### 16. 🟢 Docs nit: `stability` semantics + `find()`-matching surface
+
+"high stability" means "snapshot disambiguator," not "survives deploys." Content-keyed IDs (e.g. `[data-testid="example-content-12345"]` — the asset ID changes daily) come back with `stability: "high"` even though they're brittle for a long-lived flow file; the calibration agent has to recognise and rewrite to a `^=` + `:has-text(...)` pattern. Plus: `find()` matches against `name` + `role` + test-attribute values — icon-only tabs whose `title="…"` carries the only signal don't match keyword queries. Either docs-only in browxai's `tool-reference.md` / `AGENT-RUNBOOK.md`, or a small `stabilityKind: "structural" | "content-keyed"` heuristic field.
+
+---
+
+## Deferred to Phase 1.5 / Phase 2 (still applies)
 
 - `dump_storage_state` MCP tool (Phase 2; only needed when browxai owns the profile end-to-end).
 - `find().selectorHint` tiers 3 (stable-text-on-stable-role) and 4 (id/semantic).
