@@ -1,17 +1,60 @@
 ---
 name: site-docs-diagnose
-description: Use when a deterministic `site-docs run` halts on a locator or success-criterion failure (drift). Propose a recalibration diff for the affected flow-file; never patch silently or add selector fallbacks.
+description: Use when a deterministic `site-docs run` halts on a locator or success-criterion failure (drift). Gather halt context, propose a minimal recalibration diff for the affected flow-file, validate the fix in seconds via `--start-from --cdp`. Never patch silently or add selector fallbacks.
 ---
 
 # Diagnosing a halted run
 
-A halted run means the site drifted from what the flow-file encodes — that's a *signal*, not a flake to absorb.
+A halted run means the site drifted from what the flow-file encodes — that's a *signal*, not a flake to absorb. The diagnose loop is explicit and agent-driven; the engine never auto-patches the flow-file.
 
-1. Read the failure: which step id, which action, which selector / success criterion failed (`FlowExecutionError` carries `stepId`).
-2. Open the affected `flows/<flow>.flow.yaml` and the live site (Claude in Chrome) at the point of failure.
-3. Determine what changed: a renamed/moved element (→ new canonical locator), a removed step, a changed success condition, new async behaviour needing a `wait_for`.
-4. **Propose a minimal flow-file diff** to the user — one canonical locator per step, no fallback lists. If the change is non-obvious, surface candidates and ask.
-5. On approval, apply the diff and run `/site-docs:run` to confirm. Then offer to re-`render`.
-6. If the drift is structural (steps added/removed), recommend a fuller `/site-docs:calibrate` of that flow instead of patching.
+## 1. Run the diagnose command
 
-Flakiness (intermittent timing) is *not* drift — address it with async primitives in the flow-file (`wait_for: network_idle`, `wait_for: element_stable`, explicit timeouts), documented inline.
+```bash
+site-docs diagnose <workspace> --flow <name> --step <step-id> [--cdp <endpoint>] [--format json]
+```
+
+This gathers:
+
+- The current step's selector (resolved if it's a `$ref`), `wait_for`, `success`
+- The most recent halt screenshot at `docs/<flow>/halts/<step>.png` if one exists
+- **With `--cdp`:** a live probe — connects to the running Chrome, runs the engine's `BrowserDriver.actionable()` predicate on the target selector, captures current URL + bbox
+- Recommendations: one of `selector` / `wait_for` / `success` / `annotation_target` / `split_step` / `investigate` — each with a rationale and a concrete suggestion
+
+`--format json` is the agent-facing path; the report has a stable shape (`DiagnoseReport` in `packages/engine/src/diagnose.ts`).
+
+## 2. Read the recommendations + decide
+
+The recommendation taxonomy maps to common drift shapes — see [`docs/actionability-contract.md`](../../../../docs/actionability-contract.md) for the underlying state vocabulary.
+
+| recommendation | typical fix |
+|---|---|
+| `selector` (e.g. live probe = `not-found` / `multiple-matches`) | Re-discover the element via browxai's `find()` / `site-docs inspect`; commit a new canonical locator (or scope the existing one with `:visible` / `:nth-match`). |
+| `wait_for` (`not-visible` after a long-async action) | Add or strengthen `wait_for: { selector: <sel>, timeout_ms: <ms> }`. |
+| `annotation_target` (`detached` — the action target unmounted) | Set `annotation.target` to a surviving element in the resulting state. The action's `target` stays the same. |
+| `split_step` (`off-screen` / `covered`) | Insert a step before the action — scroll-into-view, dismiss-overlay, ESC-key. |
+| `success` (the `success` clause looks fragile, e.g. `text_contains`) | Replace with a structural criterion where stable; or update the expected text. |
+| `investigate` (live probe = `actionable` / `disabled`) | Race / flakiness in the original run; or a product-state decision (`disabled` may be intentional). Don't auto-edit. |
+
+If the change is non-obvious, surface the candidates to the user. **Never silently pick** between locator alternatives — drift signals must remain visible.
+
+## 3. Edit the flow-file
+
+Hand-edit `flows/<flow>.flow.yaml`. One canonical locator per step; no fallback lists.
+
+If the drift is structural (steps added/removed by the app, not just a selector renamed), recommend a fuller `/site-docs:calibrate` of that flow instead of patching — the agent / human's call.
+
+## 4. Validate the fix in seconds
+
+```bash
+site-docs run <workspace> --flow <name> --start-from <step-id> --cdp <endpoint>
+```
+
+`--start-from` skips every step before the fixed one; `--cdp` attaches to the same Chrome the diagnose probe used (so the page state from the prior steps is already there). The new annotation merges into the existing `annotations.json` by step id — prior steps' annotations and screenshots stay intact. If the step now runs clean, the fix is good; if it halts again, re-run `diagnose`.
+
+Then offer to re-`render` to refresh the viewer.
+
+## Anti-patterns
+
+- **Don't add selector fallbacks** (`locators: { play_btn: ['#play', '.play-btn', '[data-foo=play]'] }`). One canonical locator per step. Drift through a fallback list is invisible drift — that's worse than a halt.
+- **Don't absorb intermittent timing as "drift"** — that's flakiness. Address with async primitives (`wait_for: network_idle` / `element_stable` / `timeout_ms`), documented inline in the flow-file.
+- **Don't run `site-docs run` blindly to "see what happens"** — the diagnose probe + `--start-from --cdp` is the fast loop. Blind re-runs cost minutes per iteration on long-async flows.

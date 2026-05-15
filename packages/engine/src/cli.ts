@@ -13,6 +13,7 @@ import { LocalStorageStateCache, makeStrategy, parseAuthStrategyFile, resolveCre
 import { calibrate } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
+import { buildDiagnoseReport, type DiagnoseReport, formatReportText, probeLive } from "./diagnose.js";
 import { formatIssuesText, type LintIssue, lintFlow } from "./flow-lint.js";
 import { runFlow } from "./flow-runtime.js";
 import { buildFlowTree, formatTreeText } from "./flow-tree.js";
@@ -31,6 +32,7 @@ Usage:
   site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
   site-docs lint <workspace-dir> [--flow <name>] [--format text|json]
   site-docs flow-tree <workspace-dir> [--format text|json]
+  site-docs diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
   site-docs render <workspace-dir>
   site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   site-docs --help
@@ -89,7 +91,13 @@ Notes:
     Exit 1 if any warning/error; 0 otherwise. --format json emits machine-readable output for tooling.
   • flow-tree prints the workspace's extends graph (root flows + their descendants), plus any orphans
     (flows whose extends parent isn't in the workspace) and resolution issues (cycles / step-id collisions
-    across the merge). Pure-static, ~no I/O beyond reading the flow files. Exit 1 if any issues.`;
+    across the merge). Pure-static, ~no I/O beyond reading the flow files. Exit 1 if any issues.
+  • diagnose gathers halt context for a specific step (the step's selector/wait_for/success, the halt
+    screenshot if one exists, and — with --cdp — a live actionable() probe of the target on the running
+    page) and prints recommendations (selector / wait_for / success / annotation_target / split_step /
+    investigate). The engine never patches the flow-file itself — that's the agent's explicit opt-in
+    action. --format json emits machine-readable output for an agent to act on. Pair with
+    --start-from <step-id> --cdp on a follow-up run to validate the fix in seconds.`;
 
 function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
   const positionals: string[] = [];
@@ -734,6 +742,102 @@ async function cmdFlowTree(args: string[]): Promise<number> {
   return tree.issues.length > 0 || tree.orphans.length > 0 ? 1 : 0;
 }
 
+async function cmdDiagnose(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  if (!positionals[0]) {
+    process.stderr.write(`diagnose: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const flowName = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
+  const stepId = typeof flags.get("step") === "string" ? (flags.get("step") as string) : undefined;
+  const cdpEndpoint = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
+  const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
+
+  if (!flowName) {
+    process.stderr.write(`diagnose: --flow <name> required\n`);
+    return 2;
+  }
+  if (!stepId) {
+    process.stderr.write(`diagnose: --step <step-id> required\n`);
+    return 2;
+  }
+  if (format !== "text" && format !== "json") {
+    process.stderr.write(`diagnose: --format must be "text" or "json"\n`);
+    return 2;
+  }
+
+  // Load the flow (resolving `extends` so step lookup works against the merged step list).
+  const flowsDir = path.join(projectDir, "flows");
+  const loadFlowFile = async (name: string) => {
+    const fp = path.join(flowsDir, `${name}.flow.yaml`);
+    let text: string;
+    try {
+      text = await fs.readFile(fp, "utf8");
+    } catch {
+      throw new FlowFileError(`no flow named "${name}" at ${fp}`);
+    }
+    return parseFlowFile(text, fp);
+  };
+  let flow: FlowFile;
+  try {
+    const parsed = await loadFlowFile(flowName);
+    flow = parsed.extends ? await resolveFlowExtends(parsed, loadFlowFile) : parsed;
+  } catch (e) {
+    const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
+    process.stderr.write(`diagnose: ${msg}\n`);
+    return 1;
+  }
+
+  const step = flow.steps.find((s) => s.id === stepId);
+  if (!step) {
+    process.stderr.write(`diagnose: no step "${stepId}" in flow "${flowName}" (merged step list: ${flow.steps.map((s) => s.id).join(", ")})\n`);
+    return 1;
+  }
+
+  const resolvedSelector = step.target
+    ? step.target.startsWith("$")
+      ? flow.locators[step.target.slice(1)] ?? step.target
+      : step.target
+    : undefined;
+
+  const haltScreenshotAbsPath = path.join(projectDir, "docs", flowName, "halts", `${stepId}.png`);
+
+  // Optional live probe via --cdp.
+  let liveProbe: (() => ReturnType<typeof probeLive>) | undefined;
+  let liveSession: Awaited<ReturnType<typeof launchPlaywrightSession>> | undefined;
+  if (cdpEndpoint && resolvedSelector) {
+    liveProbe = async () => {
+      liveSession = await launchPlaywrightSession({ connectOverCdp: cdpEndpoint, docPackRoot: projectDir });
+      return probeLive(liveSession.driver, resolvedSelector, cdpEndpoint);
+    };
+  }
+
+  let report: DiagnoseReport;
+  try {
+    report = await buildDiagnoseReport({
+      workspace: projectDir,
+      flow,
+      step,
+      ...(resolvedSelector ? { resolvedSelector } : {}),
+      haltScreenshotAbsPath,
+      ...(liveProbe ? { liveProbe } : {}),
+    });
+  } catch (e) {
+    process.stderr.write(`diagnose: live probe failed: ${(e as Error).message}\n`);
+    return 1;
+  } finally {
+    if (liveSession) await liveSession.close();
+  }
+
+  if (format === "json") {
+    process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+  } else {
+    process.stdout.write(formatReportText(report));
+  }
+  return 0;
+}
+
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   switch (cmd) {
@@ -759,6 +863,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdLint(rest);
     case "flow-tree":
       return cmdFlowTree(rest);
+    case "diagnose":
+      return cmdDiagnose(rest);
     default:
       process.stderr.write(`unknown command: ${cmd}\n\n${USAGE}\n`);
       return 2;

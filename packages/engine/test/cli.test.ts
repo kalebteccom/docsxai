@@ -47,6 +47,31 @@ describe("site-docs CLI — main()", () => {
     expect(err).toMatch(/no flows directory/);
   });
 
+  it("diagnose without project dir exits 2", async () => {
+    expect(await main(["diagnose"])).toBe(2);
+    expect(err).toMatch(/missing <workspace-dir>/);
+  });
+
+  it("diagnose without --flow exits 2", async () => {
+    expect(await main(["diagnose", "/some/ws"])).toBe(2);
+    expect(err).toMatch(/--flow <name> required/);
+  });
+
+  it("diagnose without --step exits 2", async () => {
+    expect(await main(["diagnose", "/some/ws", "--flow", "f"])).toBe(2);
+    expect(err).toMatch(/--step <step-id> required/);
+  });
+
+  it("diagnose with invalid --format exits 2", async () => {
+    expect(await main(["diagnose", "/some/ws", "--flow", "f", "--step", "s", "--format", "xml"])).toBe(2);
+    expect(err).toMatch(/--format must be/);
+  });
+
+  it("diagnose with missing flow file exits 1", async () => {
+    expect(await main(["diagnose", "/definitely/not/real", "--flow", "noflow", "--step", "s"])).toBe(1);
+    expect(err).toMatch(/no flow named "noflow"/);
+  });
+
   it("run --start-from without --flow exits 2 (start-from is a single-flow calibration aid)", async () => {
     expect(await main(["run", "/some/ws", "--start-from", "edit-timing"])).toBe(2);
     expect(err).toMatch(/--start-from requires --flow/);
