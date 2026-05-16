@@ -98,7 +98,7 @@ const STYLE = `
   @keyframes sd-pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(232,89,12,.35); } 50% { box-shadow: 0 0 0 8px rgba(232,89,12,.08); } }
   .sd-badge { position: absolute; min-width: 22px; height: 22px; padding: 0 6px; line-height: 22px; text-align: center; font-weight: 700; font-size: 12px; color: #fff; background: #e8590c; border: 2px solid #fff; border-radius: 11px; box-sizing: content-box; box-shadow: 0 2px 6px rgba(0,0,0,.32); pointer-events: auto; cursor: help; }
   .sd-callout, .sd-arrow { position: absolute; display: none; z-index: 3; pointer-events: none; }
-  .sd-callout { background: #1c1c1c; color: #fff; padding: 8px 11px; border-radius: 7px; font-size: .85rem; line-height: 1.35; box-shadow: 0 4px 14px rgba(0,0,0,.32); }
+  .sd-callout { background: #1c1c1c; color: #fff; padding: 8px 11px; border-radius: 7px; font-size: .85rem; line-height: 1.35; box-shadow: 0 4px 14px rgba(0,0,0,.32); overflow-wrap: anywhere; }
   .sd-arrow { width: 0; height: 0; }
   .sd-arrow.top { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid #1c1c1c; }       /* callout above → arrow points down */
   .sd-arrow.bottom { border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 8px solid #1c1c1c; } /* callout below → arrow points up */
@@ -182,13 +182,17 @@ const OVERLAY_JS = `
       var co = document.createElement("div");
       co.className = "sd-callout";
       co.textContent = (typeof ann.index === "number" ? ann.index + ". " : "") + ann.copy;
-      // width:max-content + max-width:280px = shrink-to-content-width, capped at 280px.
-      // Without a width declaration, an absolutely-positioned block shrinks to its longest
-      // unbreakable word (browsers' shrink-to-fit) — text wraps after every space and the
-      // callout becomes a tall single-character column. max-content fixes that.
-      co.style.cssText = "width:max-content;max-width:280px;visibility:hidden;display:block";
       wrap.appendChild(co);
-      var c = { w: Math.min(co.offsetWidth, 280), h: co.offsetHeight };
+      // Two-pass sizing — robust across browsers. CSS intrinsic-width keywords are unreliable
+      // here: the callout is position:absolute inside a zero-width .sd-ann containing block, and
+      // WebKit/Safari collapses an intrinsic width to min-content (the longest single word) in
+      // that case — the callout becomes a one-word-per-line column. Instead: pass 1 measures the
+      // natural single-line width with white-space:nowrap (immune to the containing-block quirk);
+      // pass 2 locks an explicit pixel width clamped to 280 and lets the text wrap inside it.
+      co.style.cssText = "box-sizing:border-box;white-space:nowrap;visibility:hidden;display:block";
+      var cw = Math.min(co.offsetWidth, 280);
+      co.style.cssText = "box-sizing:border-box;white-space:normal;width:" + cw + "px;visibility:hidden;display:block";
+      var c = { w: cw, h: co.offsetHeight };
       var pref = String(ann.arrow_style || "top").split("-")[0];
       if (["top", "bottom", "left", "right"].indexOf(pref) < 0) pref = "top";
       var p = place(im, t, c, pref);
@@ -196,7 +200,7 @@ const OVERLAY_JS = `
       // Lets the author shift a callout aside when two annotations would otherwise overlap.
       var nx = (ann.nudge && typeof ann.nudge.x === "number") ? ann.nudge.x : 0;
       var ny = (ann.nudge && typeof ann.nudge.y === "number") ? ann.nudge.y : 0;
-      co.style.cssText = "left:" + (p.x + nx) + "px;top:" + (p.y + ny) + "px;width:max-content;max-width:" + c.w + "px";
+      co.style.cssText = "left:" + (p.x + nx) + "px;top:" + (p.y + ny) + "px;box-sizing:border-box;white-space:normal;width:" + cw + "px";
       var ar = document.createElement("div");
       ar.className = "sd-arrow " + p.side;
       var L, T;

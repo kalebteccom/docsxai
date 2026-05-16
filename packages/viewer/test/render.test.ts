@@ -88,14 +88,20 @@ describe("buildViewer", () => {
     expect((flowHtml.match(/data-anns=/g) || []).length).toBe(1);
   });
 
-  it("the inline OVERLAY_JS uses width:max-content + max-width to avoid single-word-per-line callouts", async () => {
+  it("the inline OVERLAY_JS sizes callouts via a nowrap-measure + explicit-px-width two-pass (no intrinsic-width quirk)", async () => {
     const outDir = path.join(tmp, "out-callout-width");
     await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
     const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
-    // Both phases (measurement + final placement) must set width:max-content so the callout's
-    // text wraps within max-width instead of shrinking to the longest-word width.
-    expect(flowHtml).toMatch(/width:max-content;max-width:280px/);
-    expect((flowHtml.match(/width:max-content/g) || []).length).toBeGreaterThanOrEqual(2);
+    // Pass 1 measures the natural single-line width (white-space:nowrap defeats the
+    // zero-width-containing-block min-content collapse Safari does with width:max-content).
+    expect(flowHtml).toContain("white-space:nowrap");
+    // Pass 2 + final placement lock an explicit pixel width and re-enable wrapping.
+    expect(flowHtml).toMatch(/white-space:normal;width:" \+ cw \+ "px/);
+    expect(flowHtml).toContain("Math.min(co.offsetWidth, 280)");
+    // The brittle intrinsic-width approach must be gone.
+    expect(flowHtml).not.toContain("width:max-content");
+    // Long unbreakable tokens still wrap inside the locked width.
+    expect(flowHtml).toContain("overflow-wrap: anywhere");
   });
 
   it("propagates an annotation's `nudge` offset into the embedded data + viewer JS applies it to callout/arrow only", async () => {
