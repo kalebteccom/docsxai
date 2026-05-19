@@ -1,6 +1,6 @@
 {
   "name": "@kalebtec/site-docs-engine",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "LLM-agnostic engine: calibration pipeline stages (discovery, mapping+testing, commit) + flow-file parser/runtime + the target-site auth-strategy layer.",

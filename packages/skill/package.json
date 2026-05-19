@@ -1,6 +1,6 @@
 {
   "name": "@kalebtec/site-docs-skill",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Optional colocated .claude/skills/ fallback that delegates to the installed plugin. Secondary path for teams that want to vendor / version-pin.",

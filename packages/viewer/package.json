@@ -1,6 +1,6 @@
 {
   "name": "@kalebtec/site-docs-viewer",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Vitest-based interactive docs-app generator: overlays arrows + popups from annotations.json over clean screenshots at render time.",

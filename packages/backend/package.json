@@ -1,6 +1,6 @@
 {
   "name": "@kalebtec/site-docs-backend",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Authenticated service that persists doc packs (projects, revisions, flow-files, screenshots, annotations, style artifacts, run history). REST + per-resource endpoints; OAuth 2.1 auth.",

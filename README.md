@@ -6,7 +6,7 @@ The keystone bet: write a flow once (by hand, or via an agent-driven calibration
 
 ## Status
 
-Phase 0 (prototype & validation) closed **2026-05-15** with the architectural bet proven on a real authed heavy-SPA target (agent-authored flow → headless replay → byte-identical doc pack on a second run). Phase 1 (MVP) is in progress.
+Phase 0 (prototype & validation) closed **2026-05-15** — architectural bet proven on a real authed heavy-SPA target. Phase 1 (MVP) closed **2026-05-19** — engine-complete: deterministic agent-free replay, the full calibration-aid surface (lint / diagnose / flow-tree / `optional:true` / zip / style), browxai integration, ~193 tests. The public OSS release is **prepared but deferred to ≥ Phase 3 by owner decision** — this repo stays private/unpublished until the project is further along; see [`RELEASE.md`](RELEASE.md). Phase 2 (GitHub App, engine-side Confluence push, standalone MCP server) is the next planning cycle.
 
 ## Two-mode architecture
 
@@ -98,6 +98,8 @@ site-docs zip <workspace>            # package the doc pack for hand-off
 - [**docs/actionability-contract.md**](docs/actionability-contract.md) — the portable `actionable()` predicate contract, for browser-bridge consumers
 - [**docs/browxai-asks.md**](docs/browxai-asks.md) — integration contract with the discovery driver
 - [`PHASE-0.md`](PHASE-0.md) — Phase-0 closure summary
+- [`PHASE-1.md`](PHASE-1.md) — Phase-1 closure summary + agent-integration-contract postmortem
+- [`CHANGELOG.md`](CHANGELOG.md) — `0.1.0` (unreleased) contents · [`RELEASE.md`](RELEASE.md) — gated go-public checklist
 
 The **canonical spec & roadmap** live in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio repo, under `projects/automated-site-documentation-bot/`:
 
