@@ -104,6 +104,14 @@ export const Step = z
   .object({
     id: z.string().min(1),
     action: ActionType,
+    /**
+     * Best-effort step: if the action / `wait_for` / `success` check throws (target absent, wait timed
+     * out, etc.), **skip this step and continue** instead of halting the flow. For conditionally-present
+     * UI — a confirmation modal that sometimes appears, a first-run tooltip, a cookie banner. A skipped
+     * optional step emits no screenshot / annotation (same as a step skipped by `--start-from`). Prefer
+     * this over a permissive comma-selector that no-ops on one branch.
+     */
+    optional: z.boolean().optional(),
     /** Locator ref (`$name`) or inline selector. Optional for actions like `navigate` (uses `value`) or `wait`. */
     target: LocatorRef.optional(),
     /** Action payload: text for `fill`, key for `press`, path/URL for `navigate`, option for `select`. */

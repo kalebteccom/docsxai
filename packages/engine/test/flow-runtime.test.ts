@@ -205,6 +205,56 @@ describe("runFlow", () => {
     expect(d.calls).not.toContain("fill #title=My recap");
   });
 
+  it("an `optional: true` step that fails is SKIPPED, not halted — the flow continues", async () => {
+    // The optional step targets an element that never becomes visible; its success check would
+    // throw. With optional:true the flow keeps going to the next step instead of halting.
+    const d = new FakeDriver();
+    d.visible.add("#after"); // the LATER step's success target is present; the optional one's isn't
+    const flow = parseFlowFile(`
+name: f
+locators: { maybe_modal_ok: '#modal-ok', after: '#after' }
+steps:
+  - id: dismiss-optional-modal
+    action: click
+    target: $maybe_modal_ok
+    success: { visible: $maybe_modal_ok }
+    optional: true
+  - id: continue
+    action: click
+    target: $after
+    success: { visible: $after }
+`);
+    const r = await runFlow(flow, d, { captureDocs: false });
+    expect(r.steps.map((s) => s.id)).toEqual(["continue"]); // the optional step was skipped, not in executed
+    expect(d.calls).toContain("click #after");
+  });
+
+  it("an `optional: true` step that SUCCEEDS behaves like a normal step (executed + annotation)", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#modal-ok");
+    d.boxes.set("#modal-ok", { x: 1, y: 2, width: 3, height: 4 });
+    const flow = parseFlowFile(`
+name: f
+locators: { modal_ok: '#modal-ok' }
+steps:
+  - id: dismiss-optional-modal
+    action: click
+    target: $modal_ok
+    success: { visible: $modal_ok }
+    optional: true
+    annotation: { copy: "Dismiss the confirmation if it appears", target: $modal_ok }
+`);
+    const r = await runFlow(flow, d);
+    expect(r.steps.map((s) => s.id)).toEqual(["dismiss-optional-modal"]);
+    expect(r.annotations.annotations).toHaveLength(1);
+    expect(r.annotations.annotations[0]!.copy).toBe("Dismiss the confirmation if it appears");
+  });
+
+  it("a non-optional step that fails still halts (optional doesn't change default behaviour)", async () => {
+    const d = new FakeDriver(); // #recap never visible → checkSuccess throws
+    await expect(runFlow(parseFlowFile(FLOW), d)).rejects.toMatchObject({ name: "FlowExecutionError", stepId: "open-sidebar" });
+  });
+
   it("passes a per-step timeout_ms to waitForSelector (the 'wait for a slow backend op' primitive)", async () => {
     const d = new FakeDriver();
     d.visible.add("#done");

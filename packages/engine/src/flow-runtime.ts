@@ -294,6 +294,12 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
       }
       if (step.success) await checkSuccess(driver, step.success, resolve, step.id);
     } catch (e) {
+      // Optional step (conditionally-present UI): swallow the failure, log it, move on.
+      // No screenshot / annotation for a skipped step — same as a `--start-from`-skipped one.
+      if (step.optional) {
+        process.stderr.write(`runFlow: optional step "${step.id}" (${step.action}) skipped — ${(e as Error).message}\n`);
+        continue;
+      }
       // Halt: dump a screenshot for triage (best-effort), prepend a 1-line inferred cause
       // (parsed from Playwright's actionability log so the agent doesn't have to scan ~20 lines
       //  to know why), then surface step id + url + halt-shot path uniformly.
