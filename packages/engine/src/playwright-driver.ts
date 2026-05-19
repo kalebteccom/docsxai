@@ -169,7 +169,7 @@ export class PlaywrightDriver implements BrowserDriver {
     }
     return loc
       .evaluate((el: unknown) => {
-        const e = el as { getBoundingClientRect: () => { left: number; top: number; right: number; bottom: number }; parentElement: unknown; ownerDocument: { defaultView: { innerWidth: number; innerHeight: number; getComputedStyle: (n: unknown) => { overflow: string; overflowX: string; overflowY: string } } } };
+        const e = el as { getBoundingClientRect: () => { left: number; top: number; right: number; bottom: number }; parentElement: unknown; ownerDocument: { defaultView: { innerWidth: number; innerHeight: number; devicePixelRatio: number; getComputedStyle: (n: unknown) => { overflow: string; overflowX: string; overflowY: string } } } };
         const view = e.ownerDocument.defaultView;
         const r = e.getBoundingClientRect();
         let x = r.left,
@@ -193,14 +193,24 @@ export class PlaywrightDriver implements BrowserDriver {
         if (right > view.innerWidth) right = view.innerWidth;
         if (bottom > view.innerHeight) bottom = view.innerHeight;
         if (right <= x || bottom <= y) return null;
-        return { x, y, width: right - x, height: bottom - y };
+        // `getBoundingClientRect` + innerWidth/Height are CSS pixels; `page.screenshot()` produces a
+        // *device-pixel* image (CSS × devicePixelRatio — e.g. ~2× on a Retina/zoomed Chrome attached
+        // over CDP). The viewer scales the bbox by clientWidth/naturalWidth where naturalWidth is the
+        // PNG's device-pixel width, so the stored bbox must be in that same device-pixel space or the
+        // halo lands at CSS-coords-÷-dpr (badly mispositioned, and a wrong target rect throws the
+        // callout into a clamped sliver). Scale here. dpr === 1 (headless default) → no-op.
+        const dpr = view.devicePixelRatio || 1;
+        return { x: x * dpr, y: y * dpr, width: (right - x) * dpr, height: (bottom - y) * dpr };
       })
       .catch(() => null);
   }
   async screenshot(relPath: string): Promise<void> {
     const abs = path.resolve(this.docPackRoot, relPath);
     await fs.mkdir(path.dirname(abs), { recursive: true });
-    await this.page.screenshot({ path: abs });
+    // `animations: "disabled"` fast-forwards finite CSS animations/transitions to their end state
+    // and cancels infinite ones, so an element transitioning in (opacity/transform) is captured
+    // fully settled instead of mid-fade. `caret: "hide"` keeps a blinking text caret out of shots.
+    await this.page.screenshot({ path: abs, animations: "disabled", caret: "hide" });
   }
 
   async actionable(selector: string, timeoutMs = 300): Promise<ActionableState> {
