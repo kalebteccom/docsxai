@@ -28,6 +28,7 @@ export interface BrowserDriver {
   goto(url: string): Promise<void>;
   click(selector: string): Promise<void>;
   fill(selector: string, value: string): Promise<void>;
+  upload(selector: string, filePath: string): Promise<void>;
   press(selector: string | null, key: string): Promise<void>;
   hover(selector: string): Promise<void>;
   selectOption(selector: string, value: string): Promise<void>;
@@ -238,6 +239,9 @@ async function executeAction(driver: BrowserDriver, step: Step, selector: string
     case "fill":
       if (step.value === undefined) throw new FlowExecutionError("fill requires `value`", step.id);
       return driver.fill(needSelector(selector, step), step.value);
+    case "upload":
+      if (step.value === undefined) throw new FlowExecutionError("upload requires `value` (file path)", step.id);
+      return driver.upload(needSelector(selector, step), step.value);
     case "press":
       if (!step.value) throw new FlowExecutionError("press requires `value` (key)", step.id);
       return driver.press(selector, step.value);

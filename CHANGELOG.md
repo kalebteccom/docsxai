@@ -10,7 +10,7 @@ The Phase-1 MVP: an LLM-agnostic engine + Claude Code plugin that walks a web ap
 
 ### Engine (`@kalebtec/site-docs-engine`)
 
-- **Flow-file format** — declarative YAML (`prerequisites` / `locators` / `steps[]`), `extends:` composition, schema-validated, hand-editable.
+- **Flow-file format** — declarative YAML (`prerequisites` / `locators` / `steps[]`), `extends:` composition, schema-validated, hand-editable. Actions: `navigate` / `click` / `fill` / `upload` (file-input via Playwright `setInputFiles`) / `press` / `hover` / `select` / `check` / `uncheck` / `wait`.
 - **Deterministic runtime** — `site-docs run` replays a doc pack headless with zero agent/LLM involvement; byte-identical re-runs (keystone test).
 - **`optional: true` steps** — best-effort steps for conditionally-present UI (confirmation modals, first-run tooltips, cookie banners); skipped (logged, no screenshot/annotation) instead of halting.
 - **Calibration aids** — `site-docs lint` (static flow-file checks), `flow-tree` (extends-graph + collision check), `diagnose` (halt context + typed recommendations), `inspect` (live-page locator discovery).

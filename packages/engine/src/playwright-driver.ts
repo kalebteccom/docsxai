@@ -100,6 +100,9 @@ export class PlaywrightDriver implements BrowserDriver {
   fill(selector: string, value: string): Promise<void> {
     return this.page.fill(selector, value);
   }
+  upload(selector: string, filePath: string): Promise<void> {
+    return this.page.setInputFiles(selector, path.resolve(this.docPackRoot, filePath));
+  }
   press(selector: string | null, key: string): Promise<void> {
     return selector ? this.page.press(selector, key) : this.page.keyboard.press(key);
   }

@@ -42,6 +42,7 @@ export const ActionType = z.enum([
   "navigate",
   "click",
   "fill",
+  "upload",
   "press",
   "hover",
   "select",
@@ -114,7 +115,7 @@ export const Step = z
     optional: z.boolean().optional(),
     /** Locator ref (`$name`) or inline selector. Optional for actions like `navigate` (uses `value`) or `wait`. */
     target: LocatorRef.optional(),
-    /** Action payload: text for `fill`, key for `press`, path/URL for `navigate`, option for `select`. */
+    /** Action payload: text for `fill`, file path for `upload`, key for `press`, path/URL for `navigate`, option for `select`. */
     value: z.string().optional(),
     wait_for: WaitSpec.optional(),
     success: SuccessSpec.optional(),

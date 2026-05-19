@@ -23,6 +23,9 @@ class FakeDriver implements BrowserDriver {
   async fill(s: string, v: string) {
     this.rec(`fill ${s}=${v}`);
   }
+  async upload(s: string, v: string) {
+    this.rec(`upload ${s}=${v}`);
+  }
   async press(s: string | null, k: string) {
     this.rec(`press ${s ?? "<page>"} ${k}`);
   }
@@ -229,6 +232,35 @@ steps:
     expect(d.calls).toContain("click #after");
   });
 
+  it("an `upload` step calls driver.upload(selector, filePath) and requires `value`", async () => {
+    const d = new FakeDriver();
+    const flow = parseFlowFile(`
+name: f
+locators: { picker: '#file-input' }
+steps:
+  - id: choose-file
+    action: upload
+    target: $picker
+    value: fixtures/sample.pdf
+`);
+    const r = await runFlow(flow, d, { captureDocs: false });
+    expect(r.steps.map((s) => s.id)).toEqual(["choose-file"]);
+    expect(d.calls).toContain("upload #file-input=fixtures/sample.pdf");
+  });
+
+  it("an `upload` step with no `value` halts (file path is required)", async () => {
+    const d = new FakeDriver();
+    const flow = parseFlowFile(`
+name: f
+locators: { picker: '#file-input' }
+steps:
+  - id: choose-file
+    action: upload
+    target: $picker
+`);
+    await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(/upload requires `value` \(file path\)/);
+  });
+
   it("an `optional: true` step that SUCCEEDS behaves like a normal step (executed + annotation)", async () => {
     const d = new FakeDriver();
     d.visible.add("#modal-ok");
@@ -270,6 +302,21 @@ steps:
 `);
     await runFlow(flow, d, { captureDocs: false });
     expect(d.calls).toContain("waitSelector #done (180000ms)");
+  });
+
+  it("uploads a file into a file input", async () => {
+    const d = new FakeDriver();
+    const flow = parseFlowFile(`
+name: upload-example
+locators: { csv_input: 'input[type="file"]' }
+steps:
+  - id: upload-csv
+    action: upload
+    target: $csv_input
+    value: docs/fixtures/scripts.csv
+`);
+    await runFlow(flow, d, { captureDocs: false });
+    expect(d.calls).toContain("upload input[type=\"file\"]=docs/fixtures/scripts.csv");
   });
 
   it("dumps a halt screenshot (docs/<flow>/halts/<step>.png) when a step halts, and the error message points at it", async () => {
