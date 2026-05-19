@@ -88,20 +88,25 @@ describe("buildViewer", () => {
     expect((flowHtml.match(/data-anns=/g) || []).length).toBe(1);
   });
 
-  it("the inline OVERLAY_JS sizes callouts via a nowrap-measure + explicit-px-width two-pass (no intrinsic-width quirk)", async () => {
+  it("the inline OVERLAY_JS sizes callouts via a body-attached probe two-pass (callout is detached + display:none at build time)", async () => {
     const outDir = path.join(tmp, "out-callout-width");
     await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
     const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
-    // Pass 1 measures the natural single-line width (white-space:nowrap defeats the
-    // zero-width-containing-block min-content collapse Safari does with width:max-content).
+    // The measure MUST run on a probe attached to document.body — the callout itself is
+    // inside a not-yet-attached wrap AND display:none until :hover, so measuring it in
+    // place yields offsetWidth 0 → width:0px → one-character-per-line column.
+    expect(flowHtml).toContain("document.body.appendChild(probe)");
+    expect(flowHtml).toContain("document.body.removeChild(probe)");
+    expect(flowHtml).toContain('probe.className = "sd-callout"');
+    // Pass 1: natural single-line width (nowrap + wrap props neutralised), clamped to 280.
     expect(flowHtml).toContain("white-space:nowrap");
+    expect(flowHtml).toContain("Math.min(probe.offsetWidth, 280)");
     // Pass 2 + final placement lock an explicit pixel width and re-enable wrapping.
     expect(flowHtml).toMatch(/white-space:normal;width:" \+ cw \+ "px/);
-    expect(flowHtml).toContain("Math.min(co.offsetWidth, 280)");
-    // The brittle intrinsic-width approach must be gone.
+    // The callout must never be measured in place (the regression that baked width:0px).
+    expect(flowHtml).not.toContain("Math.min(co.offsetWidth, 280)");
+    // The brittle intrinsic-width approach must stay gone.
     expect(flowHtml).not.toContain("width:max-content");
-    // Long unbreakable tokens still wrap inside the locked width.
-    expect(flowHtml).toContain("overflow-wrap: anywhere");
   });
 
   it("propagates an annotation's `nudge` offset into the embedded data + viewer JS applies it to callout/arrow only", async () => {

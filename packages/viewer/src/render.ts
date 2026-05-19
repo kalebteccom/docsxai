@@ -183,16 +183,27 @@ const OVERLAY_JS = `
       co.className = "sd-callout";
       co.textContent = (typeof ann.index === "number" ? ann.index + ". " : "") + ann.copy;
       wrap.appendChild(co);
-      // Two-pass sizing — robust across browsers. CSS intrinsic-width keywords are unreliable
-      // here: the callout is position:absolute inside a zero-width .sd-ann containing block, and
-      // WebKit/Safari collapses an intrinsic width to min-content (the longest single word) in
-      // that case — the callout becomes a one-word-per-line column. Instead: pass 1 measures the
-      // natural single-line width with white-space:nowrap (immune to the containing-block quirk);
-      // pass 2 locks an explicit pixel width clamped to 280 and lets the text wrap inside it.
-      co.style.cssText = "box-sizing:border-box;white-space:nowrap;visibility:hidden;display:block";
-      var cw = Math.min(co.offsetWidth, 280);
-      co.style.cssText = "box-sizing:border-box;white-space:normal;width:" + cw + "px;visibility:hidden;display:block";
-      var c = { w: cw, h: co.offsetHeight };
+      // Two-pass sizing on a body-attached probe. co cannot be measured in place: at this
+      // point wrap is still detached (it is appended to shot only at the end of renderOne),
+      // and the .sd-callout class is display:none until :hover — either alone makes
+      // co.offsetWidth/Height resolve to 0, which would bake width:0px and collapse the callout
+      // into a one-character-per-line column. The probe carries the same .sd-callout class (so
+      // padding/font/border match), lives in the live render tree for two synchronous reads,
+      // and is removed immediately. Pass 1: natural single-line width (white-space:nowrap, wrap
+      // props neutralised) clamped to 280. Pass 2: height at that locked width.
+      var probe = document.createElement("div");
+      probe.className = "sd-callout";
+      probe.textContent = co.textContent;
+      probe.style.cssText =
+        "position:fixed;left:-99999px;top:0;display:block;visibility:hidden;" +
+        "white-space:nowrap;overflow-wrap:normal;word-break:normal;width:auto;max-width:none";
+      document.body.appendChild(probe);
+      var cw = Math.min(probe.offsetWidth, 280);
+      probe.style.cssText =
+        "position:fixed;left:-99999px;top:0;display:block;visibility:hidden;" +
+        "white-space:normal;width:" + cw + "px";
+      var c = { w: cw, h: probe.offsetHeight };
+      document.body.removeChild(probe);
       var pref = String(ann.arrow_style || "top").split("-")[0];
       if (["top", "bottom", "left", "right"].indexOf(pref) < 0) pref = "top";
       var p = place(im, t, c, pref);

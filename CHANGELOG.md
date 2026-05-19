@@ -30,7 +30,7 @@ The Phase-1 MVP: an LLM-agnostic engine + Claude Code plugin that walks a web ap
 ### Viewer (`@kalebtec/site-docs-viewer`)
 
 - Static HTML viewer: pulsing halo + numbered badges + Popper-placed callouts over clean screenshots; per-annotation `nudge`.
-- Robust two-pass callout sizing (immune to the WebKit zero-width-containing-block min-content collapse); no-cache metas + visible render timestamp.
+- Robust two-pass callout sizing measured on a `document.body`-attached probe (the callout is detached + `display:none` until `:hover` at build time, so an in-place measure bakes `width:0px` and collapses it to a one-character column); no-cache metas + visible render timestamp.
 
 ### Backend (`@kalebtec/site-docs-backend`)
 
