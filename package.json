@@ -1,6 +1,22 @@
 {
-  "name": "site-docs-monorepo",
-  "private": true,
+  "name": "docsxai",
+  "version": "0.0.1-stub.0",
+  "description": "Reserved by Kalebtec. Pre-release stub — automated site-documentation bot, agent-discoverable doc generation. The real package ships at v1.0.",
+  "license": "Apache-2.0",
+  "author": "Kalebtec <security@kalebtec.com>",
+  "homepage": "https://github.com/kalebteccom/automated-site-documentation-bot",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalebteccom/automated-site-documentation-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kalebteccom/automated-site-documentation-bot/issues"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "README.md"
+  ],
   "type": "module",
   "engines": { "node": ">=20" },
   "packageManager": "pnpm@9.0.0",

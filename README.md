@@ -2,6 +2,8 @@
 
 > **OSS engine + Claude Code plugin that walks a web application, follows written flows, and emits screenshot-rich user documentation.** LLM-agnostic engine — the host agent supplies inference, the engine never calls a model API.
 
+> **Naming.** Codename `automated-site-documentation-bot` (GitHub repo + `site-docs` CLI). Product name `docsxai` (npm package). The current `docsxai` on npm is a pre-release stub that throws on import — see [`RELEASING.md`](RELEASING.md). The real package ships at `v1.0`.
+
 The keystone bet: write a flow once (by hand, or via an agent-driven calibration cycle); replay it any time after that with **zero agent involvement and zero LLM calls** to produce fresh, deterministic docs. Calibration is rare and human-supervised; execution is cheap and CI-friendly.
 
 ## Status
