@@ -19,7 +19,6 @@
   ],
   "type": "module",
   "engines": { "node": ">=20" },
-  "packageManager": "pnpm@9.0.0",
   "scripts": {
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
