@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// @kalebtec/site-docs-viewer — interactive docs-app generator.
+// @kalebtec/docsxai-viewer — interactive docs-app generator.
 //
-// Library entry (re-exports `buildViewer`) and bin entry `site-docs-viewer`:
-//   site-docs-viewer build <docs-dir> <out-dir> [--flow <name> ...]
+// Library entry (re-exports `buildViewer`) and bin entry `docsxai-viewer`:
+//   docsxai-viewer build <docs-dir> <out-dir> [--flow <name> ...]
 // The plugin's `render` command (and `site-docs render`) shell out to this.
 
 import { pathToFileURL } from "node:url";
@@ -12,10 +12,10 @@ export { placeCallout, type Side, type Rect, type PlaceInput, type Placement } f
 
 import { buildViewer } from "./render.js";
 
-const USAGE = `site-docs-viewer — static viewer generator
+const USAGE = `docsxai-viewer — static viewer generator
 
 Usage:
-  site-docs-viewer build <docs-dir> <out-dir> [--flow <name>]...
+  docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...
 
   <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md)
   <out-dir>   where the generated viewer is written

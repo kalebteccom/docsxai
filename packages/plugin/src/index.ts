@@ -1,4 +1,4 @@
-// @kalebtec/site-docs-plugin — the Claude Code plugin (first-class invocation surface).
+// @kalebtec/docsxai-plugin — the Claude Code plugin (first-class invocation surface).
 //
 // The plugin itself is the markdown/JSON tree alongside this file:
 //   .claude-plugin/plugin.json   — manifest

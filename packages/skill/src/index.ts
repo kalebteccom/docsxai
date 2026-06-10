@@ -1,7 +1,7 @@
-// @kalebtec/site-docs-skill — the vendorable colocated `.claude/skills/site-docs/` fallback.
+// @kalebtec/docsxai-skill — the vendorable colocated `.claude/skills/site-docs/` fallback.
 //
 // Secondary path: teams that want to pin site-docs behavior into a project copy this bundle into their
-// repo. It carries no logic — it delegates to the @kalebtec/site-docs plugin's commands/skills and the
+// repo. It carries no logic — it delegates to the @kalebtec/docsxai-plugin's commands/skills and the
 // `site-docs` CLI. `vendorSkill()` does the copy.
 
 import { promises as fs } from "node:fs";

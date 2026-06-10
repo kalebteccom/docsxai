@@ -1,4 +1,4 @@
-# @kalebtec/site-docs-backend
+# @kalebtec/docsxai-backend
 
 Authenticated service that persists doc packs (projects, revisions, flow-files, screenshots, annotations, style artifacts, run history). REST + per-resource endpoints; bearer-token auth (OAuth 2.1 is the Phase-2 path).
 
@@ -9,7 +9,7 @@ Authenticated service that persists doc packs (projects, revisions, flow-files, 
 - **`ROUTES`** in `src/api.ts` — the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators|run-history}`. Versioned via the `Site-Docs-API-Version` header.
 - **Linear immutable revisions** — every `calibrate` / `run` / human edit creates a new revision with `rev_id` / `parent_rev_id` / `kind` / `author` / `timestamp`. No branches in MVP; concurrent-edit conflicts surface as failed pushes resolved via re-pull + re-edit.
 - **`createBackendStub`** — starts the in-memory server bound to a port; useful for plugin-side integration tests.
-- **`site-docs-backend`** bin — the same stub as a standalone process.
+- **`docsxai-backend`** bin — the same stub as a standalone process.
 
 Design: `projects/automated-site-documentation-bot/spec.md` in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio.
 

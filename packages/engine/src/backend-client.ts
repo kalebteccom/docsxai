@@ -1,4 +1,4 @@
-// HTTP client for `@kalebtec/site-docs-backend`. Used by `site-docs push` / `pull` / `login`.
+// HTTP client for `@kalebtec/docsxai-backend`. Used by `site-docs push` / `pull` / `login`.
 //
 // The contract types are *redeclared* here (not imported from the backend package) so the engine
 // stays decoupled at the package level — there's no runtime nor build-time dep on the backend.

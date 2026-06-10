@@ -17,7 +17,7 @@ describe("vendorSkill", () => {
     const text = await fs.readFile(path.join(vendoredSkillDir, "site-docs", "SKILL.md"), "utf8");
     expect(text).toMatch(/^---[\s\S]*?\nname:\s+site-docs/m);
     expect(text).toMatch(/^---[\s\S]*?\ndescription:\s+\S/m);
-    expect(text).toMatch(/@kalebtec\/site-docs plugin/);
+    expect(text).toMatch(/@kalebtec\/docsxai-plugin/);
   });
 
   it("copies the bundle into <projectDir>/.claude/skills/site-docs/", async () => {

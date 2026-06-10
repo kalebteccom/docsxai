@@ -1,6 +1,6 @@
 // Integration test: backend client ↔ real stub server (spun up in-process per test).
 
-import { createBackendStub } from "@kalebtec/site-docs-backend";
+import { createBackendStub } from "@kalebtec/docsxai-backend";
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";

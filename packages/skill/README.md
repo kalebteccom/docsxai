@@ -1,8 +1,8 @@
-# @kalebtec/site-docs-skill
+# @kalebtec/docsxai-skill
 
 Optional colocated `.claude/skills/` fallback that delegates to the installed plugin. Secondary path for teams that want to vendor / version-pin in the consumer repo rather than rely on a globally-installed plugin.
 
-The primary invocation path is [`@kalebtec/site-docs-plugin`](../plugin/) (`claude plugin install …`). Use this package only when global install isn't an option.
+The primary invocation path is [`@kalebtec/docsxai-plugin`](../plugin/) (`claude plugin install …`). Use this package only when global install isn't an option.
 
 ## Surface
 

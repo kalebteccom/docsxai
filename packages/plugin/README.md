@@ -1,9 +1,9 @@
-# @kalebtec/site-docs — Claude Code plugin
+# @kalebtec/docsxai-plugin — Claude Code plugin
 
 The first-class invocation surface for the site-docs engine. Install globally:
 
 ```
-claude plugin install https://github.com/kalebteccom/automated-site-documentation-bot   # (the plugin lives under packages/plugin)
+claude plugin install https://github.com/kalebteccom/docsxai   # (the plugin lives under packages/plugin)
 ```
 
 ## Commands (deterministic — thin wrappers over the `site-docs` CLI)

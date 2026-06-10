@@ -1,4 +1,4 @@
-# @kalebtec/site-docs-engine
+# @kalebtec/docsxai-engine
 
 LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, and the full `site-docs` CLI.
 
@@ -19,7 +19,7 @@ capture-auth   cache an authed session
 calibrate      extract a flow-file from a structured guide
 inspect        discover [data-testid] locators on the live page
 run            execute flows headless; emit annotations + screenshots
-render         build the static viewer (shells out to @kalebtec/site-docs-viewer)
+render         build the static viewer (shells out to @kalebtec/docsxai-viewer)
 lint           static checks across flow-files (R001-R004)
 flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt

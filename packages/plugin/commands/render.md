@@ -9,6 +9,6 @@ Build the static viewer:
 site-docs render $ARGUMENTS
 ```
 
-(Under the hood this runs `site-docs-viewer build <project-dir>/docs <project-dir>/.viewer`.) Report where
-the viewer was written and how many pages it generated. If `site-docs-viewer` isn't found, run it directly:
-`site-docs-viewer build <project-dir>/docs <project-dir>/.viewer`.
+(Under the hood this runs `docsxai-viewer build <project-dir>/docs <project-dir>/.viewer`.) Report where
+the viewer was written and how many pages it generated. If `docsxai-viewer` isn't found, run it directly:
+`docsxai-viewer build <project-dir>/docs <project-dir>/.viewer`.

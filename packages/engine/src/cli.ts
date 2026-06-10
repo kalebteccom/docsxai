@@ -351,13 +351,13 @@ async function cmdRender(args: string[]): Promise<number> {
   const outDir = path.join(projectDir, ".viewer");
   // The viewer is its own package/bin; shell out to it so the engine doesn't depend on it at build time.
   return new Promise<number>((resolve) => {
-    const child = spawn("site-docs-viewer", ["build", docsDir, outDir], { stdio: "inherit" });
+    const child = spawn("docsxai-viewer", ["build", docsDir, outDir], { stdio: "inherit" });
     child.on("error", (e: NodeJS.ErrnoException) => {
       if (e.code === "ENOENT") {
         process.stderr.write(
-          "render: `site-docs-viewer` not found on PATH.\n" +
-            `  Run it directly:  site-docs-viewer build ${docsDir} ${outDir}\n` +
-            "  (it's the @kalebtec/site-docs-viewer bin; in this workspace: pnpm exec site-docs-viewer …)\n",
+          "render: `docsxai-viewer` not found on PATH.\n" +
+            `  Run it directly:  docsxai-viewer build ${docsDir} ${outDir}\n` +
+            "  (it's the @kalebtec/docsxai-viewer bin; in this workspace: pnpm exec docsxai-viewer …)\n",
         );
       } else {
         process.stderr.write(`render: ${e.message}\n`);

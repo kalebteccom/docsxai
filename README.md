@@ -8,7 +8,7 @@ The keystone bet: write a flow once (by hand, or via an agent-driven calibration
 
 ## Status
 
-Phase 0 (prototype & validation) closed **2026-05-15** — architectural bet proven on a real authed heavy-SPA target. Phase 1 (MVP) closed **2026-05-19** — engine-complete: deterministic agent-free replay, the full calibration-aid surface (lint / diagnose / flow-tree / `optional:true` / zip / style), browxai integration, ~193 tests. The public OSS release is **prepared but deferred to ≥ Phase 3 by owner decision** — this repo stays private/unpublished until the project is further along; see [`RELEASE.md`](RELEASE.md). Phase 2 (GitHub App, engine-side Confluence push, standalone MCP server) is the next planning cycle.
+Phase 0 (prototype & validation) closed **2026-05-15** — architectural bet proven on a real authed heavy-SPA target. Phase 1 (MVP) closed **2026-05-19** — engine-complete: deterministic agent-free replay, the full calibration-aid surface (lint / diagnose / flow-tree / `optional:true` / zip / style), browxai integration, ~193 tests. The public OSS release is **prepared but deferred to ≥ Phase 3 by owner decision** — this repo stays private/unpublished until the project is further along; see [`RELEASING.md`](RELEASING.md). Phase 2 (GitHub App, engine-side Confluence push, standalone MCP server) is the next planning cycle.
 
 ## Two-mode architecture
 
@@ -69,11 +69,11 @@ Full agent-driven workflow + the calibration-loop affordances (`lint`, `flow-tre
 
 | package | role |
 |---|---|
-| [`@kalebtec/site-docs-engine`](packages/engine/) | LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, the full `site-docs` CLI. |
-| [`@kalebtec/site-docs-plugin`](packages/plugin/) | Claude Code plugin — calibrate + diagnose skills, run/render/login commands. The recommended invocation surface for agent-driven workflows. |
-| [`@kalebtec/site-docs-backend`](packages/backend/) | Authenticated stub service for doc-pack persistence (in-memory linear-immutable revisions today; hosted deployment is Phase 2). REST + per-resource endpoints. |
-| [`@kalebtec/site-docs-skill`](packages/skill/) | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo. |
-| [`@kalebtec/site-docs-viewer`](packages/viewer/) | Static-HTML viewer with halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time. |
+| [`@kalebtec/docsxai-engine`](packages/engine/) | LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, the full `site-docs` CLI. |
+| [`@kalebtec/docsxai-plugin`](packages/plugin/) | Claude Code plugin — calibrate + diagnose skills, run/render/login commands. The recommended invocation surface for agent-driven workflows. |
+| [`@kalebtec/docsxai-backend`](packages/backend/) | Authenticated stub service for doc-pack persistence (in-memory linear-immutable revisions today; hosted deployment is Phase 2). REST + per-resource endpoints. |
+| [`@kalebtec/docsxai-skill`](packages/skill/) | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo. |
+| [`@kalebtec/docsxai-viewer`](packages/viewer/) | Static-HTML viewer with halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time. |
 
 ## CLI reference (one line each)
 
@@ -101,7 +101,7 @@ site-docs zip <workspace>            # package the doc pack for hand-off
 - [**docs/browxai-asks.md**](docs/browxai-asks.md) — integration contract with the discovery driver
 - [`PHASE-0.md`](PHASE-0.md) — Phase-0 closure summary
 - [`PHASE-1.md`](PHASE-1.md) — Phase-1 closure summary + agent-integration-contract postmortem
-- [`CHANGELOG.md`](CHANGELOG.md) — `0.1.0` (unreleased) contents · [`RELEASE.md`](RELEASE.md) — gated go-public checklist
+- [`CHANGELOG.md`](CHANGELOG.md) — `0.1.0` (unreleased) contents · [`RELEASING.md`](RELEASING.md) — gated go-public checklist
 
 The **canonical spec & roadmap** live in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio repo, under `projects/automated-site-documentation-bot/`:
 

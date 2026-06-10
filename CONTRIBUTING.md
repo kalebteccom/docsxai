@@ -25,11 +25,11 @@ Node 20+. Package manager is pnpm 9.x.
 
 ```
 packages/
-  engine/    @kalebtec/site-docs-engine    — flow-file runtime, CLI, auth strategies
-  plugin/    @kalebtec/site-docs-plugin    — Claude Code plugin (the invocation surface)
-  backend/   @kalebtec/site-docs-backend   — auth'd persistence (stub today)
-  skill/     @kalebtec/site-docs-skill     — vendorable .claude/skills/ fallback
-  viewer/    @kalebtec/site-docs-viewer    — static-HTML viewer
+  engine/    @kalebtec/docsxai-engine    — flow-file runtime, CLI, auth strategies
+  plugin/    @kalebtec/docsxai-plugin    — Claude Code plugin (the invocation surface)
+  backend/   @kalebtec/docsxai-backend   — auth'd persistence (stub today)
+  skill/     @kalebtec/docsxai-skill     — vendorable .claude/skills/ fallback
+  viewer/    @kalebtec/docsxai-viewer    — static-HTML viewer
 docs/        runbooks + cross-repo contracts (browxai, actionability)
 examples/    public toy-site flows + fixtures used by the keystone test
 ```
