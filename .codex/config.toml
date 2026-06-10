@@ -1,0 +1,16 @@
+# Project-scoped Codex defaults for docsxai.
+# The canonical agent operating guide is the repo-root AGENTS.md file —
+# Codex picks it up automatically. This config exists to declare features
+# and document Codex-side glue. Do NOT duplicate rules here — change
+# AGENTS.md and every harness picks up the new rule on the next session.
+
+project_doc_max_bytes = 65536
+
+[features]
+hooks = true
+multi_agent = true
+shell_snapshot = true
+
+[agents]
+max_threads = 6
+max_depth = 1
