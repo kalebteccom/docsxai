@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "rootDir": ".",
+    "outDir": "./dist-eslint"
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts",
+    "scripts/**/*.mjs",
+    "scripts/**/*.ts",
+    "eslint.config.js"
+  ]
+}

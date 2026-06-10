@@ -28,5 +28,9 @@
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "vitest": "^2.0.0"
   }
 }

@@ -38,6 +38,8 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@kalebtec/docsxai-backend": "workspace:*"
+    "@kalebtec/docsxai-backend": "workspace:*",
+    "@types/node": "^20.14.0",
+    "vitest": "^2.0.0"
   }
 }

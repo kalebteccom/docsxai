@@ -1,0 +1,138 @@
+name: quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    # Phase D2a posture: tools land first, baseline captured, Phase D4
+    # drives lint to zero and removes this escape hatch.
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.0.0
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.0.2
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+
+  format-check:
+    runs-on: ubuntu-latest
+    # Phase D2a posture: tools land first, baseline captured, Phase D4
+    # runs `pnpm format` once and removes this escape hatch.
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.0.0
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.0.2
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.0.0
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.0.2
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit:prod
+      - run: pnpm licenses:check
+      # lockfile-lint v4/v5 cannot parse pnpm-lock.yaml (npm parser expects
+      # JSON, yarn parser expects yarn-syml dep map). Bespoke equivalent.
+      # See scripts/lockfile-lint.mjs and lirantal/lockfile-lint#203.
+      - run: node scripts/lockfile-lint.mjs
+
+  secret-scan:
+    # TruffleHog per universal-baseline rule 28: explicitly listed
+    # acceptable CLI-in-CI secret scanner. No license required (unlike
+    # gitleaks-action v2 which gates org repos on GITLEAKS_LICENSE).
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: trufflesecurity/trufflehog@d411fff7b8879a62509f3fa98c07f247ac089a51 # v3.95.5
+        with:
+          extra_args: --results=verified,unknown
+
+  zizmor:
+    runs-on: ubuntu-latest
+    # TODO(post-Phase-D4): zizmor's upstream `support/versions` infra bug
+    # (per browxai Phase 16 finding) and any pre-existing workflow audit
+    # findings here need a focused hardening pass before this job gates.
+    # Promote to error once both upstream + workflows are in shape.
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+      # Repo moved from woodruffw/* to zizmorcore/* in early 2026; the old
+      # location returns 404 ("Unable to resolve action"). Same v0.4.0 tag.
+      - uses: zizmorcore/zizmor-action@3aa7e2f1ad15075829ef5158ee06938ae12e1769 # v0.4.0
+        with:
+          persona: auditor
+
+  package-contents:
+    runs-on: ubuntu-latest
+    # Phase D2a posture: per-package tsconfigs emit sourceMap +
+    # declarationMap, which the audit gates on. Phase D4 closes this by
+    # adding a per-package tsconfig.build.json that disables both and
+    # excludes test files (browxai's pattern). Until then the audit
+    # surfaces real signal but does not block.
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.0.0
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.0.2
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: node scripts/audit-package-contents.mjs

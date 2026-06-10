@@ -1,0 +1,43 @@
+# Per ci-and-bot-threats.md §3.2 — every file that gates publish, CI
+# permissions, or release-pipeline trust requires @rowinkaleb review.
+#
+# A path-scoped branch ruleset on `main` enforces "require review from
+# CODEOWNERS" on these paths; defense in depth versus a PR that silently
+# adds an attacker username to a CODEOWNERS entry.
+
+# Default reviewer for anything not otherwise matched.
+* @rowinkaleb
+
+# CI / workflows / Actions surface — write-access to any of these can
+# pivot to OIDC publish abuse.
+/.github/                           @rowinkaleb
+/.github/CODEOWNERS                 @rowinkaleb
+/.github/workflows/release.yml      @rowinkaleb
+/.github/workflows/                 @rowinkaleb
+/.github/dependabot.yml             @rowinkaleb
+
+# Publish-side configuration — every line here is a Sigstore-trusted-publisher
+# binding dependency.
+/package.json                       @rowinkaleb
+/pnpm-lock.yaml                     @rowinkaleb
+/pnpm-workspace.yaml                @rowinkaleb
+/.npmrc                             @rowinkaleb
+/LICENSE                            @rowinkaleb
+/SECURITY.md                        @rowinkaleb
+/RELEASING.md                       @rowinkaleb
+
+# Build + tooling baseline.
+/tsconfig.base.json                 @rowinkaleb
+/tsconfig.eslint.json               @rowinkaleb
+/eslint.config.js                   @rowinkaleb
+/.prettierrc.json                   @rowinkaleb
+/.prettierignore                    @rowinkaleb
+/.editorconfig                      @rowinkaleb
+/.githooks/                         @rowinkaleb
+/scripts/                           @rowinkaleb
+
+# Agent-config surfaces.
+/.claude/                           @rowinkaleb
+/.codex/                            @rowinkaleb
+/.cursor/                           @rowinkaleb
+/.agents/                           @rowinkaleb
