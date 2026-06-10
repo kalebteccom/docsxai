@@ -1,8 +1,11 @@
 {
   "name": "@kalebtec/docsxai-backend",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "description": "Authenticated service that persists doc packs (projects, revisions, flow-files, screenshots, annotations, style artifacts, run history). REST + per-resource endpoints; OAuth 2.1 auth.",
   "license": "Apache-2.0",
   "repository": {

@@ -1,8 +1,11 @@
 {
   "name": "@kalebtec/docsxai-plugin",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "description": "Claude Code plugin — the first-class invocation surface. Calibration skills + deterministic commands + internal MCP registration.",
   "license": "Apache-2.0",
   "repository": {

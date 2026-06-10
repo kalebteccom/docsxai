@@ -1,21 +1,28 @@
 name: release
 
-# OIDC trusted publishing per universal-baseline §B.
+# OIDC trusted publishing per universal-baseline §B + npm-package-defense §3.
 #
 # Hard constraints (do NOT loosen without a decisions-log entry):
 #   - Tag-triggered only. Never `pull_request*`-reachable; OIDC + secrets
 #     must never be exposed to PR-derived code.
 #   - `permissions: {}` at workflow-level; per-job narrowing.
-#   - `id-token: write` lives in EXACTLY ONE job (`publish`).
-#   - `environment: release` gates the publish behind manual approval
-#     (configured in GitHub Environment settings post-public-flip).
+#   - `id-token: write` lives ONLY on publish jobs; build jobs are
+#     `contents: read` only.
+#   - `environment: release` gates publish jobs behind manual approval
+#     (configured in the GitHub Environment settings — see RELEASING.md).
 #   - No NPM_TOKEN. Trusted publishing on the npm side binds this exact
-#     repo + workflow filename + environment name (configured on npmjs.com
-#     under the `docsxai` package — see RELEASING.md).
+#     repo + workflow filename + environment name (configured per package
+#     on npmjs.com under each of the 6 names — see RELEASING.md).
 #
-# Stub-publish scope: this workflow exists to claim the `docsxai` npm name
-# with a throwing pre-release stub. The full v1.0 release pipeline (build,
-# reproducibility, SBOM, plugin packages) lands in a later phase.
+# Publish surface (6 packages on tag):
+#   - `docsxai`                       — pre-release throwing stub from
+#                                       packages/docsxai/ that defends
+#                                       the unscoped namespace
+#   - `@kalebtec/docsxai-backend`
+#   - `@kalebtec/docsxai-engine`
+#   - `@kalebtec/docsxai-plugin`
+#   - `@kalebtec/docsxai-skill`
+#   - `@kalebtec/docsxai-viewer`
 
 on:
   push:
@@ -25,7 +32,35 @@ on:
 permissions: {}
 
 jobs:
-  publish:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.0.0
+        with:
+          version: 9.15.9
+      # No `cache: pnpm` on setup-node — tag-triggered release jobs avoid
+      # the pnpm cache to stay immune to cache-poisoning (universal-
+      # baseline rule 26 / zizmor cache-poisoning).
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.0.2 # zizmor: ignore[cache-poisoning]
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm -r typecheck
+      - run: pnpm -r build
+      - run: pnpm -r test
+
+  publish-docsxai:
+    needs: [build]
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -35,14 +70,42 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           persist-credentials: false
-      # No `cache` opt-in on setup-node — tag-triggered publish job avoids
-      # any package-manager cache to stay immune to cache-poisoning attacks
-      # against the OIDC-publishing path (universal-baseline rule 26).
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.0.0
+        with:
+          version: 9.15.9
+      # No `cache` opt-in — see cache-poisoning note on build job above.
       - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.0.2 # zizmor: ignore[cache-poisoning]
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
       - name: Upgrade npm (need >= 11.5.1 for trusted publishing)
         run: npm install -g npm@latest
-      - name: Publish docsxai with provenance
-        run: npm publish --provenance --access public
+      - name: Publish docsxai stub with provenance
+        run: pnpm -F docsxai publish --provenance --access public --no-git-checks
+
+  publish-scoped:
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.0.0
+        with:
+          version: 9.15.9
+      # No `cache` opt-in — see cache-poisoning note on build job above.
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.0.2 # zizmor: ignore[cache-poisoning]
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Upgrade npm (need >= 11.5.1 for trusted publishing)
+        run: npm install -g npm@latest
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build scoped packages
+        run: pnpm -r build
+      - name: Publish @kalebtec/docsxai-* with provenance
+        run: pnpm -r --filter "@kalebtec/docsxai-*" publish --provenance --access public --no-git-checks

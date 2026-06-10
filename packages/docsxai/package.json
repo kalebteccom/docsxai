@@ -1,0 +1,25 @@
+{
+  "name": "docsxai",
+  "version": "0.0.1-stub.0",
+  "description": "Reserved by Kalebtec. Pre-release stub — automated site-documentation bot; agent-discoverable doc generation. The real package ships at v1.0.",
+  "license": "Apache-2.0",
+  "author": "Kalebtec <security@kalebtec.com>",
+  "homepage": "https://github.com/kalebteccom/docsxai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalebteccom/docsxai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kalebteccom/docsxai/issues"
+  },
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

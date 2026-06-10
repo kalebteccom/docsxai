@@ -1,8 +1,11 @@
 {
   "name": "@kalebtec/docsxai-viewer",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "description": "Vitest-based interactive docs-app generator: overlays arrows + popups from annotations.json over clean screenshots at render time.",
   "license": "Apache-2.0",
   "repository": {

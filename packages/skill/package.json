@@ -1,8 +1,11 @@
 {
   "name": "@kalebtec/docsxai-skill",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "description": "Optional colocated .claude/skills/ fallback that delegates to the installed plugin. Secondary path for teams that want to vendor / version-pin.",
   "license": "Apache-2.0",
   "repository": {
