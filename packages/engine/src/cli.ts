@@ -9,17 +9,35 @@ import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import { LocalStorageStateCache, makeStrategy, parseAuthStrategyFile, resolveCredsEnv, type StorageState } from "./auth.js";
+import {
+  LocalStorageStateCache,
+  makeStrategy,
+  parseAuthStrategyFile,
+  resolveCredsEnv,
+  type StorageState,
+} from "./auth.js";
 import { calibrate } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
 import { BackendClient, BackendClientError } from "./backend-client.js";
-import { buildDiagnoseReport, type DiagnoseReport, formatReportText, probeLive } from "./diagnose.js";
+import {
+  buildDiagnoseReport,
+  type DiagnoseReport,
+  formatReportText,
+  probeLive,
+} from "./diagnose.js";
 import { type DocPackPayloads, readDocPack, writeDocPack } from "./doc-pack-io.js";
 import { formatIssuesText, type LintIssue, lintFlow } from "./flow-lint.js";
 import { runFlow } from "./flow-runtime.js";
 import { buildFlowTree, formatTreeText } from "./flow-tree.js";
-import { formatJargonHitsText, initStyleIfAbsent, loadStyle, scanWorkspaceForJargon, StyleError, writeStyle } from "./style.js";
+import {
+  formatJargonHitsText,
+  initStyleIfAbsent,
+  loadStyle,
+  scanWorkspaceForJargon,
+  StyleError,
+  writeStyle,
+} from "./style.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
@@ -159,7 +177,10 @@ async function listFlowFiles(projectDir: string): Promise<string[]> {
   } catch {
     throw new Error(`no flows directory at ${dir}`);
   }
-  return entries.filter((e) => e.endsWith(".flow.yaml")).sort().map((e) => path.join(dir, e));
+  return entries
+    .filter((e) => e.endsWith(".flow.yaml"))
+    .sort()
+    .map((e) => path.join(dir, e));
 }
 
 async function loadAuthStorageState(projectDir: string): Promise<StorageState | undefined> {
@@ -190,19 +211,28 @@ async function cmdRun(args: string[]): Promise<number> {
     return 2;
   }
   const projectDir: string = positionals[0];
-  const onlyFlow = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
-  const stopAfter = typeof flags.get("stop-after") === "string" ? (flags.get("stop-after") as string) : undefined;
-  const startFrom = typeof flags.get("start-from") === "string" ? (flags.get("start-from") as string) : undefined;
-  const cdpEndpoint = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
+  const onlyFlow =
+    typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
+  const stopAfter =
+    typeof flags.get("stop-after") === "string" ? (flags.get("stop-after") as string) : undefined;
+  const startFrom =
+    typeof flags.get("start-from") === "string" ? (flags.get("start-from") as string) : undefined;
+  const cdpEndpoint =
+    typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
   const pause = flags.get("pause") === true;
   const headed = flags.get("headed") === true || pause; // --pause implies --headed
   if (startFrom && !onlyFlow) {
-    process.stderr.write(`run: --start-from requires --flow <name> (single-flow calibration aid)\n`);
+    process.stderr.write(
+      `run: --start-from requires --flow <name> (single-flow calibration aid)\n`,
+    );
     return 2;
   }
   const wsCfg = await loadWorkspaceConfig(projectDir);
-  const baseURL = (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ?? wsCfg?.app_url;
-  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
+  const baseURL =
+    (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ??
+    wsCfg?.app_url;
+  const ignoreHTTPSErrors =
+    flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
 
   let flowPaths: string[];
   try {
@@ -238,7 +268,11 @@ async function cmdRun(args: string[]): Promise<number> {
     if (!onlyFlow || flow.name === onlyFlow) flows.push(flow);
   }
   if (flows.length === 0) {
-    process.stderr.write(onlyFlow ? `run: no flow named "${onlyFlow}"\n` : `run: no flow-files in ${projectDir}/flows\n`);
+    process.stderr.write(
+      onlyFlow
+        ? `run: no flow named "${onlyFlow}"\n`
+        : `run: no flow-files in ${projectDir}/flows\n`,
+    );
     return 1;
   }
 
@@ -253,12 +287,15 @@ async function cmdRun(args: string[]): Promise<number> {
   // Parallel runners: each flow gets its own Playwright session, so flows are isolated and can run together.
   // `--concurrency N` (default 1) caps how many run at once. `--pause` / `--stop-after` force concurrency=1
   // (they're single-flow calibration aids; mixing them with parallelism would be chaos).
-  const concurrencyRaw = typeof flags.get("concurrency") === "string" ? Number(flags.get("concurrency")) : 1;
+  const concurrencyRaw =
+    typeof flags.get("concurrency") === "string" ? Number(flags.get("concurrency")) : 1;
   const requestedConcurrency = Math.max(1, Math.floor(concurrencyRaw || 1));
   const forceSingle = pause || stopAfter || startFrom || cdpEndpoint;
   const concurrency = forceSingle ? 1 : requestedConcurrency;
   if (forceSingle && requestedConcurrency > 1) {
-    process.stderr.write(`run: --pause / --stop-after / --start-from / --cdp force --concurrency 1 (ignoring --concurrency ${requestedConcurrency})\n`);
+    process.stderr.write(
+      `run: --pause / --stop-after / --start-from / --cdp force --concurrency 1 (ignoring --concurrency ${requestedConcurrency})\n`,
+    );
   }
   const tag = concurrency > 1 ? (name: string) => `run [${name}]: ` : () => "run: ";
 
@@ -278,7 +315,9 @@ async function cmdRun(args: string[]): Promise<number> {
     } catch (e) {
       const msg = (e as Error).message;
       if (/Executable doesn't exist|browserType\.launch|playwright install/i.test(msg)) {
-        process.stderr.write(`${tag(name)}no Chromium binary found.  Install one:  npx playwright install chromium\n`);
+        process.stderr.write(
+          `${tag(name)}no Chromium binary found.  Install one:  npx playwright install chromium\n`,
+        );
       } else {
         process.stderr.write(`${tag(name)}failed to launch browser: ${msg}\n`);
       }
@@ -312,15 +351,19 @@ async function cmdRun(args: string[]): Promise<number> {
         }
       }
       await fs.writeFile(annotationsPath, JSON.stringify(toWrite, null, 2) + "\n", "utf8");
-      process.stdout.write(`${tag(name)}${name} — ${result.steps.length} step(s) executed, ${result.annotations.annotations.length} annotation(s) ${startFrom ? "merged" : "written"}\n`);
+      process.stdout.write(
+        `${tag(name)}${name} — ${result.steps.length} step(s) executed, ${result.annotations.annotations.length} annotation(s) ${startFrom ? "merged" : "written"}\n`,
+      );
       return true;
     } catch (e) {
       process.stderr.write(`${tag(name)}${(e as Error).message}\n`);
       return false;
     } finally {
       if (pause) {
-        process.stdout.write("run: --pause — browser is open at the last step run; close it to exit.\n");
-        await new Promise<void>((resolve) => session!.browser.on("disconnected", () => resolve()));
+        process.stdout.write(
+          "run: --pause — browser is open at the last step run; close it to exit.\n",
+        );
+        await new Promise<void>((resolve) => session.browser.on("disconnected", () => resolve()));
       }
       await session.close();
     }
@@ -335,7 +378,10 @@ async function cmdRun(args: string[]): Promise<number> {
     }
   }
   const workers = Math.min(concurrency, flows.length);
-  if (workers > 1) process.stdout.write(`run: running ${flows.length} flows with ${workers} parallel worker(s)…\n`);
+  if (workers > 1)
+    process.stdout.write(
+      `run: running ${flows.length} flows with ${workers} parallel worker(s)…\n`,
+    );
   await Promise.all(Array.from({ length: workers }, () => worker()));
   return anyFailed ? 1 : 0;
 }
@@ -383,14 +429,20 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
     return 2;
   }
   const wsCfg = await loadWorkspaceConfig(projectDir);
-  const baseURL = (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ?? wsCfg?.app_url;
+  const baseURL =
+    (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ??
+    wsCfg?.app_url;
   if (!baseURL) {
-    process.stderr.write("capture-auth: --base-url <url> is required (or set app_url in the workspace's .site-docs.json)\n");
+    process.stderr.write(
+      "capture-auth: --base-url <url> is required (or set app_url in the workspace's .site-docs.json)\n",
+    );
     return 2;
   }
   const headless = flags.get("headless") === true;
-  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
-  const authCookie = typeof flags.get("auth-cookie") === "string" ? (flags.get("auth-cookie") as string) : undefined;
+  const ignoreHTTPSErrors =
+    flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
+  const authCookie =
+    typeof flags.get("auth-cookie") === "string" ? (flags.get("auth-cookie") as string) : undefined;
   const cdp = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
   const fresh = flags.get("fresh") === true;
   // Persistent Chrome profile under the workspace — re-running capture-auth reuses the login. (Not when attaching, or with --fresh.)
@@ -408,7 +460,10 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
   let roleAuth;
   try {
     const descriptor = parseAuthStrategyFile(descriptorText, descriptorPath);
-    role = typeof flags.get("role") === "string" ? (flags.get("role") as string) : descriptor.default_role;
+    role =
+      typeof flags.get("role") === "string"
+        ? (flags.get("role") as string)
+        : descriptor.default_role;
     const ra = descriptor.roles[role];
     if (!ra) {
       process.stderr.write(`capture-auth: role "${role}" not in ${descriptorPath}\n`);
@@ -451,19 +506,18 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
     const result = await strategy.authenticate({ creds, options: roleAuth.options, baseURL, role });
 
     const cookies = result.storageState.cookies ?? [];
-    process.stdout.write(`capture-auth: captured ${cookies.length} cookie(s)${cookies.length ? " (newest expiry first):" : ""}\n`);
+    process.stdout.write(
+      `capture-auth: captured ${cookies.length} cookie(s)${cookies.length ? " (newest expiry first):" : ""}\n`,
+    );
     for (const c of [...cookies].sort((a, b) => (b.expires || 0) - (a.expires || 0))) {
-      const exp = c.expires && c.expires > 0 ? new Date(c.expires * 1000).toISOString() : "(session)";
+      const exp =
+        c.expires && c.expires > 0 ? new Date(c.expires * 1000).toISOString() : "(session)";
       process.stdout.write(`    ${c.name}  @${c.domain}  expires ${exp}\n`);
     }
 
-    const { expiresAt, source } = await new LocalStorageStateCache(path.join(projectDir, ".auth")).save(
-      role,
-      result,
-      roleAuth,
-      Date.now(),
-      authCookie ? { authCookie } : {},
-    );
+    const { expiresAt, source } = await new LocalStorageStateCache(
+      path.join(projectDir, ".auth"),
+    ).save(role, result, roleAuth, Date.now(), authCookie ? { authCookie } : {});
     process.stdout.write(
       `capture-auth: cached ${role} → ${path.join(projectDir, ".auth", role + ".json")}\n` +
         `  expires ${new Date(expiresAt).toISOString()}  (from ${source}; re-run when it lapses)\n`,
@@ -489,7 +543,8 @@ async function cmdInit(args: string[]): Promise<number> {
     process.stderr.write("init: missing <workspace-dir> (or use --persist tmp)\n\n" + USAGE + "\n");
     return 2;
   }
-  const str = (k: string): string | undefined => (typeof flags.get(k) === "string" ? (flags.get(k) as string) : undefined);
+  const str = (k: string): string | undefined =>
+    typeof flags.get(k) === "string" ? (flags.get(k) as string) : undefined;
   const auth = str("auth");
   if (auth !== undefined && auth !== "manual-capture" && auth !== "none") {
     process.stderr.write("init: --auth must be 'manual-capture' or 'none'\n");
@@ -517,7 +572,9 @@ async function cmdInit(args: string[]): Promise<number> {
       ignoreHttpsErrors: flags.get("ignore-https-errors") === true,
       force: flags.get("force") === true,
     });
-    process.stdout.write(`init: workspace ${r.ephemeral ? "(ephemeral) " : ""}at ${r.dir}\n  created: ${r.created.join(", ")}\n`);
+    process.stdout.write(
+      `init: workspace ${r.ephemeral ? "(ephemeral) " : ""}at ${r.dir}\n  created: ${r.created.join(", ")}\n`,
+    );
     process.stdout.write(
       `  next: ${appUrl ? "" : "(set app_url in .site-docs.json, then) "}site-docs capture-auth ${r.dir}  →  …calibrate…  →  site-docs run ${r.dir}  →  site-docs render ${r.dir}\n`,
     );
@@ -537,10 +594,13 @@ async function cmdCalibrate(args: string[]): Promise<number> {
   }
   const from = typeof flags.get("from") === "string" ? (flags.get("from") as string) : undefined;
   if (!from) {
-    process.stderr.write("calibrate: --from <flow.md|.yaml> is required (the structured flow-guide)\n");
+    process.stderr.write(
+      "calibrate: --from <flow.md|.yaml> is required (the structured flow-guide)\n",
+    );
     return 2;
   }
-  const flowName = typeof flags.get("name") === "string" ? (flags.get("name") as string) : undefined;
+  const flowName =
+    typeof flags.get("name") === "string" ? (flags.get("name") as string) : undefined;
   let text: string;
   try {
     text = await fs.readFile(from, "utf8");
@@ -549,10 +609,17 @@ async function cmdCalibrate(args: string[]): Promise<number> {
     return 1;
   }
   try {
-    const r = await calibrate({ workspaceDir, fromText: text, fromSource: from, ...(flowName ? { flowName } : {}) });
+    const r = await calibrate({
+      workspaceDir,
+      fromText: text,
+      fromSource: from,
+      ...(flowName ? { flowName } : {}),
+    });
     process.stdout.write(`calibrate: wrote ${r.flowFilePath}  (${r.flow.steps.length} steps)\n`);
     if (r.wroteStyle) process.stdout.write(`calibrate: wrote default ${r.stylePath}\n`);
-    process.stdout.write(`  next: site-docs run ${workspaceDir}  (then: site-docs render ${workspaceDir})\n`);
+    process.stdout.write(
+      `  next: site-docs run ${workspaceDir}  (then: site-docs render ${workspaceDir})\n`,
+    );
     return 0;
   } catch (e) {
     process.stderr.write(`calibrate: ${(e as Error).message}\n`);
@@ -569,31 +636,43 @@ async function cmdInspect(args: string[]): Promise<number> {
   }
   const wsCfg = await loadWorkspaceConfig(workspaceDir);
   const cdp = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
-  const explicitUrl = typeof flags.get("url") === "string" ? (flags.get("url") as string) : undefined;
+  const explicitUrl =
+    typeof flags.get("url") === "string" ? (flags.get("url") as string) : undefined;
   const url = explicitUrl ?? wsCfg?.app_url;
   if (!cdp && !url) {
-    process.stderr.write("inspect: no URL — pass --url <url>, set app_url in .site-docs.json, or use --cdp <endpoint>\n");
+    process.stderr.write(
+      "inspect: no URL — pass --url <url>, set app_url in .site-docs.json, or use --cdp <endpoint>\n",
+    );
     return 2;
   }
-  const selector = typeof flags.get("selector") === "string" ? (flags.get("selector") as string) : undefined;
+  const selector =
+    typeof flags.get("selector") === "string" ? (flags.get("selector") as string) : undefined;
   const headed = flags.get("headed") === true;
-  const ignoreHTTPSErrors = flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
-  const waitForSel = typeof flags.get("wait-for") === "string" ? (flags.get("wait-for") as string) : undefined;
-  const waitMs = typeof flags.get("wait") === "string" ? Math.max(0, Number(flags.get("wait")) || 0) : 800;
+  const ignoreHTTPSErrors =
+    flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
+  const waitForSel =
+    typeof flags.get("wait-for") === "string" ? (flags.get("wait-for") as string) : undefined;
+  const waitMs =
+    typeof flags.get("wait") === "string" ? Math.max(0, Number(flags.get("wait")) || 0) : 800;
 
   let storageState: import("./auth.js").StorageState | undefined;
   if (!cdp) {
     let role = typeof flags.get("role") === "string" ? (flags.get("role") as string) : undefined;
     if (!role) {
       try {
-        role = parseAuthStrategyFile(await fs.readFile(path.join(workspaceDir, "auth", "strategy.yaml"), "utf8")).default_role;
+        role = parseAuthStrategyFile(
+          await fs.readFile(path.join(workspaceDir, "auth", "strategy.yaml"), "utf8"),
+        ).default_role;
       } catch {
         role = "editor";
       }
     }
-    storageState = (await new LocalStorageStateCache(path.join(workspaceDir, ".auth")).load(role)) ?? undefined;
+    storageState =
+      (await new LocalStorageStateCache(path.join(workspaceDir, ".auth")).load(role)) ?? undefined;
     if (!storageState) {
-      process.stderr.write(`inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`site-docs capture-auth\` first if the app needs login)\n`);
+      process.stderr.write(
+        `inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`site-docs capture-auth\` first if the app needs login)\n`,
+      );
     }
   }
 
@@ -602,7 +681,12 @@ async function cmdInspect(args: string[]): Promise<number> {
     session = await launchPlaywrightSession({
       ...(cdp
         ? { connectOverCdp: cdp }
-        : { ...(url ? { baseURL: url } : {}), headed, ignoreHTTPSErrors, ...(storageState ? { storageState } : {}) }),
+        : {
+            ...(url ? { baseURL: url } : {}),
+            headed,
+            ignoreHTTPSErrors,
+            ...(storageState ? { storageState } : {}),
+          }),
       docPackRoot: workspaceDir,
     });
   } catch (e) {
@@ -616,15 +700,21 @@ async function cmdInspect(args: string[]): Promise<number> {
   }
   try {
     // In CDP-attach mode without an explicit --url, inspect whatever the attached browser already has open.
-    if (url && (!cdp || explicitUrl)) await session.page.goto(url, { waitUntil: "domcontentloaded" }).catch(() => undefined);
-    if (waitForSel) await session.page.waitForSelector(waitForSel, { timeout: 30_000 }).catch(() => undefined);
+    if (url && (!cdp || explicitUrl))
+      await session.page.goto(url, { waitUntil: "domcontentloaded" }).catch(() => undefined);
+    if (waitForSel)
+      await session.page.waitForSelector(waitForSel, { timeout: 30_000 }).catch(() => undefined);
     else if (waitMs > 0) await session.page.waitForTimeout(waitMs);
-    process.stdout.write(`inspect: ${session.page.url()}\n  title: ${await session.page.title().catch(() => "(?)")}\n`);
+    process.stdout.write(
+      `inspect: ${session.page.url()}\n  title: ${await session.page.title().catch(() => "(?)")}\n`,
+    );
     if (selector) {
       const els = await session.page.locator(selector).all();
       process.stdout.write(`  ${els.length} element(s) matching ${selector} (first 20):\n`);
       for (const el of els.slice(0, 20)) {
-        const html = (await el.evaluate((e) => e.outerHTML).catch(() => "")).replace(/\s+/g, " ").slice(0, 400);
+        const html = (await el.evaluate((e) => e.outerHTML).catch(() => ""))
+          .replace(/\s+/g, " ")
+          .slice(0, 400);
         process.stdout.write(`    ${html}\n`);
       }
     } else {
@@ -635,15 +725,20 @@ async function cmdInspect(args: string[]): Promise<number> {
             tag: e.tagName.toLowerCase(),
             text: (e.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 60),
             visible:
-              typeof (e as unknown as { checkVisibility?: () => boolean }).checkVisibility === "function"
+              typeof (e as unknown as { checkVisibility?: () => boolean }).checkVisibility ===
+              "function"
                 ? (e as unknown as { checkVisibility: () => boolean }).checkVisibility()
                 : (e as unknown as { offsetParent?: unknown }).offsetParent != null,
           })),
         )
         .catch(() => [] as Array<{ testid: string; tag: string; text: string; visible: boolean }>);
-      process.stdout.write(`  ${items.length} [data-testid] element(s) (✓ = visible) — pin these as locators:\n`);
+      process.stdout.write(
+        `  ${items.length} [data-testid] element(s) (✓ = visible) — pin these as locators:\n`,
+      );
       for (const it of items) {
-        process.stdout.write(`    ${it.visible ? "✓" : " "} [data-testid="${it.testid}"]  <${it.tag}>  ${it.text ? `"${it.text}"` : ""}\n`);
+        process.stdout.write(
+          `    ${it.visible ? "✓" : " "} [data-testid="${it.testid}"]  <${it.tag}>  ${it.text ? `"${it.text}"` : ""}\n`,
+        );
       }
       process.stdout.write(
         `  (--selector '<css>' dumps matching elements' HTML; --url <url> for a sub-page; --wait <ms> / --wait-for '<css>' to settle a slow SPA before snapshot; --cdp <endpoint> to attach to a running Chrome instead of launching; --headed to open it)\n`,
@@ -651,7 +746,7 @@ async function cmdInspect(args: string[]): Promise<number> {
     }
     if (headed && !cdp) {
       process.stdout.write("inspect: browser is open — close it to exit.\n");
-      await new Promise<void>((resolve) => session!.browser.on("disconnected", () => resolve()));
+      await new Promise<void>((resolve) => session.browser.on("disconnected", () => resolve()));
     }
     return 0;
   } catch (e) {
@@ -669,7 +764,8 @@ async function cmdLint(args: string[]): Promise<number> {
     return 2;
   }
   const projectDir = positionals[0];
-  const flowFilter = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
+  const flowFilter =
+    typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
   if (format !== "text" && format !== "json") {
     process.stderr.write(`lint: --format must be "text" or "json"\n`);
@@ -707,7 +803,7 @@ async function cmdLint(args: string[]): Promise<number> {
     return 2;
   }
 
-  const loadFlow = async (name: string) => {
+  const loadFlow = (name: string) => {
     const f = flowsByName.get(name);
     if (!f) throw new Error(`extends target not found: ${name}`);
     return f;
@@ -780,9 +876,11 @@ async function cmdDiagnose(args: string[]): Promise<number> {
     return 2;
   }
   const projectDir = positionals[0];
-  const flowName = typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
+  const flowName =
+    typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const stepId = typeof flags.get("step") === "string" ? (flags.get("step") as string) : undefined;
-  const cdpEndpoint = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
+  const cdpEndpoint =
+    typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
 
   if (!flowName) {
@@ -822,13 +920,15 @@ async function cmdDiagnose(args: string[]): Promise<number> {
 
   const step = flow.steps.find((s) => s.id === stepId);
   if (!step) {
-    process.stderr.write(`diagnose: no step "${stepId}" in flow "${flowName}" (merged step list: ${flow.steps.map((s) => s.id).join(", ")})\n`);
+    process.stderr.write(
+      `diagnose: no step "${stepId}" in flow "${flowName}" (merged step list: ${flow.steps.map((s) => s.id).join(", ")})\n`,
+    );
     return 1;
   }
 
   const resolvedSelector = step.target
     ? step.target.startsWith("$")
-      ? flow.locators[step.target.slice(1)] ?? step.target
+      ? (flow.locators[step.target.slice(1)] ?? step.target)
       : step.target
     : undefined;
 
@@ -839,7 +939,10 @@ async function cmdDiagnose(args: string[]): Promise<number> {
   let liveSession: Awaited<ReturnType<typeof launchPlaywrightSession>> | undefined;
   if (cdpEndpoint && resolvedSelector) {
     liveProbe = async () => {
-      liveSession = await launchPlaywrightSession({ connectOverCdp: cdpEndpoint, docPackRoot: projectDir });
+      liveSession = await launchPlaywrightSession({
+        connectOverCdp: cdpEndpoint,
+        docPackRoot: projectDir,
+      });
       return probeLive(liveSession.driver, resolvedSelector, cdpEndpoint);
     };
   }
@@ -909,7 +1012,10 @@ async function cmdStyle(args: string[]): Promise<number> {
   }
 
   if (format === "json") {
-    process.stdout.write(JSON.stringify({ style, paths, created, jargonLeaks: check ? hits : undefined }, null, 2) + "\n");
+    process.stdout.write(
+      JSON.stringify({ style, paths, created, jargonLeaks: check ? hits : undefined }, null, 2) +
+        "\n",
+    );
   } else {
     process.stdout.write(
       `style: ${created ? "created" : "validated"} ${path.relative(projectDir, paths.yamlPath)}; rederived ${path.relative(projectDir, paths.jsonPath)}\n`,
@@ -952,13 +1058,16 @@ async function cmdZip(args: string[]): Promise<number> {
 
 async function cmdLogin(args: string[]): Promise<number> {
   const { flags } = parseFlags(args);
-  const backendUrl = typeof flags.get("backend-url") === "string" ? (flags.get("backend-url") as string) : undefined;
+  const backendUrl =
+    typeof flags.get("backend-url") === "string" ? (flags.get("backend-url") as string) : undefined;
   if (!backendUrl) {
     process.stderr.write(`login: --backend-url <url> required\n`);
     return 2;
   }
   if (!process.env.SITE_DOCS_TOKEN) {
-    process.stderr.write(`login: SITE_DOCS_TOKEN env var not set. Export it before running: SITE_DOCS_TOKEN=<token> site-docs login --backend-url ${backendUrl}\n`);
+    process.stderr.write(
+      `login: SITE_DOCS_TOKEN env var not set. Export it before running: SITE_DOCS_TOKEN=<token> site-docs login --backend-url ${backendUrl}\n`,
+    );
     return 2;
   }
   let client: BackendClient;
@@ -975,7 +1084,9 @@ async function cmdLogin(args: string[]): Promise<number> {
       return 1;
     }
     const wss = await client.listWorkspaces();
-    process.stdout.write(`login: ok. ${wss.length} workspace${wss.length !== 1 ? "s" : ""} visible at ${backendUrl}\n`);
+    process.stdout.write(
+      `login: ok. ${wss.length} workspace${wss.length !== 1 ? "s" : ""} visible at ${backendUrl}\n`,
+    );
     return 0;
   } catch (e) {
     if (e instanceof BackendClientError) {
@@ -1018,15 +1129,21 @@ async function cmdPush(args: string[]): Promise<number> {
   const projectDir = positionals[0];
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url) {
-    process.stderr.write(`push: no backend_url in ${path.join(projectDir, ".site-docs.json")}. Set it before pushing.\n`);
+    process.stderr.write(
+      `push: no backend_url in ${path.join(projectDir, ".site-docs.json")}. Set it before pushing.\n`,
+    );
     return 2;
   }
-  const kindArg = typeof flags.get("kind") === "string" ? (flags.get("kind") as string) : "calibrate";
+  const kindArg =
+    typeof flags.get("kind") === "string" ? (flags.get("kind") as string) : "calibrate";
   if (kindArg !== "calibrate" && kindArg !== "run" && kindArg !== "edit") {
     process.stderr.write(`push: --kind must be calibrate | run | edit (got "${kindArg}")\n`);
     return 2;
   }
-  const author = (typeof flags.get("author") === "string" ? (flags.get("author") as string) : null) ?? process.env.USER ?? "unknown";
+  const author =
+    (typeof flags.get("author") === "string" ? (flags.get("author") as string) : null) ??
+    process.env.USER ??
+    "unknown";
 
   let client: BackendClient;
   try {
@@ -1037,22 +1154,42 @@ async function cmdPush(args: string[]): Promise<number> {
   }
 
   try {
-    const binding = await ensureBackendBinding(client, projectDir, wsCfg, path.basename(path.resolve(projectDir)));
+    const binding = await ensureBackendBinding(
+      client,
+      projectDir,
+      wsCfg,
+      path.basename(path.resolve(projectDir)),
+    );
     if (binding.createdAny) {
       // Persist the new IDs back to .site-docs.json so subsequent push/pull don't re-create.
-      const updated = { ...wsCfg, backend_workspace_id: binding.wsId, backend_project_id: binding.projectId };
-      await fs.writeFile(path.join(projectDir, ".site-docs.json"), JSON.stringify(updated, null, 2) + "\n", "utf8");
+      const updated = {
+        ...wsCfg,
+        backend_workspace_id: binding.wsId,
+        backend_project_id: binding.projectId,
+      };
+      await fs.writeFile(
+        path.join(projectDir, ".site-docs.json"),
+        JSON.stringify(updated, null, 2) + "\n",
+        "utf8",
+      );
     }
 
-    const rev = await client.createRevision(binding.wsId, binding.projectId, { kind: kindArg, author });
+    const rev = await client.createRevision(binding.wsId, binding.projectId, {
+      kind: kindArg,
+      author,
+    });
     const payloads = await readDocPack(projectDir);
     let pushed = 0;
-    for (const [key, p] of Object.entries(payloads) as Array<[keyof DocPackPayloads, DocPackPayloads[keyof DocPackPayloads]]>) {
+    for (const [key, p] of Object.entries(payloads) as Array<
+      [keyof DocPackPayloads, DocPackPayloads[keyof DocPackPayloads]]
+    >) {
       if (p === null) continue;
       await client.putArtifact(binding.wsId, binding.projectId, rev.id, key, p);
       pushed++;
     }
-    process.stdout.write(`push: revision ${rev.id} (${kindArg}, ${author}) — ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded\n`);
+    process.stdout.write(
+      `push: revision ${rev.id} (${kindArg}, ${author}) — ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded\n`,
+    );
     return 0;
   } catch (e) {
     if (e instanceof BackendClientError) {
@@ -1072,7 +1209,9 @@ async function cmdPull(args: string[]): Promise<number> {
   const projectDir = positionals[0];
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url || !wsCfg.backend_workspace_id || !wsCfg.backend_project_id) {
-    process.stderr.write(`pull: workspace isn't bound to a backend yet. Run \`push\` first (or hand-edit .site-docs.json's backend_workspace_id / backend_project_id).\n`);
+    process.stderr.write(
+      `pull: workspace isn't bound to a backend yet. Run \`push\` first (or hand-edit .site-docs.json's backend_workspace_id / backend_project_id).\n`,
+    );
     return 2;
   }
   const revArg = typeof flags.get("rev") === "string" ? (flags.get("rev") as string) : "head";
@@ -1086,7 +1225,11 @@ async function cmdPull(args: string[]): Promise<number> {
   }
 
   try {
-    const rev = await client.getRevision(wsCfg.backend_workspace_id, wsCfg.backend_project_id, revArg);
+    const rev = await client.getRevision(
+      wsCfg.backend_workspace_id,
+      wsCfg.backend_project_id,
+      revArg,
+    );
     const payloads: Partial<DocPackPayloads> = {};
     for (const artifact of rev.artifacts) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1098,7 +1241,9 @@ async function cmdPull(args: string[]): Promise<number> {
       );
     }
     const r = await writeDocPack(projectDir, payloads);
-    process.stdout.write(`pull: revision ${rev.id} (${rev.kind}, ${rev.author}) — wrote ${r.filesWritten} file(s)\n`);
+    process.stdout.write(
+      `pull: revision ${rev.id} (${rev.kind}, ${rev.author}) — wrote ${r.filesWritten} file(s)\n`,
+    );
     return 0;
   } catch (e) {
     if (e instanceof BackendClientError) {
@@ -1154,5 +1299,5 @@ export async function main(argv: string[]): Promise<number> {
 
 // Run as the bin entry, but not when imported (e.g. in tests).
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main(process.argv.slice(2)).then((code) => process.exit(code));
+  void main(process.argv.slice(2)).then((code) => process.exit(code));
 }

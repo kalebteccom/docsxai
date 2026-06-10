@@ -2,7 +2,13 @@
 // bearer-token gate (production uses OAuth 2.1 — out of scope here); echoes the API-version header.
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { API_VERSION, API_VERSION_HEADER, REVISION_ARTIFACTS, ROUTES, type RevisionArtifact, type RevisionKind } from "./api.js";
+import {
+  API_VERSION,
+  API_VERSION_HEADER,
+  REVISION_ARTIFACTS,
+  ROUTES,
+  type RevisionArtifact,
+} from "./api.js";
 import { NotFoundError, Store } from "./store.js";
 
 export interface BackendStubOptions {
@@ -81,14 +87,25 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
 
     // Version header echo / warn.
     const reqVersion = req.headers[API_VERSION_HEADER];
-    res.setHeader(API_VERSION_HEADER.replace(/(^|-)([a-z])/g, (_, p, c: string) => p + c.toUpperCase()), API_VERSION);
+    res.setHeader(
+      API_VERSION_HEADER.replace(/(^|-)([a-z])/g, (_, p, c: string) => p + c.toUpperCase()),
+      API_VERSION,
+    );
     if (typeof reqVersion === "string" && reqVersion !== API_VERSION) {
       res.setHeader("Warning", `199 - "client API version ${reqVersion} != server ${API_VERSION}"`);
     }
 
     const matched = matchRoute(method, url.pathname);
-    if (matched === null) return sendJson(res, 404, { error: "not_found", message: `no route for ${method} ${url.pathname}` });
-    if (matched === "method_mismatch") return sendJson(res, 405, { error: "method_not_allowed", message: `${method} not allowed on ${url.pathname}` });
+    if (matched === null)
+      return sendJson(res, 404, {
+        error: "not_found",
+        message: `no route for ${method} ${url.pathname}`,
+      });
+    if (matched === "method_mismatch")
+      return sendJson(res, 405, {
+        error: "method_not_allowed",
+        message: `${method} not allowed on ${url.pathname}`,
+      });
 
     // Auth gate (everything except /v1/health).
     if (url.pathname !== "/v1/health") {
@@ -123,38 +140,74 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
             const b = (await readJsonBody(req)) as { kind?: string; author?: string } | undefined;
             const kind = b?.kind;
             if (kind !== "calibrate" && kind !== "run" && kind !== "edit") {
-              return sendJson(res, 400, { error: "bad_request", message: "body requires { kind: calibrate|run|edit, author }" });
+              return sendJson(res, 400, {
+                error: "bad_request",
+                message: "body requires { kind: calibrate|run|edit, author }",
+              });
             }
-            return sendJson(res, 201, store.createRevision(ws!, project!, kind as RevisionKind, String(b?.author ?? "unknown")));
+            return sendJson(
+              res,
+              201,
+              store.createRevision(ws!, project!, kind, String(b?.author ?? "unknown")),
+            );
           }
         case "/v1/workspaces/:ws/projects/:project/revisions/:rev":
           return sendJson(res, 200, store.getRevision(ws!, project!, rev!));
         case "/v1/workspaces/:ws/projects/:project/revisions/:rev/:artifact":
           if (!artifact || !isArtifact(artifact)) {
-            return sendJson(res, 404, { error: "not_found", message: `unknown artifact "${artifact}"` });
+            return sendJson(res, 404, {
+              error: "not_found",
+              message: `unknown artifact "${artifact}"`,
+            });
           }
-          if (method === "GET") return sendJson(res, 200, store.getArtifact(ws!, project!, rev!, artifact));
-          return sendJson(res, 200, store.putArtifact(ws!, project!, rev!, artifact, await readJsonBody(req)));
+          if (method === "GET")
+            return sendJson(res, 200, store.getArtifact(ws!, project!, rev!, artifact));
+          return sendJson(
+            res,
+            200,
+            store.putArtifact(ws!, project!, rev!, artifact, await readJsonBody(req)),
+          );
         case "/v1/workspaces/:ws/projects/:project/run-history":
           if (method === "GET") return sendJson(res, 200, store.listRuns(ws!, project!));
           {
-            const b = (await readJsonBody(req)) as { rev?: string; ok?: boolean; duration_ms?: number; summary?: string } | undefined;
-            if (!b || typeof b.rev !== "string") return sendJson(res, 400, { error: "bad_request", message: "body requires { rev, ok, duration_ms, summary }" });
-            return sendJson(res, 201, store.appendRun(ws!, project!, { rev: b.rev, ok: !!b.ok, duration_ms: Number(b.duration_ms ?? 0), summary: String(b.summary ?? "") }));
+            const b = (await readJsonBody(req)) as
+              | { rev?: string; ok?: boolean; duration_ms?: number; summary?: string }
+              | undefined;
+            if (!b || typeof b.rev !== "string")
+              return sendJson(res, 400, {
+                error: "bad_request",
+                message: "body requires { rev, ok, duration_ms, summary }",
+              });
+            return sendJson(
+              res,
+              201,
+              store.appendRun(ws!, project!, {
+                rev: b.rev,
+                ok: !!b.ok,
+                duration_ms: Number(b.duration_ms ?? 0),
+                summary: String(b.summary ?? ""),
+              }),
+            );
           }
         default:
           return sendJson(res, 404, { error: "not_found", message: "unrouted" });
       }
     } catch (e) {
-      if (e instanceof NotFoundError) return sendJson(res, 404, { error: "not_found", message: e.message });
-      if (e instanceof SyntaxError) return sendJson(res, 400, { error: "bad_request", message: `invalid JSON body: ${e.message}` });
+      if (e instanceof NotFoundError)
+        return sendJson(res, 404, { error: "not_found", message: e.message });
+      if (e instanceof SyntaxError)
+        return sendJson(res, 400, {
+          error: "bad_request",
+          message: `invalid JSON body: ${e.message}`,
+        });
       throw e;
     }
   }
 
   function reqName(body: unknown): string {
     const name = (body as { name?: unknown } | undefined)?.name;
-    if (typeof name !== "string" || !name.trim()) throw new SyntaxError("body requires a non-empty { name }");
+    if (typeof name !== "string" || !name.trim())
+      throw new SyntaxError("body requires a non-empty { name }");
     return name;
   }
 

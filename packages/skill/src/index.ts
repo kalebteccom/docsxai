@@ -9,7 +9,11 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Absolute path to the vendorable bundle (`skill/`), which contains `site-docs/SKILL.md`. */
-export const vendoredSkillDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "skill");
+export const vendoredSkillDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "skill",
+);
 
 /**
  * Copy the vendored skill bundle into `<projectDir>/.claude/skills/`.

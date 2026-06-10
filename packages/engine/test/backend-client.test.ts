@@ -41,11 +41,17 @@ describe("BackendClient ↔ stub server", () => {
     const proj = await client.createProject(ws.id, "test-proj");
     expect(proj.head_revision_id).toBeNull();
 
-    const rev = await client.createRevision(ws.id, proj.id, { kind: "calibrate", author: "vitest" });
+    const rev = await client.createRevision(ws.id, proj.id, {
+      kind: "calibrate",
+      author: "vitest",
+    });
     expect(rev.id).toBeTruthy();
     expect(rev.kind).toBe("calibrate");
 
-    const payload = { schema: "site-docs/flows@1" as const, files: { "f.flow.yaml": "name: f\nsteps:\n  - id: s\n    action: wait\n" } };
+    const payload = {
+      schema: "site-docs/flows@1" as const,
+      files: { "f.flow.yaml": "name: f\nsteps:\n  - id: s\n    action: wait\n" },
+    };
     await client.putArtifact(ws.id, proj.id, rev.id, "flows", payload);
     const fetched = await client.getArtifact(ws.id, proj.id, rev.id, "flows");
     expect(fetched).toEqual(payload);
@@ -79,22 +85,40 @@ describe("push round-trip (readDocPack → backend → writeDocPack)", () => {
     await fs.mkdir(path.join(workspaceSrc, "flows"), { recursive: true });
     await fs.mkdir(path.join(workspaceSrc, "docs", "f"), { recursive: true });
     await fs.mkdir(path.join(workspaceSrc, "docs", "f", "screenshots"), { recursive: true });
-    await fs.writeFile(path.join(workspaceSrc, "flows", "f.flow.yaml"), "name: f\nsteps:\n  - id: s\n    action: wait\n", "utf8");
+    await fs.writeFile(
+      path.join(workspaceSrc, "flows", "f.flow.yaml"),
+      "name: f\nsteps:\n  - id: s\n    action: wait\n",
+      "utf8",
+    );
     await fs.writeFile(
       path.join(workspaceSrc, "docs", "f", "annotations.json"),
       '{"schema":"site-docs/annotations@1","flow":"f","annotations":[]}',
       "utf8",
     );
-    await fs.writeFile(path.join(workspaceSrc, "docs", "f", "screenshots", "s.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
-    await fs.writeFile(path.join(workspaceSrc, "docs", "style.yaml"), "schema: site-docs/style@1\n", "utf8");
-    await fs.writeFile(path.join(workspaceSrc, "docs", "style.json"), '{"schema":"site-docs/style@1"}', "utf8");
+    await fs.writeFile(
+      path.join(workspaceSrc, "docs", "f", "screenshots", "s.png"),
+      Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+    );
+    await fs.writeFile(
+      path.join(workspaceSrc, "docs", "style.yaml"),
+      "schema: site-docs/style@1\n",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(workspaceSrc, "docs", "style.json"),
+      '{"schema":"site-docs/style@1"}',
+      "utf8",
+    );
   });
 
   it("round-trips: src → backend → dst", async () => {
     const client = new BackendClient({ baseUrl: stub.url });
     const ws = await client.createWorkspace("round-trip-ws");
     const proj = await client.createProject(ws.id, "round-trip-proj");
-    const rev = await client.createRevision(ws.id, proj.id, { kind: "calibrate", author: "vitest" });
+    const rev = await client.createRevision(ws.id, proj.id, {
+      kind: "calibrate",
+      author: "vitest",
+    });
 
     const payloads = await readDocPack(workspaceSrc);
     expect(payloads.flows).not.toBeNull();
@@ -104,7 +128,7 @@ describe("push round-trip (readDocPack → backend → writeDocPack)", () => {
 
     for (const [k, p] of Object.entries(payloads)) {
       if (p === null) continue;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await client.putArtifact(ws.id, proj.id, rev.id, k as any, p);
     }
 
@@ -112,7 +136,6 @@ describe("push round-trip (readDocPack → backend → writeDocPack)", () => {
     const meta = await client.getRevision(ws.id, proj.id, "head");
     const fetched: Partial<Awaited<ReturnType<typeof readDocPack>>> = {};
     for (const a of meta.artifacts) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (fetched as any)[a] = await client.getArtifact(ws.id, proj.id, "head", a);
     }
     const r = await writeDocPack(workspaceDst, fetched);

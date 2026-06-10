@@ -92,7 +92,11 @@ export type ActionableState =
 // ---------------------------------------------------------------------------
 
 export class FlowExecutionError extends Error {
-  constructor(message: string, readonly stepId: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly stepId: string,
+    readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "FlowExecutionError";
   }
@@ -108,13 +112,25 @@ export function inferHaltCause(rawError: string): string | undefined {
   const hints: Array<[RegExp, string]> = [
     [/element is disabled\b/i, "target is disabled"],
     [/element is not enabled\b/i, "target is not enabled"],
-    [/element is not visible\b/i, "target is not visible (display:none / visibility:hidden / zero-sized)"],
-    [/element is not attached\b/i, "target was detached from the DOM (likely unmounted by an earlier action)"],
+    [
+      /element is not visible\b/i,
+      "target is not visible (display:none / visibility:hidden / zero-sized)",
+    ],
+    [
+      /element is not attached\b/i,
+      "target was detached from the DOM (likely unmounted by an earlier action)",
+    ],
     [/element is outside of the viewport\b/i, "target is outside the visible viewport"],
     [/element is not stable\b/i, "target is animating / not yet stable"],
     [/intercepts? pointer events\b/i, "target is covered by another element"],
-    [/strict mode violation\b/i, "selector matched multiple elements (strict-mode violation) — scope with :visible / :nth-match"],
-    [/timeout .* exceeded.*waiting for/is, "timeout waiting for selector — element didn't appear in time (consider raising timeout_ms or revisiting the locator)"],
+    [
+      /strict mode violation\b/i,
+      "selector matched multiple elements (strict-mode violation) — scope with :visible / :nth-match",
+    ],
+    [
+      /timeout .* exceeded.*waiting for/is,
+      "timeout waiting for selector — element didn't appear in time (consider raising timeout_ms or revisiting the locator)",
+    ],
   ];
   for (const [re, msg] of hints) {
     if (re.test(rawError)) return msg;
@@ -162,10 +178,15 @@ export interface RunFlowResult {
   annotations: AnnotationsFile;
 }
 
-const defaultScreenshotPath = (flow: string, stepId: string) => `docs/${flow}/screenshots/${stepId}.png`;
+const defaultScreenshotPath = (flow: string, stepId: string) =>
+  `docs/${flow}/screenshots/${stepId}.png`;
 
 /** Resolve a `target` value (`$name` ref or inline selector) using the flow-file's locators (or a custom resolver). */
-export function resolveTarget(value: string, flow: FlowFile, resolver?: RunFlowOptions["resolveLocator"]): string {
+export function resolveTarget(
+  value: string,
+  flow: FlowFile,
+  resolver?: RunFlowOptions["resolveLocator"],
+): string {
   const name = locatorRefName(value);
   if (!name) return value; // inline selector
   const resolved = (resolver ?? ((n: string) => flow.locators[n]))(name);
@@ -175,7 +196,11 @@ export function resolveTarget(value: string, flow: FlowFile, resolver?: RunFlowO
   return resolved;
 }
 
-async function applyWait(driver: BrowserDriver, wait: WaitSpec, resolve: (v: string) => string): Promise<void> {
+async function applyWait(
+  driver: BrowserDriver,
+  wait: WaitSpec,
+  resolve: (v: string) => string,
+): Promise<void> {
   if (typeof wait === "string") {
     if (wait === "network_idle") return driver.waitForNetworkIdle();
     if (wait === "load") return driver.waitForLoad();
@@ -215,7 +240,10 @@ async function checkSuccess(
   }
   if ("url_matches" in success) {
     if (!(await driver.urlMatches(success.url_matches))) {
-      throw new FlowExecutionError(`expected URL to match /${success.url_matches}/ — actual: ${await driver.currentUrl().catch(() => "?")}`, stepId);
+      throw new FlowExecutionError(
+        `expected URL to match /${success.url_matches}/ — actual: ${await driver.currentUrl().catch(() => "?")}`,
+        stepId,
+      );
     }
     return;
   }
@@ -223,16 +251,27 @@ async function checkSuccess(
     const { selector, text } = success.text_contains;
     const sel = resolve(selector);
     if (!(await driver.textContains(sel, text))) {
-      const actual = ((await driver.textOf(sel).catch(() => null)) ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
-      throw new FlowExecutionError(`expected ${selector} to contain ${JSON.stringify(text)} — ${await at()}; actual text: ${JSON.stringify(actual)}`, stepId);
+      const actual = ((await driver.textOf(sel).catch(() => null)) ?? "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 200);
+      throw new FlowExecutionError(
+        `expected ${selector} to contain ${JSON.stringify(text)} — ${await at()}; actual text: ${JSON.stringify(actual)}`,
+        stepId,
+      );
     }
   }
 }
 
-async function executeAction(driver: BrowserDriver, step: Step, selector: string | null): Promise<void> {
+async function executeAction(
+  driver: BrowserDriver,
+  step: Step,
+  selector: string | null,
+): Promise<void> {
   switch (step.action) {
     case "navigate":
-      if (!step.value) throw new FlowExecutionError("navigate requires `value` (path/URL)", step.id);
+      if (!step.value)
+        throw new FlowExecutionError("navigate requires `value` (path/URL)", step.id);
       return driver.goto(step.value);
     case "click":
       return driver.click(needSelector(selector, step));
@@ -240,7 +279,8 @@ async function executeAction(driver: BrowserDriver, step: Step, selector: string
       if (step.value === undefined) throw new FlowExecutionError("fill requires `value`", step.id);
       return driver.fill(needSelector(selector, step), step.value);
     case "upload":
-      if (step.value === undefined) throw new FlowExecutionError("upload requires `value` (file path)", step.id);
+      if (step.value === undefined)
+        throw new FlowExecutionError("upload requires `value` (file path)", step.id);
       return driver.upload(needSelector(selector, step), step.value);
     case "press":
       if (!step.value) throw new FlowExecutionError("press requires `value` (key)", step.id);
@@ -248,7 +288,8 @@ async function executeAction(driver: BrowserDriver, step: Step, selector: string
     case "hover":
       return driver.hover(needSelector(selector, step));
     case "select":
-      if (step.value === undefined) throw new FlowExecutionError("select requires `value` (option)", step.id);
+      if (step.value === undefined)
+        throw new FlowExecutionError("select requires `value` (option)", step.id);
       return driver.selectOption(needSelector(selector, step), step.value);
     case "check":
       return driver.setChecked(needSelector(selector, step), true);
@@ -260,7 +301,8 @@ async function executeAction(driver: BrowserDriver, step: Step, selector: string
 }
 
 function needSelector(selector: string | null, step: Step): string {
-  if (selector === null) throw new FlowExecutionError(`action "${step.action}" requires a \`target\``, step.id);
+  if (selector === null)
+    throw new FlowExecutionError(`action "${step.action}" requires a \`target\``, step.id);
   return selector;
 }
 
@@ -269,7 +311,11 @@ function needSelector(selector: string | null, step: Step): string {
  * Deterministic: given the same site state and driver behaviour, produces the same result. Halts on the first
  * locator / success-criterion failure.
  */
-export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFlowOptions = {}): Promise<RunFlowResult> {
+export async function runFlow(
+  flow: FlowFile,
+  driver: BrowserDriver,
+  opts: RunFlowOptions = {},
+): Promise<RunFlowResult> {
   const captureDocs = opts.captureDocs ?? true;
   const screenshotPathOf = opts.screenshotPath ?? defaultScreenshotPath;
   const resolve = (v: string) => resolveTarget(v, flow, opts.resolveLocator);
@@ -293,7 +339,8 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
     try {
       await executeAction(driver, step, selector);
       if (step.wait_for) {
-        if (step.wait_for === "element_stable" && selector) await driver.waitForElementStable(selector);
+        if (step.wait_for === "element_stable" && selector)
+          await driver.waitForElementStable(selector);
         else await applyWait(driver, step.wait_for, resolve);
       }
       if (step.success) await checkSuccess(driver, step.success, resolve, step.id);
@@ -301,7 +348,9 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
       // Optional step (conditionally-present UI): swallow the failure, log it, move on.
       // No screenshot / annotation for a skipped step — same as a `--start-from`-skipped one.
       if (step.optional) {
-        process.stderr.write(`runFlow: optional step "${step.id}" (${step.action}) skipped — ${(e as Error).message}\n`);
+        process.stderr.write(
+          `runFlow: optional step "${step.id}" (${step.action}) skipped — ${(e as Error).message}\n`,
+        );
         continue;
       }
       // Halt: dump a screenshot for triage (best-effort), prepend a 1-line inferred cause
@@ -316,10 +365,18 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
         throw new FlowExecutionError(`${causePrefix}${e.message}${suffix}`, e.stepId, e.cause);
       }
       const where = await driver.currentUrl().catch(() => "?");
-      throw new FlowExecutionError(`${causePrefix}step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`, step.id, e);
+      throw new FlowExecutionError(
+        `${causePrefix}step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`,
+        step.id,
+        e,
+      );
     }
 
-    const ex: ExecutedStep = { id: step.id, action: step.action, ...(selector ? { selector } : {}) };
+    const ex: ExecutedStep = {
+      id: step.id,
+      action: step.action,
+      ...(selector ? { selector } : {}),
+    };
     // Doc capture is best-effort. When a step's action *transitions the UI* the action target is often
     // unmounted by the time we capture — `boundingBox` would hang for the driver's default 30s. Short
     // timeout + try/catch → continue with no annotation for this step. `annotation.target` (if set)
@@ -348,7 +405,9 @@ export async function runFlow(flow: FlowFile, driver: BrowserDriver, opts: RunFl
           });
         }
       } catch (e) {
-        process.stderr.write(`runFlow: step "${step.id}" — annotation capture skipped (${(e as Error).message})\n`);
+        process.stderr.write(
+          `runFlow: step "${step.id}" — annotation capture skipped (${(e as Error).message})\n`,
+        );
       }
     }
     executed.push(ex);

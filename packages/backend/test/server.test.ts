@@ -5,7 +5,11 @@ const TOKEN = "test-token";
 let base = "";
 let stub: ReturnType<typeof createBackendStub>;
 
-const h = (extra: Record<string, string> = {}) => ({ authorization: `Bearer ${TOKEN}`, "content-type": "application/json", ...extra });
+const h = (extra: Record<string, string> = {}) => ({
+  authorization: `Bearer ${TOKEN}`,
+  "content-type": "application/json",
+  ...extra,
+});
 
 beforeAll(async () => {
   stub = createBackendStub({ token: TOKEN });
@@ -25,15 +29,27 @@ describe("backend stub", () => {
 
   it("401s without a Bearer token, and on a wrong token", async () => {
     expect((await fetch(`${base}/v1/workspaces`)).status).toBe(401);
-    expect((await fetch(`${base}/v1/workspaces`, { headers: { authorization: "Bearer nope" } })).status).toBe(401);
+    expect(
+      (await fetch(`${base}/v1/workspaces`, { headers: { authorization: "Bearer nope" } })).status,
+    ).toBe(401);
   });
 
   it("creates a workspace → project → revisions (linear, parent-linked) and round-trips an artifact", async () => {
-    const ws = await (await fetch(`${base}/v1/workspaces`, { method: "POST", headers: h(), body: JSON.stringify({ name: "acme" }) })).json();
+    const ws = await (
+      await fetch(`${base}/v1/workspaces`, {
+        method: "POST",
+        headers: h(),
+        body: JSON.stringify({ name: "acme" }),
+      })
+    ).json();
     expect(ws.id).toBeTruthy();
 
     const proj = await (
-      await fetch(`${base}/v1/workspaces/${ws.id}/projects`, { method: "POST", headers: h(), body: JSON.stringify({ name: "example" }) })
+      await fetch(`${base}/v1/workspaces/${ws.id}/projects`, {
+        method: "POST",
+        headers: h(),
+        body: JSON.stringify({ name: "example" }),
+      })
     ).json();
     expect(proj.workspace_id).toBe(ws.id);
     expect(proj.head_revision_id).toBeNull();
@@ -50,23 +66,37 @@ describe("backend stub", () => {
     expect(rev2.parent_revision_id).toBe(rev1.id);
 
     // head resolves to rev2
-    const head = await (await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions/head`, { headers: h() })).json();
+    const head = await (
+      await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions/head`, {
+        headers: h(),
+      })
+    ).json();
     expect(head.id).toBe(rev2.id);
 
     // PUT then GET an artifact
     const payload = { schema: "site-docs/annotations@1", flow: "f", annotations: [] };
-    const put = await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions/${rev2.id}/annotations`, {
-      method: "PUT",
-      headers: h(),
-      body: JSON.stringify(payload),
-    });
+    const put = await fetch(
+      `${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions/${rev2.id}/annotations`,
+      {
+        method: "PUT",
+        headers: h(),
+        body: JSON.stringify(payload),
+      },
+    );
     expect(put.status).toBe(200);
     expect((await put.json()).artifacts).toContain("annotations");
-    const got = await (await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions/${rev2.id}/annotations`, { headers: h() })).json();
+    const got = await (
+      await fetch(
+        `${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions/${rev2.id}/annotations`,
+        { headers: h() },
+      )
+    ).json();
     expect(got).toEqual(payload);
 
     // revisions list newest-first
-    const list = await (await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions`, { headers: h() })).json();
+    const list = await (
+      await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions`, { headers: h() })
+    ).json();
     expect(list.map((r: { id: string }) => r.id)).toEqual([rev2.id, rev1.id]);
 
     // run history
@@ -77,15 +107,35 @@ describe("backend stub", () => {
     });
     expect(run.status).toBe(201);
     expect((await run.json()).revision_id).toBe(rev2.id);
-    const runs = await (await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/run-history`, { headers: h() })).json();
+    const runs = await (
+      await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/run-history`, {
+        headers: h(),
+      })
+    ).json();
     expect(runs).toHaveLength(1);
   });
 
   it("404s unknown routes/artifacts; 400s a bad revision body", async () => {
     expect((await fetch(`${base}/v1/nope`, { headers: h() })).status).toBe(404);
-    const ws = await (await fetch(`${base}/v1/workspaces`, { method: "POST", headers: h(), body: JSON.stringify({ name: "w2" }) })).json();
-    const proj = await (await fetch(`${base}/v1/workspaces/${ws.id}/projects`, { method: "POST", headers: h(), body: JSON.stringify({ name: "p2" }) })).json();
-    const bad = await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions`, { method: "POST", headers: h(), body: JSON.stringify({ kind: "frobnicate" }) });
+    const ws = await (
+      await fetch(`${base}/v1/workspaces`, {
+        method: "POST",
+        headers: h(),
+        body: JSON.stringify({ name: "w2" }),
+      })
+    ).json();
+    const proj = await (
+      await fetch(`${base}/v1/workspaces/${ws.id}/projects`, {
+        method: "POST",
+        headers: h(),
+        body: JSON.stringify({ name: "p2" }),
+      })
+    ).json();
+    const bad = await fetch(`${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions`, {
+      method: "POST",
+      headers: h(),
+      body: JSON.stringify({ kind: "frobnicate" }),
+    });
     expect(bad.status).toBe(400);
   });
 

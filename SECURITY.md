@@ -15,12 +15,12 @@ docsxai is **pre-v1.0**. The current `docsxai` on npm is a typosquat-
 defensive pre-release stub that throws on import (see [`RELEASING.md`](RELEASING.md));
 the real package ships at v1.0. Until then:
 
-| Version range              | Support level                                                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Version range              | Support level                                                                                                                                                               |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `0.x` (pre-release)        | Pre-release versions carry no security guarantees. `security@kalebtec.com` still triages reports in good faith and ships fixes on a best-effort basis on the active branch. |
-| `1.(latest).x` (post-v1.0) | Patches for any qualifying vulnerability.                                                                     |
-| `1.(latest-1).x`           | Critical only.                                                                                                |
-| `1.(latest-2).x` and older | No support. Upgrade.                                                                                          |
+| `1.(latest).x` (post-v1.0) | Patches for any qualifying vulnerability.                                                                                                                                   |
+| `1.(latest-1).x`           | Critical only.                                                                                                                                                              |
+| `1.(latest-2).x` and older | No support. Upgrade.                                                                                                                                                        |
 
 "Critical" means: remote code execution, secrets exfiltration (auth-
 strategy cache leak), workspace escape, or backend auth bypass.

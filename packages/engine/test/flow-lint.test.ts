@@ -127,7 +127,7 @@ steps:
 });
 
 describe("lintFlow — R004 (bare data-* selector)", () => {
-  it("flags a step whose locator resolves to a bare `[data-foo=\"x\"]` selector", async () => {
+  it('flags a step whose locator resolves to a bare `[data-foo="x"]` selector', async () => {
     const flow = parseFlowFile(`
 name: f
 locators: { gen_btn: '[data-type="generate-button"]' }
@@ -201,7 +201,14 @@ describe("lintFlow — R001 (deep extends chain)", () => {
 describe("formatIssuesText", () => {
   it("groups issues by flow and includes the summary", () => {
     const issues: LintIssue[] = [
-      { code: "R002", severity: "warning", flow: "f", stepId: "s1", message: "msg", suggestion: "fix" },
+      {
+        code: "R002",
+        severity: "warning",
+        flow: "f",
+        stepId: "s1",
+        message: "msg",
+        suggestion: "fix",
+      },
       { code: "R004", severity: "info", flow: "f", stepId: "s2", message: "msg" },
     ];
     const out = formatIssuesText(issues);

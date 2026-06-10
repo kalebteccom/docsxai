@@ -51,7 +51,9 @@ describe("recommendFromActionable", () => {
 
 describe("recommendStatic", () => {
   const stepWithSuccess = (success: unknown) =>
-    parseFlowFile(`name: f\nlocators: { x: '#x' }\nsteps:\n  - id: s\n    action: wait\n    success: ${JSON.stringify(success)}\n`).steps[0]!;
+    parseFlowFile(
+      `name: f\nlocators: { x: '#x' }\nsteps:\n  - id: s\n    action: wait\n    success: ${JSON.stringify(success)}\n`,
+    ).steps[0]!;
 
   it("surfaces the halt screenshot when one exists", () => {
     const step = parseFlowFile(`name: f\nsteps:\n  - id: s\n    action: wait\n`).steps[0]!;
@@ -81,7 +83,9 @@ describe("buildDiagnoseReport", () => {
   });
 
   it("returns step + recommendations from the flow-file alone (no live probe, no halt screenshot)", async () => {
-    const flow = parseFlowFile(`name: f\nlocators: { b: '#btn' }\nsteps:\n  - id: s\n    action: click\n    target: $b\n`);
+    const flow = parseFlowFile(
+      `name: f\nlocators: { b: '#btn' }\nsteps:\n  - id: s\n    action: click\n    target: $b\n`,
+    );
     const r = await buildDiagnoseReport({
       workspace: tmp,
       flow,
@@ -114,15 +118,27 @@ describe("buildDiagnoseReport", () => {
   });
 
   it("invokes liveProbe and merges its recommendations", async () => {
-    const flow = parseFlowFile(`name: f\nlocators: { b: '#btn' }\nsteps:\n  - id: s\n    action: click\n    target: $b\n`);
+    const flow = parseFlowFile(
+      `name: f\nlocators: { b: '#btn' }\nsteps:\n  - id: s\n    action: click\n    target: $b\n`,
+    );
     const r = await buildDiagnoseReport({
       workspace: tmp,
       flow,
       step: flow.steps[0]!,
       resolvedSelector: "#btn",
-      liveProbe: async () => ({ cdpEndpoint: "http://localhost:9222", url: "https://app", actionable: "not-found", bbox: null }),
+      liveProbe: async () => ({
+        cdpEndpoint: "http://localhost:9222",
+        url: "https://app",
+        actionable: "not-found",
+        bbox: null,
+      }),
     });
-    expect(r.live).toEqual({ cdpEndpoint: "http://localhost:9222", url: "https://app", actionable: "not-found", bbox: null });
+    expect(r.live).toEqual({
+      cdpEndpoint: "http://localhost:9222",
+      url: "https://app",
+      actionable: "not-found",
+      bbox: null,
+    });
     expect(r.recommendations.find((rec) => rec.kind === "selector")).toBeDefined();
   });
 });
@@ -132,12 +148,21 @@ describe("formatReportText", () => {
     const text = formatReportText({
       workspace: "/tmp/ws",
       flow: "f",
-      step: { id: "s", action: "click", target: "$b", resolvedSelector: "#btn", success: { visible: "$x" } },
+      step: {
+        id: "s",
+        action: "click",
+        target: "$b",
+        resolvedSelector: "#btn",
+        success: { visible: "$x" },
+      },
       halt: { screenshotRelPath: "docs/f/halts/s.png" },
-      live: { cdpEndpoint: "http://localhost:9222", url: "https://app", actionable: "multiple-matches", bbox: null },
-      recommendations: [
-        { kind: "selector", rationale: "two matches", suggestion: "add :visible" },
-      ],
+      live: {
+        cdpEndpoint: "http://localhost:9222",
+        url: "https://app",
+        actionable: "multiple-matches",
+        bbox: null,
+      },
+      recommendations: [{ kind: "selector", rationale: "two matches", suggestion: "add :visible" }],
     });
     expect(text).toContain("diagnose: flow=f step=s");
     expect(text).toContain("target: $b (resolved: #btn)");

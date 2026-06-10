@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { FlowFileError, locatorRefName, parseFlowFile, resolveFlowExtends, serializeFlowFile } from "../src/flow-file.js";
+import {
+  FlowFileError,
+  locatorRefName,
+  parseFlowFile,
+  resolveFlowExtends,
+  serializeFlowFile,
+} from "../src/flow-file.js";
 
 const SAMPLE = `
 name: recap-create
@@ -27,7 +33,10 @@ describe("parseFlowFile", () => {
   it("parses a valid flow-file and applies defaults", () => {
     const flow = parseFlowFile(SAMPLE, "sample.flow.yaml");
     expect(flow.name).toBe("recap-create");
-    expect(flow.prerequisites).toEqual([{ logged_in_as: "editor" }, { feature_flag: "recap.enabled" }]);
+    expect(flow.prerequisites).toEqual([
+      { logged_in_as: "editor" },
+      { feature_flag: "recap.enabled" },
+    ]);
     expect(flow.locators.play_button).toBe('[data-testid="play-recap"]');
     expect(flow.steps).toHaveLength(2);
     expect(flow.steps[0]!.id).toBe("open-sidebar");
@@ -159,13 +168,19 @@ steps:
       b: `name: b\nextends: c\nsteps:\n  - id: b1\n    action: wait\n`,
       a: `name: a\nextends: b\nsteps:\n  - id: a1\n    action: wait\n`,
     };
-    const merged = await resolveFlowExtends(parseFlowFile(chain.a!), (n) => parseFlowFile(chain[n]!, `${n}.flow.yaml`));
+    const merged = await resolveFlowExtends(parseFlowFile(chain.a!), (n) =>
+      parseFlowFile(chain[n]!, `${n}.flow.yaml`),
+    );
     expect(merged.steps.map((s) => s.id)).toEqual(["c1", "b1", "a1"]);
   });
 
   it("rejects a step-id collision across the merge", async () => {
-    const bad = parseFlowFile(`name: c\nextends: preamble\nsteps:\n  - id: nav\n    action: wait\n`);
-    await expect(resolveFlowExtends(bad, load)).rejects.toThrow(/collides with a step inherited via `extends`/);
+    const bad = parseFlowFile(
+      `name: c\nextends: preamble\nsteps:\n  - id: nav\n    action: wait\n`,
+    );
+    await expect(resolveFlowExtends(bad, load)).rejects.toThrow(
+      /collides with a step inherited via `extends`/,
+    );
   });
 
   it("rejects an `extends` cycle", async () => {
@@ -173,14 +188,30 @@ steps:
       a: `name: a\nextends: b\nsteps:\n  - id: sa\n    action: wait\n`,
       b: `name: b\nextends: a\nsteps:\n  - id: sb\n    action: wait\n`,
     };
-    await expect(resolveFlowExtends(parseFlowFile(cyclic.a!), (n) => parseFlowFile(cyclic[n]!, `${n}.flow.yaml`))).rejects.toThrow(/cycle/i);
+    await expect(
+      resolveFlowExtends(parseFlowFile(cyclic.a!), (n) =>
+        parseFlowFile(cyclic[n]!, `${n}.flow.yaml`),
+      ),
+    ).rejects.toThrow(/cycle/i);
   });
 
   it("surfaces a missing `extends` target", async () => {
-    await expect(resolveFlowExtends(parseFlowFile(`name: c\nextends: nonexistent\nsteps:\n  - id: s\n    action: wait\n`), load)).rejects.toThrow(/nonexistent/);
+    await expect(
+      resolveFlowExtends(
+        parseFlowFile(`name: c\nextends: nonexistent\nsteps:\n  - id: s\n    action: wait\n`),
+        load,
+      ),
+    ).rejects.toThrow(/nonexistent/);
   });
 
   it("rejects a locator ref unresolved in both parent and child after the merge", async () => {
-    await expect(resolveFlowExtends(parseFlowFile(`name: c\nextends: preamble\nsteps:\n  - id: s\n    action: click\n    target: $nowhere\n`), load)).rejects.toThrow(/unresolved locator/i);
+    await expect(
+      resolveFlowExtends(
+        parseFlowFile(
+          `name: c\nextends: preamble\nsteps:\n  - id: s\n    action: click\n    target: $nowhere\n`,
+        ),
+        load,
+      ),
+    ).rejects.toThrow(/unresolved locator/i);
   });
 });

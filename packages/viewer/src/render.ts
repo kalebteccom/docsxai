@@ -79,7 +79,8 @@ async function discoverFlows(docsDir: string): Promise<string[]> {
   }
   const flows: string[] = [];
   for (const e of entries) {
-    if (e.isDirectory() && (await exists(path.join(docsDir, e.name, "annotations.json")))) flows.push(e.name);
+    if (e.isDirectory() && (await exists(path.join(docsDir, e.name, "annotations.json"))))
+      flows.push(e.name);
   }
   return flows.sort();
 }
@@ -250,7 +251,12 @@ function renderedFooter(renderedAt: string): string {
 
 function flowPageHtml(
   flow: string,
-  steps: Array<{ id: string; screenshot: string | null; anns: AnnotationRecord[]; md: string | null }>,
+  steps: Array<{
+    id: string;
+    screenshot: string | null;
+    anns: AnnotationRecord[];
+    md: string | null;
+  }>,
   renderedAt: string,
 ): string {
   const body = steps
@@ -264,7 +270,9 @@ function flowPageHtml(
           : s.anns.length === 1
             ? `<div class="caption">${esc(s.anns[0]!.copy)}</div>`
             : `<ol class="caption-list">${s.anns.map((a) => `<li>${esc(a.copy)}</li>`).join("")}</ol>`;
-      const md = s.md ? `<details><summary>Step write-up</summary><pre>${esc(s.md)}</pre></details>` : "";
+      const md = s.md
+        ? `<details><summary>Step write-up</summary><pre>${esc(s.md)}</pre></details>`
+        : "";
       return `<section class="step"><h2>${esc(s.id)}</h2>${shot}${cap}${md}</section>`;
     })
     .join("\n");
@@ -283,7 +291,9 @@ interface FlowSummary {
 function indexHtml(meta: FlowSummary[], renderedAt: string): string {
   const cards = meta
     .map((m) => {
-      const img = m.thumb ? `<img src="${esc(m.thumb)}" alt="">` : `<div class="thumb-missing">no screenshot</div>`;
+      const img = m.thumb
+        ? `<img src="${esc(m.thumb)}" alt="">`
+        : `<div class="thumb-missing">no screenshot</div>`;
       const sub = `${m.steps} step${m.steps === 1 ? "" : "s"}${m.annotations ? `, ${m.annotations} annotation${m.annotations === 1 ? "" : "s"}` : ""}`;
       return `<a class="flow-card" href="${esc(m.flow)}/index.html">${img}<div class="flow-card-meta"><strong>${esc(m.flow)}</strong><span>${sub}</span></div></a>`;
     })
@@ -315,7 +325,10 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     let stepIds = [...new Set((annFile?.annotations ?? []).map((a) => a.step))];
     if (stepIds.length === 0) {
       const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
-      stepIds = shots.filter((s) => s.endsWith(".png")).map((s) => s.replace(/\.png$/, "")).sort();
+      stepIds = shots
+        .filter((s) => s.endsWith(".png"))
+        .map((s) => s.replace(/\.png$/, ""))
+        .sort();
     }
 
     const steps = [];
@@ -335,7 +348,11 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     }
 
     await fs.mkdir(path.join(opts.outDir, flow), { recursive: true });
-    await fs.writeFile(path.join(opts.outDir, flow, "index.html"), flowPageHtml(flow, steps, renderedAt), "utf8");
+    await fs.writeFile(
+      path.join(opts.outDir, flow, "index.html"),
+      flowPageHtml(flow, steps, renderedAt),
+      "utf8",
+    );
     pages.push(`${flow}/index.html`);
 
     const thumbStep = steps.find((s) => s.screenshot);
@@ -347,6 +364,10 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     });
   }
 
-  await fs.writeFile(path.join(opts.outDir, "index.html"), indexHtml(flowSummaries, renderedAt), "utf8");
+  await fs.writeFile(
+    path.join(opts.outDir, "index.html"),
+    indexHtml(flowSummaries, renderedAt),
+    "utf8",
+  );
   return { pages };
 }

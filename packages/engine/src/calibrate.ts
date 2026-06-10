@@ -17,7 +17,10 @@ import { FlowFileError, parseFlowFile, serializeFlowFile } from "./flow-file.js"
 import { initStyleIfAbsent } from "./style.js";
 
 export class CalibrateError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "CalibrateError";
   }

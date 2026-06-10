@@ -5,7 +5,7 @@ description: Vendored fallback for teams that want to pin site-docs behavior int
 
 # site-docs (vendored fallback)
 
-This is the *secondary* path. The first-class surface is the **@kalebtec/docsxai-plugin Claude Code plugin** — if it's installed, use it directly:
+This is the _secondary_ path. The first-class surface is the **@kalebtec/docsxai-plugin Claude Code plugin** — if it's installed, use it directly:
 
 - Calibration (agent-driven): the plugin's `site-docs-calibrate` skill (discovery → mapping+testing → commit, producing a doc pack) and `site-docs-diagnose` (the explicit failure path when a deterministic run halts on drift).
 - Deterministic execution: `/site-docs:run <project-dir>` (re-run flow-files, refresh `annotations.json` + screenshots), `/site-docs:render <project-dir>` (build the viewer), `/site-docs:login`.

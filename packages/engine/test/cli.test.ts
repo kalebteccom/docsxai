@@ -63,12 +63,16 @@ describe("site-docs CLI — main()", () => {
   });
 
   it("diagnose with invalid --format exits 2", async () => {
-    expect(await main(["diagnose", "/some/ws", "--flow", "f", "--step", "s", "--format", "xml"])).toBe(2);
+    expect(
+      await main(["diagnose", "/some/ws", "--flow", "f", "--step", "s", "--format", "xml"]),
+    ).toBe(2);
     expect(err).toMatch(/--format must be/);
   });
 
   it("diagnose with missing flow file exits 1", async () => {
-    expect(await main(["diagnose", "/definitely/not/real", "--flow", "noflow", "--step", "s"])).toBe(1);
+    expect(
+      await main(["diagnose", "/definitely/not/real", "--flow", "noflow", "--step", "s"]),
+    ).toBe(1);
     expect(err).toMatch(/no flow named "noflow"/);
   });
 

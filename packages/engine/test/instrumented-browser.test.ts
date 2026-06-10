@@ -1,7 +1,11 @@
 import * as vm from "node:vm";
 import { describe, expect, it } from "vitest";
 import { ManualCaptureStrategy } from "../src/auth.js";
-import { helperScript, PlaywrightInstrumentedBrowser, SECURITY_LOWERED_ARGS } from "../src/playwright-instrumented-browser.js";
+import {
+  helperScript,
+  PlaywrightInstrumentedBrowser,
+  SECURITY_LOWERED_ARGS,
+} from "../src/playwright-instrumented-browser.js";
 
 describe("PlaywrightInstrumentedBrowser", () => {
   it("constructs without launching a browser", () => {
@@ -30,7 +34,9 @@ describe("PlaywrightInstrumentedBrowser", () => {
   });
 
   it("plugs into ManualCaptureStrategy as the InstrumentedBrowser factory", () => {
-    const s = new ManualCaptureStrategy(() => new PlaywrightInstrumentedBrowser({ headless: true }));
+    const s = new ManualCaptureStrategy(
+      () => new PlaywrightInstrumentedBrowser({ headless: true }),
+    );
     expect(s.name).toBe("manual-capture");
   });
 });
@@ -107,7 +113,8 @@ describe("helperScript (page-side __siteDocs.capture lifecycle)", () => {
       console: { info: () => {} },
     };
     vm.runInNewContext(helperScript("console"), ctx);
-    const siteDocs = (ctx.window as { __siteDocs: { sentinel: string; capture: () => unknown } }).__siteDocs;
+    const siteDocs = (ctx.window as { __siteDocs: { sentinel: string; capture: () => unknown } })
+      .__siteDocs;
     expect(siteDocs.sentinel).toBe("preserve-me");
     expect(typeof siteDocs.capture).toBe("function");
   });

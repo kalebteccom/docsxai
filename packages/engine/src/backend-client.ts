@@ -38,7 +38,11 @@ export interface Revision {
 }
 
 export class BackendClientError extends Error {
-  constructor(message: string, readonly status?: number, readonly body?: unknown) {
+  constructor(
+    message: string,
+    readonly status?: number,
+    readonly body?: unknown,
+  ) {
     super(message);
     this.name = "BackendClientError";
   }
@@ -93,7 +97,11 @@ export class BackendClient {
       } catch {
         /* leave as text */
       }
-      throw new BackendClientError(`${method} ${path} → ${res.status}: ${text.slice(0, 200)}`, res.status, parsed);
+      throw new BackendClientError(
+        `${method} ${path} → ${res.status}: ${text.slice(0, 200)}`,
+        res.status,
+        parsed,
+      );
     }
     if (res.status === 204) return undefined as T;
     return (await res.json()) as T;
@@ -126,14 +134,24 @@ export class BackendClient {
     return this.req("POST", `/v1/workspaces/${encodeURIComponent(wsId)}/projects`, { name });
   }
   getProject(wsId: string, projectId: string): Promise<Project> {
-    return this.req("GET", `/v1/workspaces/${encodeURIComponent(wsId)}/projects/${encodeURIComponent(projectId)}`);
+    return this.req(
+      "GET",
+      `/v1/workspaces/${encodeURIComponent(wsId)}/projects/${encodeURIComponent(projectId)}`,
+    );
   }
 
   // --- revisions ---
   listRevisions(wsId: string, projectId: string): Promise<Revision[]> {
-    return this.req("GET", `/v1/workspaces/${encodeURIComponent(wsId)}/projects/${encodeURIComponent(projectId)}/revisions`);
+    return this.req(
+      "GET",
+      `/v1/workspaces/${encodeURIComponent(wsId)}/projects/${encodeURIComponent(projectId)}/revisions`,
+    );
   }
-  createRevision(wsId: string, projectId: string, body: { kind: RevisionKind; author: string }): Promise<Revision> {
+  createRevision(
+    wsId: string,
+    projectId: string,
+    body: { kind: RevisionKind; author: string },
+  ): Promise<Revision> {
     return this.req(
       "POST",
       `/v1/workspaces/${encodeURIComponent(wsId)}/projects/${encodeURIComponent(projectId)}/revisions`,
@@ -160,7 +178,12 @@ export class BackendClient {
       payload,
     );
   }
-  getArtifact<T = unknown>(wsId: string, projectId: string, rev: string, artifact: RevisionArtifact): Promise<T> {
+  getArtifact<T = unknown>(
+    wsId: string,
+    projectId: string,
+    rev: string,
+    artifact: RevisionArtifact,
+  ): Promise<T> {
     return this.req(
       "GET",
       `/v1/workspaces/${encodeURIComponent(wsId)}/projects/${encodeURIComponent(projectId)}/revisions/${encodeURIComponent(rev)}/${artifact}`,
@@ -191,7 +214,7 @@ export interface ScreenshotsPayload {
 export interface StylePayload {
   schema: "site-docs/style-bundle@1";
   yaml: string | null;
-  json: unknown | null;
+  json: unknown;
 }
 
 export interface LocatorsPayload {

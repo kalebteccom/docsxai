@@ -66,7 +66,11 @@ describe("validateManifest", () => {
   });
 
   it("flags non-semver version as an error", () => {
-    const issues = validateManifest({ name: "x", version: "rc1", description: "ok ok ok ok ok ok ok ok" });
+    const issues = validateManifest({
+      name: "x",
+      version: "rc1",
+      description: "ok ok ok ok ok ok ok ok",
+    });
     expect(issues.find((i) => i.message.match(/version/))?.severity).toBe("error");
   });
 
@@ -86,7 +90,9 @@ describe("validatePluginBundle (static validation)", () => {
     const issues = await validatePluginBundle({ knownCliCommands: KNOWN_CLI_COMMANDS });
     const errors = issues.filter((i) => i.severity === "error");
     if (errors.length) {
-      throw new Error(`validatePluginBundle errors:\n${errors.map((i: ValidationIssue) => `  [${i.where}] ${i.message}`).join("\n")}`);
+      throw new Error(
+        `validatePluginBundle errors:\n${errors.map((i: ValidationIssue) => `  [${i.where}] ${i.message}`).join("\n")}`,
+      );
     }
   });
 

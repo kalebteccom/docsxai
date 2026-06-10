@@ -16,7 +16,11 @@ afterEach(async () => {
 describe("initWorkspace", () => {
   it("scaffolds a workspace with auth descriptor + config + gitignore", async () => {
     const dir = path.join(tmp, "ws");
-    const r = await initWorkspace({ dir, appUrl: "https://localhost:5173", ignoreHttpsErrors: true });
+    const r = await initWorkspace({
+      dir,
+      appUrl: "https://localhost:5173",
+      ignoreHttpsErrors: true,
+    });
     expect(r.dir).toBe(dir);
     expect(r.ephemeral).toBe(false);
     for (const sub of ["flows", "docs", "auth", ".auth", ".viewer"]) {
@@ -25,9 +29,15 @@ describe("initWorkspace", () => {
     expect(await fs.readFile(path.join(dir, ".gitignore"), "utf8")).toContain(".auth/");
 
     const cfg = await loadWorkspaceConfig(dir);
-    expect(cfg).toMatchObject({ schema: "site-docs/workspace@1", app_url: "https://localhost:5173", ignore_https_errors: true });
+    expect(cfg).toMatchObject({
+      schema: "site-docs/workspace@1",
+      app_url: "https://localhost:5173",
+      ignore_https_errors: true,
+    });
 
-    const descriptor = parseAuthStrategyFile(await fs.readFile(path.join(dir, "auth", "strategy.yaml"), "utf8"));
+    const descriptor = parseAuthStrategyFile(
+      await fs.readFile(path.join(dir, "auth", "strategy.yaml"), "utf8"),
+    );
     expect(descriptor.default_role).toBe("editor");
     expect(descriptor.roles.editor!.strategy).toBe("manual-capture");
     expect(descriptor.roles.editor!.cache).toEqual({ enabled: true, store: "local", ttl: "1h" });
@@ -37,12 +47,20 @@ describe("initWorkspace", () => {
 
   it("honours --auth none (no auth/strategy.yaml), --role, --ttl, --capture-trigger", async () => {
     const dir = path.join(tmp, "ws2");
-    await initWorkspace({ dir, auth: "none", role: "viewer", ttl: "session", captureTrigger: "button" });
+    await initWorkspace({
+      dir,
+      auth: "none",
+      role: "viewer",
+      ttl: "session",
+      captureTrigger: "button",
+    });
     await expect(fs.access(path.join(dir, "auth", "strategy.yaml"))).rejects.toThrow();
     // (role/ttl/trigger only matter when auth=manual-capture; check they're accepted, not that they appear)
     const dir3 = path.join(tmp, "ws3");
     await initWorkspace({ dir: dir3, role: "viewer", ttl: "30m", captureTrigger: "button" });
-    const d = parseAuthStrategyFile(await fs.readFile(path.join(dir3, "auth", "strategy.yaml"), "utf8"));
+    const d = parseAuthStrategyFile(
+      await fs.readFile(path.join(dir3, "auth", "strategy.yaml"), "utf8"),
+    );
     expect(d.default_role).toBe("viewer");
     expect(d.roles.viewer!.cache.ttl).toBe("30m");
     expect(d.roles.viewer!.options).toEqual({ capture_trigger: "button" });

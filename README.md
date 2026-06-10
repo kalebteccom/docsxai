@@ -67,13 +67,13 @@ Full agent-driven workflow + the calibration-loop affordances (`lint`, `flow-tre
 
 ## Packages
 
-| package | role |
-|---|---|
-| [`@kalebtec/docsxai-engine`](packages/engine/) | LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, the full `site-docs` CLI. |
-| [`@kalebtec/docsxai-plugin`](packages/plugin/) | Claude Code plugin — calibrate + diagnose skills, run/render/login commands. The recommended invocation surface for agent-driven workflows. |
+| package                                          | role                                                                                                                                                           |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@kalebtec/docsxai-engine`](packages/engine/)   | LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, the full `site-docs` CLI.                                   |
+| [`@kalebtec/docsxai-plugin`](packages/plugin/)   | Claude Code plugin — calibrate + diagnose skills, run/render/login commands. The recommended invocation surface for agent-driven workflows.                    |
 | [`@kalebtec/docsxai-backend`](packages/backend/) | Authenticated stub service for doc-pack persistence (in-memory linear-immutable revisions today; hosted deployment is Phase 2). REST + per-resource endpoints. |
-| [`@kalebtec/docsxai-skill`](packages/skill/) | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo. |
-| [`@kalebtec/docsxai-viewer`](packages/viewer/) | Static-HTML viewer with halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time. |
+| [`@kalebtec/docsxai-skill`](packages/skill/)     | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                 |
+| [`@kalebtec/docsxai-viewer`](packages/viewer/)   | Static-HTML viewer with halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time.                                          |
 
 ## CLI reference (one line each)
 

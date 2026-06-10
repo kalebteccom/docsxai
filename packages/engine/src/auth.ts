@@ -62,13 +62,18 @@ export interface AuthStrategy {
 
 export class NotImplementedStrategyError extends Error {
   constructor(name: StrategyName) {
-    super(`auth strategy "${name}" is not implemented in this build (MVP ships \`manual-capture\` only)`);
+    super(
+      `auth strategy "${name}" is not implemented in this build (MVP ships \`manual-capture\` only)`,
+    );
     this.name = "NotImplementedStrategyError";
   }
 }
 
 export class AuthStrategyConfigError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "AuthStrategyConfigError";
   }
@@ -79,7 +84,10 @@ export class AuthStrategyConfigError extends Error {
 // ---------------------------------------------------------------------------
 
 /** Parse + validate an `auth/strategy.yaml` descriptor from YAML text. */
-export function parseAuthStrategyFile(yamlText: string, source = "<auth/strategy.yaml>"): AuthStrategyDescriptor {
+export function parseAuthStrategyFile(
+  yamlText: string,
+  source = "<auth/strategy.yaml>",
+): AuthStrategyDescriptor {
   let raw: unknown;
   try {
     raw = parseYaml(yamlText);
@@ -91,13 +99,19 @@ export function parseAuthStrategyFile(yamlText: string, source = "<auth/strategy
     const issues = (r.error as z.ZodError).issues
       .map((i) => `  • ${i.path.length ? i.path.join(".") : "(root)"}: ${i.message}`)
       .join("\n");
-    throw new AuthStrategyConfigError(`${source}: invalid auth-strategy descriptor:\n${issues}`, r.error);
+    throw new AuthStrategyConfigError(
+      `${source}: invalid auth-strategy descriptor:\n${issues}`,
+      r.error,
+    );
   }
   return r.data;
 }
 
 /** Resolve a role's `creds_env` name map into actual values from an env source (defaults to `process.env`). */
-export function resolveCredsEnv(roleAuth: RoleAuth, env: NodeJS.ProcessEnv = process.env): Record<string, string> {
+export function resolveCredsEnv(
+  roleAuth: RoleAuth,
+  env: NodeJS.ProcessEnv = process.env,
+): Record<string, string> {
   const out: Record<string, string> = {};
   const missing: string[] = [];
   for (const [key, varName] of Object.entries(roleAuth.creds_env)) {
@@ -172,7 +186,7 @@ export class LocalStorageStateCache {
     }
     let parsed: CachedState;
     try {
-      parsed = CachedStateSchema.parse(JSON.parse(text)) as CachedState;
+      parsed = CachedStateSchema.parse(JSON.parse(text));
     } catch {
       return null; // corrupt cache → treat as miss
     }
@@ -199,7 +213,9 @@ export class LocalStorageStateCache {
     opts: { authCookie?: string } = {},
   ): Promise<{ expiresAt: number; source: string }> {
     const authCookieName = opts.authCookie ?? roleAuth.cache.auth_cookie;
-    const fromCookie = authCookieName ? cookieExpiryByName(result.storageState, authCookieName) : undefined;
+    const fromCookie = authCookieName
+      ? cookieExpiryByName(result.storageState, authCookieName)
+      : undefined;
     const ttlMs = ttlToMs(roleAuth.cache.ttl);
 
     let expiresAt: number;
@@ -214,7 +230,8 @@ export class LocalStorageStateCache {
       expiresAt = now + ttlMs;
       source = "ttl";
     } else {
-      const reported = result.expiresAt && result.expiresAt > now + 60_000 ? result.expiresAt : undefined;
+      const reported =
+        result.expiresAt && result.expiresAt > now + 60_000 ? result.expiresAt : undefined;
       expiresAt = reported ?? now + 3_600_000;
       source = reported ? "strategy-reported expiresAt" : "1h default";
     }

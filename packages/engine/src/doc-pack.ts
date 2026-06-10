@@ -70,13 +70,13 @@ export const SuccessSpec = z.union([
   z.object({ visible: LocatorRef }).strict(),
   z.object({ hidden: LocatorRef }).strict(),
   z.object({ url_matches: z.string().min(1) }).strict(),
-  z.object({ text_contains: z.object({ selector: LocatorRef, text: z.string() }).strict() }).strict(),
+  z
+    .object({ text_contains: z.object({ selector: LocatorRef, text: z.string() }).strict() })
+    .strict(),
 ]);
 export type SuccessSpec = z.infer<typeof SuccessSpec>;
 
-export const NudgeOffset = z
-  .object({ x: z.number(), y: z.number() })
-  .strict();
+export const NudgeOffset = z.object({ x: z.number(), y: z.number() }).strict();
 export type NudgeOffset = z.infer<typeof NudgeOffset>;
 
 export const StepAnnotation = z
@@ -131,7 +131,8 @@ export const Step = z
   })
   .strict()
   .refine((s) => !(s.annotation && s.annotations), {
-    message: "step has both `annotation` and `annotations`; use one (`annotations: [...]` for the multi-callout form)",
+    message:
+      "step has both `annotation` and `annotations`; use one (`annotations: [...]` for the multi-callout form)",
     path: ["annotations"],
   });
 export type Step = z.infer<typeof Step>;
@@ -243,7 +244,11 @@ export const StrategyName = z.enum([
 export type StrategyName = z.infer<typeof StrategyName>;
 
 /** `session` = use the captured session's own lifetime; otherwise a duration string (`30m`, `1h`) or ms number. */
-export const CacheTtl = z.union([z.literal("session"), z.string().regex(/^\d+(ms|s|m|h)$/), z.number().int().positive()]);
+export const CacheTtl = z.union([
+  z.literal("session"),
+  z.string().regex(/^\d+(ms|s|m|h)$/),
+  z.number().int().positive(),
+]);
 export type CacheTtl = z.infer<typeof CacheTtl>;
 
 export const RoleAuth = z

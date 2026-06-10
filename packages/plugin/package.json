@@ -12,7 +12,13 @@
   },
   "homepage": "https://github.com/kalebteccom/docsxai#readme",
   "bugs": "https://github.com/kalebteccom/docsxai/issues",
-  "keywords": ["docsxai", "documentation", "playwright", "claude-code", "agent"],
+  "keywords": [
+    "docsxai",
+    "documentation",
+    "playwright",
+    "claude-code",
+    "agent"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -25,7 +31,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },

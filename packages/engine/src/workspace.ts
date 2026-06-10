@@ -125,7 +125,11 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
     ...(opts.ignoreHttpsErrors ? { ignore_https_errors: true } : {}),
     created_at: new Date().toISOString(),
   };
-  await fs.writeFile(path.join(dir, WORKSPACE_CONFIG_FILE), JSON.stringify(cfg, null, 2) + "\n", "utf8");
+  await fs.writeFile(
+    path.join(dir, WORKSPACE_CONFIG_FILE),
+    JSON.stringify(cfg, null, 2) + "\n",
+    "utf8",
+  );
   created.push(WORKSPACE_CONFIG_FILE);
 
   if (auth === "manual-capture") {
@@ -136,11 +140,20 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
         [role]: {
           strategy: "manual-capture",
           options: { capture_trigger: trigger },
-          cache: { enabled: true, store: "local", ttl, ...(opts.authCookie ? { auth_cookie: opts.authCookie } : {}) },
+          cache: {
+            enabled: true,
+            store: "local",
+            ttl,
+            ...(opts.authCookie ? { auth_cookie: opts.authCookie } : {}),
+          },
         },
       },
     };
-    await fs.writeFile(path.join(dir, "auth", "strategy.yaml"), stringifyYaml(descriptor, { lineWidth: 100 }), "utf8");
+    await fs.writeFile(
+      path.join(dir, "auth", "strategy.yaml"),
+      stringifyYaml(descriptor, { lineWidth: 100 }),
+      "utf8",
+    );
     created.push("auth/strategy.yaml");
   }
 

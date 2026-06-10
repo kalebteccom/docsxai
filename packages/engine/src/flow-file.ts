@@ -10,7 +10,10 @@ import { z } from "zod";
 import { FlowFile, type Step } from "./doc-pack.js";
 
 export class FlowFileError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "FlowFileError";
   }
@@ -35,7 +38,10 @@ export function parseFlowFile(yamlText: string, source = "<flow-file>"): FlowFil
   }
   const result = FlowFile.safeParse(raw);
   if (!result.success) {
-    throw new FlowFileError(`${source}: invalid flow-file:\n${formatZodIssues(result.error)}`, result.error);
+    throw new FlowFileError(
+      `${source}: invalid flow-file:\n${formatZodIssues(result.error)}`,
+      result.error,
+    );
   }
   const flow = result.data;
   // A flow with `extends` may reference locators it inherits from the parent — defer the ref check to
@@ -69,7 +75,8 @@ function collectLocatorRefs(step: Step): string[] {
     }
   };
   push(step.target);
-  if (step.wait_for && typeof step.wait_for === "object" && "selector" in step.wait_for) push(step.wait_for.selector);
+  if (step.wait_for && typeof step.wait_for === "object" && "selector" in step.wait_for)
+    push(step.wait_for.selector);
   if (step.success) {
     if ("visible" in step.success) push(step.success.visible);
     else if ("hidden" in step.success) push(step.success.hidden);
@@ -103,7 +110,9 @@ function assertStepIdsUnique(flow: FlowFile, source: string): void {
     seen.add(step.id);
   }
   if (dupes.size) {
-    throw new FlowFileError(`${source}: duplicate step ids: ${[...dupes].map((d) => `"${d}"`).join(", ")}`);
+    throw new FlowFileError(
+      `${source}: duplicate step ids: ${[...dupes].map((d) => `"${d}"`).join(", ")}`,
+    );
   }
 }
 
@@ -120,7 +129,9 @@ export async function resolveFlowExtends(
 ): Promise<FlowFile> {
   if (!flow.extends) return flow;
   if (visited.has(flow.name)) {
-    throw new FlowFileError(`flow "${flow.name}": \`extends\` cycle (chain: ${[...visited, flow.name].join(" → ")})`);
+    throw new FlowFileError(
+      `flow "${flow.name}": \`extends\` cycle (chain: ${[...visited, flow.name].join(" → ")})`,
+    );
   }
   visited.add(flow.name);
 
@@ -128,14 +139,21 @@ export async function resolveFlowExtends(
   try {
     parentRaw = await loadFlowFile(flow.extends);
   } catch (e) {
-    throw e instanceof FlowFileError ? e : new FlowFileError(`flow "${flow.name}": cannot load \`extends\` target "${flow.extends}": ${(e as Error).message}`, e);
+    throw e instanceof FlowFileError
+      ? e
+      : new FlowFileError(
+          `flow "${flow.name}": cannot load \`extends\` target "${flow.extends}": ${(e as Error).message}`,
+          e,
+        );
   }
   const parent = await resolveFlowExtends(parentRaw, loadFlowFile, visited);
 
   const parentStepIds = new Set(parent.steps.map((s) => s.id));
   for (const s of flow.steps) {
     if (parentStepIds.has(s.id)) {
-      throw new FlowFileError(`flow "${flow.name}": step id "${s.id}" collides with a step inherited via \`extends\` from "${flow.extends}"`);
+      throw new FlowFileError(
+        `flow "${flow.name}": step id "${s.id}" collides with a step inherited via \`extends\` from "${flow.extends}"`,
+      );
     }
   }
 

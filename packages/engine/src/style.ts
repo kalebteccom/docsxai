@@ -10,7 +10,10 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { StyleArtifact } from "./doc-pack.js";
 
 export class StyleError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "StyleError";
   }
@@ -19,7 +22,10 @@ export class StyleError extends Error {
 /** The seed style every workspace starts with — overwritable by the agent during calibration. */
 export const DEFAULT_STYLE: StyleArtifact = {
   schema: "site-docs/style@1",
-  voice: { tone: "concise, instructional, second-person ('you')", audience: "end users (not engineers)" },
+  voice: {
+    tone: "concise, instructional, second-person ('you')",
+    audience: "end users (not engineers)",
+  },
   structure: { per_step: "one short imperative sentence + a screenshot; no internal jargon" },
   terminology: {},
   pruning_rules: [
@@ -41,8 +47,10 @@ export const DEFAULT_STYLE: StyleArtifact = {
 export const JARGON_PATTERNS: Record<string, RegExp> = {
   "VERIFY/EXPECT/ASSERT directives": /\b(VERIFY|EXPECT|ASSERT)\b/g,
   "WAIT directives": /\bWAIT(?:\s+FOR)?\b/g,
-  "internal locator names": /\b(data-testid|data-test|data-cy|data-qa|querySelector|getByRole|getByText)\b/g,
-  "network-verification blocks": /\b(GET|POST|PUT|DELETE|PATCH)\s+\/(?:api|v\d)\/\S+|\bstatus[:\s]+[1-5]\d{2}\b/g,
+  "internal locator names":
+    /\b(data-testid|data-test|data-cy|data-qa|querySelector|getByRole|getByText)\b/g,
+  "network-verification blocks":
+    /\b(GET|POST|PUT|DELETE|PATCH)\s+\/(?:api|v\d)\/\S+|\bstatus[:\s]+[1-5]\d{2}\b/g,
 };
 
 export interface JargonHit {
@@ -87,7 +95,9 @@ export async function loadStyle(workspace: string): Promise<StyleArtifact | null
   }
   const parsed = StyleArtifact.safeParse(raw);
   if (!parsed.success) {
-    throw new StyleError(`${yamlPath}: schema validation failed — ${parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ")}`);
+    throw new StyleError(
+      `${yamlPath}: schema validation failed — ${parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ")}`,
+    );
   }
   return parsed.data;
 }
@@ -102,7 +112,9 @@ export async function writeStyle(workspace: string, style: StyleArtifact): Promi
 }
 
 /** Init the style artifact with `DEFAULT_STYLE` if it doesn't already exist. */
-export async function initStyleIfAbsent(workspace: string): Promise<{ paths: StylePaths; created: boolean }> {
+export async function initStyleIfAbsent(
+  workspace: string,
+): Promise<{ paths: StylePaths; created: boolean }> {
   const paths = stylePathsFor(workspace);
   try {
     await fs.access(paths.yamlPath);
@@ -134,7 +146,10 @@ export function scanTextForJargon(text: string, file: string, categories: string
 }
 
 /** Scan every `<workspace>/docs/<flow>/<step>.md` user-facing write-up for jargon leakage. */
-export async function scanWorkspaceForJargon(workspace: string, style: StyleArtifact): Promise<JargonHit[]> {
+export async function scanWorkspaceForJargon(
+  workspace: string,
+  style: StyleArtifact,
+): Promise<JargonHit[]> {
   const docsRoot = path.join(workspace, "docs");
   const flows = await fs.readdir(docsRoot, { withFileTypes: true }).catch(() => []);
   const categories = style.pruning_rules ?? [];

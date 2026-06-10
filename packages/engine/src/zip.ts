@@ -20,19 +20,16 @@ export interface ZipResult {
 }
 
 export class ZipError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "ZipError";
   }
 }
 
-const DEFAULT_INCLUDES = [
-  "flows/",
-  "docs/",
-  ".site-docs.json",
-  "auth/strategy.yaml",
-  "README.md",
-];
+const DEFAULT_INCLUDES = ["flows/", "docs/", ".site-docs.json", "auth/strategy.yaml", "README.md"];
 
 // Zip's `-x` patterns are matched against the archive path with fnmatch-style globs.
 // `*` matches a single path segment; explicit patterns per level are clearer than `**`.
@@ -95,9 +92,10 @@ function runZip(args: string[], cwd: string): Promise<void> {
       stderr += d.toString();
     });
     child.on("error", (e) => {
-      const msg = (e as NodeJS.ErrnoException).code === "ENOENT"
-        ? `'zip' binary not found on PATH. Install it (\`brew install zip\` on macOS; usually preinstalled on Linux/WSL).`
-        : `zip command failed: ${e.message}`;
+      const msg =
+        (e as NodeJS.ErrnoException).code === "ENOENT"
+          ? `'zip' binary not found on PATH. Install it (\`brew install zip\` on macOS; usually preinstalled on Linux/WSL).`
+          : `zip command failed: ${e.message}`;
       reject(new ZipError(msg, e));
     });
     child.on("close", (code) => {

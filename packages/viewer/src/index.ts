@@ -8,7 +8,13 @@
 import { pathToFileURL } from "node:url";
 
 export { buildViewer, type BuildViewerOptions, type BuildViewerResult } from "./render.js";
-export { placeCallout, type Side, type Rect, type PlaceInput, type Placement } from "./placement.js";
+export {
+  placeCallout,
+  type Side,
+  type Rect,
+  type PlaceInput,
+  type Placement,
+} from "./placement.js";
 
 import { buildViewer } from "./render.js";
 
@@ -50,5 +56,5 @@ export async function runViewerCli(argv: string[]): Promise<number> {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  runViewerCli(process.argv.slice(2)).then((code) => process.exit(code));
+  void runViewerCli(process.argv.slice(2)).then((code) => process.exit(code));
 }

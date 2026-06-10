@@ -102,7 +102,10 @@ async function readLocators(workspace: string): Promise<LocatorsPayload | null> 
 
 // --- write back (pull) ------------------------------------------------------
 
-export async function writeDocPack(workspace: string, payloads: Partial<DocPackPayloads>): Promise<{ filesWritten: number }> {
+export async function writeDocPack(
+  workspace: string,
+  payloads: Partial<DocPackPayloads>,
+): Promise<{ filesWritten: number }> {
   let n = 0;
   if (payloads.flows) {
     const dir = path.join(workspace, "flows");

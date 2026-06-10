@@ -14,7 +14,9 @@
     "url": "https://github.com/kalebteccom/docsxai/issues"
   },
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
     "build": "pnpm -r build",

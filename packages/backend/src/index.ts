@@ -20,17 +20,23 @@ export async function runBackendStubCli(argv: string[]): Promise<number> {
     process.stderr.write(`docsxai-backend: invalid port "${portArg}"\n`);
     return 2;
   }
-  const stub = createBackendStub({ ...(process.env.SITE_DOCS_TOKEN ? { token: process.env.SITE_DOCS_TOKEN } : {}) });
+  const stub = createBackendStub({
+    ...(process.env.SITE_DOCS_TOKEN ? { token: process.env.SITE_DOCS_TOKEN } : {}),
+  });
   const url = await stub.listen(port);
-  process.stdout.write(`docsxai-backend stub listening on ${url}  (in-memory; not for production)\n`);
-  const stop = () => stub.close().then(() => process.exit(0));
+  process.stdout.write(
+    `docsxai-backend stub listening on ${url}  (in-memory; not for production)\n`,
+  );
+  const stop = () => {
+    void stub.close().then(() => process.exit(0));
+  };
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
   return 0; // long-lived
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  runBackendStubCli(process.argv.slice(2)).then((code) => {
+  void runBackendStubCli(process.argv.slice(2)).then((code) => {
     if (code !== 0) process.exit(code);
   });
 }

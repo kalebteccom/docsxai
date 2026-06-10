@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parseFlowFile } from "../src/flow-file.js";
 import { type BoundingBox } from "../src/doc-pack.js";
-import { type ActionableState, type BrowserDriver, FlowExecutionError, inferHaltCause, runFlow } from "../src/flow-runtime.js";
+import {
+  type ActionableState,
+  type BrowserDriver,
+  inferHaltCause,
+  runFlow,
+} from "../src/flow-runtime.js";
 
 class FakeDriver implements BrowserDriver {
   calls: string[] = [];
@@ -153,7 +158,9 @@ describe("runFlow", () => {
   it("a halt message carries context (the current URL + match count)", async () => {
     const d = new FakeDriver(); // #recap never visible
     d.url = "https://app.example/dash";
-    await expect(runFlow(parseFlowFile(FLOW), d)).rejects.toThrow(/app\.example\/dash.*element\(s\) match/s);
+    await expect(runFlow(parseFlowFile(FLOW), d)).rejects.toThrow(
+      /app\.example\/dash.*element\(s\) match/s,
+    );
   });
 
   it("skips screenshot/annotation capture when captureDocs is false", async () => {
@@ -189,14 +196,17 @@ describe("runFlow", () => {
   it("startFrom + stopAfter together run an arbitrary [first, last] range", async () => {
     const d = new FakeDriver();
     d.visible.add("#recap");
-    const r = await runFlow(parseFlowFile(FLOW), d, { startFrom: "open-sidebar", stopAfter: "open-sidebar" });
+    const r = await runFlow(parseFlowFile(FLOW), d, {
+      startFrom: "open-sidebar",
+      stopAfter: "open-sidebar",
+    });
     expect(r.steps.map((s) => s.id)).toEqual(["open-sidebar"]);
   });
 
   it("startFrom throws fast if the named step doesn't exist (catch the typo before launching)", async () => {
-    await expect(runFlow(parseFlowFile(FLOW), new FakeDriver(), { startFrom: "no-such-step" })).rejects.toThrow(
-      /startFrom: no step with id "no-such-step"/,
-    );
+    await expect(
+      runFlow(parseFlowFile(FLOW), new FakeDriver(), { startFrom: "no-such-step" }),
+    ).rejects.toThrow(/startFrom: no step with id "no-such-step"/);
   });
 
   it("stopAfter runs only a prefix of the flow (up to & including that step)", async () => {
@@ -258,7 +268,9 @@ steps:
     action: upload
     target: $picker
 `);
-    await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(/upload requires `value` \(file path\)/);
+    await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(
+      /upload requires `value` \(file path\)/,
+    );
   });
 
   it("an `optional: true` step that SUCCEEDS behaves like a normal step (executed + annotation)", async () => {
@@ -284,7 +296,10 @@ steps:
 
   it("a non-optional step that fails still halts (optional doesn't change default behaviour)", async () => {
     const d = new FakeDriver(); // #recap never visible → checkSuccess throws
-    await expect(runFlow(parseFlowFile(FLOW), d)).rejects.toMatchObject({ name: "FlowExecutionError", stepId: "open-sidebar" });
+    await expect(runFlow(parseFlowFile(FLOW), d)).rejects.toMatchObject({
+      name: "FlowExecutionError",
+      stepId: "open-sidebar",
+    });
   });
 
   it("passes a per-step timeout_ms to waitForSelector (the 'wait for a slow backend op' primitive)", async () => {
@@ -316,12 +331,14 @@ steps:
     value: docs/fixtures/scripts.csv
 `);
     await runFlow(flow, d, { captureDocs: false });
-    expect(d.calls).toContain("upload input[type=\"file\"]=docs/fixtures/scripts.csv");
+    expect(d.calls).toContain('upload input[type="file"]=docs/fixtures/scripts.csv');
   });
 
   it("dumps a halt screenshot (docs/<flow>/halts/<step>.png) when a step halts, and the error message points at it", async () => {
     const d = new FakeDriver(); // #recap never visible → checkSuccess throws
-    await expect(runFlow(parseFlowFile(FLOW), d)).rejects.toThrow(/halt screenshot: docs\/recap-open\/halts\/open-sidebar\.png/);
+    await expect(runFlow(parseFlowFile(FLOW), d)).rejects.toThrow(
+      /halt screenshot: docs\/recap-open\/halts\/open-sidebar\.png/,
+    );
     expect(d.calls).toContain("screenshot docs/recap-open/halts/open-sidebar.png");
   });
 
@@ -354,8 +371,18 @@ steps:
 `);
     const r = await runFlow(flow, d);
     expect(r.annotations.annotations).toHaveLength(2);
-    expect(r.annotations.annotations[0]).toMatchObject({ step: "act", selector: "#a", copy: "first thing", index: 1 });
-    expect(r.annotations.annotations[1]).toMatchObject({ step: "act", selector: "#b", copy: "second thing", index: 2 });
+    expect(r.annotations.annotations[0]).toMatchObject({
+      step: "act",
+      selector: "#a",
+      copy: "first thing",
+      index: 1,
+    });
+    expect(r.annotations.annotations[1]).toMatchObject({
+      step: "act",
+      selector: "#b",
+      copy: "second thing",
+      index: 2,
+    });
   });
 
   it("a single `annotation` (back-compat) produces one record with NO index (un-numbered)", async () => {
@@ -405,18 +432,27 @@ steps:
     const r = await runFlow(flow, d);
     expect(r.annotations.annotations).toHaveLength(1);
     expect(r.annotations.annotations[0]!.selector).toBe("#appeared");
-    expect(r.annotations.annotations[0]!.bounding_box).toEqual({ x: 100, y: 50, width: 200, height: 60 });
+    expect(r.annotations.annotations[0]!.bounding_box).toEqual({
+      x: 100,
+      y: 50,
+      width: 200,
+      height: 60,
+    });
   });
 
   it("throws on an unresolved locator ref via a custom resolver", async () => {
-    const flow = parseFlowFile(`name: f\nlocators: { a: '#a' }\nsteps:\n  - id: s1\n    action: click\n    target: $a\n`);
+    const flow = parseFlowFile(
+      `name: f\nlocators: { a: '#a' }\nsteps:\n  - id: s1\n    action: click\n    target: $a\n`,
+    );
     const d = new FakeDriver();
-    await expect(runFlow(flow, d, { resolveLocator: () => undefined })).rejects.toThrow(/unresolved locator/i);
+    await expect(runFlow(flow, d, { resolveLocator: () => undefined })).rejects.toThrow(
+      /unresolved locator/i,
+    );
   });
 
   it("prepends a `[cause: …]` prefix to the halt message when the underlying error names a Playwright actionability state", async () => {
     class DisabledDriver extends FakeDriver {
-      override async fill(s: string, v: string) {
+      override async fill(s: string, _v: string) {
         // Simulate Playwright's actionability log for a disabled input
         throw new Error(
           `page.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('${s}')\n  - locator resolved to <input value="00" disabled />\n  - element is disabled\n  - retrying...`,
@@ -433,7 +469,9 @@ steps:
     target: $t
     value: '00'
 `);
-    await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(/^\[target is disabled\]/);
+    await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(
+      /^\[target is disabled\]/,
+    );
   });
 });
 
@@ -447,17 +485,23 @@ describe("inferHaltCause", () => {
   });
 
   it("recognises 'strict mode violation' and suggests the disambiguation", () => {
-    expect(inferHaltCause("page.click: strict mode violation: resolved to 3 elements")).toMatch(/:visible \/ :nth-match/);
+    expect(inferHaltCause("page.click: strict mode violation: resolved to 3 elements")).toMatch(
+      /:visible \/ :nth-match/,
+    );
   });
 
   it("recognises 'element is not attached' (the unmounted-target case)", () => {
-    expect(inferHaltCause("page.click: ... element is not attached to the DOM")).toMatch(/detached/i);
+    expect(inferHaltCause("page.click: ... element is not attached to the DOM")).toMatch(
+      /detached/i,
+    );
   });
 
   it("falls back to 'target resolved to <…>' when no actionability hint matches (captures the opening tag — which is where Playwright puts the attributes)", () => {
-    expect(inferHaltCause("page.fill: Timeout exceeded.\nlocator resolved to <input disabled value=\"00\" />")).toMatch(
-      /target resolved to <input disabled value="00" \/>/,
-    );
+    expect(
+      inferHaltCause(
+        'page.fill: Timeout exceeded.\nlocator resolved to <input disabled value="00" />',
+      ),
+    ).toMatch(/target resolved to <input disabled value="00" \/>/);
   });
 
   it("returns undefined when the error doesn't match any known pattern", () => {

@@ -30,7 +30,9 @@ try {
 }
 
 async function calibratedRun(outDir: string) {
-  const flow = parseFlowFile(await fs.readFile(path.join(fixturesDir, "recap-open.flow.yaml"), "utf8"));
+  const flow = parseFlowFile(
+    await fs.readFile(path.join(fixturesDir, "recap-open.flow.yaml"), "utf8"),
+  );
   await fs.mkdir(outDir, { recursive: true });
   const session = await launchPlaywrightSession({ baseURL: toySiteUrl, docPackRoot: outDir });
   try {
@@ -80,7 +82,12 @@ describe.skipIf(!chromiumAvailable)("keystone — calibrate → run → reproduc
 });
 
 describe("keystone — availability note", () => {
-  it(chromiumAvailable ? "Chromium is available — keystone suite ran" : "Chromium not installed — keystone suite skipped (see file header)", () => {
-    expect(typeof chromiumAvailable).toBe("boolean");
-  });
+  it(
+    chromiumAvailable
+      ? "Chromium is available — keystone suite ran"
+      : "Chromium not installed — keystone suite skipped (see file header)",
+    () => {
+      expect(typeof chromiumAvailable).toBe("boolean");
+    },
+  );
 });

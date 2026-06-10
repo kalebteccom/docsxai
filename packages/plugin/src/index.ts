@@ -30,12 +30,17 @@ export async function readManifest(): Promise<PluginManifest> {
 /** Names of the slash commands the plugin ships (from `commands/*.md`). */
 export async function listCommands(): Promise<string[]> {
   const entries = await fs.readdir(path.join(pluginDir, "commands")).catch(() => [] as string[]);
-  return entries.filter((e) => e.endsWith(".md")).map((e) => e.replace(/\.md$/, "")).sort();
+  return entries
+    .filter((e) => e.endsWith(".md"))
+    .map((e) => e.replace(/\.md$/, ""))
+    .sort();
 }
 
 /** Names of the skills the plugin ships (directories under `skills/` that contain a `SKILL.md`). */
 export async function listSkills(): Promise<string[]> {
-  const entries = await fs.readdir(path.join(pluginDir, "skills"), { withFileTypes: true }).catch(() => []);
+  const entries = await fs
+    .readdir(path.join(pluginDir, "skills"), { withFileTypes: true })
+    .catch(() => []);
   const out: string[] = [];
   for (const e of entries) {
     if (e.isDirectory()) {
@@ -71,10 +76,18 @@ export function validateManifest(m: unknown): ValidationIssue[] {
     issues.push({ severity: "error", where, message: "missing or empty `name`" });
   }
   if (typeof o.version !== "string" || !/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(o.version)) {
-    issues.push({ severity: "error", where, message: `\`version\` must be semver (got ${JSON.stringify(o.version)})` });
+    issues.push({
+      severity: "error",
+      where,
+      message: `\`version\` must be semver (got ${JSON.stringify(o.version)})`,
+    });
   }
   if (typeof o.description !== "string" || o.description.length < 20) {
-    issues.push({ severity: "warning", where, message: "`description` is missing or under 20 chars" });
+    issues.push({
+      severity: "warning",
+      where,
+      message: "`description` is missing or under 20 chars",
+    });
   }
   if (o.homepage !== undefined) {
     if (typeof o.homepage !== "string" || !/^https?:\/\//.test(o.homepage)) {
@@ -82,7 +95,11 @@ export function validateManifest(m: unknown): ValidationIssue[] {
     }
   }
   if (o.author !== undefined) {
-    if (typeof o.author !== "object" || o.author === null || typeof (o.author as Record<string, unknown>).name !== "string") {
+    if (
+      typeof o.author !== "object" ||
+      o.author === null ||
+      typeof (o.author as Record<string, unknown>).name !== "string"
+    ) {
       issues.push({ severity: "warning", where, message: "`author` should be { name: string }" });
     }
   }
@@ -102,7 +119,9 @@ function parseFrontmatter(text: string): Record<string, string> | null {
 }
 
 /** Validate the whole plugin bundle. Cross-checks command names against the optional `knownCliCommands` list. */
-export async function validatePluginBundle(opts: { knownCliCommands?: string[] } = {}): Promise<ValidationIssue[]> {
+export async function validatePluginBundle(
+  opts: { knownCliCommands?: string[] } = {},
+): Promise<ValidationIssue[]> {
   const issues: ValidationIssue[] = [];
 
   // Manifest
@@ -110,7 +129,13 @@ export async function validatePluginBundle(opts: { knownCliCommands?: string[] }
   try {
     manifest = await readManifest();
   } catch (e) {
-    return [{ severity: "error", where: ".claude-plugin/plugin.json", message: `unreadable: ${(e as Error).message}` }];
+    return [
+      {
+        severity: "error",
+        where: ".claude-plugin/plugin.json",
+        message: `unreadable: ${(e as Error).message}`,
+      },
+    ];
   }
   issues.push(...validateManifest(manifest));
 
@@ -122,18 +147,30 @@ export async function validatePluginBundle(opts: { knownCliCommands?: string[] }
   const seenCmd = new Set<string>();
   for (const cmd of cmdNames) {
     if (seenCmd.has(cmd)) {
-      issues.push({ severity: "error", where: `commands/${cmd}.md`, message: "duplicate command name" });
+      issues.push({
+        severity: "error",
+        where: `commands/${cmd}.md`,
+        message: "duplicate command name",
+      });
     }
     seenCmd.add(cmd);
     const file = path.join(pluginDir, "commands", `${cmd}.md`);
     const text = await fs.readFile(file, "utf8");
     const fm = parseFrontmatter(text);
     if (!fm) {
-      issues.push({ severity: "error", where: `commands/${cmd}.md`, message: "missing YAML frontmatter (`--- … ---`)" });
+      issues.push({
+        severity: "error",
+        where: `commands/${cmd}.md`,
+        message: "missing YAML frontmatter (`--- … ---`)",
+      });
       continue;
     }
     if (!fm.description || fm.description.length < 5) {
-      issues.push({ severity: "error", where: `commands/${cmd}.md`, message: "frontmatter `description:` missing or too short" });
+      issues.push({
+        severity: "error",
+        where: `commands/${cmd}.md`,
+        message: "frontmatter `description:` missing or too short",
+      });
     }
     // Body should reference an underlying engine command of the same name (`site-docs <cmd>`).
     const body = text.slice(text.indexOf("---", 3) + 3);
@@ -159,14 +196,26 @@ export async function validatePluginBundle(opts: { knownCliCommands?: string[] }
     const text = await fs.readFile(file, "utf8");
     const fm = parseFrontmatter(text);
     if (!fm) {
-      issues.push({ severity: "error", where: `skills/${skill}/SKILL.md`, message: "missing frontmatter" });
+      issues.push({
+        severity: "error",
+        where: `skills/${skill}/SKILL.md`,
+        message: "missing frontmatter",
+      });
       continue;
     }
     if (!fm.name || fm.name.length === 0) {
-      issues.push({ severity: "error", where: `skills/${skill}/SKILL.md`, message: "frontmatter `name:` missing" });
+      issues.push({
+        severity: "error",
+        where: `skills/${skill}/SKILL.md`,
+        message: "frontmatter `name:` missing",
+      });
     }
     if (!fm.description || fm.description.length < 20) {
-      issues.push({ severity: "warning", where: `skills/${skill}/SKILL.md`, message: "frontmatter `description:` missing or under 20 chars" });
+      issues.push({
+        severity: "warning",
+        where: `skills/${skill}/SKILL.md`,
+        message: "frontmatter `description:` missing or under 20 chars",
+      });
     }
   }
 

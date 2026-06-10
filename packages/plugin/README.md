@@ -8,20 +8,20 @@ claude plugin install https://github.com/kalebteccom/docsxai   # (the plugin liv
 
 ## Commands (deterministic — thin wrappers over the `site-docs` CLI)
 
-| Command | What |
-|---|---|
-| `/site-docs:run <project-dir>` | Re-run flow-files headlessly, refresh `annotations.json` + screenshots. |
-| `/site-docs:render <project-dir>` | Build the interactive viewer. |
-| `/site-docs:login` | OAuth login to the backend (CI uses `SITE_DOCS_TOKEN`). |
-| `publish` / `edit` / `push` / `pull` | TODO — Phase-1 build. |
+| Command                              | What                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| `/site-docs:run <project-dir>`       | Re-run flow-files headlessly, refresh `annotations.json` + screenshots. |
+| `/site-docs:render <project-dir>`    | Build the interactive viewer.                                           |
+| `/site-docs:login`                   | OAuth login to the backend (CI uses `SITE_DOCS_TOKEN`).                 |
+| `publish` / `edit` / `push` / `pull` | TODO — Phase-1 build.                                                   |
 
 ## Skills (calibration — agent-driven; the host supplies inference)
 
-| Skill | What |
-|---|---|
-| `calibrate` | Drive a calibration end-to-end: discovery → mapping+testing → commit, producing a doc pack. |
-| `diagnose` | The explicit failure path — propose a recalibration diff when a deterministic run halts on drift. |
-| `style-learn` / `translate` | TODO — Phase-1 build. |
+| Skill                       | What                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------- |
+| `calibrate`                 | Drive a calibration end-to-end: discovery → mapping+testing → commit, producing a doc pack.       |
+| `diagnose`                  | The explicit failure path — propose a recalibration diff when a deterministic run halts on drift. |
+| `style-learn` / `translate` | TODO — Phase-1 build.                                                                             |
 
 ## MCP
 

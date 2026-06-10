@@ -2,15 +2,15 @@
 
 This repo's GitHub identity is `kalebteccom/docsxai` (renamed from `kalebteccom/automated-site-documentation-bot`; the codename `site-docs` still lives on inside the source tree — CLI binary, slash commands, workspace config file). The npm packages are scoped under `@kalebtec/docsxai-*` (plus the root `docsxai` package that holds the trusted-publishing claim). The two are independent on purpose: npm names are global and we want the clean product name on the registry; we keep the codename inside the implementation so the history isn't disturbed.
 
-| Surface | Name |
-|---|---|
-| GitHub repo | `kalebteccom/docsxai` |
-| CLI codename | `site-docs` (the engine bin) |
-| Internal codename | `site-docs` / `automated-site-documentation-bot` |
-| npm packages | `@kalebtec/docsxai-engine`, `@kalebtec/docsxai-plugin`, `@kalebtec/docsxai-backend`, `@kalebtec/docsxai-skill`, `@kalebtec/docsxai-viewer` |
-| Product name | docsxai |
+| Surface           | Name                                                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| GitHub repo       | `kalebteccom/docsxai`                                                                                                                      |
+| CLI codename      | `site-docs` (the engine bin)                                                                                                               |
+| Internal codename | `site-docs` / `automated-site-documentation-bot`                                                                                           |
+| npm packages      | `@kalebtec/docsxai-engine`, `@kalebtec/docsxai-plugin`, `@kalebtec/docsxai-backend`, `@kalebtec/docsxai-skill`, `@kalebtec/docsxai-viewer` |
+| Product name      | docsxai                                                                                                                                    |
 
-> **Status: prepared, deferred.** Everything below is *ready*. The actual public release is deferred to **≥ Phase 3** by owner decision (2026-05-19) — the repo stays **private** and unpublished until the full project (through Phase 3) is done. This file is the mechanical checklist for *when* that decision is taken; nothing here is to be executed before then.
+> **Status: prepared, deferred.** Everything below is _ready_. The actual public release is deferred to **≥ Phase 3** by owner decision (2026-05-19) — the repo stays **private** and unpublished until the full project (through Phase 3) is done. This file is the mechanical checklist for _when_ that decision is taken; nothing here is to be executed before then.
 
 The repo is intentionally in a "one-flip-from-public" state: Apache-2.0 in place, READMEs/CONTRIBUTING/CHANGELOG written, npm metadata (`repository`/`homepage`/`bugs`/`keywords`) on every package, git history scrubbed of client identifiers (2026-05-15), versions set to `0.1.0`, and every workspace `package.json` carries `"private": true` so an accidental `npm publish` is impossible until deliberately flipped.
 
@@ -83,4 +83,4 @@ The stub-publish path is intentionally narrow. When v1.0 lands, the full release
 - Do not cut the `v0.1.0` git tag (a tag implies a release; we're prepared, not released).
 - Do not remove the `"private": true` flags as "cleanup" — they are the deliberate safety.
 
-Anything that needs to happen *before* the flip (more docs, API stabilisation, security review) gets done here in the private repo first.
+Anything that needs to happen _before_ the flip (more docs, API stabilisation, security review) gets done here in the private repo first.

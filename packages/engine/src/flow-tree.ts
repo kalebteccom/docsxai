@@ -47,7 +47,7 @@ export async function buildFlowTree(flowsByName: Map<string, FlowFile>): Promise
   };
 
   const issues: FlowTreeIssue[] = [];
-  const loadFlow = async (n: string): Promise<FlowFile> => {
+  const loadFlow = (n: string): FlowFile => {
     const f = flowsByName.get(n);
     if (!f) throw new Error(`extends target not found: ${n}`);
     return f;

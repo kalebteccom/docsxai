@@ -11,8 +11,9 @@ docsxai's runtime dependencies (production-only):
 ## `@kalebtec/docsxai-backend`
 
 No production dependencies today (in-memory stub). Will gain HTTP server
-+ auth dependencies when the Phase-2 hosted deployment lands; those will
-be listed here at that time.
+
+- auth dependencies when the Phase-2 hosted deployment lands; those will
+  be listed here at that time.
 
 ## `@kalebtec/docsxai-plugin`, `@kalebtec/docsxai-viewer`, `@kalebtec/docsxai-skill`
 

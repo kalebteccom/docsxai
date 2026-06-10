@@ -55,13 +55,13 @@ Safe by default. The engine reads URLs the operator provides, captures screensho
 
 Surface-by-surface:
 
-| Surface          | Trust posture                                                                                                                                                                              |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Engine (CLI)     | No model API calls — ever. Reads target URLs the operator names; writes only under the configured workspace root. Auth strategies cache cookies/tokens; secrets never appear in artifacts. |
-| Plugin           | Runs inside Claude Code's plugin sandbox. Delegates execution to the engine binary. Calibration skills emit structured questions; commands are deterministic engine invocations.           |
-| Backend          | Stateless HTTP surface, loopback by default. OAuth 2.1 auth (Phase 2 wires hosted deployment). No code execution surface beyond CRUD on doc-pack resources.                                |
-| Viewer           | Static HTML; no runtime fetch from third-party CDNs. CSP `default-src 'none'` posture on emitted pages.                                                                                    |
-| `site-docs run`  | Deterministic. No agent in the loop. Same flow-file + same target state → byte-identical doc pack (keystone-enforced).                                                                     |
+| Surface         | Trust posture                                                                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Engine (CLI)    | No model API calls — ever. Reads target URLs the operator names; writes only under the configured workspace root. Auth strategies cache cookies/tokens; secrets never appear in artifacts. |
+| Plugin          | Runs inside Claude Code's plugin sandbox. Delegates execution to the engine binary. Calibration skills emit structured questions; commands are deterministic engine invocations.           |
+| Backend         | Stateless HTTP surface, loopback by default. OAuth 2.1 auth (Phase 2 wires hosted deployment). No code execution surface beyond CRUD on doc-pack resources.                                |
+| Viewer          | Static HTML; no runtime fetch from third-party CDNs. CSP `default-src 'none'` posture on emitted pages.                                                                                    |
+| `site-docs run` | Deterministic. No agent in the loop. Same flow-file + same target state → byte-identical doc pack (keystone-enforced).                                                                     |
 
 ## Build + run discipline — the dist-rebuild trap
 

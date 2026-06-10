@@ -26,8 +26,14 @@ beforeEach(async () => {
       ],
     }),
   );
-  await fs.writeFile(path.join(flowDir, "screenshots", "open-sidebar.png"), Buffer.from("\x89PNG\r\n\x1a\n-not-a-real-png-"));
-  await fs.writeFile(path.join(flowDir, "open-sidebar.md"), "# Open the sidebar\n\nClick the Play button.\n");
+  await fs.writeFile(
+    path.join(flowDir, "screenshots", "open-sidebar.png"),
+    Buffer.from("\x89PNG\r\n\x1a\n-not-a-real-png-"),
+  );
+  await fs.writeFile(
+    path.join(flowDir, "open-sidebar.md"),
+    "# Open the sidebar\n\nClick the Play button.\n",
+  );
 });
 afterEach(async () => {
   await fs.rm(tmp, { recursive: true, force: true });
@@ -47,7 +53,9 @@ describe("buildViewer", () => {
     expect(flowHtml).toContain("Step write-up"); // the .md is included in a <details>
 
     // screenshot copied into the viewer output
-    await expect(fs.access(path.join(outDir, "recap-open", "screenshots", "open-sidebar.png"))).resolves.toBeUndefined();
+    await expect(
+      fs.access(path.join(outDir, "recap-open", "screenshots", "open-sidebar.png")),
+    ).resolves.toBeUndefined();
 
     const indexHtml = await fs.readFile(path.join(outDir, "index.html"), "utf8");
     expect(indexHtml).toContain('href="recap-open/index.html"');
@@ -68,8 +76,20 @@ describe("buildViewer", () => {
         schema: "site-docs/annotations@1",
         flow: "recap-open",
         annotations: [
-          { step: "open-sidebar", selector: "#a", bounding_box: { x: 1, y: 2, width: 3, height: 4 }, copy: "first thing", index: 1 },
-          { step: "open-sidebar", selector: "#b", bounding_box: { x: 5, y: 6, width: 7, height: 8 }, copy: "second thing", index: 2 },
+          {
+            step: "open-sidebar",
+            selector: "#a",
+            bounding_box: { x: 1, y: 2, width: 3, height: 4 },
+            copy: "first thing",
+            index: 1,
+          },
+          {
+            step: "open-sidebar",
+            selector: "#b",
+            bounding_box: { x: 5, y: 6, width: 7, height: 8 },
+            copy: "second thing",
+            index: 2,
+          },
         ],
       }),
     );
@@ -140,7 +160,13 @@ describe("buildViewer", () => {
     const flowDir = path.join(tmp, "docs", "recap-open");
     await fs.writeFile(
       path.join(flowDir, "annotations.json"),
-      JSON.stringify({ schema: "site-docs/annotations@1", flow: "recap-open", annotations: [{ step: "open-sidebar", selector: "#play", copy: "<script>alert(1)</script> & stuff" }] }),
+      JSON.stringify({
+        schema: "site-docs/annotations@1",
+        flow: "recap-open",
+        annotations: [
+          { step: "open-sidebar", selector: "#play", copy: "<script>alert(1)</script> & stuff" },
+        ],
+      }),
     );
     const outDir = path.join(tmp, "out3");
     await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });

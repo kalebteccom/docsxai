@@ -108,8 +108,10 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
         this.resolveCaptured();
       });
       const pages = this.context.pages();
-      this.page = pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await this.context.newPage());
-      if (baseURL && this.page.url() === "about:blank") await this.page.goto(baseURL).catch(() => undefined);
+      this.page =
+        pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await this.context.newPage());
+      if (baseURL && this.page.url() === "about:blank")
+        await this.page.goto(baseURL).catch(() => undefined);
       return;
     }
 
@@ -152,7 +154,8 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
   }
 
   async waitForCapture(trigger: CaptureTrigger): Promise<void> {
-    if (!this.context || !this.page) throw new Error("open() must be called before waitForCapture()");
+    if (!this.context || !this.page)
+      throw new Error("open() must be called before waitForCapture()");
     const script = helperScript(trigger);
     await this.context.addInitScript(script); // future documents (incl. post-SSO-redirect)
     await this.page.evaluate(script).catch(() => undefined); // the already-loaded document too
@@ -161,19 +164,37 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
 
   async storageState(): Promise<StorageState> {
     if (!this.context) throw new Error("storageState() called before open()");
-    const state = (await this.context.storageState()) as unknown as StorageState;
+    const state = await this.context.storageState();
     // Belt-and-braces: Playwright's `storageState()` on a *CDP-attached* context doesn't reliably harvest
     // localStorage from already-open pages, so origins comes back `[]` for apps that keep auth/state there.
-    // Read it directly off each open same-origin page and merge. (String-form `evaluate` to avoid pulling in
-    // the DOM lib for the engine tsconfig.)
+    // Read it directly off each open same-origin page and merge. The function form keeps the closure
+    // intact (and satisfies docsxai-local/no-page-eval-stringified-arrow). The cast-through-`unknown`
+    // sidesteps the engine tsconfig deliberately omitting the DOM lib — the in-page evaluator gets
+    // a real `localStorage`, but tsc here only needs to know the function's *shape*.
+    type PageEval = (fn: () => [string, string][]) => Promise<unknown>;
     for (const page of this.context.pages()) {
       try {
         const u = page.url();
         if (!/^https?:/.test(u)) continue;
         const origin = new URL(u).origin;
-        const pairs = (await page.evaluate(
-          "(() => { const o = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k != null) o.push([k, localStorage.getItem(k) ?? '']); } return o; })()",
-        )) as Array<[string, string]>;
+        const evalAsTyped = page.evaluate.bind(page) as unknown as PageEval;
+        const pairs = await evalAsTyped(() => {
+          const ls = (
+            globalThis as unknown as {
+              localStorage: {
+                length: number;
+                key(i: number): string | null;
+                getItem(k: string): string | null;
+              };
+            }
+          ).localStorage;
+          const o: [string, string][] = [];
+          for (let i = 0; i < ls.length; i++) {
+            const k = ls.key(i);
+            if (k != null) o.push([k, ls.getItem(k) ?? ""]);
+          }
+          return o;
+        });
         if (!Array.isArray(pairs) || pairs.length === 0) continue;
         const items = pairs.map(([name, value]) => ({ name, value }));
         const existing = state.origins.find((o) => o.origin === origin);

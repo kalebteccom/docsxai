@@ -70,7 +70,9 @@ export function placeCallout(inp: PlaceInput): Placement {
   const gap = inp.gap ?? 10;
   const preferred = inp.preferred ?? "top";
   const order = [preferred, ...SIDES.filter((s) => s !== preferred)];
-  const side = order.find((s) => fits(s, inp, gap)) ?? [...order].sort((a, b) => roomOn(b, inp) - roomOn(a, inp))[0]!;
+  const side =
+    order.find((s) => fits(s, inp, gap)) ??
+    [...order].sort((a, b) => roomOn(b, inp) - roomOn(a, inp))[0]!;
 
   const { image, target, callout } = inp;
   const cx = target.x + target.width / 2;

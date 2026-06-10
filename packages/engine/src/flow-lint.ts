@@ -17,7 +17,7 @@ export type LintIssue = {
 
 export type LintOptions = {
   /** Resolver for `extends` (used by R001). If omitted, inter-flow rules are skipped. */
-  loadFlow?: (name: string) => Promise<FlowFile>;
+  loadFlow?: (name: string) => Promise<FlowFile> | FlowFile;
 };
 
 /** Heuristic — names that suggest a step kicks off a multi-minute backend op. */
@@ -40,13 +40,14 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
         severity: "info",
         flow: flow.name,
         message: `extends chain depth is ${depth}`,
-        suggestion: "consider flattening — deep chains add per-run setup cost and obscure the step order",
+        suggestion:
+          "consider flattening — deep chains add per-run setup cost and obscure the step order",
       });
     }
   }
 
   for (const step of flow.steps) {
-    const anns = step.annotation ? [step.annotation] : step.annotations ?? [];
+    const anns = step.annotation ? [step.annotation] : (step.annotations ?? []);
 
     // R002 — annotation anchored to a likely-unmounting action target
     if (anns.length && (step.action === "click" || step.action === "navigate") && step.target) {
@@ -58,7 +59,8 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
           flow: flow.name,
           stepId: step.id,
           message: `annotation has no \`target\` override on a \`${step.action}\` action; if the action unmounts its target, the halo will have nothing to anchor to`,
-          suggestion: "set `annotation.target` (or `annotations[].target`) to an element that exists in the resulting state",
+          suggestion:
+            "set `annotation.target` (or `annotations[].target`) to an element that exists in the resulting state",
         });
       }
     }
@@ -66,7 +68,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
     // R003 — wait_for object form without timeout_ms on a long-async-looking step
     const w = step.wait_for;
     if (w && typeof w === "object" && !Array.isArray(w) && "selector" in w && !w.timeout_ms) {
-      const targetText = step.target ? locatorRefName(step.target) ?? step.target : "";
+      const targetText = step.target ? (locatorRefName(step.target) ?? step.target) : "";
       if (LONG_ASYNC.test(step.id) || LONG_ASYNC.test(targetText)) {
         issues.push({
           code: "R003",
@@ -91,7 +93,8 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
           flow: flow.name,
           stepId: step.id,
           message: `selector \`${sel}\` is a bare \`[data-*=…]\` match — may resolve to multiple DOM nodes (visible + hidden duplicate)`,
-          suggestion: "if duplicates exist, scope with `:visible` or add a `:has-text(...)` qualifier",
+          suggestion:
+            "if duplicates exist, scope with `:visible` or add a `:has-text(...)` qualifier",
         });
       }
     }
@@ -100,7 +103,10 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
   return issues;
 }
 
-async function chainDepth(flow: FlowFile, load: (name: string) => Promise<FlowFile>): Promise<number> {
+async function chainDepth(
+  flow: FlowFile,
+  load: (name: string) => Promise<FlowFile> | FlowFile,
+): Promise<number> {
   let depth = 1;
   let cur: FlowFile = flow;
   const seen = new Set<string>([flow.name]);

@@ -5,7 +5,7 @@ description: Use when a deterministic `site-docs run` halts on a locator or succ
 
 # Diagnosing a halted run
 
-A halted run means the site drifted from what the flow-file encodes — that's a *signal*, not a flake to absorb. The diagnose loop is explicit and agent-driven; the engine never auto-patches the flow-file.
+A halted run means the site drifted from what the flow-file encodes — that's a _signal_, not a flake to absorb. The diagnose loop is explicit and agent-driven; the engine never auto-patches the flow-file.
 
 ## 1. Run the diagnose command
 
@@ -26,14 +26,14 @@ This gathers:
 
 The recommendation taxonomy maps to common drift shapes — see [`docs/actionability-contract.md`](../../../../docs/actionability-contract.md) for the underlying state vocabulary.
 
-| recommendation | typical fix |
-|---|---|
-| `selector` (e.g. live probe = `not-found` / `multiple-matches`) | Re-discover the element via browxai's `find()` / `site-docs inspect`; commit a new canonical locator (or scope the existing one with `:visible` / `:nth-match`). |
-| `wait_for` (`not-visible` after a long-async action) | Add or strengthen `wait_for: { selector: <sel>, timeout_ms: <ms> }`. |
-| `annotation_target` (`detached` — the action target unmounted) | Set `annotation.target` to a surviving element in the resulting state. The action's `target` stays the same. |
-| `split_step` (`off-screen` / `covered`) | Insert a step before the action — scroll-into-view, dismiss-overlay, ESC-key. |
-| `success` (the `success` clause looks fragile, e.g. `text_contains`) | Replace with a structural criterion where stable; or update the expected text. |
-| `investigate` (live probe = `actionable` / `disabled`) | Race / flakiness in the original run; or a product-state decision (`disabled` may be intentional). Don't auto-edit. |
+| recommendation                                                       | typical fix                                                                                                                                                      |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `selector` (e.g. live probe = `not-found` / `multiple-matches`)      | Re-discover the element via browxai's `find()` / `site-docs inspect`; commit a new canonical locator (or scope the existing one with `:visible` / `:nth-match`). |
+| `wait_for` (`not-visible` after a long-async action)                 | Add or strengthen `wait_for: { selector: <sel>, timeout_ms: <ms> }`.                                                                                             |
+| `annotation_target` (`detached` — the action target unmounted)       | Set `annotation.target` to a surviving element in the resulting state. The action's `target` stays the same.                                                     |
+| `split_step` (`off-screen` / `covered`)                              | Insert a step before the action — scroll-into-view, dismiss-overlay, ESC-key.                                                                                    |
+| `success` (the `success` clause looks fragile, e.g. `text_contains`) | Replace with a structural criterion where stable; or update the expected text.                                                                                   |
+| `investigate` (live probe = `actionable` / `disabled`)               | Race / flakiness in the original run; or a product-state decision (`disabled` may be intentional). Don't auto-edit.                                              |
 
 If the change is non-obvious, surface the candidates to the user. **Never silently pick** between locator alternatives — drift signals must remain visible.
 

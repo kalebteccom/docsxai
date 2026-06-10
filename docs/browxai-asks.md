@@ -30,13 +30,13 @@ Falls out of #1: when browxai is attached over CDP, both browxai and `site-docs 
 
 Tiers 1, 2, 5 shipped:
 
-| tier | shape | stability |
-|---|---|---|
-| 1 | any attr in `BROWX_TEST_ATTRIBUTES` (default `data-testid,data-test,data-cy,data-qa`) — see #8 | `high` |
-| 2 | `role=<role>[name="…"]` | `medium` |
-| 3 | stable text on a stable role | **Phase-1.5** |
-| 4 | `#id` / semantic tag | **Phase-1.5** |
-| 5 | `role=<role>` fallback | `low` |
+| tier | shape                                                                                          | stability     |
+| ---- | ---------------------------------------------------------------------------------------------- | ------------- |
+| 1    | any attr in `BROWX_TEST_ATTRIBUTES` (default `data-testid,data-test,data-cy,data-qa`) — see #8 | `high`        |
+| 2    | `role=<role>[name="…"]`                                                                        | `medium`      |
+| 3    | stable text on a stable role                                                                   | **Phase-1.5** |
+| 4    | `#id` / semantic tag                                                                           | **Phase-1.5** |
+| 5    | `role=<role>` fallback                                                                         | `low`         |
 
 The Phase-1.5 deferrals are explicit in browxai's `docs/phase-1-design.md` §7 — not a gate on the re-adoption run. If `find()` repeatedly only produces tier-5 hints where tier-3 should have caught it, that's the signal to expedite the tier-3 implementation.
 
@@ -69,8 +69,8 @@ The codebase's test-attribute convention is configurable. Comma-separated, order
 {
   "env": {
     "BROWX_WORKSPACE": "<workspace>/.browxai",
-    "BROWX_TEST_ATTRIBUTES": "data-testid,data-type,data-test,data-cy,data-qa"
-  }
+    "BROWX_TEST_ATTRIBUTES": "data-testid,data-type,data-test,data-cy,data-qa",
+  },
 }
 ```
 

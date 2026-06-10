@@ -14,9 +14,7 @@ concurrency:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    # Phase D2a posture: tools land first, baseline captured, Phase D4
-    # drives lint to zero and removes this escape hatch.
-    continue-on-error: true
+    # Phase D4 drove lint to 0 errors / 0 warnings; gate is now load-bearing.
     permissions:
       contents: read
     steps:
@@ -35,9 +33,7 @@ jobs:
 
   format-check:
     runs-on: ubuntu-latest
-    # Phase D2a posture: tools land first, baseline captured, Phase D4
-    # runs `pnpm format` once and removes this escape hatch.
-    continue-on-error: true
+    # Phase D4 ran `pnpm format` once; gate is now load-bearing.
     permissions:
       contents: read
     steps:
@@ -114,12 +110,9 @@ jobs:
 
   package-contents:
     runs-on: ubuntu-latest
-    # Phase D2a posture: per-package tsconfigs emit sourceMap +
-    # declarationMap, which the audit gates on. Phase D4 closes this by
-    # adding a per-package tsconfig.build.json that disables both and
-    # excludes test files (browxai's pattern). Until then the audit
-    # surfaces real signal but does not block.
-    continue-on-error: true
+    # Phase D4 added per-package tsconfig.build.json (browxai's pattern):
+    # sourceMap + declarationMap off, test files excluded. Audit is now
+    # load-bearing.
     permissions:
       contents: read
     steps:

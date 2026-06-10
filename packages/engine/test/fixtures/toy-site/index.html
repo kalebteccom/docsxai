@@ -1,15 +1,33 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Toy app</title>
-<style>body{font-family:system-ui;padding:2rem} #recap-sidebar{display:none;margin-top:1rem;padding:1rem;border:1px solid #ccc;border-radius:6px}</style></head>
-<body>
-  <h1>Toy app</h1>
-  <button id="play-recap">Play recap</button>
-  <div id="recap-sidebar"><h2>Recap</h2><p>The recap content goes here.</p></div>
-  <script>
-    document.getElementById('play-recap').addEventListener('click', function () {
-      document.getElementById('recap-sidebar').style.display = 'block';
-    });
-  </script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Toy app</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 2rem;
+      }
+      #recap-sidebar {
+        display: none;
+        margin-top: 1rem;
+        padding: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Toy app</h1>
+    <button id="play-recap">Play recap</button>
+    <div id="recap-sidebar">
+      <h2>Recap</h2>
+      <p>The recap content goes here.</p>
+    </div>
+    <script>
+      document.getElementById("play-recap").addEventListener("click", function () {
+        document.getElementById("recap-sidebar").style.display = "block";
+      });
+    </script>
+  </body>
 </html>

@@ -65,7 +65,9 @@ export class Store {
   }
   listProjects(wsId: string): Project[] {
     this.getWorkspace(wsId);
-    return [...this.projects.values()].filter((p) => p.workspace_id === wsId).map((p) => this.publicProject(p));
+    return [...this.projects.values()]
+      .filter((p) => p.workspace_id === wsId)
+      .map((p) => this.publicProject(p));
   }
   getProject(wsId: string, projectId: string): Project {
     return this.publicProject(this.projectEntry(wsId, projectId));
@@ -96,7 +98,13 @@ export class Store {
   getRevision(wsId: string, projectId: string, revId: string): Revision {
     return this.publicRevision(this.revisionEntry(wsId, projectId, revId));
   }
-  putArtifact(wsId: string, projectId: string, revId: string, artifact: RevisionArtifact, payload: unknown): Revision {
+  putArtifact(
+    wsId: string,
+    projectId: string,
+    revId: string,
+    artifact: RevisionArtifact,
+    payload: unknown,
+  ): Revision {
     const rev = this.revisionEntry(wsId, projectId, revId);
     rev.payloads[artifact] = payload;
     if (!rev.artifacts.includes(artifact)) rev.artifacts.push(artifact);
@@ -104,7 +112,8 @@ export class Store {
   }
   getArtifact(wsId: string, projectId: string, revId: string, artifact: RevisionArtifact): unknown {
     const rev = this.revisionEntry(wsId, projectId, revId);
-    if (!(artifact in rev.payloads)) throw new NotFoundError(`artifact ${artifact} on revision ${rev.id}`);
+    if (!(artifact in rev.payloads))
+      throw new NotFoundError(`artifact ${artifact} on revision ${rev.id}`);
     return rev.payloads[artifact];
   }
 
@@ -136,7 +145,8 @@ export class Store {
   private projectEntry(wsId: string, projectId: string): ProjectEntry {
     this.getWorkspace(wsId);
     const p = this.projects.get(projectId);
-    if (!p || p.workspace_id !== wsId) throw new NotFoundError(`project ${projectId} in workspace ${wsId}`);
+    if (!p || p.workspace_id !== wsId)
+      throw new NotFoundError(`project ${projectId} in workspace ${wsId}`);
     return p;
   }
   private revisionEntry(wsId: string, projectId: string, revId: string): RevisionEntry {

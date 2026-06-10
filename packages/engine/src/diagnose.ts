@@ -65,7 +65,8 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
       return [
         {
           kind: "selector",
-          rationale: "Selector matches 0 elements on the live page — the element was renamed, moved, or removed.",
+          rationale:
+            "Selector matches 0 elements on the live page — the element was renamed, moved, or removed.",
           suggestion:
             "Re-discover the element via the calibration loop (browxai's `find()`, or `site-docs inspect`). Pick a new canonical locator and commit it as the step's `target` (or update the named entry in the flow's `locators:` block).",
         },
@@ -74,7 +75,8 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
       return [
         {
           kind: "selector",
-          rationale: "Selector matches multiple DOM nodes — strict-mode violation territory; one of them is likely a hidden duplicate.",
+          rationale:
+            "Selector matches multiple DOM nodes — strict-mode violation territory; one of them is likely a hidden duplicate.",
           suggestion:
             "Scope the selector: append `:visible`, use `:nth-match(<sel>, 1)`, or add a stable qualifier (parent class, `:has-text(...)`). Avoid silently picking one — the duplicate signal usually means the locator isn't specific enough.",
         },
@@ -92,7 +94,8 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
       return [
         {
           kind: "annotation_target",
-          rationale: "Selector resolved but the element isn't attached to the DOM any more — usually unmounted by the action itself (the step's action transitions the UI, and the original target is gone in the post-action state).",
+          rationale:
+            "Selector resolved but the element isn't attached to the DOM any more — usually unmounted by the action itself (the step's action transitions the UI, and the original target is gone in the post-action state).",
           suggestion:
             "Set the annotation's `target` to a different element that survives the transition (an element in the resulting state). The action's `target` stays the same; only the annotation anchor moves.",
         },
@@ -101,7 +104,8 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
       return [
         {
           kind: "wait_for",
-          rationale: "Selector resolves to a single element but it's hidden (`display: none` / `visibility: hidden` / zero-size).",
+          rationale:
+            "Selector resolves to a single element but it's hidden (`display: none` / `visibility: hidden` / zero-size).",
           suggestion:
             "Add (or strengthen) `wait_for: { selector: <sel>, timeout_ms: <ms> }` to give the element time to become visible. If it's permanently hidden, the locator probably moved — re-discover.",
         },
@@ -110,7 +114,8 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
       return [
         {
           kind: "split_step",
-          rationale: "Selector resolves to a CSS-visible element but it's outside the viewport, and Playwright's auto-scroll didn't reach it.",
+          rationale:
+            "Selector resolves to a CSS-visible element but it's outside the viewport, and Playwright's auto-scroll didn't reach it.",
           suggestion:
             "Insert a scroll-into-view step before the action (or pick a parent element that's in the viewport). Off-screen elements inside `overflow: auto` containers are usually fine — this state means the page scroll is the issue, not a scroller.",
         },
@@ -119,7 +124,8 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
       return [
         {
           kind: "split_step",
-          rationale: "Another element receives clicks at this element's center — likely a modal, overlay, or tooltip covering the target.",
+          rationale:
+            "Another element receives clicks at this element's center — likely a modal, overlay, or tooltip covering the target.",
           suggestion:
             "Insert a step to dismiss the covering element (close button, click outside, ESC key), then act on the original target.",
         },
@@ -128,7 +134,10 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
 }
 
 /** Static recommendations from the flow-file shape alone (no live probe). */
-export function recommendStatic(step: Step, halt: { screenshotRelPath?: string }): DiagnoseRecommendation[] {
+export function recommendStatic(
+  step: Step,
+  halt: { screenshotRelPath?: string },
+): DiagnoseRecommendation[] {
   const recs: DiagnoseRecommendation[] = [];
   if (halt.screenshotRelPath) {
     recs.push({
@@ -141,7 +150,8 @@ export function recommendStatic(step: Step, halt: { screenshotRelPath?: string }
   if (success && typeof success === "object" && success !== null && "text_contains" in success) {
     recs.push({
       kind: "success",
-      rationale: "Success criterion uses `text_contains` — fragile against UI copy changes / localisation drift.",
+      rationale:
+        "Success criterion uses `text_contains` — fragile against UI copy changes / localisation drift.",
       suggestion:
         "Verify the expected text still appears in the post-action state. If the text changed, update it; if the text shifted to a different element, change the success selector. Where stable, a structural criterion (visible/hidden element, url_matches) is more drift-resistant.",
     });
@@ -164,7 +174,9 @@ export async function buildDiagnoseReport(opts: {
         .then(() => true)
         .catch(() => false)
     : false;
-  const haltRel = haltExists ? path.relative(opts.workspace, opts.haltScreenshotAbsPath!) : undefined;
+  const haltRel = haltExists
+    ? path.relative(opts.workspace, opts.haltScreenshotAbsPath!)
+    : undefined;
   const live = opts.liveProbe ? await opts.liveProbe() : undefined;
 
   const recommendations: DiagnoseRecommendation[] = [
@@ -208,7 +220,8 @@ export function formatReportText(r: DiagnoseReport): string {
   let out = `diagnose: flow=${r.flow} step=${r.step.id}\n\n`;
   out += `Current step:\n`;
   out += `  action: ${r.step.action}\n`;
-  if (r.step.target) out += `  target: ${r.step.target}${r.step.resolvedSelector && r.step.resolvedSelector !== r.step.target ? ` (resolved: ${r.step.resolvedSelector})` : ""}\n`;
+  if (r.step.target)
+    out += `  target: ${r.step.target}${r.step.resolvedSelector && r.step.resolvedSelector !== r.step.target ? ` (resolved: ${r.step.resolvedSelector})` : ""}\n`;
   if (r.step.wait_for !== undefined) out += `  wait_for: ${JSON.stringify(r.step.wait_for)}\n`;
   if (r.step.success !== undefined) out += `  success: ${JSON.stringify(r.step.success)}\n`;
   out += `\n`;

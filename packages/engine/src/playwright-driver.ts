@@ -43,19 +43,22 @@ export interface PlaywrightSession {
 }
 
 /** Launch Chromium (or, with `connectOverCdp`, attach to a running one) and return a {@link PlaywrightSession}. */
-export async function launchPlaywrightSession(opts: PlaywrightSessionOptions = {}): Promise<PlaywrightSession> {
+export async function launchPlaywrightSession(
+  opts: PlaywrightSessionOptions = {},
+): Promise<PlaywrightSession> {
   if (opts.connectOverCdp) {
     const browser = await chromium.connectOverCDP(opts.connectOverCdp);
     const context = browser.contexts()[0] ?? (await browser.newContext());
     const pages = context.pages();
-    const page = pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await context.newPage());
+    const page =
+      pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await context.newPage());
     const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".");
     return {
       browser,
       context,
       page,
       driver,
-      storageState: () => context.storageState() as Promise<StorageState>,
+      storageState: () => context.storageState(),
       // Attached — don't close the browser; just let the connection drop.
       close: async () => {},
     };
@@ -77,7 +80,7 @@ export async function launchPlaywrightSession(opts: PlaywrightSessionOptions = {
     context,
     page,
     driver,
-    storageState: () => context.storageState() as Promise<StorageState>,
+    storageState: () => context.storageState(),
     close: async () => {
       await context.close().catch(() => {});
       await browser.close().catch(() => {});
@@ -129,7 +132,9 @@ export class PlaywrightDriver implements BrowserDriver {
     await this.page.waitForTimeout(100);
   }
   waitForSelector(selector: string, timeoutMs?: number): Promise<void> {
-    return this.page.waitForSelector(selector, timeoutMs ? { timeout: timeoutMs } : {}).then(() => undefined);
+    return this.page
+      .waitForSelector(selector, timeoutMs ? { timeout: timeoutMs } : {})
+      .then(() => undefined);
   }
   waitForTimeout(ms: number): Promise<void> {
     return this.page.waitForTimeout(ms);
@@ -138,11 +143,16 @@ export class PlaywrightDriver implements BrowserDriver {
   isVisible(selector: string): Promise<boolean> {
     return this.page.locator(selector).isVisible();
   }
-  async urlMatches(pattern: string): Promise<boolean> {
-    return new RegExp(pattern).test(this.page.url());
+  urlMatches(pattern: string): Promise<boolean> {
+    return Promise.resolve(new RegExp(pattern).test(this.page.url()));
   }
   async textContains(selector: string, text: string): Promise<boolean> {
-    const t = (await this.page.locator(selector).first().textContent().catch(() => null)) ?? "";
+    const t =
+      (await this.page
+        .locator(selector)
+        .first()
+        .textContent()
+        .catch(() => null)) ?? "";
     return t.includes(text);
   }
 
@@ -153,7 +163,11 @@ export class PlaywrightDriver implements BrowserDriver {
     return this.page.locator(selector).count();
   }
   textOf(selector: string): Promise<string | null> {
-    return this.page.locator(selector).first().textContent().catch(() => null);
+    return this.page
+      .locator(selector)
+      .first()
+      .textContent()
+      .catch(() => null);
   }
 
   async boundingBox(selector: string, timeoutMs?: number): Promise<BoundingBox | null> {
@@ -163,23 +177,48 @@ export class PlaywrightDriver implements BrowserDriver {
     // the screenshot doesn't show those, so a halo drawn from that rect overflows into the void.
     const loc = this.page.locator(selector).first();
     try {
-      await loc.waitFor({ state: "visible", ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}) });
+      await loc.waitFor({
+        state: "visible",
+        ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
+      });
     } catch {
       return null;
     }
     return loc
       .evaluate((el: unknown) => {
-        const e = el as { getBoundingClientRect: () => { left: number; top: number; right: number; bottom: number }; parentElement: unknown; ownerDocument: { defaultView: { innerWidth: number; innerHeight: number; devicePixelRatio: number; getComputedStyle: (n: unknown) => { overflow: string; overflowX: string; overflowY: string } } } };
+        const e = el as {
+          getBoundingClientRect: () => { left: number; top: number; right: number; bottom: number };
+          parentElement: unknown;
+          ownerDocument: {
+            defaultView: {
+              innerWidth: number;
+              innerHeight: number;
+              devicePixelRatio: number;
+              getComputedStyle: (n: unknown) => {
+                overflow: string;
+                overflowX: string;
+                overflowY: string;
+              };
+            };
+          };
+        };
         const view = e.ownerDocument.defaultView;
         const r = e.getBoundingClientRect();
         let x = r.left,
           y = r.top,
           right = r.right,
           bottom = r.bottom;
-        let cur = e.parentElement as { getBoundingClientRect: () => { left: number; top: number; right: number; bottom: number }; parentElement: unknown } | null;
+        let cur = e.parentElement as {
+          getBoundingClientRect: () => { left: number; top: number; right: number; bottom: number };
+          parentElement: unknown;
+        } | null;
         while (cur) {
           const cs = view.getComputedStyle(cur);
-          if (cs.overflow !== "visible" || cs.overflowX !== "visible" || cs.overflowY !== "visible") {
+          if (
+            cs.overflow !== "visible" ||
+            cs.overflowX !== "visible" ||
+            cs.overflowY !== "visible"
+          ) {
             const cr = cur.getBoundingClientRect();
             if (cr.left > x) x = cr.left;
             if (cr.top > y) y = cr.top;
@@ -226,7 +265,9 @@ export class PlaywrightDriver implements BrowserDriver {
 
     const first = loc.first();
     try {
-      const attached = await first.evaluate((el: unknown) => (el as { isConnected?: boolean }).isConnected ?? false);
+      const attached = await first.evaluate(
+        (el: unknown) => (el as { isConnected?: boolean }).isConnected ?? false,
+      );
       if (!attached) return "detached";
     } catch {
       return "detached";

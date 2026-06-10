@@ -1,8 +1,8 @@
 # Fixture flow for the calibration→execution reproducibility keystone test (runs against test/fixtures/toy-site).
 name: recap-open
 locators:
-  play_button: '#play-recap'
-  recap_panel: '#recap-sidebar'
+  play_button: "#play-recap"
+  recap_panel: "#recap-sidebar"
 steps:
   - id: open-app
     action: navigate

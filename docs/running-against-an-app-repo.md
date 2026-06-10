@@ -6,8 +6,8 @@
 > conceptual overview; where the two differ, the agent runbook wins. The one-command setup is `site-docs init`.
 
 site-docs documents a **running web app**, not a source tree. If the app you want to document is built and
-served from a local repo (e.g. a the target app / `example-app` checkout), the rule is: **site-docs operates *on* that
-app from outside — it never writes into the app repo, and you never install it *into* the app repo.** Everything
+served from a local repo (e.g. a the target app / `example-app` checkout), the rule is: **site-docs operates _on_ that
+app from outside — it never writes into the app repo, and you never install it _into_ the app repo.** Everything
 site-docs produces (flow-files, screenshots, annotations, the captured session, the viewer) lives in a separate
 **workspace directory**. For an airtight "zero traces" guarantee, run the app itself from a **disposable git
 worktree** of its repo, so even build-script mutations land on a copy you throw away.
@@ -45,15 +45,15 @@ pnpm -C "$TOOL_REPO/packages/backend" link --global   # → `site-docs-backend` 
 — or skip linking and call them directly: `node "$TOOL_REPO/packages/engine/dist/cli.js" …`. (Below assumes
 they're on `PATH`.)
 
-The Claude Code **plugin** (`$TOOL_REPO/packages/plugin`) is the first-class surface for the *calibration*
+The Claude Code **plugin** (`$TOOL_REPO/packages/plugin`) is the first-class surface for the _calibration_
 skills — `claude plugin install` it if you want `/site-docs:calibrate` etc. (The exact install incantation for
 a plugin living in a monorepo subdirectory still needs validating against current Claude Code plugin docs — see
 `PHASE-0.md`; until then, the calibration playbook in `packages/plugin/skills/calibrate/SKILL.md` is the script.)
 
-> **Heads-up on calibration:** the *deterministic* side (`run`, `render`, `capture-auth`) is real and usable
-> today. The calibration *pipeline stages* (the discovery → mapping → commit code that produces a doc pack from
+> **Heads-up on calibration:** the _deterministic_ side (`run`, `render`, `capture-auth`) is real and usable
+> today. The calibration _pipeline stages_ (the discovery → mapping → commit code that produces a doc pack from
 > a written flow description) aren't built yet — only the contract + the playbook. So "calibrate" right now means
-> *drive the playbook manually* (Claude Code + the Claude-in-Chrome MCP + the engine primitives), not one command.
+> _drive the playbook manually_ (Claude Code + the Claude-in-Chrome MCP + the engine primitives), not one command.
 
 ---
 
@@ -147,19 +147,19 @@ git -C "$APP_REPO" status                                # should be clean — y
 
 ## Why this leaves no trace in `$APP_REPO`
 
-| Potential trace | Avoided because |
-|---|---|
-| Doc pack / flow-files / annotations / screenshots written into the repo | They're written to `$WORKSPACE`, which is outside `$APP_REPO`. |
-| `npm install` / build scripts (`set-version.js`, `set-homepage.js`, …) rewriting tracked files | The app runs from the disposable worktree `$APP_RUN`; mutations land there and are removed. `$APP_REPO`'s `node_modules` / lockfile are never touched. |
-| Captured login cookie sitting in the repo | It's in `$WORKSPACE/.auth/editor.json` (gitignored there), never in `$APP_REPO`. The site-docs backend never holds it either (`store: local`). |
-| A vendored skill landing in `$APP_REPO/.claude/skills/` | Don't `vendorSkill` into the app repo — use the globally-installed plugin (or the CLI directly). The vendored fallback is only for repos that *want* to pin the behavior. |
-| Browser profile / extension state in the repo | The browser session lives in your Chrome / Playwright's profile, not in any repo. |
+| Potential trace                                                                                | Avoided because                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Doc pack / flow-files / annotations / screenshots written into the repo                        | They're written to `$WORKSPACE`, which is outside `$APP_REPO`.                                                                                                            |
+| `npm install` / build scripts (`set-version.js`, `set-homepage.js`, …) rewriting tracked files | The app runs from the disposable worktree `$APP_RUN`; mutations land there and are removed. `$APP_REPO`'s `node_modules` / lockfile are never touched.                    |
+| Captured login cookie sitting in the repo                                                      | It's in `$WORKSPACE/.auth/editor.json` (gitignored there), never in `$APP_REPO`. The site-docs backend never holds it either (`store: local`).                            |
+| A vendored skill landing in `$APP_REPO/.claude/skills/`                                        | Don't `vendorSkill` into the app repo — use the globally-installed plugin (or the CLI directly). The vendored fallback is only for repos that _want_ to pin the behavior. |
+| Browser profile / extension state in the repo                                                  | The browser session lives in your Chrome / Playwright's profile, not in any repo.                                                                                         |
 
 ---
 
 ## Caveats / known gaps
 
-- **Agent-driven calibration isn't built** — `site-docs calibrate --from` handles *structured* flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / the first-consumer testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init` / `calibrate`(structured) / `run` / `render` / `capture-auth` are real.
+- **Agent-driven calibration isn't built** — `site-docs calibrate --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / the first-consumer testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
 - **Plugin install from a monorepo subdir** isn't validated yet (`PHASE-0.md` "plugin packaging prototype"). If `claude plugin install` doesn't pick up `packages/plugin/`, copy that dir somewhere installable, or just use the playbook + CLIs.
 - **`--persist tmp`** is implemented for `init` (an ephemeral workspace in a temp dir); `rm -rf` it when done.
 - **HTTPS dev certs:** pass `--ignore-https-errors` (or bake it into `.site-docs.json` via `init`). The `manual-capture` browser also runs security-lowered so the injected capture helper works across SSO-redirect origins. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot.

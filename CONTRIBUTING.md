@@ -4,7 +4,7 @@ Thanks for your interest. docsxai is Apache-2.0 licensed; contributions are welc
 
 ## Where the design lives
 
-This repo is the *implementation*. The **canonical spec, roadmap, and progress log** live in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio repo under `projects/automated-site-documentation-bot/`. Read those first if you're changing scope or design shape; treat them as the source of truth and update them in lockstep with implementation changes.
+This repo is the _implementation_. The **canonical spec, roadmap, and progress log** live in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio repo under `projects/automated-site-documentation-bot/`. Read those first if you're changing scope or design shape; treat them as the source of truth and update them in lockstep with implementation changes.
 
 For browser-bridge / discovery-driver concerns, the cross-repo contract is at [`docs/browxai-asks.md`](docs/browxai-asks.md); the portable actionability predicate is at [`docs/actionability-contract.md`](docs/actionability-contract.md).
 
@@ -51,7 +51,7 @@ examples/    public toy-site flows + fixtures used by the keystone test
 - **ESM only** (`"type": "module"`). All cross-package imports use `.js` extensions in source.
 - **Tests sit alongside code** as `<name>.test.ts` under each package's `test/`. Vitest. New code ships with a test.
 - **Don't add error handling for impossible states.** Trust internal code and framework guarantees; only validate at system boundaries.
-- **Default to writing no comments.** Only add one when the *why* is non-obvious — a hidden constraint, a workaround, behavior that would surprise a future reader.
+- **Default to writing no comments.** Only add one when the _why_ is non-obvious — a hidden constraint, a workaround, behavior that would surprise a future reader.
 - **No backwards-compatibility shims** for unused code paths. Delete unused exports cleanly.
 - **No internal tracker IDs in code or comments.** Ticket / plan / round / PR refs (`W-X#`, `Round-N`, ticket numbers) belong in commit/PR bodies, not in source. State the actual reason instead.
 - **No model-provider SDKs** anywhere in `packages/{engine,plugin,backend,viewer,skill}/`. The engine is LLM-agnostic by design; the host agent supplies inference at calibration time. Importing a provider SDK in this repo is a contract violation.
@@ -95,7 +95,7 @@ We require contributors to sign off on commits with `git commit -s`. This adds a
 1. Branch, make the change, add tests, keep `pnpm typecheck` / `pnpm test` / `pnpm build` green.
 2. Update the relevant runbook (`docs/agent-runbook.md`, `docs/running-against-an-app-repo.md`) for any user-facing surface change.
 3. Update `CHANGELOG.md` under `## Unreleased`.
-4. Open a PR; describe the *why*.
+4. Open a PR; describe the _why_.
 
 For non-trivial changes, open an issue first so we can align on shape — the design docs in the portfolio repo are the place to anchor that discussion.
 

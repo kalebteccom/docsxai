@@ -68,23 +68,36 @@ describe("style — load/write/init", () => {
 
 describe("scanTextForJargon", () => {
   it("flags VERIFY/EXPECT/ASSERT directives when the category is in pruning_rules", () => {
-    const hits = scanTextForJargon("VERIFY the result is 200.\nClick Save.", "f/s.md", ["VERIFY/EXPECT/ASSERT directives"]);
+    const hits = scanTextForJargon("VERIFY the result is 200.\nClick Save.", "f/s.md", [
+      "VERIFY/EXPECT/ASSERT directives",
+    ]);
     expect(hits).toHaveLength(1);
-    expect(hits[0]).toMatchObject({ file: "f/s.md", line: 1, category: "VERIFY/EXPECT/ASSERT directives", snippet: "VERIFY" });
+    expect(hits[0]).toMatchObject({
+      file: "f/s.md",
+      line: 1,
+      category: "VERIFY/EXPECT/ASSERT directives",
+      snippet: "VERIFY",
+    });
   });
 
   it("flags WAIT directives", () => {
-    expect(scanTextForJargon("WAIT FOR 5s, then click.", "x.md", ["WAIT directives"])).toHaveLength(1);
+    expect(scanTextForJargon("WAIT FOR 5s, then click.", "x.md", ["WAIT directives"])).toHaveLength(
+      1,
+    );
   });
 
   it("flags internal locator-name leaks", () => {
-    const hits = scanTextForJargon("Click the element with data-testid='save'.", "x.md", ["internal locator names"]);
+    const hits = scanTextForJargon("Click the element with data-testid='save'.", "x.md", [
+      "internal locator names",
+    ]);
     expect(hits).toHaveLength(1);
     expect(hits[0]!.snippet).toBe("data-testid");
   });
 
   it("flags network-verification blocks", () => {
-    const hits = scanTextForJargon("Then POST /api/v1/save and expect status: 200.", "x.md", ["network-verification blocks"]);
+    const hits = scanTextForJargon("Then POST /api/v1/save and expect status: 200.", "x.md", [
+      "network-verification blocks",
+    ]);
     expect(hits.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -116,20 +129,29 @@ describe("scanWorkspaceForJargon", () => {
     await fs.writeFile(path.join(tmp, "docs", "f2", "close.md"), "WAIT for the panel.\n", "utf8");
     const hits = await scanWorkspaceForJargon(tmp, DEFAULT_STYLE);
     expect(hits).toHaveLength(2);
-    expect(hits.map((h) => h.file).sort()).toEqual([path.join("docs", "f1", "verify.md"), path.join("docs", "f2", "close.md")]);
+    expect(hits.map((h) => h.file).sort()).toEqual([
+      path.join("docs", "f1", "verify.md"),
+      path.join("docs", "f2", "close.md"),
+    ]);
   });
 
   it("ignores non-.md files and non-directory entries", async () => {
     await fs.mkdir(path.join(tmp, "docs", "f1"), { recursive: true });
     await fs.writeFile(path.join(tmp, "docs", "f1", "screenshot.png"), "fake", "utf8");
-    await fs.writeFile(path.join(tmp, "docs", "f1", "annotations.json"), '{"schema":"site-docs/annotations@1","flow":"f1","annotations":[]}', "utf8");
+    await fs.writeFile(
+      path.join(tmp, "docs", "f1", "annotations.json"),
+      '{"schema":"site-docs/annotations@1","flow":"f1","annotations":[]}',
+      "utf8",
+    );
     expect(await scanWorkspaceForJargon(tmp, DEFAULT_STYLE)).toEqual([]);
   });
 
   it("returns no hits when pruning_rules is empty", async () => {
     await fs.mkdir(path.join(tmp, "docs", "f1"), { recursive: true });
     await fs.writeFile(path.join(tmp, "docs", "f1", "x.md"), "VERIFY all the things.", "utf8");
-    expect(await scanWorkspaceForJargon(tmp, { schema: "site-docs/style@1", pruning_rules: [] })).toEqual([]);
+    expect(
+      await scanWorkspaceForJargon(tmp, { schema: "site-docs/style@1", pruning_rules: [] }),
+    ).toEqual([]);
   });
 });
 

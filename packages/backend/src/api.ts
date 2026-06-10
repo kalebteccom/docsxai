@@ -11,7 +11,13 @@ export const API_VERSION = "1" as const;
 export const API_VERSION_HEADER = "site-docs-api-version";
 
 /** The artifact slots a revision carries (mirrors the on-disk doc pack). Payloads are opaque to the backend. */
-export const REVISION_ARTIFACTS = ["flows", "annotations", "screenshots", "style", "locators"] as const;
+export const REVISION_ARTIFACTS = [
+  "flows",
+  "annotations",
+  "screenshots",
+  "style",
+  "locators",
+] as const;
 export type RevisionArtifact = (typeof REVISION_ARTIFACTS)[number];
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
@@ -31,8 +37,16 @@ export const ROUTES: readonly RouteSpec[] = [
   { method: "GET", path: "/v1/workspaces/:ws", summary: "Get a workspace." },
   { method: "GET", path: "/v1/workspaces/:ws/projects", summary: "List projects in a workspace." },
   { method: "POST", path: "/v1/workspaces/:ws/projects", summary: "Create a project ({ name })." },
-  { method: "GET", path: "/v1/workspaces/:ws/projects/:project", summary: "Get a project (incl. head revision)." },
-  { method: "GET", path: "/v1/workspaces/:ws/projects/:project/revisions", summary: "List revisions (newest first)." },
+  {
+    method: "GET",
+    path: "/v1/workspaces/:ws/projects/:project",
+    summary: "Get a project (incl. head revision).",
+  },
+  {
+    method: "GET",
+    path: "/v1/workspaces/:ws/projects/:project/revisions",
+    summary: "List revisions (newest first).",
+  },
   {
     method: "POST",
     path: "/v1/workspaces/:ws/projects/:project/revisions",

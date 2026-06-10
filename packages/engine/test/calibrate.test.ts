@@ -43,7 +43,9 @@ describe("extractFlowFile", () => {
     expect(flow.steps).toHaveLength(1);
   });
   it("rejects loose prose with a message pointing at the agent path", () => {
-    expect(() => extractFlowFile("Just click the play button, then check the panel opens.", "loose.md")).toThrow(CalibrateError);
+    expect(() =>
+      extractFlowFile("Just click the play button, then check the panel opens.", "loose.md"),
+    ).toThrow(CalibrateError);
     try {
       extractFlowFile("Just click the play button.", "loose.md");
     } catch (e) {
@@ -51,7 +53,9 @@ describe("extractFlowFile", () => {
     }
   });
   it("rejects a malformed yaml block with the schema error", () => {
-    expect(() => extractFlowFile("```yaml\nname: f\nsteps: []\n```", "bad.md")).toThrow(CalibrateError);
+    expect(() => extractFlowFile("```yaml\nname: f\nsteps: []\n```", "bad.md")).toThrow(
+      CalibrateError,
+    );
   });
 });
 
@@ -59,7 +63,11 @@ describe("calibrate", () => {
   it("writes flows/<name>.flow.yaml + a default docs/style.yaml", async () => {
     const ws = path.join(tmp, "ws");
     await fs.mkdir(ws, { recursive: true });
-    const r = await calibrate({ workspaceDir: ws, fromText: FLOW_GUIDE_MD, fromSource: "guide.md" });
+    const r = await calibrate({
+      workspaceDir: ws,
+      fromText: FLOW_GUIDE_MD,
+      fromSource: "guide.md",
+    });
     expect(r.flow.name).toBe("recap-open");
     expect(r.wroteStyle).toBe(true);
     // round-trips: the written flow-file re-parses to the same flow
@@ -77,7 +85,10 @@ describe("calibrate", () => {
   it("leaves an existing docs/style.yaml alone", async () => {
     const ws = path.join(tmp, "ws3");
     await fs.mkdir(path.join(ws, "docs"), { recursive: true });
-    await fs.writeFile(path.join(ws, "docs", "style.yaml"), "schema: site-docs/style@1\ncustom: true\n");
+    await fs.writeFile(
+      path.join(ws, "docs", "style.yaml"),
+      "schema: site-docs/style@1\ncustom: true\n",
+    );
     const r = await calibrate({ workspaceDir: ws, fromText: FLOW_YAML });
     expect(r.wroteStyle).toBe(false);
     expect(await fs.readFile(r.stylePath, "utf8")).toMatch(/custom: true/);

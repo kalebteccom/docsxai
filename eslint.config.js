@@ -141,7 +141,7 @@ export default tseslint.config(
       globals: { ...globals.node },
     },
     rules: {
-      "no-console": ["warn", { allow: ["error", "warn"] }],
+      "no-console": ["error", { allow: ["error", "warn"] }],
       "import-x/no-duplicates": "error",
       "docsxai-local/no-tracker-ids-in-comments": "error",
       "docsxai-local/no-page-eval-stringified-arrow": "error",
@@ -232,7 +232,7 @@ export default tseslint.config(
         },
       ],
 
-      "no-console": ["warn", { allow: ["error", "warn"] }],
+      "no-console": ["error", { allow: ["error", "warn"] }],
 
       "import-x/no-duplicates": "error",
 
