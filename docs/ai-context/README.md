@@ -36,5 +36,5 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 ## Source-of-truth pointers
 
 - `AGENTS.md` (repo root) — operating rules + repo map + trust posture. The agent-agnostic entry point. Every harness loads it.
-- `PHASE-0.md`, `PHASE-1.md` — phase-closure narratives; the best "why is the engine shaped like this" sources.
+- `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — archived phase-closure narratives; the best "why is the engine shaped like this" sources (especially the `PHASE-1.md` agent-integration-contract postmortem).
 - The portfolio `projects/automated-site-documentation-bot/` in [`project-ideas`](https://github.com/kalebteccom/project-ideas) — canonical `spec.md` / `roadmap.md` / `progress.md`.

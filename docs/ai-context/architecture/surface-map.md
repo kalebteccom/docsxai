@@ -116,7 +116,7 @@ PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-
 - **The engine never calls a model API.** No `openai`, `@anthropic-ai/*`, `@google/genai`, no provider SDK import path. Lock the boundary with `pnpm licenses:check` + grep at PR time if a future ESLint rule lands.
 - **`BrowserDriver` is the only browser abstraction.** Direct `playwright-core` imports outside `playwright-driver.ts` and `playwright-instrumented-browser.ts` are an architectural violation.
 - **`resolveWorkspacePath` is the only filesystem root.** No `cwd`-relative paths in engine handlers.
-- **Calibration mode and execution mode are split.** Calibration helpers (`calibrate.ts`, the plugin's skill surface) are agent-aware; execution (`flow-runtime.ts`, the keystone test) has no agent in the loop. Don't re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see [`PHASE-1.md`](../../../PHASE-1.md) postmortem).
+- **Calibration mode and execution mode are split.** Calibration helpers (`calibrate.ts`, the plugin's skill surface) are agent-aware; execution (`flow-runtime.ts`, the keystone test) has no agent in the loop. Don't re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see [`PHASE-1.md`](../../archive/phase-plans/PHASE-1.md) postmortem).
 
 ## `docs/`, `examples/`, `scripts/`
 

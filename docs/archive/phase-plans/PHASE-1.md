@@ -14,7 +14,7 @@
 - [x] **Semantic reshape validated** — `site-docs style --check` jargon scanner; clean on real flows.
 - [x] **Style artifact produced / hand-edited / re-applied** — schema + persistence + derived JSON + init/validate CLI. (The agent-driven _extraction_ loop runs at calibration time; engine side complete.)
 - [x] **Hand-edited flow-file round-trips** — parser preserves; exercised every calibration round (hand-edit → `run` → docs regenerate).
-- [↗] **OSS repo tagged `0.1.0` under Apache-2.0.** **Release-prepared, publish deferred to ≥ Phase 3 by owner decision (2026-05-19).** Apache-2.0 in place, READMEs/CONTRIBUTING/CHANGELOG written, npm metadata on every package, history scrubbed, versions at `0.1.0`, `"private": true` guards on. The flip is mechanical — see [`RELEASE.md`](RELEASE.md). Not an engine gap.
+- [↗] **OSS repo tagged `0.1.0` under Apache-2.0.** **Release-prepared, publish deferred to ≥ Phase 3 by owner decision (2026-05-19).** Apache-2.0 in place, READMEs/CONTRIBUTING/CHANGELOG written, npm metadata on every package, history scrubbed, versions at `0.1.0`, `"private": true` guards on. The flip is mechanical — see [`RELEASING.md`](../../../RELEASING.md). Not an engine gap.
 
 ## Closure narrative
 
@@ -35,7 +35,7 @@ The Phase-1 deliverable "what we'd change about the agent-integration contract":
 ## What's deferred (and why it's not an engine gap)
 
 - **Full 12-flow feature-area deliverable accepted by a reviewer** — engagement-bound. Needs target access + the reviewer cycle. The engine demonstrably calibrates + replays flows on the real target; breadth is throughput, not capability.
-- **Public OSS release (`0.1.0` tag, npm publish, repo visibility)** — owner-deferred to ≥ Phase 3. Repo is one mechanical flip from public; see `RELEASE.md`.
+- **Public OSS release (`0.1.0` tag, npm publish, repo visibility)** — owner-deferred to ≥ Phase 3. Repo is one mechanical flip from public; see `RELEASING.md` at the repo root.
 - **Backend persistent store + OAuth interactive flow + hosted deployment** — Phase 2 (the stub is sufficient for MVP; not a Phase-1 exit criterion).
 
 ## Next: Phase 2

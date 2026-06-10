@@ -46,7 +46,7 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 - `packages/viewer/` — `@kalebtec/docsxai-viewer`. Static-HTML viewer: halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time.
 - `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
 - `examples/` — public toy-site flows + fixtures used by the keystone test.
-- `PHASE-0.md`, `PHASE-1.md` — phase closure summaries (impl-repo mirrors of the portfolio `roadmap.md`).
+- `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — archived phase closure summaries (impl-repo mirrors of the portfolio `roadmap.md`; kept for design-rationale archaeology, not live references).
 - `RELEASING.md` — gated go-public checklist (release is owner-deferred to ≥ Phase 3).
 
 ## Trust + execution posture
@@ -79,7 +79,7 @@ The engine has two modes — **calibration** (AI-assisted, rare) and **execution
 - `site-docs run` reproduces a doc pack byte-identically from the same flow-file + same target state. The keystone test asserts this against a real browser.
 - Adding model-provider code anywhere in `packages/{engine,plugin,backend,viewer,skill}/` is a contract violation. The future commercial SaaS surface is the only place provider SDKs live, and it's not in this repo.
 
-Write-time signal beats run-time control. `actionable()`, the halt-cause prefix, `lint`, `diagnose`, `flow-tree` — these let the calibration agent decide _before_ committing a step whether it'll hold. Future contract work biases here; do not re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see `PHASE-1.md` postmortem).
+Write-time signal beats run-time control. `actionable()`, the halt-cause prefix, `lint`, `diagnose`, `flow-tree` — these let the calibration agent decide _before_ committing a step whether it'll hold. Future contract work biases here; do not re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see the `docs/archive/phase-plans/PHASE-1.md` postmortem).
 
 ## Browser-driver decoupling
 
@@ -103,7 +103,7 @@ Three doc surfaces with distinct contracts:
 
 - **`docs/`** — public adopter contract. Runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`) and cross-repo contracts (`actionability-contract.md`, `browxai-asks.md`). Every public behavior change updates the relevant runbook.
 - **Colocated `README.md`** — per-package internal contracts (`packages/engine/README.md`, `packages/plugin/README.md`, …). Each package describes its own surface, not the whole repo.
-- **`PHASE-N.md`** — phase closure summaries; mirror the portfolio `roadmap.md` from `project-ideas/projects/automated-site-documentation-bot/`. Source of truth for spec/scope is the portfolio repo.
+- **`docs/archive/phase-plans/PHASE-N.md`** — archived phase closure summaries; mirrored the portfolio `roadmap.md` from `project-ideas/projects/automated-site-documentation-bot/` at the time each phase closed. Source of truth for current spec/scope is the portfolio repo; these are kept for design-rationale archaeology.
 
 Every behavior-change diff includes a docs-impact pass: update the relevant runbook, update `CHANGELOG.md`, update `AGENTS.md` if a rule changed, mirror in the portfolio `progress.md` if scope or shape moved.
 
@@ -113,12 +113,11 @@ For a new agent session in this repo, read in order:
 
 1. `README.md` — substrate at a glance + install + quick start + package map.
 2. This file (`AGENTS.md`) — operating rules + repo map + trust posture.
-3. `PHASE-1.md` — closure narrative + agent-integration-contract postmortem (it's the single best source for _why_ the engine is shaped the way it is).
-4. `docs/agent-runbook.md` — the hand-to-an-agent workflow for calibration.
-5. The package READMEs under `packages/*/README.md` for the area you're touching.
-6. `docs/actionability-contract.md` + `docs/browxai-asks.md` for browser-bridge work.
-
-Once D3 lands an `docs/ai-context/` subtree, that becomes the canonical agent-facing routing layer; until then, this file + `PHASE-1.md` are the routing layer.
+3. `docs/ai-context/README.md` — agent-facing routing layer; points at the right subdir for the area you're touching.
+4. `docs/archive/phase-plans/PHASE-1.md` — closure narrative + agent-integration-contract postmortem (it's the single best source for _why_ the engine is shaped the way it is).
+5. `docs/agent-runbook.md` — the hand-to-an-agent workflow for calibration.
+6. The package READMEs under `packages/*/README.md` for the area you're touching.
+7. `docs/actionability-contract.md` + `docs/browxai-asks.md` for browser-bridge work.
 
 ## Multi-harness auto-discovery
 

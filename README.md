@@ -99,8 +99,8 @@ site-docs zip <workspace>            # package the doc pack for hand-off
 - [**docs/running-against-an-app-repo.md**](docs/running-against-an-app-repo.md) — human-readable runbook
 - [**docs/actionability-contract.md**](docs/actionability-contract.md) — the portable `actionable()` predicate contract, for browser-bridge consumers
 - [**docs/browxai-asks.md**](docs/browxai-asks.md) — integration contract with the discovery driver
-- [`PHASE-0.md`](PHASE-0.md) — Phase-0 closure summary
-- [`PHASE-1.md`](PHASE-1.md) — Phase-1 closure summary + agent-integration-contract postmortem
+- [`docs/archive/phase-plans/PHASE-0.md`](docs/archive/phase-plans/PHASE-0.md) — Phase-0 closure summary (archived)
+- [`docs/archive/phase-plans/PHASE-1.md`](docs/archive/phase-plans/PHASE-1.md) — Phase-1 closure summary + agent-integration-contract postmortem (archived)
 - [`CHANGELOG.md`](CHANGELOG.md) — `0.1.0` (unreleased) contents · [`RELEASING.md`](RELEASING.md) — gated go-public checklist
 
 The **canonical spec & roadmap** live in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio repo, under `projects/automated-site-documentation-bot/`:

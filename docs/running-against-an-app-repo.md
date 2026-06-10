@@ -48,7 +48,7 @@ they're on `PATH`.)
 The Claude Code **plugin** (`$TOOL_REPO/packages/plugin`) is the first-class surface for the _calibration_
 skills — `claude plugin install` it if you want `/site-docs:calibrate` etc. (The exact install incantation for
 a plugin living in a monorepo subdirectory still needs validating against current Claude Code plugin docs — see
-`PHASE-0.md`; until then, the calibration playbook in `packages/plugin/skills/calibrate/SKILL.md` is the script.)
+`docs/archive/phase-plans/PHASE-0.md`; until then, the calibration playbook in `packages/plugin/skills/calibrate/SKILL.md` is the script.)
 
 > **Heads-up on calibration:** the _deterministic_ side (`run`, `render`, `capture-auth`) is real and usable
 > today. The calibration _pipeline stages_ (the discovery → mapping → commit code that produces a doc pack from
@@ -160,7 +160,7 @@ git -C "$APP_REPO" status                                # should be clean — y
 ## Caveats / known gaps
 
 - **Agent-driven calibration isn't built** — `site-docs calibrate --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / the first-consumer testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
-- **Plugin install from a monorepo subdir** isn't validated yet (`PHASE-0.md` "plugin packaging prototype"). If `claude plugin install` doesn't pick up `packages/plugin/`, copy that dir somewhere installable, or just use the playbook + CLIs.
+- **Plugin install from a monorepo subdir** isn't validated yet (`docs/archive/phase-plans/PHASE-0.md` "plugin packaging prototype"). If `claude plugin install` doesn't pick up `packages/plugin/`, copy that dir somewhere installable, or just use the playbook + CLIs.
 - **`--persist tmp`** is implemented for `init` (an ephemeral workspace in a temp dir); `rm -rf` it when done.
 - **HTTPS dev certs:** pass `--ignore-https-errors` (or bake it into `.site-docs.json` via `init`). The `manual-capture` browser also runs security-lowered so the injected capture helper works across SSO-redirect origins. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot.
 - **Session expiry:** `manual-capture` sessions last ≈ the app's auth-cookie lifetime. Pin `cache.auth_cookie` (`capture-auth` prints the jar; or `init --auth-cookie` / `--auth-cookie`) so the cache tracks the real cookie, not a `ttl` guess. `run` fails fast with "session expired" → re-run `capture-auth` (re-login). A callable login / test-only login endpoint on the app would make it unattended; if there isn't one, expect periodic re-capture.
