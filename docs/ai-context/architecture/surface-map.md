@@ -118,8 +118,9 @@ PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-
 - **`resolveWorkspacePath` is the only filesystem root.** No `cwd`-relative paths in engine handlers.
 - **Calibration mode and execution mode are split.** Calibration helpers (`calibrate.ts`, the plugin's skill surface) are agent-aware; execution (`flow-runtime.ts`, the keystone test) has no agent in the loop. Don't re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see [`PHASE-1.md`](../../archive/phase-plans/PHASE-1.md) postmortem).
 
-## `docs/`, `examples/`, `scripts/`
+## `docs/`, `scripts/`
 
 - `docs/` — public adopter runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md`, `browxai-asks.md`).
-- `examples/` — toy-site flows + fixtures used by the keystone test.
 - `scripts/` — repo-level scripts (CI helpers, audit utilities). Not part of the published surface.
+
+Keystone-test fixtures live at `packages/engine/test/fixtures/toy-site/`, alongside the test that consumes them.

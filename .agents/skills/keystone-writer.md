@@ -22,7 +22,7 @@ Unit tests against a fake `BrowserDriver` silently pass when the real Playwright
 
 ## Workflow
 
-1. **Pick a fixture.** Use the existing fixture infrastructure under `packages/engine/test/fixtures/` (or `examples/` for the toy-site flow). Add a new fixture HTML page if the test exercises a real-DOM scenario the existing fixtures don't cover.
+1. **Pick a fixture.** Use the existing fixture infrastructure under `packages/engine/test/fixtures/` (the toy-site lives at `packages/engine/test/fixtures/toy-site/`). Add a new fixture HTML page if the test exercises a real-DOM scenario the existing fixtures don't cover.
 2. **Drive the runtime against real Chromium.** Compose the workspace, parse the flow, run it through `flow-runtime.ts` + `playwright-driver.ts`. Headless mode is the default.
 3. **Assert on the doc-pack output.** Real values, not mocked. If the runtime emits `annotations.json`, assert against the on-disk contents, not against `mock.calls` of the writer.
 4. **Add the failure-path test.** Drive a flow that should halt (drifted locator, missing required field, expired auth); assert the halt-context shape and reason.

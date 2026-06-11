@@ -92,9 +92,9 @@ jobs:
   zizmor:
     runs-on: ubuntu-latest
     # TODO(post-Phase-D4): zizmor's upstream `support/versions` infra bug
-    # (per browxai Phase 16 finding) and any pre-existing workflow audit
-    # findings here need a focused hardening pass before this job gates.
-    # Promote to error once both upstream + workflows are in shape.
+    # and any pre-existing workflow audit findings here need a focused
+    # hardening pass before this job gates. Promote to error once both
+    # upstream + workflows are in shape.
     continue-on-error: true
     permissions:
       contents: read
@@ -110,9 +110,9 @@ jobs:
 
   package-contents:
     runs-on: ubuntu-latest
-    # Phase D4 added per-package tsconfig.build.json (browxai's pattern):
-    # sourceMap + declarationMap off, test files excluded. Audit is now
-    # load-bearing.
+    # Phase D4 added per-package tsconfig.build.json: sourceMap +
+    # declarationMap off, test files excluded. Audit is now load-bearing
+    # so map files and tests cannot leak into published tarballs.
     permissions:
       contents: read
     steps:

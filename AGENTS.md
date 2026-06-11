@@ -45,7 +45,6 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 - `packages/skill/` — `@kalebtec/docsxai-skill`. Optional vendorable `.claude/skills/` fallback that delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.
 - `packages/viewer/` — `@kalebtec/docsxai-viewer`. Static-HTML viewer: halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time.
 - `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
-- `examples/` — public toy-site flows + fixtures used by the keystone test.
 - `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — archived phase closure summaries (impl-repo mirrors of the portfolio `roadmap.md`; kept for design-rationale archaeology, not live references).
 - `RELEASING.md` — gated go-public checklist (release is owner-deferred to ≥ Phase 3).
 

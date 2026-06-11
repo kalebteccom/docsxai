@@ -1,8 +1,8 @@
 # Trust posture — what writes to disk, what gets sent over the wire
 
-docsxai's trust surface is materially narrower than browxai's. The engine never executes JavaScript the visited site provides in any privileged context; there is no `eval_js` tool, no `register_secret` surface, no `network-body` capability. The whole "off-by-default capability lattice" model doesn't apply here.
+The engine never executes JavaScript the visited site provides in any privileged context. Page interaction goes through Playwright's locator API and a curated, finite step vocabulary (`click`, `fill`, `select`, `wait_for`, `assert`, …); nothing in a flow-file is `eval`'d. There is no in-engine `eval_js` surface and no general-purpose JS-injection capability — that boundary is load-bearing.
 
-What _does_ apply:
+What the trust surface _does_ cover:
 
 - **Auth-strategy artifacts can carry secrets.** A `manual-capture` flow caches a session cookie / `storageState` in the workspace. That cookie is the keys-to-the-kingdom against the target site.
 - **Doc-pack artifacts can carry visual secrets.** Screenshots from a calibration run can capture PII, OAuth flow tokens visible in URLs, customer data on the target page. The viewer overlay logic stays clean; the underlying PNG bytes are whatever Chromium painted.

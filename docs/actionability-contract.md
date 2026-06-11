@@ -1,6 +1,6 @@
 # Actionability contract — site-docs ↔ browxai (and any other consumer)
 
-> The state of an element from the perspective of "can a flow-step actually act on it?" — a single string returned by `BrowserDriver.actionable(selector)` in site-docs's engine. Browxai's `find()` is expected to mirror this contract on its candidate results (per the 2026-05-15 adoption-run wishlist's D1 ask) so a calibration agent can know at _write-time_ — before the step lands in a flow-file — whether the selector is fillable / clickable / scopable, instead of finding out at run-time via a halt.
+> The state of an element from the perspective of "can a flow-step actually act on it?" — a single string returned by `BrowserDriver.actionable(selector)` in site-docs's engine. Browxai's `find()` is expected to mirror this contract on its candidate results so a calibration agent can know at _write-time_ — before the step lands in a flow-file — whether the selector is fillable / clickable / scopable, instead of finding out at run-time via a halt.
 >
 > Site-docs's own runtime doesn't call `actionable()` on every step — Playwright's per-action actionability already throws appropriately. This contract exists so external consumers can read the same state without acting.
 
@@ -45,7 +45,7 @@ Avoid using `actionable()` in tight loops; intended pattern is "one call per can
 - **`covered` is best-effort.** A center-point hit-test misses partial overlays. Site-docs ignores errors from the covered check and falls through to `actionable`. Don't rely on it for correctness — rely on it for the common "modal eats the click" case.
 - **`off-screen` ≠ "not actionable later."** Playwright auto-scrolls. If the consumer reports `off-screen` on a candidate the agent could still scroll to and act on, that's an agent-side decision — not a contract violation.
 - **The state is a _snapshot_.** Repeatedly calling `actionable()` after each action is reasonable; relying on a cached value across an action is not.
-- **`multiple-matches` is the round-6 hidden-duplicate signal.** If a `[data-foo="x"]` is `multiple-matches` and only one is visible, the calibration agent's prescribed move is to emit `[data-foo="x"]:visible` (or equivalent) into the flow-file — _not_ to silently pick one. Same fix the runbook's "Locator gotchas" block names.
+- **`multiple-matches` is the hidden-duplicate signal.** If a `[data-foo="x"]` is `multiple-matches` and only one is visible, the calibration agent's prescribed move is to emit `[data-foo="x"]:visible` (or equivalent) into the flow-file — _not_ to silently pick one. Same fix the runbook's "Locator gotchas" block names.
 
 ## Coordinates with the existing halt-cause prefix
 

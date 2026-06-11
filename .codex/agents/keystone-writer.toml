@@ -16,7 +16,7 @@ When to act:
 - Any change to the doc-pack output shape (`annotations.json`, halt-context, screenshot file-name pattern).
 
 Workflow:
-1. Pick a fixture. Use existing fixtures under `packages/engine/test/fixtures/` or `examples/`; add a new fixture HTML page if needed.
+1. Pick a fixture. Use existing fixtures under `packages/engine/test/fixtures/` (the toy-site lives at `packages/engine/test/fixtures/toy-site/`); add a new fixture HTML page if needed.
 2. Drive the runtime against real Chromium. Compose the workspace, parse the flow, run it through `flow-runtime.ts` + `playwright-driver.ts`. Headless is the default.
 3. Assert on the doc-pack output. Real values — no mocks. Assert against on-disk contents (`annotations.json`, halt-context, screenshot bytes), not `mock.calls` of the writer.
 4. Add the failure-path test. Drive a flow that should halt (drifted locator, missing required field, expired auth); assert the halt-context shape and reason.

@@ -74,7 +74,7 @@ These items are blocked on either flipping the repo public or on registering the
 - [ ] **Set `"Require 2FA and disallow tokens"`** on the `docsxai` package on npm after the first successful OIDC publish (universal-baseline rule 9).
 - [ ] **Verify named-human owners ≥ 2** on the package and that both have phishing-resistant WebAuthn credentials (universal-baseline rules 1 + 7).
 
-The stub-publish path is intentionally narrow. When v1.0 lands, the full release.yml pattern from `browxai` (build matrix + reproducibility diff + SBOM + plugin publish) lifts wholesale.
+The stub-publish path is intentionally narrow. The v1.0 release pipeline expands to a full build matrix, a reproducibility diff between two independent builds of the same tag, SBOM emission, and the per-package plugin publish — designed in but not wired until the public flip.
 
 ## Do NOT, before the Phase-3 decision
 

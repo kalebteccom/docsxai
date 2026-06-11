@@ -41,8 +41,7 @@ packages/
   backend/   @kalebtec/docsxai-backend   — auth'd persistence (stub today)
   skill/     @kalebtec/docsxai-skill     — vendorable .claude/skills/ fallback
   viewer/    @kalebtec/docsxai-viewer    — static-HTML viewer
-docs/        runbooks + cross-repo contracts (browxai, actionability)
-examples/    public toy-site flows + fixtures used by the keystone test
+docs/        runbooks + cross-repo contracts (browser-bridge integration, actionability)
 ```
 
 ## Code conventions
@@ -74,9 +73,9 @@ The engine has two modes — **calibration** (AI-assisted, rare) and **execution
 Examples:
 
 ```
-feat(engine): actionability predicate + contract for browxai consumers
+feat(engine): actionability predicate + portable consumer contract
 fix(viewer): clamp nudge offsets to image bounds
-docs: integrate browxai as canonical discovery driver
+docs(agent-runbook): document the calibration discovery driver
 ```
 
 ## Developer Certificate of Origin (DCO)

@@ -7,6 +7,8 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Repo housekeeping
 
 - Archived historical phase-closure docs out of the repo root into `docs/archive/phase-plans/` (`PHASE-0.md`, `PHASE-1.md`). The repo root now follows the standard top-level `.md` set (README / AGENTS / CLAUDE / CONTRIBUTING / CODE_OF_CONDUCT / SECURITY / MAINTAINERS / RELEASING / THIRD_PARTY_NOTICES / CHANGELOG / LICENSE). References updated across `README.md`, `AGENTS.md`, `docs/ai-context/`, `docs/running-against-an-app-repo.md`, and `packages/engine/src/index.ts`. The agent-integration-contract postmortem in `PHASE-1.md` remains the load-bearing "why is the engine shaped like this" source — only the path changed.
+- Removed the empty `examples/` stub directory at the repo root. The keystone-test fixtures it pointed at live colocated with the test that consumes them at `packages/engine/test/fixtures/toy-site/`; the stub README was the only file under `examples/` and was no longer pointing at anything live.
+- Scrubbed migration / cross-repo-comparison phrasing from permanent docs so the project reads standalone. Technical interop references (browxai as the canonical model-agnostic discovery driver, the integration contract at `docs/browxai-asks.md`, the actionability contract for browser-bridge consumers) stay; "matches browxai's pattern" / cross-repo phase-tracking framing is gone.
 
 ## [0.1.0] — UNRELEASED
 
