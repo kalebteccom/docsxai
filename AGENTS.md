@@ -18,6 +18,10 @@ The architecture splits into two modes: **calibration** (AI-assisted, rare; host
 - **Code is the source of truth.** Before naming an API, import, schema field, config key, or generated type — read the file. Plan snippets, memory, and old review notes can be stale. Hallucinated APIs are a recurring failure mode.
 - **No internal tracker IDs in source or comments.** Ticket / plan / round / PR refs (`W-X#`, `Round-N`, `ask #N`, `TICKET-N`, `JIRA-N`, `#1234`) are project-management artifacts, not code context — they rot, mean nothing to a future reader, and belong in the commit/PR body. State the actual reason instead: write _why_ the code is the way it is, not _which ticket asked for it_.
 
+### Naming policy
+
+Codename surfaces are deliberately stable and must **not** be renamed: the CLI command `site-docs`, env vars `SITE_DOCS_*`, the HTTP header `Site-Docs-API-Version`, the workspace config `.site-docs.json`, and schema ids `site-docs/*@N`. New packages and bins use `docsxai-*` naming (`@kalebtec/docsxai-<name>`, bin `docsxai-<name>`); new env vars follow `SITE_DOCS_*`.
+
 ## Commands the agent must not run
 
 Agents reading this file must not invoke the commands below unless the operator explicitly authorizes the specific invocation in the same session.
@@ -62,13 +66,15 @@ Surface-by-surface:
 | Viewer          | Static HTML; no runtime fetch from third-party CDNs. CSP `default-src 'none'` posture on emitted pages.                                                                                    |
 | `site-docs run` | Deterministic. No agent in the loop. Same flow-file + same target state → byte-identical doc pack (keystone-enforced).                                                                     |
 
+Egress boundary: the engine's only built-in outbound HTTP path is the backend client (`backend-client.ts`), besides the target-site navigation Playwright drives. Wiki/VCS egress lives exclusively in capability-declared publisher plugins and the backend — the engine core emits projections (files/payloads) only.
+
 ## Build + run discipline — the dist-rebuild trap
 
 `site-docs` runs the compiled `packages/engine/dist/cli.js`. **Source changes are NOT live until `pnpm -r build`.** A stale `dist/` that predates a runtime change can crash the CLI at startup or, worse, silently run old behaviour against new tests.
 
 - After any source change, rebuild: `pnpm -r build`.
 - A running Claude Code / Codex session may hold the plugin daemon process in memory. Node's `import()` is one-shot at boot. Any `dist/` rebuild after the daemon started means the running daemon is executing stale code. **Restart the daemon and surface the new PID explicitly to the operator** before declaring the change verified.
-- Before pushing: `pnpm typecheck && pnpm test && pnpm build` — all exit 0. CI runs the same gate. The keystone test (`packages/engine/test/keystone.test.ts`) requires Chromium; it's the regression gate for runtime behaviour.
+- Before pushing: `pnpm typecheck && pnpm test && pnpm lint && pnpm format:check && pnpm build` — all exit 0. CI runs the same gate. The keystone test (`packages/engine/test/keystone.test.ts`) requires Chromium; it's the regression gate for runtime behaviour.
 
 ## Two-mode architecture — the load-bearing split
 
@@ -131,11 +137,13 @@ Adding a new harness: place a pointer file in the harness's discovery location, 
 
 ## Quality gate contract
 
-All of the following must exit 0 on a clean branch before pushing:
+All five of the following must exit 0 on a clean branch before pushing:
 
 ```
 pnpm typecheck
 pnpm test
+pnpm lint
+pnpm format:check
 pnpm build
 ```
 

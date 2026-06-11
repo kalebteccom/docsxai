@@ -11,7 +11,7 @@ What the trust surface _does_ cover:
 ## Egress chokepoints
 
 - **`packages/engine/src/workspace.ts` — `resolveWorkspacePath`.** All filesystem writes go through this. No `cwd`-relative paths in any handler. Every artifact lands under the operator-provided workspace root and nowhere else.
-- **`packages/engine/src/backend-client.ts`.** The only outbound HTTP path (other than the target-site navigation Playwright drives). Configured with the operator's bearer token; bound to the configured backend URL.
+- **`packages/engine/src/backend-client.ts`.** The engine's only built-in outbound HTTP path (other than the target-site navigation Playwright drives). Configured with the operator's bearer token; bound to the configured backend URL. Wiki/VCS egress lives exclusively in capability-declared publisher plugins and the backend — the engine core emits projections (files/payloads) only.
 - **`packages/backend/src/server.ts`.** Loopback-bound by default. Bearer-token auth (OAuth 2.1 is the post-MVP path). No code-execution surface beyond CRUD on doc-pack resources.
 
 ## Discipline for new code paths
