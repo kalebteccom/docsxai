@@ -9,11 +9,38 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
-import { type BoundingBox } from "./doc-pack.js";
-import { type ActionableState, type BrowserDriver } from "./flow-runtime.js";
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type BrowserContextOptions,
+  type Page,
+} from "playwright-core";
+import {
+  VIEWPORT_PRESETS,
+  type BoundingBox,
+  type EnvironmentSpec,
+  type ViewportSize,
+} from "./doc-pack.js";
+import {
+  type ActionableState,
+  type BrowserDriver,
+  type ResolvedRedaction,
+} from "./flow-runtime.js";
 import { type StorageState } from "./auth.js";
+import { applyRedactions, type RedactionBox } from "./redact.js";
 import { resolveWorkspacePathReal } from "./workspace.js";
+
+/**
+ * Transparent pass-through to `browser.newContext` for auth mechanisms the engine doesn't model
+ * itself (HTTP basic, mTLS client certs, static header tokens). The shapes mirror Playwright's
+ * context options; the engine never inspects them.
+ */
+export interface SessionContextOptions {
+  httpCredentials?: { username: string; password: string };
+  clientCertificates?: unknown[];
+  extraHTTPHeaders?: Record<string, string>;
+}
 
 export interface PlaywrightSessionOptions {
   /** Base URL for relative `goto` paths. */
@@ -30,6 +57,45 @@ export interface PlaywrightSessionOptions {
   docPackRoot?: string;
   /** If set, attach to a running Chrome at this CDP endpoint (e.g. `http://localhost:9222`) instead of launching one. `close()` won't close it. */
   connectOverCdp?: string;
+  /**
+   * Deterministic execution environment (a flow-file's resolved `environment` block). Locale /
+   * timezone / viewport / color-scheme / reduced-motion are context options; the clock is frozen
+   * via Playwright's clock API on the session's page. With `connectOverCdp` the context is
+   * externally owned — only the clock applies; the rest is skipped with one stderr warning.
+   */
+  environment?: EnvironmentSpec;
+  /** Extra `browser.newContext` options — see {@link SessionContextOptions}. Ignored with `connectOverCdp`. */
+  contextOptions?: SessionContextOptions;
+}
+
+/** Map an {@link EnvironmentSpec} to the Playwright context options it pins (clock excluded — that's a page-level install). */
+export function environmentContextOptions(env: EnvironmentSpec): {
+  locale?: string;
+  timezoneId?: string;
+  viewport?: ViewportSize;
+  colorScheme?: "light" | "dark";
+  reducedMotion?: "reduce" | "no-preference";
+} {
+  const viewport = typeof env.viewport === "string" ? VIEWPORT_PRESETS[env.viewport] : env.viewport;
+  return {
+    ...(env.locale ? { locale: env.locale } : {}),
+    ...(env.timezone ? { timezoneId: env.timezone } : {}),
+    ...(viewport ? { viewport } : {}),
+    ...(env.color_scheme ? { colorScheme: env.color_scheme } : {}),
+    ...(env.reduced_motion !== undefined
+      ? { reducedMotion: env.reduced_motion ? ("reduce" as const) : ("no-preference" as const) }
+      : {}),
+  };
+}
+
+async function installClock(page: Page, env: EnvironmentSpec | undefined): Promise<void> {
+  if (!env?.clock) return;
+  // `install({ time })` anchors the fake timers but still ticks with real time — millisecond
+  // jitter between runs would break byte-identical screenshots. `setFixedTime` is what actually
+  // freezes `Date`; timers keep running so timer-driven SPAs don't stall. The clock is
+  // context-wide in Playwright, so one install covers every page in the session.
+  await page.clock.install({ time: env.clock });
+  await page.clock.setFixedTime(env.clock);
 }
 
 /** A launched Playwright browser + context + page, plus the driver bound to it. Call `close()` when done. */
@@ -53,6 +119,20 @@ export async function launchPlaywrightSession(
     const pages = context.pages();
     const page =
       pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await context.newPage());
+    // The attached context is externally owned — context-level environment fields can't apply.
+    // The clock is a page-level install, so it still does.
+    const skipped = (
+      ["locale", "timezone", "viewport", "color_scheme", "reduced_motion"] as const
+    ).filter((k) => opts.environment?.[k] !== undefined);
+    if (skipped.length || opts.contextOptions) {
+      process.stderr.write(
+        `launchPlaywrightSession: attached over CDP — the browser context is externally owned; skipped: ${[
+          ...skipped.map((k) => `environment.${k}`),
+          ...(opts.contextOptions ? ["contextOptions"] : []),
+        ].join(", ")}\n`,
+      );
+    }
+    await installClock(page, opts.environment);
     const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".");
     return {
       browser,
@@ -73,8 +153,11 @@ export async function launchPlaywrightSession(
     ...(opts.baseURL ? { baseURL: opts.baseURL } : {}),
     ...(opts.storageState ? { storageState: opts.storageState } : {}),
     ...(opts.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
+    ...(opts.environment ? environmentContextOptions(opts.environment) : {}),
+    ...((opts.contextOptions ?? {}) as BrowserContextOptions),
   });
   const page = await context.newPage();
+  await installClock(page, opts.environment);
   const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".");
   return {
     browser,
@@ -127,10 +210,27 @@ export class PlaywrightDriver implements BrowserDriver {
     return this.page.waitForLoadState("load");
   }
   async waitForElementStable(selector: string): Promise<void> {
-    // Playwright auto-waits for actionable elements before actions; an explicit "stable" wait here just
-    // ensures the element is attached + visible and lets layout settle briefly.
-    await this.page.locator(selector).waitFor({ state: "visible" });
-    await this.page.waitForTimeout(100);
+    // Stable = two consecutive identical bounding boxes (±0.5 px), polled every 100 ms. Best-effort
+    // with a 10 s budget: a perpetually-animating element proceeds after the budget rather than
+    // wedging the run — Playwright's per-action stability check still guards the action itself.
+    const loc = this.page.locator(selector).first();
+    const deadline = Date.now() + 10_000;
+    let prev: { x: number; y: number; width: number; height: number } | null = null;
+    while (Date.now() < deadline) {
+      const box = await loc.boundingBox({ timeout: 250 }).catch(() => null);
+      if (
+        box &&
+        prev &&
+        Math.abs(box.x - prev.x) <= 0.5 &&
+        Math.abs(box.y - prev.y) <= 0.5 &&
+        Math.abs(box.width - prev.width) <= 0.5 &&
+        Math.abs(box.height - prev.height) <= 0.5
+      ) {
+        return;
+      }
+      prev = box;
+      await this.page.waitForTimeout(100);
+    }
   }
   waitForSelector(selector: string, timeoutMs?: number): Promise<void> {
     return this.page
@@ -244,7 +344,7 @@ export class PlaywrightDriver implements BrowserDriver {
       })
       .catch(() => null);
   }
-  async screenshot(relPath: string): Promise<void> {
+  async screenshot(relPath: string, redactions: ResolvedRedaction[] = []): Promise<void> {
     // relPath segments carry flow names + step ids from the flow-file — containment-checked
     // (symlink-aware) against the doc-pack root before writing.
     const abs = await resolveWorkspacePathReal(this.docPackRoot, relPath);
@@ -252,7 +352,50 @@ export class PlaywrightDriver implements BrowserDriver {
     // `animations: "disabled"` fast-forwards finite CSS animations/transitions to their end state
     // and cancels infinite ones, so an element transitioning in (opacity/transform) is captured
     // fully settled instead of mid-fade. `caret: "hide"` keeps a blinking text caret out of shots.
-    await this.page.screenshot({ path: abs, animations: "disabled", caret: "hide" });
+    const shotOptions = { animations: "disabled", caret: "hide" } as const;
+    if (redactions.length === 0) {
+      await this.page.screenshot({ path: abs, ...shotOptions });
+      return;
+    }
+    // Redacted path: capture to a buffer, mask, then write — the unredacted bytes never hit disk.
+    const boxes = await this.resolveRedactionBoxes(redactions);
+    const png = await this.page.screenshot(shotOptions);
+    await fs.writeFile(abs, applyRedactions(png, boxes));
+  }
+
+  /**
+   * Resolve redactions to pixel rects in the screenshot's device-pixel space: selector entries via
+   * {@link boundingBox} (already dpr-scaled), fixed regions scaled by the page's devicePixelRatio.
+   * A selector matching nothing on-page is skipped with a warning — an absent element is vacuously
+   * redacted; halting would punish flows for UI that legitimately isn't there.
+   */
+  private async resolveRedactionBoxes(redactions: ResolvedRedaction[]): Promise<RedactionBox[]> {
+    const boxes: RedactionBox[] = [];
+    let dpr: number | undefined;
+    for (const r of redactions) {
+      if ("selector" in r) {
+        const bbox = await this.boundingBox(r.selector, 1000);
+        if (!bbox || bbox.width <= 0 || bbox.height <= 0) {
+          process.stderr.write(
+            `screenshot: redaction selector ${r.selector} has no visible box — skipped\n`,
+          );
+          continue;
+        }
+        boxes.push({ ...bbox, style: r.style });
+      } else {
+        dpr ??= await this.page.evaluate(
+          () => (globalThis as { devicePixelRatio?: number }).devicePixelRatio || 1,
+        );
+        boxes.push({
+          x: r.region.x * dpr,
+          y: r.region.y * dpr,
+          width: r.region.width * dpr,
+          height: r.region.height * dpr,
+          style: r.style,
+        });
+      }
+    }
+    return boxes;
   }
 
   async actionable(selector: string, timeoutMs = 300): Promise<ActionableState> {
