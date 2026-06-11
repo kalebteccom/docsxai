@@ -79,6 +79,81 @@ export type SuccessSpec = z.infer<typeof SuccessSpec>;
 export const NudgeOffset = z.object({ x: z.number(), y: z.number() }).strict();
 export type NudgeOffset = z.infer<typeof NudgeOffset>;
 
+// ---------------------------------------------------------------------------
+// Execution environment (`environment:` block)
+// ---------------------------------------------------------------------------
+
+export const ViewportSize = z
+  .object({ width: z.number().int().positive(), height: z.number().int().positive() })
+  .strict();
+export type ViewportSize = z.infer<typeof ViewportSize>;
+
+export const ViewportPreset = z.enum(["desktop", "tablet", "mobile"]);
+export type ViewportPreset = z.infer<typeof ViewportPreset>;
+
+/** Named viewport presets — `desktop` 1440×900, `tablet` 834×1112, `mobile` 390×844. */
+export const VIEWPORT_PRESETS: Record<ViewportPreset, ViewportSize> = {
+  desktop: { width: 1440, height: 900 },
+  tablet: { width: 834, height: 1112 },
+  mobile: { width: 390, height: 844 },
+};
+
+/**
+ * Deterministic execution environment for a flow. All fields optional; applied at browser-context
+ * creation (so the whole flow runs under them). With `extends`, the child flow's `environment`
+ * wins per-key over the parent's (a child can pin just `viewport` and inherit the parent's clock).
+ */
+export const EnvironmentSpec = z
+  .object({
+    /** ISO-8601 instant the page clock is frozen at — `new Date()` etc. return this for the whole run. */
+    clock: z.string().datetime({ offset: true, local: true }).optional(),
+    /** BCP-47 language tag (e.g. `en-GB`). */
+    locale: z
+      .string()
+      .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]+)*$/, "must be a BCP-47 language tag (e.g. en-GB)")
+      .optional(),
+    /** IANA timezone (e.g. `Europe/Amsterdam`). */
+    timezone: z.string().min(1).optional(),
+    /** `{ width, height }` in CSS pixels, or a named preset — see {@link VIEWPORT_PRESETS}. */
+    viewport: z.union([ViewportPreset, ViewportSize]).optional(),
+    color_scheme: z.enum(["light", "dark"]).optional(),
+    reduced_motion: z.boolean().optional(),
+  })
+  .strict();
+export type EnvironmentSpec = z.infer<typeof EnvironmentSpec>;
+
+// ---------------------------------------------------------------------------
+// Redactions (`redactions:` — flow-level and per-step)
+// ---------------------------------------------------------------------------
+
+export const RedactionStyle = z.enum(["box", "pixelate"]);
+export type RedactionStyle = z.infer<typeof RedactionStyle>;
+
+/** A fixed rectangle in CSS pixels (viewport coordinates), scaled to device pixels at capture time. */
+export const RedactionRegion = z
+  .object({
+    x: z.number().min(0),
+    y: z.number().min(0),
+    width: z.number().positive(),
+    height: z.number().positive(),
+  })
+  .strict();
+export type RedactionRegion = z.infer<typeof RedactionRegion>;
+
+/**
+ * One area to mask on every screenshot it applies to (step shots *and* halt shots): either an
+ * element (locator ref / inline selector, resolved to its bounding box at capture time) or a fixed
+ * `region`. Default `style` is `box` (solid #000 fill); `pixelate` is a 16-px mosaic. A selector
+ * that matches nothing at capture time is skipped with a stderr warning — redacting an absent
+ * element is vacuously satisfied, never a halt. Flow-level `redactions` apply to every step;
+ * per-step `redactions` are additive.
+ */
+export const RedactionSpec = z.union([
+  z.object({ selector: LocatorRef, style: RedactionStyle.optional() }).strict(),
+  z.object({ region: RedactionRegion, style: RedactionStyle.optional() }).strict(),
+]);
+export type RedactionSpec = z.infer<typeof RedactionSpec>;
+
 export const StepAnnotation = z
   .object({
     copy: z.string().min(1),
@@ -128,6 +203,8 @@ export const Step = z
      * Mutually exclusive with `annotation`.
      */
     annotations: z.array(StepAnnotation).min(1).optional(),
+    /** Extra redactions for this step's screenshots, additive on top of the flow-level list. */
+    redactions: z.array(RedactionSpec).min(1).optional(),
   })
   .strict()
   .refine((s) => !(s.annotation && s.annotations), {
@@ -152,6 +229,13 @@ export const FlowFile = z
      * re-walk it every run. (`run --stop-after` operates on the merged step list.)
      */
     extends: z.string().min(1).optional(),
+    /**
+     * Deterministic execution environment (frozen clock, locale, timezone, viewport, color scheme,
+     * reduced motion). With `extends`, merged per-key — this flow's keys win over the parent's.
+     */
+    environment: EnvironmentSpec.optional(),
+    /** Areas masked on every screenshot this flow produces (incl. halt shots). See {@link RedactionSpec}. */
+    redactions: z.array(RedactionSpec).min(1).optional(),
     prerequisites: z.array(Prerequisite).default([]),
     /** Named canonical locators referenced from steps as `$name`. One per name; no fallback lists. */
     locators: z.record(z.string(), z.string()).default({}),

@@ -84,6 +84,20 @@ function collectLocatorRefs(step: Step): string[] {
   }
   if (step.annotation?.target) push(step.annotation.target);
   if (step.annotations) for (const a of step.annotations) if (a.target) push(a.target);
+  if (step.redactions) for (const r of step.redactions) if ("selector" in r) push(r.selector);
+  return refs;
+}
+
+/** Locator names referenced anywhere in `flow` (steps + flow-level redactions); inline selectors excluded. */
+export function referencedLocatorNames(flow: FlowFile): Set<string> {
+  const refs = new Set<string>();
+  for (const step of flow.steps) for (const ref of collectLocatorRefs(step)) refs.add(ref);
+  for (const r of flow.redactions ?? []) {
+    if ("selector" in r) {
+      const name = locatorRefName(r.selector);
+      if (name) refs.add(name);
+    }
+  }
   return refs;
 }
 
@@ -93,6 +107,12 @@ function assertLocatorRefsResolve(flow: FlowFile, source: string): void {
   for (const step of flow.steps) {
     for (const ref of collectLocatorRefs(step)) {
       if (!known.has(ref)) missing.push(`step "${step.id}" → $${ref}`);
+    }
+  }
+  for (const r of flow.redactions ?? []) {
+    if ("selector" in r) {
+      const name = locatorRefName(r.selector);
+      if (name && !known.has(name)) missing.push(`redactions → $${name}`);
     }
   }
   if (missing.length) {
@@ -118,7 +138,8 @@ function assertStepIdsUnique(flow: FlowFile, source: string): void {
 
 /**
  * Resolve a flow's `extends` chain into a single flow: parent's steps first, then this flow's. `locators` and
- * `prerequisites` are merged (this flow wins on locator-name collisions); step ids must be unique across the
+ * `prerequisites` are merged (this flow wins on locator-name collisions); `environment` merges per-key with
+ * this flow's keys winning; `redactions` concatenate (parent's first); step ids must be unique across the
  * merge. Chains are followed recursively; cycles throw. `loadFlowFile(name)` parses `flows/<name>.flow.yaml`
  * (a flow with its own `extends` un-resolved — this function recurses). The result has no `extends`.
  */
@@ -157,8 +178,13 @@ export async function resolveFlowExtends(
     }
   }
 
+  // `environment` merges per-key (this flow wins); `redactions` are additive, parent's first.
+  const environment = { ...parent.environment, ...flow.environment };
+  const redactions = [...(parent.redactions ?? []), ...(flow.redactions ?? [])];
   const merged: FlowFile = {
     name: flow.name,
+    ...(Object.keys(environment).length ? { environment } : {}),
+    ...(redactions.length ? { redactions } : {}),
     prerequisites: [...parent.prerequisites, ...flow.prerequisites],
     locators: { ...parent.locators, ...flow.locators },
     steps: [...parent.steps, ...flow.steps],
