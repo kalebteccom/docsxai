@@ -38,8 +38,8 @@ Make the CLIs callable. Either link them globally —
 
 ```bash
 pnpm -C "$TOOL_REPO/packages/engine"  link --global   # → `site-docs`
-pnpm -C "$TOOL_REPO/packages/viewer"  link --global   # → `site-docs-viewer`  (site-docs render shells out to it)
-pnpm -C "$TOOL_REPO/packages/backend" link --global   # → `site-docs-backend` (optional; the in-memory stub)
+pnpm -C "$TOOL_REPO/packages/viewer"  link --global   # → `docsxai-viewer`  (site-docs render shells out to it)
+pnpm -C "$TOOL_REPO/packages/backend" link --global   # → `docsxai-backend` (optional; the in-memory stub)
 ```
 
 — or skip linking and call them directly: `node "$TOOL_REPO/packages/engine/dist/cli.js" …`. (Below assumes

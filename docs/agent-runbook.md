@@ -37,17 +37,17 @@ pnpm -C packages/engine exec playwright-core install chromium
 pnpm -r build
 ```
 
-Make `site-docs` / `site-docs-viewer` callable. The robust way is two tiny wrapper scripts on your `PATH`:
+Make `site-docs` / `docsxai-viewer` callable. The robust way is two tiny wrapper scripts on your `PATH`:
 
 ```bash
 mkdir -p "$HOME/.local/bin"
 printf '#!/usr/bin/env bash\nexec node "%s/packages/engine/dist/cli.js" "$@"\n' "$TOOL_REPO" > "$HOME/.local/bin/site-docs"
-printf '#!/usr/bin/env bash\nexec node "%s/packages/viewer/dist/index.js" "$@"\n' "$TOOL_REPO" > "$HOME/.local/bin/site-docs-viewer"
-chmod +x "$HOME/.local/bin/site-docs" "$HOME/.local/bin/site-docs-viewer"
+printf '#!/usr/bin/env bash\nexec node "%s/packages/viewer/dist/index.js" "$@"\n' "$TOOL_REPO" > "$HOME/.local/bin/docsxai-viewer"
+chmod +x "$HOME/.local/bin/site-docs" "$HOME/.local/bin/docsxai-viewer"
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-(`pnpm -C packages/{engine,viewer} link --global` also works _if_ your pnpm global store is consistent — it often isn't on a long-lived machine; `ERR_PNPM_UNEXPECTED_STORE` is fixed by `pnpm install --global pnpm`. The wrapper scripts above sidestep all of that.) Below assumes `site-docs` / `site-docs-viewer` are on `PATH`; equivalently call `node "$TOOL_REPO/packages/engine/dist/cli.js" …` etc. directly.
+(`pnpm -C packages/{engine,viewer} link --global` also works _if_ your pnpm global store is consistent — it often isn't on a long-lived machine; `ERR_PNPM_UNEXPECTED_STORE` is fixed by `pnpm install --global pnpm`. The wrapper scripts above sidestep all of that.) Below assumes `site-docs` / `docsxai-viewer` are on `PATH`; equivalently call `node "$TOOL_REPO/packages/engine/dist/cli.js" …` etc. directly.
 
 ## Step 1 — scaffold the workspace (one command, with the config baked in)
 

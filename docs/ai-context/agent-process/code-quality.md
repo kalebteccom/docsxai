@@ -50,6 +50,21 @@ Choose the simplest correct solution. Avoid over-engineering **and** avoid lazy 
 
 Read the actual file before naming APIs, imports, config keys, generated fields, schemas, or deployment behavior. Plan snippets, memory, and old review notes can be stale. Hallucinated APIs / paths / signatures are a recurring failure mode — verifying takes seconds; debugging a hallucinated reference takes hours.
 
+## TypeScript configs for packages and libs
+
+Each emit-capable package keeps the build split across two configs:
+
+- **`tsconfig.json`** — the dev / typecheck config. Includes `src/` (tests live alongside source). The package `typecheck` script points at this directly: `tsc --noEmit -p tsconfig.json`. Must remain valid when loaded by `tsc -p` and by project references.
+- **`tsconfig.build.json`** — extends the dev config and overrides for emit: `sourceMap: false`, `inlineSourceMap: false`, `declarationMap: false`, plus `exclude` entries for `**/*.test.ts`, `**/*.spec.ts`, `__tests__/`, `__fixtures__/`. The `build` script points at this: `tsc -p tsconfig.build.json`. Declaration / build output never includes test artifacts.
+
+Set `compilerOptions.types` explicitly in packages where it matters, to avoid unrelated ambient `@types/*` packages leaking in from the monorepo. `[]` for runtime-agnostic shared code, `["node"]` for Node-only tooling.
+
+## Package formatting scripts
+
+Root `format` and `format:check` run Prettier from the repository root (`prettier --write .` / `prettier --check .`), so the root `.prettierignore` is applied naturally. Do not add per-package `--ignore-path ../../.prettierignore` flags — they make scripts noisy and tie every package to its current directory depth.
+
+Fix the ignore policy before accepting generated-file formatting churn. Generated outputs, caches, and build artifacts should not be made reviewable just because Prettier ran from the wrong cwd.
+
 ## Comments discipline
 
 Default to writing no comments. Only add one when the WHY is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, behavior that would surprise a reader.

@@ -193,8 +193,8 @@ export class BackendClient {
 
 // --- payload helpers --------------------------------------------------------
 // What we ship in each artifact slot. The backend doesn't validate these shapes; the engine does.
-// Screenshots are base64'd inside JSON for transport — fine for the in-memory stub, replaced by
-// presigned-URL upload when the backend grows real storage (Phase 2).
+// Screenshots are base64'd inside JSON for transport — fine for the in-memory stub; the hosted
+// backend will replace this with presigned-URL upload when it grows real storage.
 
 export interface FlowsPayload {
   schema: "site-docs/flows@1";

@@ -1,9 +1,6 @@
 #!/usr/bin/env node
-// `site-docs` — the deterministic CLI (the agent-invoked surface; the plugin's `run`/`render`/… wrap this).
-//
-// Phase-0 scope: `run` (execute a project's flow-files headlessly, re-emit annotations + screenshots) and
-// `render` (build the viewer — stubbed until the viewer package exists). Calibration subcommands run in an
-// agent context and are exposed by the plugin, not here.
+// `site-docs` — the deterministic CLI. The plugin's commands wrap this; calibration runs in an agent
+// context and is exposed by the plugin, not here.
 
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";

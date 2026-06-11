@@ -1,4 +1,4 @@
-// Interactive docs-app generator (Phase-0 prototype).
+// Interactive docs-app generator.
 //
 // Given a doc pack's `docs/` tree — `<flow>/annotations.json`, `<flow>/screenshots/<step>.png`,
 // optional `<flow>/<step>.md` — emit a self-contained static viewer: one HTML page per flow plus an

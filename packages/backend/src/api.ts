@@ -1,4 +1,4 @@
-// Backend API contract — the concrete endpoint list (the Phase-0 "backend API contract draft" deliverable).
+// Backend API contract — the concrete endpoint list.
 //
 // REST + per-resource endpoints under /v1/workspaces/{ws}/projects/{project}/revisions/{rev}/...
 // Auth: OAuth 2.1 in production (authorization-code+PKCE for humans, pre-issued workspace-scoped bearer
