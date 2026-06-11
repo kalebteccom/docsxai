@@ -1,0 +1,12 @@
+{
+  "name": "docsxai-plugin-bad-namespace-fixture",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "docsxai": {
+    "apiVersion": "1.0.0",
+    "namespace": "Bad_NS",
+    "register": "./register.mjs",
+    "kinds": ["publisher"]
+  }
+}

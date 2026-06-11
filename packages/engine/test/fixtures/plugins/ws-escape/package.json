@@ -1,0 +1,12 @@
+{
+  "name": "docsxai-plugin-ws-escape-fixture",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "docsxai": {
+    "apiVersion": "1.0.0",
+    "namespace": "escapee",
+    "register": "./register.mjs",
+    "kinds": ["publisher"]
+  }
+}

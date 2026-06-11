@@ -1,0 +1,12 @@
+{
+  "name": "docsxai-plugin-api-too-new-fixture",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "docsxai": {
+    "apiVersion": "2.0.0",
+    "namespace": "toonew",
+    "register": "./register.mjs",
+    "kinds": ["renderer"]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "docsxai-plugin-multi-clone-fixture",
+  "version": "2.0.0",
+  "type": "module",
+  "private": true,
+  "docsxai": {
+    "apiVersion": "1.0.0",
+    "namespace": "multi",
+    "register": "./register.mjs",
+    "kinds": ["renderer"]
+  }
+}

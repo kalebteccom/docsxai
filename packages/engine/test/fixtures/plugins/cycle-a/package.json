@@ -1,0 +1,13 @@
+{
+  "name": "docsxai-plugin-cycle-a-fixture",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "docsxai": {
+    "apiVersion": "1.0.0",
+    "namespace": "cycle-a",
+    "register": "./register.mjs",
+    "kinds": ["publisher"],
+    "dependsOn": [{ "plugin": "docsxai-plugin-cycle-b-fixture", "version": "^1.0.0" }]
+  }
+}

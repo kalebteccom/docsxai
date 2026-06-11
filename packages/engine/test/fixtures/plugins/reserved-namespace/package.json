@@ -1,0 +1,12 @@
+{
+  "name": "docsxai-plugin-reserved-namespace-fixture",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "docsxai": {
+    "apiVersion": "1.0.0",
+    "namespace": "site-docs",
+    "register": "./register.mjs",
+    "kinds": ["publisher"]
+  }
+}

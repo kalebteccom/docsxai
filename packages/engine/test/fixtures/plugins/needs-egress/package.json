@@ -1,0 +1,13 @@
+{
+  "name": "docsxai-plugin-needs-egress-fixture",
+  "version": "0.3.1",
+  "private": true,
+  "docsxai": {
+    "apiVersion": "1.0.0",
+    "namespace": "egressy",
+    "register": "./register.cjs",
+    "kinds": ["publisher"],
+    "capabilities": ["egress:*.example.com"],
+    "trust": "community"
+  }
+}

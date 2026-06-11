@@ -1,0 +1,13 @@
+{
+  "name": "docsxai-plugin-dep-missing-fixture",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "docsxai": {
+    "apiVersion": "1.0.0",
+    "namespace": "lonely",
+    "register": "./register.mjs",
+    "kinds": ["publisher"],
+    "dependsOn": [{ "plugin": "docsxai-plugin-nonexistent", "version": "^1.0.0" }]
+  }
+}
