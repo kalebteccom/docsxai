@@ -35,6 +35,7 @@ import {
   StyleError,
   writeStyle,
 } from "./style.js";
+import { pluginsCli } from "./plugins-cli.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
@@ -59,6 +60,7 @@ Usage:
   site-docs diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
   site-docs style <workspace-dir> [--check] [--format text|json]
   site-docs zip <workspace-dir> [--out <output.zip>] [--include-viewer]
+  site-docs plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
   site-docs login --backend-url <url>
   site-docs push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
   site-docs pull <workspace-dir> [--rev <id>]
@@ -1298,6 +1300,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdStyle(rest);
     case "zip":
       return cmdZip(rest);
+    case "plugins":
+      return pluginsCli(rest);
     case "login":
       return cmdLogin(rest);
     case "push":
