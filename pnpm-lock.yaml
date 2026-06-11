@@ -58,6 +58,9 @@ importers:
       playwright-core:
         specifier: ^1.47.0
         version: 1.60.0
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
       yaml:
         specifier: ^2.5.0
         version: 2.9.0
@@ -71,6 +74,9 @@ importers:
       '@types/node':
         specifier: ^20.14.0
         version: 20.19.42
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.42)
@@ -469,6 +475,9 @@ packages:
 
   '@types/node@20.19.42':
     resolution: {integrity: sha512-5L7SUaFC1RyDraj2yRhyBzHTobyXHmohD100CChNtyPyleoq37Mqab5Gn8XEKI04dfN/oqPdpHk38MgcQWHbZg==}
+
+  '@types/pngjs@6.0.5':
+    resolution: {integrity: sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ==}
 
   '@typescript-eslint/eslint-plugin@8.61.0':
     resolution: {integrity: sha512-bFNvl9ZczlVb+wR2Akszf3gHfKVj/8WanXaGJ3UstTA7brNKg0cNdk6X1Psu5V7MZ2oQtzZKOEzIUehaoxbDGw==}
@@ -1278,6 +1287,10 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  pngjs@7.0.0:
+    resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
+    engines: {node: '>=14.19.0'}
+
   postcss@8.5.15:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
@@ -1854,6 +1867,10 @@ snapshots:
   '@types/node@20.19.42':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/pngjs@6.0.5':
+    dependencies:
+      '@types/node': 20.19.42
 
   '@typescript-eslint/eslint-plugin@8.61.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)(typescript@5.9.3)':
     dependencies:
@@ -2640,6 +2657,8 @@ snapshots:
   pidtree@0.6.1: {}
 
   playwright-core@1.60.0: {}
+
+  pngjs@7.0.0: {}
 
   postcss@8.5.15:
     dependencies:

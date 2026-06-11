@@ -43,12 +43,14 @@
   },
   "dependencies": {
     "playwright-core": "^1.47.0",
+    "pngjs": "^7.0.0",
     "yaml": "^2.5.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@kalebtec/docsxai-backend": "workspace:*",
     "@types/node": "^20.14.0",
+    "@types/pngjs": "^6.0.5",
     "vitest": "^2.0.0"
   }
 }

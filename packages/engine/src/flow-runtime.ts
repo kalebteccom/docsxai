@@ -13,6 +13,8 @@ import {
   type AnnotationsFile,
   type BoundingBox,
   type FlowFile,
+  type RedactionRegion,
+  type RedactionStyle,
   type Step,
   type SuccessSpec,
   type WaitSpec,
@@ -22,6 +24,16 @@ import { locatorRefName } from "./flow-file.js";
 // ---------------------------------------------------------------------------
 // BrowserDriver
 // ---------------------------------------------------------------------------
+
+/**
+ * A redaction with its locator ref already resolved to a concrete selector. `selector` entries are
+ * turned into bounding boxes by the driver at capture time (absent/zero-box selectors are skipped
+ * with a stderr warning — never a halt); `region` rects are in CSS pixels and the driver scales
+ * them to the screenshot's device-pixel space.
+ */
+export type ResolvedRedaction =
+  | { selector: string; style: RedactionStyle }
+  | { region: RedactionRegion; style: RedactionStyle };
 
 /** What the runtime needs from a browser. Selectors passed here are already resolved (no `$ref`). */
 export interface BrowserDriver {
@@ -55,8 +67,8 @@ export interface BrowserDriver {
 
   /** Bounding box of an element, in page pixels. Pass `timeoutMs` (default = driver default) so this fails fast when the target has vanished. Returns `null` on miss. */
   boundingBox(selector: string, timeoutMs?: number): Promise<BoundingBox | null>;
-  /** Capture a clean screenshot (no baked annotations) and return where it was written, relative to the doc pack. */
-  screenshot(relPath: string): Promise<void>;
+  /** Capture a clean screenshot (no baked annotations), applying any `redactions` before it hits disk. */
+  screenshot(relPath: string, redactions?: ResolvedRedaction[]): Promise<void>;
 
   /**
    * Probe the actionability state of `selector` at write-time / calibration-time, without trying
@@ -330,12 +342,22 @@ export async function runFlow(
   }
   let skipping = !!opts.startFrom;
 
+  // Flow-level redactions apply to every screenshot; per-step ones are additive. Resolved up
+  // front (locator refs → selectors, default style applied) so halt shots get them too.
+  const redactionsFor = (step: Step): ResolvedRedaction[] =>
+    [...(flow.redactions ?? []), ...(step.redactions ?? [])].map((r) =>
+      "selector" in r
+        ? { selector: resolve(r.selector), style: r.style ?? "box" }
+        : { region: r.region, style: r.style ?? "box" },
+    );
+
   for (const step of flow.steps) {
     if (skipping) {
       if (step.id === opts.startFrom) skipping = false;
       else continue;
     }
     const selector = step.target ? resolve(step.target) : null;
+    const redactions = redactionsFor(step);
     try {
       await executeAction(driver, step, selector);
       if (step.wait_for) {
@@ -357,7 +379,8 @@ export async function runFlow(
       // (parsed from Playwright's actionability log so the agent doesn't have to scan ~20 lines
       //  to know why), then surface step id + url + halt-shot path uniformly.
       const haltShot = `docs/${flow.name}/halts/${step.id}.png`;
-      if (captureDocs) await driver.screenshot(haltShot).catch(() => undefined);
+      // Halt shots can capture the same sensitive UI as step shots — same redactions apply.
+      if (captureDocs) await driver.screenshot(haltShot, redactions).catch(() => undefined);
       const suffix = captureDocs ? ` (halt screenshot: ${haltShot})` : "";
       const cause = inferHaltCause((e as Error).message ?? "");
       const causePrefix = cause ? `[${cause}] ` : "";
@@ -388,7 +411,7 @@ export async function runFlow(
     if (captureDocs && anns.length > 0) {
       try {
         const shot = screenshotPathOf(flow.name, step.id);
-        await driver.screenshot(shot);
+        await driver.screenshot(shot, redactions);
         ex.screenshot = shot;
         for (let i = 0; i < anns.length; i++) {
           const ann = anns[i]!;
