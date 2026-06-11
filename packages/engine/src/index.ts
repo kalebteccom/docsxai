@@ -20,3 +20,8 @@ export * from "./playwright-instrumented-browser.js";
 export * from "./style.js";
 export * from "./workspace.js";
 export * from "./zip.js";
+export * from "./plugins/types.js";
+export * from "./plugins/manifest.js";
+export * from "./plugins/registry.js";
+export * from "./plugins/runtime.js";
+export * from "./plugins/lock.js";
