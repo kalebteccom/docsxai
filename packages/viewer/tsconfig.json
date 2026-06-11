@@ -1,5 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    // DOM lib for overlay-runtime.ts (browser-side; bundled by scripts/bundle-overlay.mjs).
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
   "include": ["src"]
 }
