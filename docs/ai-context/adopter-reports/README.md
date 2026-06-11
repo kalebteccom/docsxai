@@ -13,7 +13,7 @@ Field reports from agents and teams driving docsxai against real workloads. Time
 
 ## Reports
 
-_None yet._ Phase-0 and Phase-1 ran without external adopters; the first report will land when the OSS release does (≥ Phase 3 per owner decision) or when an internal adopter inside Kalebtec files one against the pre-release build.
+_None yet._ Prototype and MVP ran without external adopters; the first report will land when the OSS release does (owner-deferred) or when an internal adopter inside Kalebtec files one against the pre-release build.
 
 ## What goes in a report
 

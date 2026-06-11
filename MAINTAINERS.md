@@ -18,8 +18,8 @@ hosted deployment live, and it is not in this repo.
 - The roadmap (in the `project-ideas` portfolio repo under
   `projects/automated-site-documentation-bot/`) defines committed
   direction.
-- The portfolio `progress.md` and the `PHASE-N.md` mirrors in this repo
-  record the _why_ behind each commitment.
+- The portfolio `progress.md` and the archived closure summaries under
+  `docs/archive/phase-plans/` record the _why_ behind each commitment.
 - Owner direction settles open questions.
 - Material spec changes require a roadmap entry before merge.
 
@@ -36,8 +36,8 @@ review and contribution:
 - **Plugin** (`packages/plugin/`) — the Claude Code invocation
   surface. Changes here defer to engine semantics; new capability lives
   in the engine and the plugin exposes it.
-- **Backend** (`packages/backend/`) — stub today, full service in
-  Phase 2. Auth + persistence shape is owner-decided.
+- **Backend** (`packages/backend/`) — stub today, full service
+  post-MVP. Auth + persistence shape is owner-decided.
 - **Skill** (`packages/skill/`) — vendorable fallback. Stays minimal
   by design; delegates to the plugin.
 - **Viewer** (`packages/viewer/`) — static-HTML emit surface. Changes

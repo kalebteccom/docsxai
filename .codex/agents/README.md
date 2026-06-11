@@ -11,7 +11,7 @@ The repo-root `AGENTS.md` is the single source of truth for cross-harness rules.
 - `keystone-writer.toml` — Keystone / Regression / Chromium — regression-gate keystone tests for runtime / actionability changes.
 - `security-reviewer.toml` — Security / Egress / Auth — security checklist on workspace / auth-artifact / outbound-HTTP diffs.
 - `docs-impact-auditor.toml` — Docs / Audit / Changelog — docs-impact verification on behavior-change diffs.
-- `release-engineer.toml` — Release / Ship / Tag — the release ritual (owner-deferred to ≥ Phase 3).
+- `release-engineer.toml` — Release / Ship / Tag — the release ritual (owner-deferred until the public flip).
 - `tracker-id-auditor.toml` — Tracker / Lint / Comments — scanning diffs for tracker IDs.
 
 ## See also

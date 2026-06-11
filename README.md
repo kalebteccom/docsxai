@@ -8,7 +8,7 @@ The keystone bet: write a flow once (by hand, or via an agent-driven calibration
 
 ## Status
 
-Phase 0 (prototype & validation) closed **2026-05-15** — architectural bet proven on a real authed heavy-SPA target. Phase 1 (MVP) closed **2026-05-19** — engine-complete: deterministic agent-free replay, the full calibration-aid surface (lint / diagnose / flow-tree / `optional:true` / zip / style), browxai integration, ~193 tests. The public OSS release is **prepared but deferred to ≥ Phase 3 by owner decision** — this repo stays private/unpublished until the project is further along; see [`RELEASING.md`](RELEASING.md). Phase 2 (GitHub App, engine-side Confluence push, standalone MCP server) is the next planning cycle.
+Prototype + validation closed **2026-05-15** — architectural bet proven on a real authed heavy-SPA target. MVP closed **2026-05-19** — engine-complete: deterministic agent-free replay, the full calibration-aid surface (lint / diagnose / flow-tree / `optional:true` / zip / style), browxai integration, ~193 tests. The public OSS release is **prepared but deferred by owner decision** — this repo stays private/unpublished until the project is further along; see [`RELEASING.md`](RELEASING.md). The next planning cycle covers GitHub App, engine-side Confluence push, and a standalone MCP server.
 
 ## Two-mode architecture
 
@@ -67,13 +67,13 @@ Full agent-driven workflow + the calibration-loop affordances (`lint`, `flow-tre
 
 ## Packages
 
-| package                                          | role                                                                                                                                                           |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@kalebtec/docsxai-engine`](packages/engine/)   | LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, the full `site-docs` CLI.                                   |
-| [`@kalebtec/docsxai-plugin`](packages/plugin/)   | Claude Code plugin — calibrate + diagnose skills, run/render/login commands. The recommended invocation surface for agent-driven workflows.                    |
-| [`@kalebtec/docsxai-backend`](packages/backend/) | Authenticated stub service for doc-pack persistence (in-memory linear-immutable revisions today; hosted deployment is Phase 2). REST + per-resource endpoints. |
-| [`@kalebtec/docsxai-skill`](packages/skill/)     | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                 |
-| [`@kalebtec/docsxai-viewer`](packages/viewer/)   | Static-HTML viewer with halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time.                                          |
+| package                                          | role                                                                                                                                                            |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@kalebtec/docsxai-engine`](packages/engine/)   | LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, the full `site-docs` CLI.                                    |
+| [`@kalebtec/docsxai-plugin`](packages/plugin/)   | Claude Code plugin — calibrate + diagnose skills, run/render/login commands. The recommended invocation surface for agent-driven workflows.                     |
+| [`@kalebtec/docsxai-backend`](packages/backend/) | Authenticated stub service for doc-pack persistence (in-memory linear-immutable revisions today; hosted deployment is post-MVP). REST + per-resource endpoints. |
+| [`@kalebtec/docsxai-skill`](packages/skill/)     | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                  |
+| [`@kalebtec/docsxai-viewer`](packages/viewer/)   | Static-HTML viewer with halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time.                                           |
 
 ## CLI reference (one line each)
 
@@ -99,8 +99,7 @@ site-docs zip <workspace>            # package the doc pack for hand-off
 - [**docs/running-against-an-app-repo.md**](docs/running-against-an-app-repo.md) — human-readable runbook
 - [**docs/actionability-contract.md**](docs/actionability-contract.md) — the portable `actionable()` predicate contract, for browser-bridge consumers
 - [**docs/browxai-asks.md**](docs/browxai-asks.md) — integration contract with the discovery driver
-- [`docs/archive/phase-plans/PHASE-0.md`](docs/archive/phase-plans/PHASE-0.md) — Phase-0 closure summary (archived)
-- [`docs/archive/phase-plans/PHASE-1.md`](docs/archive/phase-plans/PHASE-1.md) — Phase-1 closure summary + agent-integration-contract postmortem (archived)
+- [`docs/archive/phase-plans/`](docs/archive/phase-plans/) — archived closure summaries (prototype + MVP) and agent-integration-contract postmortem
 - [`CHANGELOG.md`](CHANGELOG.md) — `0.1.0` (unreleased) contents · [`RELEASING.md`](RELEASING.md) — gated go-public checklist
 
 The **canonical spec & roadmap** live in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio repo, under `projects/automated-site-documentation-bot/`:

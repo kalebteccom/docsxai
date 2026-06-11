@@ -10,13 +10,13 @@ This repo's GitHub identity is `kalebteccom/docsxai` (renamed from `kalebteccom/
 | npm packages      | `@kalebtec/docsxai-engine`, `@kalebtec/docsxai-plugin`, `@kalebtec/docsxai-backend`, `@kalebtec/docsxai-skill`, `@kalebtec/docsxai-viewer` |
 | Product name      | docsxai                                                                                                                                    |
 
-> **Status: prepared, deferred.** Everything below is _ready_. The actual public release is deferred to **≥ Phase 3** by owner decision (2026-05-19) — the repo stays **private** and unpublished until the full project (through Phase 3) is done. This file is the mechanical checklist for _when_ that decision is taken; nothing here is to be executed before then.
+> **Status: prepared, deferred.** Everything below is _ready_. The actual public release is owner-deferred (2026-05-19) — the repo stays **private** and unpublished until the project's stable-surface work is done. This file is the mechanical checklist for _when_ that decision is taken; nothing here is to be executed before then.
 
 The repo is intentionally in a "one-flip-from-public" state: Apache-2.0 in place, READMEs/CONTRIBUTING/CHANGELOG written, npm metadata (`repository`/`homepage`/`bugs`/`keywords`) on every package, git history scrubbed of client identifiers (2026-05-15), versions set to `0.1.0`, and every workspace `package.json` carries `"private": true` so an accidental `npm publish` is impossible until deliberately flipped.
 
 ## Why deferred
 
-Owner decision (2026-05-19): hold the public release until the whole project is done (at least Phase 3). docsxai is Apache-2.0-from-day-one per its spec — there's no licensing gate — but going public commits to a stable public API + semver obligations + external-contributor surface. The owner prefers to land that once, after Phase 3, rather than maintain a public API through Phase-2 churn (GitHub App, engine-side Confluence push, standalone MCP server, additional feature areas).
+Owner decision (2026-05-19): hold the public release until the project's stable-surface work is done. docsxai is Apache-2.0-from-day-one per its spec — there's no licensing gate — but going public commits to a stable public API + semver obligations + external-contributor surface. The owner prefers to land that once, after the planned feature areas (GitHub App, engine-side Confluence push, standalone MCP server, additional feature areas) settle, rather than maintain a public API through that churn.
 
 ## Trust model
 
@@ -28,7 +28,7 @@ Releases use **npm Trusted Publishing via GitHub OIDC** — no `NPM_TOKEN` exist
 - npm-side: the `docsxai` package is bound to this exact repo + workflow filename + environment name. Anything else trying to publish under our identity fails closed.
 - `--provenance` always — Sigstore attestation proves the artifact came from this workflow on this tagged commit.
 
-## The flip (Phase-3, in order)
+## The flip (in order)
 
 Each step is mechanical because the prep is done:
 
@@ -38,18 +38,18 @@ Each step is mechanical because the prep is done:
 4. **Tag.** `git tag -a v0.1.0 -m "docsxai 0.1.0"` then `git push origin v0.1.0`.
 5. **Publish.** `pnpm -r publish --access public` (or per-package, in dependency order: engine → viewer → backend → skill → plugin). Verify each on npm.
 6. **Repo visibility.** Flip the GitHub repo `kalebteccom/docsxai` to public. Confirm the README renders, the LICENSE is detected, CONTRIBUTING is linked.
-7. **Announce / portfolio.** Update the portfolio `roadmap.md` Phase-3 entry + decisions log; flip the portfolio README row.
+7. **Announce / portfolio.** Update the portfolio `roadmap.md` public-flip entry + decisions log; flip the portfolio README row.
 
 ## Stub release (name-claim) flow
 
-The pre-Phase-3 stub publish path exists only to reserve the `docsxai` name on npm and prove the OIDC trusted-publishing path end-to-end. Importing the stub throws. The real package ships at `v1.0`.
+The pre-v1.0 stub publish path exists only to reserve the `docsxai` name on npm and prove the OIDC trusted-publishing path end-to-end. Importing the stub throws. The real package ships at `v1.0`.
 
 1. Bump `version` in the top-level `package.json` (the stub uses `0.0.1-stub.0`, `0.0.1-stub.1`, etc. while we're claiming the name).
 2. Commit with `chore(release): vX.Y.Z`.
 3. Tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 4. The `release` workflow fires on tag push, waits for environment approval, then publishes with provenance.
 
-> **D1 note (2026-06-10):** the stub `index.js` and the root `package.json`'s `main`/`files` allowlist were dropped during the `@kalebtec/site-docs-* → @kalebtec/docsxai-*` rename, and the root is now `private: true`. Restoring the stub-publish path (or replacing it with the per-package publish flow) is a Phase D2+ task; `release.yml` is currently dormant until then.
+> **Note (2026-06-10):** the stub `index.js` and the root `package.json`'s `main`/`files` allowlist were dropped during the `@kalebtec/site-docs-* → @kalebtec/docsxai-*` rename, and the root is now `private: true`. Restoring the stub-publish path (or replacing it with the per-package publish flow) is follow-on work; `release.yml` is currently dormant until then.
 
 ## Workflow behavior
 
@@ -76,7 +76,7 @@ These items are blocked on either flipping the repo public or on registering the
 
 The stub-publish path is intentionally narrow. The v1.0 release pipeline expands to a full build matrix, a reproducibility diff between two independent builds of the same tag, SBOM emission, and the per-package plugin publish — designed in but not wired until the public flip.
 
-## Do NOT, before the Phase-3 decision
+## Do NOT, before the public-flip decision
 
 - Do not `npm publish` (the `private:true` flags block it anyway — leave them).
 - Do not flip the GitHub repo to public.

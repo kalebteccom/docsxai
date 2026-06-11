@@ -10,7 +10,7 @@ PNGs stay clean (no baked annotations) — re-stylable, re-localisable, and mach
 - **`placeCallout(input)`** in `src/placement.ts` — Popper-like placement logic used by the inline OVERLAY_JS. Pure, coordinate-space-agnostic; tested independently.
 - **`docsxai-viewer`** bin — wraps `buildViewer` for CLI use; the engine's `site-docs render` shells out to it.
 
-Phase 2 ships `burn.ts` — a static-render path for delivery surfaces that can't run the interactive viewer (Confluence, Notion). The placement logic is already extracted.
+A future release ships `burn.ts` — a static-render path for delivery surfaces that can't run the interactive viewer (Confluence, Notion). The placement logic is already extracted.
 
 Design: `projects/automated-site-documentation-bot/spec.md` in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio.
 

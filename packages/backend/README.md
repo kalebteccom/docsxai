@@ -1,8 +1,8 @@
 # @kalebtec/docsxai-backend
 
-Authenticated service that persists doc packs (projects, revisions, flow-files, screenshots, annotations, style artifacts, run history). REST + per-resource endpoints; bearer-token auth (OAuth 2.1 is the Phase-2 path).
+Authenticated service that persists doc packs (projects, revisions, flow-files, screenshots, annotations, style artifacts, run history). REST + per-resource endpoints; bearer-token auth (OAuth 2.1 is the post-MVP path).
 
-**Status:** stub backend with the concrete endpoint list (`api.ts: ROUTES`), in-memory linear-immutable revisions, and an HTTP stub server. The endpoint shape is what production will be; the persistence layer (filesystem / DB) and the OAuth 2.1 interactive flow are deferred to Phase 2 — MVP workflows use local file output (`--persist tmp` and `site-docs zip` for hand-off).
+**Status:** stub backend with the concrete endpoint list (`api.ts: ROUTES`), in-memory linear-immutable revisions, and an HTTP stub server. The endpoint shape is what production will be; the persistence layer (filesystem / DB) and the OAuth 2.1 interactive flow are deferred to a future release — MVP workflows use local file output (`--persist tmp` and `site-docs zip` for hand-off).
 
 ## Surface
 

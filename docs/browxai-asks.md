@@ -1,18 +1,18 @@
 # site-docs ↔ browxai: the integration contract
 
-> **Status (2026-05-15): closed.** Phase-1 met on both sides. Round-3 re-adoption run against the first-consumer target app on 2026-05-15 was a WIN — one new flow (`recap-edit-timing`) calibrated end-to-end through `browxai-attached`, eight Recap flows now in the workspace, no-trace contract held, replay determinism through `site-docs run` intact. Five non-architectural follow-on asks (#12–#16) tracked below.
+> **Status (2026-05-15): closed.** First-integration contract met on both sides. The re-adoption run against the first-consumer target app on 2026-05-15 was a WIN — one new flow (`recap-edit-timing`) calibrated end-to-end through `browxai-attached`, eight Recap flows now in the workspace, no-trace contract held, replay determinism through `site-docs run` intact. Five non-architectural follow-on asks (#12–#16) tracked below.
 >
-> Written 2026-05-13 morning as a list of pending pre-shipping asks (Round 1, #1–#6). Browxai's Phase-1 implementation pass landed all six the same day. The **first adoption run** later that day surfaced five more asks (#7–#11) about heavy-SPA `snapshot()` / `find()` behaviour — all shipped same day as a Phase-1.5 pass. Round 3 (the re-adoption) confirmed those fixes work and surfaced #12–#16 as polish, not blockers.
+> Written 2026-05-13 morning as a list of pending pre-shipping asks (initial wave, #1–#6). Browxai's first-integration implementation pass landed all six the same day. The **first adoption run** later that day surfaced five more asks (#7–#11) about heavy-SPA `snapshot()` / `find()` behaviour — all shipped same day as a follow-up integration pass. The re-adoption confirmed those fixes work and surfaced #12–#16 as polish, not blockers.
 >
 > **Canonical operational reference**: `kalebteccom/browxai/AGENT-RUNBOOK.md` — for snapshot output legend (`stats:`, `warnings:`, `[from-dom]` / `[from-both]` markers), locator-disambiguation idioms (`:visible`, `nth-match`), `stability` semantics (snapshot-disambiguator vs. deploy-stable), and known-issue workarounds. This doc does **not** duplicate that content; it tracks the contract shape only.
 >
 > Other canonical sources: `kalebteccom/browxai/docs/first-consumer-asks.md` (per-ask status board); adoption reports `kalebteccom/browxai/docs/adoption-report-example-2026-05-{13,15}.md`; portfolio entry `projects/agent-browser-bridge/progress.md`.
 
-Status legend: ✅ **landed** · 🟡 **partial** (Phase-1 shape landed; remainder Phase-1.5 / Phase-2) · 📅 **adoption-gated**.
+Status legend: ✅ **landed** · 🟡 **partial** (initial shape landed; remainder follow-up / post-MVP) · 📅 **adoption-gated**.
 
 ---
 
-## Round 1 — pre-shipping asks (sent before browxai had a canonical entrypoint)
+## Initial wave — pre-shipping asks (sent before browxai had a canonical entrypoint)
 
 ### 1. ✅ CDP-attach on the canonical MCP server
 
@@ -24,7 +24,7 @@ Status legend: ✅ **landed** · 🟡 **partial** (Phase-1 shape landed; remaind
 
 ### 3. 📅 `storageState` handoff to `site-docs run`
 
-Falls out of #1: when browxai is attached over CDP, both browxai and `site-docs capture-auth` operate against the same `BrowserContext` and capture-auth already calls Playwright's `BrowserContext.storageState()`. No new MCP tool in Phase 1. The `managed`-mode `dump_storage_state` helper is Phase 2 (only needed when browxai owns the profile and the consumer can't share its CDP).
+Falls out of #1: when browxai is attached over CDP, both browxai and `site-docs capture-auth` operate against the same `BrowserContext` and capture-auth already calls Playwright's `BrowserContext.storageState()`. No new MCP tool needed initially. The `managed`-mode `dump_storage_state` helper is later work (only needed when browxai owns the profile and the consumer can't share its CDP).
 
 ### 4. 🟡 `find().selectorHint` preference order + `stability` flag
 
@@ -34,11 +34,11 @@ Tiers 1, 2, 5 shipped:
 | ---- | ---------------------------------------------------------------------------------------------- | ------------- |
 | 1    | any attr in `BROWX_TEST_ATTRIBUTES` (default `data-testid,data-test,data-cy,data-qa`) — see #8 | `high`        |
 | 2    | `role=<role>[name="…"]`                                                                        | `medium`      |
-| 3    | stable text on a stable role                                                                   | **Phase-1.5** |
-| 4    | `#id` / semantic tag                                                                           | **Phase-1.5** |
+| 3    | stable text on a stable role                                                                   | **follow-up** |
+| 4    | `#id` / semantic tag                                                                           | **follow-up** |
 | 5    | `role=<role>` fallback                                                                         | `low`         |
 
-The Phase-1.5 deferrals are explicit in browxai's `docs/phase-1-design.md` §7 — not a gate on the re-adoption run. If `find()` repeatedly only produces tier-5 hints where tier-3 should have caught it, that's the signal to expedite the tier-3 implementation.
+The follow-up deferrals are explicit in browxai's design notes — not a gate on the re-adoption run. If `find()` repeatedly only produces tier-5 hints where tier-3 should have caught it, that's the signal to expedite the tier-3 implementation.
 
 ### 5. ✅ Visible-rect bbox in `find()` / `snapshot()` evidence
 
@@ -50,7 +50,7 @@ The Phase-1.5 deferrals are explicit in browxai's `docs/phase-1-design.md` §7 �
 
 ---
 
-## Round 2 — from the 2026-05-13 first-consumer adoption run
+## Follow-up wave — from the 2026-05-13 first-consumer adoption run
 
 The first end-to-end run against an authed heavy-SPA target (the target app: Reflux + legacy React) found orchestration was solid but `find()` was blunted because the a11y tree on those shapes is sparse, and the target app's interactive elements anchor on `data-type` rather than the assumed `data-testid`. Five concrete asks; browxai shipped all five the same day.
 
@@ -78,7 +78,7 @@ Flows through a11y enrichment, the new DOM walk (#7), `selectorHint` tier-1 emis
 
 ### 9. 🟡 Auto-default `BROWX_ATTACH_CDP` — workaround live
 
-Full auto-detection ("attach when `127.0.0.1:9222` is reachable") is deferred Phase-1.5 polish. The workaround is **dual MCP registration**: register two user-scope entries, one for each mode, and pick the right one at use time.
+Full auto-detection ("attach when `127.0.0.1:9222` is reachable") is deferred polish work. The workaround is **dual MCP registration**: register two user-scope entries, one for each mode, and pick the right one at use time.
 
 ```bash
 # managed (default — browxai launches its own Chromium at $BROWX_WORKSPACE/profile/)
@@ -104,11 +104,11 @@ When the a11y tree has fewer than five interactive descendants under root, `snap
 
 ---
 
-## Round 3 — re-adoption verdict (2026-05-15): WIN, Phase 1 closed
+## Re-adoption verdict (2026-05-15): WIN, first-integration contract closed
 
-Re-ran site-docs discovery/calibration end-to-end through `browxai-attached` against authed the target app, with `BROWX_TEST_ATTRIBUTES=data-testid,data-type,data-test,data-cy,data-qa`. Scope: author one new flow (`recap-edit-timing` — Recap Flow 3 "Edit Script Timing"). Result: flow file authored entirely through browxai's MCP surface, replayed cleanly through `site-docs run` (headless, no browxai dependency), no-trace contract held. Phase-1 exit criteria met both sides. Full report: `kalebteccom/browxai/docs/adoption-report-example-2026-05-15.md`.
+Re-ran site-docs discovery/calibration end-to-end through `browxai-attached` against authed the target app, with `BROWX_TEST_ATTRIBUTES=data-testid,data-type,data-test,data-cy,data-qa`. Scope: author one new flow (`recap-edit-timing` — Recap Flow 3 "Edit Script Timing"). Result: flow file authored entirely through browxai's MCP surface, replayed cleanly through `site-docs run` (headless, no browxai dependency), no-trace contract held. First-integration exit criteria met both sides. Full report: `kalebteccom/browxai/docs/adoption-report-example-2026-05-15.md`.
 
-Five non-architectural follow-on asks surfaced; none gates further site-docs work, none block adoption against new targets. Their canonical home is `kalebteccom/browxai/docs/first-consumer-asks.md` (round-3 table) and they'll be addressed on the browxai side as Phase-1.5 cleanup or fold into Phase 2. Listed here for contract completeness:
+Five non-architectural follow-on asks surfaced; none gates further site-docs work, none block adoption against new targets. Their canonical home is `kalebteccom/browxai/docs/first-consumer-asks.md` (re-adoption table) and they'll be addressed on the browxai side as polish cleanup or fold into later work. Listed here for contract completeness:
 
 ### 12. 🟡 `wait_for.timeoutMs` schema cap (currently 120 s)
 
@@ -116,11 +116,11 @@ Backend-async ops (script generation, translation, TTS) routinely exceed the 120
 
 ### 13. 🟡 `selectorHint` disambiguation for duplicate DOM matches
 
-When `find()` returns the visible candidate via its interaction filter but the bare `[data-type="x"]` matches multiple DOM nodes (visible + hidden duplicate), the emitted hint should disambiguate (`:visible`, `nth-match`, or a further-attribute qualifier). Without it, mechanical transcription re-introduces the round-6 hidden-duplicate `boundingBox` hang the runbook's "Locator gotchas" block documents. Browxai's `AGENT-RUNBOOK.md` carries the workaround agents apply manually in the meantime.
+When `find()` returns the visible candidate via its interaction filter but the bare `[data-type="x"]` matches multiple DOM nodes (visible + hidden duplicate), the emitted hint should disambiguate (`:visible`, `nth-match`, or a further-attribute qualifier). Without it, mechanical transcription re-introduces the hidden-duplicate `boundingBox` hang the runbook's "Locator gotchas" block documents. Browxai's `AGENT-RUNBOOK.md` carries the workaround agents apply manually in the meantime.
 
 ### 14. 🟡 `find()` scoring weight for test-attribute string matches
 
-Exact testid in the query failed to surface a matching `<input>` element because role+name surface was empty (no `aria-label`). Three options on browxai's side: score testId hits independently of role/name, boost `role == "input"` + testid-keyword match, or signal "no confident candidate" so the agent falls through to reading the testid off the snapshot row. Highest-leverage round-3 ask — it's the gap between "find() ranked what I asked for" and "I read the testid off the snapshot row manually."
+Exact testid in the query failed to surface a matching `<input>` element because role+name surface was empty (no `aria-label`). Three options on browxai's side: score testId hits independently of role/name, boost `role == "input"` + testid-keyword match, or signal "no confident candidate" so the agent falls through to reading the testid off the snapshot row. Highest-leverage re-adoption ask — it's the gap between "find() ranked what I asked for" and "I read the testid off the snapshot row manually."
 
 ### 15. 🟢 CDP-attached bbox
 
@@ -132,9 +132,9 @@ Exact testid in the query failed to surface a matching `<input>` element because
 
 ---
 
-## Round 4 — post-contract Phase-2 wave from browxai (no asks; site-docs benefits)
+## Post-contract wave from browxai (no asks; site-docs benefits)
 
-After the contract closed on 2026-05-15, browxai continued shipping its own Phase-2 work without an asks list from site-docs. Site-docs benefits directly from these — the runbook + calibrate skill now reference them as the recommended path. Full descriptions in **`<browxai>/AGENT-RUNBOOK.md`**; summarised here so future readers see the chronology:
+After the contract closed on 2026-05-15, browxai continued shipping its own post-contract work without an asks list from site-docs. Site-docs benefits directly from these — the runbook + calibrate skill now reference them as the recommended path. Full descriptions in **`<browxai>/AGENT-RUNBOOK.md`**; summarised here so future readers see the chronology:
 
 - **`browxai init <workspace>`** — bootstraps a per-consumer workspace dir, writes a workspace-scope `.mcp.json` with both managed + BYOB MCP entries, sniffs the codebase for the dominant test-attribute convention. Replaces the manual `claude mcp add-json` dual-registration recipe in earlier versions of site-docs's runbook.
 - **`browxai chrome [start|stop|status]`** — owns the `--cdp` Chrome lifecycle. Persistent profile at `$BROWX_WORKSPACE/chrome-profile/`; `--insecure` opts into `--disable-web-security`. Replaces the manual `chrome --remote-debugging-port=9222 …` recipe.
@@ -149,9 +149,9 @@ No new asks here — site-docs reaps the benefits. The next contract round opens
 
 ---
 
-## Deferred to Phase 1.5 / Phase 2 (still applies)
+## Deferred work (still applies)
 
-- `dump_storage_state` MCP tool (Phase 2; only needed when browxai owns the profile end-to-end).
+- `dump_storage_state` MCP tool (post-MVP; only needed when browxai owns the profile end-to-end).
 - `find().selectorHint` tiers 3 (stable-text-on-stable-role) and 4 (id/semantic).
 - `snapshotDelta.scope` (scope-down currently returns full tree with a warning) and `mode: "tree_diff"` (falls back with a warning).
 - `await_human` `kind`s beyond `acknowledge` (`confirm` / `choose` / `input` / `pick_element` + the shadow-DOM banner / overlay UI).

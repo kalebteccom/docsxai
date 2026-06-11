@@ -89,9 +89,9 @@ Authenticated stub service for doc-pack persistence.
 
 - `src/api.ts` — `ROUTES` is the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators|run-history}`. Versioned via the `Site-Docs-API-Version` header.
 - `src/server.ts` — HTTP stub server. Loopback-bound by default.
-- `src/store.ts` — in-memory linear-immutable revisions (filesystem / DB persistence is Phase 2).
+- `src/store.ts` — in-memory linear-immutable revisions (filesystem / DB persistence is post-MVP).
 
-OAuth 2.1 wires hosted deployment in Phase 2; MVP runs with bearer tokens against the stub.
+OAuth 2.1 wires hosted deployment post-MVP; the stub runs with bearer tokens.
 
 ## `packages/skill/` — `@kalebtec/docsxai-skill`
 
@@ -109,7 +109,7 @@ Static-HTML viewer.
 - `src/render.ts` — `buildViewer({ docsDir, outDir })`. Reads annotations + screenshots, emits `index.html` + per-flow pages.
 - `src/placement.ts` — `placeCallout(input)`. Pure Popper-like placement; coordinate-space-agnostic; tested independently.
 
-PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-inspectable. Phase 2 adds `burn.ts` for delivery surfaces that can't run the interactive viewer (Confluence, Notion).
+PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-inspectable. A future release adds `burn.ts` for delivery surfaces that can't run the interactive viewer (Confluence, Notion).
 
 ## Load-bearing boundaries
 

@@ -15,7 +15,7 @@ Adds a feature to the Claude Code plugin or the vendorable skill bundle. The two
 2. **Trigger contract.** A skill triggers when the host agent's session matches its declared conditions. Keep triggers narrow — over-broad triggers spam the operator with skill activations they didn't ask for.
 3. **Question flow.** Skills emit structured questions via the host's `AskUserQuestion` (or equivalent) tool. Batch questions; carry the trade-off and the MVP implication in each option's description.
 4. **Deterministic handoff.** Once the skill has the answers, it composes a deterministic engine invocation — `site-docs <subcommand>` with the resolved arguments — and hands off. The engine does the work; the skill orchestrates.
-5. **Unit test.** Exercise the skill's static structure via `packages/plugin/src/index.ts`'s validation helpers. Skill behavior end-to-end is exercised at the calibration-loop level (slow, manual today; harness-integration in Phase 2).
+5. **Unit test.** Exercise the skill's static structure via `packages/plugin/src/index.ts`'s validation helpers. Skill behavior end-to-end is exercised at the calibration-loop level (slow, manual today; harness-integration is post-MVP).
 6. **Plugin README.** Add a row to `packages/plugin/README.md` "Skills".
 7. **CHANGELOG entry.** `## Unreleased ### Added`.
 

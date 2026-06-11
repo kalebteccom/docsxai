@@ -35,18 +35,18 @@ Agents reading this file must not invoke the commands below unless the operator 
 | `git clean`                                                         | prompt         | Deletes untracked work; needs explicit operator review.                                                                                               |
 | `rm -rf`                                                            | prompt         | Recursive deletion needs explicit operator review.                                                                                                    |
 
-Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreToolUse` hooks under `.claude/hooks/` and equivalents for Codex / Cursor when those configs are added (D3 scope); advisory until then.
+Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreToolUse` hooks under `.claude/hooks/` and equivalents for Codex / Cursor; advisory where not yet wired.
 
 ## Repo map
 
 - `packages/engine/` — `@kalebtec/docsxai-engine`. The flow-file parser + deterministic runtime, the `site-docs` CLI (`init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`), target-site auth strategies, the `BrowserDriver` interface + `PlaywrightDriver` implementation, calibration-aid helpers. The engine never calls a model API — that's the load-bearing contract.
 - `packages/plugin/` — `@kalebtec/docsxai-plugin`. The Claude Code plugin: calibrate + diagnose skills, run/render/login commands, internal MCP registration. The recommended invocation surface for agent-driven workflows.
-- `packages/backend/` — `@kalebtec/docsxai-backend`. Authenticated stub service for doc-pack persistence (REST + per-resource endpoints; in-memory linear-immutable revisions today; hosted deployment is Phase 2). Stateless HTTP surface bound to loopback by default.
+- `packages/backend/` — `@kalebtec/docsxai-backend`. Authenticated stub service for doc-pack persistence (REST + per-resource endpoints; in-memory linear-immutable revisions today; hosted deployment is post-MVP). Stateless HTTP surface bound to loopback by default.
 - `packages/skill/` — `@kalebtec/docsxai-skill`. Optional vendorable `.claude/skills/` fallback that delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.
 - `packages/viewer/` — `@kalebtec/docsxai-viewer`. Static-HTML viewer: halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time.
 - `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
 - `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — archived phase closure summaries (impl-repo mirrors of the portfolio `roadmap.md`; kept for design-rationale archaeology, not live references).
-- `RELEASING.md` — gated go-public checklist (release is owner-deferred to ≥ Phase 3).
+- `RELEASING.md` — gated go-public checklist (release is owner-deferred).
 
 ## Trust + execution posture
 
@@ -58,7 +58,7 @@ Surface-by-surface:
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Engine (CLI)    | No model API calls — ever. Reads target URLs the operator names; writes only under the configured workspace root. Auth strategies cache cookies/tokens; secrets never appear in artifacts. |
 | Plugin          | Runs inside Claude Code's plugin sandbox. Delegates execution to the engine binary. Calibration skills emit structured questions; commands are deterministic engine invocations.           |
-| Backend         | Stateless HTTP surface, loopback by default. OAuth 2.1 auth (Phase 2 wires hosted deployment). No code execution surface beyond CRUD on doc-pack resources.                                |
+| Backend         | Stateless HTTP surface, loopback by default. OAuth 2.1 auth wires hosted deployment post-MVP. No code execution surface beyond CRUD on doc-pack resources.                                 |
 | Viewer          | Static HTML; no runtime fetch from third-party CDNs. CSP `default-src 'none'` posture on emitted pages.                                                                                    |
 | `site-docs run` | Deterministic. No agent in the loop. Same flow-file + same target state → byte-identical doc pack (keystone-enforced).                                                                     |
 
@@ -123,8 +123,8 @@ For a new agent session in this repo, read in order:
 `AGENTS.md` is the single source of truth. Per-harness pointer files reference this file and never duplicate content:
 
 - **Claude Code:** `CLAUDE.md` at repo root — short pointer to `AGENTS.md`. Claude-Code-specific addenda (hooks, Skills) live under `.claude/`.
-- **Cursor:** `.cursor/rules/00-substrate.mdc` — MDC frontmatter with `alwaysApply: true`, body `@AGENTS.md`. (Lands in D3.)
-- **Codex:** `.codex/config.toml` references `AGENTS.md` as the canonical rules file. Expert agent definitions live in `.codex/agents/`. (Lands in D3.)
+- **Cursor:** `.cursor/rules/00-substrate.mdc` — MDC frontmatter with `alwaysApply: true`, body `@AGENTS.md`.
+- **Codex:** `.codex/config.toml` references `AGENTS.md` as the canonical rules file. Expert agent definitions live in `.codex/agents/`.
 - **AGENTS.md-conformant harnesses** (future): load `AGENTS.md` directly. No further config needed.
 
 Adding a new harness: place a pointer file in the harness's discovery location, reference `AGENTS.md`. Do not copy rules.

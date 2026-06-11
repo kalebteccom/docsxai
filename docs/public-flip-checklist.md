@@ -2,17 +2,17 @@
 
 Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue for each item; close as you complete. The operational, walk-through-on-the-day version lives at `docs/ai-context/release-process/public-flip-checklist.md`.
 
-## Pre-flight: Phase D deliverables merged
+## Pre-flight: governance + multi-harness substrate merged
 
-- [ ] `AGENTS.md`, `CLAUDE.md` pointer, `.cursor/`, `.codex/`, `.agents/` (Phase D3)
-- [ ] `docs/ai-context/` subtree complete (Phase D3)
-- [ ] `SECURITY.md`, `CODE_OF_CONDUCT.md`, `MAINTAINERS.md`, `CONTRIBUTING.md`, `RELEASING.md` (Phase D2b)
-- [ ] `docs/security-best-practices-for-adopters.md` (Phase D4)
-- [ ] Per-package `LICENSE` files + `"author"` fields in each `package.json` (Phase D2b)
+- [ ] `AGENTS.md`, `CLAUDE.md` pointer, `.cursor/`, `.codex/`, `.agents/`
+- [ ] `docs/ai-context/` subtree complete
+- [ ] `SECURITY.md`, `CODE_OF_CONDUCT.md`, `MAINTAINERS.md`, `CONTRIBUTING.md`, `RELEASING.md`
+- [ ] `docs/security-best-practices-for-adopters.md`
+- [ ] Per-package `LICENSE` files + `"author"` fields in each `package.json`
 - [ ] `THIRD_PARTY_NOTICES.md` regenerated from current `pnpm-lock.yaml`
-- [ ] Prettier, ESLint, `.githooks/`, `quality.yml`, `release.yml`, CODEOWNERS, Dependabot config (Phase D2a)
+- [ ] Prettier, ESLint, `.githooks/`, `quality.yml`, `release.yml`, CODEOWNERS, Dependabot config
 
-## Pre-flight: Phase D4 convergence merged
+## Pre-flight: quality-gate convergence merged
 
 - [ ] `pnpm lint` clean (0 errors / 0 warnings) — gate is now load-bearing in `quality.yml`
 - [ ] `pnpm format:check` clean — gate is now load-bearing in `quality.yml`

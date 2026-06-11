@@ -10,7 +10,7 @@ docsxai is pre-1.0. The path to 1.0 runs through an "API stable ~1 week" clock t
 - ActionResult / doc-pack output shape: `annotations.json`, halt-context, the screenshot file-name pattern.
 - The `BrowserDriver` interface shape and the `actionable()` predicate documented in [`docs/actionability-contract.md`](../../actionability-contract.md).
 
-Anything explicitly marked TODO or Phase-2 in the README / package READMEs is **not** covered by the stable-surface guarantee.
+Anything explicitly marked TODO or post-MVP in the README / package READMEs is **not** covered by the stable-surface guarantee.
 
 ## What resets the clock
 
@@ -54,7 +54,7 @@ Every minor bump pre-1.0 may include surface changes. The clock guards against _
 
 ## When the clock matters
 
-Once the OSS release lands (≥ Phase 3 per owner decision), the clock starts. Until then, the surface can move freely — but the discipline above is the shape the surface needs to settle into _before_ the public flip. Every Phase-1/2 surface decision is a draft of the eventual 1.0 contract.
+Once the OSS release lands (owner-deferred), the clock starts. Until then, the surface can move freely — but the discipline above is the shape the surface needs to settle into _before_ the public flip. Every pre-1.0 surface decision is a draft of the eventual 1.0 contract.
 
 ## Related
 

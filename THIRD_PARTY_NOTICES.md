@@ -12,7 +12,7 @@ docsxai's runtime dependencies (production-only):
 
 No production dependencies today (in-memory stub). Will gain HTTP server
 
-- auth dependencies when the Phase-2 hosted deployment lands; those will
+- auth dependencies when the hosted deployment lands; those will
   be listed here at that time.
 
 ## `@kalebtec/docsxai-plugin`, `@kalebtec/docsxai-viewer`, `@kalebtec/docsxai-skill`
@@ -25,7 +25,7 @@ plugin.
 
 This file is regenerated on every production-dependency change.
 Generation runs as part of CI; manual: `pnpm licenses:notices` once the
-script lands as part of the D2a tooling baseline. Full license texts
+script lands as part of the tooling baseline. Full license texts
 for each dependency are bundled in the published npm packages under
 each package's own `node_modules/<name>/LICENSE`.
 
