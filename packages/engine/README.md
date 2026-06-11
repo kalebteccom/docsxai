@@ -21,7 +21,7 @@ capture-auth   cache an authed session
 calibrate      extract a flow-file from a structured guide
 inspect        discover [data-testid] locators on the live page
 run            execute flows headless; emit annotations + screenshots
-render         build the static viewer (shells out to @kalebtec/docsxai-viewer)
+render         build the static viewer (spawns the @kalebtec/docsxai-viewer bin)
 lint           static checks across flow-files (R001-R010; `extraRules` injectable via `lintFlow`)
 flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt
@@ -30,6 +30,10 @@ zip            package the doc pack for hand-off
 ```
 
 `run` has a sub-3-second iteration mode for long-async flows: `--start-from <step-id> --cdp <endpoint>` skips every step before the target and attaches to an already-warm Chrome.
+
+`zip` packages the doc pack in-process (via fflate) — no system `zip` binary required — and **deterministically**: entries are sorted, every entry's mtime is pinned to the zip epoch (1980-01-01), and the compression level is fixed, so the same doc pack always produces a byte-identical archive. Includes `flows/`, `docs/`, `.site-docs.json`, `auth/strategy.yaml`, `README.md`; excludes `.auth/`, `**/halts/`, and (unless `--include-viewer`) `.viewer/`. Symlinks that point outside the workspace are never followed into the archive.
+
+`render` locates the viewer bin in order: `SITE_DOCS_VIEWER_BIN` (path to the viewer's bin script or an executable), the `@kalebtec/docsxai-viewer` package installed next to the engine (its `bin` run with the current Node), then `docsxai-viewer` on PATH. A launch failure reports all three attempts.
 
 ## Plugins
 
