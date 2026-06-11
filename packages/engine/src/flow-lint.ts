@@ -2,7 +2,7 @@
 // Pure-static — no Playwright, no live page. Run via `site-docs lint`.
 
 import type { FlowFile } from "./doc-pack.js";
-import { locatorRefName } from "./flow-file.js";
+import { locatorRefName, referencedLocatorNames } from "./flow-file.js";
 
 export type LintSeverity = "error" | "warning" | "info";
 
@@ -15,9 +15,18 @@ export type LintIssue = {
   suggestion?: string;
 };
 
+/** An injectable lint rule — the open hinge for the plugins runtime. Runs after the built-ins. */
+export type LintRule = {
+  /** Stable diagnostic code (the built-ins use `RNNN`; injected rules should pick another prefix). */
+  code: string;
+  run: (flow: FlowFile, opts: LintOptions) => Promise<LintIssue[]> | LintIssue[];
+};
+
 export type LintOptions = {
-  /** Resolver for `extends` (used by R001). If omitted, inter-flow rules are skipped. */
+  /** Resolver for `extends` (used by R001/R005). If omitted, inter-flow rules are skipped. */
   loadFlow?: (name: string) => Promise<FlowFile> | FlowFile;
+  /** Additional rules run after the built-ins (same flow, same options). */
+  extraRules?: LintRule[];
 };
 
 /** Heuristic — names that suggest a step kicks off a multi-minute backend op. */
@@ -31,20 +40,69 @@ const DEEP_CHAIN_THRESHOLD = 4;
 export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<LintIssue[]> {
   const issues: LintIssue[] = [];
 
-  // R001 — extends chain depth
+  // R001 — extends chain depth; R005 — extends target missing
   if (opts.loadFlow && flow.extends) {
-    const depth = await chainDepth(flow, opts.loadFlow);
-    if (depth >= DEEP_CHAIN_THRESHOLD) {
+    const chain = await walkChain(flow, opts.loadFlow);
+    if (chain.missing !== undefined) {
+      issues.push({
+        code: "R005",
+        severity: "error",
+        flow: flow.name,
+        message: `\`extends: ${chain.missing}\` names a flow that doesn't exist in the workspace`,
+        suggestion: "fix the name, or create flows/" + chain.missing + ".flow.yaml",
+      });
+    } else if (chain.depth >= DEEP_CHAIN_THRESHOLD) {
       issues.push({
         code: "R001",
         severity: "info",
         flow: flow.name,
-        message: `extends chain depth is ${depth}`,
+        message: `extends chain depth is ${chain.depth}`,
         suggestion:
           "consider flattening — deep chains add per-run setup cost and obscure the step order",
       });
     }
   }
+
+  // R006 — locator defined but never referenced
+  const referenced = referencedLocatorNames(flow);
+  for (const name of Object.keys(flow.locators)) {
+    if (!referenced.has(name)) {
+      issues.push({
+        code: "R006",
+        severity: "info",
+        flow: flow.name,
+        message: `locator \`${name}\` is defined but never referenced by any step, wait, success, annotation, or redaction`,
+        suggestion:
+          "remove it — unless a child flow references it via `extends` (references in children count only in the child)",
+      });
+    }
+  }
+
+  // R007 — terminal step lacks `success` (with `extends`, this flow's steps run last, so its
+  // final step IS the merged flow's terminal step)
+  const lastStep = flow.steps[flow.steps.length - 1];
+  if (lastStep && !lastStep.success) {
+    issues.push({
+      code: "R007",
+      severity: "warning",
+      flow: flow.name,
+      stepId: lastStep.id,
+      message:
+        "the flow's terminal step has no `success` criterion — the run can end without verifying the end state",
+      suggestion:
+        "add `success: { visible: $… }` (or url_matches / text_contains) to the last step",
+    });
+  }
+
+  // Resolve a `$ref` to its selector for same-element comparison; an un-resolvable ref (e.g.
+  // inherited from an `extends` parent) compares by its raw `$name`, which still matches itself.
+  const resolveMaybe = (v: string): string => {
+    const name = locatorRefName(v);
+    return name ? (flow.locators[name] ?? v) : v;
+  };
+  const flowRedactionSelectors = new Set(
+    (flow.redactions ?? []).flatMap((r) => ("selector" in r ? [resolveMaybe(r.selector)] : [])),
+  );
 
   for (const step of flow.steps) {
     const anns = step.annotation ? [step.annotation] : (step.annotations ?? []);
@@ -98,25 +156,84 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
         });
       }
     }
+
+    // R008 — un-guarded optional step
+    if (step.optional && !step.wait_for && !step.success) {
+      issues.push({
+        code: "R008",
+        severity: "warning",
+        flow: flow.name,
+        stepId: step.id,
+        message:
+          "`optional: true` with no `wait_for` or `success` — every failure is silently swallowed, so a real regression on this step would be masked",
+        suggestion:
+          "add a `wait_for: { selector: … }` or a `success:` check to make the presence test explicit",
+      });
+    }
+
+    // R009 — element_stable with no selector context (a no-op)
+    if (step.wait_for === "element_stable" && !step.target) {
+      issues.push({
+        code: "R009",
+        severity: "warning",
+        flow: flow.name,
+        stepId: step.id,
+        message:
+          "`wait_for: element_stable` has no selector context (the step has no `target`) — it waits on nothing",
+        suggestion:
+          "give the step a `target`, or wait on a concrete element with `wait_for: { selector: $x }`",
+      });
+    }
+
+    // R010 — annotation anchored to a redacted element (the call-out would point at a black box)
+    const stepRedactionSelectors = new Set([
+      ...flowRedactionSelectors,
+      ...(step.redactions ?? []).flatMap((r) =>
+        "selector" in r ? [resolveMaybe(r.selector)] : [],
+      ),
+    ]);
+    if (stepRedactionSelectors.size) {
+      for (const ann of anns) {
+        const anchor = ann.target ?? step.target;
+        if (anchor && stepRedactionSelectors.has(resolveMaybe(anchor))) {
+          issues.push({
+            code: "R010",
+            severity: "warning",
+            flow: flow.name,
+            stepId: step.id,
+            message: `annotation is anchored to \`${anchor}\`, which a redaction on this step masks — the call-out would point at a black box`,
+            suggestion: "anchor the annotation to a different element, or drop the redaction",
+          });
+        }
+      }
+    }
+  }
+
+  for (const rule of opts.extraRules ?? []) {
+    issues.push(...(await rule.run(flow, opts)));
   }
 
   return issues;
 }
 
-async function chainDepth(
+async function walkChain(
   flow: FlowFile,
   load: (name: string) => Promise<FlowFile> | FlowFile,
-): Promise<number> {
+): Promise<{ depth: number; missing?: string }> {
   let depth = 1;
   let cur: FlowFile = flow;
   const seen = new Set<string>([flow.name]);
   while (cur.extends) {
-    if (seen.has(cur.extends)) return depth;
+    if (seen.has(cur.extends)) return { depth };
     seen.add(cur.extends);
-    cur = await load(cur.extends);
+    try {
+      cur = await load(cur.extends);
+    } catch {
+      return { depth, missing: cur.extends };
+    }
     depth++;
   }
-  return depth;
+  return { depth };
 }
 
 export function formatIssuesText(issues: LintIssue[]): string {
