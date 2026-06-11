@@ -34,4 +34,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r typecheck
       - run: pnpm -r build
+      # Keystone suites drive real Chromium; this exact install command is the
+      # documented allowed exception to the no-install-scripts posture.
+      - run: pnpm -C packages/engine exec playwright-core install chromium
       - run: pnpm -r test
