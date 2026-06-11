@@ -34,7 +34,9 @@ function measureCallout(text: string): CalloutSize {
   const cw = Math.min(probe.offsetWidth, 280);
   probe.style.cssText =
     "position:fixed;left:-99999px;top:0;display:block;visibility:hidden;" +
-    "white-space:normal;width:" + cw + "px";
+    "white-space:normal;width:" +
+    cw +
+    "px";
   const height = probe.offsetHeight;
   document.body.removeChild(probe);
   return { width: cw, height };
@@ -96,8 +98,14 @@ function renderOne(
     const nx = ann.nudge && typeof ann.nudge.x === "number" ? ann.nudge.x : 0;
     const ny = ann.nudge && typeof ann.nudge.y === "number" ? ann.nudge.y : 0;
     co.style.cssText =
-      "left:" + (p.callout.x + nx) + "px;top:" + (p.callout.y + ny) + "px;" +
-      "box-sizing:border-box;white-space:normal;width:" + c.width + "px";
+      "left:" +
+      (p.callout.x + nx) +
+      "px;top:" +
+      (p.callout.y + ny) +
+      "px;" +
+      "box-sizing:border-box;white-space:normal;width:" +
+      c.width +
+      "px";
 
     const ar = document.createElement("div");
     ar.className = "sd-arrow " + p.side;
