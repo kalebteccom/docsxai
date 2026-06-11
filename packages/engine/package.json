@@ -6,7 +6,7 @@
     "access": "public",
     "provenance": true
   },
-  "description": "LLM-agnostic engine: calibration pipeline stages (discovery, mapping+testing, commit) + flow-file parser/runtime + the target-site auth-strategy layer.",
+  "description": "LLM-agnostic engine: flow-file parser + deterministic runtime + the site-docs CLI + the target-site auth-strategy layer.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

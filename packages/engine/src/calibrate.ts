@@ -7,8 +7,8 @@
 // exercises it against the live app to fill in screenshots + bounding boxes + the real `annotations.json`.
 //
 // Loose-prose flow descriptions (and live element-picking / ambiguity resolution) need the host agent —
-// that's the `/site-docs:calibrate` *skill* (see packages/plugin/skills/calibrate/SKILL.md) plus the
-// pause/resume pipeline contract (pipeline.ts). This module covers only the part that's deterministic.
+// that's the `/site-docs:calibrate` *skill* (see packages/plugin/skills/calibrate/SKILL.md); ambiguity
+// signalling lives at the MCP/skill layer. This module covers only the part that's deterministic.
 
 import { promises as fs } from "node:fs";
 import { type FlowFile } from "./doc-pack.js";
