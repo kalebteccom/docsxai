@@ -8,6 +8,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { StyleArtifact } from "./doc-pack.js";
+import { resolveWorkspacePath } from "./workspace.js";
 
 export class StyleError extends Error {
   constructor(
@@ -73,8 +74,8 @@ export interface StylePaths {
 export function stylePathsFor(workspace: string): StylePaths {
   return {
     workspace,
-    yamlPath: path.join(workspace, "docs", "style.yaml"),
-    jsonPath: path.join(workspace, "docs", "style.json"),
+    yamlPath: resolveWorkspacePath(workspace, "docs", "style.yaml"),
+    jsonPath: resolveWorkspacePath(workspace, "docs", "style.json"),
   };
 }
 
@@ -150,7 +151,7 @@ export async function scanWorkspaceForJargon(
   workspace: string,
   style: StyleArtifact,
 ): Promise<JargonHit[]> {
-  const docsRoot = path.join(workspace, "docs");
+  const docsRoot = resolveWorkspacePath(workspace, "docs");
   const flows = await fs.readdir(docsRoot, { withFileTypes: true }).catch(() => []);
   const categories = style.pruning_rules ?? [];
   if (categories.length === 0) return [];
@@ -158,12 +159,12 @@ export async function scanWorkspaceForJargon(
   const hits: JargonHit[] = [];
   for (const ent of flows) {
     if (!ent.isDirectory()) continue;
-    const flowDir = path.join(docsRoot, ent.name);
+    const flowDir = resolveWorkspacePath(workspace, "docs", ent.name);
     const files = await fs.readdir(flowDir).catch(() => []);
     for (const f of files) {
       if (!f.endsWith(".md")) continue;
-      const abs = path.join(flowDir, f);
-      const rel = path.relative(workspace, abs);
+      const abs = resolveWorkspacePath(workspace, "docs", ent.name, f);
+      const rel = path.relative(path.resolve(workspace), abs);
       const text = await fs.readFile(abs, "utf8").catch(() => "");
       hits.push(...scanTextForJargon(text, rel, categories));
     }

@@ -11,10 +11,10 @@
 // pause/resume pipeline contract (pipeline.ts). This module covers only the part that's deterministic.
 
 import { promises as fs } from "node:fs";
-import * as path from "node:path";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, serializeFlowFile } from "./flow-file.js";
 import { initStyleIfAbsent } from "./style.js";
+import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 
 export class CalibrateError extends Error {
   constructor(
@@ -91,9 +91,13 @@ export async function calibrate(opts: CalibrateOptions): Promise<CalibrateResult
   const flow = extractFlowFile(opts.fromText, opts.fromSource ?? "<flow-guide>");
   const name = opts.flowName ?? flow.name;
 
-  const flowsDir = path.join(opts.workspaceDir, "flows");
-  await fs.mkdir(flowsDir, { recursive: true });
-  const flowFilePath = path.join(flowsDir, `${name}.flow.yaml`);
+  await fs.mkdir(resolveWorkspacePath(opts.workspaceDir, "flows"), { recursive: true });
+  // The flow name is guide-supplied — resolve with the symlink-aware variant before writing.
+  const flowFilePath = await resolveWorkspacePathReal(
+    opts.workspaceDir,
+    "flows",
+    `${name}.flow.yaml`,
+  );
   await fs.writeFile(flowFilePath, serializeFlowFile(flow), "utf8");
 
   const { paths, created } = await initStyleIfAbsent(opts.workspaceDir);

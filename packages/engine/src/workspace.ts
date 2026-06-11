@@ -14,6 +14,66 @@ import { stringify as stringifyYaml } from "yaml";
 
 export const WORKSPACE_CONFIG_FILE = ".site-docs.json";
 
+/** Thrown when a workspace-relative path resolves outside the workspace root. */
+export class WorkspacePathEscapeError extends Error {
+  constructor(
+    readonly workspaceDir: string,
+    readonly resolvedPath: string,
+  ) {
+    super(`path escapes workspace root ${workspaceDir}: ${resolvedPath}`);
+    this.name = "WorkspacePathEscapeError";
+  }
+}
+
+function assertContained(root: string, candidate: string): void {
+  // Prefix check on a path-separator boundary: `/ws/docs-evil` must not pass for root `/ws/docs`.
+  if (candidate !== root && !candidate.startsWith(root + path.sep)) {
+    throw new WorkspacePathEscapeError(root, candidate);
+  }
+}
+
+/** Resolve path segments against a workspace root, guaranteeing containment. */
+export function resolveWorkspacePath(workspaceDir: string, ...segments: string[]): string {
+  const root = path.resolve(workspaceDir);
+  const resolved = path.resolve(root, ...segments);
+  assertContained(root, resolved);
+  return resolved;
+}
+
+/** Realpath of the deepest existing ancestor of `p`, with the non-existing suffix re-appended. */
+async function realpathDeepestExisting(p: string): Promise<string> {
+  let probe = p;
+  let suffix = "";
+  for (;;) {
+    try {
+      const real = await fs.realpath(probe);
+      return suffix ? path.join(real, suffix) : real;
+    } catch {
+      const parent = path.dirname(probe);
+      if (parent === probe) return p; // not even the filesystem root resolves — give up lexically
+      suffix = suffix ? path.join(path.basename(probe), suffix) : path.basename(probe);
+      probe = parent;
+    }
+  }
+}
+
+/**
+ * Like {@link resolveWorkspacePath}, but additionally defends against symlink escape: the deepest
+ * existing ancestor of the resolved path is realpath'd and containment re-verified against the
+ * realpath'd workspace root. Use before writing to a path whose segments are user-influenced
+ * (flow names, step ids, role names) — a symlink inside the workspace pointing outside must throw.
+ */
+export async function resolveWorkspacePathReal(
+  workspaceDir: string,
+  ...segments: string[]
+): Promise<string> {
+  const resolved = resolveWorkspacePath(workspaceDir, ...segments);
+  const rootReal = await realpathDeepestExisting(path.resolve(workspaceDir));
+  const resolvedReal = await realpathDeepestExisting(resolved);
+  assertContained(rootReal, resolvedReal);
+  return resolved;
+}
+
 export interface WorkspaceConfig {
   schema: "site-docs/workspace@1";
   /** Base URL of the running app this workspace documents. Used as the default for `run`/`capture-auth`. */
@@ -112,11 +172,11 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
 
   const created: string[] = [];
   for (const sub of ["flows", "docs", "auth", ".auth", ".viewer"]) {
-    await fs.mkdir(path.join(dir, sub), { recursive: true });
+    await fs.mkdir(resolveWorkspacePath(dir, sub), { recursive: true });
   }
   created.push("flows/", "docs/", "auth/", ".auth/", ".viewer/");
 
-  await fs.writeFile(path.join(dir, ".gitignore"), ".auth/\n.viewer/\n", "utf8");
+  await fs.writeFile(resolveWorkspacePath(dir, ".gitignore"), ".auth/\n.viewer/\n", "utf8");
   created.push(".gitignore");
 
   const cfg: WorkspaceConfig = {
@@ -126,7 +186,7 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
     created_at: new Date().toISOString(),
   };
   await fs.writeFile(
-    path.join(dir, WORKSPACE_CONFIG_FILE),
+    resolveWorkspacePath(dir, WORKSPACE_CONFIG_FILE),
     JSON.stringify(cfg, null, 2) + "\n",
     "utf8",
   );
@@ -150,14 +210,14 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
       },
     };
     await fs.writeFile(
-      path.join(dir, "auth", "strategy.yaml"),
+      resolveWorkspacePath(dir, "auth", "strategy.yaml"),
       stringifyYaml(descriptor, { lineWidth: 100 }),
       "utf8",
     );
     created.push("auth/strategy.yaml");
   }
 
-  await fs.writeFile(path.join(dir, "README.md"), README(cfg), "utf8");
+  await fs.writeFile(resolveWorkspacePath(dir, "README.md"), README(cfg), "utf8");
   created.push("README.md");
 
   return { dir, created, ephemeral };
@@ -166,7 +226,7 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
 /** Read `<dir>/.site-docs.json` if present. Returns `null` if absent or unreadable. */
 export async function loadWorkspaceConfig(dir: string): Promise<WorkspaceConfig | null> {
   try {
-    const text = await fs.readFile(path.join(dir, WORKSPACE_CONFIG_FILE), "utf8");
+    const text = await fs.readFile(resolveWorkspacePath(dir, WORKSPACE_CONFIG_FILE), "utf8");
     const parsed = JSON.parse(text) as WorkspaceConfig;
     if (parsed && parsed.schema === "site-docs/workspace@1") return parsed;
     return null;

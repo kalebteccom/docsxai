@@ -12,6 +12,7 @@ import type {
   ScreenshotsPayload,
   StylePayload,
 } from "./backend-client.js";
+import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 
 export interface DocPackPayloads {
   flows: FlowsPayload | null;
@@ -33,25 +34,25 @@ export async function readDocPack(workspace: string): Promise<DocPackPayloads> {
 }
 
 async function readFlows(workspace: string): Promise<FlowsPayload | null> {
-  const dir = path.join(workspace, "flows");
+  const dir = resolveWorkspacePath(workspace, "flows");
   const entries = await fs.readdir(dir).catch(() => null);
   if (!entries) return null;
   const yamls = entries.filter((e) => e.endsWith(".flow.yaml"));
   if (yamls.length === 0) return null;
   const files: Record<string, string> = {};
   for (const f of yamls) {
-    files[f] = await fs.readFile(path.join(dir, f), "utf8");
+    files[f] = await fs.readFile(resolveWorkspacePath(workspace, "flows", f), "utf8");
   }
   return { schema: "site-docs/flows@1", files };
 }
 
 async function readAnnotations(workspace: string): Promise<AnnotationsPayload | null> {
-  const docsDir = path.join(workspace, "docs");
+  const docsDir = resolveWorkspacePath(workspace, "docs");
   const flows = await fs.readdir(docsDir, { withFileTypes: true }).catch(() => []);
   const files: Record<string, unknown> = {};
   for (const ent of flows) {
     if (!ent.isDirectory()) continue;
-    const annPath = path.join(docsDir, ent.name, "annotations.json");
+    const annPath = resolveWorkspacePath(workspace, "docs", ent.name, "annotations.json");
     const text = await fs.readFile(annPath, "utf8").catch(() => null);
     if (text === null) continue;
     try {
@@ -65,17 +66,19 @@ async function readAnnotations(workspace: string): Promise<AnnotationsPayload | 
 }
 
 async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | null> {
-  const docsDir = path.join(workspace, "docs");
+  const docsDir = resolveWorkspacePath(workspace, "docs");
   const flows = await fs.readdir(docsDir, { withFileTypes: true }).catch(() => []);
   const files: Record<string, string> = {};
   for (const ent of flows) {
     if (!ent.isDirectory()) continue;
-    const screenDir = path.join(docsDir, ent.name, "screenshots");
+    const screenDir = resolveWorkspacePath(workspace, "docs", ent.name, "screenshots");
     const shots = await fs.readdir(screenDir).catch(() => null);
     if (!shots) continue;
     for (const f of shots) {
       if (!/\.(png|jpg|jpeg|webp)$/i.test(f)) continue;
-      const buf = await fs.readFile(path.join(screenDir, f));
+      const buf = await fs.readFile(
+        resolveWorkspacePath(workspace, "docs", ent.name, "screenshots", f),
+      );
       files[`${ent.name}/screenshots/${f}`] = buf.toString("base64");
     }
   }
@@ -84,8 +87,8 @@ async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | 
 }
 
 async function readStyle(workspace: string): Promise<StylePayload | null> {
-  const yamlPath = path.join(workspace, "docs", "style.yaml");
-  const jsonPath = path.join(workspace, "docs", "style.json");
+  const yamlPath = resolveWorkspacePath(workspace, "docs", "style.yaml");
+  const jsonPath = resolveWorkspacePath(workspace, "docs", "style.json");
   const yaml = await fs.readFile(yamlPath, "utf8").catch(() => null);
   const jsonText = await fs.readFile(jsonPath, "utf8").catch(() => null);
   if (yaml === null && jsonText === null) return null;
@@ -94,7 +97,7 @@ async function readStyle(workspace: string): Promise<StylePayload | null> {
 }
 
 async function readLocators(workspace: string): Promise<LocatorsPayload | null> {
-  const yamlPath = path.join(workspace, "docs", "locators.yaml");
+  const yamlPath = resolveWorkspacePath(workspace, "docs", "locators.yaml");
   const yaml = await fs.readFile(yamlPath, "utf8").catch(() => null);
   if (yaml === null) return null;
   return { schema: "site-docs/locators@1", yaml };
@@ -107,17 +110,18 @@ export async function writeDocPack(
   payloads: Partial<DocPackPayloads>,
 ): Promise<{ filesWritten: number }> {
   let n = 0;
+  // Pulled payload file names come from the backend — treat as untrusted and resolve with the
+  // symlink-aware variant before writing.
   if (payloads.flows) {
-    const dir = path.join(workspace, "flows");
-    await fs.mkdir(dir, { recursive: true });
+    await fs.mkdir(resolveWorkspacePath(workspace, "flows"), { recursive: true });
     for (const [f, text] of Object.entries(payloads.flows.files)) {
-      await fs.writeFile(path.join(dir, f), text, "utf8");
+      await fs.writeFile(await resolveWorkspacePathReal(workspace, "flows", f), text, "utf8");
       n++;
     }
   }
   if (payloads.annotations) {
     for (const [rel, json] of Object.entries(payloads.annotations.files)) {
-      const abs = path.join(workspace, "docs", rel);
+      const abs = await resolveWorkspacePathReal(workspace, "docs", rel);
       await fs.mkdir(path.dirname(abs), { recursive: true });
       await fs.writeFile(abs, JSON.stringify(json, null, 2) + "\n", "utf8");
       n++;
@@ -125,7 +129,7 @@ export async function writeDocPack(
   }
   if (payloads.screenshots) {
     for (const [rel, b64] of Object.entries(payloads.screenshots.files)) {
-      const abs = path.join(workspace, "docs", rel);
+      const abs = await resolveWorkspacePathReal(workspace, "docs", rel);
       await fs.mkdir(path.dirname(abs), { recursive: true });
       await fs.writeFile(abs, Buffer.from(b64, "base64"));
       n++;
@@ -133,20 +137,20 @@ export async function writeDocPack(
   }
   if (payloads.style) {
     if (payloads.style.yaml !== null) {
-      const p = path.join(workspace, "docs", "style.yaml");
+      const p = resolveWorkspacePath(workspace, "docs", "style.yaml");
       await fs.mkdir(path.dirname(p), { recursive: true });
       await fs.writeFile(p, payloads.style.yaml, "utf8");
       n++;
     }
     if (payloads.style.json !== null) {
-      const p = path.join(workspace, "docs", "style.json");
+      const p = resolveWorkspacePath(workspace, "docs", "style.json");
       await fs.mkdir(path.dirname(p), { recursive: true });
       await fs.writeFile(p, JSON.stringify(payloads.style.json, null, 2) + "\n", "utf8");
       n++;
     }
   }
   if (payloads.locators?.yaml) {
-    const p = path.join(workspace, "docs", "locators.yaml");
+    const p = resolveWorkspacePath(workspace, "docs", "locators.yaml");
     await fs.mkdir(path.dirname(p), { recursive: true });
     await fs.writeFile(p, payloads.locators.yaml, "utf8");
     n++;

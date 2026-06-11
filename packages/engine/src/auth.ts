@@ -9,10 +9,10 @@
 // entries are interface-accommodated here but throw `NotImplementedStrategyError` until built.
 
 import { promises as fs } from "node:fs";
-import * as path from "node:path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { AuthStrategyDescriptor, type RoleAuth, type StrategyName } from "./doc-pack.js";
+import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 
 // ---------------------------------------------------------------------------
 // storageState
@@ -170,10 +170,14 @@ export class LocalStorageStateCache {
   /** @param dir the `.auth/` directory (relative paths resolved against cwd). */
   constructor(private readonly dir = ".auth") {}
 
-  private file(role: string): string {
+  private fileName(role: string): string {
     // role names are simple identifiers in practice; still, keep the filename safe.
     const safe = role.replace(/[^A-Za-z0-9_.-]/g, "_");
-    return path.join(this.dir, `${safe}.json`);
+    return `${safe}.json`;
+  }
+
+  private file(role: string): string {
+    return resolveWorkspacePath(this.dir, this.fileName(role));
   }
 
   /** Return the cached state for a role if present and not past its expiry; otherwise `null`. */
@@ -241,8 +245,10 @@ export class LocalStorageStateCache {
       );
     }
     const entry: CachedState = { storageState: result.storageState, writtenAt: now, expiresAt };
-    await fs.mkdir(this.dir, { recursive: true });
-    await fs.writeFile(this.file(role), JSON.stringify(entry, null, 2) + "\n", "utf8");
+    await fs.mkdir(resolveWorkspacePath(this.dir), { recursive: true });
+    // Role names are operator-influenced — resolve with the symlink-aware variant before writing.
+    const target = await resolveWorkspacePathReal(this.dir, this.fileName(role));
+    await fs.writeFile(target, JSON.stringify(entry, null, 2) + "\n", "utf8");
     return { expiresAt, source };
   }
 

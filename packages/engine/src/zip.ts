@@ -6,6 +6,7 @@
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
+import { resolveWorkspacePath } from "./workspace.js";
 
 export interface ZipOptions {
   workspace: string;
@@ -63,7 +64,7 @@ export async function zipDocPack(opts: ZipOptions): Promise<ZipResult> {
   const existing: string[] = [];
   for (const inc of includesAll) {
     try {
-      await fs.access(path.join(workspace, inc));
+      await fs.access(resolveWorkspacePath(workspace, inc));
       existing.push(inc);
     } catch {
       /* skip absent */

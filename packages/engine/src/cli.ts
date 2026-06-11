@@ -38,7 +38,12 @@ import {
 import { ZipError, zipDocPack } from "./zip.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
-import { initWorkspace, loadWorkspaceConfig } from "./workspace.js";
+import {
+  initWorkspace,
+  loadWorkspaceConfig,
+  resolveWorkspacePath,
+  resolveWorkspacePathReal,
+} from "./workspace.js";
 
 const USAGE = `site-docs — deterministic execution CLI
 
@@ -167,7 +172,7 @@ function parseFlags(args: string[]): { positionals: string[]; flags: Map<string,
 }
 
 async function listFlowFiles(projectDir: string): Promise<string[]> {
-  const dir = path.join(projectDir, "flows");
+  const dir = resolveWorkspacePath(projectDir, "flows");
   let entries: string[];
   try {
     entries = await fs.readdir(dir);
@@ -177,11 +182,11 @@ async function listFlowFiles(projectDir: string): Promise<string[]> {
   return entries
     .filter((e) => e.endsWith(".flow.yaml"))
     .sort()
-    .map((e) => path.join(dir, e));
+    .map((e) => resolveWorkspacePath(projectDir, "flows", e));
 }
 
 async function loadAuthStorageState(projectDir: string): Promise<StorageState | undefined> {
-  const descriptorPath = path.join(projectDir, "auth", "strategy.yaml");
+  const descriptorPath = resolveWorkspacePath(projectDir, "auth", "strategy.yaml");
   let text: string;
   try {
     text = await fs.readFile(descriptorPath, "utf8");
@@ -190,7 +195,7 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
   }
   const descriptor = parseAuthStrategyFile(text, descriptorPath);
   const role = descriptor.default_role;
-  const cache = new LocalStorageStateCache(path.join(projectDir, ".auth"));
+  const cache = new LocalStorageStateCache(resolveWorkspacePath(projectDir, ".auth"));
   const state = await cache.load(role);
   if (!state) {
     throw new Error(
@@ -238,9 +243,8 @@ async function cmdRun(args: string[]): Promise<number> {
     process.stderr.write(`run: ${(e as Error).message}\n`);
     return 1;
   }
-  const flowsDir = path.join(projectDir, "flows");
   const loadFlowFile = async (name: string) => {
-    const fp = path.join(flowsDir, `${name}.flow.yaml`);
+    const fp = resolveWorkspacePath(projectDir, "flows", `${name}.flow.yaml`);
     let text: string;
     try {
       text = await fs.readFile(fp, "utf8");
@@ -326,9 +330,14 @@ async function cmdRun(args: string[]): Promise<number> {
         ...(stopAfter ? { stopAfter } : {}),
         ...(startFrom ? { startFrom } : {}),
       });
-      const docsDir = path.join(projectDir, "docs", flow.name);
-      await fs.mkdir(docsDir, { recursive: true });
-      const annotationsPath = path.join(docsDir, "annotations.json");
+      await fs.mkdir(resolveWorkspacePath(projectDir, "docs", flow.name), { recursive: true });
+      // Flow names come from the flow-files — resolve the write target symlink-aware.
+      const annotationsPath = await resolveWorkspacePathReal(
+        projectDir,
+        "docs",
+        flow.name,
+        "annotations.json",
+      );
       // With `startFrom`, only the post-startFrom steps emit annotations — merge them into the
       // existing file (if any) by step id so the prior steps' annotations stay in place. Same
       // story for screenshots (they live as separate PNGs and are simply not re-captured).
@@ -390,8 +399,8 @@ async function cmdRender(args: string[]): Promise<number> {
     process.stderr.write("render: missing <project-dir>\n\n" + USAGE + "\n");
     return 2;
   }
-  const docsDir = path.join(projectDir, "docs");
-  const outDir = path.join(projectDir, ".viewer");
+  const docsDir = resolveWorkspacePath(projectDir, "docs");
+  const outDir = resolveWorkspacePath(projectDir, ".viewer");
   // The viewer is its own package/bin; shell out to it so the engine doesn't depend on it at build time.
   return new Promise<number>((resolve) => {
     const child = spawn("docsxai-viewer", ["build", docsDir, outDir], { stdio: "inherit" });
@@ -443,9 +452,10 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
   const cdp = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
   const fresh = flags.get("fresh") === true;
   // Persistent Chrome profile under the workspace — re-running capture-auth reuses the login. (Not when attaching, or with --fresh.)
-  const profileDir = fresh || cdp ? undefined : path.join(projectDir, ".auth", "chrome-profile");
+  const profileDir =
+    fresh || cdp ? undefined : resolveWorkspacePath(projectDir, ".auth", "chrome-profile");
 
-  const descriptorPath = path.join(projectDir, "auth", "strategy.yaml");
+  const descriptorPath = resolveWorkspacePath(projectDir, "auth", "strategy.yaml");
   let descriptorText: string;
   try {
     descriptorText = await fs.readFile(descriptorPath, "utf8");
@@ -513,7 +523,7 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
     }
 
     const { expiresAt, source } = await new LocalStorageStateCache(
-      path.join(projectDir, ".auth"),
+      resolveWorkspacePath(projectDir, ".auth"),
     ).save(role, result, roleAuth, Date.now(), authCookie ? { authCookie } : {});
     process.stdout.write(
       `capture-auth: cached ${role} → ${path.join(projectDir, ".auth", role + ".json")}\n` +
@@ -658,14 +668,15 @@ async function cmdInspect(args: string[]): Promise<number> {
     if (!role) {
       try {
         role = parseAuthStrategyFile(
-          await fs.readFile(path.join(workspaceDir, "auth", "strategy.yaml"), "utf8"),
+          await fs.readFile(resolveWorkspacePath(workspaceDir, "auth", "strategy.yaml"), "utf8"),
         ).default_role;
       } catch {
         role = "editor";
       }
     }
     storageState =
-      (await new LocalStorageStateCache(path.join(workspaceDir, ".auth")).load(role)) ?? undefined;
+      (await new LocalStorageStateCache(resolveWorkspacePath(workspaceDir, ".auth")).load(role)) ??
+      undefined;
     if (!storageState) {
       process.stderr.write(
         `inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`site-docs capture-auth\` first if the app needs login)\n`,
@@ -894,9 +905,8 @@ async function cmdDiagnose(args: string[]): Promise<number> {
   }
 
   // Load the flow (resolving `extends` so step lookup works against the merged step list).
-  const flowsDir = path.join(projectDir, "flows");
   const loadFlowFile = async (name: string) => {
-    const fp = path.join(flowsDir, `${name}.flow.yaml`);
+    const fp = resolveWorkspacePath(projectDir, "flows", `${name}.flow.yaml`);
     let text: string;
     try {
       text = await fs.readFile(fp, "utf8");
@@ -929,7 +939,13 @@ async function cmdDiagnose(args: string[]): Promise<number> {
       : step.target
     : undefined;
 
-  const haltScreenshotAbsPath = path.join(projectDir, "docs", flowName, "halts", `${stepId}.png`);
+  const haltScreenshotAbsPath = resolveWorkspacePath(
+    projectDir,
+    "docs",
+    flowName,
+    "halts",
+    `${stepId}.png`,
+  );
 
   // Optional live probe via --cdp.
   let liveProbe: (() => ReturnType<typeof probeLive>) | undefined;
@@ -1165,7 +1181,7 @@ async function cmdPush(args: string[]): Promise<number> {
         backend_project_id: binding.projectId,
       };
       await fs.writeFile(
-        path.join(projectDir, ".site-docs.json"),
+        resolveWorkspacePath(projectDir, ".site-docs.json"),
         JSON.stringify(updated, null, 2) + "\n",
         "utf8",
       );

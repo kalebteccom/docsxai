@@ -13,6 +13,7 @@ import { chromium, type Browser, type BrowserContext, type Page } from "playwrig
 import { type BoundingBox } from "./doc-pack.js";
 import { type ActionableState, type BrowserDriver } from "./flow-runtime.js";
 import { type StorageState } from "./auth.js";
+import { resolveWorkspacePathReal } from "./workspace.js";
 
 export interface PlaywrightSessionOptions {
   /** Base URL for relative `goto` paths. */
@@ -244,7 +245,9 @@ export class PlaywrightDriver implements BrowserDriver {
       .catch(() => null);
   }
   async screenshot(relPath: string): Promise<void> {
-    const abs = path.resolve(this.docPackRoot, relPath);
+    // relPath segments carry flow names + step ids from the flow-file — containment-checked
+    // (symlink-aware) against the doc-pack root before writing.
+    const abs = await resolveWorkspacePathReal(this.docPackRoot, relPath);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     // `animations: "disabled"` fast-forwards finite CSS animations/transitions to their end state
     // and cancels infinite ones, so an element transitioning in (opacity/transform) is captured
