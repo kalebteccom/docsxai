@@ -6,12 +6,12 @@
 // the backend's `api.ts` exactly; if you change one, update the other and the test will tell you.
 
 import { type StorageState } from "./auth.js";
+import { type RevisionKind } from "./doc-pack.js";
 
 export const API_VERSION = "1" as const;
 export const API_VERSION_HEADER = "site-docs-api-version";
 
 export type RevisionArtifact = "flows" | "annotations" | "screenshots" | "style" | "locators";
-export type RevisionKind = "calibrate" | "run" | "edit";
 
 export interface Workspace {
   id: string;
