@@ -1,0 +1,21 @@
+# Fixture flow for the determinism keystone: frozen clock + selector redaction. The success
+# criterion asserts the page renders the *frozen* instant, so a broken clock freeze halts the run.
+name: redacted-clock
+environment:
+  clock: "2030-01-02T03:04:05Z"
+  viewport: { width: 800, height: 600 }
+locators:
+  secret_panel: "#secret"
+  control_panel: "#control"
+  clock_text: "#clock"
+redactions:
+  - { selector: $secret_panel }
+steps:
+  - id: open-account
+    action: navigate
+    value: account.html
+    wait_for: load
+    success: { text_contains: { selector: $clock_text, text: "2030-01-02T03:04:05" } }
+    annotation:
+      copy: "The account page — the API key is masked in every screenshot"
+      target: $control_panel

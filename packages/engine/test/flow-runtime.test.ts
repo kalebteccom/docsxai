@@ -4,6 +4,7 @@ import { type BoundingBox } from "../src/doc-pack.js";
 import {
   type ActionableState,
   type BrowserDriver,
+  type ResolvedRedaction,
   inferHaltCause,
   runFlow,
 } from "../src/flow-runtime.js";
@@ -81,8 +82,10 @@ class FakeDriver implements BrowserDriver {
     if (this.boundingBoxError) throw this.boundingBoxError;
     return this.boxes.get(s) ?? null;
   }
-  async screenshot(p: string) {
+  screenshots: Array<{ path: string; redactions: ResolvedRedaction[] }> = [];
+  async screenshot(p: string, redactions: ResolvedRedaction[] = []) {
     this.rec(`screenshot ${p}`);
+    this.screenshots.push({ path: p, redactions });
   }
   actionableMap = new Map<string, ActionableState>();
   async actionable(s: string): Promise<ActionableState> {
@@ -472,6 +475,57 @@ steps:
     await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(
       /^\[target is disabled\]/,
     );
+  });
+});
+
+describe("runFlow — redactions", () => {
+  const REDACTED_FLOW = `
+name: f
+locators: { play: '#play', recap: '#recap', secret: '#secret' }
+redactions:
+  - { selector: $secret }
+steps:
+  - id: act
+    action: click
+    target: $play
+    success: { visible: $recap }
+    redactions:
+      - { selector: '#token', style: pixelate }
+      - { region: { x: 10, y: 20, width: 30, height: 40 } }
+    annotation: { copy: "the thing", target: $recap }
+`;
+
+  it("resolves flow-level + step-level redactions ($refs → selectors, default style box) and passes them to screenshot", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    d.boxes.set("#recap", { x: 1, y: 2, width: 3, height: 4 });
+    await runFlow(parseFlowFile(REDACTED_FLOW), d);
+    expect(d.screenshots).toHaveLength(1);
+    expect(d.screenshots[0]!.redactions).toEqual([
+      { selector: "#secret", style: "box" },
+      { selector: "#token", style: "pixelate" },
+      { region: { x: 10, y: 20, width: 30, height: 40 }, style: "box" },
+    ]);
+  });
+
+  it("halt screenshots get the halting step's redactions too (they capture the same sensitive UI)", async () => {
+    const d = new FakeDriver(); // #recap never visible → the step halts
+    await expect(runFlow(parseFlowFile(REDACTED_FLOW), d)).rejects.toThrow();
+    const halt = d.screenshots.find((s) => s.path.includes("/halts/"));
+    expect(halt).toBeDefined();
+    expect(halt!.redactions).toEqual([
+      { selector: "#secret", style: "box" },
+      { selector: "#token", style: "pixelate" },
+      { region: { x: 10, y: 20, width: 30, height: 40 }, style: "box" },
+    ]);
+  });
+
+  it("a flow with no redactions passes an empty list (the un-redacted fast path)", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#recap");
+    await runFlow(parseFlowFile(FLOW), d);
+    expect(d.screenshots).toHaveLength(1);
+    expect(d.screenshots[0]!.redactions).toEqual([]);
   });
 });
 

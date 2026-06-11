@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Toy app — account</title>
+    <style>
+      body {
+        font-family: system-ui;
+        margin: 0;
+        background: #fff;
+      }
+      #clock {
+        position: fixed;
+        left: 16px;
+        top: 16px;
+      }
+      #secret {
+        position: fixed;
+        left: 100px;
+        top: 100px;
+        width: 200px;
+        height: 40px;
+        background: #08c;
+        color: #fff;
+      }
+      #control {
+        position: fixed;
+        left: 400px;
+        top: 100px;
+        width: 120px;
+        height: 40px;
+        background: #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="clock"></div>
+    <div id="secret">API key: sk-toy-123456</div>
+    <div id="control">Public info</div>
+    <script>
+      document.getElementById("clock").textContent = new Date().toISOString();
+    </script>
+  </body>
+</html>

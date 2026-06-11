@@ -198,6 +198,298 @@ describe("lintFlow — R001 (deep extends chain)", () => {
   });
 });
 
+describe("lintFlow — R005 (extends target missing)", () => {
+  const load = (n: string) => {
+    if (n === "base") return parseFlowFile(`name: base\nsteps:\n  - id: b1\n    action: wait\n`);
+    throw new Error(`extends target not found: ${n}`);
+  };
+
+  it("errors when `extends` names a flow the workspace doesn't have", async () => {
+    const flow = parseFlowFile(`name: f\nextends: ghost\nsteps:\n  - id: s1\n    action: wait\n`);
+    const issues = await lintFlow(flow, { loadFlow: load });
+    expect(issues.find((i) => i.code === "R005")).toMatchObject({
+      severity: "error",
+      flow: "f",
+    });
+    expect(issues.find((i) => i.code === "R005")!.message).toContain("ghost");
+  });
+
+  it("does NOT error when the extends target exists", async () => {
+    const flow = parseFlowFile(`name: f\nextends: base\nsteps:\n  - id: s1\n    action: wait\n`);
+    const issues = await lintFlow(flow, { loadFlow: load });
+    expect(issues.find((i) => i.code === "R005")).toBeUndefined();
+  });
+
+  it("does NOT error when loadFlow is omitted (single-flow lint can't resolve extends)", async () => {
+    const flow = parseFlowFile(`name: f\nextends: ghost\nsteps:\n  - id: s1\n    action: wait\n`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R005")).toBeUndefined();
+  });
+});
+
+describe("lintFlow — R006 (locator defined but never referenced)", () => {
+  it("flags an unused locator", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { used: '#used', dead: '#dead' }
+steps:
+  - id: s1
+    action: click
+    target: $used
+`);
+    const issues = await lintFlow(flow);
+    const r006 = issues.filter((i) => i.code === "R006");
+    expect(r006).toHaveLength(1);
+    expect(r006[0]!.message).toContain("`dead`");
+  });
+
+  it("counts redaction references as uses", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { used: '#used', masked: '#masked' }
+redactions:
+  - { selector: $masked }
+steps:
+  - id: s1
+    action: click
+    target: $used
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R006")).toBeUndefined();
+  });
+
+  it("counts wait/success/annotation references as uses", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { btn: '#btn', panel: '#panel', anchor: '#anchor' }
+steps:
+  - id: s1
+    action: click
+    target: $btn
+    wait_for: { selector: $panel }
+    success: { visible: $panel }
+    annotation: { copy: "look here", target: $anchor }
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R006")).toBeUndefined();
+  });
+});
+
+describe("lintFlow — R007 (terminal step lacks success)", () => {
+  it("warns when the flow's last step has no success criterion", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { btn: '#btn' }
+steps:
+  - id: last-step
+    action: click
+    target: $btn
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R007")).toMatchObject({
+      severity: "warning",
+      stepId: "last-step",
+    });
+  });
+
+  it("does NOT warn when the last step has success (earlier steps may omit it)", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { btn: '#btn', done: '#done' }
+steps:
+  - id: mid
+    action: click
+    target: $btn
+  - id: last-step
+    action: click
+    target: $btn
+    success: { visible: $done }
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R007")).toBeUndefined();
+  });
+});
+
+describe("lintFlow — R008 (un-guarded optional step)", () => {
+  it("warns on `optional: true` with neither wait_for nor success", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { ok: '#ok', done: '#done' }
+steps:
+  - id: maybe-dismiss
+    action: click
+    target: $ok
+    optional: true
+  - id: end
+    action: click
+    target: $ok
+    success: { visible: $done }
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R008")).toMatchObject({
+      severity: "warning",
+      stepId: "maybe-dismiss",
+    });
+  });
+
+  it("does NOT warn when the optional step has a wait_for or a success", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { ok: '#ok', done: '#done' }
+steps:
+  - id: guarded-by-wait
+    action: click
+    target: $ok
+    optional: true
+    wait_for: { selector: $ok }
+  - id: guarded-by-success
+    action: click
+    target: $ok
+    optional: true
+    success: { visible: $ok }
+  - id: end
+    action: click
+    target: $ok
+    success: { visible: $done }
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R008")).toBeUndefined();
+  });
+});
+
+describe("lintFlow — R009 (selector-less element_stable)", () => {
+  it("warns when wait_for: element_stable has no target to watch", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { done: '#done' }
+steps:
+  - id: settle
+    action: wait
+    wait_for: element_stable
+  - id: end
+    action: click
+    target: $done
+    success: { visible: $done }
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R009")).toMatchObject({
+      severity: "warning",
+      stepId: "settle",
+    });
+  });
+
+  it("does NOT warn when the step has a target", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { panel: '#panel' }
+steps:
+  - id: settle
+    action: click
+    target: $panel
+    wait_for: element_stable
+    success: { visible: $panel }
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R009")).toBeUndefined();
+  });
+});
+
+describe("lintFlow — R010 (annotation anchored to a redacted element)", () => {
+  it("warns when the annotation anchor matches a step-level redaction selector (via $ref)", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { secret: '#secret', done: '#done' }
+steps:
+  - id: show
+    action: hover
+    target: $secret
+    redactions:
+      - { selector: $secret }
+    annotation: { copy: "your token" }
+    success: { visible: $done }
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R010")).toMatchObject({
+      severity: "warning",
+      stepId: "show",
+    });
+  });
+
+  it("warns when a flow-level redaction masks the annotation's target override (ref vs inline selector)", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { secret: '#secret', btn: '#btn' }
+redactions:
+  - { selector: '#secret' }
+steps:
+  - id: show
+    action: hover
+    target: $btn
+    annotation: { copy: "your token", target: $secret }
+    success: { visible: $btn }
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R010")).toBeDefined();
+  });
+
+  it("does NOT warn when the annotation anchors a different element", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { secret: '#secret', btn: '#btn' }
+redactions:
+  - { selector: $secret }
+steps:
+  - id: show
+    action: hover
+    target: $btn
+    annotation: { copy: "the button" }
+    success: { visible: $btn }
+`);
+    const issues = await lintFlow(flow);
+    expect(issues.find((i) => i.code === "R010")).toBeUndefined();
+  });
+});
+
+describe("lintFlow — extraRules (the injectable-rule hinge)", () => {
+  it("runs injected rules after the built-ins and merges their issues", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { btn: '#btn' }
+steps:
+  - id: s1
+    action: click
+    target: $btn
+    success: { visible: $btn }
+`);
+    const seen: string[] = [];
+    const rule = {
+      code: "P001",
+      run: (f: typeof flow) => {
+        seen.push(f.name);
+        return [
+          { code: "P001", severity: "info" as const, flow: f.name, message: "injected rule ran" },
+        ];
+      },
+    };
+    const issues = await lintFlow(flow, { extraRules: [rule] });
+    expect(seen).toEqual(["f"]);
+    expect(issues.find((i) => i.code === "P001")).toMatchObject({ message: "injected rule ran" });
+  });
+
+  it("omitting extraRules keeps the original behaviour (backward compatible)", async () => {
+    const flow = parseFlowFile(`
+name: f
+locators: { btn: '#btn' }
+steps:
+  - id: s1
+    action: click
+    target: $btn
+    success: { visible: $btn }
+`);
+    expect(await lintFlow(flow)).toEqual([]);
+  });
+});
+
 describe("formatIssuesText", () => {
   it("groups issues by flow and includes the summary", () => {
     const issues: LintIssue[] = [
