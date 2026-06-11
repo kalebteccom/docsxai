@@ -37,6 +37,7 @@ steps:
   - id: s1
     action: hover
     target: $btn
+    success: { visible: $btn }
 `;
 
 async function makeWorkspace(): Promise<string> {
