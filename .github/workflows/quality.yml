@@ -14,7 +14,7 @@ concurrency:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    # Phase D4 drove lint to 0 errors / 0 warnings; gate is now load-bearing.
+    # Lint baseline is 0 errors / 0 warnings; gate is load-bearing.
     permissions:
       contents: read
     steps:
@@ -33,7 +33,7 @@ jobs:
 
   format-check:
     runs-on: ubuntu-latest
-    # Phase D4 ran `pnpm format` once; gate is now load-bearing.
+    # Format baseline applied; gate is load-bearing.
     permissions:
       contents: read
     steps:
@@ -110,9 +110,9 @@ jobs:
 
   package-contents:
     runs-on: ubuntu-latest
-    # Phase D4 added per-package tsconfig.build.json: sourceMap +
-    # declarationMap off, test files excluded. Audit is now load-bearing
-    # so map files and tests cannot leak into published tarballs.
+    # Per-package tsconfig.build.json keeps sourceMap + declarationMap off
+    # and excludes test files. Audit is load-bearing so map files and tests
+    # cannot leak into published tarballs.
     permissions:
       contents: read
     steps:
