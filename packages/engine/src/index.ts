@@ -26,3 +26,4 @@ export * from "./plugins/registry.js";
 export * from "./plugins/runtime.js";
 export * from "./plugins/lock.js";
 export * from "./redact.js";
+export * from "./viewer-bin.js";

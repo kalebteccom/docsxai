@@ -36,6 +36,7 @@ import {
   writeStyle,
 } from "./style.js";
 import { pluginsCli } from "./plugins-cli.js";
+import { formatViewerBinFailure, resolveViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
@@ -140,8 +141,12 @@ Notes:
     .site-docs.json, auth/strategy.yaml (env-var names only, no creds), README.md. Excludes .auth/
     (operator-local session state), **/halts/ (debug screenshots), .viewer/ by default (re-renderable
     from the doc pack; pass --include-viewer to bundle it). Defaults output to <workspace-name>.zip
-    in the current dir; override with -o <path>. Requires the system 'zip' binary (preinstalled on
-    macOS / Linux / WSL).
+    in the current dir; override with --out <path>. Zips in-process (no system 'zip' binary needed)
+    and deterministically — sorted entries, fixed mtime, fixed compression — so the same doc pack
+    always produces a byte-identical archive.
+  • render builds the static viewer by spawning the docsxai-viewer bin, resolved in order: the
+    SITE_DOCS_VIEWER_BIN env var (path to the viewer's bin script), the @kalebtec/docsxai-viewer
+    package installed next to the engine, then \`docsxai-viewer\` on PATH.
   • login validates a bearer token against a backend URL — hits /v1/health, /v1/workspaces. Reads
     the token from SITE_DOCS_TOKEN env var. Prints what the backend sees if the call succeeds,
     or a clear error if not. Stateless: doesn't store anything; configure the env var in your shell.
@@ -403,16 +408,15 @@ async function cmdRender(args: string[]): Promise<number> {
   }
   const docsDir = resolveWorkspacePath(projectDir, "docs");
   const outDir = resolveWorkspacePath(projectDir, ".viewer");
-  // The viewer is its own package/bin; shell out to it so the engine doesn't depend on it at build time.
+  // The viewer is its own package/bin; spawn it so the engine doesn't depend on it at build time.
+  const viewerBin = await resolveViewerBin();
   return new Promise<number>((resolve) => {
-    const child = spawn("docsxai-viewer", ["build", docsDir, outDir], { stdio: "inherit" });
+    const child = spawn(viewerBin.command, [...viewerBin.prefixArgs, "build", docsDir, outDir], {
+      stdio: "inherit",
+    });
     child.on("error", (e: NodeJS.ErrnoException) => {
       if (e.code === "ENOENT") {
-        process.stderr.write(
-          "render: `docsxai-viewer` not found on PATH.\n" +
-            `  Run it directly:  docsxai-viewer build ${docsDir} ${outDir}\n` +
-            "  (it's the @kalebtec/docsxai-viewer bin; in this workspace: pnpm exec docsxai-viewer …)\n",
-        );
+        process.stderr.write(`render: ${formatViewerBinFailure(viewerBin)}\n`);
       } else {
         process.stderr.write(`render: ${e.message}\n`);
       }
@@ -1060,7 +1064,7 @@ async function cmdZip(args: string[]): Promise<number> {
   try {
     const r = await zipDocPack({ workspace: projectDir, output, includeViewer });
     const kb = (r.bytes / 1024).toFixed(1);
-    process.stdout.write(`zip: wrote ${r.output} (${kb} KB)\n`);
+    process.stdout.write(`zip: wrote ${r.output} (${r.entries.length} entries, ${kb} KB)\n`);
     return 0;
   } catch (e) {
     if (e instanceof ZipError) {
