@@ -10,6 +10,7 @@ import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { AuthStrategyDescriptor, type RoleAuth } from "../doc-pack.js";
 import { ApiLoginStrategy } from "./api-login.js";
+import { JwtInjectionStrategy } from "./jwt-injection.js";
 import { type InstrumentedBrowser, ManualCaptureStrategy } from "./manual-capture.js";
 import { TestBackdoorStrategy } from "./test-backdoor.js";
 import { TotpStrategy } from "./totp.js";
@@ -22,6 +23,7 @@ import {
 export * from "./types.js";
 export * from "./cookie-jar.js";
 export * from "./api-login.js";
+export * from "./jwt-injection.js";
 export * from "./manual-capture.js";
 export * from "./storage-state-cache.js";
 export * from "./test-backdoor.js";
@@ -135,6 +137,8 @@ export function makeStrategy(roleAuth: RoleAuth, deps: StrategyDeps): AuthStrate
       return new ManualCaptureStrategy(deps.instrumentedBrowser);
     case "api-login":
       return new ApiLoginStrategy();
+    case "jwt-injection":
+      return new JwtInjectionStrategy(fetch, deps.env);
     case "test-backdoor":
       return new TestBackdoorStrategy();
     case "totp":
