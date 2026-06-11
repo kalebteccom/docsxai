@@ -10,8 +10,11 @@ import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { AuthStrategyDescriptor, type RoleAuth } from "../doc-pack.js";
 import { ApiLoginStrategy } from "./api-login.js";
+import { HttpBasicStrategy } from "./http-basic.js";
 import { JwtInjectionStrategy } from "./jwt-injection.js";
 import { type InstrumentedBrowser, ManualCaptureStrategy } from "./manual-capture.js";
+import { MtlsStrategy } from "./mtls.js";
+import { PatHeaderStrategy } from "./pat-header.js";
 import { TestBackdoorStrategy } from "./test-backdoor.js";
 import { TotpStrategy } from "./totp.js";
 import {
@@ -23,8 +26,11 @@ import {
 export * from "./types.js";
 export * from "./cookie-jar.js";
 export * from "./api-login.js";
+export * from "./http-basic.js";
 export * from "./jwt-injection.js";
 export * from "./manual-capture.js";
+export * from "./mtls.js";
+export * from "./pat-header.js";
 export * from "./storage-state-cache.js";
 export * from "./test-backdoor.js";
 export * from "./totp.js";
@@ -139,6 +145,12 @@ export function makeStrategy(roleAuth: RoleAuth, deps: StrategyDeps): AuthStrate
       return new ApiLoginStrategy();
     case "jwt-injection":
       return new JwtInjectionStrategy(fetch, deps.env);
+    case "http-basic":
+      return new HttpBasicStrategy();
+    case "pat-header":
+      return new PatHeaderStrategy();
+    case "mtls":
+      return new MtlsStrategy();
     case "test-backdoor":
       return new TestBackdoorStrategy();
     case "totp":
