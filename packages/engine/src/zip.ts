@@ -1,12 +1,19 @@
-// Package a workspace's doc pack into a single archive for hand-off. Shells out to the system
-// `zip` binary (universal on macOS/Linux/WSL); errors clearly if it's missing. Excludes operator-
-// local state (`.auth/`, halt screenshots, the rendered `.viewer/` by default) so the archive is
-// reviewer-ready without manual cleanup.
+// Package a workspace's doc pack into a single archive for hand-off. Zips in-process (fflate) —
+// no system `zip` binary required. Excludes operator-local state (`.auth/`, halt screenshots, the
+// rendered `.viewer/` by default) so the archive is reviewer-ready without manual cleanup.
+//
+// Archives are deterministic: entries are sorted, every entry carries a fixed mtime (the zip
+// format's 1980-01-01 epoch, built from local wall-clock fields so the stored bytes don't vary
+// with the machine's timezone), and the compression level is pinned. Same tree → same bytes.
 
-import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { resolveWorkspacePath } from "./workspace.js";
+import { zipSync, type Zippable } from "fflate";
+import {
+  resolveWorkspacePath,
+  resolveWorkspacePathReal,
+  WorkspacePathEscapeError,
+} from "./workspace.js";
 
 export interface ZipOptions {
   workspace: string;
@@ -18,6 +25,8 @@ export interface ZipOptions {
 export interface ZipResult {
   output: string;
   bytes: number;
+  /** Workspace-relative archive entries, in the (sorted) order they appear in the zip. */
+  entries: string[];
 }
 
 export class ZipError extends Error {
@@ -32,76 +41,95 @@ export class ZipError extends Error {
 
 const DEFAULT_INCLUDES = ["flows/", "docs/", ".site-docs.json", "auth/strategy.yaml", "README.md"];
 
-// Zip's `-x` patterns are matched against the archive path with fnmatch-style globs.
-// `*` matches a single path segment; explicit patterns per level are clearer than `**`.
-const DEFAULT_EXCLUDES = [
-  ".auth/*",
-  ".auth/**",
-  "docs/*/halts/*",
-  "docs/*/halts/**",
-  ".DS_Store",
-  "*/.DS_Store",
-  "*.tmp",
-];
+const FIXED_MTIME = new Date(1980, 0, 1);
+const FIXED_LEVEL = 6;
+
+function isExcluded(relPath: string, includeViewer: boolean): boolean {
+  const segments = relPath.split("/");
+  if (segments.includes(".auth") || segments.includes("halts")) return true;
+  if (!includeViewer && segments[0] === ".viewer") return true;
+  const base = segments[segments.length - 1]!;
+  return base === ".DS_Store" || base.endsWith(".tmp");
+}
+
+async function collectFiles(
+  workspace: string,
+  relDir: string,
+  includeViewer: boolean,
+  out: string[],
+): Promise<void> {
+  const entries = await fs.readdir(resolveWorkspacePath(workspace, relDir), {
+    withFileTypes: true,
+  });
+  entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  for (const entry of entries) {
+    const rel = relDir ? `${relDir}/${entry.name}` : entry.name;
+    if (isExcluded(rel, includeViewer)) continue;
+    if (entry.isDirectory()) {
+      await collectFiles(workspace, rel, includeViewer, out);
+    } else if (entry.isFile()) {
+      out.push(rel);
+    } else if (entry.isSymbolicLink()) {
+      // The archive is a hand-off artifact: follow a symlink only if its target stays inside the
+      // workspace — a link escaping the root must not exfiltrate whatever it points at.
+      let stat;
+      try {
+        await resolveWorkspacePathReal(workspace, rel);
+        stat = await fs.stat(resolveWorkspacePath(workspace, rel));
+      } catch (e) {
+        if (e instanceof WorkspacePathEscapeError) continue;
+        continue; // broken symlink — nothing to archive
+      }
+      if (stat.isDirectory()) await collectFiles(workspace, rel, includeViewer, out);
+      else if (stat.isFile()) out.push(rel);
+    }
+  }
+}
 
 export async function zipDocPack(opts: ZipOptions): Promise<ZipResult> {
   const { workspace, output, includeViewer = false } = opts;
 
-  // 1. Workspace must exist.
   try {
     await fs.access(workspace);
   } catch {
     throw new ZipError(`workspace doesn't exist: ${workspace}`);
   }
 
-  // 2. Output path: ensure parent exists, remove any prior file so `zip` doesn't append.
   const outAbs = path.resolve(output);
   await fs.mkdir(path.dirname(outAbs), { recursive: true });
-  await fs.rm(outAbs, { force: true });
 
-  // 3. Filter to includes that actually exist in this workspace (zip warns on missing).
   const includesAll = includeViewer ? [...DEFAULT_INCLUDES, ".viewer/"] : DEFAULT_INCLUDES;
-  const existing: string[] = [];
+  const files: string[] = [];
+  let anyIncludePresent = false;
   for (const inc of includesAll) {
+    const rel = inc.endsWith("/") ? inc.slice(0, -1) : inc;
+    let stat;
     try {
-      await fs.access(resolveWorkspacePath(workspace, inc));
-      existing.push(inc);
+      stat = await fs.stat(resolveWorkspacePath(workspace, rel));
     } catch {
-      /* skip absent */
+      continue; // skip absent
     }
+    anyIncludePresent = true;
+    if (stat.isDirectory()) await collectFiles(workspace, rel, includeViewer, files);
+    else files.push(rel);
   }
-  if (existing.length === 0) {
+  if (!anyIncludePresent) {
     throw new ZipError(`workspace ${workspace} has nothing to zip (no flows/ or docs/ found)`);
   }
 
-  // 4. Run zip from the workspace dir so paths inside the archive are workspace-relative.
-  const excludes = [...DEFAULT_EXCLUDES];
-  if (!includeViewer) excludes.push(".viewer/*", ".viewer/**");
+  files.sort();
+  const zippable: Zippable = {};
+  for (const rel of files) {
+    const data = await fs.readFile(resolveWorkspacePath(workspace, rel));
+    zippable[rel] = [new Uint8Array(data), { level: FIXED_LEVEL, mtime: FIXED_MTIME }];
+  }
 
-  const args = ["-r", "-X", outAbs, ...existing, "-x", ...excludes];
-  await runZip(args, workspace);
-
-  const stat = await fs.stat(outAbs);
-  return { output: outAbs, bytes: stat.size };
-}
-
-function runZip(args: string[], cwd: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn("zip", args, { cwd, stdio: ["ignore", "ignore", "pipe"] });
-    let stderr = "";
-    child.stderr?.on("data", (d) => {
-      stderr += d.toString();
-    });
-    child.on("error", (e) => {
-      const msg =
-        (e as NodeJS.ErrnoException).code === "ENOENT"
-          ? `'zip' binary not found on PATH. Install it (\`brew install zip\` on macOS; usually preinstalled on Linux/WSL).`
-          : `zip command failed: ${e.message}`;
-      reject(new ZipError(msg, e));
-    });
-    child.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new ZipError(`zip exited with code ${code}: ${stderr.trim() || "(no stderr)"}`));
-    });
-  });
+  let bytes: Uint8Array;
+  try {
+    bytes = zipSync(zippable, { level: FIXED_LEVEL, mtime: FIXED_MTIME });
+  } catch (e) {
+    throw new ZipError(`failed to build archive: ${(e as Error).message}`, e);
+  }
+  await fs.writeFile(outAbs, bytes);
+  return { output: outAbs, bytes: bytes.length, entries: files };
 }

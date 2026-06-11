@@ -4,6 +4,7 @@ docsxai's runtime dependencies (production-only):
 
 ## `@kalebtec/docsxai-engine`
 
+- `fflate` — MIT
 - `playwright-core` — Apache-2.0
 - `yaml` — ISC
 - `zod` — MIT

@@ -1,15 +1,15 @@
-// Zip-output tests. Shell out to `unzip -l` to list contents (universal where `zip` exists);
-// skip when `zip` isn't on PATH.
+// Zip-output tests. The packager zips in-process (fflate), so round-trips are verified with
+// fflate's unzipSync — no system `zip`/`unzip` binary involved, no skip gates.
 
-import { spawn, spawnSync } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { strFromU8, unzipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { zipDocPack, ZipError } from "../src/zip.js";
 
-const zipAvailable = spawnSync("zip", ["--version"], { stdio: "ignore" }).status === 0;
-const unzipAvailable = spawnSync("unzip", ["-v"], { stdio: "ignore" }).status === 0;
+const FLOW_YAML = "name: f1\nsteps:\n  - id: s\n    action: wait\n";
+const ANNOTATIONS_JSON = '{"schema":"site-docs/annotations@1","flow":"f1","annotations":[]}';
 
 async function makeWorkspace(): Promise<string> {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-zip-"));
@@ -20,16 +20,8 @@ async function makeWorkspace(): Promise<string> {
   await fs.mkdir(path.join(tmp, ".viewer"), { recursive: true });
   await fs.mkdir(path.join(tmp, "auth"), { recursive: true });
 
-  await fs.writeFile(
-    path.join(tmp, "flows", "f1.flow.yaml"),
-    "name: f1\nsteps:\n  - id: s\n    action: wait\n",
-    "utf8",
-  );
-  await fs.writeFile(
-    path.join(tmp, "docs", "f1", "annotations.json"),
-    '{"schema":"site-docs/annotations@1","flow":"f1","annotations":[]}',
-    "utf8",
-  );
+  await fs.writeFile(path.join(tmp, "flows", "f1.flow.yaml"), FLOW_YAML, "utf8");
+  await fs.writeFile(path.join(tmp, "docs", "f1", "annotations.json"), ANNOTATIONS_JSON, "utf8");
   await fs.writeFile(path.join(tmp, "docs", "f1", "screenshots", "s.png"), "fake-png", "utf8");
   await fs.writeFile(path.join(tmp, "docs", "f1", "halts", "s.png"), "halt-debug", "utf8");
   await fs.writeFile(path.join(tmp, ".auth", "editor.json"), '{"cookie":"secret"}', "utf8");
@@ -40,23 +32,15 @@ async function makeWorkspace(): Promise<string> {
     "utf8",
   );
   await fs.writeFile(path.join(tmp, ".site-docs.json"), '{"app_url":"https://x"}', "utf8");
+  await fs.writeFile(path.join(tmp, "README.md"), "# workspace\n", "utf8");
   return tmp;
 }
 
-async function listEntries(zipPath: string): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    const child = spawn("unzip", ["-Z1", zipPath]);
-    let stdout = "";
-    child.stdout.on("data", (d) => (stdout += d.toString()));
-    child.on("close", (code) => {
-      if (code !== 0) reject(new Error(`unzip -Z1 exited ${code}`));
-      else resolve(stdout.split("\n").filter(Boolean));
-    });
-    child.on("error", reject);
-  });
+async function readArchive(zipPath: string): Promise<Record<string, Uint8Array>> {
+  return unzipSync(new Uint8Array(await fs.readFile(zipPath)));
 }
 
-describe.skipIf(!zipAvailable)("zipDocPack", () => {
+describe("zipDocPack", () => {
   let workspace = "";
   let outDir = "";
   beforeEach(async () => {
@@ -73,45 +57,100 @@ describe.skipIf(!zipAvailable)("zipDocPack", () => {
     const r = await zipDocPack({ workspace, output: out });
     expect(r.output).toBe(out);
     expect(r.bytes).toBeGreaterThan(0);
-    await expect(fs.access(out)).resolves.toBeUndefined();
+    const stat = await fs.stat(out);
+    expect(stat.size).toBe(r.bytes);
   });
 
-  it.skipIf(!unzipAvailable)(
-    "includes flows/, docs/ (minus halts/), .site-docs.json, auth/strategy.yaml",
-    async () => {
-      const out = path.join(outDir, "pack.zip");
-      await zipDocPack({ workspace, output: out });
-      const entries = await listEntries(out);
-      expect(entries).toContain("flows/f1.flow.yaml");
-      expect(entries).toContain("docs/f1/annotations.json");
-      expect(entries).toContain("docs/f1/screenshots/s.png");
-      expect(entries).toContain(".site-docs.json");
-      expect(entries).toContain("auth/strategy.yaml");
-    },
-  );
-
-  it.skipIf(!unzipAvailable)("excludes .auth/ and halts/ by default", async () => {
+  it("includes flows/, docs/ (minus halts/), .site-docs.json, auth/strategy.yaml, README.md", async () => {
     const out = path.join(outDir, "pack.zip");
     await zipDocPack({ workspace, output: out });
-    const entries = await listEntries(out);
-    expect(entries.some((e) => e.startsWith(".auth/"))).toBe(false);
-    expect(entries.some((e) => e.includes("/halts/"))).toBe(false);
+    const entries = Object.keys(await readArchive(out));
+    expect(entries).toContain("flows/f1.flow.yaml");
+    expect(entries).toContain("docs/f1/annotations.json");
+    expect(entries).toContain("docs/f1/screenshots/s.png");
+    expect(entries).toContain(".site-docs.json");
+    expect(entries).toContain("auth/strategy.yaml");
+    expect(entries).toContain("README.md");
   });
 
-  it.skipIf(!unzipAvailable)(
-    "excludes .viewer/ by default; --include-viewer pulls it in",
-    async () => {
-      const out1 = path.join(outDir, "no-viewer.zip");
-      await zipDocPack({ workspace, output: out1 });
-      const entriesA = await listEntries(out1);
-      expect(entriesA.some((e) => e.startsWith(".viewer/"))).toBe(false);
+  it("round-trips file contents byte-for-byte", async () => {
+    const out = path.join(outDir, "pack.zip");
+    await zipDocPack({ workspace, output: out });
+    const archive = await readArchive(out);
+    expect(strFromU8(archive["flows/f1.flow.yaml"]!)).toBe(FLOW_YAML);
+    expect(strFromU8(archive["docs/f1/annotations.json"]!)).toBe(ANNOTATIONS_JSON);
+  });
 
-      const out2 = path.join(outDir, "with-viewer.zip");
-      await zipDocPack({ workspace, output: out2, includeViewer: true });
-      const entriesB = await listEntries(out2);
-      expect(entriesB.some((e) => e.startsWith(".viewer/"))).toBe(true);
-    },
-  );
+  it("reports the archived entries, sorted, matching the archive's contents", async () => {
+    const out = path.join(outDir, "pack.zip");
+    const r = await zipDocPack({ workspace, output: out });
+    const entries = Object.keys(await readArchive(out));
+    expect(r.entries).toEqual([...r.entries].sort());
+    expect([...entries].sort()).toEqual(r.entries);
+  });
+
+  it("excludes .auth/ and halts/ by default", async () => {
+    const out = path.join(outDir, "pack.zip");
+    await zipDocPack({ workspace, output: out });
+    const entries = Object.keys(await readArchive(out));
+    expect(entries.some((e) => e.startsWith(".auth/"))).toBe(false);
+    expect(entries.some((e) => e.includes("halts/"))).toBe(false);
+  });
+
+  it("excludes .viewer/ by default; --include-viewer pulls it in", async () => {
+    const out1 = path.join(outDir, "no-viewer.zip");
+    await zipDocPack({ workspace, output: out1 });
+    const entriesA = Object.keys(await readArchive(out1));
+    expect(entriesA.some((e) => e.startsWith(".viewer/"))).toBe(false);
+
+    const out2 = path.join(outDir, "with-viewer.zip");
+    await zipDocPack({ workspace, output: out2, includeViewer: true });
+    const entriesB = Object.keys(await readArchive(out2));
+    expect(entriesB).toContain(".viewer/index.html");
+  });
+
+  it("excludes .DS_Store and *.tmp files", async () => {
+    await fs.writeFile(path.join(workspace, "docs", ".DS_Store"), "junk", "utf8");
+    await fs.writeFile(path.join(workspace, "docs", "f1", "scratch.tmp"), "junk", "utf8");
+    const out = path.join(outDir, "pack.zip");
+    await zipDocPack({ workspace, output: out });
+    const entries = Object.keys(await readArchive(out));
+    expect(entries.some((e) => e.endsWith(".DS_Store"))).toBe(false);
+    expect(entries.some((e) => e.endsWith(".tmp"))).toBe(false);
+  });
+
+  it("does not follow a symlink that escapes the workspace", async () => {
+    const secret = path.join(outDir, "outside-secret.txt");
+    await fs.writeFile(secret, "exfil-me", "utf8");
+    await fs.symlink(secret, path.join(workspace, "docs", "f1", "link.txt"));
+    const out = path.join(outDir, "pack.zip");
+    await zipDocPack({ workspace, output: out });
+    const entries = Object.keys(await readArchive(out));
+    expect(entries.some((e) => e.endsWith("link.txt"))).toBe(false);
+  });
+
+  it("is deterministic — two zips of the same tree are byte-identical, mtime pinned", async () => {
+    const out1 = path.join(outDir, "a.zip");
+    const out2 = path.join(outDir, "b.zip");
+    await zipDocPack({ workspace, output: out1 });
+    await zipDocPack({ workspace, output: out2 });
+    const a = await fs.readFile(out1);
+    const b = await fs.readFile(out2);
+    expect(a.equals(b)).toBe(true);
+    // First local file header: DOS mod-time at offset 10, mod-date at offset 12 — pinned to
+    // 1980-01-01 00:00 (the zip epoch), not the wall clock.
+    expect(a.readUInt16LE(10)).toBe(0);
+    expect(a.readUInt16LE(12)).toBe(0x21);
+  });
+
+  it("overwrites a pre-existing output file instead of appending", async () => {
+    const out = path.join(outDir, "pack.zip");
+    await fs.writeFile(out, "stale-not-a-zip", "utf8");
+    const r = await zipDocPack({ workspace, output: out });
+    const entries = Object.keys(await readArchive(out));
+    expect(entries).toContain("flows/f1.flow.yaml");
+    expect((await fs.stat(out)).size).toBe(r.bytes);
+  });
 
   it("throws ZipError on a non-existent workspace", async () => {
     await expect(
