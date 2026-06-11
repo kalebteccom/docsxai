@@ -7,7 +7,14 @@
     "apiVersion": "1.0.0",
     "namespace": "cycle-b",
     "register": "./register.mjs",
-    "kinds": ["publisher"],
-    "dependsOn": [{ "plugin": "docsxai-plugin-cycle-a-fixture", "version": "^1.0.0" }]
+    "kinds": [
+      "publisher"
+    ],
+    "dependsOn": [
+      {
+        "plugin": "docsxai-plugin-cycle-a-fixture",
+        "version": "^1.0.0"
+      }
+    ]
   }
 }

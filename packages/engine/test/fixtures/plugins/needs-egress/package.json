@@ -6,8 +6,12 @@
     "apiVersion": "1.0.0",
     "namespace": "egressy",
     "register": "./register.cjs",
-    "kinds": ["publisher"],
-    "capabilities": ["egress:*.example.com"],
+    "kinds": [
+      "publisher"
+    ],
+    "capabilities": [
+      "egress:*.example.com"
+    ],
     "trust": "community"
   }
 }

@@ -26,16 +26,8 @@ import {
   RUNTIME_API_VERSION,
   satisfiesRange,
 } from "./manifest.js";
-import {
-  type PluginsLockFile,
-  type PluginSourceSpec,
-  verifyLock,
-} from "./lock.js";
-import {
-  PluginRegistry,
-  type PluginRecord,
-  type RegisteredArtifacts,
-} from "./registry.js";
+import { type PluginsLockFile, type PluginSourceSpec, verifyLock } from "./lock.js";
+import { PluginRegistry, type PluginRecord, type RegisteredArtifacts } from "./registry.js";
 import type {
   AuthStrategyPlugin,
   PluginLintRule,

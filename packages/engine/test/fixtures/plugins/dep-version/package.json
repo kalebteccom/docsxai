@@ -7,7 +7,14 @@
     "apiVersion": "1.0.0",
     "namespace": "picky",
     "register": "./register.mjs",
-    "kinds": ["publisher"],
-    "dependsOn": [{ "plugin": "docsxai-plugin-multi-kind-fixture", "version": "^9.0.0" }]
+    "kinds": [
+      "publisher"
+    ],
+    "dependsOn": [
+      {
+        "plugin": "docsxai-plugin-multi-kind-fixture",
+        "version": "^9.0.0"
+      }
+    ]
   }
 }

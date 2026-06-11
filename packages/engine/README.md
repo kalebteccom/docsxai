@@ -67,7 +67,10 @@ Two optional `.site-docs.json` keys wire plugins into a workspace:
 
 ```json
 {
-  "plugins": [{ "package": "@kalebtec/docsxai-plugin-confluence" }, { "path": "../my-local-plugin" }],
+  "plugins": [
+    { "package": "@kalebtec/docsxai-plugin-confluence" },
+    { "path": "../my-local-plugin" }
+  ],
   "plugin_capabilities": ["egress:*.atlassian.net"]
 }
 ```

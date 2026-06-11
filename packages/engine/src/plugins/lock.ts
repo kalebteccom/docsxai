@@ -65,7 +65,9 @@ export async function readPluginsLock(workspaceDir: string): Promise<PluginsLock
   try {
     raw = JSON.parse(text);
   } catch {
-    throw new PluginsLockError(`${p} is not valid JSON — fix or delete it, then run \`site-docs plugins sync\``);
+    throw new PluginsLockError(
+      `${p} is not valid JSON — fix or delete it, then run \`site-docs plugins sync\``,
+    );
   }
   const result = lockSchema.safeParse(raw);
   if (!result.success) {

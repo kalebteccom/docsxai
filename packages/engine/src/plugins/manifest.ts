@@ -45,9 +45,7 @@ const manifestSchema = z
       )
       .default([]),
     dependsOn: z
-      .array(
-        z.object({ plugin: z.string().min(1), version: z.string().min(1) }).strict(),
-      )
+      .array(z.object({ plugin: z.string().min(1), version: z.string().min(1) }).strict())
       .default([]),
     trust: z.enum(["kalebtec", "community", "local"]).default("local"),
   })

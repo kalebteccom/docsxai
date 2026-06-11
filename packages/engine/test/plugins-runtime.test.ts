@@ -166,7 +166,10 @@ describe("resolvePlugins — rejection statuses", () => {
     const ws = await makeWorkspace();
     const registry = await resolvePlugins({
       workspaceDir: ws,
-      sources: [{ path: fixturePlugin("bad-namespace") }, { path: fixturePlugin("reserved-namespace") }],
+      sources: [
+        { path: fixturePlugin("bad-namespace") },
+        { path: fixturePlugin("reserved-namespace") },
+      ],
     });
     const byName = new Map(registry.listPlugins().map((r) => [r.name, r]));
     const bad = byName.get("docsxai-plugin-bad-namespace-fixture")!;
@@ -298,7 +301,11 @@ describe("resolvePlugins — rejection statuses", () => {
     const records = registry.listPlugins();
     expect(records).toHaveLength(2);
     const reasons = records.map((r) => r.statusReason ?? "");
-    expect(reasons.some((m) => /cannot resolve package "docsxai-plugin-definitely-not-installed"/.test(m))).toBe(true);
+    expect(
+      reasons.some((m) =>
+        /cannot resolve package "docsxai-plugin-definitely-not-installed"/.test(m),
+      ),
+    ).toBe(true);
     expect(reasons.some((m) => /plugin path does not exist/.test(m))).toBe(true);
   });
 

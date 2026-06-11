@@ -69,9 +69,9 @@ describe("parsePluginManifest", () => {
   });
 
   it("rejects unknown manifest keys (typo safety)", () => {
-    expect(() =>
-      parsePluginManifest({ ...VALID_MANIFEST, dependson: [] }, "pkg"),
-    ).toThrow(PluginManifestError);
+    expect(() => parsePluginManifest({ ...VALID_MANIFEST, dependson: [] }, "pkg")).toThrow(
+      PluginManifestError,
+    );
   });
 
   it("rejects a non-exact-semver apiVersion", () => {

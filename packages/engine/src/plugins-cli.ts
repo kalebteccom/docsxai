@@ -91,9 +91,7 @@ async function cmdList(workspaceDir: string, format: "text" | "json"): Promise<n
   if (format === "json") {
     process.stdout.write(JSON.stringify(records, null, 2) + "\n");
   } else if (records.length === 0) {
-    process.stdout.write(
-      'plugins: none configured (add a "plugins" array to .site-docs.json)\n',
-    );
+    process.stdout.write('plugins: none configured (add a "plugins" array to .site-docs.json)\n');
   } else {
     const loaded = records.filter((r) => r.status === "loaded").length;
     process.stdout.write(`plugins (${records.length} configured, ${loaded} loaded):\n`);
@@ -182,7 +180,9 @@ async function cmdSync(workspaceDir: string, format: "text" | "json"): Promise<n
   } else {
     process.stdout.write(`plugins sync: wrote ${lockPath} (${entryCount} plugin(s))\n`);
     for (const [ns, entry] of Object.entries(lock.plugins)) {
-      process.stdout.write(`  ${ns}  v${entry.version}  ${entry.sha256.slice(0, 12)}…  ${entry.source}\n`);
+      process.stdout.write(
+        `  ${ns}  v${entry.version}  ${entry.sha256.slice(0, 12)}…  ${entry.source}\n`,
+      );
     }
     for (const f of failures) {
       process.stderr.write(`plugins sync: NOT locked ${f.source} — ${f.reason}\n`);
