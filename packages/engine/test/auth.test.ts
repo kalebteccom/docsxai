@@ -3,11 +3,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  ApiLoginStrategy,
   AuthStrategyConfigError,
   type InstrumentedBrowser,
   LocalStorageStateCache,
   ManualCaptureStrategy,
-  NotImplementedStrategyError,
   type StorageState,
   cookieExpiryByName,
   earliestCookieExpiry,
@@ -118,9 +118,9 @@ describe("makeStrategy", () => {
     const d = parseAuthStrategyFile(MANUAL_CAPTURE_DESCRIPTOR);
     expect(() => makeStrategy(d.roles.editor!, {})).toThrow(AuthStrategyConfigError);
   });
-  it("throws NotImplementedStrategyError for unbuilt strategies", () => {
+  it("builds api-login without extra deps", () => {
     const d = parseAuthStrategyFile(API_LOGIN_DESCRIPTOR);
-    expect(() => makeStrategy(d.roles.editor!, {})).toThrow(NotImplementedStrategyError);
+    expect(makeStrategy(d.roles.editor!, {})).toBeInstanceOf(ApiLoginStrategy);
   });
 });
 

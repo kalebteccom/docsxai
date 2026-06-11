@@ -4,6 +4,8 @@
 // universal artifact every auth scheme reduces to. Execution consumes it via Playwright's
 // `setup`-project + `dependencies` mechanism (auth-agnostic for the rest of the suite).
 
+import { z } from "zod";
+
 /** Structural shape of Playwright's `BrowserContext.storageState()` output. We don't import Playwright here. */
 export interface StorageState {
   cookies: Array<{
@@ -90,6 +92,22 @@ export class AuthStrategyConfigError extends Error {
     super(message);
     this.name = "AuthStrategyConfigError";
   }
+}
+
+/** Validate a strategy's `options` record against its schema; config errors name the offending key, never values. */
+export function parseStrategyOptions<S extends z.ZodTypeAny>(
+  strategy: string,
+  schema: S,
+  options: Record<string, unknown>,
+): z.infer<S> {
+  const r = schema.safeParse(options);
+  if (!r.success) {
+    const issues = (r.error as z.ZodError).issues
+      .map((i) => `  • options.${i.path.join(".") || "(root)"}: ${i.message}`)
+      .join("\n");
+    throw new AuthStrategyConfigError(`strategy \`${strategy}\`: invalid options:\n${issues}`);
+  }
+  return r.data;
 }
 
 /** Mask a secret for logs / error messages — the value itself must never surface. */
