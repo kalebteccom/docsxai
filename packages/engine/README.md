@@ -6,8 +6,10 @@ The engine **never** calls a model API. Calibration-time inference is supplied b
 
 ## Surface
 
-- **Flow-file** — declarative YAML at `<workspace>/flows/<name>.flow.yaml`: `prerequisites` + `locators` + `steps[]` (`action`, `target`, `wait_for`, `success`, `annotation` / `annotations`). Hand-editable; schema-validated. `extends:` composition for shared preambles.
-- **`BrowserDriver`** interface — what the runtime needs from a browser. The `PlaywrightDriver` implementation includes the `actionable()` predicate (see [`docs/actionability-contract.md`](../../docs/actionability-contract.md)) that browser-bridge consumers can mirror.
+- **Flow-file** — declarative YAML at `<workspace>/flows/<name>.flow.yaml`: `prerequisites` + `locators` + `steps[]` (`action`, `target`, `wait_for`, `success`, `annotation` / `annotations`, per-step `redactions`). Hand-editable; schema-validated. `extends:` composition for shared preambles (with `environment` merged per-key, child wins; `redactions` concatenated).
+- **Execution environment** — optional `environment` block (`EnvironmentSpec`): frozen `clock` (Playwright clock API), `locale`, `timezone`, `viewport` (`VIEWPORT_PRESETS`: desktop / tablet / mobile, or explicit size), `color_scheme`, `reduced_motion`. Applied at context creation by `launchPlaywrightSession({ environment })`; on CDP-attached sessions only the clock applies (one stderr warning lists skipped fields). `contextOptions` passes `httpCredentials` / `clientCertificates` / `extraHTTPHeaders` through to `browser.newContext`.
+- **Redactions** — flow-level + per-step `RedactionSpec[]` (`{ selector }` or `{ region }`, style `box` | `pixelate`) masked deterministically before any screenshot (halt shots included) hits disk. The pure pixel transform is `applyRedactions` in `redact.ts`.
+- **`BrowserDriver`** interface — what the runtime needs from a browser. The `PlaywrightDriver` implementation includes the `actionable()` predicate (see [`docs/actionability-contract.md`](../../docs/actionability-contract.md)) that browser-bridge consumers can mirror, plus a real `element_stable` wait (bounding-box polling, 10 s best-effort budget).
 - **Auth strategies** — `auth/strategy.yaml` descriptor + the `manual-capture` strategy (security-lowered instrumented Chrome → human logs in → `storageState` cached locally with the real auth-cookie's expiry tracked). Other strategies (API-direct, JWT-injection, etc.) are interface-accommodated.
 - **CLI** — `site-docs <command>`. See `--help` or the [top-level README](../../README.md) for the full surface; this package's `dist/cli.js` is the binary.
 
@@ -20,7 +22,7 @@ calibrate      extract a flow-file from a structured guide
 inspect        discover [data-testid] locators on the live page
 run            execute flows headless; emit annotations + screenshots
 render         build the static viewer (shells out to @kalebtec/docsxai-viewer)
-lint           static checks across flow-files (R001-R004)
+lint           static checks across flow-files (R001-R010; `extraRules` injectable via `lintFlow`)
 flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt
 style          init/validate style.yaml; --check scans for jargon leaks
