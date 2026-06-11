@@ -102,7 +102,7 @@ export function parseStrategyOptions<S extends z.ZodTypeAny>(
 ): z.infer<S> {
   const r = schema.safeParse(options);
   if (!r.success) {
-    const issues = (r.error as z.ZodError).issues
+    const issues = r.error.issues
       .map((i) => `  • options.${i.path.join(".") || "(root)"}: ${i.message}`)
       .join("\n");
     throw new AuthStrategyConfigError(`strategy \`${strategy}\`: invalid options:\n${issues}`);
