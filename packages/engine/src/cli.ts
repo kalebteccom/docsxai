@@ -11,6 +11,7 @@ import {
   makeStrategy,
   parseAuthStrategyFile,
   resolveCredsEnv,
+  resolveStateCache,
   type StorageState,
 } from "./auth.js";
 import { calibrate } from "./calibrate.js";
@@ -219,7 +220,7 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
   }
   const descriptor = parseAuthStrategyFile(text, descriptorPath);
   const role = descriptor.default_role;
-  const cache = new LocalStorageStateCache(resolveWorkspacePath(projectDir, ".auth"));
+  const cache = await resolveStateCache(descriptor.roles[role]!, projectDir);
   const state = await cache.load(role);
   if (!state) {
     throw new Error(

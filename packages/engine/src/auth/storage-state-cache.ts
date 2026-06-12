@@ -2,8 +2,9 @@
 
 import { promises as fs } from "node:fs";
 import { z } from "zod";
+import { BackendStateCache, resolveBackendToken } from "../backend-client.js";
 import { type RoleAuth } from "../doc-pack.js";
-import { resolveWorkspacePath, resolveWorkspacePathReal } from "../workspace.js";
+import { loadWorkspaceConfig, resolveWorkspacePath, resolveWorkspacePathReal } from "../workspace.js";
 import {
   AuthStrategyConfigError,
   cookieExpiryByName,
@@ -137,19 +138,39 @@ export class LocalStorageStateCache {
   }
 }
 
+/** The cache surface both stores satisfy — `load` / `save` / `clear` per role. */
+export type StorageStateCache = Pick<LocalStorageStateCache, "load" | "save" | "clear">;
+
 /**
  * Pick the state cache for a role. `store: local` (the default) caches under `<workspace>/.auth/`.
- * `store: backend` is not wired in this build — selecting it throws with guidance; the selection
- * point exists so the backend-backed cache can slot in without touching call sites.
+ * `store: backend` relays AES-256-GCM envelopes through the backend (encrypted client-side; the
+ * backend never sees plaintext) — it needs a workspace that has been pushed (`backend_url` +
+ * `backend_workspace_id` in `.site-docs.json`) and `SITE_DOCS_CACHE_KEY`.
  */
-export function resolveStateCache(
+export async function resolveStateCache(
   roleAuth: RoleAuth,
   workspaceDir: string,
-): LocalStorageStateCache {
+): Promise<StorageStateCache> {
   if (roleAuth.cache.store === "backend") {
-    throw new AuthStrategyConfigError(
-      "cache.store: backend requires a configured backend_url + SITE_DOCS_CACHE_KEY — the backend-backed state cache is not wired in this build; use store: local",
-    );
+    const cfg = await loadWorkspaceConfig(workspaceDir);
+    if (!cfg?.backend_url || !cfg.backend_workspace_id) {
+      throw new AuthStrategyConfigError(
+        "cache.store: backend needs a backend-bound workspace — run `site-docs push` first (backend_url + backend_workspace_id in .site-docs.json)",
+      );
+    }
+    const cacheKey = process.env.SITE_DOCS_CACHE_KEY;
+    if (!cacheKey) {
+      throw new AuthStrategyConfigError(
+        "cache.store: backend requires SITE_DOCS_CACHE_KEY (base64-encoded 32-byte key)",
+      );
+    }
+    const token = await resolveBackendToken({ baseUrl: cfg.backend_url, workspaceDir });
+    return new BackendStateCache({
+      baseUrl: cfg.backend_url,
+      token,
+      workspaceId: cfg.backend_workspace_id,
+      cacheKey,
+    });
   }
   return new LocalStorageStateCache(resolveWorkspacePath(workspaceDir, ".auth"));
 }
