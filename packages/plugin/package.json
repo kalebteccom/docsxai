@@ -34,7 +34,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -b tsconfig.build.json",
+    "build": "node ../../scripts/clean-dist.mjs && tsc -b tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },

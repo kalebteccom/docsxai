@@ -125,6 +125,7 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 - Governance: `SECURITY.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `MAINTAINERS.md`, `THIRD_PARTY_NOTICES.md`, expanded `CONTRIBUTING.md`.
 - Public-flip checklists (planning + operational), security best practices for adopters.
 - Per-package `tsconfig.build.json` (`sourceMap` and `declarationMap` off; excludes test files).
+- Per-package builds clean `dist/` + `tsconfig.build.tsbuildinfo` first (`scripts/clean-dist.mjs`), so stale compiled artifacts can never survive a rebuild or leak into a published tarball; `scripts/audit-package-contents.mjs` now audits the `docsxai` stub tarball too.
 - Dedicated `packages/docsxai/` publishable stub with `publishConfig` for OIDC trusted publishing.
 - 6-package OIDC publish pipeline in `release.yml`.
 - `release.yml` `github-release` job: creates the GitHub Release for the tag (generated notes) and attaches a CycloneDX SBOM (pinned `cdxgen`) once both publish jobs succeed; the scoped-publish filter excludes the repo-only packages (`@docsxai/{mcp,plugin-confluence,plugin-starlight,website}`) explicitly, matching their `private: true` flags.

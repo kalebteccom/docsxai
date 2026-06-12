@@ -38,7 +38,7 @@
     "docsxai-viewer": "./dist/index.js"
   },
   "scripts": {
-    "build": "node scripts/bundle-overlay.mjs && tsc -b tsconfig.build.json",
+    "build": "node ../../scripts/clean-dist.mjs && node scripts/bundle-overlay.mjs && tsc -b tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/bundle-overlay.mjs && vitest run"
   },

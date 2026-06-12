@@ -14,6 +14,7 @@ The same trap applies to the Claude Code plugin (`packages/plugin/`), the skill 
 ## The discipline
 
 - After any source change, `pnpm -r build` regenerates `dist/` across every package.
+- **Every package build cleans first.** Each package's `build` script runs `node ../../scripts/clean-dist.mjs` before `tsc -b`, removing `dist/` _and_ `tsconfig.build.tsbuildinfo` together. This guarantees `dist/` never carries stale files — compiled outputs of since-deleted sources, or `.map` files from an older config — which would otherwise ship in the published tarball (`"files": ["dist"]`). The two must be removed together: `tsc -b` trusts its `.tsbuildinfo` over the real `dist/` contents, so deleting `dist/` alone makes the next build skip emit. Don't "optimize" the clean step away for incremental speed; `scripts/audit-package-contents.mjs` is the gate that catches the leak class.
 - A running plugin daemon — the Claude Code plugin host, or a long-running `docsxai` process — does **not** pick up the rebuild. Node's `import()` is one-shot at boot. Any `dist/` rebuild after the daemon started means the running daemon is executing stale code.
 - **Restart the daemon and surface the new PID explicitly to the operator** before declaring the change verified. Don't assume "I rebuilt" means "the running session sees it."
 - The same applies to a globally-installed `docsxai` bin from a tarball — `pnpm -r build` updates the workspace `dist/`, not the global install. After a global-bin-relevant change, re-link or re-install.
