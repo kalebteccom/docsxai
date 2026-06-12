@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// @kalebtec/docsxai-viewer — interactive docs-app generator + burned-annotation renderer.
+// @kalebtec/docsxai-viewer — interactive docs-app generator + burned-annotation renderer +
+// Starlight site emitter.
 //
-// Library entry (re-exports `buildViewer`, `burnAnnotations`, `burnFlow`) and bin entry
-// `docsxai-viewer`:
+// Library entry (re-exports `buildViewer`, `burnAnnotations`, `burnFlow`, `emitStarlightSite`,
+// `buildStarlightSite`) and bin entry `docsxai-viewer`:
 //   docsxai-viewer build <docs-dir> <out-dir> [--flow <name> ...]
 //   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>]
+//   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>]
 // The plugin's `render` command (and `site-docs render`) shell out to `build`.
 
 import * as path from "node:path";
@@ -38,15 +40,31 @@ export {
   type BurnTreeInput,
 } from "./burn.js";
 export type { AnnotationRecord, AnnotationsFile, BoundingBox, NudgeOffset } from "./annotations.js";
+export {
+  ASTRO_VERSION,
+  STARLIGHT_VERSION,
+  buildStarlightSite,
+  deriveFlowOrder,
+  emitStarlightSite,
+  normalizeAccent,
+  resolveAstroBin,
+  type BuildStarlightSiteOptions,
+  type BuildStarlightSiteResult,
+  type EmitStarlightSiteOptions,
+  type EmitStarlightSiteResult,
+  type StarlightSiteConfig,
+} from "./starlight.js";
 
 import { buildViewer, discoverFlows } from "./render.js";
 import { burnFlow } from "./burn.js";
+import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
 
 const USAGE = `docsxai-viewer — static viewer generator
 
 Usage:
   docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...
   docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>]
+  docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...
 
   build — emit the interactive HTML viewer
     <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md)
@@ -56,16 +74,27 @@ Usage:
     <workspace>  a site-docs workspace (reads <workspace>/docs)
     --flow       restrict to these flows (default: all flows with annotations.json)
     --out        output root (default: docs/<flow>/burned/<step>.png)
+
+  site — emit a production Astro Starlight docs site (burned images preferred)
+    <workspace>  a site-docs workspace (reads <workspace>/docs + <workspace>/flows)
+    --out        site project directory (default: <workspace>/site)
+    --build      also run astro build (writes <out>/dist)
+    --title      site title (default: "Documentation")
+    --accent     accent hex color (overrides the style artifact's visual keys)
+    --flow       restrict to these flows (default: all flows with annotations.json)
 `;
 
 interface ParsedArgs {
   positional: string[];
   flows: string[];
   out?: string;
+  title?: string;
+  accent?: string;
+  build: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
-  const parsed: ParsedArgs = { positional: [], flows: [] };
+  const parsed: ParsedArgs = { positional: [], flows: [], build: false };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--flow" && argv[i + 1]) {
       parsed.flows.push(argv[i + 1]!);
@@ -73,6 +102,14 @@ function parseArgs(argv: string[]): ParsedArgs {
     } else if (argv[i] === "--out" && argv[i + 1]) {
       parsed.out = argv[i + 1]!;
       i++;
+    } else if (argv[i] === "--title" && argv[i + 1]) {
+      parsed.title = argv[i + 1]!;
+      i++;
+    } else if (argv[i] === "--accent" && argv[i + 1]) {
+      parsed.accent = argv[i + 1]!;
+      i++;
+    } else if (argv[i] === "--build") {
+      parsed.build = true;
     } else parsed.positional.push(argv[i]!);
   }
   return parsed;
@@ -123,10 +160,45 @@ async function runBurn(args: ParsedArgs): Promise<number> {
   }
 }
 
+async function runSite(args: ParsedArgs): Promise<number> {
+  const [workspace] = args.positional;
+  if (!workspace) {
+    process.stderr.write("site: requires <workspace>\n\n" + USAGE + "\n");
+    return 2;
+  }
+  const outDir = args.out ?? path.join(workspace, "site");
+  try {
+    const r = await emitStarlightSite({
+      workspaceDir: workspace,
+      outDir,
+      config: {
+        ...(args.title !== undefined ? { title: args.title } : {}),
+        ...(args.accent !== undefined ? { accent: args.accent } : {}),
+        ...(args.flows.length ? { flows: args.flows } : {}),
+      },
+    });
+    for (const w of r.warnings) process.stderr.write(`site: warning: ${w}\n`);
+    process.stdout.write(`site: emitted ${r.files.length} file(s) to ${outDir}\n`);
+    if (args.build) {
+      const b = await buildStarlightSite({ siteDir: outDir });
+      if (!b.ok) {
+        process.stderr.write(`site: astro build failed\n${b.stderr}\n`);
+        return 1;
+      }
+      process.stdout.write(`site: built ${b.distDir} in ${Math.round(b.durationMs)}ms\n`);
+    }
+    return 0;
+  } catch (e) {
+    process.stderr.write(`site: ${(e as Error).message}\n`);
+    return 1;
+  }
+}
+
 export async function runViewerCli(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   if (command === "build") return runBuild(parseArgs(rest));
   if (command === "burn") return runBurn(parseArgs(rest));
+  if (command === "site") return runSite(parseArgs(rest));
   process.stdout.write(USAGE + "\n");
   return argv.length === 0 ? 0 : 2;
 }

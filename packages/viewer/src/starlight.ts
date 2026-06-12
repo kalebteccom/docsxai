@@ -1,0 +1,632 @@
+// Starlight site emitter — `emitStarlightSite` writes a complete, buildable Astro Starlight
+// project from a doc pack: one MDX page per flow (H2 per step, the step's .md prose verbatim,
+// and an `<AnnotatedShot>` figure preferring the burned PNG over the clean screenshot), a
+// landing page of flow cards, a sidebar ordered by the workspace's `extends` graph (alphabetical
+// fallback), and theme accents derived from the style artifact's `visual` section.
+//
+// The emitted project is standalone (its own package.json with exact-pinned astro +
+// @astrojs/starlight) and self-contained: no remote fonts, no CDN fetches — Starlight ships its
+// own assets and Pagefind search at build time. `buildStarlightSite` runs `astro build`
+// programmatically, resolving the astro bin from this package's own install so tests never hit
+// the network (`astroBin` overrides; ASTRO_TELEMETRY_DISABLED=1 always).
+//
+// Emission is deterministic: same doc pack + same config → byte-identical file tree (no
+// timestamps, sorted traversal). The interactive single-HTML viewer (`render.ts`) is untouched —
+// this is the production docs-site renderer beside it, not a replacement.
+
+import { spawn } from "node:child_process";
+import { promises as fs, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import * as path from "node:path";
+import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
+import { discoverFlows } from "./render.js";
+
+/** Exact versions pinned into the emitted site's package.json — verified to install + build. */
+export const ASTRO_VERSION = "6.4.6";
+export const STARLIGHT_VERSION = "0.40.0";
+
+export interface StarlightSiteConfig {
+  /** Site title. Default: `"Documentation"`. */
+  title?: string;
+  /** Accent color (`#rrggbb`); overrides the style artifact's `visual` accent keys. */
+  accent?: string;
+  /** Logo image path (absolute, or relative to the workspace); overrides `visual.logo`. */
+  logo?: string;
+  /** Restrict to these flow names; default = all flows found under `docs/`. */
+  flows?: string[];
+}
+
+export interface EmitStarlightSiteOptions {
+  /** A site-docs workspace (reads `<workspaceDir>/docs` + `<workspaceDir>/flows`). */
+  workspaceDir: string;
+  /** Where the Starlight project is written (created if missing). */
+  outDir: string;
+  config?: StarlightSiteConfig;
+}
+
+export interface EmitStarlightSiteResult {
+  /** Paths (POSIX-relative to `outDir`) of every emitted file, sorted. */
+  files: string[];
+  /** Flows included, in sidebar order. */
+  flows: string[];
+  title: string;
+  /** Normalized `#rrggbb` accent in effect, or null when neither config nor style supplied one. */
+  accent: string | null;
+  /** Emitted logo path (relative to `outDir`), or null. */
+  logo: string | null;
+  warnings: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Small fs helpers (duplicated from render.ts on purpose — render.ts stays untouched).
+// ---------------------------------------------------------------------------
+
+async function readJsonIfExists<T>(p: string): Promise<T | null> {
+  try {
+    return JSON.parse(await fs.readFile(p, "utf8")) as T;
+  } catch {
+    return null;
+  }
+}
+async function readTextIfExists(p: string): Promise<string | null> {
+  try {
+    return await fs.readFile(p, "utf8");
+  } catch {
+    return null;
+  }
+}
+async function exists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Accent color — normalize + derive the Starlight custom-property scale.
+// ---------------------------------------------------------------------------
+
+/** Normalize `#rgb` / `rgb` / `#rrggbb` / `rrggbb` to lowercase `#rrggbb`; throw on anything else. */
+export function normalizeAccent(input: string): string {
+  const raw = input.trim().replace(/^#/, "").toLowerCase();
+  if (/^[0-9a-f]{6}$/.test(raw)) return `#${raw}`;
+  if (/^[0-9a-f]{3}$/.test(raw)) {
+    const [r, g, b] = raw;
+    return `#${r!}${r!}${g!}${g!}${b!}${b!}`;
+  }
+  throw new Error(`invalid accent color "${input}" — expected a hex color like #2563eb`);
+}
+
+function mixHex(a: string, b: string, t: number): string {
+  const ch = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+  const out = [0, 1, 2]
+    .map((i) => Math.round(ch(a, i) * (1 - t) + ch(b, i) * t))
+    .map((v) => v.toString(16).padStart(2, "0"))
+    .join("");
+  return `#${out}`;
+}
+
+/** The `--sl-color-accent-*` scale for both themes, derived deterministically from one hex. */
+function themeCss(accent: string): string {
+  const darkLow = mixHex(accent, "#000000", 0.65);
+  const darkHigh = mixHex(accent, "#ffffff", 0.7);
+  const lightLow = mixHex(accent, "#ffffff", 0.85);
+  const lightHigh = mixHex(accent, "#000000", 0.5);
+  return `/* Generated by docsxai — accent scale derived from ${accent}. No remote imports. */
+:root {
+  --sl-color-accent-low: ${darkLow};
+  --sl-color-accent: ${accent};
+  --sl-color-accent-high: ${darkHigh};
+}
+:root[data-theme="light"] {
+  --sl-color-accent-low: ${lightLow};
+  --sl-color-accent: ${accent};
+  --sl-color-accent-high: ${lightHigh};
+}
+`;
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar order — the `extends` graph from `flows/*.flow.yaml`, cheaply derived.
+// ---------------------------------------------------------------------------
+
+/**
+ * Order `flows` by the workspace's flow `extends` graph: roots alphabetical, children DFS'd
+ * alphabetically under their parent (matching `site-docs flow-tree`'s shape). Parsed with a
+ * line regex — no YAML dependency; flows absent from `flows/` append alphabetically.
+ */
+export async function deriveFlowOrder(workspaceDir: string, flows: string[]): Promise<string[]> {
+  const known = new Set(flows);
+  const flowsDir = path.join(workspaceDir, "flows");
+  let entries: string[] = [];
+  try {
+    entries = (await fs.readdir(flowsDir)).filter((f) => /\.flow\.ya?ml$/.test(f)).sort();
+  } catch {
+    return [...flows].sort();
+  }
+
+  const extendsOf = new Map<string, string | null>();
+  for (const file of entries) {
+    const text = await readTextIfExists(path.join(flowsDir, file));
+    if (text === null) continue;
+    const name =
+      /^name:[ \t]*["']?([^"'\n#]+?)["']?[ \t]*$/m.exec(text)?.[1]?.trim() ??
+      file.replace(/\.flow\.ya?ml$/, "");
+    const parent = /^extends:[ \t]*["']?([^"'\n#]+?)["']?[ \t]*$/m.exec(text)?.[1]?.trim() ?? null;
+    if (!extendsOf.has(name)) extendsOf.set(name, parent);
+  }
+
+  const children = new Map<string, string[]>();
+  const roots: string[] = [];
+  for (const [name, parent] of extendsOf) {
+    if (parent !== null && extendsOf.has(parent)) {
+      children.set(parent, [...(children.get(parent) ?? []), name]);
+    } else {
+      roots.push(name); // true roots + orphans (extends target not in the workspace)
+    }
+  }
+
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  const visit = (name: string) => {
+    if (seen.has(name)) return; // cycle guard
+    seen.add(name);
+    if (known.has(name)) ordered.push(name);
+    for (const child of [...(children.get(name) ?? [])].sort()) visit(child);
+  };
+  for (const root of roots.sort()) visit(root);
+  for (const flow of [...flows].sort()) if (!seen.has(flow)) ordered.push(flow);
+  return ordered;
+}
+
+// ---------------------------------------------------------------------------
+// MDX / config text generation.
+// ---------------------------------------------------------------------------
+
+/** Double-quoted YAML scalar (frontmatter values). */
+const yamlQuote = (s: string) =>
+  `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, " ")}"`;
+
+/** Backslash-escape the characters MDX would otherwise parse as JSX / expressions. */
+const escapeMdxText = (s: string) => s.replace(/([\\<>{}`])/g, "\\$1");
+
+interface CaptionItem {
+  n: number;
+  copy: string;
+}
+
+interface StepPage {
+  id: string;
+  /** Absolute path of the image to copy in (burned preferred), or null. */
+  imageSrc: string | null;
+  burned: boolean;
+  items: CaptionItem[];
+  md: string | null;
+}
+
+function flowMdx(flow: string, steps: StepPage[]): string {
+  const imports = ['import AnnotatedShot from "../../../components/AnnotatedShot.astro";'];
+  const sections: string[] = [];
+  steps.forEach((step, i) => {
+    const parts = [`## ${escapeMdxText(step.id)}`];
+    if (step.md !== null && step.md.trim() !== "") parts.push(step.md.trim());
+    if (step.imageSrc !== null) {
+      const ident = `shot${String(i)}`;
+      imports.push(`import ${ident} from ${JSON.stringify(`../../../assets/flows/${flow}/${step.id}.png`)};`);
+      parts.push(
+        `<AnnotatedShot src={${ident}} alt=${JSON.stringify(step.id)} burned={${String(step.burned)}} items={${JSON.stringify(step.items)}} />`,
+      );
+    } else {
+      parts.push("_(no screenshot for this step)_");
+    }
+    sections.push(parts.join("\n\n"));
+  });
+  return `---
+title: ${yamlQuote(flow)}
+---
+
+${imports.join("\n")}
+
+${sections.join("\n\n")}
+`;
+}
+
+function indexMdx(
+  title: string,
+  flows: Array<{ flow: string; steps: number; annotations: number }>,
+): string {
+  const cards = flows
+    .map((f) => {
+      const sub = `${String(f.steps)} step${f.steps === 1 ? "" : "s"}${
+        f.annotations ? `, ${String(f.annotations)} annotation${f.annotations === 1 ? "" : "s"}` : ""
+      }`;
+      return `  <LinkCard title=${JSON.stringify(f.flow)} href=${JSON.stringify(`/flows/${f.flow.toLowerCase()}/`)} description=${JSON.stringify(sub)} />`;
+    })
+    .join("\n");
+  const grid = flows.length
+    ? `<CardGrid>\n${cards}\n</CardGrid>`
+    : "_(no flows yet — run `site-docs run`, then re-emit the site)_";
+  return `---
+title: ${yamlQuote(title)}
+description: ${yamlQuote("Step-by-step flows with annotated screenshots.")}
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+${grid}
+`;
+}
+
+function astroConfigMjs(opts: {
+  title: string;
+  accent: string | null;
+  logoRel: string | null;
+  flows: string[];
+}): string {
+  const lines: string[] = [];
+  lines.push(`      title: ${JSON.stringify(opts.title)},`);
+  if (opts.logoRel !== null) {
+    lines.push(`      logo: { src: ${JSON.stringify(`./${opts.logoRel}`)} },`);
+  }
+  if (opts.accent !== null) {
+    lines.push(`      customCss: ["./src/styles/theme.css"],`);
+  }
+  if (opts.flows.length > 0) {
+    const items = opts.flows
+      .map(
+        (f) =>
+          `            { label: ${JSON.stringify(f)}, slug: ${JSON.stringify(`flows/${f.toLowerCase()}`)} },`,
+      )
+      .join("\n");
+    lines.push(
+      `      sidebar: [\n        {\n          label: "Flows",\n          items: [\n${items}\n          ],\n        },\n      ],`,
+    );
+  }
+  return `// @ts-check
+// Generated by docsxai — Starlight config from the doc pack + style artifact.
+// Self-contained: default Starlight theme + Pagefind search, no remote fonts, no CDN imports.
+import { defineConfig } from "astro/config";
+import starlight from "@astrojs/starlight";
+
+export default defineConfig({
+  integrations: [
+    starlight({
+${lines.join("\n")}
+    }),
+  ],
+});
+`;
+}
+
+const CONTENT_CONFIG_TS = `// Generated by docsxai — Starlight docs collection.
+import { defineCollection } from "astro:content";
+import { docsLoader } from "@astrojs/starlight/loaders";
+import { docsSchema } from "@astrojs/starlight/schema";
+
+export const collections = {
+  docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
+};
+`;
+
+// The caption list is numbered to match the badge numbers burned into the image (`item.n` is the
+// annotation's 1-based badge index), so <li value> carries the explicit number.
+const ANNOTATED_SHOT_ASTRO = `---
+// Generated by docsxai — annotated screenshot figure.
+// The image already carries the burned halo/badge/callout pixels when burned={true}; the caption
+// lists each annotation's copy, numbered to match the burned badges.
+const { src, alt, items = [], burned = false } = Astro.props;
+const resolved = typeof src === "string" ? src : src.src;
+---
+
+<figure class="annotated-shot" data-burned={burned ? "true" : "false"}>
+  <img src={resolved} alt={alt} loading="lazy" decoding="async" />
+  {items.length === 1 && <figcaption>{items[0].copy}</figcaption>}
+  {
+    items.length > 1 && (
+      <figcaption>
+        <ol>
+          {items.map((item) => (
+            <li value={item.n}>{item.copy}</li>
+          ))}
+        </ol>
+      </figcaption>
+    )
+  }
+</figure>
+
+<style>
+  .annotated-shot {
+    margin: 1.5rem 0;
+  }
+  .annotated-shot img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+  }
+  .annotated-shot figcaption {
+    margin-top: 0.5rem;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+  }
+  .annotated-shot ol {
+    margin: 0;
+    padding-inline-start: 1.5rem;
+  }
+  .annotated-shot li {
+    margin: 0.15rem 0;
+  }
+</style>
+`;
+
+const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="5" y="3" width="22" height="26" rx="3" fill="#1c1c2e"/><rect x="9" y="8" width="14" height="3" rx="1.5" fill="#e8590c"/><rect x="9" y="14" width="14" height="2" rx="1" fill="#9a9ab0"/><rect x="9" y="19" width="10" height="2" rx="1" fill="#9a9ab0"/></svg>
+`;
+
+const GITIGNORE = `node_modules/
+dist/
+.astro/
+`;
+
+function sitePackageJson(): string {
+  return `${JSON.stringify(
+    {
+      name: "docsxai-starlight-site",
+      private: true,
+      type: "module",
+      scripts: { dev: "astro dev", build: "astro build", preview: "astro preview" },
+      dependencies: { "@astrojs/starlight": STARLIGHT_VERSION, astro: ASTRO_VERSION },
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+const SITE_TSCONFIG = `${JSON.stringify(
+  { extends: "astro/tsconfigs/base", include: [".astro/types.d.ts", "**/*"], exclude: ["dist"] },
+  null,
+  2,
+)}\n`;
+
+// ---------------------------------------------------------------------------
+// Emit.
+// ---------------------------------------------------------------------------
+
+interface StyleArtifactLike {
+  visual?: Record<string, unknown>;
+}
+
+function visualString(visual: Record<string, unknown> | undefined, keys: string[]): string | null {
+  for (const key of keys) {
+    const v = visual?.[key];
+    if (typeof v === "string" && v.trim() !== "") return v;
+  }
+  return null;
+}
+
+/** Write a complete, buildable Astro Starlight project for the workspace's doc pack. */
+export async function emitStarlightSite(
+  opts: EmitStarlightSiteOptions,
+): Promise<EmitStarlightSiteResult> {
+  const docsDir = path.join(opts.workspaceDir, "docs");
+  const config = opts.config ?? {};
+  const warnings: string[] = [];
+
+  const allFlows = await discoverFlows(docsDir);
+  const wanted = config.flows?.length
+    ? allFlows.filter((f) => config.flows!.includes(f))
+    : allFlows;
+  const flows = await deriveFlowOrder(opts.workspaceDir, wanted);
+
+  // Style artifact (docs/style.json, the derived form) → visual keys.
+  const style = await readJsonIfExists<StyleArtifactLike>(path.join(docsDir, "style.json"));
+  const visual = style?.visual;
+
+  let accent: string | null = null;
+  if (config.accent !== undefined) {
+    accent = normalizeAccent(config.accent); // explicit config: invalid is an error
+  } else {
+    const fromStyle = visualString(visual, ["brand_color", "accent", "primary_color"]);
+    if (fromStyle !== null) {
+      try {
+        accent = normalizeAccent(fromStyle);
+      } catch (e) {
+        warnings.push(`style artifact visual accent ignored: ${(e as Error).message}`);
+      }
+    }
+  }
+
+  let logoSrc: string | null = null;
+  const logoConfigured = config.logo ?? visualString(visual, ["logo"]);
+  if (logoConfigured !== null && logoConfigured !== undefined) {
+    const resolved = path.isAbsolute(logoConfigured)
+      ? logoConfigured
+      : path.join(opts.workspaceDir, logoConfigured);
+    if (await exists(resolved)) logoSrc = resolved;
+    else warnings.push(`logo not found: ${resolved} — emitting without a logo`);
+  }
+  const logoRel = logoSrc !== null ? `src/assets/logo${path.extname(logoSrc) || ".png"}` : null;
+
+  const title = config.title ?? "Documentation";
+
+  // Collect per-flow steps (annotation order first, screenshot-filename fallback — mirrors render.ts).
+  const flowPages: Array<{ flow: string; steps: StepPage[] }> = [];
+  for (const flow of flows) {
+    const flowSrc = path.join(docsDir, flow);
+    const annFile = await readJsonIfExists<AnnotationsFile>(path.join(flowSrc, "annotations.json"));
+    const annsByStep = new Map<string, AnnotationRecord[]>();
+    for (const a of annFile?.annotations ?? []) {
+      annsByStep.set(a.step, [...(annsByStep.get(a.step) ?? []), a]);
+    }
+    let stepIds = [...new Set((annFile?.annotations ?? []).map((a) => a.step))];
+    if (stepIds.length === 0) {
+      const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
+      stepIds = shots
+        .filter((s) => s.endsWith(".png"))
+        .map((s) => s.replace(/\.png$/, ""))
+        .sort();
+    }
+
+    const steps: StepPage[] = [];
+    for (const id of stepIds) {
+      const burnedPath = path.join(flowSrc, "burned", `${id}.png`);
+      const cleanPath = path.join(flowSrc, "screenshots", `${id}.png`);
+      const burned = await exists(burnedPath);
+      const imageSrc = burned ? burnedPath : (await exists(cleanPath)) ? cleanPath : null;
+      if (imageSrc === null) warnings.push(`flow "${flow}" step "${id}": no screenshot`);
+      const anns = annsByStep.get(id) ?? [];
+      steps.push({
+        id,
+        imageSrc,
+        burned,
+        items: anns.map((a, i) => ({ n: a.index ?? i + 1, copy: a.copy })),
+        md: await readTextIfExists(path.join(flowSrc, `${id}.md`)),
+      });
+    }
+    flowPages.push({ flow, steps });
+  }
+
+  // Assemble the file tree, then write it in sorted order (deterministic bytes + listing).
+  const textFiles = new Map<string, string>();
+  textFiles.set("package.json", sitePackageJson());
+  textFiles.set("tsconfig.json", SITE_TSCONFIG);
+  textFiles.set(".gitignore", GITIGNORE);
+  textFiles.set("astro.config.mjs", astroConfigMjs({ title, accent, logoRel, flows }));
+  textFiles.set("src/content.config.ts", CONTENT_CONFIG_TS);
+  textFiles.set("src/components/AnnotatedShot.astro", ANNOTATED_SHOT_ASTRO);
+  textFiles.set("public/favicon.svg", FAVICON_SVG);
+  if (accent !== null) textFiles.set("src/styles/theme.css", themeCss(accent));
+  textFiles.set(
+    "src/content/docs/index.mdx",
+    indexMdx(
+      title,
+      flowPages.map((p) => ({
+        flow: p.flow,
+        steps: p.steps.length,
+        annotations: p.steps.reduce((n, s) => n + s.items.length, 0),
+      })),
+    ),
+  );
+  for (const page of flowPages) {
+    textFiles.set(`src/content/docs/flows/${page.flow}.mdx`, flowMdx(page.flow, page.steps));
+  }
+
+  const copies = new Map<string, string>(); // rel dest → abs source
+  if (logoSrc !== null && logoRel !== null) copies.set(logoRel, logoSrc);
+  for (const page of flowPages) {
+    for (const step of page.steps) {
+      if (step.imageSrc !== null) {
+        copies.set(`src/assets/flows/${page.flow}/${step.id}.png`, step.imageSrc);
+      }
+    }
+  }
+
+  const files = [...textFiles.keys(), ...copies.keys()].sort();
+  for (const rel of files) {
+    const dest = path.join(opts.outDir, rel);
+    await fs.mkdir(path.dirname(dest), { recursive: true });
+    const text = textFiles.get(rel);
+    if (text !== undefined) await fs.writeFile(dest, text, "utf8");
+    else await fs.copyFile(copies.get(rel)!, dest);
+  }
+
+  return { files, flows, title, accent, logo: logoRel, warnings };
+}
+
+// ---------------------------------------------------------------------------
+// Build.
+// ---------------------------------------------------------------------------
+
+export interface BuildStarlightSiteOptions {
+  /** An emitted Starlight project directory (`emitStarlightSite`'s `outDir`). */
+  siteDir: string;
+  /** Path to astro's bin script. Default: resolved from this package's own dependencies. */
+  astroBin?: string;
+  /** Extra environment variables for the build process. */
+  env?: Record<string, string>;
+  /** Kill the build after this long. Default: 10 minutes. */
+  timeoutMs?: number;
+}
+
+export interface BuildStarlightSiteResult {
+  ok: boolean;
+  /** The built static site (`<siteDir>/dist`). */
+  distDir: string;
+  durationMs: number;
+  stdout: string;
+  stderr: string;
+}
+
+/** Resolve astro's bin script through this package's own node_modules. */
+export function resolveAstroBin(): string {
+  const require = createRequire(import.meta.url);
+  let pkgJsonPath: string;
+  try {
+    pkgJsonPath = require.resolve("astro/package.json");
+  } catch {
+    throw new Error(
+      "cannot resolve the astro package — pass `astroBin`, or run `npm install` inside the emitted site and build there",
+    );
+  }
+  const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as {
+    bin?: Record<string, string> | string;
+  };
+  const bin = typeof pkg.bin === "string" ? pkg.bin : pkg.bin?.["astro"];
+  if (!bin) throw new Error("astro package has no bin entry");
+  return path.join(path.dirname(pkgJsonPath), bin);
+}
+
+/**
+ * Run `astro build` in `siteDir`. When the site has no node_modules of its own, the directory
+ * containing the resolved astro install is symlinked in, so the emitted project builds against
+ * this workspace's pinned astro + @astrojs/starlight without a network install.
+ */
+export async function buildStarlightSite(
+  opts: BuildStarlightSiteOptions,
+): Promise<BuildStarlightSiteResult> {
+  const astroBin = opts.astroBin ?? resolveAstroBin();
+  const distDir = path.join(opts.siteDir, "dist");
+
+  // astro + @astrojs/starlight must resolve from siteDir; link our own install when absent.
+  const siteModules = path.join(opts.siteDir, "node_modules");
+  if (!(await exists(siteModules))) {
+    // <...>/node_modules/astro/<bin> → the node_modules dir that holds astro.
+    const modulesDir = path.dirname(path.dirname(path.dirname(astroBin)));
+    if (path.basename(modulesDir) === "node_modules") {
+      await fs.symlink(modulesDir, siteModules, "dir");
+    }
+  }
+
+  const started = performance.now();
+  const child = spawn(process.execPath, [astroBin, "build"], {
+    cwd: opts.siteDir,
+    env: { ...process.env, ...opts.env, ASTRO_TELEMETRY_DISABLED: "1" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (d: Buffer) => (stdout += d.toString("utf8")));
+  child.stderr.on("data", (d: Buffer) => (stderr += d.toString("utf8")));
+
+  const code = await new Promise<number>((resolve) => {
+    const timer = setTimeout(
+      () => {
+        child.kill("SIGKILL");
+      },
+      opts.timeoutMs ?? 600_000,
+    );
+    child.on("close", (c) => {
+      clearTimeout(timer);
+      resolve(c ?? 1);
+    });
+    child.on("error", () => {
+      clearTimeout(timer);
+      resolve(1);
+    });
+  });
+
+  const ok = code === 0 && (await exists(path.join(distDir, "index.html")));
+  return { ok, distDir, durationMs: performance.now() - started, stdout, stderr };
+}
