@@ -23,6 +23,7 @@ const KNOWN_CLI_COMMANDS = [
   "lint",
   "flow-tree",
   "diagnose",
+  "doctor",
   "style",
   "zip",
   "login",
