@@ -1,0 +1,50 @@
+{
+  "name": "@kalebtec/docsxai-plugin-confluence",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "docsxai publisher plugin: pushes an ADF doc-pack projection to Confluence Cloud (REST v2), idempotently.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalebteccom/docsxai.git",
+    "directory": "packages/plugin-confluence"
+  },
+  "homepage": "https://github.com/kalebteccom/docsxai#readme",
+  "bugs": "https://github.com/kalebteccom/docsxai/issues",
+  "keywords": [
+    "docsxai",
+    "confluence",
+    "publisher",
+    "plugin"
+  ],
+  "main": "dist/register.js",
+  "types": "dist/register.d.ts",
+  "files": [
+    "dist"
+  ],
+  "docsxai": {
+    "apiVersion": "1.0.0",
+    "namespace": "confluence",
+    "register": "./dist/register.js",
+    "kinds": [
+      "publisher"
+    ],
+    "capabilities": [
+      "egress:*.atlassian.net"
+    ],
+    "trust": "kalebtec"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@kalebtec/docsxai-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "vitest": "^2.0.0"
+  }
+}

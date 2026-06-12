@@ -93,6 +93,19 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.42)
 
+  packages/plugin-confluence:
+    dependencies:
+      '@kalebtec/docsxai-engine':
+        specifier: workspace:*
+        version: link:../engine
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.42
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.42)
+
   packages/skill:
     devDependencies:
       '@types/node':
