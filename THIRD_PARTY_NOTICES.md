@@ -6,21 +6,28 @@ docsxai's runtime dependencies (production-only):
 
 - `fflate` — MIT
 - `playwright-core` — Apache-2.0
+- `pngjs` — MIT
 - `yaml` — ISC
 - `zod` — MIT
 
+## `@kalebtec/docsxai-viewer`
+
+- `@resvg/resvg-js` — MPL-2.0
+- `micromark` — MIT
+- `satori` — MPL-2.0
+
+Vendored asset: Inter Regular (`assets/fonts/inter-regular.ttf`) — SIL Open
+Font License 1.1, license text colocated at `assets/fonts/LICENSE.txt`.
+
 ## `@kalebtec/docsxai-backend`
 
-No production dependencies today (in-memory stub). Will gain HTTP server
+No production dependencies (node built-ins only: HTTP server, crypto,
+filesystem persistence).
 
-- auth dependencies when the hosted deployment lands; those will
-  be listed here at that time.
-
-## `@kalebtec/docsxai-plugin`, `@kalebtec/docsxai-viewer`, `@kalebtec/docsxai-skill`
+## `@kalebtec/docsxai-plugin`, `@kalebtec/docsxai-skill`
 
 No production dependencies. The plugin shells out to the engine binary;
-the viewer emits static HTML; the skill delegates to the installed
-plugin.
+the skill delegates to the installed plugin.
 
 ---
 
