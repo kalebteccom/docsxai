@@ -29,7 +29,7 @@ const pages = [
     out: "guides/agent-runbook.md",
     title: "Agent runbook",
     description:
-      "Hand this to a coding agent: set up and run site-docs against a running web app without modifying its repo - workspace layout, auth capture, halts, and the iteration loop.",
+      "Hand this to a coding agent: set up and run docsxai against a running web app without modifying its repo - workspace layout, auth capture, halts, and the iteration loop.",
   },
   {
     src: "docs/running-against-an-app-repo.md",
@@ -47,7 +47,7 @@ const pages = [
     out: "guides/ci-recipes.md",
     title: "CI recipes",
     description:
-      "Deterministic doc refresh in your pipeline: GitHub Actions and generic CI examples for driving site-docs run with cached auth and uploaded doc packs.",
+      "Deterministic doc refresh in your pipeline: GitHub Actions and generic CI examples for driving docsxai run with cached auth and uploaded doc packs.",
   },
   {
     src: "docs/security-best-practices-for-adopters.md",
@@ -72,22 +72,22 @@ const pages = [
   {
     src: "packages/engine/README.md",
     out: "packages/engine.md",
-    title: "@kalebtec/docsxai-engine",
+    title: "@docsxai/engine",
     description:
-      "LLM-agnostic engine: flow-file parser + deterministic runtime, calibration helpers, target-site auth strategies, and the full site-docs CLI.",
+      "LLM-agnostic engine: flow-file parser + deterministic runtime, calibration helpers, target-site auth strategies, and the full docsxai CLI.",
   },
   {
     src: "packages/plugin/README.md",
     out: "packages/plugin.md",
-    title: "@kalebtec/docsxai-plugin",
+    title: "@docsxai/plugin",
     description:
-      "Claude Code plugin - the first-class invocation surface. Calibration skills plus deterministic commands over the site-docs engine.",
+      "Claude Code plugin - the first-class invocation surface. Calibration skills plus deterministic commands over the docsxai engine.",
     strikeLines: [/^Canonical spec\/roadmap: the `project-ideas` portfolio/],
   },
   {
     src: "packages/mcp/README.md",
     out: "packages/mcp.md",
-    title: "@kalebtec/docsxai-mcp",
+    title: "@docsxai/mcp",
     description:
       "Standalone stdio MCP server over the docsxai engine: calibration meta-orchestration plus read-only doc-pack introspection for any MCP-speaking host.",
     replace: [
@@ -101,7 +101,7 @@ const pages = [
   {
     src: "packages/backend/README.md",
     out: "packages/backend.md",
-    title: "@kalebtec/docsxai-backend",
+    title: "@docsxai/backend",
     description:
       "Authenticated service that persists doc packs: projects, revisions, flow-files, screenshots, annotations, style artifacts, run history. REST + OAuth 2.1.",
     strikeLines: [/^Design: `projects\/automated-site-documentation-bot\/spec\.md` in the/],
@@ -109,7 +109,7 @@ const pages = [
   {
     src: "packages/viewer/README.md",
     out: "packages/viewer.md",
-    title: "@kalebtec/docsxai-viewer",
+    title: "@docsxai/viewer",
     description:
       "Static-HTML interactive viewer, burned-annotation renderer, and Starlight docs-site emitter for doc packs.",
     strikeLines: [/^Design: `projects\/automated-site-documentation-bot\/spec\.md` in the/],
@@ -117,14 +117,14 @@ const pages = [
   {
     src: "packages/skill/README.md",
     out: "packages/skill.md",
-    title: "@kalebtec/docsxai-skill",
+    title: "@docsxai/skill",
     description:
       "Optional colocated .claude/skills/ fallback that delegates to the installed plugin, for teams that want to vendor and version-pin in the consumer repo.",
   },
   {
     src: "packages/plugin-confluence/README.md",
     out: "packages/plugin-confluence.md",
-    title: "@kalebtec/docsxai-plugin-confluence",
+    title: "@docsxai/plugin-confluence",
     description:
       "Publisher plugin for Confluence Cloud: pushes the engine's ADF doc-pack projection through the REST v2 API, idempotently.",
     replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
@@ -132,7 +132,7 @@ const pages = [
   {
     src: "packages/plugin-starlight/README.md",
     out: "packages/plugin-starlight.md",
-    title: "@kalebtec/docsxai-plugin-starlight",
+    title: "@docsxai/plugin-starlight",
     description:
       "Renderer plugin that emits a production Astro Starlight docs site from a doc pack, wrapping the viewer's Starlight emitter and builder.",
     replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],

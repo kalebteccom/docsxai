@@ -24,7 +24,7 @@ commit, `zip`, or `push` to the backend.
   .auth/                          cached sessions (operator-local, gitignored)
   .viewer/                        rendered viewer (re-derivable, gitignored)
   .baseline/                      drift baseline (commit it; see below)
-  .site-docs.json                 workspace config (app_url, plugins, backend binding)
+  .docsxai.json                 workspace config (app_url, plugins, backend binding)
 ```
 
 ## What each artifact does
@@ -39,7 +39,7 @@ commit, `zip`, or `push` to the backend.
   numbered index when one screenshot carries several callouts. The viewer and
   the burn renderer both consume this file; neither re-runs the browser.
 - **Step write-ups** are the prose a reader sees next to each screenshot.
-  The agent writes them at calibration time; `site-docs style --check` scans
+  The agent writes them at calibration time; `docsxai style --check` scans
   them for testing jargon that leaked through.
 - **The style artifact** pins voice, structure, terminology, and
   `pruning_rules` so every flow's prose reads like one author wrote it.
@@ -53,47 +53,47 @@ commit, `zip`, or `push` to the backend.
 ## The six versioned schemas
 
 Every machine-readable artifact carries a `schema` id of the form
-`site-docs/<name>@<version>`, validated with Zod at every read. Versioned ids
+`docsxai/<name>@<version>`, validated with Zod at every read. Versioned ids
 are what let the backend store payloads opaquely and let consumers fail
 loudly on shape changes instead of mis-parsing.
 
-**`site-docs/annotations@1`** - the per-flow annotation file: a `flow` name
+**`docsxai/annotations@1`** - the per-flow annotation file: a `flow` name
 plus an array of records (`step`, `selector`, `bounding_box`, `copy`,
 `arrow_style`, `nudge`, `index`). Bounding boxes are measured at capture
 time, so the file is a faithful map of where things were on that exact
 screenshot.
 
-**`site-docs/style@1`** - the style artifact: free-form `voice`, `structure`,
+**`docsxai/style@1`** - the style artifact: free-form `voice`, `structure`,
 `visual`, and `localisation` sections, a `terminology` map, and the
 `pruning_rules` list that `style --check` enforces against step write-ups.
 Canonical as YAML, rederived as JSON.
 
-**`site-docs/locators@1`** - the locator manifest: flow name to locator name
+**`docsxai/locators@1`** - the locator manifest: flow name to locator name
 to canonical selector. One selector per name is a deliberate constraint; the
 engine refuses fallback lists because a selector that needs a fallback is a
 selector that needs fixing.
 
-**`site-docs/auth-strategy@1`** - the auth descriptor: a `default_role` and a
+**`docsxai/auth-strategy@1`** - the auth descriptor: a `default_role` and a
 `roles` map, each role naming a `strategy`, `creds_env` (credential keys to
 env-var names), strategy `options`, and a `cache` block (`store: local` or
 `backend`, `ttl`, `auth_cookie` expiry pinning).
 
-**`site-docs/drift@1`** - the report `site-docs diff` emits when comparing
+**`docsxai/drift@1`** - the report `docsxai diff` emits when comparing
 the workspace against a baseline: per flow, id-keyed step field deltas,
 annotation moves beyond a pixel tolerance, screenshot pixel diffs with
 changed-region bounding boxes, prose line-change counts, and locator changes.
 The report carries no timestamps - the same two packs always produce a
 byte-identical report, which is what makes it safe to gate CI on.
 
-**`site-docs/screenshots@2`** - the screenshot manifest used by backend
+**`docsxai/screenshots@2`** - the screenshot manifest used by backend
 transport: file path to `{ sha256, bytes }`. Bytes never travel as
 base64-in-JSON; `push` HEAD-probes each blob and uploads only what the
 backend lacks, and `pull` verifies every fetched blob against its hash.
 
 ## Baselines and drift
 
-After a good run, `site-docs baseline` snapshots the pack into `.baseline/`.
-Commit it: it is the "before" that `site-docs diff` compares against, in CI
+After a good run, `docsxai baseline` snapshots the pack into `.baseline/`.
+Commit it: it is the "before" that `docsxai diff` compares against, in CI
 or locally. Thresholds default to warn at 1% changed pixels and fail at 5%,
 with structural changes warning - all tunable through the diff policy on the
 library surface.

@@ -14,15 +14,15 @@ under the same no-model-API contract as the engine itself.
 
 ## The manifest (`package.json#docsxai`)
 
-| Field          | Type / shape                                                          | Rules                                                                                                                                                                                                                                   |
-| -------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apiVersion`   | exact semver string (`x.y.z`)                                         | Must share the runtime's major version with minor at or below the runtime's. A plugin built for `1.0.0` runs under runtime `1.5.0`; one built for `1.6.0` or `2.0.0` load-errors.                                                       |
-| `namespace`    | kebab-case, `/^[a-z][a-z0-9-]*$/`                                     | Mandatory. Every registered artifact is exposed as `<namespace>:<name>` (the runtime prefixes; plugins pass bare names). Reserved: `site-docs`, `docsxai`, `core`, `plugins`. Two plugins claiming one namespace are **both** disabled. |
-| `register`     | relative path string                                                  | The module exporting `register(api)` (named or default export).                                                                                                                                                                         |
-| `kinds`        | array of `publisher` \| `renderer` \| `lint-rules` \| `auth-strategy` | At least one. Registering an undeclared kind throws and load-errors the plugin.                                                                                                                                                         |
-| `capabilities` | array of capability strings (default `[]`)                            | Subset-checked against the workspace's `plugin_capabilities`; a mismatch disables the plugin.                                                                                                                                           |
-| `dependsOn`    | array of `{ plugin, version }` (default `[]`)                         | Package name plus a `^x.y.z`, `~x.y.z`, or exact range. Load order is topological; cycles are rejected as a unit; a disabled dependency disables its dependents.                                                                        |
-| `trust`        | `kalebtec` \| `community` \| `local` (default `local`)                | A review signal, not a sandbox boundary.                                                                                                                                                                                                |
+| Field          | Type / shape                                                          | Rules                                                                                                                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiVersion`   | exact semver string (`x.y.z`)                                         | Must share the runtime's major version with minor at or below the runtime's. A plugin built for `1.0.0` runs under runtime `1.5.0`; one built for `1.6.0` or `2.0.0` load-errors.                                                     |
+| `namespace`    | kebab-case, `/^[a-z][a-z0-9-]*$/`                                     | Mandatory. Every registered artifact is exposed as `<namespace>:<name>` (the runtime prefixes; plugins pass bare names). Reserved: `docsxai`, `docsxai`, `core`, `plugins`. Two plugins claiming one namespace are **both** disabled. |
+| `register`     | relative path string                                                  | The module exporting `register(api)` (named or default export).                                                                                                                                                                       |
+| `kinds`        | array of `publisher` \| `renderer` \| `lint-rules` \| `auth-strategy` | At least one. Registering an undeclared kind throws and load-errors the plugin.                                                                                                                                                       |
+| `capabilities` | array of capability strings (default `[]`)                            | Subset-checked against the workspace's `plugin_capabilities`; a mismatch disables the plugin.                                                                                                                                         |
+| `dependsOn`    | array of `{ plugin, version }` (default `[]`)                         | Package name plus a `^x.y.z`, `~x.y.z`, or exact range. Load order is topological; cycles are rejected as a unit; a disabled dependency disables its dependents.                                                                      |
+| `trust`        | `kalebtec` \| `community` \| `local` (default `local`)                | A review signal, not a sandbox boundary.                                                                                                                                                                                              |
 
 A missing `docsxai` field means "not a plugin"; a malformed manifest is a
 load error - the plugin never reaches `register()`.
@@ -42,7 +42,7 @@ in the engine.
 
 ## Plugin status
 
-`site-docs plugins list` reports one status per configured plugin. Every
+`docsxai plugins list` reports one status per configured plugin. Every
 failure is a status, never a crash of the resolve:
 
 | Status                            | Meaning                                                                                                             |
@@ -58,14 +58,11 @@ A `statusReason` string accompanies every non-`loaded` status.
 
 ## Workspace wiring
 
-Two optional `.site-docs.json` keys:
+Two optional `.docsxai.json` keys:
 
 ```json
 {
-  "plugins": [
-    { "package": "@kalebtec/docsxai-plugin-confluence" },
-    { "path": "../my-local-plugin" }
-  ],
+  "plugins": [{ "package": "@docsxai/plugin-confluence" }, { "path": "../my-local-plugin" }],
   "plugin_capabilities": ["egress:*.atlassian.net"]
 }
 ```
@@ -76,14 +73,14 @@ invocation; there is no hot reload.
 
 ## The lock file (`plugins-lock.json`)
 
-Schema `site-docs/plugins-lock@1`, next to the workspace config:
+Schema `docsxai/plugins-lock@1`, next to the workspace config:
 
 ```json
 {
-  "schema": "site-docs/plugins-lock@1",
+  "schema": "docsxai/plugins-lock@1",
   "plugins": {
-    "@kalebtec/docsxai-plugin-confluence": {
-      "source": "package:@kalebtec/docsxai-plugin-confluence",
+    "@docsxai/plugin-confluence": {
+      "source": "package:@docsxai/plugin-confluence",
       "version": "0.1.0",
       "sha256": "<hex sha256 of the register module's bytes>"
     }
@@ -93,15 +90,15 @@ Schema `site-docs/plugins-lock@1`, next to the workspace config:
 
 The lock pins the sha256 of each plugin's register-module file bytes. When
 the file exists, every resolve verifies the bytes **before** importing; a
-silently-swapped module fails closed with a "run `site-docs plugins sync`"
+silently-swapped module fails closed with a "run `docsxai plugins sync`"
 message. Commit the lock; re-sync deliberately when you upgrade a plugin.
 
 ## CLI
 
 ```
-site-docs plugins list <workspace>               status table (loaded / disabled reasons); exit 1 if any plugin is not loaded
-site-docs plugins info <workspace> <namespace>   manifest + registered artifact names
-site-docs plugins sync <workspace>               (re)write plugins-lock.json - never executes plugin code
+docsxai plugins list <workspace>               status table (loaded / disabled reasons); exit 1 if any plugin is not loaded
+docsxai plugins info <workspace> <namespace>   manifest + registered artifact names
+docsxai plugins sync <workspace>               (re)write plugins-lock.json - never executes plugin code
 ```
 
 All three accept `--format json`.

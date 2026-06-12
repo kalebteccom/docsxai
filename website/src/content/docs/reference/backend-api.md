@@ -5,12 +5,12 @@ description: The docsxai backend's REST surface endpoint by endpoint - workspace
 
 The backend is a small authenticated service that persists doc packs:
 projects, revisions, flow-files, screenshots, annotations, style artifacts,
-and run history. `site-docs push` and `pull` are its CLI clients, and the
+and run history. `docsxai push` and `pull` are its CLI clients, and the
 GitHub App integration is a webhook surface on this same service. Revisions
 are linear and immutable: every push creates a new revision whose parent is
 the current head, and finalizing freezes it.
 
-Versioning: clients send a `Site-Docs-API-Version: 1` header; the server
+Versioning: clients send a `Docsxai-Api-Version: 1` header; the server
 echoes it and warns on mismatch.
 
 ## Authentication
@@ -18,11 +18,11 @@ echoes it and warns on mismatch.
 Everything except `/v1/health` and the OAuth endpoints sits behind a bearer
 gate, with two ways through:
 
-- **CI token** - start the server with `SITE_DOCS_TOKEN` set; callers present
+- **CI token** - start the server with `DOCSX_TOKEN` set; callers present
   it as `Authorization: Bearer <token>`.
 - **OAuth 2.1 access token** - issued by the backend's own minimal
   authorization server (authorization-code with PKCE, S256 only, loopback
-  redirect URIs only). `site-docs login --backend-url <url> --oauth <workspace>`
+  redirect URIs only). `docsxai login --backend-url <url> --oauth <workspace>`
   drives the full handshake and stores tokens at
   `<workspace>/.auth/backend-token.json` (mode 0600). Refresh tokens rotate:
   the presented one is invalidated on use.
@@ -57,7 +57,7 @@ stores only sha256 hashes of issued tokens.
 
 The artifact slots mirror the on-disk doc pack: `flows`, `annotations`,
 `screenshots`, `style`, `locators`. Payloads are opaque to the backend; the
-schemas (`site-docs/flows@1`, `site-docs/screenshots@2`, and friends) are the
+schemas (`docsxai/flows@1`, `docsxai/screenshots@2`, and friends) are the
 engine's contract.
 
 ### Run history
@@ -70,7 +70,7 @@ engine's contract.
 ### Blobs
 
 Binary artifacts never travel as base64-in-JSON. The `screenshots` artifact
-slot carries a manifest (`site-docs/screenshots@2`: path to
+slot carries a manifest (`docsxai/screenshots@2`: path to
 `{ sha256, bytes }`); the bytes move through the blob endpoints:
 
 | Method | Path                | What it does                                                                                     |
@@ -91,8 +91,8 @@ every fetched blob against its manifest hash.
 | GET    | `/v1/workspaces/:ws/auth-cache/:role` | Fetch the envelope for a role.                        |
 | DELETE | `/v1/workspaces/:ws/auth-cache/:role` | Delete it (idempotent).                               |
 
-The envelope (`site-docs/auth-cache@1`) is AES-256-GCM ciphertext encrypted
-in the engine with a key from `SITE_DOCS_CACHE_KEY` that never leaves the
+The envelope (`docsxai/auth-cache@1`) is AES-256-GCM ciphertext encrypted
+in the engine with a key from `DOCSX_CACHE_KEY` that never leaves the
 client; the backend validates the shape and stores it opaquely. This is how a
 team shares captured target-site sessions without the backend ever seeing a
 plaintext cookie.
@@ -104,7 +104,7 @@ plaintext cookie.
 | GET    | `/v1/oauth/authorize` | Authorization endpoint (PKCE S256 only, loopback redirect URIs only). 302 with `?code=&state=`. Codes are single-use, five-minute TTL, bound to the challenge and redirect URI. |
 | POST   | `/v1/oauth/token`     | Token endpoint (form-encoded): `authorization_code` + PKCE verifier, or `refresh_token` (rotating).                                                                             |
 
-The only registered client is `site-docs-cli`.
+The only registered client is `docsxai-cli`.
 
 ### GitHub webhook
 
@@ -137,7 +137,7 @@ get 413 `{ "error": "payload_too_large" }`. Errors are uniform
 ## Persistence
 
 Storage is in-memory by default and filesystem-backed with a data dir
-(`--data-dir=`, `dataDir`, or `SITE_DOCS_DATA_DIR`): atomic writes, reads
+(`--data-dir=`, `dataDir`, or `DOCSX_DATA_DIR`): atomic writes, reads
 always from disk, every path containment-guarded against the data root.
 The endpoint shape is what production will be; a hosted multi-tenant
 deployment is owner-gated. See the [package page](/packages/backend/) for

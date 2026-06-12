@@ -36,7 +36,7 @@ speak one vocabulary - the
 ## The diagnose loop
 
 ```sh
-site-docs diagnose <workspace> --flow <name> --step <step-id> --cdp http://localhost:9222
+docsxai diagnose <workspace> --flow <name> --step <step-id> --cdp http://localhost:9222
 ```
 
 `diagnose` packages the step's selector, `wait_for`, `success`, the halt
@@ -50,7 +50,7 @@ agent's) explicit move.
 Then validate the fix in seconds instead of re-walking the whole flow:
 
 ```sh
-site-docs run <workspace> --flow <name> --start-from <step-id> --cdp http://localhost:9222
+docsxai run <workspace> --flow <name> --start-from <step-id> --cdp http://localhost:9222
 ```
 
 This skips every step before `<step-id>` and runs against the
@@ -64,12 +64,12 @@ If `run` reports that no valid cached session exists (or the app bounces to
 its login page mid-flow), the cached auth session lapsed. Re-capture:
 
 ```sh
-site-docs capture-auth <workspace>
+docsxai capture-auth <workspace>
 ```
 
 The persistent Chrome profile under `.auth/chrome-profile/` usually still
 holds the login, so re-capturing is just triggering
-`window.__siteDocs.capture()` again. If expiry keeps surprising you, pin the
+`window.__docsxai.capture()` again. If expiry keeps surprising you, pin the
 app's real session cookie (`--auth-cookie <name>`) so the cache tracks its
 actual expiry instead of the `ttl` guess - and for unattended CI, switch to a
 scripted strategy from the [auth catalogue](/reference/auth-strategies/).
@@ -109,7 +109,7 @@ scripted strategy from the [auth catalogue](/reference/auth-strategies/).
 
 ## Lint as prevention
 
-`site-docs lint <workspace>` runs pure-static checks before any browser
+`docsxai lint <workspace>` runs pure-static checks before any browser
 launches; exit 1 on any warning or error. The rules:
 
 | Rule | Severity | Catches                                                                                                      |

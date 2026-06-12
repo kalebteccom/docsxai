@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Install the docsxai engine and viewer from npm or from source, fetch the Chromium runtime the engine drives, and verify the site-docs CLI works.
+description: Install the docsxai engine and viewer from npm or from source, fetch the Chromium runtime the engine drives, and verify the docsxai CLI works.
 ---
 
 docsxai needs Node.js 20 or newer and a Chromium binary. Everything else is
@@ -8,11 +8,11 @@ plain npm packages.
 
 ## From npm
 
-The engine ships the `site-docs` CLI; the viewer ships the `docsxai-viewer`
-bin that `site-docs render` spawns. Install both:
+The engine ships the `docsxai` CLI; the viewer ships the `docsxai-viewer`
+bin that `docsxai render` spawns. Install both:
 
 ```sh
-pnpm add -g @kalebtec/docsxai-engine @kalebtec/docsxai-viewer
+pnpm add -g @docsxai/engine @docsxai/viewer
 ```
 
 Playwright's Chromium is installed explicitly as a one-shot, never as an
@@ -23,7 +23,7 @@ npx playwright install chromium
 ```
 
 Claude Code users can additionally install
-[`@kalebtec/docsxai-plugin`](/packages/plugin/), the first-class invocation
+[`@docsxai/plugin`](/packages/plugin/), the first-class invocation
 surface for agent-driven calibration. The CLI does not depend on it; every
 deterministic command works standalone.
 
@@ -47,8 +47,8 @@ The CLI binary lands at `packages/engine/dist/cli.js`. Two ways to put it on
 ```sh
 # Option A - wrapper scripts (sidesteps pnpm-global-store quirks):
 mkdir -p "$HOME/.local/bin"
-printf '#!/usr/bin/env bash\nexec node "%s/packages/engine/dist/cli.js" "$@"\n' "$(pwd)" > "$HOME/.local/bin/site-docs"
-chmod +x "$HOME/.local/bin/site-docs"
+printf '#!/usr/bin/env bash\nexec node "%s/packages/engine/dist/cli.js" "$@"\n' "$(pwd)" > "$HOME/.local/bin/docsxai"
+chmod +x "$HOME/.local/bin/docsxai"
 export PATH="$HOME/.local/bin:$PATH"
 
 # Option B - pnpm global link (when the store is consistent):
@@ -63,7 +63,7 @@ that entirely. Add a matching `docsxai-viewer` wrapper pointing at
 ## Verify
 
 ```sh
-site-docs --help
+docsxai --help
 ```
 
 You should see the usage block listing `init`, `run`, `render`,

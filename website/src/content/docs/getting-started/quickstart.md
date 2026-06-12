@@ -4,7 +4,7 @@ description: Scaffold a workspace, capture an authed session if your app needs l
 ---
 
 This page takes you from nothing to a rendered doc pack against your own app.
-It assumes `site-docs` is on your PATH ([Installation](/getting-started/installation/))
+It assumes `docsxai` is on your PATH ([Installation](/getting-started/installation/))
 and your app is running somewhere reachable, say `https://localhost:3000`.
 
 ## 1. Scaffold a workspace
@@ -14,31 +14,31 @@ source repo - docsxai documents a running app from the outside and never
 writes into the app's checkout:
 
 ```sh
-site-docs init ~/site-docs/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
+docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
 ```
 
 This creates `flows/`, `docs/`, `auth/strategy.yaml`, `.auth/`, `.viewer/`,
-and a `.site-docs.json` config holding `app_url`, so later commands need no
+and a `.docsxai.json` config holding `app_url`, so later commands need no
 flags. Add `--ignore-https-errors` if the app runs on a self-signed dev cert.
 
 ## 2. Capture an authed session (skip if the app has no login)
 
 ```sh
-site-docs capture-auth ~/site-docs/my-app
+docsxai capture-auth ~/docsxai/my-app
 ```
 
 An instrumented Chrome opens. Log in the way you normally would - SSO, MFA,
-whatever - then run `window.__siteDocs.capture()` in the devtools console.
+whatever - then run `window.__docsxai.capture()` in the devtools console.
 The session is cached to `.auth/<role>.json` and `capture-auth` prints the
 captured cookie jar. Pin the app's real session cookie so the cache tracks its
-true expiry: `site-docs capture-auth ~/site-docs/my-app --auth-cookie session`.
+true expiry: `docsxai capture-auth ~/docsxai/my-app --auth-cookie session`.
 The full auth story, including ten scripted strategies for unattended CI
 re-auth, is in [Auth strategies](/reference/auth-strategies/).
 
 ## 3. Author a first flow
 
 A flow-file is YAML: named locators, ordered steps, optional waits and
-success checks. Write `~/site-docs/my-app/flows/open-reports.flow.yaml`:
+success checks. Write `~/docsxai/my-app/flows/open-reports.flow.yaml`:
 
 ```yaml
 name: open-reports
@@ -59,19 +59,19 @@ steps:
 ```
 
 To find good locators on the live, authed page, use
-`site-docs inspect ~/site-docs/my-app` - it loads the cached session and
+`docsxai inspect ~/docsxai/my-app` - it loads the cached session and
 prints the page's `[data-testid]` elements. To author with an agent instead
 of by hand, follow the [agent runbook](/guides/agent-runbook/). Before
 running, catch authoring mistakes statically:
 
 ```sh
-site-docs lint ~/site-docs/my-app
+docsxai lint ~/docsxai/my-app
 ```
 
 ## 4. Run it
 
 ```sh
-site-docs run ~/site-docs/my-app --flow open-reports
+docsxai run ~/docsxai/my-app --flow open-reports
 ```
 
 Headless Chromium loads the cached session, replays the steps, and writes
@@ -84,8 +84,8 @@ open-app --pause` keeps the headed browser open mid-flow.
 ## 5. Render and open the viewer
 
 ```sh
-site-docs render ~/site-docs/my-app
-open ~/site-docs/my-app/.viewer/index.html
+docsxai render ~/docsxai/my-app
+open ~/docsxai/my-app/.viewer/index.html
 ```
 
 The viewer index links each flow; every flow page shows the screenshots with

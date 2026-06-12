@@ -50,7 +50,7 @@ them. None of the satellites adds browser primitives of its own.
     </g>
     <g class="dx-node">
       <rect x="512" y="44" width="180" height="62" rx="12" />
-      <text class="dx-node-name" x="530" y="73">site-docs run</text>
+      <text class="dx-node-name" x="530" y="73">docsxai run</text>
       <text class="dx-node-sub" x="530" y="92">deterministic, zero LLM</text>
     </g>
     <g class="dx-node">
@@ -71,7 +71,7 @@ write-time, not run-time: `lint` catches authoring mistakes statically,
 visualises the `extends` graph, and the `actionable()` probe says whether a
 selector is clickable before the step is ever written down.
 
-**Execution** is deterministic and continuous. `site-docs run` replays the
+**Execution** is deterministic and continuous. `docsxai run` replays the
 flow through headless Chromium with no agent and no MCP in the loop. The
 `environment` block (frozen clock, pinned locale, timezone, viewport, color
 scheme) makes the same flow against the same target state produce

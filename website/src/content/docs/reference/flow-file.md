@@ -216,6 +216,6 @@ steps:
     success: { text_contains: { selector: "body", text: "Release notes, June" } }
 ```
 
-Validate with `site-docs lint`, visualise the `extends` graph with
-`site-docs flow-tree`, and see [Troubleshooting](/guides/troubleshooting/)
+Validate with `docsxai lint`, visualise the `extends` graph with
+`docsxai flow-tree`, and see [Troubleshooting](/guides/troubleshooting/)
 when a step halts.

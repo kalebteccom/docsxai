@@ -22,7 +22,7 @@ never reaches `register()`:
 
 ```json
 {
-  "name": "@kalebtec/docsxai-plugin-confluence",
+  "name": "@docsxai/plugin-confluence",
   "version": "0.1.0",
   "docsxai": {
     "apiVersion": "1.0.0",
@@ -45,7 +45,7 @@ plugin built for `1.0.0` runs under runtime `1.5.0`; one built for `1.6.0` or
 
 `namespace` is mandatory, kebab-case (`/^[a-z][a-z0-9-]*$/`). Every artifact
 you register is exposed as `<namespace>:<name>` - the runtime adds the
-prefix, you pass bare names. Four namespaces are reserved (`site-docs`,
+prefix, you pass bare names. Four namespaces are reserved (`docsxai`,
 `docsxai`, `core`, `plugins`), and if two plugins claim the same namespace,
 **both** are disabled - load order never picks winners.
 
@@ -64,7 +64,7 @@ payloads only.
 
 These are the exact contracts from the engine's plugin surface
 (`PublisherPlugin`, `RendererPlugin`, `AuthStrategyPlugin`, `PluginLintRule`
-are exported from `@kalebtec/docsxai-engine`):
+are exported from `@docsxai/engine`):
 
 ```ts
 /** Plugin-scoped logger. Writes to stderr prefixed `[plugin:<ns>]` — stdout stays clean for CLI output. */
@@ -162,7 +162,7 @@ load-error status; the rest of the plugin set keeps working.
 
 ```ts
 // src/register.ts — a publisher that writes the projection to a JSON file.
-import type { PublisherContext, PublishResult } from "@kalebtec/docsxai-engine";
+import type { PublisherContext, PublishResult } from "@docsxai/engine";
 import { writeFile } from "node:fs/promises";
 
 export function register(api: {
@@ -190,14 +190,11 @@ no network calls.
 
 ## Wiring a workspace
 
-Two optional keys in the workspace's `.site-docs.json` activate plugins:
+Two optional keys in the workspace's `.docsxai.json` activate plugins:
 
 ```json
 {
-  "plugins": [
-    { "package": "@kalebtec/docsxai-plugin-confluence" },
-    { "path": "../my-local-plugin" }
-  ],
+  "plugins": [{ "package": "@docsxai/plugin-confluence" }, { "path": "../my-local-plugin" }],
   "plugin_capabilities": ["egress:*.atlassian.net"]
 }
 ```
@@ -205,13 +202,13 @@ Two optional keys in the workspace's `.site-docs.json` activate plugins:
 Then pin and verify:
 
 ```sh
-site-docs plugins sync <workspace>   # (re)write plugins-lock.json — never executes plugin code
-site-docs plugins list <workspace>   # status table; exit 1 if any plugin is not loaded
+docsxai plugins sync <workspace>   # (re)write plugins-lock.json — never executes plugin code
+docsxai plugins list <workspace>   # status table; exit 1 if any plugin is not loaded
 ```
 
 `plugins-lock.json` pins the sha256 of each plugin's register-module bytes.
 When the lock exists, every resolve verifies the bytes **before** importing;
-a mismatch fails closed with a "run `site-docs plugins sync`" message. Treat
+a mismatch fails closed with a "run `docsxai plugins sync`" message. Treat
 the lock like any other lockfile: commit it, and re-sync deliberately when
 you upgrade a plugin.
 

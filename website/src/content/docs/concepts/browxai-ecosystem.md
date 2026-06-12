@@ -15,14 +15,14 @@ stating plainly:
   accessibility tree augmented with a DOM walk, so heavy-SPA targets are not
   sparse), and its action primitives to explore the live app and pick
   locators.
-- **docsxai owns execution and doc emission.** `site-docs run` replays the
+- **docsxai owns execution and doc emission.** `docsxai run` replays the
   committed flow-file through the engine's own Playwright sessions - never
   through browxai, never through an agent. The doc pack, the viewer, the
   drift reports, and the publishers are all docsxai's side.
 - **The docsxai MCP server exposes meta-orchestration only.** Its
   [fourteen tools](/reference/mcp-tools/) run flows, lint, diagnose, and
   introspect the pack; none of them is a browser primitive. Keeping the two
-  MCP surfaces disjoint is what keeps `site-docs run` reproducible.
+  MCP surfaces disjoint is what keeps `docsxai run` reproducible.
 
 The two tools meet at the
 [actionability contract](/reference/actionability/): a shared element-state
@@ -41,11 +41,11 @@ everything that needs it (bring your own browser):
 1. Start a debug-port Chrome - `browxai chrome start --insecure` owns the
    lifecycle, or launch one manually with `--remote-debugging-port=9222`.
 2. The engineer logs in once, in that Chrome.
-3. `site-docs capture-auth <workspace> --cdp http://localhost:9222` reads the
+3. `docsxai capture-auth <workspace> --cdp http://localhost:9222` reads the
    session from it without closing it.
 4. browxai's attached-mode MCP entry drives discovery against the same
    Chrome, so the agent sees the authed app the engineer sees.
-5. `site-docs run --flow <name> --start-from <step> --cdp http://localhost:9222`
+5. `docsxai run --flow <name> --start-from <step> --cdp http://localhost:9222`
    validates each new step in seconds against the warm page state.
 
 One login, one browser, both tools. `browxai init <workspace>/.browxai`
@@ -68,7 +68,7 @@ Instead of authoring `flows/<name>.flow.yaml` step by step, drive the walk
 through browxai's action tools while a recording is active:
 `start_recording({ flowName })`, act through the page, attach callout copy
 per step with `record_annotate({ copy, arrow })`, then `end_recording()`
-emits a site-docs-flavoured YAML draft - `locators:` plus `steps:` with
+emits a docsxai-flavoured YAML draft - `locators:` plus `steps:` with
 hint-derived targets. Review it, fix anything content-keyed or
 hidden-duplicate-prone, lint it, and commit it. The draft is a starting
 point, not a finished flow; the review pass is where calibration earns its

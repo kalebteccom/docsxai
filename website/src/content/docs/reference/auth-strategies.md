@@ -1,6 +1,6 @@
 ---
 title: Auth strategies
-description: The full eleven-strategy catalogue for getting site-docs through your app's login - per-strategy options, creds_env keys, expiry behavior, user pools for parallel workers, and the local and backend session caches.
+description: The full eleven-strategy catalogue for getting docsxai through your app's login - per-strategy options, creds_env keys, expiry behavior, user pools for parallel workers, and the local and backend session caches.
 ---
 
 Every auth strategy reduces to the same artifact: a `storageState` (cookies
@@ -27,10 +27,10 @@ Three cross-cutting contracts:
 ## The descriptor
 
 Roles are declared in `<workspace>/auth/strategy.yaml`
-(schema `site-docs/auth-strategy@1`). Env-var names only:
+(schema `docsxai/auth-strategy@1`). Env-var names only:
 
 ```yaml
-schema: site-docs/auth-strategy@1
+schema: docsxai/auth-strategy@1
 default_role: editor
 roles:
   editor:
@@ -60,9 +60,9 @@ roles:
 ### `manual-capture`
 
 The zero-integration universal fallback for SSO, MFA, and conditional
-access. `site-docs capture-auth` opens an instrumented, headed Chrome; the
+access. `docsxai capture-auth` opens an instrumented, headed Chrome; the
 human logs in however they normally do, then triggers capture
-(`window.__siteDocs.capture()` in the console, or an injected button with
+(`window.__docsxai.capture()` in the console, or an injected button with
 `capture_trigger: button`). Options: `capture_trigger: console|button`. No
 `creds_env`. Deliberately reports no `expiresAt`: an interactive SSO login
 drops ephemeral IdP scratch cookies whose expiry is seconds out, so the
@@ -177,9 +177,9 @@ The `cache` block on each role controls reuse:
   Operator-local, gitignored.
 - `store: backend` relays a client-side-encrypted AES-256-GCM envelope
   through the backend so a team can share captured sessions. The encryption
-  key comes from `SITE_DOCS_CACHE_KEY` (a base64 32-byte key) and never
+  key comes from `DOCSX_CACHE_KEY` (a base64 32-byte key) and never
   leaves the client - the backend stores ciphertext it cannot read. Needs a
-  backend-bound workspace (`site-docs push` first).
+  backend-bound workspace (`docsxai push` first).
 - `ttl` - the fallback expiry: a duration (`30m`, `1h`, milliseconds) or
   `session`.
 - `auth_cookie` - the name of the app's real session cookie. When set, the

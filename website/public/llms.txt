@@ -2,7 +2,7 @@
 
 > Deterministic screenshot docs for web apps. An LLM-agnostic engine plus a Claude Code plugin that walks a running web app, follows written flows, and emits screenshot-rich user documentation. Calibration is AI-assisted and rare; execution is deterministic, agent-free, and CI-friendly.
 
-docsxai treats screenshot docs as a build artifact: a written flow-file is the source, the rendered doc pack is the output, and a re-run is the refresh. The engine ships the `site-docs` CLI, a deterministic Playwright-backed runtime, calibration helpers, and target-site auth strategies; sibling packages add the Claude Code plugin, a standalone MCP server, an authenticated doc-pack backend, a viewer/renderer, and publisher plugins for Starlight and Confluence.
+docsxai treats screenshot docs as a build artifact: a written flow-file is the source, the rendered doc pack is the output, and a re-run is the refresh. The engine ships the `docsxai` CLI, a deterministic Playwright-backed runtime, calibration helpers, and target-site auth strategies; sibling packages add the Claude Code plugin, a standalone MCP server, an authenticated doc-pack backend, a viewer/renderer, and publisher plugins for Starlight and Confluence.
 
 ## Start here
 
@@ -18,7 +18,7 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 
 ## Guides
 
-- [Agent runbook](https://docsxai.com/guides/agent-runbook/): hand a coding agent everything it needs to run site-docs against an app repo
+- [Agent runbook](https://docsxai.com/guides/agent-runbook/): hand a coding agent everything it needs to run docsxai against an app repo
 - [Running against an app repo](https://docsxai.com/guides/running-against-an-app-repo/): document an app without leaving a trace in its checkout
 - [CI recipes](https://docsxai.com/guides/ci-recipes/): deterministic doc refresh in your pipeline
 - [Writing plugins](https://docsxai.com/guides/writing-plugins/): the manifest, the four extension-point contracts, register(api), and a complete minimal publisher
@@ -27,7 +27,7 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 
 ## Reference
 
-- [CLI](https://docsxai.com/reference/cli/): every site-docs command and flag, with the help text's notes rendered per command
+- [CLI](https://docsxai.com/reference/cli/): every docsxai command and flag, with the help text's notes rendered per command
 - [Flow-file format](https://docsxai.com/reference/flow-file/): every field - steps, actions, waits, success, annotations, environment, redactions, extends
 - [Auth strategies](https://docsxai.com/reference/auth-strategies/): the eleven-strategy catalogue, the descriptor, user pools, and the session caches
 - [Plugins](https://docsxai.com/reference/plugins/): the manifest fields, the status enum, the lock file, the plugins CLI, and capability strings
@@ -37,14 +37,14 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 
 ## Packages
 
-- [@kalebtec/docsxai-engine](https://docsxai.com/packages/engine/): flow-file parser + deterministic runtime + the site-docs CLI
-- [@kalebtec/docsxai-plugin](https://docsxai.com/packages/plugin/): the Claude Code plugin
-- [@kalebtec/docsxai-mcp](https://docsxai.com/packages/mcp/): the standalone stdio MCP server
-- [@kalebtec/docsxai-backend](https://docsxai.com/packages/backend/): the authenticated doc-pack service
-- [@kalebtec/docsxai-viewer](https://docsxai.com/packages/viewer/): interactive viewer + burned-annotation renderer
-- [@kalebtec/docsxai-skill](https://docsxai.com/packages/skill/): the vendorable skill fallback
-- [@kalebtec/docsxai-plugin-confluence](https://docsxai.com/packages/plugin-confluence/): the Confluence publisher plugin
-- [@kalebtec/docsxai-plugin-starlight](https://docsxai.com/packages/plugin-starlight/): the Starlight site renderer plugin
+- [@docsxai/engine](https://docsxai.com/packages/engine/): flow-file parser + deterministic runtime + the docsxai CLI
+- [@docsxai/plugin](https://docsxai.com/packages/plugin/): the Claude Code plugin
+- [@docsxai/mcp](https://docsxai.com/packages/mcp/): the standalone stdio MCP server
+- [@docsxai/backend](https://docsxai.com/packages/backend/): the authenticated doc-pack service
+- [@docsxai/viewer](https://docsxai.com/packages/viewer/): interactive viewer + burned-annotation renderer
+- [@docsxai/skill](https://docsxai.com/packages/skill/): the vendorable skill fallback
+- [@docsxai/plugin-confluence](https://docsxai.com/packages/plugin-confluence/): the Confluence publisher plugin
+- [@docsxai/plugin-starlight](https://docsxai.com/packages/plugin-starlight/): the Starlight site renderer plugin
 
 ## Project
 

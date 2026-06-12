@@ -1,53 +1,53 @@
 ---
 title: CLI
-description: The full site-docs command reference - every command, every flag, and the operational notes that ship in the CLI's own help text, rendered per command.
+description: The full docsxai command reference - every command, every flag, and the operational notes that ship in the CLI's own help text, rendered per command.
 ---
 
-This page is generated from the engine source (the usage text `site-docs
---help` prints); flag spellings are exact. The binary is `site-docs` - the
-packages are named `@kalebtec/docsxai-*`, the command is not.
+This page is generated from the engine source (the usage text `docsxai
+--help` prints); flag spellings are exact. The binary is `docsxai` - the
+packages are named `@docsxai/*`, the command is not.
 
 ## Synopsis
 
 ```
-site-docs init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>] [--ttl <dur>]
+docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>] [--ttl <dur>]
                                [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                [--persist tmp] [--force]
-site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
-site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
-site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
-site-docs lint <workspace-dir> [--flow <name>] [--format text|json]
-site-docs flow-tree <workspace-dir> [--format text|json]
-site-docs diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
-site-docs style <workspace-dir> [--check] [--format text|json]
-site-docs zip <workspace-dir> [--out <output.zip>] [--include-viewer]
-site-docs baseline <workspace-dir> [--out <dir>]
-site-docs diff <workspace-dir> [--against <dir>] [--format json|md|text] [--fail-on warn|fail]
-site-docs export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
-site-docs export playwright <workspace-dir> [--flow <name>] [--out <dir>]
-site-docs plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
-site-docs login --backend-url <url>
-site-docs push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
-site-docs pull <workspace-dir> [--rev <id>]
-site-docs render <workspace-dir>
-site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
-site-docs --help
+docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
+docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
+docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
+docsxai flow-tree <workspace-dir> [--format text|json]
+docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
+docsxai style <workspace-dir> [--check] [--format text|json]
+docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
+docsxai baseline <workspace-dir> [--out <dir>]
+docsxai diff <workspace-dir> [--against <dir>] [--format json|md|text] [--fail-on warn|fail]
+docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
+docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]
+docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
+docsxai login --backend-url <url>
+docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
+docsxai pull <workspace-dir> [--rev <id>]
+docsxai render <workspace-dir>
+docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
+docsxai --help
 ```
 
 A _workspace_ (created by `init`) holds `flows/<flow>.flow.yaml`, `docs/`,
-`auth/strategy.yaml`, `.auth/`, `.viewer/`, and a `.site-docs.json` config.
-Put it OUTSIDE the app's source repo - site-docs documents a running app from
+`auth/strategy.yaml`, `.auth/`, `.viewer/`, and a `.docsxai.json` config.
+Put it OUTSIDE the app's source repo - docsxai documents a running app from
 outside and never writes into the app repo. `run` and `capture-auth` read
-`app_url` and `ignore_https_errors` from `.site-docs.json` if you do not pass
+`app_url` and `ignore_https_errors` from `.docsxai.json` if you do not pass
 the flags, and `--ignore-https-errors` accepts self-signed or invalid TLS
 (an app's local HTTPS dev cert, say).
 
 ## The core loop
 
-### `site-docs init`
+### `docsxai init`
 
 Scaffolds the workspace: `flows/`, `docs/`, `auth/`, `.auth/`, `.viewer/`, a
-`.gitignore`, a `README.md`, `auth/strategy.yaml`, and `.site-docs.json`
+`.gitignore`, a `README.md`, `auth/strategy.yaml`, and `.docsxai.json`
 (holding `app_url` plus `ignore_https_errors` so later commands need no
 flags). `--auth` must be `manual-capture` or `none`; `--ttl <dur>` sets the
 session-cache fallback expiry (`30m`, `1h`); `--capture-trigger` picks
@@ -56,10 +56,10 @@ between the devtools-console capture call and an injected on-page button;
 a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
 `--force` re-inits over an existing directory.
 
-### `site-docs capture-auth`
+### `docsxai capture-auth`
 
 Runs the role's auth strategy (for `manual-capture`: a headed, instrumented
-browser the engineer logs into; `window.__siteDocs.capture()` or an injected
+browser the engineer logs into; `window.__docsxai.capture()` or an injected
 button snapshots the session) and caches it to
 `<workspace-dir>/.auth/<role>.json` for subsequent runs. It prints the
 captured cookie jar so you can identify the app's real auth/session cookie.
@@ -70,7 +70,7 @@ It keeps a persistent Chrome profile at `<workspace>/.auth/chrome-profile/`
 _attach to an already-running Chrome_ (start it with
 `--remote-debugging-port=N --disable-web-security --user-data-dir=<dir>`)
 instead of launching one - use this to capture from the same Chrome the
-engineer is already logged into, so they do not log in twice; site-docs will
+engineer is already logged into, so they do not log in twice; docsxai will
 not close that Chrome, and `--cdp` ignores `--fresh`. `--headless` skips the
 headed window for strategies that do not need one.
 
@@ -81,7 +81,7 @@ the `ttl` guess. An interactive SSO login leaves ephemeral IdP scratch
 cookies, so the minimum cookie expiry is roughly "now" and must not be
 trusted. If unset or unfound, `ttl` (or a 1h default) is used.
 
-### `site-docs calibrate`
+### `docsxai calibrate`
 
 Takes a _structured flow-guide_ (a flow-file in YAML, or a `.md` with a
 `yaml` fenced block) and writes `flows/<name>.flow.yaml` plus a default
@@ -90,7 +90,7 @@ host agent - that is the plugin's calibrate skill, which then produces the
 flow-file; this CLI command covers only the deterministic structured-input
 case. `--name <flow>` overrides the flow name.
 
-### `site-docs inspect`
+### `docsxai inspect`
 
 Opens the app in a headless (or `--headed`) browser _with the cached session
 loaded_ and prints the page's `[data-testid]` elements, marking which are
@@ -104,7 +104,7 @@ for you. On a slow SPA, settle before the snapshot with `--wait <ms>`
 `capture-auth --cdp`, say) instead of launching; `--role <role>` picks which
 cached session to load.
 
-### `site-docs run`
+### `docsxai run`
 
 Executes flows headless and emits annotations plus screenshots. It launches
 Chromium; if no browser binary is present, install one with
@@ -125,7 +125,7 @@ Chromium; if no browser binary is present, install one with
   annotations MERGE into the existing `annotations.json` by step id; prior
   steps' annotations and screenshots are preserved.
 - `--cdp <endpoint>` attaches to a running Chrome (start it with
-  `--remote-debugging-port=N`) instead of launching one; site-docs will not
+  `--remote-debugging-port=N`) instead of launching one; docsxai will not
   close that Chrome. When `--cdp` is set, the cached storageState is NOT
   loaded into the context - the operator's Chrome owns its auth state.
 - `--concurrency <N>` runs up to N flows in parallel, each in its own
@@ -135,16 +135,16 @@ Chromium; if no browser binary is present, install one with
   `--cdp` is set. The target app must tolerate multiple sessions from one
   user.
 
-### `site-docs render`
+### `docsxai render`
 
 Builds the static viewer by spawning the `docsxai-viewer` bin, resolved in
-order: the `SITE_DOCS_VIEWER_BIN` env var (path to the viewer's bin script),
-the `@kalebtec/docsxai-viewer` package installed next to the engine, then
+order: the `DOCSX_VIEWER_BIN` env var (path to the viewer's bin script),
+the `@docsxai/viewer` package installed next to the engine, then
 `docsxai-viewer` on PATH. A launch failure reports all three attempts.
 
 ## Calibration aids
 
-### `site-docs lint`
+### `docsxai lint`
 
 Pure-static checks across the workspace's flow-files - no Playwright, no
 live page. The core rules cover deep `extends` chains, annotations anchored
@@ -155,14 +155,14 @@ prone to hidden duplicates, and more - the full R001-R010 table is in
 rules. Exit 1 if any warning or error; `--format json` emits
 machine-readable output for tooling.
 
-### `site-docs flow-tree`
+### `docsxai flow-tree`
 
 Prints the workspace's `extends` graph (root flows and their descendants),
 plus any orphans (flows whose `extends` parent is not in the workspace) and
 resolution issues (cycles, step-id collisions across the merge). Pure-static.
 Exit 1 if any issues.
 
-### `site-docs diagnose`
+### `docsxai diagnose`
 
 Gathers halt context for a specific step: the step's selector, `wait_for`,
 and `success`, the halt screenshot if one exists, and - with `--cdp` - a
@@ -173,7 +173,7 @@ that is the agent's explicit opt-in action. `--format json` emits
 machine-readable output for an agent to act on. Pair with
 `run --start-from <step-id> --cdp` to validate the fix in seconds.
 
-### `site-docs style`
+### `docsxai style`
 
 Initialises `docs/style.yaml` plus the derived `docs/style.json` if absent;
 otherwise validates the existing YAML against the schema and rederives the
@@ -185,7 +185,7 @@ command is the enforcement layer. `--format json` for tooling.
 
 ## Drift detection
 
-### `site-docs baseline`
+### `docsxai baseline`
 
 Snapshots the doc pack - `flows/`, `docs/<flow>/*.md`, `annotations.json`,
 `screenshots/`, and `docs/locators.yaml` - into `<ws>/.baseline/` (or
@@ -193,7 +193,7 @@ Snapshots the doc pack - `flows/`, `docs/<flow>/*.md`, `annotations.json`,
 against in CI. Refresh replaces the previous snapshot whole, so stale
 leftovers never read as drift.
 
-### `site-docs diff`
+### `docsxai diff`
 
 Compares the workspace against a baseline (default `<ws>/.baseline/`, or
 `--against <dir>`) and emits a deterministic drift report: per flow, step
@@ -207,10 +207,10 @@ warn).
 
 ## Packaging and export
 
-### `site-docs zip`
+### `docsxai zip`
 
 Packages the workspace's doc pack into a single archive for hand-off.
-Includes `flows/`, `docs/`, `.site-docs.json`, `auth/strategy.yaml` (env-var
+Includes `flows/`, `docs/`, `.docsxai.json`, `auth/strategy.yaml` (env-var
 names only, no creds), `README.md`. Excludes `.auth/` (operator-local
 session state), `**/halts/` (debug screenshots), and `.viewer/` by default
 (re-renderable from the pack; pass `--include-viewer` to bundle it). Defaults
@@ -219,7 +219,7 @@ output to `<workspace-name>.zip` in the current dir; override with
 deterministically - sorted entries, fixed mtime, fixed compression - so the
 same doc pack always produces a byte-identical archive.
 
-### `site-docs export adf`
+### `docsxai export adf`
 
 Projects the doc pack to Confluence Cloud ADF - pure and deterministic, zero
 HTTP. `--mode single` (default) emits one consolidated document; `--mode
@@ -232,7 +232,7 @@ agent hands these to the Atlassian MCP, or the
 all Confluence HTTP lives in that capability-declared plugin, never in the
 engine.
 
-### `site-docs export playwright`
+### `docsxai export playwright`
 
 Emits one self-contained Playwright `.spec.ts` per flow (`extends` resolved)
 into `<ws>/.export/tests/` (or `--out <dir>`): locators as consts, steps as
@@ -242,7 +242,7 @@ a header: regenerate, do not hand-edit.
 
 ## Plugins
 
-### `site-docs plugins list | info | sync`
+### `docsxai plugins list | info | sync`
 
 The workspace plugin runtime surface: `list` prints the status table (loaded
 or disabled, with reasons; exit 1 if any plugin is not loaded), `info
@@ -253,28 +253,28 @@ json`. Field-by-field detail is in the [plugins reference](/reference/plugins/).
 
 ## Backend
 
-### `site-docs login`
+### `docsxai login`
 
 Validates a bearer token against a backend URL - hits `/v1/health` and
-`/v1/workspaces`. Reads the token from the `SITE_DOCS_TOKEN` env var; prints
+`/v1/workspaces`. Reads the token from the `DOCSX_TOKEN` env var; prints
 what the backend sees on success, or a clear error. Stateless: it stores
 nothing. With `--oauth <workspace-dir>` it instead drives the full OAuth 2.1
 authorization-code + PKCE handshake against the backend and stores the tokens
 at `<workspace>/.auth/backend-token.json` (mode 0600); `push`, `pull`, and
 `run` pick them up from there.
 
-### `site-docs push`
+### `docsxai push`
 
 Serialises the workspace's doc pack (flows, annotations, screenshots, style,
 locators) and POSTs it as a new revision against the backend named in
-`.site-docs.json` (`backend_url`, plus optionally `backend_workspace_id` /
+`.docsxai.json` (`backend_url`, plus optionally `backend_workspace_id` /
 `backend_project_id` - created on first push if absent and persisted back to
 the config). Screenshot bytes travel as content-addressed blobs, HEAD-probed
 so unchanged PNGs are skipped. `--kind` defaults to `calibrate`; `--author`
 defaults to the OS user. The revision is finalized after upload - a sealed,
 immutable snapshot.
 
-### `site-docs pull`
+### `docsxai pull`
 
 Fetches a revision's artifacts back into the workspace files (default:
 `head`; `--rev <id>` for a named revision). Useful for syncing with a
