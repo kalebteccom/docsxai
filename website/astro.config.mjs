@@ -20,7 +20,7 @@ export default defineConfig({
       // static docs site.
       plugins: [starlightLinksValidator()],
       logo: {
-        src: "./src/assets/docsxai-app-icon.svg",
+        src: "./src/assets/docsxai-tile.svg",
       },
       components: {
         Footer: "./src/components/Footer.astro",
