@@ -29,7 +29,7 @@ This is the artifact the owner walks through line-by-line on flip day. The plann
 
 ## 4. npm trusted-publisher configuration (per published package)
 
-For each of the 6 published names — the unscoped `docsxai` stub plus the 5 published scoped packages on the registered `@docsxai` org, `@docsxai/backend`, `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/skill`, `@docsxai/viewer`:
+For each of the 6 published names — the unscoped `docsxai` meta-package (the batteries-included CLI install) plus the 5 published scoped packages on the registered `@docsxai` org, `@docsxai/backend`, `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/skill`, `@docsxai/viewer`:
 
 - [ ] Package exists on npm (publish a pre-release `0.0.0-trusted-publisher-setup` if needed, then deprecate).
 - [ ] Trusted publisher entry: repository `kalebteccom/docsxai`, workflow `.github/workflows/release.yml`, environment `release`.

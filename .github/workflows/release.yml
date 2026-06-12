@@ -15,9 +15,9 @@ name: release
 #     on npmjs.com under each of the 6 published names — see RELEASING.md).
 #
 # Publish surface (6 packages on tag; the @docsxai npm org is registered):
-#   - `docsxai`                       — pre-release throwing stub from
-#                                       packages/docsxai/ that defends
-#                                       the unscoped namespace
+#   - `docsxai`                       — batteries-included CLI meta-package
+#                                       from packages/docsxai/ (wraps the
+#                                       engine CLI; ships the viewer bin)
 #   - `@docsxai/backend`
 #   - `@docsxai/engine`
 #   - `@docsxai/plugin`
@@ -85,7 +85,7 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Upgrade npm (need >= 11.5.1 for trusted publishing)
         run: npm install -g npm@latest
-      - name: Publish docsxai stub with provenance
+      - name: Publish docsxai meta-package with provenance
         run: pnpm -F docsxai publish --provenance --access public --no-git-checks
 
   publish-scoped:

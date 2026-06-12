@@ -6,7 +6,7 @@
 
 > **OSS engine + Claude Code plugin that walks a web application, follows written flows, and emits screenshot-rich user documentation.** LLM-agnostic engine — the host agent supplies inference, the engine never calls a model API.
 
-> **Naming.** One name everywhere: GitHub repo `kalebteccom/docsxai`, CLI `docsxai`, npm packages `@docsxai/*` (org registered). The bare `docsxai` npm name will be claimed at the public flip with a pre-release stub that throws on import (see [`RELEASING.md`](RELEASING.md)); the real packages ship at `v1.0`.
+> **Naming.** One name everywhere: GitHub repo `kalebteccom/docsxai`, CLI `docsxai`, npm packages `@docsxai/*` (org registered). The bare `docsxai` npm package is the batteries-included CLI meta-package — one global install wraps `@docsxai/engine`'s CLI and ships `@docsxai/viewer` (see [`RELEASING.md`](RELEASING.md)); everything publishes at `v1.0`.
 
 The keystone bet: write a flow once (by hand, or via an agent-driven calibration cycle); replay it any time after that with **zero agent involvement and zero LLM calls** to produce fresh, deterministic docs. Calibration is rare and human-supervised; execution is cheap and CI-friendly.
 
@@ -30,7 +30,7 @@ pnpm -C packages/engine exec playwright-core install chromium
 pnpm -r build
 ```
 
-Once published, the packaged install is `pnpm add -g @docsxai/engine @docsxai/viewer`. From a source checkout, the `docsxai` CLI binary lands at `packages/engine/dist/cli.js`; two convenient ways to put it on `PATH`:
+Once published, the packaged install is `pnpm add -g docsxai` (the batteries-included meta-package: the `docsxai` CLI plus the viewer; `pnpm add -g @docsxai/engine @docsxai/viewer` is the granular equivalent). From a source checkout, the `docsxai` CLI binary lands at `packages/engine/dist/cli.js`; two convenient ways to put it on `PATH`:
 
 ```bash
 # Option A — wrapper scripts (sidesteps pnpm-global-store quirks):

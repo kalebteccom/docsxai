@@ -36,12 +36,14 @@ One name everywhere:
 
 | Name         | What it names                                                                                                                             |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `docsxai`    | The product, the GitHub repo `kalebteccom/docsxai`, this site, and the CLI binary.                                                        |
+| `docsxai`    | The product, the GitHub repo `kalebteccom/docsxai`, this site, the CLI binary, and the bare npm meta-package (`pnpm add -g docsxai`).     |
 | `DOCSX_*`    | The env-var prefix; the workspace config is `.docsxai.json`, schema ids are `docsxai/*@N`.                                                |
 | `@docsxai/*` | The npm packages: `@docsxai/engine`, `@docsxai/viewer`, `@docsxai/plugin`, `@docsxai/mcp`, `@docsxai/backend`, and the publisher plugins. |
 
-When you type a command, it is `docsxai`. When you install a package, it is
-`@docsxai/something`. Both name the same engine.
+When you type a command, it is `docsxai`. When you install the CLI, it is the
+bare `docsxai` package (which wraps `@docsxai/engine` and ships
+`@docsxai/viewer`); when you depend on the library, it is `@docsxai/engine`.
+All of it names the same engine.
 
 ## When to use it (and when not to)
 

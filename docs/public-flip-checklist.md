@@ -25,7 +25,7 @@ Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue
 - [ ] WebAuthn enrolled on the maintainer's npm account
 - [ ] Breakglass npm account created with separate keys + email
 - [x] `@docsxai` org scope claimed on npm (registered) - enforce "Require 2FA" on it before the first publish
-- [ ] `docsxai` unscoped package name claimed — ships as the pre-release throwing stub from `packages/docsxai/`, published by `release.yml` alongside the scoped packages
+- [ ] `docsxai` unscoped package name claimed — ships as the real batteries-included meta-package from `packages/docsxai/` (bin wraps `@docsxai/engine`'s CLI in-process; depends on `@docsxai/viewer`), published by `release.yml` alongside the scoped packages
 - [ ] Typosquat package names pre-claimed and deprecated (`doxai`, `docsai`, `docsx-ai`, etc.)
 - [ ] npm trusted-publisher configuration set per published name (repo + workflow + `release` environment binding) — 6 bindings total: `docsxai` unscoped plus the 5 published scoped packages on the registered `@docsxai` org, `@docsxai/{backend,engine,plugin,skill,viewer}`. `@docsxai/{mcp,plugin-confluence,plugin-starlight}` stay `private: true` / repo-only at the flip (documented as such; revisit post-flip) and need no bindings
 - [ ] GitHub `release` environment configured (required reviewer, branch restriction)

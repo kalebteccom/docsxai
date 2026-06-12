@@ -1,17 +1,17 @@
 # Releasing docsxai
 
-One name everywhere: the GitHub repo is `kalebteccom/docsxai` (renamed from `kalebteccom/automated-site-documentation-bot`), the CLI is `docsxai`, and the npm packages live on the registered `@docsxai` org (plus the bare `docsxai` package that holds the trusted-publishing claim). The old `site-docs` codename surfaces were retired in a pre-publish clean break (owner decision, 2026-06-12) — nothing had shipped, so there are no compatibility aliases.
+One name everywhere: the GitHub repo is `kalebteccom/docsxai` (renamed from `kalebteccom/automated-site-documentation-bot`), the CLI is `docsxai`, and the npm packages live on the registered `@docsxai` org (plus the bare `docsxai` package — the batteries-included CLI meta-package over `@docsxai/engine` + `@docsxai/viewer`). The old `site-docs` codename surfaces were retired in a pre-publish clean break (owner decision, 2026-06-12) — nothing had shipped, so there are no compatibility aliases.
 
-| Surface      | Name                                                                                                                                                                                                                                                                  |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub repo  | `kalebteccom/docsxai`                                                                                                                                                                                                                                                 |
-| CLI          | `docsxai` (the engine bin)                                                                                                                                                                                                                                            |
-| npm packages | published at the flip: `docsxai` (stub), `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/backend`, `@docsxai/skill`, `@docsxai/viewer`. Repo-only (`private: true`, revisitable post-flip): `@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-starlight` |
-| Product name | docsxai                                                                                                                                                                                                                                                               |
+| Surface      | Name                                                                                                                                                                                                                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub repo  | `kalebteccom/docsxai`                                                                                                                                                                                                                                                                                                   |
+| CLI          | `docsxai` (the engine bin)                                                                                                                                                                                                                                                                                              |
+| npm packages | published at the flip: `docsxai` (the meta-package — one global install for the full CLI), `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/backend`, `@docsxai/skill`, `@docsxai/viewer`. Repo-only (`private: true`, revisitable post-flip): `@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-starlight` |
+| Product name | docsxai                                                                                                                                                                                                                                                                                                                 |
 
 > **Status: prepared, deferred.** Everything below is _ready_. The actual public release is owner-deferred (2026-05-19) — the repo stays **private** and unpublished until the project's stable-surface work is done. This file is the mechanical checklist for _when_ that decision is taken; nothing here is to be executed before then.
 
-The repo is intentionally in a "one-flip-from-public" state: Apache-2.0 in place, READMEs/CONTRIBUTING/CHANGELOG written, npm metadata (`repository`/`homepage`/`bugs`/`keywords`) on every package, git history scrubbed of client identifiers (2026-05-15; a fresh full-history scrub re-runs as a pre-flip gate). The flip version is **v1.0.0**. Six packages publish at the flip — the bare `docsxai` stub plus `@docsxai/{engine,plugin,backend,skill,viewer}`; `@docsxai/{mcp,plugin-confluence,plugin-starlight}` and `@docsxai/website` keep `"private": true` and stay repo-only (revisitable after the flip). Publishing only happens through the OIDC workflow — no local `npm publish` path exists.
+The repo is intentionally in a "one-flip-from-public" state: Apache-2.0 in place, READMEs/CONTRIBUTING/CHANGELOG written, npm metadata (`repository`/`homepage`/`bugs`/`keywords`) on every package, git history scrubbed of client identifiers (2026-05-15; a fresh full-history scrub re-runs as a pre-flip gate). The flip version is **v1.0.0**. Six packages publish at the flip — the bare `docsxai` meta-package (the real package, not a stub: its bin runs `@docsxai/engine`'s CLI in-process and its dependency on `@docsxai/viewer` makes `docsxai render` work from one global install) plus `@docsxai/{engine,plugin,backend,skill,viewer}`; `@docsxai/{mcp,plugin-confluence,plugin-starlight}` and `@docsxai/website` keep `"private": true` and stay repo-only (revisitable after the flip). Publishing only happens through the OIDC workflow — no local `npm publish` path exists.
 
 ## Why deferred
 
@@ -24,7 +24,7 @@ Releases use **npm Trusted Publishing via GitHub OIDC** — no `NPM_TOKEN` exist
 - Tag-triggered only (`v*.*.*` on push). The workflow is unreachable from `pull_request*` events; PR-derived code can never request an OIDC token.
 - `permissions: {}` at workflow level, narrowed per job. The two publish jobs are the only places `id-token: write` exists.
 - `environment: release` gates the publish behind a required-reviewer manual approval (configured in GitHub once the repo flips public — pre-flip TODO below).
-- npm-side: the `docsxai` package is bound to this exact repo + workflow filename + environment name. Anything else trying to publish under our identity fails closed.
+- npm-side: every published name (the bare `docsxai` meta-package and the five scoped packages) is bound to this exact repo + workflow filename + environment name. Anything else trying to publish under our identity fails closed.
 - `--provenance` always — Sigstore attestation proves the artifact came from this workflow on this tagged commit.
 
 ## The flip (in order)
@@ -39,16 +39,16 @@ Each step is mechanical because the prep is done:
 6. **Repo visibility.** Flip the GitHub repo `kalebteccom/docsxai` to public. Confirm the README renders, the LICENSE is detected, CONTRIBUTING is linked.
 7. **Site + announce.** Deploy the docs site (`website/` via Netlify) and verify DNS, then announce. The operational ordering (publish → site deploy → DNS checks) lives in `docs/ai-context/release-process/public-flip-checklist.md`.
 
-## Stub release (name-claim) flow
+## The bare `docsxai` package (meta-package)
 
-The pre-v1.0 stub publish path exists only to reserve the `docsxai` name on npm and prove the OIDC trusted-publishing path end-to-end. Importing the stub throws. The real package ships at `v1.0`.
+`packages/docsxai/` is the official batteries-included install, published at v1.0 alongside the scoped packages — it replaced the earlier throwing name-claim stub (owner decision, 2026-06-12). Shape:
 
-1. Bump `version` in `packages/docsxai/package.json` (the stub uses `0.0.1-stub.0`, `0.0.1-stub.1`, etc. while we're claiming the name).
-2. Commit with `chore(release): vX.Y.Z`.
-3. Tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-4. The `release` workflow fires on tag push, waits for environment approval, then publishes with provenance.
+- `bin.mjs` resolves `@docsxai/engine`'s CLI entry (`@docsxai/engine/cli`) and runs it **in-process** — no spawn, no PATH dependence.
+- `index.mjs` / `index.d.mts` re-export the engine's library surface, so `import { parseFlowFile } from "docsxai"` works.
+- Its dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (`workspace:*` in-repo, real versions on publish). The viewer dependency is deliberate: one `npm i -g docsxai` puts the `docsxai-viewer` bin on the global path, so `docsxai render` works out of the box through the engine's layered viewer resolution.
+- No build step; the regression gate is `packages/docsxai/test/bin.test.ts`, which executes the bin as a subprocess (init + lint against a fixture workspace) and the library re-export.
 
-> **Note:** the stub lives at `packages/docsxai/` (a throwing `index.js` + README; the workspace root stays `private: true`). `release.yml` publishes it via the `publish-docsxai` job alongside the scoped packages.
+If a pre-v1.0 name-claim publish is still wanted before the flip, tag a pre-release version of this real package (`0.x`) — the OIDC path is identical; nothing stub-shaped remains.
 
 ## Workflow behavior
 
@@ -56,7 +56,7 @@ The pre-v1.0 stub publish path exists only to reserve the `docsxai` name on npm 
 
 - Trigger: `push` of a `v*.*.*` tag only.
 - A `build` job (Node 20 + 22 matrix, `contents: read`) gates the publish jobs: typecheck + build + test on the tagged commit.
-- Two publish jobs (`publish-docsxai` for the stub, `publish-scoped` for `@docsxai/{engine,plugin,backend,skill,viewer}`) on `environment: release` with `id-token: write` + `contents: read`. The scoped filter explicitly excludes the repo-only packages (`@docsxai/{mcp,plugin-confluence,plugin-starlight,website}`), matching their `"private": true` flags.
+- Two publish jobs (`publish-docsxai` for the bare meta-package, `publish-scoped` for `@docsxai/{engine,plugin,backend,skill,viewer}`) on `environment: release` with `id-token: write` + `contents: read`. The scoped filter explicitly excludes the repo-only packages (`@docsxai/{mcp,plugin-confluence,plugin-starlight,website}`), matching their `"private": true` flags.
 - A `github-release` job (`contents: write`) generates a CycloneDX SBOM and creates the GitHub Release for the tag with generated notes, SBOM attached.
 - Every job checks out with `persist-credentials: false` (ArtiPACKED mitigation).
 - Sets up Node against the npmjs.org registry, with no package-manager cache (cache-poisoning mitigation per universal-baseline rule 26).
@@ -68,7 +68,7 @@ The pre-v1.0 stub publish path exists only to reserve the `docsxai` name on npm 
 These items are blocked on either flipping the repo public or on registering the trust binding on npm. **Do not skip — the workflow will fail closed without them.**
 
 - [ ] **Configure GitHub `release` environment** with required reviewers. Requires the repo to be public OR Team/Enterprise plan (environments aren't available on free private repos). Restrict deployments to `main` and `release/*` branches.
-- [ ] **Register npm Trusted Publisher bindings** — one per published name, 6 total: the bare `docsxai` package plus the 5 scoped packages under the `@docsxai` org (org registered 2026-06-12): `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/backend`, `@docsxai/skill`, `@docsxai/viewer`. (`@docsxai/{mcp,plugin-confluence,plugin-starlight}` stay repo-only and need no binding until they flip.) On npmjs.com → package → Settings → Trusted Publishers, bind each to:
+- [ ] **Register npm Trusted Publisher bindings** — one per published name, 6 total: the bare `docsxai` meta-package plus the 5 scoped packages under the `@docsxai` org (org registered 2026-06-12): `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/backend`, `@docsxai/skill`, `@docsxai/viewer`. (`@docsxai/{mcp,plugin-confluence,plugin-starlight}` stay repo-only and need no binding until they flip.) On npmjs.com → package → Settings → Trusted Publishers, bind each to:
   - Repository: `kalebteccom/docsxai`
   - Workflow filename: `release.yml`
   - Environment name: `release`

@@ -153,9 +153,9 @@ First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight e
 - **`resolveWorkspacePath` is the only filesystem root.** No `cwd`-relative paths in engine handlers.
 - **Calibration mode and execution mode are split.** Calibration helpers (`calibrate.ts`, the plugin's skill surface) are agent-aware; execution (`flow-runtime.ts`, the keystone test) has no agent in the loop. Don't re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see [`PHASE-1.md`](../../archive/phase-plans/PHASE-1.md) postmortem).
 
-## `packages/docsxai/` — `docsxai` (stub)
+## `packages/docsxai/` — `docsxai` (meta-package)
 
-The unscoped name-claim package: a throwing `index.js` + README that defends the `docsxai` npm namespace and proves the OIDC publish path. No build, no runtime surface.
+The unscoped batteries-included CLI install: `bin.mjs` resolves `@docsxai/engine`'s CLI entry (`@docsxai/engine/cli`) and runs it in-process; `index.mjs`/`index.d.mts` re-export the engine's library surface; dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (the viewer dep is deliberate — one global install puts `docsxai-viewer` on the path so `docsxai render` works out of the box). No build step; gated by `packages/docsxai/test/bin.test.ts` (real subprocess: init + lint against a fixture workspace).
 
 ## `docs/`, `scripts/`
 

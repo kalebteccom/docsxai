@@ -12,9 +12,10 @@ will not commit to, and how to report a vulnerability.
 ## Supported versions
 
 docsxai is **pre-v1.0** and unpublished. At the public flip the bare
-`docsxai` npm name is claimed with a typosquat-defensive stub that throws
-on import (see [`RELEASING.md`](RELEASING.md)); the real packages ship at
-v1.0. Until then:
+`docsxai` npm name publishes as the real batteries-included CLI
+meta-package over `@docsxai/engine` + `@docsxai/viewer` (see
+[`RELEASING.md`](RELEASING.md)), alongside the scoped packages, at v1.0.
+Until then:
 
 | Version range              | Support level                                                                                                                                                               |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
