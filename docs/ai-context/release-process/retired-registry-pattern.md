@@ -17,11 +17,11 @@ treatment, so the parser must be able to tell them apart.
 Each input surface keeps a **retired registry**: a map of
 `formerly-valid-name → { since, replacement?, note }`.
 
-| Input kind                            | Behavior                                                                                   |
-| ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Currently valid                       | Accept.                                                                                    |
-| In the retired registry               | Accept the artifact, **warn once** (name + replacement + since), ignore the retired value. |
-| Unknown (never valid)                 | **Loud error** — it's a typo, not history.                                                 |
+| Input kind              | Behavior                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| Currently valid         | Accept.                                                                                    |
+| In the retired registry | Accept the artifact, **warn once** (name + replacement + since), ignore the retired value. |
+| Unknown (never valid)   | **Loud error** — it's a typo, not history.                                                 |
 
 Full removal of a retired entry happens only at a major version bump, with a
 `### Removed` CHANGELOG entry naming it.

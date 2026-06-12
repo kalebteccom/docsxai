@@ -1,6 +1,6 @@
 # Unit vs. keystone — the layer decision rule
 
-Read this when deciding *where* a new test belongs. The full philosophy and
+Read this when deciding _where_ a new test belongs. The full philosophy and
 mock-vs-real guidance live in [`qa-patterns.md`](qa-patterns.md); this page is
 the one-screen decision rule.
 
