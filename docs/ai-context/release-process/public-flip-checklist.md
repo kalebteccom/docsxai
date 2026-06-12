@@ -11,7 +11,9 @@ This is the artifact the owner walks through line-by-line on flip day. The plann
 
 ## 2. Git scrub — full history, not just HEAD
 
-- [ ] `trufflehog git file://. --results=verified,unknown --no-update` over the full history, including any branches that will outlive the flip. Resolve every verified hit (BFG / `git filter-repo` if needed; force-push to a fresh branch and re-tag).
+- [x] **History scrub executed 2026-06-12**: `git filter-repo --invert-paths` removed `docs/validation-prompt-codex.md` (the only blobs in all of history carrying internal `/Users/...` paths or the adopter identifier; verified by a full all-refs scan before and after, zero hits across 231 commits). HEAD tree bit-identical pre/post; main force-pushed; all 15 stale remote branches deleted (origin carries `main` only); local commits re-parented. Pre-scrub backup: `~/docsxai-pre-scrub-backup-20260612.bundle`.
+- [ ] **Residual, GitHub-retained PR refs**: 19 `refs/pull/*` survive server-side (not deletable by push) and still reference pre-scrub objects. Before the flip: ask GitHub Support to GC unreachable/PR-ref objects, or delete-and-recreate the private repo (clean slate; nothing external links it yet) and push the scrubbed history.
+- [ ] `trufflehog git file://. --results=verified,unknown --no-update` over the full history as the final pre-flip confirmation. Resolve any verified hit.
 - [ ] Grep the tracked tree for `/Users/`, `/home/`, internal hostnames, Kalebtec-only references, adopter names.
 - [ ] Confirm no `.env*`, no `*.storageState.json`, no `artifacts/`, no `.auth/` in the tracked tree.
 - [ ] `.claude/hooks/` scripts read cleanly to a stranger — no internal IDs, no internal paths.
