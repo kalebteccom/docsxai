@@ -7,8 +7,8 @@ import { dirname, join } from "node:path";
 
 const out = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "og.png");
 
-const amber = "#F59E0B";
-const gold = "#FBBF24";
+const amber = "#C8901C";
+const gold = "#FFCD78";
 const svg = `
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -27,16 +27,12 @@ const svg = `
   ${Array.from({ length: 13 }, (_, i) => `<line x1="${i * 100}" y1="0" x2="${i * 100}" y2="630" stroke="${amber}" stroke-opacity="0.05"/>`).join("")}
   ${Array.from({ length: 7 }, (_, i) => `<line x1="0" y1="${i * 100}" x2="1200" y2="${i * 100}" stroke="${amber}" stroke-opacity="0.05"/>`).join("")}
 
-  <!-- docsxai mark (white): orbit arcs, the doc page with a fold, the halo
-       dot. Glyph paths mirror brand/docsxai-mark-white.svg. -->
-  <g transform="translate(86,70) scale(0.708)" stroke="#FAFAF7" fill="none" stroke-linecap="butt">
-    <path d="M17.2 59.8A33 33 0 0 1 59.8 17.2" stroke-width="10"/>
-    <path d="M78.8 36.2A33 33 0 0 1 36.2 78.8" stroke-width="10"/>
-    <path d="M37.5 30.5H51.5L58.5 37.5V65.5H37.5Z" stroke-width="5.5"/>
-    <path d="M51.5 30.5V37.5H58.5" stroke-width="3.5"/>
-    <path d="M43 47.5H53M43 54.5H50" stroke-width="3.5"/>
-    <circle cx="72" cy="24" r="4" fill="#FAFAF7" stroke="none"/>
-    <circle cx="72" cy="24" r="7" stroke-width="2.25"/>
+  <!-- docsxai mark (white): tight automation loop plus writing strokes.
+       Glyph paths mirror brand/docsxai-mark-white.svg. -->
+  <g transform="translate(82,54) scale(1.15)" stroke="#FAFAF7" fill="none" stroke-linecap="butt">
+    <path d="M74.1 55A27 27 0 1 1 67.1 28.9" stroke-width="9"/>
+    <path d="M36 41H84" stroke-width="6.5"/>
+    <path d="M36 53H58" stroke-width="6.5"/>
   </g>
 
   <text x="86" y="300" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="150" letter-spacing="-6" fill="#fdf6e9">doc<tspan fill="${amber}">s</tspan><tspan fill="#fdf6e9">x</tspan>ai</text>

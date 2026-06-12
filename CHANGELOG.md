@@ -135,7 +135,7 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 #### Docs site (`@docsxai/website`)
 
-- **Public documentation site** (docsxai.com) — Astro 6 + Starlight 0.40 workspace package in `website/`, halo/amber brand layer, six-section IA (Start here / Concepts / Guides / Reference / Packages / Project). `sync-docs.mjs` generates the published ports from the canonical sources (`docs/*.md`, package READMEs, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`) with per-source-depth link rewriting and per-page strike/replace rules; `leak-guard.mjs` fails the build on links to internal doc trees, portfolio-repo references, absolute local paths, or client codenames; `scripts/prose-guard.mjs` bans em/en dashes and stock AI-voice tells from every published page. Netlify deploy config + root `docs:dev` / `docs:build` / `docs:preview` proxies.
+- **Public documentation site** (docsxai.com) — Astro 6 + Starlight 0.40 workspace package in `website/`, ember (golden-bronze) brand layer, six-section IA (Start here / Concepts / Guides / Reference / Packages / Project). `sync-docs.mjs` generates the published ports from the canonical sources (`docs/*.md`, package READMEs, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`) with per-source-depth link rewriting and per-page strike/replace rules; `leak-guard.mjs` fails the build on links to internal doc trees, portfolio-repo references, absolute local paths, or client codenames; `scripts/prose-guard.mjs` bans em/en dashes and stock AI-voice tells from every published page. Netlify deploy config + root `docs:dev` / `docs:build` / `docs:preview` proxies.
 
 ### Changed
 

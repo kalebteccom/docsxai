@@ -1,7 +1,7 @@
 /*
  * docsxai brand layer.
  *
- * Dark-first, built on the halo / amber palette over a deep ember-black
+ * Dark-first, built on the ember palette (golden bronze) over a deep ember-black
  * canvas, with a crafted warm-light mode and a frosted-glass treatment on the
  * landing and doc surfaces. Display type is Poppins; body is Inter; code is
  * JetBrains Mono. Everything here overrides Starlight's design tokens plus a
@@ -13,17 +13,17 @@
   --docsx-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --docsx-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Brand accent scale (amber / halo). */
-  --docsx-amber-100: #fef3c7;
-  --docsx-amber-200: #fde68a;
-  --docsx-amber-300: #fcd34d;
-  --docsx-amber-400: #fbbf24;
-  --docsx-amber-500: #f59e0b;
-  --docsx-amber-600: #d97706;
-  --docsx-amber-700: #b45309;
-  --docsx-gold: #fbbf24;
-  --docsx-halo-deep: #381c04;
-  --docsx-halo-bright: #b45309;
+  /* Brand accent scale (ember / golden bronze). */
+  --docsx-amber-100: #faf0d6;
+  --docsx-amber-200: #f3dfa6;
+  --docsx-amber-300: #e9c465;
+  --docsx-amber-400: #ddab38;
+  --docsx-amber-500: #c8901c;
+  --docsx-amber-600: #a87413;
+  --docsx-amber-700: #7a4e0c;
+  --docsx-gold: #ffcd78;
+  --docsx-halo-deep: #2a1505;
+  --docsx-halo-bright: #a06410;
 
   --sl-font: var(--docsx-font-body);
   --sl-font-mono: var(--docsx-font-mono);
@@ -35,11 +35,11 @@
 :root,
 :root[data-theme="dark"] {
   --sl-color-accent-low: #4a2e08;
-  --sl-color-accent: #d97706;
+  --sl-color-accent: #c8901c;
   --sl-color-accent-high: var(--docsx-amber-200);
   --sl-color-text-accent: var(--docsx-amber-300);
 
-  /* Deep ember-black canvas for the halo field. */
+  /* Deep ember-black canvas for the ember field. */
   --sl-color-bg: #140d04;
   --sl-color-bg-nav: color-mix(in srgb, #140d04 72%, transparent);
   --sl-color-bg-sidebar: #1f1407;
@@ -54,7 +54,7 @@
 /* Light theme. */
 :root[data-theme="light"] {
   --sl-color-accent-low: #faeec9;
-  --sl-color-accent: #b45309;
+  --sl-color-accent: #7a4e0c;
   --sl-color-accent-high: #78350f;
   --sl-color-text-accent: var(--docsx-amber-700);
 
@@ -143,8 +143,6 @@ main:has(.docsx-404) > .content-panel {
   gap: clamp(2rem, 5vw, 4rem);
   padding: clamp(2.5rem, 7vw, 5.5rem) 0 clamp(2rem, 4vw, 3rem);
   isolation: isolate;
-  /* Keep the decorative grid + glow from ever widening the page. */
-  overflow-x: clip;
 }
 @media (max-width: 52rem) {
   .docsx-hero {
@@ -723,7 +721,7 @@ main:has(.docsx-404) > .content-panel {
   letter-spacing: 0.04em;
 }
 
-/* ---- Glass + halo aurora ------------------------------------------------- */
+/* ---- Glass + halo wash ------------------------------------------------- */
 
 /* A fixed halo wash behind everything: an amber bloom at top-left and a gold
    bloom at top-right over the deep canvas. Subtle enough to read over. */
