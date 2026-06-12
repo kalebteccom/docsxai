@@ -1,0 +1,57 @@
+# docsxai
+
+> Deterministic screenshot docs for web apps. An LLM-agnostic engine plus a Claude Code plugin that walks a running web app, follows written flows, and emits screenshot-rich user documentation. Calibration is AI-assisted and rare; execution is deterministic, agent-free, and CI-friendly.
+
+docsxai treats screenshot docs as a build artifact: a written flow-file is the source, the rendered doc pack is the output, and a re-run is the refresh. The engine ships the `site-docs` CLI, a deterministic Playwright-backed runtime, calibration helpers, and target-site auth strategies; sibling packages add the Claude Code plugin, a standalone MCP server, an authenticated doc-pack backend, a viewer/renderer, and publisher plugins for Starlight and Confluence.
+
+## Start here
+
+- [Introduction](https://docsxai.com/getting-started/introduction/): what docsxai is and the doc loop it implements
+- [Installation](https://docsxai.com/getting-started/installation/): install the engine CLI and the Claude Code plugin
+- [Quickstart](https://docsxai.com/getting-started/quickstart/): init a workspace, write a flow, run it, render the pack
+
+## Concepts
+
+- [Architecture](https://docsxai.com/concepts/architecture/): how engine, plugin, MCP server, backend, and viewer fit together
+- [The doc pack](https://docsxai.com/concepts/doc-pack/): the workspace artifact set - flows, screenshots, annotations, style
+- [The browxai ecosystem](https://docsxai.com/concepts/browxai-ecosystem/): live-page discovery during calibration and the sibling tools
+
+## Guides
+
+- [Agent runbook](https://docsxai.com/guides/agent-runbook/): hand a coding agent everything it needs to run site-docs against an app repo
+- [Running against an app repo](https://docsxai.com/guides/running-against-an-app-repo/): document an app without leaving a trace in its checkout
+- [CI recipes](https://docsxai.com/guides/ci-recipes/): deterministic doc refresh in your pipeline
+- [Writing plugins](https://docsxai.com/guides/writing-plugins/): publishers, renderers, lint-rules, and auth-strategy extension points
+- [Security best practices](https://docsxai.com/guides/security-best-practices/): operational hardening for adopters
+- [Troubleshooting](https://docsxai.com/guides/troubleshooting/): halts, diagnose, lint, and the iteration loop
+
+## Reference
+
+- [CLI](https://docsxai.com/reference/cli/): every site-docs command
+- [Flow-file format](https://docsxai.com/reference/flow-file/): the YAML flow schema - steps, locators, waits, annotations, environment
+- [Auth strategies](https://docsxai.com/reference/auth-strategies/): manual capture and the scripted strategies
+- [Plugins](https://docsxai.com/reference/plugins/): the manifest, the lockfile, and capability declarations
+- [MCP tools](https://docsxai.com/reference/mcp-tools/): the docsxai-mcp tool surface
+- [Backend API](https://docsxai.com/reference/backend-api/): REST endpoints, OAuth 2.1, doc-pack persistence
+- [Actionability contract](https://docsxai.com/reference/actionability/): the portable element-state vocabulary shared with browxai
+
+## Packages
+
+- [@kalebtec/docsxai-engine](https://docsxai.com/packages/engine/): flow-file parser + deterministic runtime + the site-docs CLI
+- [@kalebtec/docsxai-plugin](https://docsxai.com/packages/plugin/): the Claude Code plugin
+- [@kalebtec/docsxai-mcp](https://docsxai.com/packages/mcp/): the standalone stdio MCP server
+- [@kalebtec/docsxai-backend](https://docsxai.com/packages/backend/): the authenticated doc-pack service
+- [@kalebtec/docsxai-viewer](https://docsxai.com/packages/viewer/): interactive viewer + burned-annotation renderer
+- [@kalebtec/docsxai-skill](https://docsxai.com/packages/skill/): the vendorable skill fallback
+- [@kalebtec/docsxai-plugin-confluence](https://docsxai.com/packages/plugin-confluence/): the Confluence publisher plugin
+- [@kalebtec/docsxai-plugin-starlight](https://docsxai.com/packages/plugin-starlight/): the Starlight site renderer plugin
+
+## Project
+
+- [Changelog](https://docsxai.com/project/changelog/): all notable changes
+- [Contributing](https://docsxai.com/project/contributing/): how to contribute
+- [Security](https://docsxai.com/project/security/): the security policy and how to report
+
+## Optional
+
+- [GitHub repository](https://github.com/kalebteccom/docsxai): source, issues, and releases

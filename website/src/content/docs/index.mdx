@@ -1,0 +1,171 @@
+---
+title: Deterministic screenshot docs
+description: Write a flow once. Replay it forever. docsxai walks your web app, follows written flows, and emits screenshot-rich user docs that re-render deterministically in CI.
+template: splash
+tableOfContents: false
+editUrl: false
+lastUpdated: false
+---
+
+<div class="docsx-hero not-content">
+  <div class="docsx-hero-copy">
+    <p class="docsx-kicker">Deterministic screenshot docs</p>
+    <h1 class="docsx-wordmark">doc<span class="x">s</span>xai</h1>
+    <div class="docsx-lede">
+      Write a flow once. Replay it forever. docsxai walks your running web
+      app, follows written flows, and emits screenshot-rich user docs that
+      re-render byte-identically in CI - no agent in the execution path.
+    </div>
+    <div class="docsx-cta">
+      <a href="/getting-started/introduction/" class="docsx-btn docsx-btn--primary">Get started</a>
+      <a href="/guides/agent-runbook/" class="docsx-btn docsx-btn--ghost">Agent runbook</a>
+    </div>
+    <div class="docsx-install">
+      <span class="pfx">$</span> pnpm add -g @kalebtec/docsxai-engine
+    </div>
+  </div>
+
+  <div class="docsx-window" aria-hidden="true">
+    <div class="docsx-window-bar">
+      <span class="docsx-window-dots"><i></i><i></i><i></i></span>
+      <span class="docsx-window-title">site-docs <span class="dot">·</span> run</span>
+    </div>
+    <div class="docsx-snap">
+      <div class="docsx-snap-note"># site-docs run ./workspace --flow publish-post</div>
+      <div class="row">
+        <span class="t-time">1/4</span>
+        <span class="t-kind">open-editor</span>
+        <span class="t-body">✓ 01-open-editor.png</span>
+      </div>
+      <div class="row">
+        <span class="t-time">2/4</span>
+        <span class="t-kind">write-draft</span>
+        <span class="t-body">✓ 02-write-draft.png</span>
+      </div>
+      <div class="row">
+        <span class="t-time">3/4</span>
+        <span class="t-kind">publish</span>
+        <span class="t-body">✓ 03-publish.png</span>
+      </div>
+      <div class="row">
+        <span class="t-time">4/4</span>
+        <span class="t-kind">confirm-live</span>
+        <span class="t-body">✓ 04-confirm-live.png</span>
+      </div>
+      <div class="row">
+        <span class="t-time">done</span>
+        <span class="t-kind">render</span>
+        <span class="t-body">docs/publish-post/ (4 annotated shots)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="docsx-diagram not-content">
+  <svg
+    class="docsx-loop-svg"
+    viewBox="0 0 960 210"
+    role="img"
+    aria-label="The doc loop: calibrate, run, render, publish, repeating."
+  >
+    <defs>
+      <marker
+        id="dx-arrow"
+        viewBox="0 0 10 10"
+        refX="8.5"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto-start-reverse"
+      >
+        <path d="M0 0 L10 5 L0 10 z" fill="var(--sl-color-text-accent)" />
+      </marker>
+    </defs>
+
+    <line class="dx-link" x1="202" y1="75" x2="262" y2="75" marker-end="url(#dx-arrow)" />
+    <line class="dx-link" x1="448" y1="75" x2="508" y2="75" marker-end="url(#dx-arrow)" />
+    <line class="dx-link" x1="694" y1="75" x2="754" y2="75" marker-end="url(#dx-arrow)" />
+
+    <path class="dx-link dx-loopback" d="M848 110 C 848 190, 110 190, 110 112" marker-end="url(#dx-arrow)" />
+    <text class="dx-loop-label" x="479" y="184" text-anchor="middle">replay</text>
+
+    <g class="dx-node">
+      <rect x="20" y="44" width="180" height="62" rx="12" />
+      <text class="dx-node-name" x="38" y="73">calibrate</text>
+      <text class="dx-node-sub" x="38" y="92">agent-assisted, once</text>
+    </g>
+    <g class="dx-node">
+      <rect x="266" y="44" width="180" height="62" rx="12" />
+      <text class="dx-node-name" x="284" y="73">run</text>
+      <text class="dx-node-sub" x="284" y="92">deterministic, agent-free</text>
+    </g>
+    <g class="dx-node">
+      <rect x="512" y="44" width="180" height="62" rx="12" />
+      <text class="dx-node-name" x="530" y="73">render</text>
+      <text class="dx-node-sub" x="530" y="92">halos, badges, callouts</text>
+    </g>
+    <g class="dx-node">
+      <rect x="758" y="44" width="180" height="62" rx="12" />
+      <text class="dx-node-name" x="776" y="73">publish</text>
+      <text class="dx-node-sub" x="776" y="92">viewer, Starlight, Confluence</text>
+    </g>
+
+  </svg>
+</div>
+
+<div class="docsx-section not-content">
+  <h2 class="docsx-section-title">Why it exists</h2>
+  <div class="docsx-section-sub">
+    Screenshot docs rot the moment the UI moves. docsxai treats them as a
+    build artifact: a written flow is the source, the rendered doc pack is
+    the output, and a re-run is the refresh.
+  </div>
+
+  <div class="docsx-grid">
+    <div class="docsx-card">
+      <span class="docsx-card-mark">// execution</span>
+      <h3>Deterministic by contract</h3>
+      <div class="docsx-card-text">
+        A frozen clock, pinned locale, timezone, and viewport: the same flow
+        against the same target state produces byte-identical screenshots,
+        keystone-enforced against real Chromium.
+      </div>
+    </div>
+    <div class="docsx-card">
+      <span class="docsx-card-mark">// calibration</span>
+      <h3>AI-assisted, once</h3>
+      <div class="docsx-card-text">
+        An agent helps you author the flow-file one time, through the Claude
+        Code plugin or any MCP host. After that, every run is agent-free:
+        no model in the loop, no token bill per refresh.
+      </div>
+    </div>
+    <div class="docsx-card">
+      <span class="docsx-card-mark">// output</span>
+      <h3>Annotated screenshots</h3>
+      <div class="docsx-card-text">
+        Halos, numbered badges, and callouts render from annotations.json
+        over clean captures. Redactions mask sensitive UI before any PNG
+        hits disk, so the pack is safe to share.
+      </div>
+    </div>
+    <div class="docsx-card">
+      <span class="docsx-card-mark">// pipeline</span>
+      <h3>CI-friendly publishing</h3>
+      <div class="docsx-card-text">
+        Re-run on change in your pipeline, then publish the pack as a static
+        viewer, an Astro Starlight site, or straight to Confluence through
+        the publisher plugin.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="docsx-cta docsx-cta--center not-content">
+  <a href="/getting-started/quickstart/" class="docsx-btn docsx-btn--primary">
+    Run your first flow
+  </a>
+  <a href="/reference/flow-file/" class="docsx-btn docsx-btn--ghost">
+    Read the flow-file format
+  </a>
+</div>

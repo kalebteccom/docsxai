@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://docsxai.com/sitemap-index.xml

@@ -1,0 +1,773 @@
+/*
+ * docsxai brand layer.
+ *
+ * Dark-first, built on the halo / amber palette over a deep ember-black
+ * canvas, with a crafted warm-light mode and a frosted-glass treatment on the
+ * landing and doc surfaces. Display type is Poppins; body is Inter; code is
+ * JetBrains Mono. Everything here overrides Starlight's design tokens plus a
+ * few hand-built components. No external CSS, no CDN fonts.
+ */
+
+:root {
+  --docsx-font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --docsx-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --docsx-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Brand accent scale (amber / halo). */
+  --docsx-amber-100: #fef3c7;
+  --docsx-amber-200: #fde68a;
+  --docsx-amber-300: #fcd34d;
+  --docsx-amber-400: #fbbf24;
+  --docsx-amber-500: #f59e0b;
+  --docsx-amber-600: #d97706;
+  --docsx-amber-700: #b45309;
+  --docsx-gold: #fbbf24;
+  --docsx-halo-deep: #381c04;
+  --docsx-halo-bright: #b45309;
+
+  --sl-font: var(--docsx-font-body);
+  --sl-font-mono: var(--docsx-font-mono);
+
+  --docsx-code-border: color-mix(in srgb, var(--sl-color-gray-5) 60%, transparent);
+}
+
+/* Dark theme (default). */
+:root,
+:root[data-theme="dark"] {
+  --sl-color-accent-low: #4a2e08;
+  --sl-color-accent: #d97706;
+  --sl-color-accent-high: var(--docsx-amber-200);
+  --sl-color-text-accent: var(--docsx-amber-300);
+
+  /* Deep ember-black canvas for the halo field. */
+  --sl-color-bg: #140d04;
+  --sl-color-bg-nav: color-mix(in srgb, #140d04 72%, transparent);
+  --sl-color-bg-sidebar: #1f1407;
+  --sl-color-hairline-shade: #38240f;
+  --docsx-grid-line: color-mix(in srgb, var(--docsx-amber-400) 10%, transparent);
+  --docsx-glow: color-mix(in srgb, var(--docsx-amber-400) 28%, transparent);
+  --docsx-glow-2: color-mix(in srgb, var(--docsx-gold) 22%, transparent);
+  --docsx-glass: color-mix(in srgb, #ffffff 5%, transparent);
+  --docsx-glass-border: color-mix(in srgb, #ffffff 11%, transparent);
+}
+
+/* Light theme. */
+:root[data-theme="light"] {
+  --sl-color-accent-low: #faeec9;
+  --sl-color-accent: #b45309;
+  --sl-color-accent-high: #78350f;
+  --sl-color-text-accent: var(--docsx-amber-700);
+
+  --sl-color-bg: #fdfaf3;
+  --sl-color-bg-nav: color-mix(in srgb, #fdfaf3 70%, transparent);
+  --sl-color-bg-sidebar: #f7efda;
+  --sl-color-hairline-shade: #ecdbb4;
+  --docsx-grid-line: color-mix(in srgb, var(--docsx-amber-700) 9%, transparent);
+  --docsx-glow: color-mix(in srgb, var(--docsx-amber-500) 16%, transparent);
+  --docsx-glow-2: color-mix(in srgb, var(--docsx-gold) 13%, transparent);
+  --docsx-glass: color-mix(in srgb, #ffffff 60%, transparent);
+  --docsx-glass-border: color-mix(in srgb, var(--docsx-amber-700) 13%, transparent);
+}
+
+/* Display type for headings and the site title. */
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+.sl-markdown-content h4,
+h1#_top,
+.site-title,
+.hero h1,
+.content-panel h1 {
+  font-family: var(--docsx-font-display);
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.site-title {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* Selection in the brand accent. */
+::selection {
+  background: color-mix(in srgb, var(--docsx-amber-400) 30%, transparent);
+  color: var(--sl-color-white);
+}
+
+/* Inline code reads as a chip, not a wall of background. */
+.sl-markdown-content :not(pre) > code {
+  background: color-mix(in srgb, var(--sl-color-accent-low) 55%, var(--sl-color-bg));
+  border: 1px solid var(--docsx-code-border);
+  border-radius: 0.35rem;
+  padding: 0.1em 0.38em;
+  font-size: 0.86em;
+}
+
+/* Links get a brand underline that thickens on hover. */
+.sl-markdown-content a:not(:where(.not-content *)) {
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 0.15s ease;
+}
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration-thickness: 2px;
+}
+
+/* ---- Landing page (splash) ---------------------------------------------- */
+
+/* On the splash, our custom hero / 404 replaces Starlight's page-title block. */
+main:has(.docsx-hero) > .content-panel:first-of-type,
+main:has(.docsx-404) > .content-panel:first-of-type {
+  display: none;
+}
+main:has(.docsx-hero) > .content-panel,
+main:has(.docsx-404) > .content-panel {
+  border-top: 0;
+}
+
+/* Center every landing block on a shared column width. */
+.docsx-wrap,
+.docsx-hero,
+.docsx-diagram,
+.docsx-section {
+  max-width: 1140px;
+  margin-inline: auto;
+}
+
+/* Hero: copy on the left, a product window on the right, vertically centered. */
+.docsx-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 4rem);
+  padding: clamp(2.5rem, 7vw, 5.5rem) 0 clamp(2rem, 4vw, 3rem);
+  isolation: isolate;
+  /* Keep the decorative grid + glow from ever widening the page. */
+  overflow-x: clip;
+}
+@media (max-width: 52rem) {
+  .docsx-hero {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding-top: 2.5rem;
+  }
+}
+
+.docsx-hero-copy {
+  min-width: 0;
+}
+
+/* A faint targeting grid + glow behind the hero, masked to fade out. */
+.docsx-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-image:
+    linear-gradient(to right, var(--docsx-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--docsx-grid-line) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(85% 80% at 50% 0%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(85% 80% at 50% 0%, #000 0%, transparent 72%);
+}
+.docsx-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -8%;
+  left: 34%;
+  width: 56%;
+  height: 95%;
+  background: radial-gradient(50% 60% at 60% 30%, var(--docsx-glow) 0%, transparent 70%);
+  filter: blur(26px);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docsx-hero *,
+  .docsx-diagram * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.docsx-wordmark {
+  font-family: var(--docsx-font-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 0.98;
+  margin: 0;
+}
+.docsx-wordmark .x {
+  color: var(--sl-color-text-accent);
+}
+
+.docsx-kicker {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sl-color-text-accent);
+  margin: 0 0 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.docsx-kicker::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--sl-color-text-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--docsx-amber-400) 25%, transparent);
+}
+
+.docsx-lede {
+  font-size: clamp(1.05rem, 1.6vw, 1.28rem);
+  line-height: 1.6;
+  max-width: 42ch;
+  color: var(--sl-color-gray-2);
+  margin: 1.8rem 0 3.25rem;
+}
+
+.docsx-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+}
+.docsx-cta a {
+  text-decoration: none;
+}
+.docsx-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--docsx-font-display);
+  font-weight: 600;
+  border-radius: 0.55rem;
+  padding: 0.8rem 1.3rem;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease;
+}
+.docsx-btn--primary {
+  background: linear-gradient(180deg, var(--docsx-amber-500), var(--docsx-amber-600));
+  color: #ffffff;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--docsx-amber-400) 60%, transparent),
+    0 10px 34px -10px var(--docsx-glow);
+}
+.docsx-btn--primary:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, var(--docsx-amber-400), var(--docsx-amber-500));
+}
+.docsx-btn--ghost {
+  border: 1px solid var(--sl-color-gray-5);
+  color: var(--sl-color-white);
+}
+.docsx-btn--ghost:hover {
+  border-color: var(--sl-color-text-accent);
+  transform: translateY(-2px);
+}
+
+/* Install one-liner under the CTAs. */
+.docsx-install {
+  margin-top: 2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--docsx-font-mono);
+  font-size: 0.85rem;
+  color: var(--sl-color-gray-2);
+  border: 1px solid var(--sl-color-hairline-shade);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  background: color-mix(in srgb, var(--sl-color-bg-sidebar) 60%, transparent);
+}
+.docsx-install .pfx {
+  color: var(--sl-color-text-accent);
+  user-select: none;
+}
+
+/* The product window on the right of the hero. */
+.docsx-window {
+  border: 1px solid var(--sl-color-hairline-shade);
+  border-radius: 0.85rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--sl-color-bg-sidebar) 88%, var(--sl-color-bg));
+  box-shadow:
+    0 30px 70px -34px rgba(0, 0, 0, 0.7),
+    0 0 0 1px color-mix(in srgb, var(--docsx-amber-400) 8%, transparent);
+}
+.docsx-window-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--sl-color-hairline-shade);
+  background: color-mix(in srgb, var(--sl-color-bg) 50%, transparent);
+}
+.docsx-window-dots {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+.docsx-window-dots i {
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 999px;
+  background: var(--sl-color-gray-5);
+}
+.docsx-window-title {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.74rem;
+  color: var(--sl-color-gray-3);
+}
+.docsx-window-title .dot {
+  color: var(--sl-color-text-accent);
+}
+
+/* The compact run transcript, laid out as a stack of event rows. */
+.docsx-snap {
+  margin: 0;
+  padding: 1.1rem 1.2rem 1.25rem;
+  font-family: var(--docsx-font-mono);
+  font-size: 0.82rem;
+  line-height: 1.8;
+  overflow-x: auto;
+}
+.docsx-snap-note {
+  color: var(--sl-color-gray-4);
+  margin-bottom: 0.5rem;
+}
+.docsx-snap .row {
+  display: grid;
+  grid-template-columns: 5.2rem 8.4rem 1fr;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+.docsx-snap .t-time {
+  color: var(--sl-color-gray-4);
+}
+.docsx-snap .t-kind {
+  color: var(--sl-color-text-accent);
+}
+.docsx-snap .t-body {
+  color: var(--sl-color-white);
+}
+:root[data-theme="light"] .docsx-snap .t-body {
+  color: var(--sl-color-gray-1);
+}
+/* Shrink on small screens so it fits without an inner scroll. */
+@media (max-width: 34rem) {
+  .docsx-snap {
+    font-size: 0.72rem;
+    padding: 0.9rem 1rem 1rem;
+  }
+  .docsx-snap .row {
+    grid-template-columns: 3.8rem 5.6rem 1fr;
+    gap: 0.3rem;
+  }
+}
+
+/* The doc loop, drawn as a flow diagram: calibrate -> run -> render ->
+   publish, with a dashed return arc back to the start. */
+.docsx-diagram {
+  margin-top: clamp(2rem, 5vw, 3rem);
+}
+.docsx-loop-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.docsx-loop-svg .dx-node rect {
+  fill: color-mix(in srgb, var(--sl-color-bg-sidebar) 70%, var(--sl-color-bg));
+  stroke: var(--sl-color-hairline-shade);
+  stroke-width: 1;
+  transition: stroke 0.15s ease;
+}
+.docsx-loop-svg .dx-node:hover rect {
+  stroke: color-mix(in srgb, var(--docsx-amber-400) 55%, transparent);
+}
+.docsx-loop-svg .dx-node-name {
+  fill: var(--sl-color-text-accent);
+  font-family: var(--docsx-font-display);
+  font-weight: 600;
+  font-size: 17px;
+}
+.docsx-loop-svg .dx-node-sub {
+  fill: var(--sl-color-gray-3);
+  font-family: var(--docsx-font-body);
+  font-size: 12.5px;
+}
+.docsx-loop-svg .dx-link {
+  stroke: var(--sl-color-text-accent);
+  stroke-width: 2;
+  fill: none;
+}
+.docsx-loop-svg .dx-loopback {
+  stroke-dasharray: 5 6;
+  opacity: 0.5;
+}
+.docsx-loop-svg .dx-loop-label {
+  fill: var(--sl-color-gray-4);
+  font-family: var(--docsx-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Feature grid. */
+.docsx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.docsx-card {
+  border: 1px solid var(--sl-color-hairline-shade);
+  border-radius: 0.75rem;
+  padding: 1.4rem;
+  background: color-mix(in srgb, var(--sl-color-bg-sidebar) 55%, transparent);
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.docsx-card:hover {
+  border-color: color-mix(in srgb, var(--docsx-amber-400) 45%, transparent);
+  transform: translateY(-3px);
+}
+.docsx-card h3 {
+  font-family: var(--docsx-font-display);
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+.docsx-card-text {
+  margin: 0;
+  color: var(--sl-color-gray-2);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+/* MDX wraps the multi-line text inside these <div>s in its own <p>. Neutralize
+   that inner paragraph so only the container controls spacing. */
+.docsx-lede > p,
+.docsx-section-sub > p,
+.docsx-card-text > p,
+.docsx-404-code > p,
+.docsx-404-msg > p {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  max-width: inherit;
+}
+.docsx-card .docsx-card-mark {
+  font-family: var(--docsx-font-mono);
+  color: var(--sl-color-text-accent);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 0.7rem;
+}
+
+.docsx-section {
+  margin-top: clamp(3.5rem, 8vw, 5.5rem);
+  text-align: center;
+}
+.docsx-section-title {
+  font-family: var(--docsx-font-display);
+  font-size: clamp(1.35rem, 3.2vw, 1.75rem);
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+}
+.docsx-section-sub {
+  color: var(--sl-color-gray-3);
+  max-width: 56ch;
+  margin: 0 auto 1.75rem;
+}
+.docsx-section .docsx-grid {
+  text-align: left;
+}
+
+/* Centered closing call to action. */
+.docsx-cta--center {
+  justify-content: center;
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+}
+
+/* ---- 404 ---------------------------------------------------------------- */
+.docsx-404 {
+  text-align: center;
+  padding: clamp(2rem, 9vw, 5.5rem) 0;
+  max-width: 40rem;
+  margin-inline: auto;
+}
+.docsx-404 .docsx-kicker {
+  margin-bottom: 0.75rem;
+}
+.docsx-404-code {
+  font-family: var(--docsx-font-display);
+  font-weight: 700;
+  font-size: clamp(5rem, 18vw, 9rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin: 0.25rem 0 0.75rem;
+}
+.docsx-404-code .x {
+  color: var(--sl-color-text-accent);
+}
+.docsx-404-msg {
+  color: var(--sl-color-gray-2);
+  font-size: 1.15rem;
+  margin-bottom: 2.25rem;
+}
+
+/* Site-wide credit line, appended after Starlight's default footer. */
+.docsx-credit {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sl-color-hairline-shade);
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--sl-color-gray-3);
+}
+.docsx-credit a {
+  color: var(--sl-color-text-accent);
+  text-decoration: none;
+}
+.docsx-credit a:hover {
+  text-decoration: underline;
+}
+.docsx-credit .sep {
+  margin: 0 0.5rem;
+  opacity: 0.5;
+}
+
+/* ---- Sidebar: non-collapsible, Vercel / Next.js / MCP-docs feel ---------- */
+
+/* Groups are always open: kill the toggle and the caret. */
+#starlight__sidebar summary {
+  pointer-events: none;
+  padding-block: 0.25rem;
+}
+#starlight__sidebar summary .caret {
+  display: none;
+}
+
+/* Section labels: small, uppercase, quiet, like the MCP sidebar. */
+#starlight__sidebar .group-label .large {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+
+/* Make the sidebar a column so the llms.txt link can pin to the bottom. */
+#starlight__sidebar .sidebar-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* Items: more vertical padding, rounded, subtle hover, refined active state. */
+#starlight__sidebar .top-level a {
+  display: block;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  color: var(--sl-color-gray-2);
+  transition:
+    background 0.13s ease,
+    color 0.13s ease;
+}
+#starlight__sidebar .top-level a:hover {
+  background: color-mix(in srgb, var(--sl-color-gray-5) 22%, transparent);
+  color: var(--sl-color-white);
+}
+#starlight__sidebar .top-level a[aria-current="page"] {
+  background: color-mix(in srgb, var(--sl-color-text-accent) 13%, transparent);
+  color: var(--sl-color-text-accent);
+  font-weight: 600;
+}
+#starlight__sidebar .top-level ul ul {
+  border-inline-start-color: var(--sl-color-hairline-shade);
+}
+
+/* The llms.txt affordance, pinned to the bottom of the sidebar. */
+.docsx-sidebar-llms {
+  margin: auto 0.5rem 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--sl-color-hairline-shade);
+  border-radius: 0.55rem;
+  font-family: var(--docsx-font-mono);
+  font-size: 0.82rem;
+  color: var(--sl-color-gray-2);
+  text-decoration: none;
+  background: color-mix(in srgb, var(--sl-color-bg-sidebar) 50%, transparent);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.docsx-sidebar-llms:hover {
+  border-color: color-mix(in srgb, var(--docsx-amber-400) 50%, transparent);
+  color: var(--sl-color-white);
+}
+.docsx-sidebar-llms .ico {
+  color: var(--sl-color-text-accent);
+  flex-shrink: 0;
+}
+.docsx-sidebar-llms .lbl {
+  flex: 1;
+}
+.docsx-sidebar-llms .ext {
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+/* ---- Content polish: smaller heading scale + comfortable measure -------- */
+
+/* Calmer heading sizes (Poppins runs large). Overrides Starlight's t-shirt
+   scale for both the page title and in-content headings, at every breakpoint. */
+:root {
+  --sl-text-h1: 1.95rem;
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.2rem;
+  --sl-text-h4: 1.05rem;
+  --sl-text-h5: 0.95rem;
+}
+.sl-markdown-content {
+  --sl-content-width: 50rem;
+}
+.sl-markdown-content :is(h1, h2, h3) {
+  letter-spacing: -0.015em;
+}
+
+/* Reference tables: top-align cells and tighten type. Starlight keeps tables
+   in a display:block + overflow-x container, so a genuinely wide one scrolls
+   within the column rather than bleeding under the right-hand sidebar. Tables
+   carrying paragraph-length content are written as lists instead, since that
+   is what they are. */
+.sl-markdown-content table {
+  font-size: 0.9rem;
+}
+.sl-markdown-content table :is(th, td) {
+  vertical-align: top;
+}
+
+/* ---- Trust-boundary diagram (security pages) ----------------------------- */
+.docsx-trust {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: 0.5rem 0 1.75rem;
+}
+.docsx-trust .tb-node rect {
+  fill: color-mix(in srgb, var(--sl-color-bg-sidebar) 70%, var(--sl-color-bg));
+  stroke: var(--sl-color-hairline-shade);
+  stroke-width: 1;
+}
+.docsx-trust .tb-title {
+  fill: var(--sl-color-white);
+  font-family: var(--docsx-font-display);
+  font-weight: 600;
+  font-size: 18px;
+}
+.docsx-trust .tb-sub {
+  fill: var(--sl-color-gray-3);
+  font-family: var(--docsx-font-body);
+  font-size: 13px;
+}
+.docsx-trust .tb-tag {
+  fill: var(--sl-color-text-accent);
+  font-family: var(--docsx-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.docsx-trust .tb-link {
+  stroke: var(--sl-color-text-accent);
+  stroke-width: 2;
+  fill: none;
+}
+.docsx-trust .tb-label {
+  fill: var(--sl-color-gray-3);
+  font-family: var(--docsx-font-mono);
+  font-size: 12px;
+}
+.docsx-trust .tb-untrusted rect {
+  fill: color-mix(in srgb, #f87171 13%, transparent);
+  stroke: #f87171;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.docsx-trust .tb-untrusted-title {
+  fill: var(--sl-color-white);
+  font-family: var(--docsx-font-body);
+  font-weight: 600;
+  font-size: 14px;
+}
+.docsx-trust .tb-untrusted-tag {
+  fill: #f87171;
+  font-family: var(--docsx-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* ---- Glass + halo aurora ------------------------------------------------- */
+
+/* A fixed halo wash behind everything: an amber bloom at top-left and a gold
+   bloom at top-right over the deep canvas. Subtle enough to read over. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(58% 44% at 12% -4%, var(--docsx-glow) 0%, transparent 60%),
+    radial-gradient(54% 42% at 92% 0%, var(--docsx-glow-2) 0%, transparent 58%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body::before {
+    animation: docsx-halo 24s ease-in-out infinite alternate;
+  }
+}
+@keyframes docsx-halo {
+  from {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Frosted top nav. */
+.header {
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+/* Frosted-glass surfaces: cards, the product window, and the sidebar affordance
+   float over the halo wash instead of sitting on a flat panel. */
+.docsx-card,
+.docsx-window,
+.docsx-sidebar-llms {
+  background: var(--docsx-glass);
+  border-color: var(--docsx-glass-border);
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+}
+.docsx-card:hover {
+  background: color-mix(in srgb, var(--docsx-amber-500) 9%, var(--docsx-glass));
+}
