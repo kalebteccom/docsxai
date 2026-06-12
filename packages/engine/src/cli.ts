@@ -16,14 +16,27 @@ import {
 import { calibrate } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
-import { BackendClient, BackendClientError } from "./backend-client.js";
+import {
+  BackendClient,
+  BackendClientError,
+  createBackendClient,
+  oauthLogin,
+  recordRunHistory,
+  saveBackendTokenFile,
+} from "./backend-client.js";
 import {
   buildDiagnoseReport,
   type DiagnoseReport,
   formatReportText,
   probeLive,
 } from "./diagnose.js";
-import { type DocPackPayloads, readDocPack, writeDocPack } from "./doc-pack-io.js";
+import {
+  type DocPackPayloads,
+  fetchScreenshotBlobs,
+  readDocPack,
+  uploadScreenshotBlobs,
+  writeDocPack,
+} from "./doc-pack-io.js";
 import { formatIssuesText, type LintIssue, lintFlow } from "./flow-lint.js";
 import { runFlow } from "./flow-runtime.js";
 import { buildFlowTree, formatTreeText } from "./flow-tree.js";
@@ -384,10 +397,13 @@ async function cmdRun(args: string[]): Promise<number> {
 
   let idx = 0;
   let anyFailed = false;
+  let okCount = 0;
+  const startedAt = Date.now();
   async function worker(): Promise<void> {
     while (idx < flows.length) {
       const flow = flows[idx++]!;
-      if (!(await runOne(flow))) anyFailed = true;
+      if (await runOne(flow)) okCount++;
+      else anyFailed = true;
     }
   }
   const workers = Math.min(concurrency, flows.length);
@@ -396,6 +412,17 @@ async function cmdRun(args: string[]): Promise<number> {
       `run: running ${flows.length} flows with ${workers} parallel worker(s)…\n`,
     );
   await Promise.all(Array.from({ length: workers }, () => worker()));
+
+  // Backend-bound workspaces get a run record appended; offline-tolerant (warn, never fail the run).
+  const history = await recordRunHistory({
+    workspaceDir: projectDir,
+    config: wsCfg ?? {},
+    ok: !anyFailed,
+    durationMs: Date.now() - startedAt,
+    summary: `${okCount}/${flows.length} flows ok`,
+  });
+  if (history.warning) process.stderr.write(`run: warning — ${history.warning}\n`);
+
   return anyFailed ? 1 : 0;
 }
 
@@ -1076,12 +1103,42 @@ async function cmdZip(args: string[]): Promise<number> {
 }
 
 async function cmdLogin(args: string[]): Promise<number> {
-  const { flags } = parseFlags(args);
+  const { positionals, flags } = parseFlags(args);
   const backendUrl =
     typeof flags.get("backend-url") === "string" ? (flags.get("backend-url") as string) : undefined;
   if (!backendUrl) {
     process.stderr.write(`login: --backend-url <url> required\n`);
     return 2;
+  }
+  const oauthFlag = flags.get("oauth");
+  if (oauthFlag !== undefined) {
+    // OAuth 2.1 authorization-code + PKCE against the backend's authorization server. Tokens land
+    // at <workspace>/.auth/backend-token.json (mode 0600); push/pull/run pick them up from there.
+    // The flag parser hands `--oauth <dir>` the dir as the flag value; bare `--oauth` reads it
+    // from the positional.
+    const workspaceDir = typeof oauthFlag === "string" ? oauthFlag : positionals[0];
+    if (!workspaceDir) {
+      process.stderr.write(
+        `login: --oauth requires a <workspace-dir> (tokens are stored at <workspace>/.auth/backend-token.json)\n`,
+      );
+      return 2;
+    }
+    try {
+      const tokens = await oauthLogin({
+        backendUrl,
+        onAuthorizeUrl: (u) => {
+          process.stdout.write(`login: open this URL in your browser to authorize:\n  ${u}\n`);
+        },
+      });
+      const storedAt = await saveBackendTokenFile(workspaceDir, tokens);
+      process.stdout.write(
+        `login: ok. tokens stored at ${storedAt} (access token expires ${new Date(tokens.expires_at).toISOString()})\n`,
+      );
+      return 0;
+    } catch (e) {
+      process.stderr.write(`login: ${(e as Error).message}\n`);
+      return 1;
+    }
   }
   if (!process.env.SITE_DOCS_TOKEN) {
     process.stderr.write(
@@ -1166,7 +1223,7 @@ async function cmdPush(args: string[]): Promise<number> {
 
   let client: BackendClient;
   try {
-    client = new BackendClient({ baseUrl: wsCfg.backend_url });
+    client = await createBackendClient({ baseUrl: wsCfg.backend_url, workspaceDir: projectDir });
   } catch (e) {
     process.stderr.write(`push: ${(e as Error).message}\n`);
     return 1;
@@ -1198,6 +1255,18 @@ async function cmdPush(args: string[]): Promise<number> {
       author,
     });
     const payloads = await readDocPack(projectDir);
+    if (payloads.screenshots) {
+      // Screenshot bytes go up as content-addressed blobs (HEAD-probed, so unchanged PNGs are
+      // skipped); the artifact slot carries only the sha256 manifest.
+      const { uploaded, skipped } = await uploadScreenshotBlobs(
+        projectDir,
+        payloads.screenshots,
+        client,
+      );
+      process.stdout.write(
+        `push: screenshots — ${uploaded} blob(s) uploaded, ${skipped} already on the backend\n`,
+      );
+    }
     let pushed = 0;
     for (const [key, p] of Object.entries(payloads) as Array<
       [keyof DocPackPayloads, DocPackPayloads[keyof DocPackPayloads]]
@@ -1206,8 +1275,9 @@ async function cmdPush(args: string[]): Promise<number> {
       await client.putArtifact(binding.wsId, binding.projectId, rev.id, key, p);
       pushed++;
     }
+    await client.finalizeRevision(binding.wsId, binding.projectId, rev.id);
     process.stdout.write(
-      `push: revision ${rev.id} (${kindArg}, ${author}) — ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded\n`,
+      `push: revision ${rev.id} (${kindArg}, ${author}) — ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded, finalized\n`,
     );
     return 0;
   } catch (e) {
@@ -1237,7 +1307,7 @@ async function cmdPull(args: string[]): Promise<number> {
 
   let client: BackendClient;
   try {
-    client = new BackendClient({ baseUrl: wsCfg.backend_url });
+    client = await createBackendClient({ baseUrl: wsCfg.backend_url, workspaceDir: projectDir });
   } catch (e) {
     process.stderr.write(`pull: ${(e as Error).message}\n`);
     return 1;
@@ -1259,7 +1329,11 @@ async function cmdPull(args: string[]): Promise<number> {
         artifact,
       );
     }
-    const r = await writeDocPack(projectDir, payloads);
+    // The screenshots artifact is a sha256 manifest — fetch the bytes behind it (integrity-checked).
+    const screenshotBytes = payloads.screenshots
+      ? await fetchScreenshotBlobs(payloads.screenshots, client)
+      : undefined;
+    const r = await writeDocPack(projectDir, payloads, screenshotBytes ? { screenshotBytes } : {});
     process.stdout.write(
       `pull: revision ${rev.id} (${rev.kind}, ${rev.author}) — wrote ${r.filesWritten} file(s)\n`,
     );
