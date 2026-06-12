@@ -38,7 +38,7 @@ The `calibrate` command — extracts a flow-file from a structured guide. Calibr
 
 ### `packages/engine/src/flow-lint.ts`
 
-Static checks across flow-files. R001–R004 today (and counting). Pure analysis on parsed flows; no browser touch.
+Static checks across flow-files. R001–R010 today (and counting), plus `extraRules` injection — the lint-rules plugin extension point. Pure analysis on parsed flows; no browser touch.
 
 ### `packages/engine/src/flow-tree.ts`
 
@@ -60,9 +60,21 @@ Doc-pack hand-off packager. Reads from the workspace root via `workspace.ts`; wr
 
 `resolveWorkspacePath` chokepoint. **All filesystem IO goes through this.** No `cwd`-relative paths in handler code; the workspace argument from the CLI is the only filesystem root.
 
-### `packages/engine/src/doc-pack.ts`, `doc-pack-io.ts`, `pipeline.ts`
+### `packages/engine/src/doc-pack.ts`, `doc-pack-io.ts`
 
-Doc-pack shape + IO + the high-level pipeline that composes `calibrate` / `run` / `render` / `zip`. Composition only.
+Doc-pack shape (zod schemas incl. `environment` + `redactions`) + payload IO. `doc-pack-io.ts` carries the `screenshots@2` sha256 blob manifests for backend transport. (The old `pipeline.ts` Stage contract is gone — agent orchestration lives at the harness/MCP layer, never in-engine.)
+
+### `packages/engine/src/plugins/`
+
+The workspace plugin runtime v1: manifest (`package.json#docsxai`), resolve-once loader with namespace prefixing + dependsOn cycle rejection + capability subset checks + sha256 lock, registry exposing publishers / renderers / lint-rules / auth-strategies. Lifecycle contract: `docs/ai-context/plugin-runtime/lifecycle-and-namespacing.md`. Publisher plugins are the only sanctioned wiki/VCS egress path.
+
+### `packages/engine/src/auth/`
+
+The target-site auth catalogue — one module per strategy (api-login, jwt-injection, ui-form, http-basic, pat-header, mtls, email-otp, totp, webauthn, manual-capture, test-backdoor) behind `makeStrategy` + the `registerAuthStrategy` plugin hook. `auth.ts` at the package root is a re-export shim.
+
+### `packages/engine/src/export/`
+
+Pure projections out of a doc pack (no HTTP): `adf.ts` (Confluence ADF + attachments manifest; `site-docs export adf`). New delivery formats land here as exporters; pushing them is publisher-plugin territory.
 
 ### `packages/engine/src/backend-client.ts`
 

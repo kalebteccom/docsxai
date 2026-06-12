@@ -219,6 +219,13 @@ site-docs render "$WORKSPACE"               # builds $WORKSPACE/.viewer/index.ht
 
 If `run` halts on a step (a locator or success-criterion failure) that's _drift_, not a flake — don't retry blindly; report the failing step id + what changed, and propose a minimal flow-file edit (the `diagnose` playbook is `$TOOL_REPO/packages/plugin/skills/diagnose/SKILL.md`). Genuine flakiness → add async primitives (`wait_for: network_idle` / `element_stable` / a timeout) to the flow-file, documented inline.
 
+## Publishing the docs (optional)
+
+Two delivery shapes, both downstream of `run`:
+
+- **Agentic path** (recommended for engagements): `site-docs export adf "$WORKSPACE"` writes `$WORKSPACE/.export/adf/{projection,attachments}.json` — hand these to the Atlassian MCP (or any wiki tool the host agent drives) and let the human review the upload. The engine never holds wiki credentials on this path.
+- **Direct push** (CI/backend automation): configure the workspace's publisher plugin (`.site-docs.json` → `plugins` + `plugin_capabilities`, e.g. `@kalebtec/docsxai-plugin-confluence` with `egress:*.atlassian.net`) and invoke `confluence:push` with the projection. Idempotent by content-sha — re-publishing an unchanged pack mutates nothing. Burned screenshots (`docsxai-viewer burn "$WORKSPACE"`) are what land on static surfaces; run `burn` before exporting.
+
 ## Step 6 — tear down, verify clean
 
 ```bash
