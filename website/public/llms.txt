@@ -6,33 +6,33 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 
 ## Start here
 
-- [Introduction](https://docsxai.com/getting-started/introduction/): what docsxai is and the doc loop it implements
-- [Installation](https://docsxai.com/getting-started/installation/): install the engine CLI and the Claude Code plugin
-- [Quickstart](https://docsxai.com/getting-started/quickstart/): init a workspace, write a flow, run it, render the pack
+- [Introduction](https://docsxai.com/getting-started/introduction/): what docsxai is, the two-mode bet, the naming table, and when to use it over a recorder
+- [Installation](https://docsxai.com/getting-started/installation/): npm install, the from-source build, the Chromium one-shot, and verification
+- [Quickstart](https://docsxai.com/getting-started/quickstart/): init a workspace, capture auth, author a first flow, run it, render the viewer
 
 ## Concepts
 
-- [Architecture](https://docsxai.com/concepts/architecture/): how engine, plugin, MCP server, backend, and viewer fit together
-- [The doc pack](https://docsxai.com/concepts/doc-pack/): the workspace artifact set - flows, screenshots, annotations, style
-- [The browxai ecosystem](https://docsxai.com/concepts/browxai-ecosystem/): live-page discovery during calibration and the sibling tools
+- [Architecture](https://docsxai.com/concepts/architecture/): the calibration/execution split, the engine-never-calls-models contract, and the BrowserDriver seam
+- [The doc pack](https://docsxai.com/concepts/doc-pack/): the on-disk layout, each artifact's role, and the six versioned schemas
+- [The browxai ecosystem](https://docsxai.com/concepts/browxai-ecosystem/): the discovery/execution boundary, the CDP-attach calibration shape, and the recording accelerator
 
 ## Guides
 
 - [Agent runbook](https://docsxai.com/guides/agent-runbook/): hand a coding agent everything it needs to run site-docs against an app repo
 - [Running against an app repo](https://docsxai.com/guides/running-against-an-app-repo/): document an app without leaving a trace in its checkout
 - [CI recipes](https://docsxai.com/guides/ci-recipes/): deterministic doc refresh in your pipeline
-- [Writing plugins](https://docsxai.com/guides/writing-plugins/): publishers, renderers, lint-rules, and auth-strategy extension points
+- [Writing plugins](https://docsxai.com/guides/writing-plugins/): the manifest, the four extension-point contracts, register(api), and a complete minimal publisher
 - [Security best practices](https://docsxai.com/guides/security-best-practices/): operational hardening for adopters
-- [Troubleshooting](https://docsxai.com/guides/troubleshooting/): halts, diagnose, lint, and the iteration loop
+- [Troubleshooting](https://docsxai.com/guides/troubleshooting/): the halt-cause vocabulary, the diagnose loop, locator gotchas, wait tuning, and the lint rules
 
 ## Reference
 
-- [CLI](https://docsxai.com/reference/cli/): every site-docs command
-- [Flow-file format](https://docsxai.com/reference/flow-file/): the YAML flow schema - steps, locators, waits, annotations, environment
-- [Auth strategies](https://docsxai.com/reference/auth-strategies/): manual capture and the scripted strategies
-- [Plugins](https://docsxai.com/reference/plugins/): the manifest, the lockfile, and capability declarations
-- [MCP tools](https://docsxai.com/reference/mcp-tools/): the docsxai-mcp tool surface
-- [Backend API](https://docsxai.com/reference/backend-api/): REST endpoints, OAuth 2.1, doc-pack persistence
+- [CLI](https://docsxai.com/reference/cli/): every site-docs command and flag, with the help text's notes rendered per command
+- [Flow-file format](https://docsxai.com/reference/flow-file/): every field - steps, actions, waits, success, annotations, environment, redactions, extends
+- [Auth strategies](https://docsxai.com/reference/auth-strategies/): the eleven-strategy catalogue, the descriptor, user pools, and the session caches
+- [Plugins](https://docsxai.com/reference/plugins/): the manifest fields, the status enum, the lock file, the plugins CLI, and capability strings
+- [MCP tools](https://docsxai.com/reference/mcp-tools/): the fourteen docsxai-mcp tools and their structured result contract
+- [Backend API](https://docsxai.com/reference/backend-api/): every endpoint - revisions, blobs, the auth-cache relay, OAuth 2.1, and the GitHub webhook
 - [Actionability contract](https://docsxai.com/reference/actionability/): the portable element-state vocabulary shared with browxai
 
 ## Packages
