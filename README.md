@@ -131,4 +131,10 @@ See [**CONTRIBUTING.md**](CONTRIBUTING.md).
 
 ## License
 
-[Apache-2.0](LICENSE).
+Code is [Apache-2.0](LICENSE).
+
+The **docsxai name and logo are trademarks of Kalebtec** and are not
+covered by the Apache License (Apache-2.0 §6 withholds trademark
+rights). The brand assets under [`brand/`](brand/) are
+all-rights-reserved (see [`brand/LICENSE`](brand/LICENSE)). See
+[TRADEMARKS.md](TRADEMARKS.md) for the full brand policy.
