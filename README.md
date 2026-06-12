@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="brand/docsxai-favicon.svg" width="96" height="96" alt="docsxai">
+</p>
+
 # docsxai
 
 > **OSS engine + Claude Code plugin that walks a web application, follows written flows, and emits screenshot-rich user documentation.** LLM-agnostic engine — the host agent supplies inference, the engine never calls a model API.
