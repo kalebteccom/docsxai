@@ -4,9 +4,9 @@ Authoritative, agent-agnostic working rules for this repository. Every harness l
 
 ## Substrate at a glance
 
-docsxai is an LLM-agnostic engine + Claude Code plugin that walks a web application, follows written flows, and emits screenshot-rich user documentation. The engine ships the `site-docs` CLI binary, a deterministic Playwright-backed runtime, calibration-aid helpers (`lint`, `diagnose`, `flow-tree`, `style`), the flow-file parser, and the target-site auth strategies. The plugin is the first-class invocation surface that drives calibration through any MCP-speaking host agent. A small authenticated backend persists doc packs. Codename `automated-site-documentation-bot` (GitHub + `site-docs` CLI); product name `docsxai` (npm scope `@kalebtec/docsxai-*`).
+docsxai is an LLM-agnostic engine + Claude Code plugin that walks a web application, follows written flows, and emits screenshot-rich user documentation. The engine ships the `docsxai` CLI binary, a deterministic Playwright-backed runtime, calibration-aid helpers (`lint`, `diagnose`, `flow-tree`, `style`), the flow-file parser, and the target-site auth strategies. The plugin is the first-class invocation surface that drives calibration through any MCP-speaking host agent. A small authenticated backend persists doc packs. The product, the CLI, and the npm scope all share one name: `docsxai` (GitHub repo `kalebteccom/docsxai`, npm org `@docsxai`).
 
-The architecture splits into two modes: **calibration** (AI-assisted, rare; host agent + browser bridge author flows) and **execution** (deterministic, continuous; `site-docs run` replays the doc pack with zero agent involvement, zero LLM calls). The engine never imports a model-provider SDK — that boundary is load-bearing.
+The architecture splits into two modes: **calibration** (AI-assisted, rare; host agent + browser bridge author flows) and **execution** (deterministic, continuous; `docsxai run` replays the doc pack with zero agent involvement, zero LLM calls). The engine never imports a model-provider SDK — that boundary is load-bearing.
 
 ## Operating rules
 
@@ -20,7 +20,7 @@ The architecture splits into two modes: **calibration** (AI-assisted, rare; host
 
 ### Naming policy
 
-Codename surfaces are deliberately stable and must **not** be renamed: the CLI command `site-docs`, env vars `SITE_DOCS_*`, the HTTP header `Site-Docs-API-Version`, the workspace config `.site-docs.json`, and schema ids `site-docs/*@N`. New packages and bins use `docsxai-*` naming (`@kalebtec/docsxai-<name>`, bin `docsxai-<name>`); new env vars follow `SITE_DOCS_*`.
+One name everywhere: the product, the GitHub repo (`kalebteccom/docsxai`), the CLI command (`docsxai`), and the npm org (`@docsxai`, registered) are all `docsxai`. Scoped packages are `@docsxai/<name>` (bins `docsxai-<name>`); the bare `docsxai` package is the engine's name-claim stub. Env vars use the `DOCSX_*` prefix (family precedent: browxai's `BROWX_*`), the workspace config file is `.docsxai.json`, schema ids are `docsxai/<thing>@N`, and the backend API version header is `Docsxai-Api-Version`. This replaced the old codename-stability rule (the `site-docs` CLI / `SITE_DOCS_*` / `.site-docs.json` surfaces) by owner decision on 2026-06-12 — a pre-publish clean break with no compatibility aliases; nothing had shipped, so nothing was kept. The only deliberate survivor: the plugin runtime keeps `site-docs` in `RESERVED_NAMESPACES` so no plugin can squat the old identity.
 
 ## Commands the agent must not run
 
@@ -43,14 +43,14 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 
 ## Repo map
 
-- `packages/engine/` — `@kalebtec/docsxai-engine`. The flow-file parser + deterministic runtime, the `site-docs` CLI (`init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `plugins`, `export`, `push`, `pull`, `login`, plus drift tooling as it lands), the target-site auth-strategy catalogue (`src/auth/`), the workspace plugin runtime (`src/plugins/` — publishers / renderers / lint-rules / auth-strategies), pure exporters (`src/export/`), the `BrowserDriver` interface + `PlaywrightDriver` implementation, calibration-aid helpers. The engine never calls a model API — that's the load-bearing contract.
-- `packages/plugin/` — `@kalebtec/docsxai-plugin`. The Claude Code plugin: calibrate + diagnose skills, run/render/login commands, internal MCP registration. The recommended invocation surface for agent-driven workflows.
-- `packages/backend/` — `@kalebtec/docsxai-backend`. Authenticated doc-pack persistence service: REST + per-resource endpoints, filesystem or in-memory store, content-addressed blobs, finalized linear-immutable revisions, OAuth 2.1 + PKCE (CI bearer path retained), client-side-encrypted auth-cache relay, and the GitHub App webhook surface (signed dispatch → deterministic execution → output strategies). Loopback by default; hosted deployment is owner-gated.
-- `packages/skill/` — `@kalebtec/docsxai-skill`. Optional vendorable `.claude/skills/` fallback that delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.
-- `packages/mcp/` — `@kalebtec/docsxai-mcp`. Standalone stdio MCP server (`docsxai-mcp` bin) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives — live-page discovery is browxai's. Tool registry discipline: `docs/ai-context/tool-registration/mcp-tool-registry.md`.
-- `packages/viewer/` — `@kalebtec/docsxai-viewer`. The rendering surface: single-file interactive viewer (halo + numbered badges + Popper-placed callouts over clean screenshots), the browser-free `burn` renderer (Satori + resvg baked annotations for static delivery), and the Astro Starlight site emitter (production docs-site output).
-- `packages/plugin-confluence/` — `@kalebtec/docsxai-plugin-confluence`. First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins.
-- `packages/plugin-starlight/` — `@kalebtec/docsxai-plugin-starlight`. First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter.
+- `packages/engine/` — `@docsxai/engine`. The flow-file parser + deterministic runtime, the `docsxai` CLI (`init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `plugins`, `export`, `push`, `pull`, `login`, plus drift tooling as it lands), the target-site auth-strategy catalogue (`src/auth/`), the workspace plugin runtime (`src/plugins/` — publishers / renderers / lint-rules / auth-strategies), pure exporters (`src/export/`), the `BrowserDriver` interface + `PlaywrightDriver` implementation, calibration-aid helpers. The engine never calls a model API — that's the load-bearing contract.
+- `packages/plugin/` — `@docsxai/plugin`. The Claude Code plugin: calibrate + diagnose skills, run/render/login commands, internal MCP registration. The recommended invocation surface for agent-driven workflows.
+- `packages/backend/` — `@docsxai/backend`. Authenticated doc-pack persistence service: REST + per-resource endpoints, filesystem or in-memory store, content-addressed blobs, finalized linear-immutable revisions, OAuth 2.1 + PKCE (CI bearer path retained), client-side-encrypted auth-cache relay, and the GitHub App webhook surface (signed dispatch → deterministic execution → output strategies). Loopback by default; hosted deployment is owner-gated.
+- `packages/skill/` — `@docsxai/skill`. Optional vendorable `.claude/skills/` fallback that delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.
+- `packages/mcp/` — `@docsxai/mcp`. Standalone stdio MCP server (`docsxai-mcp` bin) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives — live-page discovery is browxai's. Tool registry discipline: `docs/ai-context/tool-registration/mcp-tool-registry.md`.
+- `packages/viewer/` — `@docsxai/viewer`. The rendering surface: single-file interactive viewer (halo + numbered badges + Popper-placed callouts over clean screenshots), the browser-free `burn` renderer (Satori + resvg baked annotations for static delivery), and the Astro Starlight site emitter (production docs-site output).
+- `packages/plugin-confluence/` — `@docsxai/plugin-confluence`. First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins.
+- `packages/plugin-starlight/` — `@docsxai/plugin-starlight`. First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter.
 - `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
 - `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — archived phase closure summaries (impl-repo mirrors of the portfolio `roadmap.md`; kept for design-rationale archaeology, not live references).
 - `RELEASING.md` — gated go-public checklist (release is owner-deferred).
@@ -61,19 +61,19 @@ Safe by default. The engine reads URLs the operator provides, captures screensho
 
 Surface-by-surface:
 
-| Surface         | Trust posture                                                                                                                                                                              |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Engine (CLI)    | No model API calls — ever. Reads target URLs the operator names; writes only under the configured workspace root. Auth strategies cache cookies/tokens; secrets never appear in artifacts. |
-| Plugin          | Runs inside Claude Code's plugin sandbox. Delegates execution to the engine binary. Calibration skills emit structured questions; commands are deterministic engine invocations.           |
-| Backend         | Stateless HTTP surface, loopback by default. OAuth 2.1 auth wires hosted deployment post-MVP. No code execution surface beyond CRUD on doc-pack resources.                                 |
-| Viewer          | Static HTML; no runtime fetch from third-party CDNs. CSP `default-src 'none'` posture on emitted pages.                                                                                    |
-| `site-docs run` | Deterministic. No agent in the loop. Same flow-file + same target state → byte-identical doc pack (keystone-enforced).                                                                     |
+| Surface       | Trust posture                                                                                                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Engine (CLI)  | No model API calls — ever. Reads target URLs the operator names; writes only under the configured workspace root. Auth strategies cache cookies/tokens; secrets never appear in artifacts. |
+| Plugin        | Runs inside Claude Code's plugin sandbox. Delegates execution to the engine binary. Calibration skills emit structured questions; commands are deterministic engine invocations.           |
+| Backend       | Stateless HTTP surface, loopback by default. OAuth 2.1 auth wires hosted deployment post-MVP. No code execution surface beyond CRUD on doc-pack resources.                                 |
+| Viewer        | Static HTML; no runtime fetch from third-party CDNs. CSP `default-src 'none'` posture on emitted pages.                                                                                    |
+| `docsxai run` | Deterministic. No agent in the loop. Same flow-file + same target state → byte-identical doc pack (keystone-enforced).                                                                     |
 
 Egress boundary: the engine's only built-in outbound HTTP path is the backend client (`backend-client.ts`), besides the target-site navigation Playwright drives. Wiki/VCS egress lives exclusively in capability-declared publisher plugins and the backend — the engine core emits projections (files/payloads) only.
 
 ## Build + run discipline — the dist-rebuild trap
 
-`site-docs` runs the compiled `packages/engine/dist/cli.js`. **Source changes are NOT live until `pnpm -r build`.** A stale `dist/` that predates a runtime change can crash the CLI at startup or, worse, silently run old behaviour against new tests.
+`docsxai` runs the compiled `packages/engine/dist/cli.js`. **Source changes are NOT live until `pnpm -r build`.** A stale `dist/` that predates a runtime change can crash the CLI at startup or, worse, silently run old behaviour against new tests.
 
 - After any source change, rebuild: `pnpm -r build`.
 - A running Claude Code / Codex session may hold the plugin daemon process in memory. Node's `import()` is one-shot at boot. Any `dist/` rebuild after the daemon started means the running daemon is executing stale code. **Restart the daemon and surface the new PID explicitly to the operator** before declaring the change verified.
@@ -84,7 +84,7 @@ Egress boundary: the engine's only built-in outbound HTTP path is the backend cl
 The engine has two modes — **calibration** (AI-assisted, rare) and **execution** (deterministic, continuous). The split is load-bearing:
 
 - The engine **never** calls a model API. The host agent supplies inference at calibration time; execution has no agent in the loop.
-- `site-docs run` reproduces a doc pack byte-identically from the same flow-file + same target state. The keystone test asserts this against a real browser.
+- `docsxai run` reproduces a doc pack byte-identically from the same flow-file + same target state. The keystone test asserts this against a real browser.
 - Adding model-provider code anywhere in `packages/{engine,plugin,backend,viewer,skill}/` is a contract violation. The future commercial SaaS surface is the only place provider SDKs live, and it's not in this repo.
 
 Write-time signal beats run-time control. `actionable()`, the halt-cause prefix, `lint`, `diagnose`, `flow-tree` — these let the calibration agent decide _before_ committing a step whether it'll hold. Future contract work biases here; do not re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see the `docs/archive/phase-plans/PHASE-1.md` postmortem).
@@ -99,7 +99,7 @@ The engine sits behind a `BrowserDriver` interface, not hard-wired to Playwright
 
 ## Workspace + paths
 
-All file IO is workspace-rooted, never `cwd`. A `site-docs` workspace is the directory passed as the CLI argument (e.g. `~/site-docs/my-app`); all artifacts (flow-files, `annotations.json`, screenshots, locator manifest, auth descriptor, halt context, viewer output) live under it. Internal Kalebtec paths do not appear in code, comments, tests, or public docs.
+All file IO is workspace-rooted, never `cwd`. A `docsxai` workspace is the directory passed as the CLI argument (e.g. `~/docsxai/my-app`); all artifacts (flow-files, `annotations.json`, screenshots, locator manifest, auth descriptor, halt context, viewer output) live under it. Internal Kalebtec paths do not appear in code, comments, tests, or public docs.
 
 ## Worktree conventions
 
