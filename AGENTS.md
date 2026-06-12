@@ -52,7 +52,7 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 - `packages/plugin-confluence/` — `@docsxai/plugin-confluence`. First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins.
 - `packages/plugin-starlight/` — `@docsxai/plugin-starlight`. First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter.
 - `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
-- `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — archived phase closure summaries (impl-repo mirrors of the portfolio `roadmap.md`; kept for design-rationale archaeology, not live references).
+- `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — archived phase closure summaries; kept for design-rationale archaeology, not live references.
 - `RELEASING.md` — gated go-public checklist (release is owner-deferred).
 
 ## Trust + execution posture
@@ -111,9 +111,9 @@ Three doc surfaces with distinct contracts:
 
 - **`docs/`** — public adopter contract. Runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`) and cross-repo contracts (`actionability-contract.md`, `browxai-asks.md`). Every public behavior change updates the relevant runbook.
 - **Colocated `README.md`** — per-package internal contracts (`packages/engine/README.md`, `packages/plugin/README.md`, …). Each package describes its own surface, not the whole repo.
-- **`docs/archive/phase-plans/PHASE-N.md`** — archived phase closure summaries; mirrored the portfolio `roadmap.md` from `project-ideas/projects/automated-site-documentation-bot/` at the time each phase closed. Source of truth for current spec/scope is the portfolio repo; these are kept for design-rationale archaeology.
+- **`docs/archive/phase-plans/PHASE-N.md`** — archived phase closure summaries, snapshotted as each phase closed. Source of truth for current spec/scope is the repo-local docs (`AGENTS.md`, `docs/`, `docs/ai-context/`); these archives are kept for design-rationale archaeology.
 
-Every behavior-change diff includes a docs-impact pass: update the relevant runbook, update `CHANGELOG.md`, update `AGENTS.md` if a rule changed, mirror in the portfolio `progress.md` if scope or shape moved.
+Every behavior-change diff includes a docs-impact pass: update the relevant runbook, update `CHANGELOG.md`, update `AGENTS.md` if a rule changed, and surface scope/shape movement to the owner so the internal planning archive stays current.
 
 ## What to read first
 

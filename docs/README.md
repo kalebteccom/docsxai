@@ -1,7 +1,11 @@
 # Docs
 
-Design notes, ADRs, and developer docs for the implementation.
+Design notes, runbooks, and developer docs for docsxai. This tree — together with
+`AGENTS.md` at the repo root and the agent-facing rationale under
+[`ai-context/`](ai-context/) — is the source of truth for _what_ the project is
+and _how_ it is built.
 
-The **canonical spec and roadmap** live in the `project-ideas` portfolio repo, under
-`projects/automated-site-documentation-bot/` — that is the source of truth for _what_
-we're building and _why_. This `docs/` tree is for _how_ (implementation-level decisions).
+Start with [`agent-runbook.md`](agent-runbook.md) (the hand-to-an-agent calibration
+workflow) and [`running-against-an-app-repo.md`](running-against-an-app-repo.md);
+the cross-repo contracts are [`actionability-contract.md`](actionability-contract.md)
+and [`browxai-asks.md`](browxai-asks.md).

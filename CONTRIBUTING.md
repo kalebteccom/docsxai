@@ -4,7 +4,7 @@ Thanks for your interest. docsxai is Apache-2.0 licensed; contributions are welc
 
 ## Where the design lives
 
-This repo is the _implementation_. The **canonical spec, roadmap, and progress log** live in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio repo under `projects/automated-site-documentation-bot/`. Read those first if you're changing scope or design shape; treat them as the source of truth and update them in lockstep with implementation changes.
+The docs in this repo are the public source of truth: `AGENTS.md` (operating rules + repo map), the runbooks under `docs/`, and the design rationale under `docs/ai-context/`. Read those first if you're changing scope or design shape, and update them in lockstep with implementation changes. (Pre-public planning history lives in the maintainer's internal planning archive; nothing contributors need is kept there.)
 
 For browser-bridge / discovery-driver concerns, the cross-repo contract is at [`docs/browxai-asks.md`](docs/browxai-asks.md); the portable actionability predicate is at [`docs/actionability-contract.md`](docs/actionability-contract.md).
 
@@ -96,7 +96,7 @@ We require contributors to sign off on commits with `git commit -s`. This adds a
 3. Update `CHANGELOG.md` under `## Unreleased`.
 4. Open a PR; describe the _why_.
 
-For non-trivial changes, open an issue first so we can align on shape — the design docs in the portfolio repo are the place to anchor that discussion.
+For non-trivial changes, open an issue first so we can align on shape — the issue (anchored on the relevant `docs/` runbook or `docs/ai-context/` page) is the place for that discussion.
 
 ## Stability & the public surface
 
