@@ -132,9 +132,9 @@ describe("webauthn strategy — choreography on a fake page", () => {
       launched = true;
       return new RecordingPage();
     }, {});
-    await expect(
-      s.authenticate(ctx({ ...OPTIONS, username_selector: "#user" })),
-    ).rejects.toThrow(/creds_env must map "username" \(<UNSET>\)/);
+    await expect(s.authenticate(ctx({ ...OPTIONS, username_selector: "#user" }))).rejects.toThrow(
+      /creds_env must map "username" \(<UNSET>\)/,
+    );
     expect(launched).toBe(false);
   });
 

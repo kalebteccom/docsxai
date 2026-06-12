@@ -63,9 +63,7 @@ describe("ui-form strategy — plain form login", () => {
   it("dismisses the overlay, fills, submits, and captures the session cookie + expiresAt", async () => {
     const { strategy, pages } = strategyWith();
     const before = Date.now();
-    const r = await strategy.authenticate(
-      ctx({ ...BASE_OPTIONS, success_selector: "#welcome" }),
-    );
+    const r = await strategy.authenticate(ctx({ ...BASE_OPTIONS, success_selector: "#welcome" }));
     const session = r.storageState.cookies.find((c) => c.name === "session");
     expect(session).toBeDefined();
     expect(session!.httpOnly).toBe(true);
@@ -100,7 +98,10 @@ describe("ui-form strategy — plain form login", () => {
   it("fails with a selector-pointing config error on bad credentials — never echoing values", async () => {
     const { strategy } = strategyWith();
     const attempt = strategy.authenticate(
-      ctx({ ...BASE_OPTIONS, success_selector: "#welcome" }, { username: FIXTURE_USER, password: "wrong-pass" }),
+      ctx(
+        { ...BASE_OPTIONS, success_selector: "#welcome" },
+        { username: FIXTURE_USER, password: "wrong-pass" },
+      ),
     );
     await expect(attempt).rejects.toThrow(AuthStrategyConfigError);
     await expect(attempt).rejects.toThrow(/success_selector "#welcome"/);
@@ -170,7 +171,11 @@ describe("ui-form strategy — TOTP hop (server verifies a real RFC-6238 code)",
   const TOTP_OPTIONS = {
     ...BASE_OPTIONS,
     success_selector: "#welcome",
-    totp: { secret_env: "UI_FORM_TOTP_SECRET", otp_selector: "#otp", submit_selector: "#otp-submit" },
+    totp: {
+      secret_env: "UI_FORM_TOTP_SECRET",
+      otp_selector: "#otp",
+      submit_selector: "#otp-submit",
+    },
   };
 
   it("generates the current code from the secret env var and completes the login", async () => {

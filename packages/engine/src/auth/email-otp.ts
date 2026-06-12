@@ -84,7 +84,9 @@ export function httpJsonInboxProvider(options: Record<string, unknown>): InboxPr
   };
 }
 
-const inboxProviders = new Map<string, InboxProviderFactory>([["http-json", httpJsonInboxProvider]]);
+const inboxProviders = new Map<string, InboxProviderFactory>([
+  ["http-json", httpJsonInboxProvider],
+]);
 
 /** Register (or override) an inbox provider under `name` — the email-otp plugin hook. */
 export function registerInboxProvider(name: string, factory: InboxProviderFactory): void {

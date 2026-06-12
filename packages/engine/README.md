@@ -39,22 +39,22 @@ zip            package the doc pack for hand-off
 
 Target-site auth lives in `src/auth/` (one module per strategy) behind the `src/auth.ts` re-export shim. Every strategy implements `AuthStrategy.authenticate(ctx) → AuthResult` and reduces to the same universal artifact: a **`storageState`** (cookies + localStorage) the runtime seeds the browser context with, plus — for connection-level schemes — `contextOptions` (`httpCredentials` / `extraHTTPHeaders` / `clientCertificates`) passed through to `browser.newContext`. Roles are declared in `<workspace>/auth/strategy.yaml` (`site-docs/auth-strategy@1`): per-role `strategy`, `creds_env` (credential **keys → env-var names**, never values), `options`, and `cache` (local/backend store, `ttl`, `auth_cookie` expiry pinning).
 
-| Strategy         | Scheme                                                                                          | Browser needed |
-| ---------------- | ----------------------------------------------------------------------------------------------- | -------------- |
-| `api-login`      | POST creds to the login endpoint; cookies collected across the redirect chain (own RFC-6265 jar) | no             |
-| `ui-form`        | drive the app's own login form: fill, submit, success marker, snapshot; `pre_steps` dismiss pre-login chrome; `options.totp` adds an RFC-6238 hop (dep-free `generateTotp`/`verifyTotp` primitives exported) | headless       |
+| Strategy         | Scheme                                                                                                                                                                                                             | Browser needed |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| `api-login`      | POST creds to the login endpoint; cookies collected across the redirect chain (own RFC-6265 jar)                                                                                                                   | no             |
+| `ui-form`        | drive the app's own login form: fill, submit, success marker, snapshot; `pre_steps` dismiss pre-login chrome; `options.totp` adds an RFC-6238 hop (dep-free `generateTotp`/`verifyTotp` primitives exported)       | headless       |
 | `email-otp`      | `ui-form` whose code arrives by mail; an `InboxProvider` polls the inbox (`http-json` built-in: Mailpit-style `{ messages: [{to, received_at, body}] }`); `code_pattern` extracts the code (default `\b(\d{6})\b`) | headless       |
-| `webauthn`       | passkey via a CDP virtual authenticator (ctap2 / internal / user-verifying), attached **before** navigation; `trigger_selector` starts the ceremony | headless       |
-| `jwt-injection`  | static token (`token_env`) or OAuth2 client-credentials mint (`token_url`); injected into localStorage and/or cookies via `{{token}}` templates | no             |
-| `http-basic`     | connection-level `httpCredentials`                                                               | no             |
-| `pat-header`     | token header via `extraHTTPHeaders` (`value_template`, default `Bearer {{token}}`)               | no             |
-| `mtls`           | client certificate via `clientCertificates` (`creds_env` maps `cert`/`key` to PEM file paths)    | no             |
-| `test-backdoor`  | POST a shared secret to a test-only endpoint                                                     | no             |
-| `manual-capture` | instrumented Chrome; a human logs in and triggers capture                                        | headed         |
+| `webauthn`       | passkey via a CDP virtual authenticator (ctap2 / internal / user-verifying), attached **before** navigation; `trigger_selector` starts the ceremony                                                                | headless       |
+| `jwt-injection`  | static token (`token_env`) or OAuth2 client-credentials mint (`token_url`); injected into localStorage and/or cookies via `{{token}}` templates                                                                    | no             |
+| `http-basic`     | connection-level `httpCredentials`                                                                                                                                                                                 | no             |
+| `pat-header`     | token header via `extraHTTPHeaders` (`value_template`, default `Bearer {{token}}`)                                                                                                                                 | no             |
+| `mtls`           | client certificate via `clientCertificates` (`creds_env` maps `cert`/`key` to PEM file paths)                                                                                                                      | no             |
+| `test-backdoor`  | POST a shared secret to a test-only endpoint                                                                                                                                                                       | no             |
+| `manual-capture` | instrumented Chrome; a human logs in and triggers capture                                                                                                                                                          | headed         |
 
 Cross-cutting contracts:
 
-- **Secrets stay out of band.** Strategies read env-var *names* from the descriptor and resolve values at run time; error messages mask values as `<SET>`/`<UNSET>` and never echo them.
+- **Secrets stay out of band.** Strategies read env-var _names_ from the descriptor and resolve values at run time; error messages mask values as `<SET>`/`<UNSET>` and never echo them.
 - **User pools.** Any credential env value may be comma-separated (`u1,u2,u3`); `resolveCreds({ workerIndex })` gives parallel worker N entry `N % len`, consistently across every pooled variable.
 - **`expiresAt` when derivable.** From the named / lone real-expiry cookie (`jarAuthExpiry`), the JWT `exp` claim, or the token endpoint's `expires_in`; the cache's `auth_cookie` / `ttl` rules cover the rest.
 - **Registries.** `registerAuthStrategy(name, impl)` adds or overrides a scheme (consulted before the built-ins — the plugins-runtime hook); `registerInboxProvider(name, factory)` adds `email-otp` inbox shapes.

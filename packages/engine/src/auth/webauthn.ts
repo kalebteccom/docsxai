@@ -9,12 +9,7 @@
 import { z } from "zod";
 import { type AuthPageLauncher, launchAuthPage } from "./browser-session.js";
 import { jarAuthExpiry } from "./cookie-jar.js";
-import {
-  PreStep,
-  resolvePreStepValues,
-  runPreSteps,
-  waitForLoginSuccess,
-} from "./ui-form.js";
+import { PreStep, resolvePreStepValues, runPreSteps, waitForLoginSuccess } from "./ui-form.js";
 import {
   AuthStrategyConfigError,
   maskSecret,

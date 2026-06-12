@@ -50,10 +50,7 @@ export const launchAuthPage: AuthPageLauncher = async (opts) => {
       });
     },
     waitForUrl: (pattern, o) =>
-      session.page.waitForURL(
-        pattern,
-        o?.timeoutMs !== undefined ? { timeout: o.timeoutMs } : {},
-      ),
+      session.page.waitForURL(pattern, o?.timeoutMs !== undefined ? { timeout: o.timeoutMs } : {}),
     enableVirtualAuthenticator: async () => {
       const cdp = await session.context.newCDPSession(session.page);
       await cdp.send("WebAuthn.enable");

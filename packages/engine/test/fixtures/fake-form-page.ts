@@ -62,7 +62,9 @@ export function makeFakeFormPage(opts: AuthPageOptions): FakeFormPage {
       if (!idPresent(id)) throw new Error(`no element matching ${selector} on ${current.pathname}`);
       // A button whose onclick removes an element simulates the overlay-dismiss pre-step.
       const dismissTarget = html.match(
-        new RegExp(`<button id="${id}" onclick="document\\.getElementById\\('([^']+)'\\)\\.remove\\(\\)"`),
+        new RegExp(
+          `<button id="${id}" onclick="document\\.getElementById\\('([^']+)'\\)\\.remove\\(\\)"`,
+        ),
       )?.[1];
       if (dismissTarget) {
         html = html.replace(new RegExp(`<div id="${dismissTarget}"[\\s\\S]*?</div>`), "");
