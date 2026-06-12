@@ -91,7 +91,7 @@ jobs:
 
   zizmor:
     runs-on: ubuntu-latest
-    # TODO(post-Phase-D4): zizmor's upstream `support/versions` infra bug
+    # Advisory-only for now: zizmor's upstream `support/versions` infra bug
     # and any pre-existing workflow audit findings here need a focused
     # hardening pass before this job gates. Promote to error once both
     # upstream + workflows are in shape.
