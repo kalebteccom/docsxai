@@ -10,6 +10,27 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 ### Added
 
+#### Engine — plugins runtime (`@kalebtec/docsxai-engine`)
+
+- **Workspace plugin runtime v1** — four extension points (publishers, renderers, lint-rules, auth-strategies) via a `docsxai` manifest on a plugin package's `package.json` plus a `register(api)` module. Resolved once per CLI invocation; mandatory `<namespace>:<name>` prefixing (reserved: `site-docs`, `docsxai`, `core`, `plugins`); `dependsOn` topological load with cycle rejection; capability declarations (`egress:<host-glob>`) subset-checked against workspace `plugin_capabilities`; in-process and unsandboxed — `trust` is a review signal. Lifecycle contract: `docs/ai-context/plugin-runtime/lifecycle-and-namespacing.md`.
+- **`site-docs plugins list|info|sync`** — status table (load/disable reasons), manifest introspection, and `plugins-lock.json` sha256 pinning verified before any register module is imported (mismatch fails closed; `sync` never executes plugin code).
+
+#### Engine — execution determinism + redaction
+
+- **`environment` block** in the flow-file (`clock` freeze, `locale`, `timezone`, `viewport` incl. `desktop`/`tablet`/`mobile` presets, `color_scheme`, `reduced_motion`) applied at session creation; per-key child-wins `extends` merge; CDP-attached sessions apply what page-level APIs allow and warn once on the rest.
+- **Deterministic `redactions`** — flow-level + per-step, selector- or region-based, `box` (solid fill) or `pixelate` (16px mosaic); applied in-memory before any screenshot byte hits disk, halt screenshots included; annotation-on-redacted-target lint guard.
+- **Real `element_stable`** — best-effort bounding-box stability poll (two consecutive identical reads, 10 s budget).
+- **Lint R005–R010** (missing `extends` target, unused locator, terminal step without `success`, un-guarded `optional`, selector-less `element_stable`, annotation anchored to a redacted element) + injectable `extraRules` for lint-rule plugins.
+- **Byte-identical determinism keystone** — frozen-clock + redacted flow re-run twice asserts identical screenshot bytes against real Chromium.
+- `BrowserDriver.screenshot` gained an optional `redactions` parameter (external driver implementers take note).
+
+#### Engine — workspace + CLI hygiene
+
+- **`resolveWorkspacePath` / `resolveWorkspacePathReal`** — the filesystem chokepoint: every workspace artifact read/write routes through containment checks (separator-boundary prefix + realpath symlink-escape defense); typed `WorkspacePathEscapeError`.
+- **In-process deterministic `site-docs zip`** (fflate) — no system `zip` binary; sorted entries, zip-epoch mtimes, fixed compression: same doc pack → byte-identical archive; workspace-escaping symlinks never archived.
+- **Layered viewer-bin resolution for `render`** — `SITE_DOCS_VIEWER_BIN` → installed `@kalebtec/docsxai-viewer` bin (run with current Node) → PATH, all three attempts reported on failure.
+- Full library surface exported from the package root (lint / flow-tree / diagnose / style / backend-client / doc-pack-io / zip were previously CLI-only); dead in-engine pipeline Stage contract removed (the dropped calibration-stage shape — agent orchestration lives at the harness/MCP layer).
+
 #### Engine (`@kalebtec/docsxai-engine`)
 
 - **Flow-file format** — declarative YAML (`prerequisites` / `locators` / `steps[]`), `extends:` composition, schema-validated, hand-editable. Actions: `navigate` / `click` / `fill` / `upload` (file-input via Playwright `setInputFiles`) / `press` / `hover` / `select` / `check` / `uncheck` / `wait`.
