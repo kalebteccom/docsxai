@@ -27,11 +27,14 @@ flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt
 style          init/validate style.yaml; --check scans for jargon leaks
 zip            package the doc pack for hand-off
+export         project the doc pack to a publisher format (`export adf` — Confluence ADF)
 ```
 
 `run` has a sub-3-second iteration mode for long-async flows: `--start-from <step-id> --cdp <endpoint>` skips every step before the target and attaches to an already-warm Chrome.
 
 `zip` packages the doc pack in-process (via fflate) — no system `zip` binary required — and **deterministically**: entries are sorted, every entry's mtime is pinned to the zip epoch (1980-01-01), and the compression level is fixed, so the same doc pack always produces a byte-identical archive. Includes `flows/`, `docs/`, `.site-docs.json`, `auth/strategy.yaml`, `README.md`; excludes `.auth/`, `**/halts/`, and (unless `--include-viewer`) `.viewer/`. Symlinks that point outside the workspace are never followed into the archive.
+
+`export adf` projects the doc pack to Confluence Cloud ADF (`projectDocPackToAdf` from the library surface) — pure and deterministic, zero HTTP. Default `--mode single` emits one consolidated document (flows as anchored H2 sections); `--mode page-tree` emits a parent overview plus one document per flow. Output lands in `<workspace>/.export/adf/` as `projection.json` + `attachments.json` (file name, source path, sha256 per burned screenshot — falling back to the clean screenshot with a warning when no burned PNG exists). A host agent hands these to the Atlassian MCP, or the `@kalebtec/docsxai-plugin-confluence` publisher (`confluence:push`) consumes them; **all** Confluence HTTP lives in that capability-declared plugin, never in the engine.
 
 `render` locates the viewer bin in order: `SITE_DOCS_VIEWER_BIN` (path to the viewer's bin script or an executable), the `@kalebtec/docsxai-viewer` package installed next to the engine (its `bin` run with the current Node), then `docsxai-viewer` on PATH. A launch failure reports all three attempts.
 
