@@ -1,0 +1,50 @@
+{
+  "name": "@kalebtec/docsxai-plugin-starlight",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "docsxai renderer plugin: emits a production Astro Starlight docs site from a doc pack (starlight:site), wrapping the viewer's Starlight emitter + builder.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalebteccom/docsxai.git",
+    "directory": "packages/plugin-starlight"
+  },
+  "homepage": "https://github.com/kalebteccom/docsxai#readme",
+  "bugs": "https://github.com/kalebteccom/docsxai/issues",
+  "keywords": [
+    "docsxai",
+    "starlight",
+    "astro",
+    "renderer",
+    "plugin"
+  ],
+  "main": "dist/register.js",
+  "types": "dist/register.d.ts",
+  "files": [
+    "dist"
+  ],
+  "docsxai": {
+    "apiVersion": "1.0.0",
+    "namespace": "starlight",
+    "register": "./dist/register.js",
+    "kinds": [
+      "renderer"
+    ],
+    "capabilities": [],
+    "trust": "kalebtec"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@kalebtec/docsxai-engine": "workspace:*",
+    "@kalebtec/docsxai-viewer": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "vitest": "^2.0.0"
+  }
+}
