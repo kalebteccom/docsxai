@@ -13,6 +13,7 @@ import {
   earliestCookieExpiry,
   makeStrategy,
   parseAuthStrategyFile,
+  resolveCreds,
   resolveCredsEnv,
 } from "../src/auth.js";
 
@@ -103,6 +104,48 @@ describe("resolveCredsEnv", () => {
   it("throws listing the missing env vars", () => {
     const d = parseAuthStrategyFile(API_LOGIN_DESCRIPTOR);
     expect(() => resolveCredsEnv(d.roles.editor!, {})).toThrow(/APP_EDITOR_USER/);
+  });
+});
+
+describe("resolveCreds — user pools", () => {
+  const role = () => parseAuthStrategyFile(API_LOGIN_DESCRIPTOR).roles.editor!;
+  const POOL_ENV = {
+    APP_EDITOR_USER: "u0, u1 ,u2",
+    APP_EDITOR_PASS: "p0,p1,p2",
+  };
+
+  it("each worker picks pool[workerIndex % len] consistently across every pooled var", () => {
+    expect(resolveCreds(role(), { workerIndex: 0, env: POOL_ENV })).toEqual({
+      username: "u0",
+      password: "p0",
+    });
+    expect(resolveCreds(role(), { workerIndex: 2, env: POOL_ENV })).toEqual({
+      username: "u2",
+      password: "p2",
+    });
+  });
+
+  it("wraps around the pool when workerIndex exceeds its size", () => {
+    expect(resolveCreds(role(), { workerIndex: 4, env: POOL_ENV })).toEqual({
+      username: "u1",
+      password: "p1",
+    });
+  });
+
+  it("leaves single-value creds untouched regardless of workerIndex — even with commas elsewhere", () => {
+    const env = { APP_EDITOR_USER: "u0,u1", APP_EDITOR_PASS: "shared-pass" };
+    expect(resolveCreds(role(), { workerIndex: 1, env })).toEqual({
+      username: "u1",
+      password: "shared-pass",
+    });
+  });
+
+  it("defaults workerIndex to 0", () => {
+    expect(resolveCreds(role(), { env: POOL_ENV }).username).toBe("u0");
+  });
+
+  it("still reports missing env vars by name", () => {
+    expect(() => resolveCreds(role(), { env: {} })).toThrow(/APP_EDITOR_PASS/);
   });
 });
 
