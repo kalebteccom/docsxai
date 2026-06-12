@@ -1,19 +1,30 @@
-// Backend stub HTTP server. Minimal router over node:http matching the contract in api.ts; in-memory store;
-// bearer-token gate (production uses OAuth 2.1 — out of scope here); echoes the API-version header.
+// Backend HTTP server. Minimal router over node:http matching the contract in api.ts; pluggable
+// store (in-memory by default, filesystem with `dataDir`); bearer-token gate accepting the CI
+// token and any live OAuth-issued access token; echoes the API-version header.
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import {
   API_VERSION,
   API_VERSION_HEADER,
+  BLOB_BODY_LIMIT_BYTES,
+  isAuthCacheEnvelope,
+  JSON_BODY_LIMIT_BYTES,
+  OAUTH_CLIENT_ID,
   REVISION_ARTIFACTS,
   ROUTES,
   type RevisionArtifact,
 } from "./api.js";
-import { NotFoundError, Store } from "./store.js";
+import { FsStore } from "./fs-store.js";
+import { isLoopbackRedirectUri, OAuthError, OAuthIssuer } from "./oauth.js";
+import { type BackendStore, MemoryStore, NotFoundError, RevisionFinalizedError } from "./store.js";
 
 export interface BackendStubOptions {
-  /** If set, `Authorization: Bearer <t>` must equal this. If unset, any non-empty bearer token passes (it's a stub). */
+  /** If set, `Authorization: Bearer <t>` must equal this (or be a live OAuth access token). If unset, any non-empty bearer token passes (it's a stub). */
   token?: string;
+  /** Bring your own store. Takes precedence over `dataDir`. */
+  store?: BackendStore;
+  /** Persist to this directory via `FsStore`. Falls back to env `SITE_DOCS_DATA_DIR`; default is in-memory. */
+  dataDir?: string;
 }
 
 interface Matched {
@@ -52,22 +63,51 @@ function isArtifact(s: string): s is RevisionArtifact {
   return (REVISION_ARTIFACTS as readonly string[]).includes(s);
 }
 
-async function readJsonBody(req: IncomingMessage): Promise<unknown> {
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+const SAFE_ROLE = /^[A-Za-z0-9_.-]{1,128}$/;
+
+class PayloadTooLargeError extends Error {
+  constructor(readonly limit: number) {
+    super(`request body exceeds the ${limit}-byte limit`);
+    this.name = "PayloadTooLargeError";
+  }
+}
+
+async function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
+  const declared = Number(req.headers["content-length"]);
+  if (Number.isFinite(declared) && declared > limit) throw new PayloadTooLargeError(limit);
   const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(c as Buffer);
-  const raw = Buffer.concat(chunks).toString("utf8");
+  let total = 0;
+  for await (const c of req) {
+    const chunk = c as Buffer;
+    total += chunk.length;
+    if (total > limit) throw new PayloadTooLargeError(limit);
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+async function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  const raw = (await readBody(req, JSON_BODY_LIMIT_BYTES)).toString("utf8");
   if (!raw) return undefined;
   return JSON.parse(raw);
 }
 
+function resolveStore(opts: BackendStubOptions): BackendStore {
+  if (opts.store) return opts.store;
+  const dataDir = opts.dataDir ?? process.env.SITE_DOCS_DATA_DIR;
+  return dataDir ? new FsStore(dataDir) : new MemoryStore();
+}
+
 export function createBackendStub(opts: BackendStubOptions = {}): {
   server: Server;
-  store: Store;
+  store: BackendStore;
   /** Start listening; resolves with the bound URL (`http://127.0.0.1:<port>`). `port = 0` picks a free port. */
   listen(port?: number): Promise<string>;
   close(): Promise<void>;
 } {
-  const store = new Store();
+  const store = resolveStore(opts);
+  const oauth = new OAuthIssuer();
 
   const server = createServer((req, res) => {
     handle(req, res).catch((e) => {
@@ -76,9 +116,25 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
   });
 
   function sendJson(res: ServerResponse, status: number, body: unknown): void {
+    if (res.headersSent) return;
     const text = JSON.stringify(body, null, 2);
     res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
     res.end(text + "\n");
+  }
+
+  function sendUnauthorized(res: ServerResponse, message: string): void {
+    res.setHeader("WWW-Authenticate", 'Bearer error="invalid_token"');
+    sendJson(res, 401, { error: "unauthorized", message });
+  }
+
+  /** True when the bearer value satisfies the CI-token rule (exact match, or any non-empty when unset). */
+  function isCiToken(token: string): boolean {
+    return opts.token !== undefined ? token === opts.token : token.length > 0;
+  }
+
+  function bearerToken(req: IncomingMessage): string | null {
+    const m = /^Bearer\s+(.+)$/i.exec(req.headers.authorization ?? "");
+    return m ? m[1]! : null;
   }
 
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -107,23 +163,64 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
         message: `${method} not allowed on ${url.pathname}`,
       });
 
-    // Auth gate (everything except /v1/health).
-    if (url.pathname !== "/v1/health") {
-      const auth = req.headers.authorization ?? "";
-      const m = /^Bearer\s+(.+)$/i.exec(auth);
-      if (!m) return sendJson(res, 401, { error: "unauthorized", message: "missing Bearer token" });
-      if (opts.token !== undefined && m[1] !== opts.token) {
-        return sendJson(res, 401, { error: "unauthorized", message: "invalid token" });
+    // Auth gate (everything except /v1/health and the OAuth endpoints themselves).
+    const noAuth =
+      url.pathname === "/v1/health" ||
+      url.pathname === "/v1/oauth/authorize" ||
+      url.pathname === "/v1/oauth/token";
+    if (!noAuth) {
+      const token = bearerToken(req);
+      if (token === null) return sendUnauthorized(res, "missing Bearer token");
+      if (!isCiToken(token) && !oauth.isLiveAccessToken(token)) {
+        return sendUnauthorized(res, "invalid, expired, or unknown token");
       }
     }
 
     const { route, params } = matched;
-    const { ws, project, rev, artifact } = params;
+    const { ws, project, rev, artifact, sha256, role } = params;
 
     try {
       switch (route.path) {
         case "/v1/health":
           return sendJson(res, 200, { ok: true, version: API_VERSION });
+        case "/v1/oauth/authorize":
+          return handleAuthorize(req, res, url);
+        case "/v1/oauth/token":
+          return await handleToken(req, res);
+        case "/v1/blobs": {
+          const data = await readBody(req, BLOB_BODY_LIMIT_BYTES);
+          if (data.length === 0)
+            return sendJson(res, 400, { error: "bad_request", message: "empty blob body" });
+          return sendJson(res, 200, store.putBlob(data));
+        }
+        case "/v1/blobs/:sha256": {
+          if (!sha256 || !SHA256_HEX.test(sha256)) {
+            return sendJson(res, 404, {
+              error: "not_found",
+              message: "blob ids are lowercase hex sha256 digests",
+            });
+          }
+          if (method === "HEAD") {
+            const ref = store.hasBlob(sha256);
+            if (!ref) {
+              res.writeHead(404).end();
+              return;
+            }
+            res.writeHead(200, {
+              "content-type": "application/octet-stream",
+              "content-length": ref.bytes,
+            });
+            res.end();
+            return;
+          }
+          const data = store.getBlob(sha256);
+          res.writeHead(200, {
+            "content-type": "application/octet-stream",
+            "content-length": data.byteLength,
+          });
+          res.end(data);
+          return;
+        }
         case "/v1/workspaces":
           if (method === "GET") return sendJson(res, 200, store.listWorkspaces());
           return sendJson(res, 201, store.createWorkspace(reqName(await readJsonBody(req))));
@@ -153,7 +250,9 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
           }
         case "/v1/workspaces/:ws/projects/:project/revisions/:rev":
           return sendJson(res, 200, store.getRevision(ws!, project!, rev!));
-        case "/v1/workspaces/:ws/projects/:project/revisions/:rev/:artifact":
+        case "/v1/workspaces/:ws/projects/:project/revisions/:rev/finalize":
+          return sendJson(res, 200, store.finalizeRevision(ws!, project!, rev!));
+        case "/v1/workspaces/:ws/projects/:project/revisions/:rev/:artifact": {
           if (!artifact || !isArtifact(artifact)) {
             return sendJson(res, 404, {
               error: "not_found",
@@ -162,11 +261,15 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
           }
           if (method === "GET")
             return sendJson(res, 200, store.getArtifact(ws!, project!, rev!, artifact));
-          return sendJson(
-            res,
-            200,
-            store.putArtifact(ws!, project!, rev!, artifact, await readJsonBody(req)),
-          );
+          const payload = await readJsonBody(req);
+          if (payload === undefined) {
+            return sendJson(res, 400, {
+              error: "bad_request",
+              message: "artifact PUT requires a JSON body",
+            });
+          }
+          return sendJson(res, 200, store.putArtifact(ws!, project!, rev!, artifact, payload));
+        }
         case "/v1/workspaces/:ws/projects/:project/run-history":
           if (method === "GET") return sendJson(res, 200, store.listRuns(ws!, project!));
           {
@@ -189,10 +292,41 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
               }),
             );
           }
+        case "/v1/workspaces/:ws/auth-cache/:role": {
+          if (!role || !SAFE_ROLE.test(role)) {
+            return sendJson(res, 400, {
+              error: "bad_request",
+              message: "role must match [A-Za-z0-9_.-]{1,128}",
+            });
+          }
+          if (method === "GET") return sendJson(res, 200, store.getAuthCache(ws!, role));
+          if (method === "DELETE") {
+            store.deleteAuthCache(ws!, role);
+            res.writeHead(204).end();
+            return;
+          }
+          const envelope = await readJsonBody(req);
+          if (!isAuthCacheEnvelope(envelope)) {
+            return sendJson(res, 400, {
+              error: "bad_request",
+              message:
+                "body must be a site-docs/auth-cache@1 envelope ({ schema, alg: aes-256-gcm, iv, ciphertext, tag, expires_at? })",
+            });
+          }
+          store.putAuthCache(ws!, role, envelope);
+          res.writeHead(204).end();
+          return;
+        }
         default:
           return sendJson(res, 404, { error: "not_found", message: "unrouted" });
       }
     } catch (e) {
+      if (e instanceof PayloadTooLargeError) {
+        req.resume(); // drain what the client is still sending so the response is read cleanly
+        return sendJson(res, 413, { error: "payload_too_large", message: e.message });
+      }
+      if (e instanceof RevisionFinalizedError)
+        return sendJson(res, 409, { error: "revision-finalized", message: e.message });
       if (e instanceof NotFoundError)
         return sendJson(res, 404, { error: "not_found", message: e.message });
       if (e instanceof SyntaxError)
@@ -200,6 +334,81 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
           error: "bad_request",
           message: `invalid JSON body: ${e.message}`,
         });
+      throw e;
+    }
+  }
+
+  function handleAuthorize(req: IncomingMessage, res: ServerResponse, url: URL): void {
+    const q = url.searchParams;
+    const bad = (message: string) => sendJson(res, 400, { error: "invalid_request", message });
+    if (q.get("client_id") !== OAUTH_CLIENT_ID) {
+      return bad(`unknown client_id (expected "${OAUTH_CLIENT_ID}")`);
+    }
+    const challenge = q.get("code_challenge");
+    if (!challenge) return bad("code_challenge is required");
+    if (q.get("code_challenge_method") !== "S256") {
+      return bad('code_challenge_method must be "S256"');
+    }
+    const redirectUri = q.get("redirect_uri");
+    if (!redirectUri || !isLoopbackRedirectUri(redirectUri)) {
+      return bad(
+        "redirect_uri must be a loopback http URI (e.g. http://127.0.0.1:<port>/callback)",
+      );
+    }
+    // Stub-grade consent: auto-approve for callers holding the CI bearer token, or when
+    // SITE_DOCS_OAUTH_AUTO_APPROVE=1. A real interactive consent UI is hosted-deployment
+    // scope (owner-gated).
+    const token = bearerToken(req);
+    const approved =
+      (token !== null && isCiToken(token)) || process.env.SITE_DOCS_OAUTH_AUTO_APPROVE === "1";
+    if (!approved) {
+      return sendJson(res, 403, {
+        error: "consent_required",
+        message:
+          "auto-approval declined — present Authorization: Bearer <SITE_DOCS_TOKEN> or set SITE_DOCS_OAUTH_AUTO_APPROVE=1 (interactive consent is hosted-deployment scope)",
+      });
+    }
+    const code = oauth.issueCode({ challenge, redirectUri });
+    const location = new URL(redirectUri);
+    location.searchParams.set("code", code);
+    const state = q.get("state");
+    if (state !== null) location.searchParams.set("state", state);
+    res.writeHead(302, { location: location.toString() }).end();
+  }
+
+  async function handleToken(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const raw = (await readBody(req, JSON_BODY_LIMIT_BYTES)).toString("utf8");
+    const form = new URLSearchParams(raw);
+    const grantType = form.get("grant_type");
+    try {
+      if (grantType === "authorization_code") {
+        const code = form.get("code");
+        const verifier = form.get("code_verifier");
+        if (!code || !verifier) {
+          throw new OAuthError("invalid_request", "code and code_verifier are required");
+        }
+        const redirectUri = form.get("redirect_uri");
+        return sendJson(
+          res,
+          200,
+          oauth.exchangeCode({
+            code,
+            verifier,
+            ...(redirectUri !== null ? { redirectUri } : {}),
+          }),
+        );
+      }
+      if (grantType === "refresh_token") {
+        const refreshToken = form.get("refresh_token");
+        if (!refreshToken) throw new OAuthError("invalid_request", "refresh_token is required");
+        return sendJson(res, 200, oauth.refresh(refreshToken));
+      }
+      throw new OAuthError(
+        "unsupported_grant_type",
+        'grant_type must be "authorization_code" or "refresh_token"',
+      );
+    } catch (e) {
+      if (e instanceof OAuthError) return sendJson(res, 400, { error: e.code, message: e.message });
       throw e;
     }
   }

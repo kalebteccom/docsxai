@@ -2,13 +2,16 @@
 // @kalebtec/docsxai-backend — authenticated doc-pack persistence service.
 //
 // This module is both the library entry (re-exports the contract + `createBackendStub`) and the bin
-// entry `docsxai-backend` (starts the stub). The stub is in-memory and accepts any Bearer token
-// (or `SITE_DOCS_TOKEN` if set) — production replaces it with a real OAuth-2.1-protected service.
+// entry `docsxai-backend` (starts the server). Storage is in-memory by default; `--data-dir=<dir>`
+// (or SITE_DOCS_DATA_DIR) persists to disk via `FsStore`. Auth accepts the pre-issued bearer token
+// (SITE_DOCS_TOKEN) and OAuth-2.1-issued access tokens (authorization-code + PKCE; see /v1/oauth/*).
 
 import { pathToFileURL } from "node:url";
 
 export * from "./api.js";
 export * from "./store.js";
+export * from "./fs-store.js";
+export * from "./oauth.js";
 export { createBackendStub, type BackendStubOptions } from "./server.js";
 
 import { createBackendStub } from "./server.js";
@@ -20,12 +23,19 @@ export async function runBackendStubCli(argv: string[]): Promise<number> {
     process.stderr.write(`docsxai-backend: invalid port "${portArg}"\n`);
     return 2;
   }
+  const dataDir =
+    argv
+      .find((a) => /^--data-dir=/.test(a))
+      ?.split("=")
+      .slice(1)
+      .join("=") ?? process.env.SITE_DOCS_DATA_DIR;
   const stub = createBackendStub({
     ...(process.env.SITE_DOCS_TOKEN ? { token: process.env.SITE_DOCS_TOKEN } : {}),
+    ...(dataDir ? { dataDir } : {}),
   });
   const url = await stub.listen(port);
   process.stdout.write(
-    `docsxai-backend stub listening on ${url}  (in-memory; not for production)\n`,
+    `docsxai-backend listening on ${url}  (${dataDir ? `data dir: ${dataDir}` : "in-memory; not for production"})\n`,
   );
   const stop = () => {
     void stub.close().then(() => process.exit(0));
