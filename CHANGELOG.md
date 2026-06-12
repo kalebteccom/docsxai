@@ -154,6 +154,7 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 - CLI browser-install hints name the `playwright-core` commands that match the repo's pinned-install discipline (`npx playwright-core install chromium`; source checkouts: `pnpm -C packages/engine exec playwright-core install chromium`) instead of the unpinned `npx playwright install chromium`.
 - The missing-flows error now names the workspace, the expected `flows/` path, and the `docsxai init` / `docsxai calibrate` next steps instead of the bare `no flows directory at <path>`.
+- The website build no longer logs a `/404` route conflict on every run: the branded 404 moved from the docs collection to a file-based `src/pages/404.astro` (still Starlight-framed via `<StarlightPage>`), Starlight's injected 404 route is disabled, and the page now emits as `404.html` — the file Netlify serves for unmatched paths (the collection entry built to `404/index.html`, which Netlify ignores).
 - CI build-step ordering (added `pnpm -r build` before `pnpm -r test` so engine's workspace-package resolution works).
 - 22-day red CI on `main` cleared after lockfile + build-step ordering fixes.
 - 9 high-severity zizmor workflow findings cleared (cache-poisoning, excessive-permissions, unpinned-uses, bot-conditions).
