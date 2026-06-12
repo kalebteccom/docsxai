@@ -12,3 +12,26 @@ coverage/
 .idea/
 .vscode/
 *.log
+# Astro + Starlight docs site (website/) build + generated artifacts.
+website/dist/
+website/.astro/
+# The published ports are generated from the canonical sources (docs/*.md,
+# packages/*/README.md, CHANGELOG.md, CONTRIBUTING.md, SECURITY.md) by
+# website/scripts/sync-docs.mjs at dev/build time. The sources stay the
+# single source of truth; do not commit or hand-edit the generated copies.
+website/src/content/docs/guides/agent-runbook.md
+website/src/content/docs/guides/running-against-an-app-repo.md
+website/src/content/docs/guides/ci-recipes.md
+website/src/content/docs/guides/security-best-practices.md
+website/src/content/docs/reference/actionability.md
+website/src/content/docs/packages/engine.md
+website/src/content/docs/packages/plugin.md
+website/src/content/docs/packages/mcp.md
+website/src/content/docs/packages/backend.md
+website/src/content/docs/packages/viewer.md
+website/src/content/docs/packages/skill.md
+website/src/content/docs/packages/plugin-confluence.md
+website/src/content/docs/packages/plugin-starlight.md
+website/src/content/docs/project/changelog.md
+website/src/content/docs/project/contributing.md
+website/src/content/docs/project/security.md

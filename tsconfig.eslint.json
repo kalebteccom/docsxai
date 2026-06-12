@@ -11,6 +11,7 @@
     "packages/*/test/**/*.ts",
     "scripts/**/*.mjs",
     "scripts/**/*.ts",
+    "website/src/**/*.ts",
     "eslint.config.js"
   ]
 }

@@ -26,6 +26,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "docs:dev": "pnpm --filter @docsxai/website dev",
+    "docs:build": "pnpm --filter @docsxai/website build",
+    "docs:preview": "pnpm --filter @docsxai/website preview",
     "licenses:check": "license-checker-rseidelsohn --production --excludePrivatePackages --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Unlicense;CC0-1.0'",
     "audit:prod": "pnpm audit --prod --audit-level=high"
   },

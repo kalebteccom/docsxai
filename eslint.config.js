@@ -126,6 +126,9 @@ export default tseslint.config(
       ".worktrees/**",
       "**/*.generated.*",
       ".claude/**",
+      // Astro build output + astro-generated types for the docs site.
+      "website/dist/**",
+      "website/.astro/**",
     ],
   },
   js.configs.recommended,
@@ -273,7 +276,7 @@ export default tseslint.config(
   },
   // Tooling scripts — console is the output channel.
   {
-    files: ["scripts/**/*.mjs", "scripts/**/*.js", "scripts/**/*.ts"],
+    files: ["scripts/**/*.mjs", "scripts/**/*.js", "scripts/**/*.ts", "website/scripts/**/*.mjs"],
     rules: {
       "no-console": "off",
       "@typescript-eslint/no-explicit-any": "off",
