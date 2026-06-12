@@ -4,7 +4,8 @@
 // `Page`. The runtime stays browser-agnostic; this is the one place that touches Playwright.
 //
 // Needs a browser binary. `playwright-core` ships the API but not the binaries — install one with
-// `npx playwright install chromium` (the `playwright` CLI fetches it on demand). For execution
+// `pnpm -C packages/engine exec playwright-core install chromium` (source checkout) or
+// `npx playwright-core install chromium` (global/npx installs). For execution
 // against an authed site, the context is created with a captured `storageState` (see the auth layer).
 
 import { promises as fs } from "node:fs";

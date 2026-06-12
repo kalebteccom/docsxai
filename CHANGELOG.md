@@ -152,6 +152,8 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 ### Fixed
 
+- CLI browser-install hints name the `playwright-core` commands that match the repo's pinned-install discipline (`npx playwright-core install chromium`; source checkouts: `pnpm -C packages/engine exec playwright-core install chromium`) instead of the unpinned `npx playwright install chromium`.
+- The missing-flows error now names the workspace, the expected `flows/` path, and the `docsxai init` / `docsxai calibrate` next steps instead of the bare `no flows directory at <path>`.
 - CI build-step ordering (added `pnpm -r build` before `pnpm -r test` so engine's workspace-package resolution works).
 - 22-day red CI on `main` cleared after lockfile + build-step ordering fixes.
 - 9 high-severity zizmor workflow findings cleared (cache-poisoning, excessive-permissions, unpinned-uses, bot-conditions).

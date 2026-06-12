@@ -77,7 +77,7 @@ others.
 in-process linked client/server pair (the SDK's `InMemoryTransport`) — a non-Claude MCP client as
 the acceptance evidence. The `run_flows` rows run against the engine's toy-site fixture over real
 Chromium and are skipped when no Chromium binary is installed
-(`npx playwright install chromium`).
+(`pnpm -C packages/engine exec playwright-core install chromium`).
 
 Adding a tool? Follow the numbered checklist in
 [`docs/ai-context/tool-registration/mcp-tool-registry.md`](../../docs/ai-context/tool-registration/mcp-tool-registry.md).

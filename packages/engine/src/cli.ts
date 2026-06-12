@@ -103,7 +103,8 @@ Notes:
     and a .docsxai.json config. Put it OUTSIDE the app's source repo — docsxai documents a running app from
     outside and never writes into the app repo.
   • run / capture-auth read app_url + ignore_https_errors from .docsxai.json if you don't pass the flags.
-  • run launches Chromium; if no browser binary is present, install one:  npx playwright install chromium
+  • run launches Chromium; if no browser binary is present, install one:  npx playwright-core install chromium
+    (source checkout: pnpm -C packages/engine exec playwright-core install chromium)
   • --ignore-https-errors accepts self-signed/invalid TLS (e.g. an app's local HTTPS dev cert)
   • run --stop-after <step-id> runs only a prefix of the flow (up to & incl. that step); --pause keeps the
     (headed) browser open at the last step run — so you can inspect the live state mid-flow when calibrating
@@ -226,7 +227,11 @@ async function listFlowFiles(projectDir: string): Promise<string[]> {
   try {
     entries = await fs.readdir(dir);
   } catch {
-    throw new Error(`no flows directory at ${dir}`);
+    throw new Error(
+      `workspace ${projectDir} has no flows/ directory (expected ${dir}). ` +
+        `Is this a docsxai workspace? Create one with \`docsxai init <workspace-dir>\`, ` +
+        `then add flows via \`docsxai calibrate\` or by writing flows/<name>.flow.yaml.`,
+    );
   }
   return entries
     .filter((e) => e.endsWith(".flow.yaml"))
@@ -367,7 +372,7 @@ async function cmdRun(args: string[]): Promise<number> {
       const msg = (e as Error).message;
       if (/Executable doesn't exist|browserType\.launch|playwright install/i.test(msg)) {
         process.stderr.write(
-          `${tag(name)}no Chromium binary found.  Install one:  npx playwright install chromium\n`,
+          `${tag(name)}no Chromium binary found.  Install one:  npx playwright-core install chromium  (source checkout: pnpm -C packages/engine exec playwright-core install chromium)\n`,
         );
       } else {
         process.stderr.write(`${tag(name)}failed to launch browser: ${msg}\n`);
@@ -763,7 +768,9 @@ async function cmdInspect(args: string[]): Promise<number> {
   } catch (e) {
     const msg = (e as Error).message;
     if (/Executable doesn't exist|playwright install/i.test(msg)) {
-      process.stderr.write("inspect: no Chromium binary — `npx playwright install chromium`\n");
+      process.stderr.write(
+        "inspect: no Chromium binary — `npx playwright-core install chromium` (source checkout: `pnpm -C packages/engine exec playwright-core install chromium`)\n",
+      );
       return 1;
     }
     process.stderr.write(`inspect: failed to launch browser: ${msg}\n`);
