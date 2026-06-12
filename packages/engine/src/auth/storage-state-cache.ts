@@ -4,7 +4,11 @@ import { promises as fs } from "node:fs";
 import { z } from "zod";
 import { BackendStateCache, resolveBackendToken } from "../backend-client.js";
 import { type RoleAuth } from "../doc-pack.js";
-import { loadWorkspaceConfig, resolveWorkspacePath, resolveWorkspacePathReal } from "../workspace.js";
+import {
+  loadWorkspaceConfig,
+  resolveWorkspacePath,
+  resolveWorkspacePathReal,
+} from "../workspace.js";
 import {
   AuthStrategyConfigError,
   cookieExpiryByName,
