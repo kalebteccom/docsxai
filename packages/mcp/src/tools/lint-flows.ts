@@ -56,10 +56,7 @@ export const lintFlowsTool = defineTool({
           enabledCapabilities: cfg.capabilities,
           lock,
         });
-        extraRules = registry.getLintRules().map((r) => ({
-          code: r.code,
-          run: (flow, opts) => r.check(flow, opts),
-        }));
+        extraRules = registry.getLintRules();
       }
     } catch (e) {
       pluginRuleWarning = `plugin lint rules unavailable: ${(e as Error).message}`;
