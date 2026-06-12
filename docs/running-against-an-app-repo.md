@@ -6,7 +6,7 @@
 > conceptual overview; where the two differ, the agent runbook wins. The one-command setup is `docsxai init`.
 
 docsxai documents a **running web app**, not a source tree. If the app you want to document is built and
-served from a local repo (e.g. a the target app / `example-app` checkout), the rule is: **docsxai operates _on_ that
+served from a local repo (an `example-app` checkout, say), the rule is: **docsxai operates _on_ that
 app from outside — it never writes into the app repo, and you never install it _into_ the app repo.** Everything
 docsxai produces (flow-files, screenshots, annotations, the captured session, the viewer) lives in a separate
 **workspace directory**. For an airtight "zero traces" guarantee, run the app itself from a **disposable git
@@ -87,7 +87,7 @@ printf '.auth/\n.viewer/\n' > .gitignore          # optional; the captured sessi
 
 ### 2c. Capture an authed session (manual-capture)
 
-If the app needs login (the target app does — Azure AD SSO, ~1 h session cookie), write the auth descriptor:
+If the app needs login (say Azure AD SSO with a ~1 h session cookie), write the auth descriptor:
 
 ```bash
 cat > "$WORKSPACE/auth/strategy.yaml" <<'YAML'

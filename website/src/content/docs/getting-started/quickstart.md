@@ -78,8 +78,9 @@ Headless Chromium loads the cached session, replays the steps, and writes
 `docs/open-reports/annotations.json` plus a clean screenshot per annotated
 step. No agent, no LLM calls; the run halts with a `[cause: ...]` prefix if a
 locator or success check fails ([Troubleshooting](/guides/troubleshooting/)).
-While iterating on a single step, `run --flow open-reports --stop-after
-open-app --pause` keeps the headed browser open mid-flow.
+While iterating on a single step,
+`run --flow open-reports --stop-after open-app --pause` keeps the headed
+browser open mid-flow.
 
 ## 5. Render and open the viewer
 

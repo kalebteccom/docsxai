@@ -24,7 +24,7 @@ commit, `zip`, or `push` to the backend.
   .auth/                          cached sessions (operator-local, gitignored)
   .viewer/                        rendered viewer (re-derivable, gitignored)
   .baseline/                      drift baseline (commit it; see below)
-  .docsxai.json                 workspace config (app_url, plugins, backend binding)
+  .docsxai.json                   workspace config (app_url, plugins, backend binding)
 ```
 
 ## What each artifact does

@@ -48,11 +48,16 @@ When you type a command, it is `docsxai`. When you install a package, it is
 A screen recorder or a record-and-replay generator captures what you did once;
 the recording rots silently when the UI moves, and refreshing means
 re-recording by hand. docsxai is the better tool when the documentation has to
-stay current without a human in the loop: the flow-file is a reviewable text
-artifact, the replay is deterministic enough to gate CI on pixel-level drift
-(`docsxai diff --fail-on warn`), and a halted step names exactly which
-locator or assertion broke instead of handing you a stale video. The same
-calibration loop works from any MCP-speaking agent, so authoring is cheap too.
+stay current without a human in the loop:
+
+- The flow-file is a reviewable text artifact, not an opaque recording.
+- The replay is deterministic enough to gate CI on pixel-level drift
+  (`docsxai diff --fail-on warn`).
+- A halted step names exactly which locator or assertion broke instead of
+  handing you a stale video.
+- The same calibration loop works from any MCP-speaking agent, so authoring
+  is cheap too.
+
 If all you need is a one-off capture of a UI that will never change, a
 recorder is less setup. If you need living docs for an app that ships weekly,
 write the flow once and let CI do the rest.
