@@ -19,6 +19,7 @@ docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ign
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
 docsxai flow-tree <workspace-dir> [--format text|json]
 docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
+docsxai doctor [<workspace-dir>]
 docsxai style <workspace-dir> [--check] [--format text|json]
 docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
 docsxai baseline <workspace-dir> [--out <dir>]
@@ -293,6 +294,43 @@ Recommendations (1):
   [wait_for] the live probe reports the target covered — another element receives the click
     → wait out (or dismiss, via a prior optional step) the covering element before this click
 ```
+
+### `docsxai doctor`
+
+Health-checks the environment and the workspace, browxai-style: a `✓`/`✗`
+checklist with a one-line fix per failing row (`−` rows are informational and
+never fail). The checks: Node >= 20, a Chromium binary for playwright-core,
+`.docsxai.json` found and parseable (the argument, or the current directory),
+every flow-file parses, the auth descriptor plus the cached session's
+freshness, backend reachability when `backend_url` is configured (plus a
+token-presence note), the plugin declarations through the same inspection
+`plugins list` runs - declared/installed/lock/capabilities, with **no plugin
+code executed** - viewer-bin resolution (naming which of the three layers
+hit), and `DOCSX_*` env sanity (`DOCSX_CACHE_KEY` well-formed when set,
+unknown `DOCSX_*` names flagged as likely typos). Exit 1 on any `✗`.
+
+```
+$ docsxai doctor ~/docsxai/my-app
+docsxai doctor — environment & workspace health
+
+  ✓ node       v22.15.0 (>= 20 required)
+  ✓ chromium   ~/Library/Caches/ms-playwright/chromium-1223/…/Google Chrome for Testing
+  ✓ workspace  ~/docsxai/my-app/.docsxai.json (docsxai/workspace@1, app_url https://localhost:3000)
+  ✓ flows      3 flow-file(s) parse
+  ✓ auth       auth/strategy.yaml ok — role(s) editor (default "editor", strategy manual-capture)
+  ✗ auth       cached session for role "editor" expired 2026-06-12T11:00:00.000Z
+    fix: re-capture: docsxai capture-auth ~/docsxai/my-app
+  − backend    no backend_url configured — the workspace operates fully locally
+  − plugins    no plugins configured (add a "plugins" array to .docsxai.json)
+  ✓ viewer     @docsxai/viewer installed next to the engine → …/dist/index.js (layer 2: installed package)
+  − env        no DOCSX_* variables set (defaults apply)
+
+fix the ✗ items above
+```
+
+Run it first when anything misbehaves - it answers the usual "is it my
+environment or my flow?" question in one shot, and every failing row names
+its own fix.
 
 ### `docsxai style`
 

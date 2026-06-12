@@ -15,6 +15,7 @@ claude plugin install https://github.com/kalebteccom/docsxai   # (the plugin liv
 | `/docsxai:push <project-dir>`   | Upload the doc pack to the configured backend.                          |
 | `/docsxai:pull <project-dir>`   | Download the doc pack from the configured backend.                      |
 | `/docsxai:login`                | OAuth login to the backend (CI uses `DOCSX_TOKEN`).                     |
+| `/docsxai:doctor`               | Environment + workspace health-check (✓/✗ + one-line fixes).            |
 
 ## Skills (calibration — agent-driven; the host supplies inference)
 

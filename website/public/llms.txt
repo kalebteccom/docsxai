@@ -7,7 +7,7 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 ## Start here
 
 - [Introduction](https://docsxai.com/getting-started/introduction/): what docsxai is, the two-mode bet, the naming table, and when to use it over a recorder
-- [Installation](https://docsxai.com/getting-started/installation/): npm install, the from-source build, the Chromium one-shot, and verification
+- [Installation](https://docsxai.com/getting-started/installation/): `pnpm add -g docsxai` (the batteries-included meta-package: engine CLI + viewer), the scoped per-package install, the from-source build, the Chromium one-shot, and verification
 - [Quickstart](https://docsxai.com/getting-started/quickstart/): init a workspace, capture auth, author a first flow, run it, render the viewer
 
 ## Concepts
@@ -28,7 +28,7 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 
 ## Reference
 
-- [CLI](https://docsxai.com/reference/cli/): every docsxai command and flag, with the help text's notes rendered per command
+- [CLI](https://docsxai.com/reference/cli/): every docsxai command and flag, with the help text's notes rendered per command - including `docsxai doctor`, the ✓/✗ environment + workspace health-check with a one-line fix per failure
 - [Flow-file format](https://docsxai.com/reference/flow-file/): every field - steps, actions, waits, success, annotations, environment, redactions, extends
 - [Auth strategies](https://docsxai.com/reference/auth-strategies/): the eleven-strategy catalogue, the descriptor, user pools, and the session caches
 - [Plugins](https://docsxai.com/reference/plugins/): the manifest fields, the status enum, the lock file, the plugins CLI, and capability strings
@@ -38,6 +38,7 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 
 ## Packages
 
+- docsxai (bare, npm): the batteries-included CLI meta-package - wraps @docsxai/engine's CLI in-process and ships @docsxai/viewer so `docsxai render` works from one global install
 - [@docsxai/engine](https://docsxai.com/packages/engine/): flow-file parser + deterministic runtime + the docsxai CLI
 - [@docsxai/plugin](https://docsxai.com/packages/plugin/): the Claude Code plugin
 - [@docsxai/mcp](https://docsxai.com/packages/mcp/): the standalone stdio MCP server

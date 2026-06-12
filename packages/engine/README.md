@@ -25,6 +25,7 @@ render         build the static viewer (spawns the @docsxai/viewer bin)
 lint           static checks across flow-files (R001-R010; `extraRules` injectable via `lintFlow`)
 flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt
+doctor         environment + workspace health-check (✓/✗ + one-line fixes; no plugin code runs)
 style          init/validate style.yaml; --check scans for jargon leaks
 zip            package the doc pack for hand-off
 baseline       snapshot the doc pack (flows, prose, annotations, screenshots, locators) for drift comparison

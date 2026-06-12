@@ -96,6 +96,7 @@ docsxai render <workspace>         # build the static viewer
 docsxai lint <workspace>           # static checks across flow-files
 docsxai flow-tree <workspace>      # visualise the `extends` graph
 docsxai diagnose <workspace>       # halt-context + recommendations after a halt
+docsxai doctor [<workspace>]       # environment + workspace health-check (one-line fix per ✗)
 docsxai style <workspace>          # init/validate style.yaml; --check scans for jargon leaks
 docsxai zip <workspace>            # package the doc pack for hand-off (deterministic, in-process)
 docsxai baseline <workspace>       # snapshot the doc pack for drift comparison
