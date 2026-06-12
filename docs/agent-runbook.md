@@ -11,7 +11,7 @@ Fill these in before starting:
 
 ```bash
 export APP_REPO=…          # the source checkout of ANY web app you want to document. YOU MUST NOT MODIFY THIS.
-export TOOL_REPO=…         # the docsxai repo (this repo: automated-site-documentation-bot)
+export TOOL_REPO=…         # the docsxai repo (this repo: kalebteccom/docsxai)
 export WORKSPACE=…         # where docsxai artifacts go — MUST be OUTSIDE $APP_REPO. e.g. ~/docsxai/<app-name>
 export APP_RUN=/tmp/docsxai-app-run   # disposable copy of $APP_REPO that you'll actually run
 # After step 2 you'll also know $APP_URL (the dev server's URL).
