@@ -25,9 +25,9 @@ Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue
 - [ ] WebAuthn enrolled on the maintainer's npm account
 - [ ] Breakglass npm account created with separate keys + email
 - [x] `@docsxai` org scope claimed on npm (registered) - enforce "Require 2FA" on it before the first publish
-- [ ] `docsxai` unscoped package name claimed (precondition: D5 stub-publish path rework decides whether the unscoped entrypoint ships as a thin shim over `@docsxai/engine` or as a separate published package)
+- [ ] `docsxai` unscoped package name claimed — ships as the pre-release throwing stub from `packages/docsxai/`, published by `release.yml` alongside the scoped packages
 - [ ] Typosquat package names pre-claimed and deprecated (`doxai`, `docsai`, `docsx-ai`, etc.)
-- [ ] npm trusted-publisher configuration set per package (repo + workflow + `release` environment binding) for all 8 scoped packages on the registered `@docsxai` org: `@docsxai/{backend,engine,plugin,skill,viewer,mcp,plugin-confluence,plugin-starlight}` plus `docsxai` unscoped if D5 lands
+- [ ] npm trusted-publisher configuration set per published name (repo + workflow + `release` environment binding) — 6 bindings total: `docsxai` unscoped plus the 5 published scoped packages on the registered `@docsxai` org, `@docsxai/{backend,engine,plugin,skill,viewer}`. `@docsxai/{mcp,plugin-confluence,plugin-starlight}` stay `private: true` / repo-only at the flip (documented as such; revisit post-flip) and need no bindings
 - [ ] GitHub `release` environment configured (required reviewer, branch restriction)
 - [ ] Domain renewal calendar reminders set
 
@@ -41,16 +41,22 @@ Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue
 ## Flip-day ordered actions
 
 1. Promote `## Unreleased` in `CHANGELOG.md` to `## [1.0.0] - YYYY-MM-DD`.
-2. Bump root `package.json` version to `1.0.0` and propagate to each `packages/*/package.json`.
+2. Bump each publishable `packages/*/package.json` to `1.0.0` (the workspace root and the repo-only packages stay as they are).
 3. Commit `chore(release): v1.0.0`.
 4. Sign and push tag: `git tag -s v1.0.0 && git push origin main --tags`.
 5. Watch the GitHub Actions run; approve the `release` environment gate when prompted.
-6. `release.yml` publishes via OIDC + uploads SBOM + creates the GitHub Release.
+6. `release.yml` publishes the 6 packages via OIDC + uploads the SBOM + creates the GitHub Release.
 7. Verify `npm install @docsxai/engine@1.0.0` from a clean machine. Run `npm audit signatures`.
 8. After the first OIDC publish succeeds, enable "Require 2FA and disallow tokens" on every published package on the npm side.
 9. In GitHub repo settings: branch protection on `main` with required CI, required reviews, no force-push, signed commits. Verify CODEOWNERS protections on `.github/`, manifests, license, release workflow.
 10. Flip repository visibility to public.
-11. Post the launch announcement.
+11. Website go-live (publish-first ordering — npm packages above, then the site, then DNS):
+    1. Trigger the Netlify production deploy of `website/` against the tagged commit; confirm the build is green.
+    2. Verify DNS + TLS for the site domain resolve to Netlify and the apex/`www` redirect works.
+    3. Verify `og.png` renders in a link-preview checker and the favicon set loads (`favicon.svg`, `favicon.ico`, `favicon-32.png`, `favicon-16.png`, `apple-touch-icon.png`).
+    4. Verify `/llms.txt` is served and its content matches the shipped docs surface.
+    5. Spot-check the 404 page and one deep docs URL post-DNS.
+12. Post the launch announcement.
 
 ## Post-flip monitoring (first 30 days)
 

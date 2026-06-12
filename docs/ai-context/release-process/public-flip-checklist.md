@@ -1,6 +1,6 @@
 # Public flip checklist — operational (walk-through on the day)
 
-This is the artifact the owner walks through line-by-line on flip day. The planning-level version (which items existed across the Phase D series, and what the high-level pre-flight was) lives at `docs/public-flip-checklist.md`. This file is the operational runbook: what to do, in what order, what to verify after each step, and what the rollback path is if anything goes wrong.
+This is the artifact the owner walks through line-by-line on flip day. The planning-level version (the tracking-issue checklist of what must be true before the flip) lives at `docs/public-flip-checklist.md`. This file is the operational runbook: what to do, in what order, what to verify after each step, and what the rollback path is if anything goes wrong.
 
 ## 1. Pre-flip code state — last green build
 
@@ -27,19 +27,19 @@ This is the artifact the owner walks through line-by-line on flip day. The plann
 
 ## 4. npm trusted-publisher configuration (per published package)
 
-For each of the 8 scoped packages on the registered `@docsxai` org — `@docsxai/backend`, `@docsxai/engine`, `@docsxai/mcp`, `@docsxai/plugin`, `@docsxai/plugin-confluence`, `@docsxai/plugin-starlight`, `@docsxai/skill`, `@docsxai/viewer` — and, if D5 has landed the stub-publish path, the unscoped `docsxai`:
+For each of the 6 published names — the unscoped `docsxai` stub plus the 5 published scoped packages on the registered `@docsxai` org, `@docsxai/backend`, `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/skill`, `@docsxai/viewer`:
 
 - [ ] Package exists on npm (publish a pre-release `0.0.0-trusted-publisher-setup` if needed, then deprecate).
 - [ ] Trusted publisher entry: repository `kalebteccom/docsxai`, workflow `.github/workflows/release.yml`, environment `release`.
 - [ ] "Require 2FA and disallow tokens" — set after the first successful OIDC publish, not before (you need at least one OIDC publish to verify the flow works first).
 - [ ] No legacy automation tokens on the maintainer account.
 
-> **Precondition flag — `docsxai` unscoped.** The unscoped name depends on D5's stub-publish path rework. If D5 hasn't landed by flip day, ship the 8 scoped packages only and reserve the unscoped name with a deprecated stub.
+> **Repo-only packages.** `@docsxai/mcp`, `@docsxai/plugin-confluence`, and `@docsxai/plugin-starlight` keep `"private": true` and do not publish at the flip (documented as repo-only; revisit post-flip). They need no trusted-publisher bindings until that decision changes — when one flips, add its binding and remove its `private` flag in the same change.
 
 ## 5. First OIDC publish — supervised
 
 1. Promote `## Unreleased` in `CHANGELOG.md` → `## [1.0.0] - YYYY-MM-DD`.
-2. Bump root + every `packages/*/package.json` to `1.0.0`. Verify `pnpm-lock.yaml` is consistent.
+2. Bump every publishable `packages/*/package.json` to `1.0.0` (root and the repo-only packages keep their versions). Verify `pnpm-lock.yaml` is consistent.
 3. Commit on a PR: `chore(release): v1.0.0`. Squash-merge to `main` (do not force-push to `main`).
 4. Pull the merged commit locally: `git pull --ff-only origin main`.
 5. Sign and push the tag: `git tag -s v1.0.0 -m "v1.0.0" && git push origin v1.0.0`.
@@ -55,13 +55,24 @@ For each of the 8 scoped packages on the registered `@docsxai` org — `@docsxai
 - [ ] Verify SBOM upload on the GitHub Release.
 - [ ] Verify the published tarballs against `scripts/audit-package-contents.mjs` policy — pull each `.tgz` from the registry and re-audit.
 
-## 7. Adopter readiness sanity
+## 7. Website go-live (publish-first ordering: npm publish → site deploy → DNS)
+
+Do not point DNS at a site that documents packages that aren't installable yet — the npm publish (section 5) comes first.
+
+- [ ] Netlify production deploy of `website/` triggered against the tagged commit; build green (`pnpm docs:build` parity locally).
+- [ ] DNS + TLS verified: site domain resolves to Netlify, apex/`www` redirect works, certificate valid.
+- [ ] `og:image` verified: `https://<site-domain>/og.png` returns the card and a link-preview checker renders it.
+- [ ] Favicon set loads: `favicon.svg`, `favicon.ico`, `favicon-32.png`, `favicon-16.png`, `apple-touch-icon.png`.
+- [ ] `/llms.txt` is served and matches the shipped docs surface.
+- [ ] 404 page renders the branded page (not a Netlify default); one deep docs URL spot-checked post-DNS.
+
+## 8. Adopter readiness sanity
 
 - [ ] `docs/security-best-practices-for-adopters.md` reflects the v1.0 surface (capabilities, provenance verification command, install posture).
 - [ ] `README.md` install snippet uses the correct published name (`@docsxai/engine` for the library, `@docsxai/plugin` for the Claude Code plugin).
 - [ ] `CHANGELOG.md` entry for 1.0.0 reads cleanly to a stranger.
 
-## 8. Rollback path
+## 9. Rollback path
 
 If anything goes wrong after the first publish:
 
@@ -69,7 +80,7 @@ If anything goes wrong after the first publish:
 - **Compromise during the window:** Rotate the maintainer's WebAuthn keys. Revoke any active sessions. File a GitHub Security Advisory. Use the breakglass account only as a last resort.
 - **Repo flip went out before npm was ready:** Flip the repo back to private. The git history is already public — that can't be undone. Don't panic; finish npm setup and re-flip.
 
-## 9. Communication
+## 10. Communication
 
 - [ ] Launch announcement drafted and reviewed before flip day. Do not draft it under flip-day pressure.
 - [ ] Security disclosure channel (`SECURITY.md` contact) is monitored — owner is available for the first 48h.
