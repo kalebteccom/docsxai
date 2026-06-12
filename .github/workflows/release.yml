@@ -12,17 +12,20 @@ name: release
 #     (configured in the GitHub Environment settings — see RELEASING.md).
 #   - No NPM_TOKEN. Trusted publishing on the npm side binds this exact
 #     repo + workflow filename + environment name (configured per package
-#     on npmjs.com under each of the 6 names — see RELEASING.md).
+#     on npmjs.com under each of the 9 names — see RELEASING.md).
 #
-# Publish surface (6 packages on tag):
+# Publish surface (9 packages on tag; the @docsxai npm org is registered):
 #   - `docsxai`                       — pre-release throwing stub from
 #                                       packages/docsxai/ that defends
 #                                       the unscoped namespace
-#   - `@kalebtec/docsxai-backend`
-#   - `@kalebtec/docsxai-engine`
-#   - `@kalebtec/docsxai-plugin`
-#   - `@kalebtec/docsxai-skill`
-#   - `@kalebtec/docsxai-viewer`
+#   - `@docsxai/backend`
+#   - `@docsxai/engine`
+#   - `@docsxai/mcp`
+#   - `@docsxai/plugin`
+#   - `@docsxai/plugin-confluence`
+#   - `@docsxai/plugin-starlight`
+#   - `@docsxai/skill`
+#   - `@docsxai/viewer`
 
 on:
   push:
@@ -107,5 +110,5 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Build scoped packages
         run: pnpm -r build
-      - name: Publish @kalebtec/docsxai-* with provenance
-        run: pnpm -r --filter "@kalebtec/docsxai-*" publish --provenance --access public --no-git-checks
+      - name: Publish @docsxai/* with provenance
+        run: pnpm -r --filter "@docsxai/*" --filter "!@docsxai/website" publish --provenance --access public --no-git-checks
