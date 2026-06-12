@@ -33,29 +33,26 @@ lastUpdated: false
     <div class="docsx-snap">
       <div class="docsx-snap-note"># site-docs run ./workspace --flow publish-post</div>
       <div class="row">
-        <span class="t-time">1/4</span>
-        <span class="t-kind">open-editor</span>
-        <span class="t-body">✓ 01-open-editor.png</span>
+        <span class="t-time">run</span>
+        <span class="t-kind">publish-post</span>
+        <span class="t-body">4 step(s) executed, 4 annotation(s) written</span>
+      </div>
+      <div class="docsx-snap-note"># site-docs diff ./workspace --fail-on warn</div>
+      <div class="row">
+        <span class="t-time">diff</span>
+        <span class="t-kind">drift</span>
+        <span class="t-body">no drift detected</span>
       </div>
       <div class="row">
-        <span class="t-time">2/4</span>
-        <span class="t-kind">write-draft</span>
-        <span class="t-body">✓ 02-write-draft.png</span>
+        <span class="t-time"></span>
+        <span class="t-kind">totals</span>
+        <span class="t-body">0 flows changed, severity none</span>
       </div>
+      <div class="docsx-snap-note"># site-docs render ./workspace</div>
       <div class="row">
-        <span class="t-time">3/4</span>
-        <span class="t-kind">publish</span>
-        <span class="t-body">✓ 03-publish.png</span>
-      </div>
-      <div class="row">
-        <span class="t-time">4/4</span>
-        <span class="t-kind">confirm-live</span>
-        <span class="t-body">✓ 04-confirm-live.png</span>
-      </div>
-      <div class="row">
-        <span class="t-time">done</span>
-        <span class="t-kind">render</span>
-        <span class="t-body">docs/publish-post/ (4 annotated shots)</span>
+        <span class="t-time">render</span>
+        <span class="t-kind">.viewer/</span>
+        <span class="t-body">open index.html</span>
       </div>
     </div>
   </div>
@@ -124,38 +121,41 @@ lastUpdated: false
   <div class="docsx-grid">
     <div class="docsx-card">
       <span class="docsx-card-mark">// execution</span>
-      <h3>Deterministic by contract</h3>
+      <h3>Deterministic CI replay</h3>
       <div class="docsx-card-text">
         A frozen clock, pinned locale, timezone, and viewport: the same flow
-        against the same target state produces byte-identical screenshots,
-        keystone-enforced against real Chromium.
+        against the same target state produces byte-identical screenshots.
+        Baseline the pack, gate CI on pixel-level drift with
+        <code>diff --fail-on warn</code>.
       </div>
     </div>
     <div class="docsx-card">
       <span class="docsx-card-mark">// calibration</span>
-      <h3>AI-assisted, once</h3>
+      <h3>Agent calibration, any MCP host</h3>
       <div class="docsx-card-text">
-        An agent helps you author the flow-file one time, through the Claude
-        Code plugin or any MCP host. After that, every run is agent-free:
-        no model in the loop, no token bill per refresh.
+        An agent authors the flow-file once, through the Claude Code plugin
+        or the standalone MCP server, with lint, diagnose, and actionability
+        probes at write-time. After that, every run is agent-free: no model
+        in the loop, no token bill per refresh.
+      </div>
+    </div>
+    <div class="docsx-card">
+      <span class="docsx-card-mark">// plugins</span>
+      <h3>A plugin runtime with teeth</h3>
+      <div class="docsx-card-text">
+        Publishers, renderers, lint rules, and auth strategies extend the
+        engine through a namespaced, capability-declared, sha256-locked
+        runtime. Confluence and Starlight ship as first-party plugins.
       </div>
     </div>
     <div class="docsx-card">
       <span class="docsx-card-mark">// output</span>
-      <h3>Annotated screenshots</h3>
+      <h3>Docs as code, rendered three ways</h3>
       <div class="docsx-card-text">
-        Halos, numbered badges, and callouts render from annotations.json
-        over clean captures. Redactions mask sensitive UI before any PNG
-        hits disk, so the pack is safe to share.
-      </div>
-    </div>
-    <div class="docsx-card">
-      <span class="docsx-card-mark">// pipeline</span>
-      <h3>CI-friendly publishing</h3>
-      <div class="docsx-card-text">
-        Re-run on change in your pipeline, then publish the pack as a static
-        viewer, an Astro Starlight site, or straight to Confluence through
-        the publisher plugin.
+        One doc pack, three deliveries: an interactive viewer with halos and
+        callouts, a production Astro Starlight site, or burned-annotation
+        PNGs pushed to Confluence as ADF. Redactions mask sensitive UI
+        before any pixel hits disk.
       </div>
     </div>
   </div>
