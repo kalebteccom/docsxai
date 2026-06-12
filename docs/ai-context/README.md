@@ -5,7 +5,8 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 ## Read this before touching the relevant area
 
 - Adding a CLI subcommand or plugin command → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`architecture/documentation-contracts.md`](architecture/documentation-contracts.md).
-- Writing a test → read [`testing/qa-patterns.md`](testing/qa-patterns.md).
+- Writing a test → read [`testing/qa-patterns.md`](testing/qa-patterns.md) and [`testing/unit-vs-keystone.md`](testing/unit-vs-keystone.md).
+- Writing or touching a plugin (publisher / renderer / lint-rules / auth-strategy) → read [`plugin-runtime/lifecycle-and-namespacing.md`](plugin-runtime/lifecycle-and-namespacing.md).
 - Touching the engine runtime, the `BrowserDriver` interface, or auth strategies → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`testing/qa-patterns.md`](testing/qa-patterns.md) — the keystone test is the regression gate.
 - Touching any code path that writes artifacts (screenshots, annotations, halt context, doc-pack zip) → read [`secrets-and-egress/README.md`](secrets-and-egress/README.md).
 - Releasing or changing the surface → read [`release-process/semver-clock.md`](release-process/semver-clock.md).
@@ -18,6 +19,7 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 | `agent-process/`      | Cross-cutting discipline: commits, dist-rebuild, code quality (the f3-inspired big one).                                                                                  |
 | `architecture/`       | Substrate references: surface map across the five packages, documentation contracts between layers.                                                                       |
 | `secrets-and-egress/` | Trust posture for everything that writes to disk or surfaces text. No in-engine JS-injection surface; the trust surface is auth artifacts, screenshots, and halt context. |
+| `plugin-runtime/`     | Plugin lifecycle, namespacing, capability + lock discipline for the workspace plugin runtime (publishers / renderers / lint-rules / auth-strategies).                     |
 | `testing/`            | Unit / keystone layering and the QA-patterns playbook.                                                                                                                    |
 | `release-process/`    | Semver clock, branch-protection stub (matures in D4).                                                                                                                     |
 | `investigations/`     | Root-cause write-ups for non-obvious bugs. Empty today; one-off entries land as `<YYYY-MM-DD>-<slug>.md`.                                                                 |
