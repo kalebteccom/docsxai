@@ -27,8 +27,10 @@ projects/<projectId>/meta.json
 projects/<projectId>/runs.json
 projects/<projectId>/revisions/<revId>/meta.json
 projects/<projectId>/revisions/<revId>/artifacts/<slot>.json
+projects/<projectId>/webhook-config.json
 blobs/<sha256>            ← content-addressed, shared across revisions
 auth-cache/<wsId>/<role>.json
+webhook-deliveries.json   ← replay guard: last 100 delivery ids
 ```
 
 Writes are atomic (tmp file + rename); reads always go to disk, so multiple processes pointed at one data dir stay consistent. Every path join is containment-guarded against the data root — traversal-shaped ids read as not-found and traversal-shaped writes throw.

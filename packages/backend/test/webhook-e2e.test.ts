@@ -50,22 +50,23 @@ beforeAll(async () => {
     });
   });
 
-  // One service: the dispatcher reuses the server's store directly (same process).
-  let runner: SpawnRunner;
+  // One service: the dispatcher reuses the server's store directly (same process). The runner
+  // needs the stub's store, so it is created right after the stub and threaded via a ref.
+  const runnerRef: { current?: SpawnRunner } = {};
   dispatcher = new QueuedDispatcher(async (job) => {
-    await runner.executeRun(job);
+    await runnerRef.current!.executeRun(job);
   });
   stub = createBackendStub({
     token: TOKEN,
     dispatcher,
     env: { SITE_DOCS_WEBHOOK_SECRET: SECRET },
   });
-  runner = new SpawnRunner({
+  runnerRef.current = new SpawnRunner({
     store: stub.store,
     engineBin: FAKE_BIN,
     strategyDeps: {
       githubApiBase: ghBase,
-      env: { GITHUB_APP_TOKEN: "installation-token" } as NodeJS.ProcessEnv,
+      env: { GITHUB_APP_TOKEN: "installation-token" },
     },
   });
   base = await stub.listen(0);

@@ -14,7 +14,7 @@ const flag = (name) => {
 const workspace = flag("--workspace");
 
 if (process.env.FAKE_ENGINE_EXIT) {
-  console.log(`fake engine forced exit ${process.env.FAKE_ENGINE_EXIT}`);
+  process.stdout.write(`fake engine forced exit ${process.env.FAKE_ENGINE_EXIT}` + "\n");
   process.exit(Number(process.env.FAKE_ENGINE_EXIT));
 }
 
@@ -23,7 +23,7 @@ if (cmd === "run") {
     path.join(workspace, "fake-run.json"),
     JSON.stringify({ ran: true, argv: process.argv.slice(2) }, null, 2),
   );
-  console.log("documented 3 flows, 0 drifted");
+  process.stdout.write("documented 3 flows, 0 drifted" + "\n");
   process.exit(0);
 }
 
@@ -31,7 +31,7 @@ if (cmd === "render") {
   const out = flag("--out");
   fs.mkdirSync(out, { recursive: true });
   fs.writeFileSync(path.join(out, "index.html"), "<html>fake viewer</html>");
-  console.log("viewer rendered");
+  process.stdout.write("viewer rendered" + "\n");
   process.exit(0);
 }
 

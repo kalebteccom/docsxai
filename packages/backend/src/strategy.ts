@@ -173,7 +173,7 @@ async function viewerRefresh(
   const spawnImpl = deps.spawnImpl;
   if (!spawnImpl) {
     const { spawn } = await import("node:child_process");
-    return viewerRefresh(job, run, { ...deps, spawnImpl: spawn as SpawnLike });
+    return viewerRefresh(job, run, { ...deps, spawnImpl: spawn });
   }
   const bin = deps.engineBin ?? "site-docs";
   const outDir = path.join(run.workspace_dir, "viewer");

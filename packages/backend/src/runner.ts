@@ -105,7 +105,7 @@ export class SpawnRunner {
     const { store } = this.opts;
     const env = this.opts.env ?? process.env;
     const bin = this.opts.engineBin ?? resolveEngineBin(env);
-    const spawnImpl = this.opts.spawnImpl ?? (nodeSpawn as SpawnLike);
+    const spawnImpl: SpawnLike = this.opts.spawnImpl ?? nodeSpawn;
 
     const workspaceDir = this.materializeWorkspace(job);
     const started = Date.now();

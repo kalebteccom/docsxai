@@ -313,7 +313,7 @@ export function parseWebhookConfig(v: unknown): WebhookConfig | string {
     workspace_rev: rev,
     secret_env: secretEnv,
     enabled,
-    ...(c.plugin !== undefined ? { plugin: c.plugin as string } : {}),
+    ...(c.plugin !== undefined ? { plugin: c.plugin } : {}),
     ...(c.plugin_config !== undefined
       ? { plugin_config: c.plugin_config as Record<string, unknown> }
       : {}),
