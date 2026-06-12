@@ -2,7 +2,7 @@
 
 ## Current maintainers
 
-- **@rowinkaleb** (Rowin Hernandez, Kalebtec) — sole merge authority and sole release authority. Owns the engine, plugin, and backend surfaces.
+- **@rowinbot** (Rowin Hernandez, Kalebtec) — sole merge authority and sole release authority. Owns the engine, plugin, and backend surfaces.
 
 Breakglass owner exists per universal-baseline A3. No further detail published.
 
