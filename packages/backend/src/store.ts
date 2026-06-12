@@ -12,8 +12,19 @@ import {
   type RevisionArtifact,
   type RevisionKind,
   type RunRecord,
+  type WebhookConfig,
   type Workspace,
 } from "./api.js";
+
+/** How many recent webhook delivery ids the replay guard remembers. */
+export const WEBHOOK_DELIVERY_MEMORY = 100;
+
+/** Result of mapping an incoming webhook repo to a configured project. */
+export interface WebhookProjectMatch {
+  workspace_id: string;
+  project_id: string;
+  config: WebhookConfig;
+}
 
 export class NotFoundError extends Error {
   constructor(what: string) {
@@ -75,6 +86,17 @@ export interface BackendStore {
   getAuthCache(wsId: string, role: string): AuthCacheEnvelope;
   /** Idempotent: deleting an absent entry is a no-op. */
   deleteAuthCache(wsId: string, role: string): void;
+
+  putWebhookConfig(wsId: string, projectId: string, config: WebhookConfig): WebhookConfig;
+  /** Throws {@link NotFoundError} when the project has no webhook config. */
+  getWebhookConfig(wsId: string, projectId: string): WebhookConfig;
+  /** Map a GitHub `owner/name` repo to the first project configured for it (or null). */
+  findWebhookProject(repo: string): WebhookProjectMatch | null;
+  /**
+   * Replay guard: record a webhook delivery id, remembering the last
+   * {@link WEBHOOK_DELIVERY_MEMORY}. Returns false when the id was already seen (duplicate).
+   */
+  rememberWebhookDelivery(deliveryId: string): boolean;
 }
 
 export function sha256Hex(data: Buffer): string {
@@ -88,6 +110,7 @@ interface RevisionEntry extends Revision {
 interface ProjectEntry extends Project {
   revisions: RevisionEntry[]; // newest last
   runs: RunRecord[]; // newest last
+  webhook_config?: WebhookConfig;
 }
 
 const now = () => new Date().toISOString();
@@ -97,6 +120,7 @@ export class MemoryStore implements BackendStore {
   private projects = new Map<string, ProjectEntry>();
   private blobs = new Map<string, Buffer>();
   private authCache = new Map<string, AuthCacheEnvelope>();
+  private deliveries: string[] = []; // webhook delivery ids, oldest first, capped
 
   // --- workspaces ---
   createWorkspace(name: string): Workspace {
@@ -241,6 +265,38 @@ export class MemoryStore implements BackendStore {
     this.authCache.delete(`${wsId}\0${role}`);
   }
 
+  // --- webhook config + replay guard ---
+  putWebhookConfig(wsId: string, projectId: string, config: WebhookConfig): WebhookConfig {
+    const p = this.projectEntry(wsId, projectId);
+    p.webhook_config = { ...config };
+    return { ...config };
+  }
+  getWebhookConfig(wsId: string, projectId: string): WebhookConfig {
+    const p = this.projectEntry(wsId, projectId);
+    if (!p.webhook_config) throw new NotFoundError(`webhook config for project ${projectId}`);
+    return { ...p.webhook_config };
+  }
+  findWebhookProject(repo: string): WebhookProjectMatch | null {
+    for (const p of this.projects.values()) {
+      if (p.webhook_config?.repo === repo) {
+        return {
+          workspace_id: p.workspace_id,
+          project_id: p.id,
+          config: { ...p.webhook_config },
+        };
+      }
+    }
+    return null;
+  }
+  rememberWebhookDelivery(deliveryId: string): boolean {
+    if (this.deliveries.includes(deliveryId)) return false;
+    this.deliveries.push(deliveryId);
+    if (this.deliveries.length > WEBHOOK_DELIVERY_MEMORY) {
+      this.deliveries.splice(0, this.deliveries.length - WEBHOOK_DELIVERY_MEMORY);
+    }
+    return true;
+  }
+
   // --- internals ---
   private projectEntry(wsId: string, projectId: string): ProjectEntry {
     this.getWorkspace(wsId);
@@ -257,7 +313,7 @@ export class MemoryStore implements BackendStore {
     return rev;
   }
   private publicProject(p: ProjectEntry): Project {
-    const { revisions: _r, runs: _u, ...rest } = p;
+    const { revisions: _r, runs: _u, webhook_config: _w, ...rest } = p;
     return { ...rest };
   }
   private publicRevision(r: RevisionEntry): Revision {

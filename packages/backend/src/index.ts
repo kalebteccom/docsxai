@@ -12,6 +12,9 @@ export * from "./api.js";
 export * from "./store.js";
 export * from "./fs-store.js";
 export * from "./oauth.js";
+export * from "./webhook.js";
+export * from "./runner.js";
+export * from "./strategy.js";
 export { createBackendStub, type BackendStubOptions } from "./server.js";
 
 import { createBackendStub } from "./server.js";

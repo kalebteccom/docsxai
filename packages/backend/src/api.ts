@@ -124,6 +124,22 @@ export const ROUTES: readonly RouteSpec[] = [
   },
   {
     method: "GET",
+    path: "/v1/workspaces/:ws/projects/:project/webhook-config",
+    summary: "Get the project's GitHub webhook config (404 when unset).",
+  },
+  {
+    method: "PUT",
+    path: "/v1/workspaces/:ws/projects/:project/webhook-config",
+    summary: "Set the project's GitHub webhook config ({ repo, events, strategy, ... }).",
+  },
+  {
+    method: "POST",
+    path: "/v1/github/webhook",
+    summary:
+      "GitHub webhook receiver (no bearer auth; X-Hub-Signature-256 HMAC verified). 202 on dispatch.",
+  },
+  {
+    method: "GET",
     path: "/v1/oauth/authorize",
     summary:
       "OAuth 2.1 authorization endpoint (PKCE S256 only; loopback redirect URIs only). 302 with ?code=&state=.",
@@ -205,6 +221,103 @@ export interface AuthCacheEnvelope {
   tag: string;
   /** Epoch ms the cached session expires (cleartext metadata so the server can GC). */
   expires_at?: number;
+}
+
+// --- GitHub webhook config ---------------------------------------------------
+
+/** Webhook event names the backend understands. */
+export const WEBHOOK_EVENTS = ["push", "pull_request"] as const;
+export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
+
+/** Output strategies a webhook-triggered run can route to. */
+export const WEBHOOK_STRATEGIES = ["pr-comment", "viewer-refresh", "wiki-push"] as const;
+export type WebhookStrategy = (typeof WEBHOOK_STRATEGIES)[number];
+
+/** Default env var the webhook HMAC secret is read from. */
+export const DEFAULT_WEBHOOK_SECRET_ENV = "SITE_DOCS_WEBHOOK_SECRET";
+
+/**
+ * Per-project GitHub webhook configuration. Lives entirely in the backend — user repos carry
+ * ZERO YAML. The HMAC secret itself never enters the store; the config only names the env var
+ * (`secret_env`) the backend process reads it from.
+ */
+export interface WebhookConfig {
+  /** GitHub repository as `owner/name`. */
+  repo: string;
+  /** Events that dispatch a run; others are acknowledged and ignored. */
+  events: WebhookEvent[];
+  /** Where a run's output goes. */
+  strategy: WebhookStrategy;
+  /** Revision the run executes against: `head` or a concrete revision id. */
+  workspace_rev: string;
+  /** Name of the env var holding the webhook HMAC secret. */
+  secret_env: string;
+  enabled: boolean;
+  /** Publisher plugin (`<ns>:<name>`) for the `wiki-push` strategy. */
+  plugin?: string;
+  /** Opaque config handed to the publisher plugin. */
+  plugin_config?: Record<string, unknown>;
+}
+
+const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+const ENV_NAME_RE = /^[A-Z][A-Z0-9_]*$/;
+
+/**
+ * Validate + normalize a webhook-config body. Returns the normalized config, or a human-readable
+ * problem string when the body is invalid. Optional fields get their documented defaults.
+ */
+export function parseWebhookConfig(v: unknown): WebhookConfig | string {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return "body must be a JSON object";
+  const c = v as Record<string, unknown>;
+  if (typeof c.repo !== "string" || !REPO_RE.test(c.repo)) {
+    return 'repo must be "owner/name"';
+  }
+  if (!Array.isArray(c.events) || c.events.length === 0) {
+    return `events must be a non-empty array of ${WEBHOOK_EVENTS.join("|")}`;
+  }
+  for (const e of c.events) {
+    if (!(WEBHOOK_EVENTS as readonly unknown[]).includes(e)) {
+      return `unknown event "${String(e)}" (expected ${WEBHOOK_EVENTS.join("|")})`;
+    }
+  }
+  if (!(WEBHOOK_STRATEGIES as readonly unknown[]).includes(c.strategy)) {
+    return `strategy must be one of ${WEBHOOK_STRATEGIES.join("|")}`;
+  }
+  const rev = c.workspace_rev ?? "head";
+  if (typeof rev !== "string" || rev.length === 0)
+    return "workspace_rev must be a revision id or 'head'";
+  const secretEnv = c.secret_env ?? DEFAULT_WEBHOOK_SECRET_ENV;
+  if (typeof secretEnv !== "string" || !ENV_NAME_RE.test(secretEnv)) {
+    return "secret_env must be an env-var name ([A-Z][A-Z0-9_]*)";
+  }
+  const enabled = c.enabled ?? true;
+  if (typeof enabled !== "boolean") return "enabled must be a boolean";
+  if (c.plugin !== undefined && (typeof c.plugin !== "string" || !c.plugin.includes(":"))) {
+    return 'plugin must be a namespace-qualified publisher name ("<ns>:<name>")';
+  }
+  if (
+    c.plugin_config !== undefined &&
+    (typeof c.plugin_config !== "object" ||
+      c.plugin_config === null ||
+      Array.isArray(c.plugin_config))
+  ) {
+    return "plugin_config must be a JSON object";
+  }
+  if (c.strategy === "wiki-push" && c.plugin === undefined) {
+    return 'strategy "wiki-push" requires a plugin ("<ns>:<name>")';
+  }
+  return {
+    repo: c.repo,
+    events: [...new Set(c.events as WebhookEvent[])],
+    strategy: c.strategy as WebhookStrategy,
+    workspace_rev: rev,
+    secret_env: secretEnv,
+    enabled,
+    ...(c.plugin !== undefined ? { plugin: c.plugin as string } : {}),
+    ...(c.plugin_config !== undefined
+      ? { plugin_config: c.plugin_config as Record<string, unknown> }
+      : {}),
+  };
 }
 
 export function isAuthCacheEnvelope(v: unknown): v is AuthCacheEnvelope {

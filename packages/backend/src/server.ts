@@ -10,13 +10,24 @@ import {
   isAuthCacheEnvelope,
   JSON_BODY_LIMIT_BYTES,
   OAUTH_CLIENT_ID,
+  parseWebhookConfig,
   REVISION_ARTIFACTS,
   ROUTES,
   type RevisionArtifact,
 } from "./api.js";
 import { FsStore } from "./fs-store.js";
 import { isLoopbackRedirectUri, OAuthError, OAuthIssuer } from "./oauth.js";
+import { SpawnRunner } from "./runner.js";
 import { type BackendStore, MemoryStore, NotFoundError, RevisionFinalizedError } from "./store.js";
+import {
+  DELIVERY_HEADER,
+  EVENT_HEADER,
+  QueuedDispatcher,
+  SIGNATURE_HEADER,
+  verifyGitHubSignature,
+  type RunDispatcher,
+  type WebhookJob,
+} from "./webhook.js";
 
 export interface BackendStubOptions {
   /** If set, `Authorization: Bearer <t>` must equal this (or be a live OAuth access token). If unset, any non-empty bearer token passes (it's a stub). */
@@ -25,6 +36,10 @@ export interface BackendStubOptions {
   store?: BackendStore;
   /** Persist to this directory via `FsStore`. Falls back to env `SITE_DOCS_DATA_DIR`; default is in-memory. */
   dataDir?: string;
+  /** Webhook run dispatcher. Default: a `QueuedDispatcher` driving `SpawnRunner` (real engine CLI). */
+  dispatcher?: RunDispatcher;
+  /** Env the webhook surface reads secrets from (tests inject; default `process.env`). */
+  env?: NodeJS.ProcessEnv;
 }
 
 interface Matched {
@@ -61,6 +76,11 @@ function matchRoute(method: string, pathname: string): Matched | "method_mismatc
 
 function isArtifact(s: string): s is RevisionArtifact {
   return (REVISION_ARTIFACTS as readonly string[]).includes(s);
+}
+
+/** First value of a possibly-multi-valued header. */
+function asSingle(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
 }
 
 const SHA256_HEX = /^[0-9a-f]{64}$/;
@@ -108,6 +128,10 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
 } {
   const store = resolveStore(opts);
   const oauth = new OAuthIssuer();
+  const env = opts.env ?? process.env;
+  const dispatcher =
+    opts.dispatcher ??
+    new QueuedDispatcher((job) => new SpawnRunner({ store, env }).executeRun(job).then(() => {}));
 
   const server = createServer((req, res) => {
     handle(req, res).catch((e) => {
@@ -163,11 +187,13 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
         message: `${method} not allowed on ${url.pathname}`,
       });
 
-    // Auth gate (everything except /v1/health and the OAuth endpoints themselves).
+    // Auth gate (everything except /v1/health, the OAuth endpoints, and the GitHub webhook —
+    // the webhook is HMAC-signature-verified instead of bearer-gated).
     const noAuth =
       url.pathname === "/v1/health" ||
       url.pathname === "/v1/oauth/authorize" ||
-      url.pathname === "/v1/oauth/token";
+      url.pathname === "/v1/oauth/token" ||
+      url.pathname === "/v1/github/webhook";
     if (!noAuth) {
       const token = bearerToken(req);
       if (token === null) return sendUnauthorized(res, "missing Bearer token");
@@ -292,6 +318,16 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
               }),
             );
           }
+        case "/v1/workspaces/:ws/projects/:project/webhook-config": {
+          if (method === "GET") return sendJson(res, 200, store.getWebhookConfig(ws!, project!));
+          const parsed = parseWebhookConfig(await readJsonBody(req));
+          if (typeof parsed === "string") {
+            return sendJson(res, 400, { error: "bad_request", message: parsed });
+          }
+          return sendJson(res, 200, store.putWebhookConfig(ws!, project!, parsed));
+        }
+        case "/v1/github/webhook":
+          return await handleGitHubWebhook(req, res);
         case "/v1/workspaces/:ws/auth-cache/:role": {
           if (!role || !SAFE_ROLE.test(role)) {
             return sendJson(res, 400, {
@@ -336,6 +372,83 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
         });
       throw e;
     }
+  }
+
+  /**
+   * GitHub webhook receiver. Unauthenticated route, but strictly verified: the repo named in the
+   * payload must map to a configured project, and the X-Hub-Signature-256 HMAC must validate
+   * against that project's secret (read from the env var the config names) before anything else
+   * is trusted. Accepted deliveries are queued (202) — execution happens after the response.
+   */
+  async function handleGitHubWebhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const raw = await readBody(req, JSON_BODY_LIMIT_BYTES);
+    let payload: unknown;
+    try {
+      payload = JSON.parse(raw.toString("utf8") || "{}");
+    } catch {
+      return sendJson(res, 400, { error: "bad_request", message: "invalid JSON payload" });
+    }
+    const repo = (payload as { repository?: { full_name?: unknown } }).repository?.full_name;
+    if (typeof repo !== "string" || !repo) {
+      return sendJson(res, 400, {
+        error: "bad_request",
+        message: "payload missing repository.full_name",
+      });
+    }
+    const match = store.findWebhookProject(repo);
+    if (!match) {
+      return sendJson(res, 404, {
+        error: "not_found",
+        message: `no project is configured for repository ${repo}`,
+      });
+    }
+    // Signature gate. A missing secret in the env fails closed (401), never open.
+    const secret = env[match.config.secret_env];
+    const signature = req.headers[SIGNATURE_HEADER];
+    if (!secret || !verifyGitHubSignature(secret, raw, asSingle(signature))) {
+      res.setHeader("WWW-Authenticate", 'Signature realm="github-webhook"');
+      return sendJson(res, 401, {
+        error: "unauthorized",
+        message: "missing or invalid X-Hub-Signature-256",
+      });
+    }
+    const deliveryId = asSingle(req.headers[DELIVERY_HEADER]);
+    if (!deliveryId) {
+      return sendJson(res, 400, {
+        error: "bad_request",
+        message: "missing X-GitHub-Delivery header",
+      });
+    }
+    if (!match.config.enabled) {
+      return sendJson(res, 200, { delivery_id: deliveryId, dispatched: false, reason: "disabled" });
+    }
+    const event = asSingle(req.headers[EVENT_HEADER]) ?? "";
+    if (!(match.config.events as string[]).includes(event)) {
+      return sendJson(res, 200, {
+        delivery_id: deliveryId,
+        dispatched: false,
+        reason: "event-filtered",
+        event,
+      });
+    }
+    if (!store.rememberWebhookDelivery(deliveryId)) {
+      return sendJson(res, 200, { delivery_id: deliveryId, duplicate: true, dispatched: false });
+    }
+    const job: WebhookJob = {
+      delivery_id: deliveryId,
+      event,
+      workspace_id: match.workspace_id,
+      project_id: match.project_id,
+      repo,
+      config: match.config,
+      payload,
+    };
+    await dispatcher.dispatch(job);
+    return sendJson(res, 202, {
+      delivery_id: deliveryId,
+      project_id: match.project_id,
+      dispatched: true,
+    });
   }
 
   function handleAuthorize(req: IncomingMessage, res: ServerResponse, url: URL): void {

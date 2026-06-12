@@ -5,8 +5,10 @@
 //   projects/<projectId>/runs.json
 //   projects/<projectId>/revisions/<revId>/meta.json
 //   projects/<projectId>/revisions/<revId>/artifacts/<slot>.json
+//   projects/<projectId>/webhook-config.json  (GitHub webhook config, when set)
 //   blobs/<sha256>                            (content-addressed, shared across revisions)
 //   auth-cache/<wsId>/<role>.json
+//   webhook-deliveries.json                   (replay guard: last N delivery ids)
 //
 // Every write is atomic (tmp file + rename in the same directory). Every read goes to disk — no
 // caching layer, so concurrent processes pointed at the same data dir see each other's writes.
@@ -23,6 +25,7 @@ import {
   type RevisionArtifact,
   type RevisionKind,
   type RunRecord,
+  type WebhookConfig,
   type Workspace,
 } from "./api.js";
 import {
@@ -31,6 +34,8 @@ import {
   RevisionFinalizedError,
   type RunInput,
   sha256Hex,
+  WEBHOOK_DELIVERY_MEMORY,
+  type WebhookProjectMatch,
 } from "./store.js";
 
 /** Thrown when a data-dir-relative path resolves outside the data root (traversal attempt). */
@@ -233,6 +238,47 @@ export class FsStore implements BackendStore {
   deleteAuthCache(wsId: string, role: string): void {
     this.getWorkspace(wsId);
     fs.rmSync(this.resolve("auth-cache", wsId, `${role}.json`), { force: true });
+  }
+
+  // --- webhook config + replay guard ---
+  putWebhookConfig(wsId: string, projectId: string, config: WebhookConfig): WebhookConfig {
+    this.projectMeta(wsId, projectId);
+    this.writeJson(this.resolve("projects", projectId, "webhook-config.json"), config);
+    return { ...config };
+  }
+  getWebhookConfig(wsId: string, projectId: string): WebhookConfig {
+    this.projectMeta(wsId, projectId);
+    const c = this.readJson<WebhookConfig>(
+      this.resolve("projects", projectId, "webhook-config.json"),
+    );
+    if (!c) throw new NotFoundError(`webhook config for project ${projectId}`);
+    return c;
+  }
+  findWebhookProject(repo: string): WebhookProjectMatch | null {
+    let ids: string[];
+    try {
+      ids = fs.readdirSync(this.resolve("projects"));
+    } catch {
+      return null;
+    }
+    for (const id of ids.sort()) {
+      const config = this.readJson<WebhookConfig>(
+        this.resolve("projects", id, "webhook-config.json"),
+      );
+      if (config?.repo !== repo) continue;
+      const meta = this.readJson<ProjectMetaFile>(this.resolve("projects", id, "meta.json"));
+      if (!meta) continue;
+      return { workspace_id: meta.workspace_id, project_id: id, config };
+    }
+    return null;
+  }
+  rememberWebhookDelivery(deliveryId: string): boolean {
+    const p = this.resolve("webhook-deliveries.json");
+    const seen = this.readJson<string[]>(p) ?? [];
+    if (seen.includes(deliveryId)) return false;
+    seen.push(deliveryId);
+    this.writeJson(p, seen.slice(-WEBHOOK_DELIVERY_MEMORY));
+    return true;
   }
 
   // --- internals ---
