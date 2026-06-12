@@ -13,52 +13,23 @@ them. None of the satellites adds browser primitives of its own.
 
 ## The two-mode split
 
-<div class="docsx-diagram not-content">
-  <svg
-    class="docsx-loop-svg"
-    viewBox="0 0 960 210"
-    role="img"
-    aria-label="Calibration authors the flow-file once; execution replays it deterministically, looping on every change."
-  >
-    <defs>
-      <marker
-        id="dx-arch-arrow"
-        viewBox="0 0 10 10"
-        refX="8.5"
-        refY="5"
-        markerWidth="7"
-        markerHeight="7"
-        orient="auto-start-reverse"
-      >
-        <path d="M0 0 L10 5 L0 10 z" fill="var(--sl-color-text-accent)" />
-      </marker>
-    </defs>
-    <line class="dx-link" x1="202" y1="75" x2="262" y2="75" marker-end="url(#dx-arch-arrow)" />
-    <line class="dx-link" x1="448" y1="75" x2="508" y2="75" marker-end="url(#dx-arch-arrow)" />
-    <line class="dx-link" x1="694" y1="75" x2="754" y2="75" marker-end="url(#dx-arch-arrow)" />
-    <path class="dx-link dx-loopback" d="M848 110 C 848 190, 356 190, 356 112" marker-end="url(#dx-arch-arrow)" />
-    <text class="dx-loop-label" x="600" y="184" text-anchor="middle">re-run on change, no agent</text>
-    <g class="dx-node">
-      <rect x="20" y="44" width="180" height="62" rx="12" />
-      <text class="dx-node-name" x="38" y="73">host agent</text>
-      <text class="dx-node-sub" x="38" y="92">calibration: rare, supervised</text>
-    </g>
-    <g class="dx-node">
-      <rect x="266" y="44" width="180" height="62" rx="12" />
-      <text class="dx-node-name" x="284" y="73">flow-file</text>
-      <text class="dx-node-sub" x="284" y="92">reviewable YAML, committed</text>
-    </g>
-    <g class="dx-node">
-      <rect x="512" y="44" width="180" height="62" rx="12" />
-      <text class="dx-node-name" x="530" y="73">docsxai run</text>
-      <text class="dx-node-sub" x="530" y="92">deterministic, zero LLM</text>
-    </g>
-    <g class="dx-node">
-      <rect x="758" y="44" width="180" height="62" rx="12" />
-      <text class="dx-node-name" x="776" y="73">doc pack</text>
-      <text class="dx-node-sub" x="776" y="92">screenshots + annotations</text>
-    </g>
-  </svg>
+<div class="docsx-modes not-content" role="img" aria-label="The two-mode split. Calibration is rare and agent-assisted: a host agent drives discovery and commits a reviewable flow-file. Execution is continuous and agent-free: the deterministic engine core replays that flow-file through the BrowserDriver seam, with no model in the loop, emitting a doc pack and looping on every change.">
+<div class="dxm-grid" aria-hidden="true">
+<section class="dxm-lane dxm-lane--cal">
+<header class="dxm-lane-head"><span class="dxm-lane-tag">calibration</span><span class="dxm-lane-note">rare · agent-assisted</span></header>
+<div class="dxm-box"><span class="dxm-box-name">host agent</span><span class="dxm-box-sub">drives discovery, picks one locator per step</span></div>
+<div class="dxm-down" aria-hidden="true"><svg viewBox="0 0 24 40"><path d="M12 2 V32" /><path d="M6 28 L12 36 L18 28" /></svg></div>
+<div class="dxm-box dxm-box--art"><span class="dxm-box-name">flow-file</span><span class="dxm-box-sub">reviewable YAML, committed to the repo</span></div>
+</section>
+<section class="dxm-lane dxm-lane--exec">
+<header class="dxm-lane-head"><span class="dxm-lane-tag dxm-lane-tag--exec">execution</span><span class="dxm-lane-note">continuous · agent-free</span></header>
+<div class="dxm-core"><span class="dxm-core-name">engine core</span><span class="dxm-core-sub">deterministic runtime · never calls a model</span><div class="dxm-seam"><span class="dxm-seam-label">BrowserDriver seam</span><span class="dxm-seam-chip">Playwright</span></div></div>
+<div class="dxm-down" aria-hidden="true"><svg viewBox="0 0 24 40"><path d="M12 2 V32" /><path d="M6 28 L12 36 L18 28" /></svg></div>
+<div class="dxm-box dxm-box--out"><span class="dxm-box-name">doc pack</span><span class="dxm-box-sub">clean screenshots + annotations, byte-identical</span></div>
+<p class="dxm-loop"><svg class="dxm-loop-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12 A8 8 0 1 1 17.5 6.2" /><path d="M17.8 2.5 L18 6.4 L14.2 6" /></svg><span>re-run on every change · no agent</span></p>
+</section>
+<span class="dxm-handoff" aria-hidden="true"><svg viewBox="0 0 60 24"><path d="M2 12 H48" /><path d="M44 6 L54 12 L44 18" /></svg></span>
+</div>
 </div>
 
 **Calibration** is AI-assisted and rare. A host agent - through the
