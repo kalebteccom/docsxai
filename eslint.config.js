@@ -193,7 +193,7 @@ export default tseslint.config(
       ],
 
       // Strict-type hygiene — error from day one. Mirrors browxai's
-      // post-Phase-15 baseline.
+      // strict-type baseline.
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/consistent-type-assertions": "error",
       "@typescript-eslint/no-redundant-type-constituents": "error",
@@ -206,7 +206,7 @@ export default tseslint.config(
       "@typescript-eslint/unbound-method": "error",
 
       // DEFERRED to a follow-up typed-boundary refactor. Same posture as
-      // browxai post-Phase-15: the right fix is typed wrappers at the
+      // browxai: the right fix is typed wrappers at the
       // backend-API / flow-file / page.evaluate() boundaries that Zod-
       // validate inbound payloads so handler bodies see typed objects,
       // not `unknown` JSON.parse output. Until those wrappers land,
