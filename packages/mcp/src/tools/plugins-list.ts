@@ -15,7 +15,10 @@ export const pluginsListTool = defineTool({
     "Resolve and load the workspace's configured plugin set (.site-docs.json `plugins` + " +
     "`plugin_capabilities`) and report each plugin's status, trust, and registered artifacts.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

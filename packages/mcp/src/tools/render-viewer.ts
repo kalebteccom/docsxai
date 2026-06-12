@@ -19,7 +19,10 @@ export const renderViewerTool = defineTool({
     "docsxai-viewer bin (resolved via SITE_DOCS_VIEWER_BIN, the installed " +
     "@kalebtec/docsxai-viewer package, then PATH).",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

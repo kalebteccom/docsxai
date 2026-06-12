@@ -10,6 +10,12 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 ### Added
 
+#### MCP server (`@kalebtec/docsxai-mcp`)
+
+- **Standalone stdio MCP server** (`docsxai-mcp` bin, `--workspace <dir>` default) exposing calibration meta-orchestration + read-only doc-pack introspection to any MCP-speaking host — no browser primitives (live-page discovery stays browxai's surface). Fourteen tools: `init_workspace`, `run_flows` (flow filter / `startFrom` / `stopAfter` / CDP attach / bounded concurrency; per-flow ok / halt-cause / artifact paths; merged-flow `environment` passed into the Playwright session), `render_viewer`, `lint_flows` (incl. plugin `extraRules`), `flow_tree`, `diagnose_halt`, `style_check`, `zip_pack`, `push_pack`, `pull_pack`, `list_flows`, `get_annotations`, `get_run_artifacts` (paths only), `plugins_list`. Structured `{ok, …} | {ok:false, error, hint}` results throughout.
+- **Scripted-client acceptance suite** — an in-process linked client/server pair over the SDK's `InMemoryTransport` drives the whole surface as a non-Claude MCP client, including `run_flows` against the toy-site fixture over real Chromium (loopback `node:http`, Chromium-gated). Add-a-tool checklist: `docs/ai-context/tool-registration/mcp-tool-registry.md`.
+- Streamable-HTTP transport deferred per roadmap; the package stays `private: true` until the public flip.
+
 #### Engine — plugins runtime (`@kalebtec/docsxai-engine`)
 
 - **Workspace plugin runtime v1** — four extension points (publishers, renderers, lint-rules, auth-strategies) via a `docsxai` manifest on a plugin package's `package.json` plus a `register(api)` module. Resolved once per CLI invocation; mandatory `<namespace>:<name>` prefixing (reserved: `site-docs`, `docsxai`, `core`, `plugins`); `dependsOn` topological load with cycle rejection; capability declarations (`egress:<host-glob>`) subset-checked against workspace `plugin_capabilities`; in-process and unsandboxed — `trust` is a review signal. Lifecycle contract: `docs/ai-context/plugin-runtime/lifecycle-and-namespacing.md`.

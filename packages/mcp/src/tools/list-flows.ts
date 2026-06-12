@@ -12,7 +12,10 @@ export const listFlowsTool = defineTool({
     "List every flow-file in the workspace: name, step ids/actions, extends parent, and the " +
     "pinned environment summary (locale/timezone/viewport/clock/color-scheme/reduced-motion).",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

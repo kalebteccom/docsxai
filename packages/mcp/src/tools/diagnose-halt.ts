@@ -21,7 +21,10 @@ export const diagnoseHaltTool = defineTool({
     "page. Returns recommendations (selector / wait_for / success / annotation_target / " +
     "split_step / investigate); never edits the flow-file.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
     flow: z.string().min(1).describe("Flow name"),
     step: z.string().min(1).describe("Step id within the (merged) flow"),
     cdp: z

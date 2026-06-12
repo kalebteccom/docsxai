@@ -19,7 +19,10 @@ export const styleCheckTool = defineTool({
     "Initialise docs/style.yaml if absent (otherwise validate it), rederive docs/style.json, and " +
     "scan every docs/<flow>/<step>.md write-up for jargon leaks against the style's pruning rules.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
     check: z
       .boolean()
       .optional()

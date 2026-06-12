@@ -60,7 +60,7 @@ export function defineTool<Shape extends z.ZodRawShape>(def: {
   inputSchema: Shape;
   handler(args: z.output<z.ZodObject<Shape>>, ctx: ToolContext): Promise<ToolResult>;
 }): ToolDefinition {
-  return def as ToolDefinition;
+  return def;
 }
 
 // ---------------------------------------------------------------------------

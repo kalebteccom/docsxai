@@ -22,8 +22,14 @@ export const pushPackTool = defineTool({
     "and push it as a new revision to the backend named in .site-docs.json. Screenshot bytes go " +
     "up as content-addressed blobs; unchanged PNGs are skipped.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
-    kind: z.enum(["calibrate", "run", "edit"]).optional().describe("Revision kind (default calibrate)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
+    kind: z
+      .enum(["calibrate", "run", "edit"])
+      .optional()
+      .describe("Revision kind (default calibrate)"),
     author: z.string().optional().describe("Revision author (default: the OS user)"),
   },
   async handler(args, ctx) {

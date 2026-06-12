@@ -11,7 +11,10 @@ export const flowTreeTool = defineTool({
     "Build the workspace's flow `extends` graph: root flows + descendants, orphans (parent not " +
     "in the workspace), and resolution issues (cycles / step-id collisions). Pure-static.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

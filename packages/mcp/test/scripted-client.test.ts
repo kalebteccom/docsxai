@@ -91,9 +91,7 @@ describe("scripted client — initialize + tools/list", () => {
   it("registry and wire agree on the tool set", async () => {
     const client = await connect();
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(
-      TOOL_DEFINITIONS.map((d) => d.name).sort(),
-    );
+    expect(tools.map((t) => t.name).sort()).toEqual(TOOL_DEFINITIONS.map((d) => d.name).sort());
     await client.close();
   });
 

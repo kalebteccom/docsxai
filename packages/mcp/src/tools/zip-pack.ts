@@ -12,7 +12,10 @@ export const zipPackTool = defineTool({
     "Package the workspace's doc pack (flows/, docs/, .site-docs.json, auth/strategy.yaml, " +
     "README.md) into a deterministic zip. Excludes .auth/, halts/, and .viewer/ by default.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
     out: z
       .string()
       .optional()

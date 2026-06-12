@@ -21,7 +21,10 @@ export const lintFlowsTool = defineTool({
     "R003 missing wait timeout on long-async steps, R004 bare data-attribute selector, …) plus " +
     "any plugin-contributed rules across the workspace's flow-files. No browser, no live page.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
     flow: z.string().optional().describe("Lint only this flow (default: every flow)"),
   },
   async handler(args, ctx) {

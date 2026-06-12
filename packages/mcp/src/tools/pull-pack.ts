@@ -18,7 +18,10 @@ export const pullPackTool = defineTool({
     "Fetch a revision's artifacts (default: HEAD) from the bound backend back into the workspace " +
     "files — for syncing another operator's edits or rolling back to a named revision.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
     rev: z.string().optional().describe("Revision id (default: head)"),
   },
   async handler(args, ctx) {

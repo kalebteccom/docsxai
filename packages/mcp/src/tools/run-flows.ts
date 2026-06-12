@@ -69,7 +69,10 @@ export const runFlowsTool = defineTool({
     "startFrom/stopAfter prefix runs, attaching to a running Chrome over CDP, and bounded " +
     "parallelism. Per-flow results report ok / halt cause / artifact paths.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
     flow: z.string().optional().describe("Run only this flow"),
     startFrom: z
       .string()

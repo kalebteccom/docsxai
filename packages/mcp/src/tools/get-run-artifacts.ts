@@ -34,7 +34,10 @@ export const getRunArtifactsTool = defineTool({
     "List the absolute paths of a run's artifacts per flow — annotations.json, screenshots, halt " +
     "screenshots, step write-ups — plus workspace-level style/locators. Paths only, no contents.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
     flow: z.string().optional().describe("Limit to one flow (default: every flow under docs/)"),
   },
   async handler(args, ctx) {

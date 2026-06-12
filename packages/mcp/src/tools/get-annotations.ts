@@ -12,7 +12,10 @@ export const getAnnotationsTool = defineTool({
     "Read docs/<flow>/annotations.json — the annotation records (step, selector, copy, arrow " +
     "style, bounding box) the last run emitted for the flow.",
   inputSchema: {
-    workspace: z.string().optional().describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: z
+      .string()
+      .optional()
+      .describe("Workspace dir (defaults to the server's --workspace)"),
     flow: z.string().min(1).describe("Flow name"),
   },
   async handler(args, ctx) {
