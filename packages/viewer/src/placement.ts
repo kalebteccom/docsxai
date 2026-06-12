@@ -4,8 +4,8 @@
 // callout (and the arrow tip) so the callout stays inside the image and doesn't cover the target. Pure,
 // coordinate-space-agnostic (use displayed px for the interactive viewer, screenshot px for the burner).
 //
-// The interactive viewer's inline OVERLAY_JS is a hand-port of `placeCallout` — keep the two in sync.
-// The static burner (`burn.ts`, when it lands) calls `placeCallout` directly.
+// Both consumers call this module directly: the interactive viewer's overlay-runtime.ts (bundled
+// into the emitted pages by scripts/bundle-overlay.mjs) and the static burner (burn.ts).
 
 export type Side = "top" | "bottom" | "left" | "right";
 

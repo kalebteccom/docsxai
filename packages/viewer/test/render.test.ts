@@ -108,7 +108,7 @@ describe("buildViewer", () => {
     expect((flowHtml.match(/data-anns=/g) || []).length).toBe(1);
   });
 
-  it("the inline OVERLAY_JS sizes callouts via a body-attached probe two-pass (callout is detached + display:none at build time)", async () => {
+  it("the inlined overlay runtime sizes callouts via a body-attached probe two-pass (callout is detached + display:none at build time)", async () => {
     const outDir = path.join(tmp, "out-callout-width");
     await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
     const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
@@ -154,6 +154,59 @@ describe("buildViewer", () => {
     expect(flowHtml).toContain('"nudge":{"x":25,"y":-10}');
     // viewer JS applies the offset
     expect(flowHtml).toContain("ann.nudge");
+  });
+
+  it("inlines the overlay script from the generated bundle — the real placeCallout, not a hand-port", async () => {
+    const outDir = path.join(tmp, "out-overlay-bundle");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
+    // The bundled placement module (placement.ts) is in the page verbatim — single-sourced.
+    expect(flowHtml).toContain("function placeCallout(");
+    const bundled = await fs.readFile(
+      new URL("../dist/generated/overlay.js", import.meta.url),
+      "utf8",
+    );
+    expect(flowHtml).toContain(bundled);
+  });
+
+  const EXPECTED_CSP =
+    "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'\">";
+
+  it("emits the network-egress-blocking CSP meta on every flow page", async () => {
+    const outDir = path.join(tmp, "out-csp");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
+    expect(flowHtml).toContain(EXPECTED_CSP);
+  });
+
+  it("emits the network-egress-blocking CSP meta on the index page", async () => {
+    const outDir = path.join(tmp, "out-csp-index");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    const indexHtml = await fs.readFile(path.join(outDir, "index.html"), "utf8");
+    expect(indexHtml).toContain(EXPECTED_CSP);
+  });
+
+  it("renders step write-ups as markdown (not <pre>)", async () => {
+    const outDir = path.join(tmp, "out-md");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
+    expect(flowHtml).toContain("<h1>Open the sidebar</h1>");
+    expect(flowHtml).toContain("<p>Click the Play button.</p>");
+    expect(flowHtml).not.toContain("<pre># Open the sidebar");
+  });
+
+  it("escapes raw HTML inside step write-up markdown (micromark safe mode)", async () => {
+    const flowDir = path.join(tmp, "docs", "recap-open");
+    await fs.writeFile(
+      path.join(flowDir, "open-sidebar.md"),
+      "Hello <script>alert(1)</script> <img src=x onerror=y>\n",
+    );
+    const outDir = path.join(tmp, "out-md-safe");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
+    expect(flowHtml).not.toContain("<script>alert(1)</script>");
+    expect(flowHtml).not.toContain("<img src=x");
+    expect(flowHtml).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
   });
 
   it("escapes HTML in annotation copy", async () => {

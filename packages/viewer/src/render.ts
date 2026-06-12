@@ -5,27 +5,16 @@
 // index. Annotations (arrows + popups) are *not baked into the PNGs*; the page overlays them from the
 // embedded `annotations.json` at render time, so they stay re-stylable.
 //
-// (The portfolio spec says "Vitest-based viewer" — read that as "small, dependency-light, Vite/Vitest
-// ecosystem"; this prototype is plain generated HTML+CSS+JS with zero build step. Revisit if it grows.)
+// The overlay script inlined into each flow page is NOT maintained here: it is the esbuild bundle of
+// src/overlay-runtime.ts (which imports the real placeCallout from placement.ts), emitted to
+// dist/generated/overlay.js by scripts/bundle-overlay.mjs at package build time and read from disk
+// at render time. Every page also carries a CSP meta that blocks all network egress — the emitted
+// HTML is fully self-contained (inline style + script, workspace-local images, no CDN fetches).
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-
-interface AnnotationRecord {
-  step: string;
-  selector: string;
-  bounding_box?: { x: number; y: number; width: number; height: number };
-  copy: string;
-  arrow_style?: string;
-  /** Optional pixel offset applied to the callout + arrow after Popper-like placement; halo stays put. */
-  nudge?: { x: number; y: number };
-  index?: number;
-}
-interface AnnotationsFile {
-  schema: string;
-  flow: string;
-  annotations: AnnotationRecord[];
-}
+import { micromark } from "micromark";
+import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
 
 export interface BuildViewerOptions {
   /** The doc pack's `docs/` directory. */
@@ -70,7 +59,8 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
-async function discoverFlows(docsDir: string): Promise<string[]> {
+/** Flow names under `docsDir` that carry an `annotations.json` (sorted). */
+export async function discoverFlows(docsDir: string): Promise<string[]> {
   let entries: import("node:fs").Dirent[];
   try {
     entries = await fs.readdir(docsDir, { withFileTypes: true });
@@ -110,6 +100,11 @@ const STYLE = `
   ol.caption-list { color: #555; font-size: 0.9rem; margin: 0.5rem 0 0; padding-left: 1.5rem; }
   ol.caption-list li { margin: 0.15rem 0; }
   details { margin-top: 0.5rem; } pre { white-space: pre-wrap; background: #f6f6f6; padding: 0.75rem; border-radius: 6px; }
+  .md { background: #f6f6f6; padding: 0.25rem 1rem; border-radius: 6px; font-size: 0.9rem; }
+  .md h1, .md h2, .md h3, .md h4 { font-size: 1rem; margin: 0.75rem 0 0.25rem; }
+  .md p, .md ul, .md ol { margin: 0.5rem 0; }
+  .md pre { background: #ececec; }
+  .md code { background: #ececec; padding: 0 3px; border-radius: 3px; }
   nav a { display: block; padding: 0.25rem 0; }
   .meta { color: #888; font-size: 0.8rem; }
   .flow-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
@@ -120,130 +115,40 @@ const STYLE = `
   .flow-card-meta { padding: .6rem .75rem; } .flow-card-meta strong { display: block; } .flow-card-meta span { color: #777; font-size: .8rem; }
 `;
 
-// Inlined at the bottom of each flow page. For each screenshot with an annotation: draw a pulsing halo around
-// the target's bounding box (scaled to the displayed image), and a hover-revealed callout placed Popper-style
-// so it never covers the target and stays inside the image. (This is a hand-port of src/placement.ts —
-// keep the two in sync.)
-const OVERLAY_JS = `
-(function () {
-  var GAP = 10;
-  function fits(s, im, t, c) {
-    if (s === "top") return t.y - GAP - c.h >= 0;
-    if (s === "bottom") return t.y + t.h + GAP + c.h <= im.h;
-    if (s === "left") return t.x - GAP - c.w >= 0;
-    return t.x + t.w + GAP + c.w <= im.w;
-  }
-  function room(s, im, t) {
-    if (s === "top") return t.y;
-    if (s === "bottom") return im.h - (t.y + t.h);
-    if (s === "left") return t.x;
-    return im.w - (t.x + t.w);
-  }
-  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-  function place(im, t, c, pref) {
-    var SIDES = ["top", "bottom", "right", "left"];
-    var order = [pref].concat(SIDES.filter(function (x) { return x !== pref; }));
-    var side = null, i;
-    for (i = 0; i < order.length; i++) if (fits(order[i], im, t, c)) { side = order[i]; break; }
-    if (!side) side = order.slice().sort(function (a, b) { return room(b, im, t) - room(a, im, t); })[0];
-    var cx = t.x + t.w / 2, cy = t.y + t.h / 2, x, y, ax, ay;
-    if (side === "top") { x = cx - c.w / 2; y = t.y - GAP - c.h; ax = clamp(cx, 0, im.w); ay = t.y; }
-    else if (side === "bottom") { x = cx - c.w / 2; y = t.y + t.h + GAP; ax = clamp(cx, 0, im.w); ay = t.y + t.h; }
-    else if (side === "left") { x = t.x - GAP - c.w; y = cy - c.h / 2; ax = t.x; ay = clamp(cy, 0, im.h); }
-    else { x = t.x + t.w + GAP; y = cy - c.h / 2; ax = t.x + t.w; ay = clamp(cy, 0, im.h); }
-    x = clamp(x, 0, Math.max(0, im.w - c.w));
-    y = clamp(y, 0, Math.max(0, im.h - c.h));
-    return { side: side, x: x, y: y, ax: ax, ay: ay };
-  }
-  function renderOne(shot, ann, sx, sy, im) {
-    if (!ann.bounding_box) return;
-    var bb = ann.bounding_box;
-    var t = { x: bb.x * sx, y: bb.y * sy, w: bb.width * sx, h: bb.height * sy };
-    var wrap = document.createElement("div");
-    wrap.className = "sd-ann";
-    // halo
-    var halo = document.createElement("div");
-    halo.className = "sd-halo";
-    halo.style.cssText = "left:" + t.x + "px;top:" + t.y + "px;width:" + t.w + "px;height:" + t.h + "px";
-    if (ann.copy) halo.title = (typeof ann.index === "number" ? ann.index + ". " : "") + ann.copy;
-    wrap.appendChild(halo);
-    // numbered badge — only when this image has > 1 call-out (ann.index set by the engine in that case)
-    if (typeof ann.index === "number") {
-      var b = document.createElement("div");
-      b.className = "sd-badge";
-      b.textContent = String(ann.index);
-      // top-left of the halo, pulled slightly outside it; clamped to the image
-      var bx = Math.max(0, Math.min(t.x - 8, im.w - 22));
-      var by = Math.max(0, Math.min(t.y - 8, im.h - 22));
-      b.style.cssText = "left:" + bx + "px;top:" + by + "px";
-      if (ann.copy) b.title = ann.index + ". " + ann.copy;
-      wrap.appendChild(b);
+// The overlay script (halo + badge + hover callout placement) is generated at build time from
+// overlay-runtime.ts so the placement logic is single-sourced in placement.ts. Two candidate
+// locations: ./generated/overlay.js next to the compiled render.js (the published-package case)
+// and ../dist/generated/overlay.js relative to src/render.ts (running from source, e.g. vitest).
+let overlayJsCache: string | undefined;
+async function loadOverlayJs(): Promise<string> {
+  if (overlayJsCache !== undefined) return overlayJsCache;
+  const candidates = [
+    new URL("./generated/overlay.js", import.meta.url),
+    new URL("../dist/generated/overlay.js", import.meta.url),
+  ];
+  for (const url of candidates) {
+    try {
+      overlayJsCache = await fs.readFile(url, "utf8");
+      return overlayJsCache;
+    } catch {
+      // try the next candidate
     }
-    if (ann.copy) {
-      var co = document.createElement("div");
-      co.className = "sd-callout";
-      co.textContent = (typeof ann.index === "number" ? ann.index + ". " : "") + ann.copy;
-      wrap.appendChild(co);
-      // Two-pass sizing on a body-attached probe. co cannot be measured in place: at this
-      // point wrap is still detached (it is appended to shot only at the end of renderOne),
-      // and the .sd-callout class is display:none until :hover — either alone makes
-      // co.offsetWidth/Height resolve to 0, which would bake width:0px and collapse the callout
-      // into a one-character-per-line column. The probe carries the same .sd-callout class (so
-      // padding/font/border match), lives in the live render tree for two synchronous reads,
-      // and is removed immediately. Pass 1: natural single-line width (white-space:nowrap, wrap
-      // props neutralised) clamped to 280. Pass 2: height at that locked width.
-      var probe = document.createElement("div");
-      probe.className = "sd-callout";
-      probe.textContent = co.textContent;
-      probe.style.cssText =
-        "position:fixed;left:-99999px;top:0;display:block;visibility:hidden;" +
-        "white-space:nowrap;overflow-wrap:normal;word-break:normal;width:auto;max-width:none";
-      document.body.appendChild(probe);
-      var cw = Math.min(probe.offsetWidth, 280);
-      probe.style.cssText =
-        "position:fixed;left:-99999px;top:0;display:block;visibility:hidden;" +
-        "white-space:normal;width:" + cw + "px";
-      var c = { w: cw, h: probe.offsetHeight };
-      document.body.removeChild(probe);
-      var pref = String(ann.arrow_style || "top").split("-")[0];
-      if (["top", "bottom", "left", "right"].indexOf(pref) < 0) pref = "top";
-      var p = place(im, t, c, pref);
-      // Optional nudge — moves callout + arrow together; halo (which highlights the target) stays put.
-      // Lets the author shift a callout aside when two annotations would otherwise overlap.
-      var nx = (ann.nudge && typeof ann.nudge.x === "number") ? ann.nudge.x : 0;
-      var ny = (ann.nudge && typeof ann.nudge.y === "number") ? ann.nudge.y : 0;
-      co.style.cssText = "left:" + (p.x + nx) + "px;top:" + (p.y + ny) + "px;box-sizing:border-box;white-space:normal;width:" + cw + "px";
-      var ar = document.createElement("div");
-      ar.className = "sd-arrow " + p.side;
-      var L, T;
-      if (p.side === "top") { L = p.ax - 7; T = p.ay - 8; }
-      else if (p.side === "bottom") { L = p.ax - 7; T = p.ay; }
-      else if (p.side === "left") { L = p.ax - 8; T = p.ay - 7; }
-      else { L = p.ax; T = p.ay - 7; }
-      ar.style.cssText = "left:" + (L + nx) + "px;top:" + (T + ny) + "px";
-      wrap.appendChild(ar);
-    }
-    shot.appendChild(wrap);
   }
-  function render(shot) {
-    var img = shot.querySelector("img");
-    if (!img || !img.naturalWidth) return;
-    var anns; try { anns = JSON.parse(shot.getAttribute("data-anns") || "[]"); } catch (e) { return; }
-    if (!anns || !anns.length) return;
-    var sx = img.clientWidth / img.naturalWidth, sy = img.clientHeight / img.naturalHeight;
-    var im = { w: img.clientWidth, h: img.clientHeight };
-    for (var i = 0; i < anns.length; i++) renderOne(shot, anns[i], sx, sy, im);
-  }
-  function go() { Array.prototype.forEach.call(document.querySelectorAll(".shot[data-anns]"), render); }
-  if (document.readyState === "complete") go(); else window.addEventListener("load", go);
-})();
-`;
+  throw new Error(
+    "overlay bundle not found — run the viewer package build (scripts/bundle-overlay.mjs emits dist/generated/overlay.js)",
+  );
+}
 
 // `file://` pages with inlined JS/CSS get cached hard by browsers — a re-render then looks
 // stale on a normal reload. These metas + the visible "rendered <ts>" footer below let you
 // see at a glance whether you're looking at a fresh render (and tell browsers not to cache).
 const HEAD_NOCACHE =
   '<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">';
+
+// Matches the inline-asset reality (inline <style>/<script>, local + data: images) while blocking
+// all network egress from an emitted page — no CDN fetches, no beacons, no remote fonts.
+const HEAD_CSP =
+  "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'\">";
 
 function renderedFooter(renderedAt: string): string {
   return `<footer class="meta" style="margin-top:2rem;opacity:.6;font-size:.8rem">rendered ${esc(renderedAt)} — hard-reload (⌘⇧R) if this looks stale</footer>`;
@@ -258,6 +163,7 @@ function flowPageHtml(
     md: string | null;
   }>,
   renderedAt: string,
+  overlayJs: string,
 ): string {
   const body = steps
     .map((s) => {
@@ -270,14 +176,16 @@ function flowPageHtml(
           : s.anns.length === 1
             ? `<div class="caption">${esc(s.anns[0]!.copy)}</div>`
             : `<ol class="caption-list">${s.anns.map((a) => `<li>${esc(a.copy)}</li>`).join("")}</ol>`;
+      // micromark in its safe default mode: raw HTML in the markdown is escaped, dangerous link
+      // protocols are dropped — nothing in a step write-up can introduce markup or script.
       const md = s.md
-        ? `<details><summary>Step write-up</summary><pre>${esc(s.md)}</pre></details>`
+        ? `<details><summary>Step write-up</summary><div class="md">${micromark(s.md)}</div></details>`
         : "";
       return `<section class="step"><h2>${esc(s.id)}</h2>${shot}${cap}${md}</section>`;
     })
     .join("\n");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_NOCACHE}<title>${esc(flow)}</title><style>${STYLE}</style></head>
-<body><p><a href="../index.html">← all flows</a></p><h1>${esc(flow)}</h1>${body}${renderedFooter(renderedAt)}<script>${OVERLAY_JS}</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_CSP}${HEAD_NOCACHE}<title>${esc(flow)}</title><style>${STYLE}</style></head>
+<body><p><a href="../index.html">← all flows</a></p><h1>${esc(flow)}</h1>${body}${renderedFooter(renderedAt)}<script>${overlayJs}</script></body></html>`;
 }
 
 interface FlowSummary {
@@ -298,7 +206,7 @@ function indexHtml(meta: FlowSummary[], renderedAt: string): string {
       return `<a class="flow-card" href="${esc(m.flow)}/index.html">${img}<div class="flow-card-meta"><strong>${esc(m.flow)}</strong><span>${sub}</span></div></a>`;
     })
     .join("\n");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_NOCACHE}<title>Documentation</title><style>${STYLE}</style></head>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_CSP}${HEAD_NOCACHE}<title>Documentation</title><style>${STYLE}</style></head>
 <body><h1>Documentation</h1>${cards ? `<div class="flow-grid">${cards}</div>` : "<p class='meta'>(no flows yet — run <code>site-docs run</code>, then <code>site-docs render</code>)</p>"}${renderedFooter(renderedAt)}</body></html>`;
 }
 
@@ -307,6 +215,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
   const flows = opts.flows ?? (await discoverFlows(opts.docsDir));
   await fs.mkdir(opts.outDir, { recursive: true });
   const renderedAt = new Date().toISOString();
+  const overlayJs = flows.length ? await loadOverlayJs() : "";
   const pages: string[] = ["index.html"];
   const flowSummaries: FlowSummary[] = [];
 
@@ -350,7 +259,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     await fs.mkdir(path.join(opts.outDir, flow), { recursive: true });
     await fs.writeFile(
       path.join(opts.outDir, flow, "index.html"),
-      flowPageHtml(flow, steps, renderedAt),
+      flowPageHtml(flow, steps, renderedAt, overlayJs),
       "utf8",
     );
     pages.push(`${flow}/index.html`);

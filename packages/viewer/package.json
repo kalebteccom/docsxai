@@ -6,7 +6,7 @@
     "access": "public",
     "provenance": true
   },
-  "description": "Vitest-based interactive docs-app generator: overlays arrows + popups from annotations.json over clean screenshots at render time.",
+  "description": "Interactive docs-app generator + burned-annotation renderer: overlays (or bakes) halos, badges and callouts from annotations.json over clean screenshots.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -31,18 +31,25 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "assets"
   ],
   "bin": {
     "docsxai-viewer": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc -b tsconfig.build.json",
+    "build": "node scripts/bundle-overlay.mjs && tsc -b tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "node scripts/bundle-overlay.mjs && vitest run"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "esbuild": "^0.28.1",
     "vitest": "^2.0.0"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "micromark": "^4.0.2",
+    "satori": "^0.26.0"
   }
 }
