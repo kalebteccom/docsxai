@@ -127,6 +127,7 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 - Per-package `tsconfig.build.json` (`sourceMap` and `declarationMap` off; excludes test files).
 - Dedicated `packages/docsxai/` publishable stub with `publishConfig` for OIDC trusted publishing.
 - 6-package OIDC publish pipeline in `release.yml`.
+- `release.yml` `github-release` job: creates the GitHub Release for the tag (generated notes) and attaches a CycloneDX SBOM (pinned `cdxgen`) once both publish jobs succeed; the scoped-publish filter excludes the repo-only packages (`@docsxai/{mcp,plugin-confluence,plugin-starlight,website}`) explicitly, matching their `private: true` flags.
 
 #### Docs site (`@docsxai/website`)
 

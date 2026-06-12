@@ -12,20 +12,22 @@ name: release
 #     (configured in the GitHub Environment settings — see RELEASING.md).
 #   - No NPM_TOKEN. Trusted publishing on the npm side binds this exact
 #     repo + workflow filename + environment name (configured per package
-#     on npmjs.com under each of the 9 names — see RELEASING.md).
+#     on npmjs.com under each of the 6 published names — see RELEASING.md).
 #
-# Publish surface (9 packages on tag; the @docsxai npm org is registered):
+# Publish surface (6 packages on tag; the @docsxai npm org is registered):
 #   - `docsxai`                       — pre-release throwing stub from
 #                                       packages/docsxai/ that defends
 #                                       the unscoped namespace
 #   - `@docsxai/backend`
 #   - `@docsxai/engine`
-#   - `@docsxai/mcp`
 #   - `@docsxai/plugin`
-#   - `@docsxai/plugin-confluence`
-#   - `@docsxai/plugin-starlight`
 #   - `@docsxai/skill`
 #   - `@docsxai/viewer`
+#
+# Repo-only — `private: true`, never published by this workflow (excluded
+# below by explicit filters AND by their private flags; both must agree):
+#   - `@docsxai/mcp`, `@docsxai/plugin-confluence`,
+#     `@docsxai/plugin-starlight`, `@docsxai/website`
 
 on:
   push:
@@ -111,4 +113,40 @@ jobs:
       - name: Build scoped packages
         run: pnpm -r build
       - name: Publish @docsxai/* with provenance
-        run: pnpm -r --filter "@docsxai/*" --filter "!@docsxai/website" publish --provenance --access public --no-git-checks
+        run: >-
+          pnpm -r
+          --filter "@docsxai/*"
+          --filter "!@docsxai/website"
+          --filter "!@docsxai/mcp"
+          --filter "!@docsxai/plugin-confluence"
+          --filter "!@docsxai/plugin-starlight"
+          publish --provenance --access public --no-git-checks
+
+  github-release:
+    needs: [publish-docsxai, publish-scoped]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.0.0
+        with:
+          version: 9.15.9
+      # No `cache` opt-in — see cache-poisoning note on build job above.
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.0.2 # zizmor: ignore[cache-poisoning]
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Generate CycloneDX SBOM (pinned cdxgen)
+        run: npx --yes @cyclonedx/cdxgen@12.5.1 -t pnpm -o sbom.cdx.json --project-name docsxai
+      - name: Create GitHub Release with generated notes + SBOM
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" sbom.cdx.json
+          --title "$GITHUB_REF_NAME"
+          --generate-notes
+          --verify-tag
