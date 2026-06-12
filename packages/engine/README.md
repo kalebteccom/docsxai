@@ -10,7 +10,7 @@ The engine **never** calls a model API. Calibration-time inference is supplied b
 - **Execution environment** — optional `environment` block (`EnvironmentSpec`): frozen `clock` (Playwright clock API), `locale`, `timezone`, `viewport` (`VIEWPORT_PRESETS`: desktop / tablet / mobile, or explicit size), `color_scheme`, `reduced_motion`. Applied at context creation by `launchPlaywrightSession({ environment })`; on CDP-attached sessions only the clock applies (one stderr warning lists skipped fields). `contextOptions` passes `httpCredentials` / `clientCertificates` / `extraHTTPHeaders` through to `browser.newContext`.
 - **Redactions** — flow-level + per-step `RedactionSpec[]` (`{ selector }` or `{ region }`, style `box` | `pixelate`) masked deterministically before any screenshot (halt shots included) hits disk. The pure pixel transform is `applyRedactions` in `redact.ts`.
 - **`BrowserDriver`** interface — what the runtime needs from a browser. The `PlaywrightDriver` implementation includes the `actionable()` predicate (see [`docs/actionability-contract.md`](../../docs/actionability-contract.md)) that browser-bridge consumers can mirror, plus a real `element_stable` wait (bounding-box polling, 10 s best-effort budget).
-- **Auth strategies** — `auth/strategy.yaml` descriptor + the `manual-capture` strategy (security-lowered instrumented Chrome → human logs in → `storageState` cached locally with the real auth-cookie's expiry tracked). Other strategies (API-direct, JWT-injection, etc.) are interface-accommodated.
+- **Auth strategies** — `auth/strategy.yaml` descriptor + a catalogue of scripted strategies (`api-login`, `ui-form` with a TOTP hop, `email-otp`, `webauthn`, `jwt-injection`, `http-basic`, `pat-header`, `mtls`, `test-backdoor`) alongside the human-in-the-loop `manual-capture`. See [Auth strategies](#auth-strategies) below.
 - **CLI** — `site-docs <command>`. See `--help` or the [top-level README](../../README.md) for the full surface; this package's `dist/cli.js` is the binary.
 
 ## CLI commands
@@ -34,6 +34,31 @@ zip            package the doc pack for hand-off
 `zip` packages the doc pack in-process (via fflate) — no system `zip` binary required — and **deterministically**: entries are sorted, every entry's mtime is pinned to the zip epoch (1980-01-01), and the compression level is fixed, so the same doc pack always produces a byte-identical archive. Includes `flows/`, `docs/`, `.site-docs.json`, `auth/strategy.yaml`, `README.md`; excludes `.auth/`, `**/halts/`, and (unless `--include-viewer`) `.viewer/`. Symlinks that point outside the workspace are never followed into the archive.
 
 `render` locates the viewer bin in order: `SITE_DOCS_VIEWER_BIN` (path to the viewer's bin script or an executable), the `@kalebtec/docsxai-viewer` package installed next to the engine (its `bin` run with the current Node), then `docsxai-viewer` on PATH. A launch failure reports all three attempts.
+
+## Auth strategies
+
+Target-site auth lives in `src/auth/` (one module per strategy) behind the `src/auth.ts` re-export shim. Every strategy implements `AuthStrategy.authenticate(ctx) → AuthResult` and reduces to the same universal artifact: a **`storageState`** (cookies + localStorage) the runtime seeds the browser context with, plus — for connection-level schemes — `contextOptions` (`httpCredentials` / `extraHTTPHeaders` / `clientCertificates`) passed through to `browser.newContext`. Roles are declared in `<workspace>/auth/strategy.yaml` (`site-docs/auth-strategy@1`): per-role `strategy`, `creds_env` (credential **keys → env-var names**, never values), `options`, and `cache` (local/backend store, `ttl`, `auth_cookie` expiry pinning).
+
+| Strategy         | Scheme                                                                                          | Browser needed |
+| ---------------- | ----------------------------------------------------------------------------------------------- | -------------- |
+| `api-login`      | POST creds to the login endpoint; cookies collected across the redirect chain (own RFC-6265 jar) | no             |
+| `ui-form`        | drive the app's own login form: fill, submit, success marker, snapshot; `pre_steps` dismiss pre-login chrome; `options.totp` adds an RFC-6238 hop (dep-free `generateTotp`/`verifyTotp` primitives exported) | headless       |
+| `email-otp`      | `ui-form` whose code arrives by mail; an `InboxProvider` polls the inbox (`http-json` built-in: Mailpit-style `{ messages: [{to, received_at, body}] }`); `code_pattern` extracts the code (default `\b(\d{6})\b`) | headless       |
+| `webauthn`       | passkey via a CDP virtual authenticator (ctap2 / internal / user-verifying), attached **before** navigation; `trigger_selector` starts the ceremony | headless       |
+| `jwt-injection`  | static token (`token_env`) or OAuth2 client-credentials mint (`token_url`); injected into localStorage and/or cookies via `{{token}}` templates | no             |
+| `http-basic`     | connection-level `httpCredentials`                                                               | no             |
+| `pat-header`     | token header via `extraHTTPHeaders` (`value_template`, default `Bearer {{token}}`)               | no             |
+| `mtls`           | client certificate via `clientCertificates` (`creds_env` maps `cert`/`key` to PEM file paths)    | no             |
+| `test-backdoor`  | POST a shared secret to a test-only endpoint                                                     | no             |
+| `manual-capture` | instrumented Chrome; a human logs in and triggers capture                                        | headed         |
+
+Cross-cutting contracts:
+
+- **Secrets stay out of band.** Strategies read env-var *names* from the descriptor and resolve values at run time; error messages mask values as `<SET>`/`<UNSET>` and never echo them.
+- **User pools.** Any credential env value may be comma-separated (`u1,u2,u3`); `resolveCreds({ workerIndex })` gives parallel worker N entry `N % len`, consistently across every pooled variable.
+- **`expiresAt` when derivable.** From the named / lone real-expiry cookie (`jarAuthExpiry`), the JWT `exp` claim, or the token endpoint's `expires_in`; the cache's `auth_cookie` / `ttl` rules cover the rest.
+- **Registries.** `registerAuthStrategy(name, impl)` adds or overrides a scheme (consulted before the built-ins — the plugins-runtime hook); `registerInboxProvider(name, factory)` adds `email-otp` inbox shapes.
+- **One Playwright import site.** Browser-driving strategies depend on the narrow `AuthPage` interface (`src/auth/browser-session.ts`); the default launcher routes through `launchPlaywrightSession`, so unit tests fake the page and `playwright-driver.ts` remains the engine's single Playwright integration point.
 
 ## Plugins
 
