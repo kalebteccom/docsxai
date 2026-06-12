@@ -34,11 +34,11 @@ pieces enforce this.
 
 Three names show up in these docs, on purpose:
 
-| Name                  | What it names                                                                                                                              |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `docsxai`             | The product. The GitHub repo `kalebteccom/docsxai`, this site.                                                                             |
+| Name                  | What it names                                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docsxai`             | The product. The GitHub repo `kalebteccom/docsxai`, this site.                                                                                 |
 | `site-docs`           | The CLI binary, plus the stable codename surfaces: `SITE_DOCS_*` env vars, the `.site-docs.json` workspace config, `site-docs/*@N` schema ids. |
-| `@kalebtec/docsxai-*` | The npm packages: `docsxai-engine`, `docsxai-viewer`, `docsxai-plugin`, `docsxai-mcp`, `docsxai-backend`, and the publisher plugins.       |
+| `@kalebtec/docsxai-*` | The npm packages: `docsxai-engine`, `docsxai-viewer`, `docsxai-plugin`, `docsxai-mcp`, `docsxai-backend`, and the publisher plugins.           |
 
 When you type a command, it is `site-docs`. When you install a package, it is
 `@kalebtec/docsxai-something`. Both name the same engine.

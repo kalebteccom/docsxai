@@ -22,8 +22,8 @@ gate, with two ways through:
   it as `Authorization: Bearer <token>`.
 - **OAuth 2.1 access token** - issued by the backend's own minimal
   authorization server (authorization-code with PKCE, S256 only, loopback
-  redirect URIs only). `site-docs login --backend-url <url> --oauth
-  <workspace>` drives the full handshake and stores tokens at
+  redirect URIs only). `site-docs login --backend-url <url> --oauth <workspace>`
+  drives the full handshake and stores tokens at
   `<workspace>/.auth/backend-token.json` (mode 0600). Refresh tokens rotate:
   the presented one is invalidated on use.
 
@@ -34,26 +34,26 @@ stores only sha256 hashes of issued tokens.
 
 ### Workspaces and projects
 
-| Method | Path                                  | What it does                              |
-| ------ | ------------------------------------- | ------------------------------------------ |
-| GET    | `/v1/health`                          | Liveness probe (no auth).                  |
-| GET    | `/v1/workspaces`                      | List workspaces visible to the caller.     |
-| POST   | `/v1/workspaces`                      | Create a workspace (`{ name }`).           |
-| GET    | `/v1/workspaces/:ws`                  | Get a workspace.                           |
-| GET    | `/v1/workspaces/:ws/projects`         | List projects in a workspace.              |
-| POST   | `/v1/workspaces/:ws/projects`         | Create a project (`{ name }`).             |
-| GET    | `/v1/workspaces/:ws/projects/:project`| Get a project (incl. head revision).       |
+| Method | Path                                   | What it does                           |
+| ------ | -------------------------------------- | -------------------------------------- |
+| GET    | `/v1/health`                           | Liveness probe (no auth).              |
+| GET    | `/v1/workspaces`                       | List workspaces visible to the caller. |
+| POST   | `/v1/workspaces`                       | Create a workspace (`{ name }`).       |
+| GET    | `/v1/workspaces/:ws`                   | Get a workspace.                       |
+| GET    | `/v1/workspaces/:ws/projects`          | List projects in a workspace.          |
+| POST   | `/v1/workspaces/:ws/projects`          | Create a project (`{ name }`).         |
+| GET    | `/v1/workspaces/:ws/projects/:project` | Get a project (incl. head revision).   |
 
 ### Revisions and artifacts
 
-| Method | Path                                                            | What it does                                                        |
-| ------ | --------------------------------------------------------------- | -------------------------------------------------------------------- |
-| GET    | `/v1/workspaces/:ws/projects/:project/revisions`                | List revisions (newest first).                                       |
+| Method | Path                                                            | What it does                                                                              |
+| ------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| GET    | `/v1/workspaces/:ws/projects/:project/revisions`                | List revisions (newest first).                                                            |
 | POST   | `/v1/workspaces/:ws/projects/:project/revisions`                | Create a revision (`{ kind: calibrate\|run\|edit, author }`); parent is the current head. |
-| GET    | `/v1/workspaces/:ws/projects/:project/revisions/:rev`           | Revision metadata plus which artifacts are present. `:rev` may be `head`. |
-| POST   | `/v1/workspaces/:ws/projects/:project/revisions/:rev/finalize`  | Finalize (idempotent). Artifact PUTs afterwards get 409 `revision-finalized`. |
-| GET    | `/v1/workspaces/:ws/projects/:project/revisions/:rev/:artifact` | Get an artifact payload.                                             |
-| PUT    | `/v1/workspaces/:ws/projects/:project/revisions/:rev/:artifact` | Replace an artifact payload on a non-finalized revision.             |
+| GET    | `/v1/workspaces/:ws/projects/:project/revisions/:rev`           | Revision metadata plus which artifacts are present. `:rev` may be `head`.                 |
+| POST   | `/v1/workspaces/:ws/projects/:project/revisions/:rev/finalize`  | Finalize (idempotent). Artifact PUTs afterwards get 409 `revision-finalized`.             |
+| GET    | `/v1/workspaces/:ws/projects/:project/revisions/:rev/:artifact` | Get an artifact payload.                                                                  |
+| PUT    | `/v1/workspaces/:ws/projects/:project/revisions/:rev/:artifact` | Replace an artifact payload on a non-finalized revision.                                  |
 
 The artifact slots mirror the on-disk doc pack: `flows`, `annotations`,
 `screenshots`, `style`, `locators`. Payloads are opaque to the backend; the
@@ -62,10 +62,10 @@ engine's contract.
 
 ### Run history
 
-| Method | Path                                              | What it does                                                  |
-| ------ | -------------------------------------------------- | --------------------------------------------------------------- |
-| GET    | `/v1/workspaces/:ws/projects/:project/run-history` | List execution-run records (newest first).                      |
-| POST   | `/v1/workspaces/:ws/projects/:project/run-history` | Append a record (`{ rev, ok, duration_ms, summary }`).          |
+| Method | Path                                               | What it does                                           |
+| ------ | -------------------------------------------------- | ------------------------------------------------------ |
+| GET    | `/v1/workspaces/:ws/projects/:project/run-history` | List execution-run records (newest first).             |
+| POST   | `/v1/workspaces/:ws/projects/:project/run-history` | Append a record (`{ rev, ok, duration_ms, summary }`). |
 
 ### Blobs
 
@@ -73,11 +73,11 @@ Binary artifacts never travel as base64-in-JSON. The `screenshots` artifact
 slot carries a manifest (`site-docs/screenshots@2`: path to
 `{ sha256, bytes }`); the bytes move through the blob endpoints:
 
-| Method | Path                | What it does                                                              |
-| ------ | ------------------- | --------------------------------------------------------------------------- |
+| Method | Path                | What it does                                                                                     |
+| ------ | ------------------- | ------------------------------------------------------------------------------------------------ |
 | POST   | `/v1/blobs`         | Store a content-addressed blob (raw body, up to 25 MB). Returns `{ sha256, bytes }`. Idempotent. |
-| HEAD   | `/v1/blobs/:sha256` | Probe whether a blob exists (200 with Content-Length, or 404).             |
-| GET    | `/v1/blobs/:sha256` | Fetch the raw bytes (`application/octet-stream`).                          |
+| HEAD   | `/v1/blobs/:sha256` | Probe whether a blob exists (200 with Content-Length, or 404).                                   |
+| GET    | `/v1/blobs/:sha256` | Fetch the raw bytes (`application/octet-stream`).                                                |
 
 `push` HEAD-probes before every upload, so an unchanged screenshot costs one
 HEAD; blobs are deduplicated across revisions and projects. `pull` verifies
@@ -85,11 +85,11 @@ every fetched blob against its manifest hash.
 
 ### Auth-cache relay (zero-knowledge)
 
-| Method | Path                                   | What it does                                            |
-| ------ | -------------------------------------- | ---------------------------------------------------------- |
-| PUT    | `/v1/workspaces/:ws/auth-cache/:role`  | Store a client-side-encrypted storage-state envelope.     |
-| GET    | `/v1/workspaces/:ws/auth-cache/:role`  | Fetch the envelope for a role.                            |
-| DELETE | `/v1/workspaces/:ws/auth-cache/:role`  | Delete it (idempotent).                                   |
+| Method | Path                                  | What it does                                          |
+| ------ | ------------------------------------- | ----------------------------------------------------- |
+| PUT    | `/v1/workspaces/:ws/auth-cache/:role` | Store a client-side-encrypted storage-state envelope. |
+| GET    | `/v1/workspaces/:ws/auth-cache/:role` | Fetch the envelope for a role.                        |
+| DELETE | `/v1/workspaces/:ws/auth-cache/:role` | Delete it (idempotent).                               |
 
 The envelope (`site-docs/auth-cache@1`) is AES-256-GCM ciphertext encrypted
 in the engine with a key from `SITE_DOCS_CACHE_KEY` that never leaves the
@@ -99,20 +99,20 @@ plaintext cookie.
 
 ### OAuth
 
-| Method | Path                  | What it does                                                                          |
-| ------ | --------------------- | ---------------------------------------------------------------------------------------- |
+| Method | Path                  | What it does                                                                                                                                                                    |
+| ------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/v1/oauth/authorize` | Authorization endpoint (PKCE S256 only, loopback redirect URIs only). 302 with `?code=&state=`. Codes are single-use, five-minute TTL, bound to the challenge and redirect URI. |
-| POST   | `/v1/oauth/token`     | Token endpoint (form-encoded): `authorization_code` + PKCE verifier, or `refresh_token` (rotating). |
+| POST   | `/v1/oauth/token`     | Token endpoint (form-encoded): `authorization_code` + PKCE verifier, or `refresh_token` (rotating).                                                                             |
 
 The only registered client is `site-docs-cli`.
 
 ### GitHub webhook
 
-| Method | Path                                                   | What it does                                              |
-| ------ | ------------------------------------------------------ | ------------------------------------------------------------ |
-| GET    | `/v1/workspaces/:ws/projects/:project/webhook-config`  | Get the project's webhook config (404 when unset).          |
-| PUT    | `/v1/workspaces/:ws/projects/:project/webhook-config`  | Set it (`{ repo, events, strategy, ... }`).                  |
-| POST   | `/v1/github/webhook`                                   | The receiver: no bearer auth, strictly HMAC-verified. 202 on dispatch. |
+| Method | Path                                                  | What it does                                                           |
+| ------ | ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| GET    | `/v1/workspaces/:ws/projects/:project/webhook-config` | Get the project's webhook config (404 when unset).                     |
+| PUT    | `/v1/workspaces/:ws/projects/:project/webhook-config` | Set it (`{ repo, events, strategy, ... }`).                            |
+| POST   | `/v1/github/webhook`                                  | The receiver: no bearer auth, strictly HMAC-verified. 202 on dispatch. |
 
 The webhook surface is what turns a GitHub push or pull request into a doc
 refresh, with zero YAML in user repos - everything per-project lives in the

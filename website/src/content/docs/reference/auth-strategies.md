@@ -12,8 +12,8 @@ nor cares how the session was obtained.
 
 Three cross-cutting contracts:
 
-- **Secrets stay out of band.** `creds_env` maps credential *keys to env-var
-  names*, never values. Error messages mask values as `<SET>` / `<UNSET>` and
+- **Secrets stay out of band.** `creds_env` maps credential _keys to env-var
+  names_, never values. Error messages mask values as `<SET>` / `<UNSET>` and
   never echo them; nothing secret lands in the descriptor or the artifacts.
 - **`expiresAt` when derivable.** A strategy reports a hard expiry when it
   can know one (the named or lone real-expiry cookie, the JWT `exp` claim,
@@ -36,7 +36,7 @@ roles:
   editor:
     strategy: ui-form
     creds_env:
-      username: MYAPP_EDITOR_USER      # names of env vars, never values
+      username: MYAPP_EDITOR_USER # names of env vars, never values
       password: MYAPP_EDITOR_PASSWORD
     options:
       login_url: /login
@@ -48,7 +48,7 @@ roles:
       enabled: true
       store: local
       ttl: 1h
-      auth_cookie: session             # pin expiry to the app's real session cookie
+      auth_cookie: session # pin expiry to the app's real session cookie
   admin:
     strategy: manual-capture
     options:
@@ -93,7 +93,7 @@ banners and similar pre-login chrome; fill values come from env vars via
 
 ### `totp`
 
-Not a standalone scheme - a one-time code is one *field* of an interactive
+Not a standalone scheme - a one-time code is one _field_ of an interactive
 login - so the catalogue entry composes `ui-form`: set `options.totp` there.
 Options: `totp: { secret_env, otp_selector, submit_selector?, digits?
 (6 or 8), period? (default 30), algorithm? (sha1|sha256) }`. The RFC 6238
@@ -118,7 +118,7 @@ defaults to the `username` credential unless `to_env` names another var.
 Passkey login through a CDP virtual authenticator (ctap2, internal,
 user-verifying, automatic presence simulation - the standard headless-CI
 stand-in for platform authenticators). The authenticator is attached
-*before* navigation so the login page's first feature probe sees it.
+_before_ navigation so the login page's first feature probe sees it.
 Options: `login_url`, `trigger_selector` (the "sign in with a passkey"
 control), `username_selector?` (username-first flows), one of
 `success_selector` or `url_matches`, `timeout_ms`, `ignore_https_errors`,
@@ -154,7 +154,7 @@ A static personal-access-token header on every request via
 
 Client-certificate auth via Playwright `clientCertificates`. Options:
 `origin?` (default: the base URL's origin). `creds_env`: `cert` and `key`
-hold *paths* to PEM files (the bytes stay on disk and never enter logs), plus
+hold _paths_ to PEM files (the bytes stay on disk and never enter logs), plus
 optional `passphrase` for an encrypted key. Connection-level: empty
 storageState, no expiry.
 
@@ -183,7 +183,7 @@ The `cache` block on each role controls reuse:
 - `ttl` - the fallback expiry: a duration (`30m`, `1h`, milliseconds) or
   `session`.
 - `auth_cookie` - the name of the app's real session cookie. When set, the
-  cached session's expiry is *that cookie's* expiry - the true bound - rather
+  cached session's expiry is _that cookie's_ expiry - the true bound - rather
   than the `ttl` guess.
 
 Expiry is computed in priority order: the named auth cookie's expiry if it is

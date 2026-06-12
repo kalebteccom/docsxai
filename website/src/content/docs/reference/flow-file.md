@@ -10,32 +10,32 @@ ignored. This page covers every field.
 
 ## Top-level keys
 
-| Key             | Required | What it is                                                            |
-| --------------- | -------- | ---------------------------------------------------------------------- |
-| `name`          | yes      | The flow's name. Output lands under `docs/<name>/`.                    |
-| `extends`       | no       | Name of another flow whose steps run *first*. See [merge semantics](#extends-merge-semantics). |
-| `environment`   | no       | Deterministic execution environment. See [environment](#environment).  |
-| `redactions`    | no       | Areas masked on every screenshot this flow produces, halt shots included. |
+| Key             | Required | What it is                                                                                                                                                                                                                          |
+| --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`          | yes      | The flow's name. Output lands under `docs/<name>/`.                                                                                                                                                                                 |
+| `extends`       | no       | Name of another flow whose steps run _first_. See [merge semantics](#extends-merge-semantics).                                                                                                                                      |
+| `environment`   | no       | Deterministic execution environment. See [environment](#environment).                                                                                                                                                               |
+| `redactions`    | no       | Areas masked on every screenshot this flow produces, halt shots included.                                                                                                                                                           |
 | `prerequisites` | no       | Preconditions the flow assumes, as a list of `{ key: value }` records (string or boolean values), e.g. `{ logged_in_as: editor }` or `{ feature_flag: "recap.enabled" }`. Documentation for the reader and the agent; not executed. |
-| `locators`      | no       | Named canonical locators, referenced from steps as `$name`. One selector per name; no fallback lists. |
-| `steps`         | yes      | The ordered step list (at least one).                                  |
+| `locators`      | no       | Named canonical locators, referenced from steps as `$name`. One selector per name; no fallback lists.                                                                                                                               |
+| `steps`         | yes      | The ordered step list (at least one).                                                                                                                                                                                               |
 
 ## Steps
 
 Every step:
 
-| Field         | Required | What it is                                                                 |
-| ------------- | -------- | --------------------------------------------------------------------------- |
-| `id`          | yes      | Unique step id (unique across the whole `extends` merge). Names the screenshot, the write-up, and the halt artifacts. |
-| `action`      | yes      | One of the [action types](#action-types).                                   |
+| Field         | Required | What it is                                                                                                                                                                                                                                                                                                                                              |
+| ------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | yes      | Unique step id (unique across the whole `extends` merge). Names the screenshot, the write-up, and the halt artifacts.                                                                                                                                                                                                                                   |
+| `action`      | yes      | One of the [action types](#action-types).                                                                                                                                                                                                                                                                                                               |
 | `optional`    | no       | Best-effort step: if the action, `wait_for`, or `success` throws, skip and continue instead of halting. For conditionally-present UI - a confirm modal that sometimes appears, a first-run tooltip, a cookie banner. A skipped optional step emits no screenshot or annotation. Prefer this over a permissive comma-selector that no-ops on one branch. |
-| `target`      | no       | Locator ref (`$name`) or inline selector. Optional for actions like `navigate` (which uses `value`) or `wait`. |
-| `value`       | no       | The action payload: text for `fill`, file path for `upload`, key for `press`, path or URL for `navigate`, option for `select`. |
-| `wait_for`    | no       | What to wait for after the action settles. See [wait forms](#wait_for-forms). |
-| `success`     | no       | Post-step success criterion. Execution halts if it fails - no selector fallbacks; drift is a signal. See [success forms](#success-forms). |
-| `annotation`  | no       | A single callout on this step's screenshot. Shorthand for a one-element `annotations` array. |
-| `annotations` | no       | Multiple callouts on the same screenshot, rendered as numbered badges (1, 2, ...). Mutually exclusive with `annotation`. |
-| `redactions`  | no       | Extra redactions for this step's screenshots, additive on top of the flow-level list. |
+| `target`      | no       | Locator ref (`$name`) or inline selector. Optional for actions like `navigate` (which uses `value`) or `wait`.                                                                                                                                                                                                                                          |
+| `value`       | no       | The action payload: text for `fill`, file path for `upload`, key for `press`, path or URL for `navigate`, option for `select`.                                                                                                                                                                                                                          |
+| `wait_for`    | no       | What to wait for after the action settles. See [wait forms](#wait_for-forms).                                                                                                                                                                                                                                                                           |
+| `success`     | no       | Post-step success criterion. Execution halts if it fails - no selector fallbacks; drift is a signal. See [success forms](#success-forms).                                                                                                                                                                                                               |
+| `annotation`  | no       | A single callout on this step's screenshot. Shorthand for a one-element `annotations` array.                                                                                                                                                                                                                                                            |
+| `annotations` | no       | Multiple callouts on the same screenshot, rendered as numbered badges (1, 2, ...). Mutually exclusive with `annotation`.                                                                                                                                                                                                                                |
+| `redactions`  | no       | Extra redactions for this step's screenshots, additive on top of the flow-level list.                                                                                                                                                                                                                                                                   |
 
 ### Action types
 
@@ -83,12 +83,12 @@ structural selectors that may match stale or hidden poppers.
 
 `StepAnnotation`, used by both `annotation` and `annotations[]`:
 
-| Field   | Required | What it is                                                                  |
-| ------- | -------- | ----------------------------------------------------------------------------- |
-| `copy`  | yes      | The callout text the reader sees.                                            |
-| `arrow` | no       | Arrow placement: `top-left`, `top-right`, `bottom-left`, `bottom-right`, `top`, `bottom`, `left`, `right`. |
-| `nudge` | no       | `{ x, y }` pixel offset applied to the callout and arrow after placement; the halo stays on the target. Use it when two callouts on one screenshot would overlap - small values (5 to 40 px) typically suffice. |
-| `target`| no       | Override: the locator to anchor the halo and arrow to. Default is the step's `target`. Use this when the step's action *transitions the UI* - the action target unmounts, and you want to highlight an element that exists in the resulting state. |
+| Field    | Required | What it is                                                                                                                                                                                                                                         |
+| -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `copy`   | yes      | The callout text the reader sees.                                                                                                                                                                                                                  |
+| `arrow`  | no       | Arrow placement: `top-left`, `top-right`, `bottom-left`, `bottom-right`, `top`, `bottom`, `left`, `right`.                                                                                                                                         |
+| `nudge`  | no       | `{ x, y }` pixel offset applied to the callout and arrow after placement; the halo stays on the target. Use it when two callouts on one screenshot would overlap - small values (5 to 40 px) typically suffice.                                    |
+| `target` | no       | Override: the locator to anchor the halo and arrow to. Default is the step's `target`. Use this when the step's action _transitions the UI_ - the action target unmounts, and you want to highlight an element that exists in the resulting state. |
 
 With `annotations:` (plural), each entry gets a 1-based numbered badge so the
 reader sees up front that there is more than one thing to look at.
@@ -100,11 +100,11 @@ runs under them. This block is what makes replays byte-identical:
 
 ```yaml
 environment:
-  clock: "2030-01-02T03:04:05Z"   # freeze the page clock at this ISO-8601 instant
-  locale: en-GB                    # BCP-47 language tag
-  timezone: Europe/Amsterdam       # IANA timezone
-  viewport: desktop                # preset or { width: W, height: H }
-  color_scheme: dark               # light | dark
+  clock: "2030-01-02T03:04:05Z" # freeze the page clock at this ISO-8601 instant
+  locale: en-GB # BCP-47 language tag
+  timezone: Europe/Amsterdam # IANA timezone
+  viewport: desktop # preset or { width: W, height: H }
+  color_scheme: dark # light | dark
   reduced_motion: true
 ```
 
@@ -124,9 +124,9 @@ reproducibility:
 
 ```yaml
 redactions:
-  - { selector: $api_key_field }                    # element's bounding box at capture time
-  - { selector: $billing_total, style: pixelate }   # 16-px mosaic instead of the default solid box
-  - { region: { x: 10, y: 80, width: 220, height: 40 } }  # fixed rect in CSS pixels
+  - { selector: $api_key_field } # element's bounding box at capture time
+  - { selector: $billing_total, style: pixelate } # 16-px mosaic instead of the default solid box
+  - { region: { x: 10, y: 80, width: 220, height: 40 } } # fixed rect in CSS pixels
 ```
 
 `style` is `box` (solid black, the default) or `pixelate`. A selector that
@@ -137,7 +137,7 @@ flags that.
 
 ## `extends` merge semantics
 
-`extends: <name>` names another flow whose steps run *first* (resolved at run
+`extends: <name>` names another flow whose steps run _first_ (resolved at run
 time against `flows/<name>.flow.yaml`). The merge rules:
 
 - The parent's `locators` and `prerequisites` are merged in; this flow wins
@@ -159,13 +159,13 @@ and iterating on a child's steps stays cheap.
 
 ```yaml
 name: publish-post
-extends: login              # the login flow's steps run first
+extends: login # the login flow's steps run first
 environment:
   clock: "2030-01-02T03:04:05Z"
   viewport: desktop
   color_scheme: light
 redactions:
-  - { selector: $account_email }          # masked on every screenshot, halt shots included
+  - { selector: $account_email } # masked on every screenshot, halt shots included
 prerequisites:
   - { logged_in_as: editor }
 locators:
@@ -192,16 +192,21 @@ steps:
   - id: publish
     action: click
     target: $publish_button
-    wait_for: { selector: $live_banner, timeout_ms: 120000 }  # publishing is a slow backend op
+    wait_for: { selector: $live_banner, timeout_ms: 120000 } # publishing is a slow backend op
     success: { visible: $live_banner }
-    annotations:                                # two numbered callouts on one screenshot
-      - { copy: "Publish ships the post", target: $publish_button, arrow: top, nudge: { x: -30, y: 0 } }
+    annotations: # two numbered callouts on one screenshot
+      - {
+          copy: "Publish ships the post",
+          target: $publish_button,
+          arrow: top,
+          nudge: { x: -30, y: 0 },
+        }
       - { copy: "The live banner confirms it", target: $live_banner, arrow: left }
 
   - id: dismiss-confirm
     action: click
     target: $confirm_ok
-    optional: true                              # the modal only appears sometimes
+    optional: true # the modal only appears sometimes
     wait_for: { selector: $confirm_ok }
 
   - id: confirm-live

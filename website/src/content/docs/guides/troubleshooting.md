@@ -16,16 +16,16 @@ from Playwright's actionability log, and a screenshot of the moment lands at
 `docs/<flow>/halts/<step>.png` (the path is in the message). Read the cause
 first; open the screenshot to confirm. The vocabulary:
 
-| Halt cause prefix                                       | What it means                                                            |
-| ------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `[target is disabled]` / `[target is not enabled]`      | The element is there but rejects interaction (disabled / aria-disabled). |
-| `[target is not visible (display:none / visibility:hidden / zero-sized)]` | CSS-hidden at action time.                             |
-| `[target was detached from the DOM (likely unmounted by an earlier action)]` | A prior step's action removed it.                   |
-| `[target is outside the visible viewport]`              | Visible CSS-wise but fully off-screen and not auto-scrollable.           |
-| `[target is animating / not yet stable]`                | The element's box was still moving when the action fired.                |
-| `[target is covered by another element]`                | Something else receives the click (a modal, a toast, an overlay).        |
-| `[selector matched multiple elements (strict-mode violation) ...]` | The selector resolves to more than one node - usually a hidden duplicate. |
-| `[timeout waiting for selector ...]`                    | A `wait_for: { selector }` never appeared - raise `timeout_ms` or revisit the locator. |
+| Halt cause prefix                                                            | What it means                                                                          |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `[target is disabled]` / `[target is not enabled]`                           | The element is there but rejects interaction (disabled / aria-disabled).               |
+| `[target is not visible (display:none / visibility:hidden / zero-sized)]`    | CSS-hidden at action time.                                                             |
+| `[target was detached from the DOM (likely unmounted by an earlier action)]` | A prior step's action removed it.                                                      |
+| `[target is outside the visible viewport]`                                   | Visible CSS-wise but fully off-screen and not auto-scrollable.                         |
+| `[target is animating / not yet stable]`                                     | The element's box was still moving when the action fired.                              |
+| `[target is covered by another element]`                                     | Something else receives the click (a modal, a toast, an overlay).                      |
+| `[selector matched multiple elements (strict-mode violation) ...]`           | The selector resolves to more than one node - usually a hidden duplicate.              |
+| `[timeout waiting for selector ...]`                                         | A `wait_for: { selector }` never appeared - raise `timeout_ms` or revisit the locator. |
 
 These are the same states the write-time `actionable()` probe returns
 (`disabled`, `not-visible`, `detached`, `off-screen`, `covered`,
@@ -112,18 +112,18 @@ scripted strategy from the [auth catalogue](/reference/auth-strategies/).
 `site-docs lint <workspace>` runs pure-static checks before any browser
 launches; exit 1 on any warning or error. The rules:
 
-| Rule | Severity | Catches                                                                      |
-| ---- | -------- | ----------------------------------------------------------------------------- |
-| R001 | info     | An `extends` chain four or more flows deep - flatten it.                      |
-| R002 | warning  | An annotation anchored to a likely-unmounting click/navigate target with no `target` override. |
-| R003 | warning  | A selector `wait_for` with no `timeout_ms` on a long-async-looking step.      |
+| Rule | Severity | Catches                                                                                                      |
+| ---- | -------- | ------------------------------------------------------------------------------------------------------------ |
+| R001 | info     | An `extends` chain four or more flows deep - flatten it.                                                     |
+| R002 | warning  | An annotation anchored to a likely-unmounting click/navigate target with no `target` override.               |
+| R003 | warning  | A selector `wait_for` with no `timeout_ms` on a long-async-looking step.                                     |
 | R004 | info     | A bare `[data-*="..."]` selector that may hit hidden duplicates - scope with `:visible` or `:has-text(...)`. |
-| R005 | error    | An `extends` target that does not exist in the workspace.                     |
-| R006 | info     | A locator defined but never referenced by any step, wait, success, annotation, or redaction. |
-| R007 | warning  | A terminal step with no `success` criterion - the run can end unverified.     |
-| R008 | warning  | An `optional: true` step with no `wait_for` or `success` guard - real regressions get silently swallowed. |
-| R009 | warning  | `wait_for: element_stable` on a step with no `target` - it waits on nothing.  |
-| R010 | warning  | An annotation anchored to an element a redaction masks - the callout would point at a black box. |
+| R005 | error    | An `extends` target that does not exist in the workspace.                                                    |
+| R006 | info     | A locator defined but never referenced by any step, wait, success, annotation, or redaction.                 |
+| R007 | warning  | A terminal step with no `success` criterion - the run can end unverified.                                    |
+| R008 | warning  | An `optional: true` step with no `wait_for` or `success` guard - real regressions get silently swallowed.    |
+| R009 | warning  | `wait_for: element_stable` on a step with no `target` - it waits on nothing.                                 |
+| R010 | warning  | An annotation anchored to an element a redaction masks - the callout would point at a black box.             |
 
 Plugins can contribute additional rules; see
 [Writing plugins](/guides/writing-plugins/). For the full calibration

@@ -34,7 +34,7 @@ site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--aut
 site-docs --help
 ```
 
-A *workspace* (created by `init`) holds `flows/<flow>.flow.yaml`, `docs/`,
+A _workspace_ (created by `init`) holds `flows/<flow>.flow.yaml`, `docs/`,
 `auth/strategy.yaml`, `.auth/`, `.viewer/`, and a `.site-docs.json` config.
 Put it OUTSIDE the app's source repo - site-docs documents a running app from
 outside and never writes into the app repo. `run` and `capture-auth` read
@@ -67,7 +67,7 @@ captured cookie jar so you can identify the app's real auth/session cookie.
 It keeps a persistent Chrome profile at `<workspace>/.auth/chrome-profile/`
 (gitignored) - re-running it reuses the login; just trigger capture again.
 `--fresh` forces a clean profile (a fresh login). `--cdp <endpoint>` makes it
-*attach to an already-running Chrome* (start it with
+_attach to an already-running Chrome_ (start it with
 `--remote-debugging-port=N --disable-web-security --user-data-dir=<dir>`)
 instead of launching one - use this to capture from the same Chrome the
 engineer is already logged into, so they do not log in twice; site-docs will
@@ -76,14 +76,14 @@ headed window for strategies that do not need one.
 
 `auth_cookie` (set via `init --auth-cookie`, `capture-auth --auth-cookie`, or
 hand-edited into `auth/strategy.yaml`) names the app's session cookie; when
-set, the cached session's expiry tracks *that* cookie's expiry rather than
+set, the cached session's expiry tracks _that_ cookie's expiry rather than
 the `ttl` guess. An interactive SSO login leaves ephemeral IdP scratch
 cookies, so the minimum cookie expiry is roughly "now" and must not be
 trusted. If unset or unfound, `ttl` (or a 1h default) is used.
 
 ### `site-docs calibrate`
 
-Takes a *structured flow-guide* (a flow-file in YAML, or a `.md` with a
+Takes a _structured flow-guide_ (a flow-file in YAML, or a `.md` with a
 `yaml` fenced block) and writes `flows/<name>.flow.yaml` plus a default
 `docs/style.yaml`. Loose-prose descriptions and live element-picking need the
 host agent - that is the plugin's calibrate skill, which then produces the
@@ -92,8 +92,8 @@ case. `--name <flow>` overrides the flow name.
 
 ### `site-docs inspect`
 
-Opens the app in a headless (or `--headed`) browser *with the cached session
-loaded* and prints the page's `[data-testid]` elements, marking which are
+Opens the app in a headless (or `--headed`) browser _with the cached session
+loaded_ and prints the page's `[data-testid]` elements, marking which are
 visible - or, with `--selector <css>`, the matching elements' HTML. Use it to
 pin locators when hand-authoring a flow-file: the captured session cannot be
 replayed in a browser your agent's MCP controls because the auth cookie is

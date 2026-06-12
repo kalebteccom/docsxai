@@ -166,7 +166,10 @@ import type { PublisherContext, PublishResult } from "@kalebtec/docsxai-engine";
 import { writeFile } from "node:fs/promises";
 
 export function register(api: {
-  registerPublisher(name: string, impl: { publish(ctx: PublisherContext): Promise<PublishResult> }): void;
+  registerPublisher(
+    name: string,
+    impl: { publish(ctx: PublisherContext): Promise<PublishResult> },
+  ): void;
   workspacePath(...segments: string[]): string;
   log: { info(msg: string): void };
 }): void {

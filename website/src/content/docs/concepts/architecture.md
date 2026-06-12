@@ -105,15 +105,15 @@ sessions - and it keeps the runtime testable without a browser at all.
 
 ## The package family
 
-| Package                                       | Role                                                                  |
-| --------------------------------------------- | --------------------------------------------------------------------- |
-| [engine](/packages/engine/)                   | Parser, runtime, CLI, auth strategies, plugin runtime, exporters.     |
-| [plugin](/packages/plugin/)                   | Claude Code plugin: calibrate + diagnose skills, deterministic commands. |
-| [mcp](/packages/mcp/)                         | Stdio MCP server for any host: orchestration + doc-pack introspection. |
-| [backend](/packages/backend/)                 | Doc-pack persistence: revisions, blobs, OAuth 2.1, GitHub webhook.    |
-| [viewer](/packages/viewer/)                   | Interactive viewer, browser-free burn renderer, Starlight emitter.    |
-| [plugin-confluence](/packages/plugin-confluence/) | Publisher plugin: idempotent Confluence Cloud push.               |
-| [plugin-starlight](/packages/plugin-starlight/)   | Renderer plugin: production Starlight docs site.                  |
+| Package                                           | Role                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------------------ |
+| [engine](/packages/engine/)                       | Parser, runtime, CLI, auth strategies, plugin runtime, exporters.        |
+| [plugin](/packages/plugin/)                       | Claude Code plugin: calibrate + diagnose skills, deterministic commands. |
+| [mcp](/packages/mcp/)                             | Stdio MCP server for any host: orchestration + doc-pack introspection.   |
+| [backend](/packages/backend/)                     | Doc-pack persistence: revisions, blobs, OAuth 2.1, GitHub webhook.       |
+| [viewer](/packages/viewer/)                       | Interactive viewer, browser-free burn renderer, Starlight emitter.       |
+| [plugin-confluence](/packages/plugin-confluence/) | Publisher plugin: idempotent Confluence Cloud push.                      |
+| [plugin-starlight](/packages/plugin-starlight/)   | Renderer plugin: production Starlight docs site.                         |
 
 Every arrow in that table points inward: surfaces wrap the engine, the engine
 wraps `BrowserDriver`, and nothing on the execution path knows an agent
