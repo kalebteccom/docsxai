@@ -645,13 +645,17 @@ describe("resolveAstroBin", () => {
 });
 
 // Real `astro build` E2E — opt-in only (SITE_DOCS_STARLIGHT_BUILD=1). Builds the golden fixture
-// site against the workspace-pinned astro + starlight via the node_modules symlink path.
+// site against the workspace-pinned astro + starlight via the node_modules symlink path. The
+// site is emitted under this package (not os.tmpdir): the zero-install build shortcut requires
+// a shared filesystem ancestor with the astro install — see buildStarlightSite's contract.
 describe.runIf(process.env["SITE_DOCS_STARLIGHT_BUILD"] === "1")(
   "astro build E2E (SITE_DOCS_STARLIGHT_BUILD=1)",
   () => {
     it("builds the emitted site to dist/ with a page per flow", async () => {
       const ws = await makeWorkspace(goldenSpec());
-      const out = await outDir();
+      const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+      const out = await fs.mkdtemp(path.join(pkgRoot, ".tmp-starlight-e2e-"));
+      tempDirs.push(out);
       await emitStarlightSite({ workspaceDir: ws, outDir: out });
       const built = await buildStarlightSite({ siteDir: out });
       if (!built.ok) {

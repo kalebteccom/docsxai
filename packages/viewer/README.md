@@ -29,7 +29,7 @@ What gets emitted:
 - **Pinned, self-contained output** — the emitted `package.json` exact-pins `astro@6.4.6` + `@astrojs/starlight@0.40.0` (both MIT; matching this package's devDependencies, where the pair is tested). No remote fonts, no CDN imports anywhere in the emitted tree — Starlight ships its own assets and Pagefind search at build time; a test greps every emitted text file for external URLs.
 - **Deterministic** — same doc pack + same config → byte-identical file tree (no timestamps, sorted writes), asserted by a two-emit golden test.
 
-`buildStarlightSite({ siteDir })` runs `astro build` programmatically: it resolves the astro bin from this package's own install and, when the emitted site has no `node_modules`, symlinks that install in — so building never touches the network. `ASTRO_TELEMETRY_DISABLED=1` is always set. The real-build E2E test is opt-in via `SITE_DOCS_STARLIGHT_BUILD=1` (the default test run never invokes astro).
+`buildStarlightSite({ siteDir })` runs `astro build` programmatically: it resolves the astro bin from this package's own install and, when the emitted site has no `node_modules`, symlinks the astro + starlight installs in individually — so building never touches the network. `ASTRO_TELEMETRY_DISABLED=1` is always set. That zero-install shortcut requires the site directory to share a filesystem ancestor with the docsxai install (the normal case — the site is emitted inside the repo that installed it); for a fully detached site directory, `npm install` inside the emitted site and build there. The real-build E2E test is opt-in via `SITE_DOCS_STARLIGHT_BUILD=1` (the default test run never invokes astro).
 
 ## Overlay single-sourcing
 
