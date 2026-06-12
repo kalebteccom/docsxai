@@ -44,7 +44,8 @@ describe("docsxai CLI — main()", () => {
 
   it("run against a non-existent project exits 1", async () => {
     expect(await main(["run", "/definitely/not/a/real/dir"])).toBe(1);
-    expect(err).toMatch(/no flows directory/);
+    expect(err).toMatch(/has no flows\/ directory/);
+    expect(err).toMatch(/docsxai init/);
   });
 
   it("diagnose without project dir exits 2", async () => {
