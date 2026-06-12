@@ -19,7 +19,7 @@ Playwright's Chromium is installed explicitly as a one-shot, never as an
 install-time lifecycle script:
 
 ```sh
-npx playwright install chromium
+npx playwright-core install chromium
 ```
 
 Claude Code users can additionally install
@@ -70,6 +70,7 @@ You should see the usage block listing `init`, `run`, `render`,
 `capture-auth`, and the rest of the surface in the
 [CLI reference](/reference/cli/). If `run` later complains that no Chromium
 binary is found, the fix is the same one-shot install:
-`npx playwright install chromium`.
+`npx playwright-core install chromium` (from a source checkout:
+`pnpm -C packages/engine exec playwright-core install chromium`).
 
 Next: the [Quickstart](/getting-started/quickstart/).

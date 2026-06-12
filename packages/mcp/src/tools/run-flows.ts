@@ -151,7 +151,7 @@ export const runFlowsTool = defineTool({
           flow: flow.name,
           ok: false,
           error: noChromium
-            ? "no Chromium binary found — install one: npx playwright install chromium"
+            ? "no Chromium binary found — install one: npx playwright-core install chromium (source checkout: pnpm -C packages/engine exec playwright-core install chromium)"
             : `failed to launch browser: ${msg}`,
         };
       }

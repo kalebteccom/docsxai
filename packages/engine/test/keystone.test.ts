@@ -5,7 +5,7 @@
 // assert the structured artifacts are byte-identical and the screenshots are present.
 //
 // Needs a Chromium binary. `playwright-core` ships the API, not the binary — install one with
-// `pnpm -C packages/engine exec playwright-core install chromium` (or `npx playwright install chromium`).
+// `pnpm -C packages/engine exec playwright-core install chromium` (or `npx playwright-core install chromium`).
 // Without it this suite skips (so CI without a browser stays green); install it to actually exercise the keystone.
 
 import { existsSync, promises as fs } from "node:fs";

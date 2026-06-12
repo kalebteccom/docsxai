@@ -353,7 +353,7 @@ describe("scripted client — availability note", () => {
   it(
     chromiumAvailable
       ? "Chromium is available — run_flows suite ran"
-      : "Chromium not installed — run_flows suite skipped (npx playwright install chromium)",
+      : "Chromium not installed — run_flows suite skipped (pnpm -C packages/engine exec playwright-core install chromium)",
     () => {
       expect(typeof chromiumAvailable).toBe("boolean");
     },

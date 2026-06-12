@@ -108,7 +108,9 @@ cached session to load.
 
 Executes flows headless and emits annotations plus screenshots. It launches
 Chromium; if no browser binary is present, install one with
-`npx playwright install chromium`. `--flow <name>` restricts to one flow;
+`npx playwright-core install chromium` (from a source checkout:
+`pnpm -C packages/engine exec playwright-core install chromium`).
+`--flow <name>` restricts to one flow;
 `--base-url <url>` overrides the workspace's `app_url`.
 
 - `--stop-after <step-id>` runs only a prefix of the flow (up to and
