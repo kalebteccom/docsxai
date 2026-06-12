@@ -15,7 +15,6 @@ import {
   type AnnotationRecord,
   type BoundingBox,
   type FlowFile,
-  type Step,
 } from "./doc-pack.js";
 import { parseFlowFile } from "./flow-file.js";
 import { resolveWorkspacePath } from "./workspace.js";
@@ -321,8 +320,8 @@ function diffSteps(
     if (!prior) continue;
     const fields: FieldDelta[] = [];
     for (const field of STEP_FIELDS) {
-      const av = (prior as Step)[field];
-      const bv = (step as Step)[field];
+      const av = prior[field];
+      const bv = step[field];
       if (!jsonEqual(av, bv)) fields.push({ field, a: av ?? null, b: bv ?? null });
     }
     if (fields.length > 0) changed.push({ id: step.id, fields });
@@ -546,7 +545,7 @@ export async function diffDocPacks(
       locators_added: locators.added,
       locators_removed: locators.removed,
       locators_changed: locators.changed,
-      severity: severity as Exclude<DriftSeverity, "none">,
+      severity: severity,
     });
   }
 

@@ -219,6 +219,26 @@ site-docs render "$WORKSPACE"               # builds $WORKSPACE/.viewer/index.ht
 
 If `run` halts on a step (a locator or success-criterion failure) that's _drift_, not a flake — don't retry blindly; report the failing step id + what changed, and propose a minimal flow-file edit (the `diagnose` playbook is `$TOOL_REPO/packages/plugin/skills/diagnose/SKILL.md`). Genuine flakiness → add async primitives (`wait_for: network_idle` / `element_stable` / a timeout) to the flow-file, documented inline.
 
+## Drift detection + baselines
+
+After a good `run`, snapshot the doc pack and let CI catch the target app drifting out from under it:
+
+```bash
+site-docs baseline "$WORKSPACE"             # snapshots flows/ + docs/ (md, annotations, screenshots) + locators into $WORKSPACE/.baseline/ — commit it
+site-docs diff "$WORKSPACE" --format md     # PR-comment-ready drift report against .baseline/ (use --against <dir> for another snapshot)
+site-docs diff "$WORKSPACE" --fail-on warn  # CI gate: exit 1 at/above the threshold (warn|fail)
+```
+
+The report is deterministic (no timestamps) and per flow: step field deltas (id-keyed), annotation moves beyond a pixel tolerance, screenshot pixel diffs (changed-pixel count / % / changed-region bbox; ≥1% = warn, ≥5% = fail by default; dimension changes flagged distinctly), prose line-change counts, and locator changes. The engine only **detects** — when drift is real, follow the `diagnose` playbook and propose the flow-file patch yourself; programmatic policy (custom thresholds, `ignore_regions` for clocks/ads) is `diffDocPacks` on the library surface.
+
+## Exporting flows as tests
+
+```bash
+site-docs export playwright "$WORKSPACE"    # one self-contained .spec.ts per flow → $WORKSPACE/.export/tests/
+```
+
+Each spec carries the resolved `extends` chain: locators as consts, steps as Playwright actions, `success` criteria as `expect()` assertions, the `environment` block as `test.use()` (+ `page.clock.setFixedTime` for a frozen clock), and `optional` steps wrapped in try/catch. Drop the specs into the app team's Playwright suite as a regression tripwire — and regenerate instead of hand-editing (the header says so; the flow-file stays the source of truth).
+
 ## Publishing the docs (optional)
 
 Two delivery shapes, both downstream of `run`:
