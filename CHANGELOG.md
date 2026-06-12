@@ -10,6 +10,14 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 ### Added
 
+#### Bare `docsxai` meta-package
+
+- **`docsxai` on npm is the real batteries-included CLI package** (it replaced the planned throwing name-claim stub; owner decision, 2026-06-12). `packages/docsxai/` carries a `bin.mjs` that resolves `@docsxai/engine`'s CLI entry (new `@docsxai/engine/cli` export) and runs it **in-process** (no spawn), plus `index.mjs`/`index.d.mts` re-exporting the engine's library surface. Dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` — the viewer dep is deliberate, so one `pnpm add -g docsxai` puts `docsxai-viewer` on the path and `docsxai render` works out of the box through the engine's layered viewer resolution. Gated by a real subprocess test (`init` + `lint` against a fixture workspace through the wrapper bin).
+
+#### Engine — `docsxai doctor`
+
+- **`docsxai doctor [<workspace-dir>]`** — environment + workspace health-check: ✓/✗ checklist with a one-line fix per failing row (− rows are informational; exit 1 on any ✗). Checks: Node >= 20; Chromium presence for playwright-core (the documented one-shot install as the fix); `.docsxai.json` found + parseable (cwd or the arg; informational when absent); every flow-file parses (count; first error fails); auth descriptor parse + cached-session freshness (expired → `capture-auth` fix hint); backend reachability via `GET /v1/health` when `backend_url` is configured (with a token-presence note); the plugin declarations through the same stage-1 inspection `plugins list` runs — declared/installed/lock/capabilities, **no plugin code executed**; viewer-bin resolution naming which of the three layers hit; and `DOCSX_*` env sanity (`DOCSX_CACHE_KEY` well-formed when set; unknown `DOCSX_*` names flagged as likely typos).
+
 #### MCP server (`@docsxai/mcp`)
 
 - **Standalone stdio MCP server** (`docsxai-mcp` bin, `--workspace <dir>` default) exposing calibration meta-orchestration + read-only doc-pack introspection to any MCP-speaking host — no browser primitives (live-page discovery stays browxai's surface). Fourteen tools: `init_workspace`, `run_flows` (flow filter / `startFrom` / `stopAfter` / CDP attach / bounded concurrency; per-flow ok / halt-cause / artifact paths; merged-flow `environment` passed into the Playwright session), `render_viewer`, `lint_flows` (incl. plugin `extraRules`), `flow_tree`, `diagnose_halt`, `style_check`, `zip_pack`, `push_pack`, `pull_pack`, `list_flows`, `get_annotations`, `get_run_artifacts` (paths only), `plugins_list`. Structured `{ok, …} | {ok:false, error, hint}` results throughout.
