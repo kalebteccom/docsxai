@@ -20,6 +20,18 @@ ignored. This page covers every field.
 | `locators`      | no       | Named canonical locators, referenced from steps as `$name`. One selector per name; no fallback lists.                                                                                                                               |
 | `steps`         | yes      | The ordered step list (at least one).                                                                                                                                                                                               |
 
+The top half of a typical flow, before any steps:
+
+```yaml
+name: invite-user
+extends: login # the login flow's steps run first
+prerequisites:
+  - { logged_in_as: admin } # documentation, not executed
+locators:
+  invite_button: '[data-testid="invite-user"]:visible'
+  email_field: '[name="email"]'
+```
+
 ## Steps
 
 Every step:
@@ -49,6 +61,21 @@ Every step:
 - `press` takes `value` (the key); `target` is optional (focused element when
   absent).
 - `wait` is a bare step that just runs its `wait_for`.
+
+One step of each shape:
+
+```yaml
+steps:
+  - { id: open, action: navigate, value: /settings/team, wait_for: load }
+  - { id: add, action: click, target: $invite_button }
+  - { id: email, action: fill, target: $email_field, value: "sam@example.com" }
+  - { id: role, action: select, target: $role_select, value: "Editor" }
+  - { id: avatar, action: upload, target: $avatar_input, value: ./fixtures/avatar.png }
+  - { id: submit, action: press, value: Enter }
+  - { id: peek, action: hover, target: $member_row }
+  - { id: notify, action: check, target: $notify_box }
+  - { id: settle, action: wait, wait_for: network_idle }
+```
 
 ### `wait_for` forms
 
@@ -92,6 +119,19 @@ structural selectors that may match stale or hidden poppers.
 
 With `annotations:` (plural), each entry gets a 1-based numbered badge so the
 reader sees up front that there is more than one thing to look at.
+
+The two shapes side by side:
+
+```yaml
+# One callout, anchored to the step's own target:
+annotation: { copy: "Invite a teammate from here", arrow: top-right }
+
+# Several numbered callouts; the first re-anchors via `target` because the
+# click unmounts the button, and `nudge` separates two nearby callouts:
+annotations:
+  - { copy: "Send the invite", target: $invite_button, arrow: top, nudge: { x: -30, y: 0 } }
+  - { copy: "The pending row appears here", target: $pending_row, arrow: left }
+```
 
 ## Environment
 

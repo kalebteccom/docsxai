@@ -69,6 +69,18 @@ drops ephemeral IdP scratch cookies whose expiry is seconds out, so the
 minimum-cookie heuristic would make the session born expired - pin
 `cache.auth_cookie` instead. Cost: periodic human re-capture.
 
+```yaml
+roles:
+  admin:
+    strategy: manual-capture
+    options:
+      capture_trigger: button # injected on-page button instead of the console call
+    cache:
+      enabled: true
+      store: local
+      auth_cookie: session
+```
+
 ### `api-login`
 
 POST the role's credentials to the app's login endpoint over plain HTTP and
@@ -79,6 +91,20 @@ keep the cookies collected across the redirect chain. No browser. Options:
 (dotted-path JSON check); default is final status below 400. `creds_env`:
 `username`, `password`. `expiresAt` comes from the named or lone
 real-expiry cookie in the jar when derivable.
+
+```yaml
+roles:
+  editor:
+    strategy: api-login
+    creds_env:
+      username: MYAPP_USER # env-var names, never values
+      password: MYAPP_PASSWORD
+    options:
+      login_url: /api/login
+      body_format: json
+      success_check: { cookie: session }
+    cache: { enabled: true, auth_cookie: session }
+```
 
 ### `ui-form`
 
@@ -100,6 +126,24 @@ Options: `totp: { secret_env, otp_selector, submit_selector?, digits?
 code is generated dep-free with `node:crypto` from the base32 secret in
 `secret_env` and filled after the password submit.
 
+```yaml
+roles:
+  editor:
+    strategy: ui-form
+    creds_env:
+      username: MYAPP_USER
+      password: MYAPP_PASSWORD
+    options:
+      login_url: /login
+      username_selector: '[name="email"]'
+      password_selector: '[name="password"]'
+      submit_selector: 'button[type="submit"]'
+      success_selector: '[data-testid="nav-account"]'
+      totp:
+        secret_env: MYAPP_TOTP_SECRET # base32 secret, env-var name only
+        otp_selector: '[name="one-time-code"]'
+```
+
 ### `email-otp`
 
 A `ui-form` login whose second factor arrives by mail: an inbox provider
@@ -113,6 +157,25 @@ inbox shapes register via `registerInboxProvider(name, factory)` - also a
 plugin hook. `creds_env`: `username`, `password`. The watched address
 defaults to the `username` credential unless `to_env` names another var.
 
+```yaml
+roles:
+  editor:
+    strategy: email-otp
+    creds_env:
+      username: MYAPP_USER
+      password: MYAPP_PASSWORD
+    options:
+      login_url: /login
+      username_selector: '[name="email"]'
+      password_selector: '[name="password"]'
+      submit_selector: 'button[type="submit"]'
+      success_selector: '[data-testid="nav-account"]'
+      otp_selector: '[name="code"]'
+      inbox:
+        provider: http-json
+        options: { url: "http://localhost:8025/api/v1/messages" } # Mailpit-style endpoint
+```
+
 ### `webauthn`
 
 Passkey login through a CDP virtual authenticator (ctap2, internal,
@@ -123,6 +186,19 @@ Options: `login_url`, `trigger_selector` (the "sign in with a passkey"
 control), `username_selector?` (username-first flows), one of
 `success_selector` or `url_matches`, `timeout_ms`, `ignore_https_errors`,
 `pre_steps`. `creds_env`: `username` (username-first flows only).
+
+```yaml
+roles:
+  editor:
+    strategy: webauthn
+    creds_env:
+      username: MYAPP_USER # username-first flows only
+    options:
+      login_url: /login
+      username_selector: '[name="email"]'
+      trigger_selector: '[data-testid="use-passkey"]'
+      success_selector: '[data-testid="nav-account"]'
+```
 
 ### `jwt-injection`
 
@@ -135,6 +211,20 @@ Injection: `inject: { localStorage: [{ key, value_template }], cookies:
 (default template is the bare token). `expiresAt` from the token endpoint's
 `expires_in`, falling back to the JWT's own `exp` claim.
 
+```yaml
+roles:
+  service:
+    strategy: jwt-injection
+    creds_env:
+      client_id: MYAPP_CLIENT_ID # only with token_url (client-credentials mint)
+      client_secret: MYAPP_CLIENT_SECRET
+    options:
+      token_url: /oauth/token
+      inject:
+        localStorage:
+          - { key: "auth.token", value_template: "{{token}}" }
+```
+
 ### `http-basic`
 
 Connection-level HTTP Basic: the browser context answers 401 challenges with
@@ -143,12 +233,32 @@ the role's credentials via Playwright `httpCredentials`. No options.
 expire - the storageState is empty and the credentials ride along on every
 context.
 
+```yaml
+roles:
+  editor:
+    strategy: http-basic
+    creds_env:
+      username: MYAPP_USER
+      password: MYAPP_PASSWORD
+```
+
 ### `pat-header`
 
 A static personal-access-token header on every request via
 `extraHTTPHeaders`. Options: `header` (default `Authorization`) and
 `value_template` (default `Bearer {{token}}`). `creds_env`: `token`. Like
 `http-basic`, connection-level: empty storageState, no expiry.
+
+```yaml
+roles:
+  service:
+    strategy: pat-header
+    creds_env:
+      token: MYAPP_API_TOKEN
+    options:
+      header: X-Api-Key
+      value_template: "{{token}}"
+```
 
 ### `mtls`
 
@@ -157,6 +267,15 @@ Client-certificate auth via Playwright `clientCertificates`. Options:
 hold _paths_ to PEM files (the bytes stay on disk and never enter logs), plus
 optional `passphrase` for an encrypted key. Connection-level: empty
 storageState, no expiry.
+
+```yaml
+roles:
+  service:
+    strategy: mtls
+    creds_env:
+      cert: MYAPP_CLIENT_CERT_PATH # env vars holding *paths* to PEM files
+      key: MYAPP_CLIENT_KEY_PATH
+```
 
 ### `test-backdoor`
 
@@ -167,6 +286,18 @@ Options: `url`, `user_id?` (sent verbatim in the body), `success_cookie?`
 (the cookie that proves it worked; without it, any Set-Cookie plus a non-4xx
 passes). `creds_env`: `secret`. `expiresAt` from the success cookie's expiry
 when derivable.
+
+```yaml
+roles:
+  ci:
+    strategy: test-backdoor
+    creds_env:
+      secret: MYAPP_BACKDOOR_SECRET
+    options:
+      url: /__test__/login
+      user_id: docs-bot
+      success_cookie: session
+```
 
 ## The session cache
 

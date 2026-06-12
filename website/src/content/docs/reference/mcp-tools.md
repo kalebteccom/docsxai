@@ -59,6 +59,83 @@ Every result is structured JSON: `{ "ok": true, ... }` on success,
 agent-actionable next step. `run_flows` reports per-flow `ok`, so one halted
 flow does not mask the others.
 
+## Worked examples
+
+One call and result per tool family. Workspace paths are elided as `…`.
+
+**Execution (`run_flows`).** A halted flow stays a per-flow result; the call
+itself still succeeds:
+
+```json
+// call
+{ "name": "run_flows", "arguments": { "flow": "publish-post" } }
+
+// result
+{
+  "ok": true,
+  "workspace": "…/docsxai/my-app",
+  "allOk": false,
+  "concurrency": 1,
+  "flows": [
+    {
+      "flow": "publish-post",
+      "ok": false,
+      "haltStep": "publish",
+      "haltCause": "target is covered by another element",
+      "error": "[target is covered by another element] step \"publish\" (click) failed at https://localhost:3000/editor/draft-7: … (halt screenshot: docs/publish-post/halts/publish.png)"
+    }
+  ]
+}
+```
+
+**Introspection (`list_flows`).** Read-only; never launches a browser:
+
+```json
+// call
+{ "name": "list_flows", "arguments": {} }
+
+// result
+{
+  "ok": true,
+  "workspace": "…/docsxai/my-app",
+  "flows": [
+    {
+      "name": "publish-post",
+      "file": "flows/publish-post.flow.yaml",
+      "extends": "login",
+      "stepCount": 5,
+      "steps": [
+        { "id": "open-editor", "action": "click" },
+        { "id": "write-draft", "action": "fill" },
+        { "id": "publish", "action": "click" },
+        { "id": "dismiss-confirm", "action": "click", "optional": true },
+        { "id": "confirm-live", "action": "navigate" }
+      ],
+      "environment": { "viewport": "desktop", "clock": "2030-01-02T03:04:05Z" }
+    }
+  ]
+}
+```
+
+**Diagnosis (`diagnose_halt`).** The same typed recommendations as
+`docsxai diagnose --format json`; pass `cdp` for the live probe:
+
+```json
+// call
+{ "name": "diagnose_halt", "arguments": { "flow": "publish-post", "step": "publish", "cdp": "http://localhost:9222" } }
+```
+
+**Failure shape.** Any tool that cannot proceed returns the error pair
+instead of throwing:
+
+```json
+{
+  "ok": false,
+  "error": "no flow named \"publsh-post\"",
+  "hint": "list_flows shows the available flow names"
+}
+```
+
 ## Environment variables
 
 | Variable           | Used by                       | Meaning                                                              |

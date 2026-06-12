@@ -42,6 +42,11 @@ outside and never writes into the app repo. `run` and `capture-auth` read
 the flags, and `--ignore-https-errors` accepts self-signed or invalid TLS
 (an app's local HTTPS dev cert, say).
 
+Every command exits 0 on success. Validation problems (a missing argument, a
+bad flag value) exit 2; operational failures (a halt, a lint warning, drift at
+the threshold) exit 1. The transcripts below show representative output; paths
+and counts vary with your workspace.
+
 ## The core loop
 
 ### `docsxai init`
@@ -55,6 +60,13 @@ between the devtools-console capture call and an injected on-page button;
 `--auth-cookie <name>` pins the cache expiry to a named cookie up front. For
 a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
 `--force` re-inits over an existing directory.
+
+```
+$ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
+init: workspace at ~/docsxai/my-app
+  created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, auth/strategy.yaml, README.md
+  next: docsxai capture-auth ~/docsxai/my-app  →  …calibrate…  →  docsxai run ~/docsxai/my-app  →  docsxai render ~/docsxai/my-app
+```
 
 ### `docsxai capture-auth`
 
@@ -81,6 +93,20 @@ the `ttl` guess. An interactive SSO login leaves ephemeral IdP scratch
 cookies, so the minimum cookie expiry is roughly "now" and must not be
 trusted. If unset or unfound, `ttl` (or a 1h default) is used.
 
+```
+$ docsxai capture-auth ~/docsxai/my-app --auth-cookie session
+capture-auth: launching browser for role "editor" (manual-capture) — reusing saved profile if present; log in if prompted, then trigger capture…
+capture-auth: captured 9 cookie(s) (newest expiry first):
+    _ga  @localhost  expires 2027-07-12T16:40:08.000Z
+    session  @localhost  expires 2026-06-12T17:40:11.000Z
+    csrf_token  @localhost  expires (session)
+capture-auth: cached editor → ~/docsxai/my-app/.auth/editor.json
+  expires 2026-06-12T17:40:11.000Z  (from auth-cookie "session"; re-run when it lapses)
+```
+
+If the expiry line says `(from ttl)` instead, the named cookie was not in the
+jar - pick the app's real session cookie from the printed list and re-run.
+
 ### `docsxai calibrate`
 
 Takes a _structured flow-guide_ (a flow-file in YAML, or a `.md` with a
@@ -89,6 +115,13 @@ Takes a _structured flow-guide_ (a flow-file in YAML, or a `.md` with a
 host agent - that is the plugin's calibrate skill, which then produces the
 flow-file; this CLI command covers only the deterministic structured-input
 case. `--name <flow>` overrides the flow name.
+
+```
+$ docsxai calibrate ~/docsxai/my-app --from ./guides/publish-post.md
+calibrate: wrote ~/docsxai/my-app/flows/publish-post.flow.yaml  (5 steps)
+calibrate: wrote default ~/docsxai/my-app/docs/style.yaml
+  next: docsxai run ~/docsxai/my-app  (then: docsxai render ~/docsxai/my-app)
+```
 
 ### `docsxai inspect`
 
@@ -103,6 +136,17 @@ for you. On a slow SPA, settle before the snapshot with `--wait <ms>`
 `--cdp <endpoint>` attaches to an already-running Chrome (the one from
 `capture-auth --cdp`, say) instead of launching; `--role <role>` picks which
 cached session to load.
+
+```
+$ docsxai inspect ~/docsxai/my-app
+inspect: https://localhost:3000/dashboard
+  title: Acme · Dashboard
+  4 [data-testid] element(s) (✓ = visible) — pin these as locators:
+    ✓ [data-testid="nav-reports"]  <a>  "Reports"
+    ✓ [data-testid="nav-account"]  <a>  "Account"
+    ✓ [data-testid="new-post"]  <button>  "New post"
+      [data-testid="upgrade-dialog"]  <div>  "Upgrade to Pro"
+```
 
 ### `docsxai run`
 
@@ -137,12 +181,35 @@ Chromium; if no browser binary is present, install one with
   `--cdp` is set. The target app must tolerate multiple sessions from one
   user.
 
+A clean run prints one line per flow and exits 0:
+
+```
+$ docsxai run ~/docsxai/my-app --flow publish-post
+publish-post — 5 step(s) executed, 4 annotation(s) written
+```
+
+A halted run names the step, the inferred cause, and the halt screenshot,
+then exits 1 - hand that to [`diagnose`](#docsxai-diagnose) rather than
+retrying:
+
+```
+$ docsxai run ~/docsxai/my-app --flow publish-post
+[target is covered by another element] step "publish" (click) failed at
+https://localhost:3000/editor/draft-7: … (halt screenshot: docs/publish-post/halts/publish.png)
+```
+
 ### `docsxai render`
 
 Builds the static viewer by spawning the `docsxai-viewer` bin, resolved in
 order: the `DOCSX_VIEWER_BIN` env var (path to the viewer's bin script),
 the `@docsxai/viewer` package installed next to the engine, then
 `docsxai-viewer` on PATH. A launch failure reports all three attempts.
+
+```
+$ docsxai render ~/docsxai/my-app
+render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; each flow page
+shows the screenshots — hover a pulsing halo to read its callout)
+```
 
 ## Calibration aids
 
@@ -157,12 +224,33 @@ prone to hidden duplicates, and more - the full R001-R010 table is in
 rules. Exit 1 if any warning or error; `--format json` emits
 machine-readable output for tooling.
 
+```
+$ docsxai lint ~/docsxai/my-app
+flow publish-post
+  R004 [info] step 'open-editor': selector `[data-testid="new-post"]` is a bare `[data-*=…]` match — may resolve to multiple DOM nodes (visible + hidden duplicate)
+    → scope it: `[data-testid="new-post"]:visible` or add a `:has-text(…)` qualifier
+  R007 [warning] step 'confirm-live': terminal step has no `success` criterion
+
+0 errors, 1 warning, 1 info
+$ echo $?
+1
+```
+
 ### `docsxai flow-tree`
 
 Prints the workspace's `extends` graph (root flows and their descendants),
 plus any orphans (flows whose `extends` parent is not in the workspace) and
 resolution issues (cycles, step-id collisions across the merge). Pure-static.
 Exit 1 if any issues.
+
+```
+$ docsxai flow-tree ~/docsxai/my-app
+preamble    [3 steps]
+├── publish-post    [5 steps]
+└── invite-user    [4 steps]
+
+3 flows, max chain depth 1
+```
 
 ### `docsxai diagnose`
 
@@ -175,6 +263,29 @@ that is the agent's explicit opt-in action. `--format json` emits
 machine-readable output for an agent to act on. Pair with
 `run --start-from <step-id> --cdp` to validate the fix in seconds.
 
+```
+$ docsxai diagnose ~/docsxai/my-app --flow publish-post --step publish --cdp http://localhost:9222
+diagnose: flow=publish-post step=publish
+
+Current step:
+  action: click
+  target: $publish_button (resolved: [data-testid="publish"])
+  wait_for: {"selector":"$live_banner","timeout_ms":120000}
+  success: {"visible":"$live_banner"}
+
+Halt artifacts:
+  screenshot: docs/publish-post/halts/publish.png
+
+Live probe (via http://localhost:9222):
+  url: https://localhost:3000/editor/draft-7
+  actionable: covered
+  bbox: {"x":1184,"y":24,"width":96,"height":36}
+
+Recommendations (1):
+  [wait_for] the live probe reports the target covered — another element receives the click
+    → wait out (or dismiss, via a prior optional step) the covering element before this click
+```
+
 ### `docsxai style`
 
 Initialises `docs/style.yaml` plus the derived `docs/style.json` if absent;
@@ -185,6 +296,17 @@ write-up for jargon leaks against the style's `pruning_rules` (VERIFY, WAIT,
 re-shapes prose itself; the agent does that at calibration time - this
 command is the enforcement layer. `--format json` for tooling.
 
+```
+$ docsxai style ~/docsxai/my-app --check
+style: validated docs/style.yaml; rederived docs/style.json
+
+2 jargon leaks:
+  docs/publish-post/publish.md:3  [VERIFY/EXPECT/ASSERT directives]  VERIFY
+  docs/publish-post/open-editor.md:1  [internal locator names]  data-testid
+```
+
+Exit 1 on any leak; `✓ no jargon leaks` and exit 0 when clean.
+
 ## Drift detection
 
 ### `docsxai baseline`
@@ -194,6 +316,11 @@ Snapshots the doc pack - `flows/`, `docs/<flow>/*.md`, `annotations.json`,
 `--out <dir>`). Commit the baseline: it is the "before" that `diff` compares
 against in CI. Refresh replaces the previous snapshot whole, so stale
 leftovers never read as drift.
+
+```
+$ docsxai baseline ~/docsxai/my-app
+baseline: snapshotted 23 files to ~/docsxai/my-app/.baseline
+```
 
 ### `docsxai diff`
 
@@ -206,6 +333,20 @@ changes flagged distinctly), prose line-change counts, and locator changes.
 report severity is at or above the threshold (screenshot severity: at least
 1% changed pixels is warn, at least 5% is fail; structural changes are
 warn).
+
+```
+$ docsxai diff ~/docsxai/my-app --fail-on warn
+drift: ~/docsxai/my-app/.baseline → ~/docsxai/my-app
+flow publish-post [WARN]
+  - step publish changed: wait_for: {"selector":"$live_banner"} → {"selector":"$live_banner","timeout_ms":120000}
+  - screenshot publish.png [WARN]: 2.1% pixels changed
+totals: 1 flows changed, 1 steps, 1 screenshots, max pixel change 2.1%, severity warn
+$ echo $?
+1
+```
+
+With no drift the report is two lines (`no drift detected`) and the exit
+code is 0.
 
 ## Packaging and export
 
@@ -221,6 +362,11 @@ output to `<workspace-name>.zip` in the current dir; override with
 deterministically - sorted entries, fixed mtime, fixed compression - so the
 same doc pack always produces a byte-identical archive.
 
+```
+$ docsxai zip ~/docsxai/my-app
+zip: wrote my-app.zip (38 entries, 1843.2 KB)
+```
+
 ### `docsxai export adf`
 
 Projects the doc pack to Confluence Cloud ADF - pure and deterministic, zero
@@ -234,6 +380,11 @@ agent hands these to the Atlassian MCP, or the
 all Confluence HTTP lives in that capability-declared plugin, never in the
 engine.
 
+```
+$ docsxai export adf ~/docsxai/my-app --mode page-tree
+export adf: wrote ~/docsxai/my-app/.export/adf/projection.json (3 documents, mode page-tree) + ~/docsxai/my-app/.export/adf/attachments.json (9 attachments)
+```
+
 ### `docsxai export playwright`
 
 Emits one self-contained Playwright `.spec.ts` per flow (`extends` resolved)
@@ -241,6 +392,11 @@ into `<ws>/.export/tests/` (or `--out <dir>`): locators as consts, steps as
 page actions, success criteria as `expect()` assertions, `environment` as
 `test.use()`; optional steps are try/catch-wrapped. Generated files say so in
 a header: regenerate, do not hand-edit.
+
+```
+$ docsxai export playwright ~/docsxai/my-app
+export playwright: wrote 3 specs to ~/docsxai/my-app/.export/tests
+```
 
 ## Plugins
 
@@ -252,6 +408,16 @@ or disabled, with reasons; exit 1 if any plugin is not loaded), `info
 `sync` (re)writes `plugins-lock.json` with each plugin's register-module
 sha256 - without ever executing plugin code. All three accept `--format
 json`. Field-by-field detail is in the [plugins reference](/reference/plugins/).
+
+```
+$ docsxai plugins list ~/docsxai/my-app
+plugins (2 configured, 2 loaded):
+  confluence  loaded  v0.1.0  kalebtec  publisher  package:@docsxai/plugin-confluence
+  demo  loaded  v0.0.1  local  publisher  path:../my-local-plugin
+```
+
+A fuller session, including `info` and `sync`, is in the
+[plugins reference](/reference/plugins/#cli).
 
 ## Backend
 
@@ -265,6 +431,11 @@ authorization-code + PKCE handshake against the backend and stores the tokens
 at `<workspace>/.auth/backend-token.json` (mode 0600); `push`, `pull`, and
 `run` pick them up from there.
 
+```
+$ DOCSX_TOKEN=$CI_TOKEN docsxai login --backend-url http://127.0.0.1:4477
+login: ok. 1 workspace visible at http://127.0.0.1:4477
+```
+
 ### `docsxai push`
 
 Serialises the workspace's doc pack (flows, annotations, screenshots, style,
@@ -276,12 +447,23 @@ so unchanged PNGs are skipped. `--kind` defaults to `calibrate`; `--author`
 defaults to the OS user. The revision is finalized after upload - a sealed,
 immutable snapshot.
 
+```
+$ docsxai push ~/docsxai/my-app --kind run --author ci
+push: screenshots — 2 blob(s) uploaded, 7 already on the backend
+push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) — 5 artifact slots uploaded, finalized
+```
+
 ### `docsxai pull`
 
 Fetches a revision's artifacts back into the workspace files (default:
 `head`; `--rev <id>` for a named revision). Useful for syncing with a
 different operator's edits or rolling back. Fetched screenshot blobs are
 verified against their sha256 before they touch disk.
+
+```
+$ docsxai pull ~/docsxai/my-app
+pull: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) — wrote 23 file(s)
+```
 
 The endpoint surface behind `login`/`push`/`pull` is documented in the
 [backend API reference](/reference/backend-api/).

@@ -101,4 +101,27 @@ docsxai plugins info <workspace> <namespace>   manifest + registered artifact na
 docsxai plugins sync <workspace>               (re)write plugins-lock.json - never executes plugin code
 ```
 
-All three accept `--format json`.
+All three accept `--format json`. A typical session, from wiring to
+verification:
+
+```
+$ docsxai plugins sync ~/docsxai/my-app
+plugins sync: wrote ~/docsxai/my-app/plugins-lock.json (2 plugin(s))
+
+$ docsxai plugins list ~/docsxai/my-app
+plugins (2 configured, 2 loaded):
+  confluence  loaded  v0.1.0  kalebtec  publisher  package:@docsxai/plugin-confluence
+  demo  loaded  v0.0.1  local  publisher  path:../my-local-plugin
+
+$ docsxai plugins info ~/docsxai/my-app confluence
+confluence  loaded  v0.1.0  kalebtec  publisher  package:@docsxai/plugin-confluence
+  apiVersion: 1.0.0
+  capabilities: egress:*.atlassian.net
+  dependsOn: (none)
+  artifacts (1):
+    publisher  push
+```
+
+A plugin that is not `loaded` shows its status plus a `↳ <statusReason>`
+line, and `list` exits 1 - wire that into CI so a silently disabled
+publisher cannot pass unnoticed.

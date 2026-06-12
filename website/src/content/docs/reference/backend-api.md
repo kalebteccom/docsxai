@@ -44,6 +44,23 @@ stores only sha256 hashes of issued tokens.
 | POST   | `/v1/workspaces/:ws/projects`          | Create a project (`{ name }`).         |
 | GET    | `/v1/workspaces/:ws/projects/:project` | Get a project (incl. head revision).   |
 
+```sh
+export BASE=http://127.0.0.1:4477   # e.g. docsxai-backend --port=4477
+export AUTH="Authorization: Bearer $DOCSX_TOKEN"
+export VER="Docsxai-Api-Version: 1"
+
+curl -s $BASE/v1/health
+# {"ok":true,"version":"1"}
+
+curl -s -X POST $BASE/v1/workspaces -H "$AUTH" -H "$VER" \
+  -H "Content-Type: application/json" -d '{"name":"acme-docs"}'
+# {"id":"6f51…","name":"acme-docs","created_at":"2026-06-12T09:00:00.000Z"}
+
+curl -s -X POST $BASE/v1/workspaces/6f51…/projects -H "$AUTH" -H "$VER" \
+  -H "Content-Type: application/json" -d '{"name":"web-app"}'
+# {"id":"a90c…","workspace_id":"6f51…","name":"web-app","created_at":"…","head_revision_id":null}
+```
+
 ### Revisions and artifacts
 
 | Method | Path                                                            | What it does                                                                              |
@@ -60,12 +77,37 @@ The artifact slots mirror the on-disk doc pack: `flows`, `annotations`,
 schemas (`docsxai/flows@1`, `docsxai/screenshots@2`, and friends) are the
 engine's contract.
 
+The push lifecycle, by hand (what `docsxai push` does for you):
+
+```sh
+# 1. open a revision
+curl -s -X POST $BASE/v1/workspaces/6f51…/projects/a90c…/revisions \
+  -H "$AUTH" -H "$VER" -H "Content-Type: application/json" \
+  -d '{"kind":"run","author":"ci"}'
+# {"id":"1d4f…","parent_revision_id":null,"kind":"run","author":"ci","artifacts":[],"finalized":false,…}
+
+# 2. fill an artifact slot
+curl -s -X PUT $BASE/v1/workspaces/6f51…/projects/a90c…/revisions/1d4f…/locators \
+  -H "$AUTH" -H "$VER" -H "Content-Type: application/json" -d @docs/locators.json
+
+# 3. seal it
+curl -s -X POST $BASE/v1/workspaces/6f51…/projects/a90c…/revisions/1d4f…/finalize -H "$AUTH" -H "$VER"
+
+# a PUT after finalize:
+# 409 {"error":"revision-finalized","message":"…"}
+```
+
 ### Run history
 
 | Method | Path                                               | What it does                                           |
 | ------ | -------------------------------------------------- | ------------------------------------------------------ |
 | GET    | `/v1/workspaces/:ws/projects/:project/run-history` | List execution-run records (newest first).             |
 | POST   | `/v1/workspaces/:ws/projects/:project/run-history` | Append a record (`{ rev, ok, duration_ms, summary }`). |
+
+```sh
+curl -s $BASE/v1/workspaces/6f51…/projects/a90c…/run-history -H "$AUTH" -H "$VER"
+# [{"id":"…","project_id":"a90c…","revision_id":"1d4f…","ok":true,"duration_ms":48211,"summary":"3/3 flows ok","created_at":"…"}]
+```
 
 ### Blobs
 
@@ -83,6 +125,17 @@ slot carries a manifest (`docsxai/screenshots@2`: path to
 HEAD; blobs are deduplicated across revisions and projects. `pull` verifies
 every fetched blob against its manifest hash.
 
+```sh
+curl -s -X POST $BASE/v1/blobs -H "$AUTH" -H "$VER" \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @docs/publish-post/screenshots/publish.png
+# {"sha256":"3b6fa2…","bytes":184211}
+
+curl -sI $BASE/v1/blobs/3b6fa2… -H "$AUTH" -H "$VER" | head -2
+# HTTP/1.1 200 OK
+# Content-Length: 184211
+```
+
 ### Auth-cache relay (zero-knowledge)
 
 | Method | Path                                  | What it does                                          |
@@ -97,6 +150,15 @@ client; the backend validates the shape and stores it opaquely. This is how a
 team shares captured target-site sessions without the backend ever seeing a
 plaintext cookie.
 
+```sh
+curl -s -X PUT $BASE/v1/workspaces/6f51…/auth-cache/editor -H "$AUTH" -H "$VER" \
+  -H "Content-Type: application/json" \
+  -d '{"schema":"docsxai/auth-cache@1","alg":"aes-256-gcm","iv":"<b64>","ciphertext":"<b64>","tag":"<b64>","expires_at":1781280011000}'
+```
+
+You rarely call this by hand: setting a role's cache to `store: backend` in
+`auth/strategy.yaml` makes the engine relay through it on capture and load.
+
 ### OAuth
 
 | Method | Path                  | What it does                                                                                                                                                                    |
@@ -105,6 +167,15 @@ plaintext cookie.
 | POST   | `/v1/oauth/token`     | Token endpoint (form-encoded): `authorization_code` + PKCE verifier, or `refresh_token` (rotating).                                                                             |
 
 The only registered client is `docsxai-cli`.
+`docsxai login --backend-url <url> --oauth <workspace>` drives both endpoints
+for you; the form-encoded token exchange underneath looks like:
+
+```sh
+curl -s -X POST $BASE/v1/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d 'grant_type=authorization_code&client_id=docsxai-cli&code=<code>&code_verifier=<verifier>&redirect_uri=http://127.0.0.1:51723/callback'
+# {"access_token":"…","refresh_token":"…","token_type":"Bearer","expires_in":3600}
+```
 
 ### GitHub webhook
 
@@ -126,6 +197,18 @@ runs them, and the output goes to one of three strategies - `pr-comment`
 (run summary on the PR or commit), `viewer-refresh` (re-render the viewer,
 store `index.html` as a blob), or `wiki-push` (load a publisher plugin and
 report its result into run history).
+
+```sh
+curl -s -X PUT $BASE/v1/workspaces/6f51…/projects/a90c…/webhook-config \
+  -H "$AUTH" -H "$VER" -H "Content-Type: application/json" \
+  -d '{
+    "repo": "acme/web-app",
+    "events": ["push"],
+    "strategy": "pr-comment",
+    "workspace_rev": "head",
+    "secret_env": "DOCSX_WEBHOOK_SECRET"
+  }'
+```
 
 ## Limits and errors
 
