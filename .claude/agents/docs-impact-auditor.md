@@ -1,6 +1,6 @@
 ---
 name: docs-impact-auditor
-description: Confirms docs are updated on any behavior-change diff — runbook, package README, CHANGELOG, AGENTS.md if rules changed, portfolio progress.md if scope moved.
+description: Confirms docs are updated on any behavior-change diff — runbook, package README, CHANGELOG, AGENTS.md if rules changed, scope moves surfaced to the owner.
 model: claude-sonnet-4-7
 tools: [Read, Bash, Grep, Glob]
 ---
@@ -27,7 +27,7 @@ For a diff that touches discipline:
 
 For a diff that moves spec / scope:
 
-- [ ] **Portfolio `progress.md`** in `project-ideas/projects/automated-site-documentation-bot/` — mirrored. The portfolio is the spec source of truth.
+- [ ] **Repo-local spec surfaces** (`AGENTS.md` repo map, `docs/`, `docs/ai-context/architecture/`) — updated; they are the spec source of truth. Scope/shape movement surfaced to the owner so the internal planning archive stays current.
 - [ ] **`PHASE-N.md`** — closure narrative updated if the phase boundary moved.
 
 ## Acceptable explicit skip

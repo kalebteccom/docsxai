@@ -55,12 +55,6 @@ const pages = [
     title: "Security best practices",
     description:
       "Operational hardening for teams integrating docsxai: install discipline, credential handling, workspace containment, and plugin trust posture.",
-    replace: [
-      [
-        / Background and rationale live in our shared audits under `projects\/oss-security\/` in the Kalebtec portfolio repo\./,
-        "",
-      ],
-    ],
   },
   {
     src: "docs/actionability-contract.md",
@@ -82,7 +76,6 @@ const pages = [
     title: "@docsxai/plugin",
     description:
       "Claude Code plugin - the first-class invocation surface. Calibration skills plus deterministic commands over the docsxai engine.",
-    strikeLines: [/^Canonical spec\/roadmap: the `project-ideas` portfolio/],
   },
   {
     src: "packages/mcp/README.md",
@@ -104,7 +97,6 @@ const pages = [
     title: "@docsxai/backend",
     description:
       "Authenticated service that persists doc packs: projects, revisions, flow-files, screenshots, annotations, style artifacts, run history. REST + OAuth 2.1.",
-    strikeLines: [/^Design: `projects\/automated-site-documentation-bot\/spec\.md` in the/],
   },
   {
     src: "packages/viewer/README.md",
@@ -112,7 +104,6 @@ const pages = [
     title: "@docsxai/viewer",
     description:
       "Static-HTML interactive viewer, burned-annotation renderer, and Starlight docs-site emitter for doc packs.",
-    strikeLines: [/^Design: `projects\/automated-site-documentation-bot\/spec\.md` in the/],
   },
   {
     src: "packages/skill/README.md",
@@ -149,7 +140,6 @@ const pages = [
     title: "Contributing",
     description:
       "How to contribute to docsxai: dev setup, the quality gate, commit conventions, and what makes a change land.",
-    strikeLines: [/github\.com\/kalebteccom\/project-ideas/],
   },
   {
     src: "SECURITY.md",

@@ -12,4 +12,4 @@ This is the _secondary_ path. The first-class surface is the **@docsxai/plugin C
 
 This vendored copy exists only so a project can version-pin the behavior (e.g. for reproducible client engagements). It carries no logic of its own — it delegates to the plugin's commands/skills and the `docsxai` / `docsxai-viewer` / `docsxai-backend` CLIs. Keep it in sync with the plugin version you intend to use.
 
-Design + the full calibration playbook live in the `project-ideas` portfolio (`projects/automated-site-documentation-bot/`) and in the plugin's `skills/calibrate/SKILL.md`.
+The full calibration playbook lives in the plugin's `skills/calibrate/SKILL.md`.

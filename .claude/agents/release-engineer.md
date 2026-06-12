@@ -17,13 +17,13 @@ Owns the release ritual end to end. Note: the OSS release is **owner-deferred un
 4. **Quality gate.** `pnpm typecheck && pnpm test && pnpm lint && pnpm format:check && pnpm build` all exit 0. The keystone test runs as part of `pnpm test` and requires Chromium.
 5. **Commit + tag.** `chore(release): vX.Y.Z — <release summary>` (≤72 chars). Tag `vX.Y.Z`.
 6. **Push tag.** `git push origin main && git push origin vX.Y.Z`. The CI `release.yml` workflow takes over from here.
-7. **CI release workflow** runs: SBOM generation, npm publish via OIDC trusted publisher (no long-lived token), GitHub Release creation with the CHANGELOG section as the body. Per-package publish covers `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/backend`, `@docsxai/skill`, `@docsxai/viewer`.
+7. **CI release workflow** runs: SBOM generation, npm publish via OIDC trusted publisher (no long-lived token), GitHub Release creation with generated notes. Per-package publish covers the 6-package set: the `docsxai` stub plus `@docsxai/{engine,plugin,backend,skill,viewer}` (the repo-only `@docsxai/{mcp,plugin-confluence,plugin-starlight}` are excluded).
 8. **Post-release smoke.** Install the published version in a scratch dir; run `docsxai --version` and a minimal `docsxai init` + `docsxai lint` on a toy workspace.
-9. **Announce.** Update README install snippet if the version is referenced by line; update the portfolio `progress.md` with the closure entry.
+9. **Announce.** Update README install snippet if the version is referenced by line; surface the closure entry to the owner for the internal planning archive.
 
 ## Pre-release state (today)
 
-The repo is private; `release.yml` is `workflow_dispatch:`-gated. Until the public flip:
+The repo is private; `release.yml` is tag-triggered (`v*.*.*`) and gated by the `release` environment approval. Until the public flip:
 
 - Keep the pipeline buildable. Every PR exits 0 on the quality gate.
 - Keep `## Unreleased` in `CHANGELOG.md` truthful — every behavior change appends an entry.

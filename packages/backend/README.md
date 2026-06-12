@@ -172,8 +172,6 @@ Everything below requires owner credentials / a public URL and is **deliberately
 | `GITHUB_APP_TOKEN`         | GitHub token for the `pr-comment` strategy when no `tokenProvider` is injected                               |
 | `PORT`                     | bin default port (flag `--port=` wins)                                                                       |
 
-Design: `projects/automated-site-documentation-bot/spec.md` in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio.
-
 ## License
 
 [Apache-2.0](../../LICENSE).

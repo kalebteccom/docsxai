@@ -1,6 +1,6 @@
 # Best practices for adopters
 
-Operational practices we recommend for teams integrating docsxai. Background and rationale live in our shared audits under `projects/oss-security/` in the Kalebtec portfolio repo.
+Operational practices we recommend for teams integrating docsxai.
 
 ## Install
 

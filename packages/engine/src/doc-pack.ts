@@ -1,6 +1,6 @@
 // Doc-pack schema — the artifacts a calibration run produces and an execution run consumes.
 //
-// Layout on disk (see the portfolio spec, "Output layout"):
+// Layout on disk:
 //   <project>/flows/<flow>.flow.yaml          — flow-file (source of truth for execution)
 //   <project>/docs/<flow>/<step>.md           — step write-ups (user-facing prose)
 //   <project>/docs/<flow>/screenshots/<step>.png

@@ -8,7 +8,7 @@
 >
 > **Canonical operational reference**: `kalebteccom/browxai` → `harness/driving-browxai/SKILL.md` + `docs/tool-reference.md` (formerly `AGENT-RUNBOOK.md`) — for snapshot output legend (`stats:`, `warnings:`, `[from-dom]` / `[from-both]` markers), locator-disambiguation idioms (`:visible`, `nth-match`), `stability` semantics (snapshot-disambiguator vs. deploy-stable), and known-issue workarounds. This doc does **not** duplicate that content; it tracks the contract shape only.
 >
-> Other canonical sources: `kalebteccom/browxai/docs/ai-context/adopter-reports/` (per-ask status boards + field reports; formerly `docs/first-consumer-asks.md`); adoption reports `kalebteccom/browxai/docs/adoption-report-example-2026-05-{13,15}.md`; portfolio entry `projects/agent-browser-bridge/progress.md`.
+> Other canonical sources: `kalebteccom/browxai/docs/ai-context/adopter-reports/` (per-ask status boards + field reports; formerly `docs/first-consumer-asks.md`); adoption reports `kalebteccom/browxai/docs/adoption-report-example-2026-05-{13,15}.md`.
 
 Status legend: ✅ **landed** · 🟡 **partial** (initial shape landed; remainder follow-up / post-MVP) · 📅 **adoption-gated**.
 

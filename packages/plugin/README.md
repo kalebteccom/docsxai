@@ -29,5 +29,3 @@ The skills shell out to the `docsxai` CLI and use the externally-provided **Clau
 the discovery stage's live-browser driving. An internal MCP server (engine operations the calibration
 skills call — parse-flow-file, run-flow, apply-ambiguity-resolution, …) is a possible future addition if
 shelling out becomes the bottleneck.
-
-Canonical spec/roadmap: the `project-ideas` portfolio, `projects/automated-site-documentation-bot/`.

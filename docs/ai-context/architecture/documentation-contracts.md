@@ -39,9 +39,9 @@ When refactoring a package, the colocated README travels with it.
 
 Agent-agnostic, authoritative. Every harness loads this file. Per-harness pointers (`CLAUDE.md`, `.cursor/rules/00-substrate.mdc`, `.codex/config.toml`) reference it; they never duplicate content. Change a rule here and every harness picks it up on the next session.
 
-## Portfolio repo — canonical spec + roadmap
+## Spec + scope — repo-local
 
-[`projects/automated-site-documentation-bot/`](https://github.com/kalebteccom/project-ideas) in the `project-ideas` portfolio carries `spec.md`, `roadmap.md`, `progress.md`. **Source of truth for spec/scope.** Keep them in sync when implementation forces a design change; the impl repo's `PHASE-N.md` files mirror the portfolio `roadmap.md` for the agent-runtime context that doesn't belong upstream.
+The repo-local docs above are the **source of truth for spec/scope**: `AGENTS.md` for the operating shape, `docs/` for the adopter contract, this subtree for rationale. The archived `docs/archive/phase-plans/PHASE-N.md` files snapshot how each phase closed. (Pre-public planning history lives in the maintainer's internal planning archive; surface scope/shape movement to the owner so it stays current — nothing load-bearing lives only there.)
 
 ## What this means for a behavior-change diff
 
@@ -51,7 +51,7 @@ For a diff that touches the public surface:
 2. Update the package README if the package's promised surface changed.
 3. Append an entry to `CHANGELOG.md` under `## Unreleased` in the right section.
 4. Update `AGENTS.md` only if a cross-harness rule changed.
-5. Mirror in the portfolio `progress.md` if scope or shape moved.
+5. Surface scope/shape movement to the owner (internal planning archive).
 
 For a diff that touches discipline:
 
