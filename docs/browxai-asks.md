@@ -4,9 +4,9 @@
 >
 > Written 2026-05-13 morning as a list of pending pre-shipping asks (initial wave, #1–#6). Browxai's first-integration implementation pass landed all six the same day. The **first adoption run** later that day surfaced five more asks (#7–#11) about heavy-SPA `snapshot()` / `find()` behaviour — all shipped same day as a follow-up integration pass. The re-adoption confirmed those fixes work and surfaced #12–#16 as polish, not blockers.
 >
-> **Canonical operational reference**: `kalebteccom/browxai/AGENT-RUNBOOK.md` — for snapshot output legend (`stats:`, `warnings:`, `[from-dom]` / `[from-both]` markers), locator-disambiguation idioms (`:visible`, `nth-match`), `stability` semantics (snapshot-disambiguator vs. deploy-stable), and known-issue workarounds. This doc does **not** duplicate that content; it tracks the contract shape only.
+> **Canonical operational reference**: `kalebteccom/browxai` → `harness/driving-browxai/SKILL.md` + `docs/tool-reference.md` (formerly `AGENT-RUNBOOK.md`) — for snapshot output legend (`stats:`, `warnings:`, `[from-dom]` / `[from-both]` markers), locator-disambiguation idioms (`:visible`, `nth-match`), `stability` semantics (snapshot-disambiguator vs. deploy-stable), and known-issue workarounds. This doc does **not** duplicate that content; it tracks the contract shape only.
 >
-> Other canonical sources: `kalebteccom/browxai/docs/first-consumer-asks.md` (per-ask status board); adoption reports `kalebteccom/browxai/docs/adoption-report-example-2026-05-{13,15}.md`; portfolio entry `projects/agent-browser-bridge/progress.md`.
+> Other canonical sources: `kalebteccom/browxai/docs/ai-context/adopter-reports/` (per-ask status boards + field reports; formerly `docs/first-consumer-asks.md`); adoption reports `kalebteccom/browxai/docs/adoption-report-example-2026-05-{13,15}.md`; portfolio entry `projects/agent-browser-bridge/progress.md`.
 
 Status legend: ✅ **landed** · 🟡 **partial** (initial shape landed; remainder follow-up / post-MVP) · 📅 **adoption-gated**.
 
@@ -108,7 +108,7 @@ When the a11y tree has fewer than five interactive descendants under root, `snap
 
 Re-ran site-docs discovery/calibration end-to-end through `browxai-attached` against authed the target app, with `BROWX_TEST_ATTRIBUTES=data-testid,data-type,data-test,data-cy,data-qa`. Scope: author one new flow (`recap-edit-timing` — Recap Flow 3 "Edit Script Timing"). Result: flow file authored entirely through browxai's MCP surface, replayed cleanly through `site-docs run` (headless, no browxai dependency), no-trace contract held. First-integration exit criteria met both sides. Full report: `kalebteccom/browxai/docs/adoption-report-example-2026-05-15.md`.
 
-Five non-architectural follow-on asks surfaced; none gates further site-docs work, none block adoption against new targets. Their canonical home is `kalebteccom/browxai/docs/first-consumer-asks.md` (re-adoption table) and they'll be addressed on the browxai side as polish cleanup or fold into later work. Listed here for contract completeness:
+Five non-architectural follow-on asks surfaced; none gates further site-docs work, none block adoption against new targets. Their canonical home is `kalebteccom/browxai/docs/ai-context/adopter-reports/` (re-adoption table) and they'll be addressed on the browxai side as polish cleanup or fold into later work. Listed here for contract completeness:
 
 ### 12. 🟡 `wait_for.timeoutMs` schema cap (currently 120 s)
 
@@ -116,7 +116,7 @@ Backend-async ops (script generation, translation, TTS) routinely exceed the 120
 
 ### 13. 🟡 `selectorHint` disambiguation for duplicate DOM matches
 
-When `find()` returns the visible candidate via its interaction filter but the bare `[data-type="x"]` matches multiple DOM nodes (visible + hidden duplicate), the emitted hint should disambiguate (`:visible`, `nth-match`, or a further-attribute qualifier). Without it, mechanical transcription re-introduces the hidden-duplicate `boundingBox` hang the runbook's "Locator gotchas" block documents. Browxai's `AGENT-RUNBOOK.md` carries the workaround agents apply manually in the meantime.
+When `find()` returns the visible candidate via its interaction filter but the bare `[data-type="x"]` matches multiple DOM nodes (visible + hidden duplicate), the emitted hint should disambiguate (`:visible`, `nth-match`, or a further-attribute qualifier). Without it, mechanical transcription re-introduces the hidden-duplicate `boundingBox` hang the runbook's "Locator gotchas" block documents. Browxai's driving skill (`harness/driving-browxai/SKILL.md`) carries the workaround agents apply manually in the meantime.
 
 ### 14. 🟡 `find()` scoring weight for test-attribute string matches
 
@@ -128,13 +128,13 @@ Exact testid in the query failed to surface a matching `<input>` element because
 
 ### 16. 🟢 Docs nit: `stability` semantics + `find()`-matching surface
 
-"high stability" means "snapshot disambiguator," not "survives deploys." Content-keyed IDs (e.g. `[data-testid="example-content-12345"]` — the asset ID changes daily) come back with `stability: "high"` even though they're brittle for a long-lived flow file; the calibration agent has to recognise and rewrite to a `^=` + `:has-text(...)` pattern. Plus: `find()` matches against `name` + `role` + test-attribute values — icon-only tabs whose `title="…"` carries the only signal don't match keyword queries. Either docs-only in browxai's `tool-reference.md` / `AGENT-RUNBOOK.md`, or a small `stabilityKind: "structural" | "content-keyed"` heuristic field.
+"high stability" means "snapshot disambiguator," not "survives deploys." Content-keyed IDs (e.g. `[data-testid="example-content-12345"]` — the asset ID changes daily) come back with `stability: "high"` even though they're brittle for a long-lived flow file; the calibration agent has to recognise and rewrite to a `^=` + `:has-text(...)` pattern. Plus: `find()` matches against `name` + `role` + test-attribute values — icon-only tabs whose `title="…"` carries the only signal don't match keyword queries. Either docs-only in browxai's `tool-reference.md` / driving skill, or a small `stabilityKind: "structural" | "content-keyed"` heuristic field.
 
 ---
 
 ## Post-contract wave from browxai (no asks; site-docs benefits)
 
-After the contract closed on 2026-05-15, browxai continued shipping its own post-contract work without an asks list from site-docs. Site-docs benefits directly from these — the runbook + calibrate skill now reference them as the recommended path. Full descriptions in **`<browxai>/AGENT-RUNBOOK.md`**; summarised here so future readers see the chronology:
+After the contract closed on 2026-05-15, browxai continued shipping its own post-contract work without an asks list from site-docs. Site-docs benefits directly from these — the runbook + calibrate skill now reference them as the recommended path. Full descriptions in **`<browxai>/harness/driving-browxai/SKILL.md`** + **`<browxai>/docs/tool-reference.md`**; summarised here so future readers see the chronology:
 
 - **`browxai init <workspace>`** — bootstraps a per-consumer workspace dir, writes a workspace-scope `.mcp.json` with both managed + BYOB MCP entries, sniffs the codebase for the dominant test-attribute convention. Replaces the manual `claude mcp add-json` dual-registration recipe in earlier versions of site-docs's runbook.
 - **`browxai chrome [start|stop|status]`** — owns the `--cdp` Chrome lifecycle. Persistent profile at `$BROWX_WORKSPACE/chrome-profile/`; `--insecure` opts into `--disable-web-security`. Replaces the manual `chrome --remote-debugging-port=9222 …` recipe.
@@ -149,14 +149,45 @@ No new asks here — site-docs reaps the benefits. The next contract round opens
 
 ---
 
-## Deferred work (still applies)
+## Deferred work — status at the v0.7.0 re-pin (2026-06-12)
 
-- `dump_storage_state` MCP tool (post-MVP; only needed when browxai owns the profile end-to-end).
-- `find().selectorHint` tiers 3 (stable-text-on-stable-role) and 4 (id/semantic).
-- `snapshotDelta.scope` (scope-down currently returns full tree with a warning) and `mode: "tree_diff"` (falls back with a warning).
-- `await_human` `kind`s beyond `acknowledge` (`confirm` / `choose` / `input` / `pick_element` + the shadow-DOM banner / overlay UI).
-- `network_read` as a standalone session-wide buffered stream (per-action `ActionResult.network` is the primary surface for now).
-- Auto-default `BROWX_ATTACH_CDP` / `browxai doctor` (the dual-registration recipe is the live workaround).
-- No-trace CI test (spawn server with `cwd=/tmp/fake-consumer-repo`; assert cwd untouched) — currently only validated by unit tests on the env-var-rooted resolver.
-- Headless-under-CI exercise (`BROWX_HEADLESS=1` works; nobody's run it under CI yet).
+Most of the 2026-05-15 deferred list shipped in browxai v0.3–v0.7:
+
+- ✅ `dump_storage_state` / `inject_storage_state` + the `auth_save`/`auth_load`/`auth_list`/`auth_delete` family — shipped.
+- ✅ `network_read` as a standalone surface — shipped (plus `network_body`, `start_har`/`stop_har`).
+- ✅ `await_human` kinds beyond `acknowledge` — shipped (incl. `choose_option`, `approve_actions`).
+- ✅ `browxai doctor` + `browxai init` + `browxai chrome` lifecycle — shipped.
+- ✅ Recording: `start_recording` / `end_recording` / `record_annotate` + `export_playwright_script` — shipped.
+- Still open browxai-side (re-verify before relying): `find().selectorHint` tiers 3/4; `snapshotDelta.scope` / `tree_diff`; auto-default `BROWX_ATTACH_CDP`; the no-trace CI test; headless-under-CI exercise.
 - Replacing **execution** mode's Playwright with browxai. Execution stays deterministic, no agent, no MCP. browxai is discovery/calibration only.
+
+---
+
+## Contract round 3 — re-pinned to browxai v0.7.0 (2026-06-12)
+
+The 2026-05-27 Phase-2 re-validation pinned this contract to browxai **v0.2.0**. browxai has since cut v0.3.0 → **v0.7.0** (2026-06-08; ~200 tools across 17 capabilities, the v1 plugin runtime, canvas substrate, perf module, diagnostics, typed SDK). v0.7.0 is declared the final v0.x; v1.0 lands with browxai's public flip. This round records the re-pin; the operational reference is browxai's `harness/driving-browxai/SKILL.md` + `docs/tool-reference.md`.
+
+### Ask status updates
+
+- **#12 (`wait_for.timeoutMs` 120 s cap) — superseded.** browxai's timeout ceiling is now 1 hour. Confirm on the next live calibration, then close.
+- **#13–#16 — needs-retest against v0.7.0.** No CHANGELOG evidence they landed as asked; `find()` ranking and snapshot shapes changed substantially since v0.2.0 (DOM-walk merge, `find_feedback`, frame scoping). Retest on the next adoption run; refile anything still open as `diagnostics_note({ category: "missing-primitive" })` evidence (see below) rather than anecdote.
+
+### New composition opportunities (calibration-side; execution stays browxai-free)
+
+Worth folding into the calibrate skill / runbook as the recommended path — never duplicated in the engine:
+
+- **`flake_check`** (n-run variance with `stopOnAllGreen` + `cachedResolvers` self-heal artifacts) — pre-commit determinism validation of a candidate step sequence before it's translated into a flow-file.
+- **`watch({ durationMs })`** — observe transient/conditional UI to justify `optional: true` steps with evidence.
+- **`screenshot({ path })`** (file-io capability) — per-step capture to disk instead of base64 into agent context.
+- **`clock` / `seed_random`** — date/randomness-stable pages during calibration walkthroughs. **BYOB residue warning:** these persist on an attached Chrome after detach — reset before ending a session. (Execution-side equivalents are engine-native: the flow-file `environment` block.)
+- **`overflow_detect`** — pre-screenshot layout sanity sweep (clipped/ellipsis findings = bad doc screenshots).
+- **`generate_locator` / `extract(schema)`** — locator authoring + structured page reads during calibration (recorded 2026-05-27 as follow-ups; now available).
+- **`end_recording` + `export_playwright_script`** — record a walk, emit a draft flow-file + a Playwright spec; the spec's `fragile`-selector markers double as the locator-review checklist. docsxai's `site-docs export playwright` is the inverse (flow-file → spec) — the two are complementary, not duplicative.
+- **`diagnostics_note` / `diagnostics_report`** — the asks pipeline itself: file friction during calibration runs with the `diagnostics` capability enabled; `missingPrimitiveHypotheses` becomes the evidence section of round 4.
+- **`plugins_list` / canvas substrate** — discover canvas-app adapter plugins at calibration boot; canvas targets compose `canvas_capture` → agent vision (BYO-vision) → `canvas_query`/`gesture_chain`.
+
+### Constraints to respect
+
+- **BYOB refusals:** `pdf_save` and video recording are refused on attached (BYOB) sessions — docsxai's canonical calibration mode. Anything PDF/video runs execution-side through the engine's own Playwright sessions.
+- **Semver horizon:** everything docsxai composes behind off-by-default capabilities (`file-io`, `diagnostics`, `canvas`, `eval`) is explicitly outside browxai's pre-1.0 stability guarantee. Calibration-skill compositions are recommendations, not hard dependencies; re-verify at browxai v1.0.
+- **The split is unchanged:** browxai owns discovery; `site-docs run` stays raw Playwright forever; the docsxai MCP server exposes calibration meta-orchestration + doc-pack introspection only and must never re-expose browxai primitives.
