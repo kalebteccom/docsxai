@@ -51,6 +51,30 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 - **Hand-off** — `site-docs zip` packages a reviewer-ready archive (excludes operator-local `.auth/`, halts, `.viewer/`).
 - **Backend client** — `site-docs login` / `push` / `pull` against the stub backend (linear immutable revisions).
 
+#### Engine — ADF export + Confluence publisher
+
+- **`site-docs export adf`** + `projectDocPackToAdf` — pure, deterministic Atlassian-Document-Format projection of a doc pack (markdown-subset → ADF, burned-screenshot media references with clean-screenshot fallback, single consolidated page or opt-in page-tree). Writes the agentic-path artifact a host agent hands to the Atlassian MCP.
+- **`@kalebtec/docsxai-plugin-confluence`** — first-party `confluence:push` publisher plugin (the plugin runtime's keystone consumer): Confluence Cloud REST v2 via built-in fetch, `egress:*.atlassian.net` capability, create/update keyed on a `docsxai-content-sha` content-property so re-publishes are idempotent (3×-republish test: zero mutations), attachment dedupe by sha, `{ section → pageId }` page-identity map for backend revision metadata, `<CONFLUENCE_TOKEN>` masking on every error path. Live-site validation remains owner-gated.
+
+#### Backend — persistence, blobs, OAuth, encrypted cache (`@kalebtec/docsxai-backend`)
+
+- **Filesystem persistence** — `FsStore` behind the new `BackendStore` interface (atomic tmp+rename writes, traversal-guarded paths), selected via `--data-dir` / `SITE_DOCS_DATA_DIR`; the in-memory store remains the default for tests.
+- **Content-addressed blobs** — `POST/GET/HEAD /v1/blobs` (sha256-addressed, deduplicated) with 10 MB JSON / 25 MB blob body limits (413). Screenshots travel as `site-docs/screenshots@2` sha256 manifests; the engine HEAD-probes, uploads, and integrity-verifies on pull (base64 payloads are gone).
+- **Revision finalisation** — `POST …/revisions/:rev/finalize`; artifact PUTs afterwards are rejected 409 (`revision-finalized`); `site-docs push` finalizes — linear-immutable is now enforced, not aspirational.
+- **OAuth 2.1 + PKCE** — S256-only authorization-code flow with single-use 5-minute codes, refresh-token rotation, sha256-hashed token storage; CI keeps the `SITE_DOCS_TOKEN` bearer path. `site-docs login --oauth` runs the loopback handshake and stores tokens at `.auth/backend-token.json` (0600) with auto-refresh.
+- **Encrypted storage-state relay** — `PUT/GET/DELETE /v1/workspaces/:ws/auth-cache/:role` stores client-side AES-256-GCM envelopes (`BackendStateCache`, key from `SITE_DOCS_CACHE_KEY`); the backend never sees plaintext session state.
+- **Run history wired** — `site-docs run` appends execution records to backend-bound workspaces (offline-tolerant).
+
+#### Viewer — burn renderer + hardening (`@kalebtec/docsxai-viewer`)
+
+- **`burn` — durable burned annotations** — browser-free Satori → resvg pipeline bakes halo/badge/callout/arrow onto screenshot copies (`docs/<flow>/burned/`), byte-deterministic, positioned by the same `placeCallout` as the interactive viewer; vendored Inter (OFL-1.1). The static-delivery path for Confluence/Notion-class surfaces.
+- **Single-sourced overlay** — the inline viewer script is bundled at build from `overlay-runtime.ts` importing the real `placeCallout`; the hand-maintained ES5 port is gone.
+- **CSP + safe markdown** — every emitted page carries `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'` (zero network egress), and step write-ups render through micromark in safe mode instead of `<pre>`.
+
+#### Engine — CLI integration
+
+- `site-docs run` applies the merged flow's `environment` block to every launched session; `site-docs lint` resolves the workspace plugin registry and runs registered lint-rule plugins after the built-ins (plugin failures degrade to core rules with a warning).
+
 #### Plugin (`@kalebtec/docsxai-plugin`)
 
 - Claude Code plugin: `calibrate` + `diagnose` skills; `run` / `render` / `login` / `push` / `pull` commands.
