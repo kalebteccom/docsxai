@@ -2,12 +2,12 @@
 
 One name everywhere: the GitHub repo is `kalebteccom/docsxai` (renamed from `kalebteccom/automated-site-documentation-bot`), the CLI is `docsxai`, and the npm packages live on the registered `@docsxai` org (plus the bare `docsxai` package that holds the trusted-publishing claim). The old `site-docs` codename surfaces were retired in a pre-publish clean break (owner decision, 2026-06-12) — nothing had shipped, so there are no compatibility aliases.
 
-| Surface      | Name                                                                                                                                                                                       |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| GitHub repo  | `kalebteccom/docsxai`                                                                                            |
-| CLI          | `docsxai` (the engine bin)                                                                                       |
+| Surface      | Name                                                                                                                                                                                                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub repo  | `kalebteccom/docsxai`                                                                                                                                                                                                                                                 |
+| CLI          | `docsxai` (the engine bin)                                                                                                                                                                                                                                            |
 | npm packages | published at the flip: `docsxai` (stub), `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/backend`, `@docsxai/skill`, `@docsxai/viewer`. Repo-only (`private: true`, revisitable post-flip): `@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-starlight` |
-| Product name | docsxai                                                                                                          |
+| Product name | docsxai                                                                                                                                                                                                                                                               |
 
 > **Status: prepared, deferred.** Everything below is _ready_. The actual public release is owner-deferred (2026-05-19) — the repo stays **private** and unpublished until the project's stable-surface work is done. This file is the mechanical checklist for _when_ that decision is taken; nothing here is to be executed before then.
 

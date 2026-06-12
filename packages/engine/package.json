@@ -53,5 +53,9 @@
     "@types/node": "^20.14.0",
     "@types/pngjs": "^6.0.5",
     "vitest": "^2.0.0"
+  },
+  "author": "Kalebtec <security@kalebtec.com>",
+  "engines": {
+    "node": ">=20"
   }
 }

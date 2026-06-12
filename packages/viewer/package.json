@@ -53,5 +53,9 @@
     "@resvg/resvg-js": "^2.6.2",
     "micromark": "^4.0.2",
     "satori": "^0.26.0"
+  },
+  "author": "Kalebtec <security@kalebtec.com>",
+  "engines": {
+    "node": ">=20"
   }
 }
