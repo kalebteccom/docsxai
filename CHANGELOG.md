@@ -62,6 +62,17 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 - **`site-docs export adf`** + `projectDocPackToAdf` — pure, deterministic Atlassian-Document-Format projection of a doc pack (markdown-subset → ADF, burned-screenshot media references with clean-screenshot fallback, single consolidated page or opt-in page-tree). Writes the agentic-path artifact a host agent hands to the Atlassian MCP.
 - **`@kalebtec/docsxai-plugin-confluence`** — first-party `confluence:push` publisher plugin (the plugin runtime's keystone consumer): Confluence Cloud REST v2 via built-in fetch, `egress:*.atlassian.net` capability, create/update keyed on a `docsxai-content-sha` content-property so re-publishes are idempotent (3×-republish test: zero mutations), attachment dedupe by sha, `{ section → pageId }` page-identity map for backend revision metadata, `<CONFLUENCE_TOKEN>` masking on every error path. Live-site validation remains owner-gated.
 
+#### Engine — drift detection + test export
+
+- **`site-docs baseline` + `site-docs diff`** — deterministic drift reports (`site-docs/drift@1`): id-keyed step deltas, annotation moves beyond a px tolerance, exact RGBA screenshot pixel diffs (with `ignore_regions`), prose line-change counts, locator changes; `--format json|md|text` (the markdown form is PR-comment-ready) and a `--fail-on warn|fail` CI gate. Drift detection is engine-deterministic; the patch proposal stays an explicit agent step (`diagnose`) — never ambient.
+- **`site-docs export playwright`** — one self-contained Playwright `.spec.ts` per flow (extends resolved, `environment` as `test.use()` + fixed clock, optional steps try/catch-wrapped, regenerate-don't-hand-edit header): the doc pack doubles as a regression suite.
+
+#### Backend — GitHub App webhook surface (`@kalebtec/docsxai-backend`)
+
+- **`POST /v1/github/webhook`** — HMAC-SHA-256-signature-verified (timing-safe; GitHub's documented test vector pinned), event-filtered, replay-guarded (last 100 delivery ids) webhook endpoint; per-project `webhook-config` CRUD (repo mapping, events, output strategy, revision pin). Zero YAML in user repos — config lives in the backend.
+- **Run dispatch** — per-project serial `QueuedDispatcher` → `SpawnRunner`: materializes the configured revision into a temp workspace, runs the engine CLI, appends run history.
+- **Output strategies** — `pr-comment` (GitHub REST comment with the run/drift summary), `viewer-refresh` (re-render recorded as a content-addressed blob), `wiki-push` (the project's configured publisher plugin via the engine plugin runtime). App registration, webhook URL/secret, and installation tokens are owner-gated (checklist in the backend README).
+
 #### Backend — persistence, blobs, OAuth, encrypted cache (`@kalebtec/docsxai-backend`)
 
 - **Filesystem persistence** — `FsStore` behind the new `BackendStore` interface (atomic tmp+rename writes, traversal-guarded paths), selected via `--data-dir` / `SITE_DOCS_DATA_DIR`; the in-memory store remains the default for tests.

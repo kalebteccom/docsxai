@@ -62,6 +62,19 @@ criterion no longer holds. The failing step id + halt-cause prefix are in the
 log and `docs/<flow>/halts/<step>.png` is the moment of failure — hand both to
 your calibration agent (`site-docs diagnose`) rather than retrying.
 
+## Drift gating (recommended)
+
+Keep a committed baseline and fail the pipeline only on meaningful change:
+
+```bash
+site-docs diff ./docs-workspace --against ./docs-workspace/.baseline --format md --fail-on fail
+# exit 0 = no drift (or warnings only), exit 1 = drift at/above the fail threshold
+site-docs baseline ./docs-workspace        # refresh the baseline after an accepted change
+```
+
+The markdown report is built for PR comments; the GitHub App's `pr-comment`
+strategy posts it automatically.
+
 ## GitLab CI
 
 ```yaml
