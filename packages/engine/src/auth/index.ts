@@ -10,6 +10,7 @@ import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { AuthStrategyDescriptor, type RoleAuth } from "../doc-pack.js";
 import { ApiLoginStrategy } from "./api-login.js";
+import { launchAuthPage } from "./browser-session.js";
 import { HttpBasicStrategy } from "./http-basic.js";
 import { JwtInjectionStrategy } from "./jwt-injection.js";
 import { type InstrumentedBrowser, ManualCaptureStrategy } from "./manual-capture.js";
@@ -17,6 +18,7 @@ import { MtlsStrategy } from "./mtls.js";
 import { PatHeaderStrategy } from "./pat-header.js";
 import { TestBackdoorStrategy } from "./test-backdoor.js";
 import { TotpStrategy } from "./totp.js";
+import { UiFormStrategy } from "./ui-form.js";
 import {
   AuthStrategyConfigError,
   NotImplementedStrategyError,
@@ -26,6 +28,7 @@ import {
 export * from "./types.js";
 export * from "./cookie-jar.js";
 export * from "./api-login.js";
+export * from "./browser-session.js";
 export * from "./http-basic.js";
 export * from "./jwt-injection.js";
 export * from "./manual-capture.js";
@@ -34,6 +37,7 @@ export * from "./pat-header.js";
 export * from "./storage-state-cache.js";
 export * from "./test-backdoor.js";
 export * from "./totp.js";
+export * from "./ui-form.js";
 
 // ---------------------------------------------------------------------------
 // Descriptor (`auth/strategy.yaml`)
@@ -155,6 +159,8 @@ export function makeStrategy(roleAuth: RoleAuth, deps: StrategyDeps): AuthStrate
       return new TestBackdoorStrategy();
     case "totp":
       return new TotpStrategy();
+    case "ui-form":
+      return new UiFormStrategy(launchAuthPage, deps.env);
     default:
       throw new NotImplementedStrategyError(roleAuth.strategy);
   }
