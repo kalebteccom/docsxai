@@ -22,7 +22,7 @@ Owner decision (2026-05-19): hold the public release until the project's stable-
 Releases use **npm Trusted Publishing via GitHub OIDC** — no `NPM_TOKEN` exists in this repo, in CI, or on a maintainer machine. A token that doesn't exist cannot leak.
 
 - Tag-triggered only (`v*.*.*` on push). The workflow is unreachable from `pull_request*` events; PR-derived code can never request an OIDC token.
-- `permissions: {}` at workflow level, narrowed per job. The `publish` job is the only place `id-token: write` exists.
+- `permissions: {}` at workflow level, narrowed per job. The two publish jobs are the only places `id-token: write` exists.
 - `environment: release` gates the publish behind a required-reviewer manual approval (configured in GitHub once the repo flips public — pre-flip TODO below).
 - npm-side: the `docsxai` package is bound to this exact repo + workflow filename + environment name. Anything else trying to publish under our identity fails closed.
 - `--provenance` always — Sigstore attestation proves the artifact came from this workflow on this tagged commit.
