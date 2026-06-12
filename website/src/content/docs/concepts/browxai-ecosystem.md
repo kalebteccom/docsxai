@@ -33,6 +33,14 @@ results. A calibration agent learns at write-time whether a selector is
 fillable, clickable, or needs scoping - instead of finding out at run-time
 via a halt with the same word in its `[cause: ...]` prefix.
 
+<div class="docsx-boundary not-content" role="img" aria-label="The browxai and docsxai boundary. browxai owns live-page discovery and runs only during calibration. docsxai owns deterministic execution and doc emission. The two meet at the shared actionability contract: an element-state vocabulary returned by the engine and mirrored on browxai's find results.">
+<div class="dxb-grid" aria-hidden="true">
+<section class="dxb-side dxb-side--brow"><span class="dxb-side-tag">browxai</span><span class="dxb-side-role">live-page discovery</span><ul class="dxb-list"><li>find() ranked locators</li><li>snapshot() a11y tree</li><li>action primitives</li></ul><span class="dxb-when">calibration only</span></section>
+<div class="dxb-seam"><span class="dxb-seam-rail" aria-hidden="true"></span><span class="dxb-seam-pill">actionability contract</span><span class="dxb-seam-sub">shared element-state vocabulary</span></div>
+<section class="dxb-side dxb-side--docs"><span class="dxb-side-tag dxb-side-tag--docs">docsxai</span><span class="dxb-side-role">execution + doc emission</span><ul class="dxb-list"><li>run replays the flow-file</li><li>own Playwright sessions</li><li>pack, viewer, drift, publish</li></ul><span class="dxb-when dxb-when--docs">every run · agent-free</span></section>
+</div>
+</div>
+
 ## The CDP-attach calibration shape
 
 The recommended calibration setup is one shared Chrome, attached over CDP by
