@@ -4,13 +4,13 @@
 
 The engine never imports a model-provider SDK. That boundary is load-bearing — repeat it twice on every architectural decision involving inference.
 
-## `packages/engine/` — `@kalebtec/docsxai-engine`
+## `packages/engine/` — `@docsxai/engine`
 
-The flow-file parser + deterministic runtime + the `site-docs` CLI. The biggest package; the only one with a binary.
+The flow-file parser + deterministic runtime + the `docsxai` CLI. The biggest package; the only one with a binary.
 
 ### `packages/engine/src/cli.ts`
 
-The `site-docs` bin. Subcommands: `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
+The `docsxai` bin. Subcommands: `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
 
 ### `packages/engine/src/flow-file.ts`
 
@@ -74,47 +74,47 @@ The target-site auth catalogue — one module per strategy (api-login, jwt-injec
 
 ### `packages/engine/src/export/`
 
-Pure projections out of a doc pack (no HTTP): `adf.ts` (Confluence ADF + attachments manifest; `site-docs export adf`). New delivery formats land here as exporters; pushing them is publisher-plugin territory.
+Pure projections out of a doc pack (no HTTP): `adf.ts` (Confluence ADF + attachments manifest; `docsxai export adf`). New delivery formats land here as exporters; pushing them is publisher-plugin territory.
 
 ### `packages/engine/src/backend-client.ts`
 
-HTTP client for `@kalebtec/docsxai-backend`. Used when the operator opts into hosted persistence; local file output is the default for MVP.
+HTTP client for `@docsxai/backend`. Used when the operator opts into hosted persistence; local file output is the default for MVP.
 
 ### `packages/engine/test/keystone.test.ts`
 
 The regression gate. Drives the runtime end-to-end against real Chromium with a fixture site. Catches behavior regressions that unit tests with a mocked `BrowserDriver` will silently pass. Mandatory for any change to `flow-runtime.ts`, `playwright-driver.ts`, or the actionability predicate.
 
-## `packages/plugin/` — `@kalebtec/docsxai-plugin`
+## `packages/plugin/` — `@docsxai/plugin`
 
 The Claude Code plugin. The recommended invocation surface for agent-driven workflows.
 
 - `.claude-plugin/plugin.json` — the manifest (name, version, description, author).
-- `commands/*.md` — deterministic slash commands. Thin wrappers over the `site-docs` CLI. **No business logic in a command file** — the engine does the work.
+- `commands/*.md` — deterministic slash commands. Thin wrappers over the `docsxai` CLI. **No business logic in a command file** — the engine does the work.
 - `skills/*/SKILL.md` — calibration skills (agent-driven; the host supplies inference).
 - `src/index.ts` — a small TS surface over the manifest tree for tooling + tests. `readManifest`, `listCommands`, `listSkills`, plus static-validation helpers.
 
 The plugin loads at session start; commands are deterministic engine invocations; skills emit structured questions and drive the calibration flow through the host agent's inference.
 
-## `packages/backend/` — `@kalebtec/docsxai-backend`
+## `packages/backend/` — `@docsxai/backend`
 
 Authenticated stub service for doc-pack persistence.
 
-- `src/api.ts` — `ROUTES` is the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators|run-history}`. Versioned via the `Site-Docs-API-Version` header.
+- `src/api.ts` — `ROUTES` is the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators|run-history}`. Versioned via the `Docsxai-Api-Version` header.
 - `src/server.ts` — HTTP stub server. Loopback-bound by default.
 - `src/store.ts` — in-memory linear-immutable revisions (filesystem / DB persistence is post-MVP).
 
 OAuth 2.1 wires hosted deployment post-MVP; the stub runs with bearer tokens.
 
-## `packages/skill/` — `@kalebtec/docsxai-skill`
+## `packages/skill/` — `@docsxai/skill`
 
 Optional vendorable `.claude/skills/` fallback. Delegates to the installed plugin.
 
-- `skill/site-docs/SKILL.md` — the vendorable skill manifest.
-- `vendorSkill(targetDir)` — copies the skill bundle into `<targetDir>/.claude/skills/site-docs/`. Idempotent.
+- `skill/docsxai/SKILL.md` — the vendorable skill manifest.
+- `vendorSkill(targetDir)` — copies the skill bundle into `<targetDir>/.claude/skills/docsxai/`. Idempotent.
 
 For teams that prefer version-pinning in the consumer repo rather than relying on a globally-installed plugin.
 
-## `packages/viewer/` — `@kalebtec/docsxai-viewer`
+## `packages/viewer/` — `@docsxai/viewer`
 
 Static-HTML viewer.
 

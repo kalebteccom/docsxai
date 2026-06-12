@@ -13,7 +13,7 @@ new egress path (publisher plugins, backend relay, webhook strategies).
 - `storageState` lands only under `.auth/` (gitignored, chokepointed via
   `resolveWorkspacePathReal`) or — for `store: backend` — inside an
   AES-256-GCM envelope encrypted **client-side** (`BackendStateCache`,
-  key from `SITE_DOCS_CACHE_KEY`); the backend stores ciphertext it cannot
+  key from `DOCSX_CACHE_KEY`); the backend stores ciphertext it cannot
   read.
 - Masking happens **before** any persistence or serialization, not after —
   the sink applies the mask, then writes. New egress surfaces copy the

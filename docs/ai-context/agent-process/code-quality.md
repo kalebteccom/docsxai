@@ -111,14 +111,14 @@ docsxai's architecture leans on SOLID with TypeScript-idiomatic interpretations.
 ### Dependency inversion — depend on the abstraction
 
 - `flow-runtime.ts` depends on `BrowserDriver`, not `playwright-core`. Swapping driver implementations doesn't change runtime code.
-- The plugin's commands depend on the `site-docs` CLI bin; they don't reach into engine internals. The engine's CLI surface is the substrate boundary.
+- The plugin's commands depend on the `docsxai` CLI bin; they don't reach into engine internals. The engine's CLI surface is the substrate boundary.
 - The backend client depends on `ROUTES`, not on a specific HTTP library shape.
 
 ## Engine surface discipline
 
 Adding a CLI subcommand or a plugin command follows the contract in `AGENTS.md` and the surface map. The discipline that makes the engine trustworthy:
 
-- **The engine never calls a model API.** No `openai`, `@anthropic-ai/*`, `@google/genai`, no provider SDK. Inference at calibration time is supplied by the host agent (Claude Code, Codex, anything MCP-speaking). Execution mode (`site-docs run`) has no agent in the loop and no inference at all.
+- **The engine never calls a model API.** No `openai`, `@anthropic-ai/*`, `@google/genai`, no provider SDK. Inference at calibration time is supplied by the host agent (Claude Code, Codex, anything MCP-speaking). Execution mode (`docsxai run`) has no agent in the loop and no inference at all.
 - **All filesystem IO routes through `resolveWorkspacePath`** in `src/workspace.ts`. No `cwd`-relative paths in handlers.
 - **All Playwright API touch routes through `playwright-driver.ts`** (or `playwright-instrumented-browser.ts` for the `capture-auth` head-full path). Nothing else imports `playwright-core` directly.
 

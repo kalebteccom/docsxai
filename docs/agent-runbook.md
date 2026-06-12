@@ -1,7 +1,7 @@
-# Agent runbook — run site-docs against an app repo, leaving no trace
+# Agent runbook — run docsxai against an app repo, leaving no trace
 
-> Hand this file to a coding agent. It tells the agent how to set up and run **site-docs** to document a
-> running web app that's built/served from a local repo — **without modifying that repo**. site-docs operates
+> Hand this file to a coding agent. It tells the agent how to set up and run **docsxai** to document a
+> running web app that's built/served from a local repo — **without modifying that repo**. docsxai operates
 > _on_ the running app from outside; everything it produces lives in a separate workspace dir; the app itself
 > is run from a throwaway git worktree so even its build scripts can't dirty the real checkout.
 
@@ -11,9 +11,9 @@ Fill these in before starting:
 
 ```bash
 export APP_REPO=…          # the source checkout of ANY web app you want to document. YOU MUST NOT MODIFY THIS.
-export TOOL_REPO=…         # the site-docs repo (this repo: automated-site-documentation-bot)
-export WORKSPACE=…         # where site-docs artifacts go — MUST be OUTSIDE $APP_REPO. e.g. ~/site-docs/<app-name>
-export APP_RUN=/tmp/site-docs-app-run   # disposable copy of $APP_REPO that you'll actually run
+export TOOL_REPO=…         # the docsxai repo (this repo: automated-site-documentation-bot)
+export WORKSPACE=…         # where docsxai artifacts go — MUST be OUTSIDE $APP_REPO. e.g. ~/docsxai/<app-name>
+export APP_RUN=/tmp/docsxai-app-run   # disposable copy of $APP_REPO that you'll actually run
 # After step 2 you'll also know $APP_URL (the dev server's URL).
 ```
 
@@ -21,9 +21,9 @@ If the human only gave you `$APP_REPO`, pick sensible defaults for the others an
 
 ## Hard rules (the "no trace" contract)
 
-1. **Never write any file inside `$APP_REPO`.** Not the doc pack, not config, not `.claude/`, nothing. All site-docs output → `$WORKSPACE` (which is outside `$APP_REPO`).
+1. **Never write any file inside `$APP_REPO`.** Not the doc pack, not config, not `.claude/`, nothing. All docsxai output → `$WORKSPACE` (which is outside `$APP_REPO`).
 2. **Never `npm install` / `pnpm install` / build inside `$APP_REPO`.** Run the app from `$APP_RUN` (a disposable worktree); its `node_modules`/lockfile changes stay there.
-3. **Never vendor the site-docs skill into `$APP_REPO/.claude/`.** Use the CLIs from `$TOOL_REPO` (and the Claude Code plugin if installed) — don't `vendorSkill` into the app repo.
+3. **Never vendor the docsxai skill into `$APP_REPO/.claude/`.** Use the CLIs from `$TOOL_REPO` (and the Claude Code plugin if installed) — don't `vendorSkill` into the app repo.
 4. **Don't put the captured login session in `$APP_REPO`.** `manual-capture` caches it to `$WORKSPACE/.auth/` (gitignored there); the backend never holds it (`store: local`).
 5. **At the end, verify `git -C "$APP_REPO" status` is clean.** If it isn't, you violated rule 1 or 2 — investigate and revert.
 
@@ -37,27 +37,27 @@ pnpm -C packages/engine exec playwright-core install chromium
 pnpm -r build
 ```
 
-Make `site-docs` / `docsxai-viewer` callable. The robust way is two tiny wrapper scripts on your `PATH`:
+Make `docsxai` / `docsxai-viewer` callable. The robust way is two tiny wrapper scripts on your `PATH`:
 
 ```bash
 mkdir -p "$HOME/.local/bin"
-printf '#!/usr/bin/env bash\nexec node "%s/packages/engine/dist/cli.js" "$@"\n' "$TOOL_REPO" > "$HOME/.local/bin/site-docs"
+printf '#!/usr/bin/env bash\nexec node "%s/packages/engine/dist/cli.js" "$@"\n' "$TOOL_REPO" > "$HOME/.local/bin/docsxai"
 printf '#!/usr/bin/env bash\nexec node "%s/packages/viewer/dist/index.js" "$@"\n' "$TOOL_REPO" > "$HOME/.local/bin/docsxai-viewer"
-chmod +x "$HOME/.local/bin/site-docs" "$HOME/.local/bin/docsxai-viewer"
+chmod +x "$HOME/.local/bin/docsxai" "$HOME/.local/bin/docsxai-viewer"
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-(`pnpm -C packages/{engine,viewer} link --global` also works _if_ your pnpm global store is consistent — it often isn't on a long-lived machine; `ERR_PNPM_UNEXPECTED_STORE` is fixed by `pnpm install --global pnpm`. The wrapper scripts above sidestep all of that.) Below assumes `site-docs` / `docsxai-viewer` are on `PATH`; equivalently call `node "$TOOL_REPO/packages/engine/dist/cli.js" …` etc. directly.
+(`pnpm -C packages/{engine,viewer} link --global` also works _if_ your pnpm global store is consistent — it often isn't on a long-lived machine; `ERR_PNPM_UNEXPECTED_STORE` is fixed by `pnpm install --global pnpm`. The wrapper scripts above sidestep all of that.) Below assumes `docsxai` / `docsxai-viewer` are on `PATH`; equivalently call `node "$TOOL_REPO/packages/engine/dist/cli.js" …` etc. directly.
 
 ## Step 1 — scaffold the workspace (one command, with the config baked in)
 
 ```bash
-site-docs init "$WORKSPACE" --app-url "$APP_URL_PLACEHOLDER" --ignore-https-errors --auth manual-capture --ttl 1h
+docsxai init "$WORKSPACE" --app-url "$APP_URL_PLACEHOLDER" --ignore-https-errors --auth manual-capture --ttl 1h
 ```
 
-(If you don't know `$APP_URL` yet, run `site-docs init "$WORKSPACE" --auth manual-capture --ttl 1h` now and add `app_url` to `$WORKSPACE/.site-docs.json` after step 2 — or just pass `--base-url` on later commands.)
+(If you don't know `$APP_URL` yet, run `docsxai init "$WORKSPACE" --auth manual-capture --ttl 1h` now and add `app_url` to `$WORKSPACE/.docsxai.json` after step 2 — or just pass `--base-url` on later commands.)
 
-This creates `$WORKSPACE/{flows,docs,auth,.auth,.viewer}`, a `.gitignore` (`.auth/`, `.viewer/`), `auth/strategy.yaml` (`manual-capture`, `store: local`, `ttl: 1h`), a `README.md`, and `.site-docs.json` (holds `app_url` + `ignore_https_errors`, so subsequent `run`/`capture-auth` need no flags). For a fully ephemeral workspace instead: `site-docs init --persist tmp …` (it prints the temp dir; `rm -rf` it when done).
+This creates `$WORKSPACE/{flows,docs,auth,.auth,.viewer}`, a `.gitignore` (`.auth/`, `.viewer/`), `auth/strategy.yaml` (`manual-capture`, `store: local`, `ttl: 1h`), a `README.md`, and `.docsxai.json` (holds `app_url` + `ignore_https_errors`, so subsequent `run`/`capture-auth` need no flags). For a fully ephemeral workspace instead: `docsxai init --persist tmp …` (it prints the temp dir; `rm -rf` it when done).
 
 ## Step 2 — run the app from a disposable worktree
 
@@ -74,7 +74,7 @@ npm run dev                                           # start the dev server (ba
 # read the URL/port the dev server ACTUALLY prints — it may differ from the default (e.g. Vite auto-picks
 # 3001 if 3000 is taken). Then either pass --base-url <that-url> on capture-auth/run, or update the config:
 export APP_URL="https://localhost:5173"               # ← the actual URL it printed (HTTPS if the repo ships a dev cert)
-node -e "const f='$WORKSPACE/.site-docs.json',j=require(f);j.app_url='$APP_URL';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
+node -e "const f='$WORKSPACE/.docsxai.json',j=require(f);j.app_url='$APP_URL';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n')"
 ```
 
 (Alternatively `git clone --no-hardlinks "$APP_REPO" "$APP_RUN"`.)
@@ -82,10 +82,10 @@ node -e "const f='$WORKSPACE/.site-docs.json',j=require(f);j.app_url='$APP_URL';
 ## Step 3 — capture an authed session (if the app needs login)
 
 ```bash
-site-docs capture-auth "$WORKSPACE"        # reads app_url + ignore_https_errors from .site-docs.json
+docsxai capture-auth "$WORKSPACE"        # reads app_url + ignore_https_errors from .docsxai.json
 ```
 
-An instrumented Chrome opens (headed). The **human** logs in interactively (SSO / MFA / conditional access — whatever they click through). When they're in, they run `window.__siteDocs.capture()` in the devtools console (or click the injected "Capture session" button if `--capture-trigger button` was set). The session is cached to `$WORKSPACE/.auth/<role>.json`. **Tell the human these steps** — you can't log in for them. `capture-auth` keeps a persistent Chrome profile at `$WORKSPACE/.auth/chrome-profile/` (gitignored), so once they've logged in once, **re-running `capture-auth` reuses that session — usually they just trigger capture again, no re-login**. `--fresh` forces a clean profile.
+An instrumented Chrome opens (headed). The **human** logs in interactively (SSO / MFA / conditional access — whatever they click through). When they're in, they run `window.__docsxai.capture()` in the devtools console (or click the injected "Capture session" button if `--capture-trigger button` was set). The session is cached to `$WORKSPACE/.auth/<role>.json`. **Tell the human these steps** — you can't log in for them. `capture-auth` keeps a persistent Chrome profile at `$WORKSPACE/.auth/chrome-profile/` (gitignored), so once they've logged in once, **re-running `capture-auth` reuses that session — usually they just trigger capture again, no re-login**. `--fresh` forces a clean profile.
 
 `capture-auth` prints the captured cookie jar. **Identify the app's real auth/session cookie** and pin it so the cache tracks its actual expiry — otherwise the cache falls back to the `ttl` guess (which is what stops a freshly-captured SSO session from being "born expired": the jar has ephemeral IdP scratch cookies whose expiry is seconds out, so `min(cookie.expires)` ≈ now and must NOT be trusted — but `ttl` is still a guess; the real auth cookie's expiry is the true bound). The auth cookie is:
 
@@ -96,16 +96,16 @@ An instrumented Chrome opens (headed). The **human** logs in interactively (SSO 
 Then pin it (any of):
 
 ```bash
-site-docs capture-auth "$WORKSPACE" --auth-cookie "<the-cookie-you-identified>"   # e.g. "session" / ".AspNetCore.Cookies"
+docsxai capture-auth "$WORKSPACE" --auth-cookie "<the-cookie-you-identified>"   # e.g. "session" / ".AspNetCore.Cookies"
 #   or: edit $WORKSPACE/auth/strategy.yaml → roles.<role>.cache.auth_cookie: "<name>"  (then re-run capture-auth)
-#   or: pass it up front:  site-docs init … --auth-cookie "<name>"
+#   or: pass it up front:  docsxai init … --auth-cookie "<name>"
 ```
 
 `capture-auth` reports `expires <ISO>  (from auth-cookie "<name>" | ttl | 1h default)` — confirm it says `auth-cookie "<name>"`. If `run` later says "session expired", re-run this step (re-login).
 
-**Optional — one login, not two:** by default `capture-auth` launches its own instrumented Chrome, so the engineer logs in there _and_ (separately) in whatever browser the host agent uses for discovery (Step 4). To avoid the double login, have the engineer start a single Chrome that _both_ tools attach to. The clean way is **`browxai chrome start --insecure`** (owns the lifecycle, persistent profile at `$BROWX_WORKSPACE/chrome-profile/`, `--insecure` adds `--disable-web-security` for security-lowered dev targets); manual equivalent: `chrome --remote-debugging-port=9222 --disable-web-security --disable-features=IsolateOrigins,site-per-process --user-data-dir=/tmp/site-docs-chrome <app-url>`. Either way, the engineer logs in once, then `site-docs capture-auth "$WORKSPACE" --cdp http://localhost:9222` reads that browser's session (it won't close it), and Step 4's `browxai-attached` MCP entry drives discovery against the same Chrome.
+**Optional — one login, not two:** by default `capture-auth` launches its own instrumented Chrome, so the engineer logs in there _and_ (separately) in whatever browser the host agent uses for discovery (Step 4). To avoid the double login, have the engineer start a single Chrome that _both_ tools attach to. The clean way is **`browxai chrome start --insecure`** (owns the lifecycle, persistent profile at `$BROWX_WORKSPACE/chrome-profile/`, `--insecure` adds `--disable-web-security` for security-lowered dev targets); manual equivalent: `chrome --remote-debugging-port=9222 --disable-web-security --disable-features=IsolateOrigins,site-per-process --user-data-dir=/tmp/docsxai-chrome <app-url>`. Either way, the engineer logs in once, then `docsxai capture-auth "$WORKSPACE" --cdp http://localhost:9222` reads that browser's session (it won't close it), and Step 4's `browxai-attached` MCP entry drives discovery against the same Chrome.
 
-> **Shared-CDP page-helper lifecycle.** When two clients share one `--cdp` Chrome and one disconnects, page-side helpers it injected can become stale. `window.__siteDocs.capture()` detects the detached binding on next invocation, removes its injected button if any, logs `[site-docs] capture helper detached…`, and self-deletes from `window.__siteDocs`. Reload the page or re-run `capture-auth` to install a fresh helper.
+> **Shared-CDP page-helper lifecycle.** When two clients share one `--cdp` Chrome and one disconnects, page-side helpers it injected can become stale. `window.__docsxai.capture()` detects the detached binding on next invocation, removes its injected button if any, logs `[docsxai] capture helper detached…`, and self-deletes from `window.__docsxai`. Reload the page or re-run `capture-auth` to install a fresh helper.
 
 ### Scripted re-auth — the auth-strategy catalogue
 
@@ -132,10 +132,10 @@ Every strategy reports `expiresAt` when it is derivable (the named / lone real-e
 - **If the human has a structured flow-guide** (a `.flow.yaml`, or a `.md` with a ```yaml fenced block — the the first-consumer testing guide shape: prerequisites + locators + per-step actions + success criteria):
 
   ```bash
-  site-docs calibrate "$WORKSPACE" --from path/to/flow-guide.md     # writes $WORKSPACE/flows/<name>.flow.yaml + a default docs/style.yaml
+  docsxai calibrate "$WORKSPACE" --from path/to/flow-guide.md     # writes $WORKSPACE/flows/<name>.flow.yaml + a default docs/style.yaml
   ```
 
-- **If the description is loose prose, or a manual-testing-guide** (whose fenced blocks are numbered prose pseudo-steps — `1. SETUP …`, `VERIFY …` — not flow-file YAML, so `--from` _won't_ take them), or you need to pin elements against the live page: author the flow-file yourself. Walk each step on the live app, pick **one canonical locator per step** (prefer role/text/`data-testid`), add `wait_for`/`success`, and write `$WORKSPACE/flows/<flow>.flow.yaml` by hand. To inspect the _authed_ live page for locators — note you **can't** load the captured session into a browser your MCP/automation controls (the app's auth cookie is usually `httpOnly`, so not settable via `document.cookie`) — use **`site-docs inspect "$WORKSPACE"`**: it opens the app headless with `.auth/<role>.json` loaded and prints the page's `[data-testid]` elements (✓ = visible); `--selector '<css>'` dumps matching elements' HTML; `--headed` watches; `--url <url>` for a sub-page. Iterate: `inspect` → write a step → `site-docs run` → repeat. The full playbook is `$TOOL_REPO/packages/plugin/skills/calibrate/SKILL.md`. (A one-command agent-driven `/site-docs:calibrate` via an MCP server isn't built yet.)
+- **If the description is loose prose, or a manual-testing-guide** (whose fenced blocks are numbered prose pseudo-steps — `1. SETUP …`, `VERIFY …` — not flow-file YAML, so `--from` _won't_ take them), or you need to pin elements against the live page: author the flow-file yourself. Walk each step on the live app, pick **one canonical locator per step** (prefer role/text/`data-testid`), add `wait_for`/`success`, and write `$WORKSPACE/flows/<flow>.flow.yaml` by hand. To inspect the _authed_ live page for locators — note you **can't** load the captured session into a browser your MCP/automation controls (the app's auth cookie is usually `httpOnly`, so not settable via `document.cookie`) — use **`docsxai inspect "$WORKSPACE"`**: it opens the app headless with `.auth/<role>.json` loaded and prints the page's `[data-testid]` elements (✓ = visible); `--selector '<css>'` dumps matching elements' HTML; `--headed` watches; `--url <url>` for a sub-page. Iterate: `inspect` → write a step → `docsxai run` → repeat. The full playbook is `$TOOL_REPO/packages/plugin/skills/calibrate/SKILL.md`. (A one-command agent-driven `/docsxai:calibrate` via an MCP server isn't built yet.)
 
 The flow-file format (validate by running `calibrate` or `run`):
 
@@ -181,7 +181,7 @@ steps:
 
 **Determinism (environment + redactions + element_stable).** The `environment` block is what makes runs reproducible across machines and days: a frozen `clock`, pinned `locale`/`timezone`/`viewport`/`color_scheme`/`reduced_motion` → the same flow against the same target state produces **byte-identical screenshots** (keystone-enforced). It also unlocks locale replay (`extends` a base flow, override just `locale`) and responsive variants (override just `viewport`). With `--cdp` the attached Chrome owns its context, so only the clock applies — the engine logs one stderr warning listing the skipped fields. `redactions` mask sensitive UI (API keys, customer PII) **before the PNG hits disk** — deterministic pixel fills, so they don't break reproducibility; halt screenshots get them too. An annotation anchored to a redacted element would point at a black box — `lint` flags that. `wait_for: element_stable` on a step with a `target` polls that element's bounding box every 100 ms until two consecutive reads agree (±0.5 px), with a 10 s budget — best-effort: a perpetually-animating element proceeds after the budget rather than wedging the run. Without a `target` it waits on nothing (`lint` flags that too).
 
-**Iterating, esp. on long / stateful flows.** For a slow backend op (generate, translate, render…), give the waiting step `wait_for: { selector: $appears-when-done, timeout_ms: 180000 }` — a per-step override of the default ~30s selector-wait. **Sub-3-sec inner loop on long-async flows:** when iterating on a new tail step that sits after a multi-minute backend op, use `site-docs run "$WORKSPACE" --flow <name> --cdp http://localhost:9222 --start-from <step-id>` to attach to the already-warm Chrome (left over from a `--pause`d previous run, or your `capture-auth --cdp` Chrome) and SKIP every step before `<step-id>` — only the new step runs, against the existing page state. The new step's annotation is merged into the existing `annotations.json`; prior steps' annotations and screenshots stay intact. With `--cdp` the cached `storageState` isn't loaded — the operator's Chrome owns its auth state. **Factor out shared preambles**: put the multi-step "get to the right place" walk in its own flow-file — e.g. `flows/preamble.flow.yaml`, _no `annotation`s_ — and have each dependent flow start with `extends: preamble`; the engine runs the parent's steps first, so iterating on the _child_'s steps is cheap and the un-annotated parent adds zero doc noise. To iterate without even re-running the parent each time: **`site-docs run "$WORKSPACE" --flow <name> --stop-after <step-id> --pause`** runs only up to that step (on the merged step list — so `--stop-after` can target a parent step too) and leaves the (headed) browser open there — inspect the live state, fix/add the next step, repeat. **To shrink total wall time when you have many flows**: `--concurrency <N>` runs up to N flows in parallel (each its own Chromium session); the target app needs to tolerate concurrent sessions from one user, but most do. Force-clamped to 1 with `--pause` / `--stop-after`. **Catch authoring mistakes at write-time:** `site-docs lint "$WORKSPACE"` runs pure-static checks across your flow-files (deep `extends` chains, annotations anchored to likely-unmounting click targets, `wait_for` without `timeout_ms` on long-async-looking steps, bare `[data-*=…]` selectors prone to hidden duplicates, `extends` targets that don't exist, locators defined but never referenced, terminal steps without `success`, `optional` steps with no `wait_for`/`success` guard, selector-less `element_stable`, annotations anchored to redacted elements). **Visualise inheritance:** `site-docs flow-tree "$WORKSPACE"` prints the workspace's `extends` graph + checks step-id uniqueness across each chain. **When a step halts**, the error message starts with a `[cause: …]` prefix inferred from Playwright's actionability log (e.g. `[target is disabled]`, `[target was detached from the DOM]`, `[selector matched multiple elements …]`) — read that first; the screenshot in `docs/<flow>/halts/<step>.png` is for confirming. **Diagnose the halt + propose a fix:** `site-docs diagnose "$WORKSPACE" --flow <name> --step <step-id> [--cdp http://localhost:9222] [--format json]` packages the step's selector / wait*for / success / halt-screenshot path / (with `--cdp`) a live `actionable()` probe of the target on the running page, plus typed recommendations (`selector` / `wait_for` / `success` / `annotation_target` / `split_step` / `investigate`). Pair with `--start-from <step-id> --cdp <endpoint>` on the follow-up `run` to validate the fix in seconds. The engine never auto-patches the flow-file — diagnosis is gathered context for an agent decision. See [`packages/plugin/skills/diagnose/SKILL.md`](../packages/plugin/skills/diagnose/SKILL.md) for the full loop. **Discovery-time actionability probing:** the engine exposes a `BrowserDriver.actionable(selector)` predicate that returns the same vocabulary at write-time, without acting — `actionable` / `not-found` / `multiple-matches` / `detached` / `not-visible` / `off-screen` / `covered` / `disabled`. Designed for consumers like browxai (and future MCP browser bridges) to surface on `find()` results so a calibration agent can know \_before* the step is written into a flow-file whether the selector is fillable / clickable / scopable. Full contract + per-state semantics + the coordination-with-halt-cause mapping: [`docs/actionability-contract.md`](actionability-contract.md).
+**Iterating, esp. on long / stateful flows.** For a slow backend op (generate, translate, render…), give the waiting step `wait_for: { selector: $appears-when-done, timeout_ms: 180000 }` — a per-step override of the default ~30s selector-wait. **Sub-3-sec inner loop on long-async flows:** when iterating on a new tail step that sits after a multi-minute backend op, use `docsxai run "$WORKSPACE" --flow <name> --cdp http://localhost:9222 --start-from <step-id>` to attach to the already-warm Chrome (left over from a `--pause`d previous run, or your `capture-auth --cdp` Chrome) and SKIP every step before `<step-id>` — only the new step runs, against the existing page state. The new step's annotation is merged into the existing `annotations.json`; prior steps' annotations and screenshots stay intact. With `--cdp` the cached `storageState` isn't loaded — the operator's Chrome owns its auth state. **Factor out shared preambles**: put the multi-step "get to the right place" walk in its own flow-file — e.g. `flows/preamble.flow.yaml`, _no `annotation`s_ — and have each dependent flow start with `extends: preamble`; the engine runs the parent's steps first, so iterating on the _child_'s steps is cheap and the un-annotated parent adds zero doc noise. To iterate without even re-running the parent each time: **`docsxai run "$WORKSPACE" --flow <name> --stop-after <step-id> --pause`** runs only up to that step (on the merged step list — so `--stop-after` can target a parent step too) and leaves the (headed) browser open there — inspect the live state, fix/add the next step, repeat. **To shrink total wall time when you have many flows**: `--concurrency <N>` runs up to N flows in parallel (each its own Chromium session); the target app needs to tolerate concurrent sessions from one user, but most do. Force-clamped to 1 with `--pause` / `--stop-after`. **Catch authoring mistakes at write-time:** `docsxai lint "$WORKSPACE"` runs pure-static checks across your flow-files (deep `extends` chains, annotations anchored to likely-unmounting click targets, `wait_for` without `timeout_ms` on long-async-looking steps, bare `[data-*=…]` selectors prone to hidden duplicates, `extends` targets that don't exist, locators defined but never referenced, terminal steps without `success`, `optional` steps with no `wait_for`/`success` guard, selector-less `element_stable`, annotations anchored to redacted elements). **Visualise inheritance:** `docsxai flow-tree "$WORKSPACE"` prints the workspace's `extends` graph + checks step-id uniqueness across each chain. **When a step halts**, the error message starts with a `[cause: …]` prefix inferred from Playwright's actionability log (e.g. `[target is disabled]`, `[target was detached from the DOM]`, `[selector matched multiple elements …]`) — read that first; the screenshot in `docs/<flow>/halts/<step>.png` is for confirming. **Diagnose the halt + propose a fix:** `docsxai diagnose "$WORKSPACE" --flow <name> --step <step-id> [--cdp http://localhost:9222] [--format json]` packages the step's selector / wait*for / success / halt-screenshot path / (with `--cdp`) a live `actionable()` probe of the target on the running page, plus typed recommendations (`selector` / `wait_for` / `success` / `annotation_target` / `split_step` / `investigate`). Pair with `--start-from <step-id> --cdp <endpoint>` on the follow-up `run` to validate the fix in seconds. The engine never auto-patches the flow-file — diagnosis is gathered context for an agent decision. See [`packages/plugin/skills/diagnose/SKILL.md`](../packages/plugin/skills/diagnose/SKILL.md) for the full loop. **Discovery-time actionability probing:** the engine exposes a `BrowserDriver.actionable(selector)` predicate that returns the same vocabulary at write-time, without acting — `actionable` / `not-found` / `multiple-matches` / `detached` / `not-visible` / `off-screen` / `covered` / `disabled`. Designed for consumers like browxai (and future MCP browser bridges) to surface on `find()` results so a calibration agent can know \_before* the step is written into a flow-file whether the selector is fillable / clickable / scopable. Full contract + per-state semantics + the coordination-with-halt-cause mapping: [`docs/actionability-contract.md`](actionability-contract.md).
 
 **Discovery driver (locator finding against the authed live page).** The canonical, model-agnostic driver is **[browxai](https://github.com/kalebteccom/browxai)** — an MCP-native browser bridge. The host agent gets `find(query)` (ranked candidate locators with `selectorHint` + `stability: high|medium|low` + visible-rect bbox + evidence), `snapshot()` (compact a11y tree **augmented with a DOM walk on every snapshot** — interactive elements via `[role], button, a[href], input, select, textarea, [onclick], [tabindex], [contenteditable]` plus any test-attr bearer, merged under the same root with `[from-dom]` / `[from-both]` source markers so heavy-SPA targets aren't sparse), persistent refs within a session, action primitives that return what changed, `await_human({kind:"acknowledge", prompt})` checkpoints, plus screenshots / console / network reads.
 
@@ -199,11 +199,11 @@ Pick `browxai` for ad-hoc / public-target work; pick `browxai-attached` when a `
 
 **Configure `BROWX_TEST_ATTRIBUTES` for your target's codebase.** `browxai init` sniffs it for you; override manually if needed. Comma-separated, **order-sensitive, first match wins**. Default if unset: `data-testid,data-test,data-cy,data-qa`. If the target codebase anchors interactivity on a non-standard attribute, put it in the list (e.g. a codebase using `data-type` rather than `data-testid` would set `data-testid,data-type,data-test,data-cy,data-qa`). Flows through a11y enrichment, the DOM walk, `selectorHint` tier-1 emission, and locator resolution. Tier-1 doesn't gate on a `role` wrapper — `<div data-type="x">` gets `stability: "high"` directly with hint `[data-type="x"]`.
 
-**Calibration accelerator — record the walk, get a draft flow-file.** Instead of hand-authoring `flows/<name>.flow.yaml` step-by-step, drive the live walk through browxai's action tools while `start_recording({ flowName: "<name>" })` is active; `end_recording()` emits a site-docs-flavoured YAML draft (`locators:` + `steps:` with `selectorHint`-derived targets) you can review, edit, and commit. Annotations are captured per step via `record_annotate({ copy, arrow?, … })`. Pair with `site-docs run --start-from --cdp` to validate each step in seconds after edits.
+**Calibration accelerator — record the walk, get a draft flow-file.** Instead of hand-authoring `flows/<name>.flow.yaml` step-by-step, drive the live walk through browxai's action tools while `start_recording({ flowName: "<name>" })` is active; `end_recording()` emits a docsxai-flavoured YAML draft (`locators:` + `steps:` with `selectorHint`-derived targets) you can review, edit, and commit. Annotations are captured per step via `record_annotate({ copy, arrow?, … })`. Pair with `docsxai run --start-from --cdp` to validate each step in seconds after edits.
 
-**Canonical browxai-operational reference.** Snapshot output legend (`stats:` block, `warnings:`, `[from-dom]` / `[from-both]` markers), locator-disambiguation idioms (`:visible`, `nth-match` for hidden-duplicate testids), `stability` semantics (snapshot-disambiguator vs deploy-stable — content-keyed IDs come back `stability: "high"` and need rewriting before they go into a flow-file), `find()`-query-matching surface (name + role + test-attribute _values_; icon-only `title="…"` tabs need keyword reframing), and any other operational gotchas live in **`<browxai>/AGENT-RUNBOOK.md`** — site-docs doesn't duplicate that content. Read it before driving a fresh calibration; it's the single source of truth for "how to actually use the tools."
+**Canonical browxai-operational reference.** Snapshot output legend (`stats:` block, `warnings:`, `[from-dom]` / `[from-both]` markers), locator-disambiguation idioms (`:visible`, `nth-match` for hidden-duplicate testids), `stability` semantics (snapshot-disambiguator vs deploy-stable — content-keyed IDs come back `stability: "high"` and need rewriting before they go into a flow-file), `find()`-query-matching surface (name + role + test-attribute _values_; icon-only `title="…"` tabs need keyword reframing), and any other operational gotchas live in **`<browxai>/AGENT-RUNBOOK.md`** — docsxai doesn't duplicate that content. Read it before driving a fresh calibration; it's the single source of truth for "how to actually use the tools."
 
-**Fallbacks if browxai itself misbehaves on a specific page:** **(a)** `site-docs inspect "$WORKSPACE" --cdp http://localhost:9222 --wait-for '<a-testid-that-mounts-when-ready>'` attaches to the same `--cdp` Chrome and settles before the snapshot (or `--wait <ms>`); without `--cdp`/`--wait` it launches a fresh headless browser with the cached session and snapshots _immediately_, which on a slow SPA catches the page pre-hydration; **(b)** drive the `--cdp` Chrome with Playwright directly (`chromium.connectOverCDP('http://localhost:9222')` → full Playwright API, persistent). _Alternative driver:_ Anthropic's **Claude in Chrome** extension still works in a Claude-Code-driven session but is Claude-locked, so it isn't the canonical path; reach for it only when browxai isn't an option. Note: when the `--cdp` Chrome is launched with `--load-extension=…/Claude`, the extension _files_ load but the Claude-in-Chrome MCP tools stay paired to your host session's Chrome — they don't auto-attach to the new instance; browxai (and Playwright-over-CDP) cover the discovery need there. Prefer `success` assertions on **content that only appears in the target state** (e.g. `text_contains: { selector: 'body', text: 'Mandarin' }`) over structural selectors that may match stale/hidden poppers.
+**Fallbacks if browxai itself misbehaves on a specific page:** **(a)** `docsxai inspect "$WORKSPACE" --cdp http://localhost:9222 --wait-for '<a-testid-that-mounts-when-ready>'` attaches to the same `--cdp` Chrome and settles before the snapshot (or `--wait <ms>`); without `--cdp`/`--wait` it launches a fresh headless browser with the cached session and snapshots _immediately_, which on a slow SPA catches the page pre-hydration; **(b)** drive the `--cdp` Chrome with Playwright directly (`chromium.connectOverCDP('http://localhost:9222')` → full Playwright API, persistent). _Alternative driver:_ Anthropic's **Claude in Chrome** extension still works in a Claude-Code-driven session but is Claude-locked, so it isn't the canonical path; reach for it only when browxai isn't an option. Note: when the `--cdp` Chrome is launched with `--load-extension=…/Claude`, the extension _files_ load but the Claude-in-Chrome MCP tools stay paired to your host session's Chrome — they don't auto-attach to the new instance; browxai (and Playwright-over-CDP) cover the discovery need there. Prefer `success` assertions on **content that only appears in the target state** (e.g. `text_contains: { selector: 'body', text: 'Mandarin' }`) over structural selectors that may match stale/hidden poppers.
 
 **Conditionally-present UI (the optional-step pattern).** When a step targets an element that _may or may not be there_ — a confirmation modal that appears only sometimes, a first-run tooltip, a cookie banner, an A/B variant — mark the step `optional: true`. If its action / `wait_for` / `success` throws, the engine logs `runFlow: optional step "<id>" skipped — <reason>` to stderr and continues to the next step instead of halting. A skipped optional step emits no screenshot/annotation. **Do not** fake this with a permissive comma-selector that deliberately no-ops on one branch (e.g. `'button:has-text("OK"):visible, [data-type="title"]:visible'` — clicking the title is a semantic no-op that can mis-fire if the title has a handler); `optional: true` is the first-class primitive for exactly this and is what `lint` won't flag.
 
@@ -212,8 +212,8 @@ Pick `browxai` for ad-hoc / public-target work; pick `browxai-attached` when a `
 ## Step 5 — run, view
 
 ```bash
-site-docs run "$WORKSPACE"                  # headless Chromium; uses .auth/<role>.json; replays flows; refreshes docs/<flow>/annotations.json + screenshots
-site-docs render "$WORKSPACE"               # builds $WORKSPACE/.viewer/index.html
+docsxai run "$WORKSPACE"                  # headless Chromium; uses .auth/<role>.json; replays flows; refreshes docs/<flow>/annotations.json + screenshots
+docsxai render "$WORKSPACE"               # builds $WORKSPACE/.viewer/index.html
 # open "$WORKSPACE/.viewer/index.html"
 ```
 
@@ -224,9 +224,9 @@ If `run` halts on a step (a locator or success-criterion failure) that's _drift_
 After a good `run`, snapshot the doc pack and let CI catch the target app drifting out from under it:
 
 ```bash
-site-docs baseline "$WORKSPACE"             # snapshots flows/ + docs/ (md, annotations, screenshots) + locators into $WORKSPACE/.baseline/ — commit it
-site-docs diff "$WORKSPACE" --format md     # PR-comment-ready drift report against .baseline/ (use --against <dir> for another snapshot)
-site-docs diff "$WORKSPACE" --fail-on warn  # CI gate: exit 1 at/above the threshold (warn|fail)
+docsxai baseline "$WORKSPACE"             # snapshots flows/ + docs/ (md, annotations, screenshots) + locators into $WORKSPACE/.baseline/ — commit it
+docsxai diff "$WORKSPACE" --format md     # PR-comment-ready drift report against .baseline/ (use --against <dir> for another snapshot)
+docsxai diff "$WORKSPACE" --fail-on warn  # CI gate: exit 1 at/above the threshold (warn|fail)
 ```
 
 The report is deterministic (no timestamps) and per flow: step field deltas (id-keyed), annotation moves beyond a pixel tolerance, screenshot pixel diffs (changed-pixel count / % / changed-region bbox; ≥1% = warn, ≥5% = fail by default; dimension changes flagged distinctly), prose line-change counts, and locator changes. The engine only **detects** — when drift is real, follow the `diagnose` playbook and propose the flow-file patch yourself; programmatic policy (custom thresholds, `ignore_regions` for clocks/ads) is `diffDocPacks` on the library surface.
@@ -234,7 +234,7 @@ The report is deterministic (no timestamps) and per flow: step field deltas (id-
 ## Exporting flows as tests
 
 ```bash
-site-docs export playwright "$WORKSPACE"    # one self-contained .spec.ts per flow → $WORKSPACE/.export/tests/
+docsxai export playwright "$WORKSPACE"    # one self-contained .spec.ts per flow → $WORKSPACE/.export/tests/
 ```
 
 Each spec carries the resolved `extends` chain: locators as consts, steps as Playwright actions, `success` criteria as `expect()` assertions, the `environment` block as `test.use()` (+ `page.clock.setFixedTime` for a frozen clock), and `optional` steps wrapped in try/catch. Drop the specs into the app team's Playwright suite as a regression tripwire — and regenerate instead of hand-editing (the header says so; the flow-file stays the source of truth).
@@ -243,8 +243,8 @@ Each spec carries the resolved `extends` chain: locators as consts, steps as Pla
 
 Two delivery shapes, both downstream of `run`:
 
-- **Agentic path** (recommended for engagements): `site-docs export adf "$WORKSPACE"` writes `$WORKSPACE/.export/adf/{projection,attachments}.json` — hand these to the Atlassian MCP (or any wiki tool the host agent drives) and let the human review the upload. The engine never holds wiki credentials on this path.
-- **Direct push** (CI/backend automation): configure the workspace's publisher plugin (`.site-docs.json` → `plugins` + `plugin_capabilities`, e.g. `@kalebtec/docsxai-plugin-confluence` with `egress:*.atlassian.net`) and invoke `confluence:push` with the projection. Idempotent by content-sha — re-publishing an unchanged pack mutates nothing. Burned screenshots (`docsxai-viewer burn "$WORKSPACE"`) are what land on static surfaces; run `burn` before exporting.
+- **Agentic path** (recommended for engagements): `docsxai export adf "$WORKSPACE"` writes `$WORKSPACE/.export/adf/{projection,attachments}.json` — hand these to the Atlassian MCP (or any wiki tool the host agent drives) and let the human review the upload. The engine never holds wiki credentials on this path.
+- **Direct push** (CI/backend automation): configure the workspace's publisher plugin (`.docsxai.json` → `plugins` + `plugin_capabilities`, e.g. `@docsxai/plugin-confluence` with `egress:*.atlassian.net`) and invoke `confluence:push` with the projection. Idempotent by content-sha — re-publishing an unchanged pack mutates nothing. Burned screenshots (`docsxai-viewer burn "$WORKSPACE"`) are what land on static surfaces; run `burn` before exporting.
 
 ## Step 6 — tear down, verify clean
 
@@ -260,5 +260,5 @@ git -C "$APP_REPO" status        # MUST be clean. If not, you broke the no-trace
 - The agent-driven calibration _pipeline stages_ (the MCP-server loop where you'd call engine stage functions and resolve ambiguities against the live page) aren't built — step 4 for loose prose is a manual flow-file authoring task following the playbook. The deterministic `init`/`calibrate`(structured)/`run`/`render`/`capture-auth` are real.
 - `claude plugin install` from a monorepo subdir (`$TOOL_REPO/packages/plugin`) isn't validated yet — if it doesn't register, use the CLIs + the playbook files directly.
 - `manual-capture` sessions are short (≈ the app's auth-cookie lifetime). Pin `cache.auth_cookie` (Step 3) so the cache's expiry tracks the real cookie rather than the `ttl` guess. A callable login / test-only login endpoint on the app would make `run` unattended; absent that, expect to re-`capture-auth` (re-login) periodically.
-- HTTPS dev certs: `--ignore-https-errors` (already baked into `.site-docs.json` if you passed it to `init`) accepts them. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot (Step 2).
+- HTTPS dev certs: `--ignore-https-errors` (already baked into `.docsxai.json` if you passed it to `init`) accepts them. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot (Step 2).
 - The dev server may bind a different port than expected if the default's taken — use the URL it actually prints (Step 2).

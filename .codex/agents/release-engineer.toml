@@ -15,7 +15,7 @@ Workflow (when release is authorized):
 5. Commit + tag. `chore(release): vX.Y.Z — <release summary>` (≤72 chars). Tag `vX.Y.Z`.
 6. Push tag. `git push origin main && git push origin vX.Y.Z`. CI `release.yml` takes over.
 7. CI release workflow runs: SBOM generation, npm publish via OIDC (no long-lived token), GitHub Release creation with the CHANGELOG section as the body. Per-package publish covers all five workspace packages.
-8. Post-release smoke. Install in a scratch dir; run `site-docs --version` plus a minimal `site-docs init` + `site-docs lint` on a toy workspace.
+8. Post-release smoke. Install in a scratch dir; run `docsxai --version` plus a minimal `docsxai init` + `docsxai lint` on a toy workspace.
 9. Announce. Update the README install snippet if the version is referenced by line; update the portfolio `progress.md`.
 
 Pre-release state (today):

@@ -1,6 +1,6 @@
 # dist-rebuild discipline — the stale-CLI trap
 
-`site-docs` runs the compiled `packages/engine/dist/cli.js`. **Source changes are NOT live until `pnpm -r build`.** A stale `dist/` that predates a runtime change can crash the CLI at startup or, worse, silently run old behavior against new tests.
+`docsxai` runs the compiled `packages/engine/dist/cli.js`. **Source changes are NOT live until `pnpm -r build`.** A stale `dist/` that predates a runtime change can crash the CLI at startup or, worse, silently run old behavior against new tests.
 
 The same trap applies to the Claude Code plugin (`packages/plugin/`), the skill bundle (`packages/skill/`), the backend (`packages/backend/`), and the viewer (`packages/viewer/`) — each is independently compiled.
 
@@ -8,19 +8,19 @@ The same trap applies to the Claude Code plugin (`packages/plugin/`), the skill 
 
 1. Edit source in any package.
 2. Believe the change is live because `pnpm test` (which uses Vitest against source) passes.
-3. The installed `site-docs` bin (or the plugin daemon, or a long-running viewer process) still holds the _old_ `dist/` import graph in memory.
+3. The installed `docsxai` bin (or the plugin daemon, or a long-running viewer process) still holds the _old_ `dist/` import graph in memory.
 4. Spend an hour debugging a "bug" that's actually stale compiled code.
 
 ## The discipline
 
 - After any source change, `pnpm -r build` regenerates `dist/` across every package.
-- A running plugin daemon — the Claude Code plugin host, or a long-running `site-docs` process — does **not** pick up the rebuild. Node's `import()` is one-shot at boot. Any `dist/` rebuild after the daemon started means the running daemon is executing stale code.
+- A running plugin daemon — the Claude Code plugin host, or a long-running `docsxai` process — does **not** pick up the rebuild. Node's `import()` is one-shot at boot. Any `dist/` rebuild after the daemon started means the running daemon is executing stale code.
 - **Restart the daemon and surface the new PID explicitly to the operator** before declaring the change verified. Don't assume "I rebuilt" means "the running session sees it."
-- The same applies to a globally-installed `site-docs` bin from a tarball — `pnpm -r build` updates the workspace `dist/`, not the global install. After a global-bin-relevant change, re-link or re-install.
+- The same applies to a globally-installed `docsxai` bin from a tarball — `pnpm -r build` updates the workspace `dist/`, not the global install. After a global-bin-relevant change, re-link or re-install.
 
 ## The wrapper-script consequence
 
-The README's Option A install (`$HOME/.local/bin/site-docs` wrapper) `exec`s `node "${REPO}/packages/engine/dist/cli.js"`. The wrapper reads the path at invocation time, so a `pnpm -r build` is immediately visible to the next `site-docs` invocation — _but_ only because each invocation is a fresh process. Long-running invocations (a `site-docs run --watch` mode that lands later, the plugin daemon) hold the old import graph.
+The README's Option A install (`$HOME/.local/bin/docsxai` wrapper) `exec`s `node "${REPO}/packages/engine/dist/cli.js"`. The wrapper reads the path at invocation time, so a `pnpm -r build` is immediately visible to the next `docsxai` invocation — _but_ only because each invocation is a fresh process. Long-running invocations (a `docsxai run --watch` mode that lands later, the plugin daemon) hold the old import graph.
 
 ## CI quality gate
 

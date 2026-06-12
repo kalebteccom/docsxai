@@ -46,7 +46,7 @@ Rule of thumb: if it's substrate code and it's fast, use the real thing. If it's
 **Do test:**
 
 - That a flow-file with R001-violating shape produces a specific lint diagnostic.
-- That `site-docs run` against a known flow produces a stable `annotations.json` shape.
+- That `docsxai run` against a known flow produces a stable `annotations.json` shape.
 - That a halted run produces a halt artifact with the documented fields.
 - That the viewer's `placeCallout` returns specific coordinates for a known input.
 

@@ -6,7 +6,7 @@ docsxai is pre-1.0. The path to 1.0 runs through an "API stable ~1 week" clock t
 
 - CLI subcommand names and their documented flags (every command in [`README.md`](../../../README.md) "CLI reference").
 - Flow-file schema: field names, required vs. optional, the step vocabulary, `extends:` semantics.
-- `ROUTES` shape in `@kalebtec/docsxai-backend` (`packages/backend/src/api.ts`).
+- `ROUTES` shape in `@docsxai/backend` (`packages/backend/src/api.ts`).
 - ActionResult / doc-pack output shape: `annotations.json`, halt-context, the screenshot file-name pattern.
 - The `BrowserDriver` interface shape and the `actionable()` predicate documented in [`docs/actionability-contract.md`](../../actionability-contract.md).
 

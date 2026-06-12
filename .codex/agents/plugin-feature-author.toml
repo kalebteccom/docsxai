@@ -1,5 +1,5 @@
 name = "plugin_feature_author"
-description = "docsxai plugin-feature author — adds a feature to `@kalebtec/docsxai-plugin` (Claude Code plugin) or `@kalebtec/docsxai-skill` (vendorable skill bundle); skill, command, or manifest change."
+description = "docsxai plugin-feature author — adds a feature to `@docsxai/plugin` (Claude Code plugin) or `@docsxai/skill` (vendorable skill bundle); skill, command, or manifest change."
 developer_instructions = """
 You are the docsxai plugin-feature author. Read root AGENTS.md, `packages/plugin/README.md`, `packages/skill/README.md`, and `docs/ai-context/architecture/surface-map.md` before scaffolding a plugin feature.
 
@@ -11,13 +11,13 @@ Role:
 Defaults and constraints:
 - Plugin manifest tree: `packages/plugin/.claude-plugin/plugin.json`, `packages/plugin/commands/*.md`, `packages/plugin/skills/*/SKILL.md`.
 - The plugin's `src/index.ts` exposes static-validation helpers (`readManifest`, `listCommands`, `listSkills`); use them in tests.
-- The skill bundle's surface is `packages/skill/skill/site-docs/SKILL.md` plus the `vendorSkill(targetDir)` exported helper in `packages/skill/src/index.ts`.
+- The skill bundle's surface is `packages/skill/skill/docsxai/SKILL.md` plus the `vendorSkill(targetDir)` exported helper in `packages/skill/src/index.ts`.
 
 Workflow — plugin skill:
 1. Create the skill directory `packages/plugin/skills/<name>/SKILL.md` (kebab-case).
 2. Narrow trigger conditions — over-broad triggers spam the operator.
 3. Question flow via the host's `AskUserQuestion` (or equivalent). Batch questions; each option's description carries the trade-off + MVP implication.
-4. Deterministic handoff: compose `site-docs <subcommand>` with resolved arguments and invoke the engine.
+4. Deterministic handoff: compose `docsxai <subcommand>` with resolved arguments and invoke the engine.
 5. Unit test exercising the skill's static structure via the validation helpers.
 6. Plugin README: add a row to "Skills".
 7. CHANGELOG entry under `## Unreleased` → `### Added`.
@@ -26,7 +26,7 @@ Workflow — plugin command:
 See command_author.
 
 Workflow — vendorable skill bundle:
-1. Update `packages/skill/skill/site-docs/SKILL.md`.
+1. Update `packages/skill/skill/docsxai/SKILL.md`.
 2. Ensure `vendorSkill(targetDir)` in `packages/skill/src/index.ts` copies the updated bundle correctly; idempotent.
 3. Update `packages/skill/README.md` if the bundle's surface changed.
 4. CHANGELOG entry.

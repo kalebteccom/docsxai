@@ -36,7 +36,7 @@ Full removal of a retired entry happens only at a major version bump, with a
 - Auth-strategy names (`StrategyName`) and plugin capability prefixes: the
   registry lives next to the enum; renames keep the old name retired for one
   major.
-- Backend API: versioned via `Site-Docs-API-Version`; field retirement follows
+- Backend API: versioned via `Docsxai-Api-Version`; field retirement follows
   the same accept-warn-ignore shape within a major version.
 
 ## Why this is release-process

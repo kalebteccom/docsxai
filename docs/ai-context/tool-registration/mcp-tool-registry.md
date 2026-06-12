@@ -1,4 +1,4 @@
-# MCP tool registry — adding a tool to `@kalebtec/docsxai-mcp`
+# MCP tool registry — adding a tool to `@docsxai/mcp`
 
 The registry pattern is deliberate: **one tool = one file** under `packages/mcp/src/tools/`, and
 the registry is **composed only in `packages/mcp/src/server.ts`**. Nothing else registers tools;

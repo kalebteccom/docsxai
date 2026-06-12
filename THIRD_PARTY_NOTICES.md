@@ -2,7 +2,7 @@
 
 docsxai's runtime dependencies (production-only):
 
-## `@kalebtec/docsxai-engine`
+## `@docsxai/engine`
 
 - `fflate` — MIT
 - `playwright-core` — Apache-2.0
@@ -10,7 +10,7 @@ docsxai's runtime dependencies (production-only):
 - `yaml` — ISC
 - `zod` — MIT
 
-## `@kalebtec/docsxai-viewer`
+## `@docsxai/viewer`
 
 - `@resvg/resvg-js` — MPL-2.0
 - `micromark` — MIT
@@ -19,12 +19,12 @@ docsxai's runtime dependencies (production-only):
 Vendored asset: Inter Regular (`assets/fonts/inter-regular.ttf`) — SIL Open
 Font License 1.1, license text colocated at `assets/fonts/LICENSE.txt`.
 
-## `@kalebtec/docsxai-backend`
+## `@docsxai/backend`
 
 No production dependencies (node built-ins only: HTTP server, crypto,
 filesystem persistence).
 
-## `@kalebtec/docsxai-plugin`, `@kalebtec/docsxai-skill`
+## `@docsxai/plugin`, `@docsxai/skill`
 
 No production dependencies. The plugin shells out to the engine binary;
 the skill delegates to the installed plugin.

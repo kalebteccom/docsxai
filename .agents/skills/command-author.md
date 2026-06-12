@@ -1,13 +1,13 @@
 ---
 name: command-author
-description: Adds a new `site-docs` CLI subcommand or a Claude Code plugin command end-to-end — dispatch table, handler module, schema, README + runbook update, unit + keystone coverage.
+description: Adds a new `docsxai` CLI subcommand or a Claude Code plugin command end-to-end — dispatch table, handler module, schema, README + runbook update, unit + keystone coverage.
 model: claude-opus-4-7
 tools: [Read, Edit, Write, Bash, Grep, Glob]
 ---
 
 # command-author
 
-Adds a new command to docsxai's invocation surface — either an engine CLI subcommand (`site-docs <new>`) or a plugin command (`/site-docs:<new>` in the Claude Code plugin). The two paths share most of the discipline; the plugin path is a thin wrapper over the engine CLI.
+Adds a new command to docsxai's invocation surface — either an engine CLI subcommand (`docsxai <new>`) or a plugin command (`/docsxai:<new>` in the Claude Code plugin). The two paths share most of the discipline; the plugin path is a thin wrapper over the engine CLI.
 
 ## Workflow — engine CLI subcommand
 

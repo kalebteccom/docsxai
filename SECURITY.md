@@ -41,7 +41,7 @@ is unavailable to you.
 
 Please include:
 
-- docsxai version (output of `site-docs --version` or the relevant
+- docsxai version (output of `docsxai --version` or the relevant
   package's `package.json`).
 - Component (engine / plugin / backend / viewer / skill).
 - Node version and OS.
@@ -113,7 +113,7 @@ The following are not docsxai vulnerabilities:
 
 ## Trust posture — what we promise, what we do not, what we cannot prevent
 
-**What we promise.** The published `@kalebtec/docsxai-*` packages,
+**What we promise.** The published `@docsxai/*` packages,
 installed from npm with provenance verified (`npm audit signatures`),
 have no built-in code-execution surface beyond what Playwright itself
 exposes through the curated step vocabulary. The engine never imports
@@ -133,21 +133,21 @@ point the engine at.
 
 **What we cannot prevent.** If an adopter installs a typosquat
 (`docsxa`, `dcosxai`, `docsx-ai`, `site-doc`, etc.) instead of
-`docsxai` / `@kalebtec/docsxai-*`, our defenses do not apply. Verify
+`docsxai` / `@docsxai/*`, our defenses do not apply. Verify
 the package name and scope before install; verify provenance after
 install. See `docs/security-best-practices-for-adopters.md` (lands
 with the launch-gate phase).
 
 ## Plugin trust model
 
-The Claude Code plugin (`@kalebtec/docsxai-plugin`) runs inside Claude
+The Claude Code plugin (`@docsxai/plugin`) runs inside Claude
 Code's plugin sandbox and delegates execution to the engine binary —
 it does not embed its own runtime. Plugin skills emit structured
-questions and shell out to `site-docs`; plugin commands are
+questions and shell out to `docsxai`; plugin commands are
 deterministic engine invocations. The plugin does not introduce a new
 code-execution surface beyond what the engine already exposes.
 
-The `@kalebtec/docsxai-skill` package is an optional vendorable
+The `@docsxai/skill` package is an optional vendorable
 `.claude/skills/` fallback that delegates to the installed plugin
 for teams that prefer version-pinning in the consumer repo. The same
 trust posture applies — `skill` is a thin redirect, not a parallel

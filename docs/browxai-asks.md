@@ -1,4 +1,6 @@
-# site-docs ↔ browxai: the integration contract
+# docsxai ↔ browxai: the integration contract
+
+> Historical sections below (the 2026-05 waves and re-adoption record) keep the `site-docs` name the product carried at the time; it was renamed to `docsxai` on 2026-06-12.
 
 > **Status (2026-05-15): closed.** First-integration contract met on both sides. The re-adoption run against the first-consumer target app on 2026-05-15 was a WIN — one new flow (`recap-edit-timing`) calibrated end-to-end through `browxai-attached`, eight Recap flows now in the workspace, no-trace contract held, replay determinism through `site-docs run` intact. Five non-architectural follow-on asks (#12–#16) tracked below.
 >
@@ -182,7 +184,7 @@ Worth folding into the calibrate skill / runbook as the recommended path — nev
 - **`clock` / `seed_random`** — date/randomness-stable pages during calibration walkthroughs. **BYOB residue warning:** these persist on an attached Chrome after detach — reset before ending a session. (Execution-side equivalents are engine-native: the flow-file `environment` block.)
 - **`overflow_detect`** — pre-screenshot layout sanity sweep (clipped/ellipsis findings = bad doc screenshots).
 - **`generate_locator` / `extract(schema)`** — locator authoring + structured page reads during calibration (recorded 2026-05-27 as follow-ups; now available).
-- **`end_recording` + `export_playwright_script`** — record a walk, emit a draft flow-file + a Playwright spec; the spec's `fragile`-selector markers double as the locator-review checklist. docsxai's `site-docs export playwright` is the inverse (flow-file → spec) — the two are complementary, not duplicative.
+- **`end_recording` + `export_playwright_script`** — record a walk, emit a draft flow-file + a Playwright spec; the spec's `fragile`-selector markers double as the locator-review checklist. docsxai's `docsxai export playwright` is the inverse (flow-file → spec) — the two are complementary, not duplicative.
 - **`diagnostics_note` / `diagnostics_report`** — the asks pipeline itself: file friction during calibration runs with the `diagnostics` capability enabled; `missingPrimitiveHypotheses` becomes the evidence section of round 4.
 - **`plugins_list` / canvas substrate** — discover canvas-app adapter plugins at calibration boot; canvas targets compose `canvas_capture` → agent vision (BYO-vision) → `canvas_query`/`gesture_chain`.
 
@@ -190,4 +192,4 @@ Worth folding into the calibrate skill / runbook as the recommended path — nev
 
 - **BYOB refusals:** `pdf_save` and video recording are refused on attached (BYOB) sessions — docsxai's canonical calibration mode. Anything PDF/video runs execution-side through the engine's own Playwright sessions.
 - **Semver horizon:** everything docsxai composes behind off-by-default capabilities (`file-io`, `diagnostics`, `canvas`, `eval`) is explicitly outside browxai's pre-1.0 stability guarantee. Calibration-skill compositions are recommendations, not hard dependencies; re-verify at browxai v1.0.
-- **The split is unchanged:** browxai owns discovery; `site-docs run` stays raw Playwright forever; the docsxai MCP server exposes calibration meta-orchestration + doc-pack introspection only and must never re-expose browxai primitives.
+- **The split is unchanged:** browxai owns discovery; `docsxai run` stays raw Playwright forever; the docsxai MCP server exposes calibration meta-orchestration + doc-pack introspection only and must never re-expose browxai primitives.

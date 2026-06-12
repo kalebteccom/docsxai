@@ -25,9 +25,9 @@ Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue
 - [ ] WebAuthn enrolled on the maintainer's npm account
 - [ ] Breakglass npm account created with separate keys + email
 - [ ] `@kalebtec` org scope claimed on npm with "Require 2FA" enforced
-- [ ] `docsxai` unscoped package name claimed (precondition: D5 stub-publish path rework decides whether the unscoped entrypoint ships as a thin shim over `@kalebtec/docsxai-engine` or as a separate published package)
+- [ ] `docsxai` unscoped package name claimed (precondition: D5 stub-publish path rework decides whether the unscoped entrypoint ships as a thin shim over `@docsxai/engine` or as a separate published package)
 - [ ] Typosquat package names pre-claimed and deprecated (`doxai`, `docsai`, `docsx-ai`, etc.)
-- [ ] npm trusted-publisher configuration set per package (repo + workflow + `release` environment binding) for all 5 publishable packages: `@kalebtec/docsxai-{backend,engine,plugin,skill,viewer}` plus `docsxai` unscoped if D5 lands
+- [ ] npm trusted-publisher configuration set per package (repo + workflow + `release` environment binding) for all 8 scoped packages on the registered `@docsxai` org: `@docsxai/{backend,engine,plugin,skill,viewer,mcp,plugin-confluence,plugin-starlight}` plus `docsxai` unscoped if D5 lands
 - [ ] GitHub `release` environment configured (required reviewer, branch restriction)
 - [ ] Domain renewal calendar reminders set
 
@@ -46,7 +46,7 @@ Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue
 4. Sign and push tag: `git tag -s v1.0.0 && git push origin main --tags`.
 5. Watch the GitHub Actions run; approve the `release` environment gate when prompted.
 6. `release.yml` publishes via OIDC + uploads SBOM + creates the GitHub Release.
-7. Verify `npm install @kalebtec/docsxai-engine@1.0.0` from a clean machine. Run `npm audit signatures`.
+7. Verify `npm install @docsxai/engine@1.0.0` from a clean machine. Run `npm audit signatures`.
 8. After the first OIDC publish succeeds, enable "Require 2FA and disallow tokens" on every published package on the npm side.
 9. In GitHub repo settings: branch protection on `main` with required CI, required reviews, no force-push, signed commits. Verify CODEOWNERS protections on `.github/`, manifests, license, release workflow.
 10. Flip repository visibility to public.

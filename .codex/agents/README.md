@@ -6,7 +6,7 @@ The repo-root `AGENTS.md` is the single source of truth for cross-harness rules.
 
 ## Agents
 
-- `command-author.toml` — Command / CLI / Plugin — adding a new `site-docs` CLI subcommand or a Claude Code plugin command.
+- `command-author.toml` — Command / CLI / Plugin — adding a new `docsxai` CLI subcommand or a Claude Code plugin command.
 - `plugin-feature-author.toml` — Plugin / Feature / Skill — adding a feature to the Claude Code plugin or the skill bundle.
 - `keystone-writer.toml` — Keystone / Regression / Chromium — regression-gate keystone tests for runtime / actionability changes.
 - `security-reviewer.toml` — Security / Egress / Auth — security checklist on workspace / auth-artifact / outbound-HTTP diffs.

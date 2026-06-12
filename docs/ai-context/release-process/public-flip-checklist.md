@@ -27,14 +27,14 @@ This is the artifact the owner walks through line-by-line on flip day. The plann
 
 ## 4. npm trusted-publisher configuration (per published package)
 
-For each of the 5 scoped packages — `@kalebtec/docsxai-backend`, `@kalebtec/docsxai-engine`, `@kalebtec/docsxai-plugin`, `@kalebtec/docsxai-skill`, `@kalebtec/docsxai-viewer` — and, if D5 has landed the stub-publish path, the unscoped `docsxai`:
+For each of the 8 scoped packages on the registered `@docsxai` org — `@docsxai/backend`, `@docsxai/engine`, `@docsxai/mcp`, `@docsxai/plugin`, `@docsxai/plugin-confluence`, `@docsxai/plugin-starlight`, `@docsxai/skill`, `@docsxai/viewer` — and, if D5 has landed the stub-publish path, the unscoped `docsxai`:
 
 - [ ] Package exists on npm (publish a pre-release `0.0.0-trusted-publisher-setup` if needed, then deprecate).
 - [ ] Trusted publisher entry: repository `kalebteccom/docsxai`, workflow `.github/workflows/release.yml`, environment `release`.
 - [ ] "Require 2FA and disallow tokens" — set after the first successful OIDC publish, not before (you need at least one OIDC publish to verify the flow works first).
 - [ ] No legacy automation tokens on the maintainer account.
 
-> **Precondition flag — `docsxai` unscoped.** The unscoped name depends on D5's stub-publish path rework. If D5 hasn't landed by flip day, ship the 5 scoped packages only and reserve the unscoped name with a deprecated stub.
+> **Precondition flag — `docsxai` unscoped.** The unscoped name depends on D5's stub-publish path rework. If D5 hasn't landed by flip day, ship the 8 scoped packages only and reserve the unscoped name with a deprecated stub.
 
 ## 5. First OIDC publish — supervised
 
@@ -46,7 +46,7 @@ For each of the 5 scoped packages — `@kalebtec/docsxai-backend`, `@kalebtec/do
 6. Watch the Actions tab. The `release.yml` job will pause on the `release` environment gate.
 7. Verify the workflow run is on the expected SHA and tag. Approve the gate.
 8. Watch each package publish. Each step should emit `npm notice Publishing to https://registry.npmjs.org/...` and the provenance attestation.
-9. From a fresh machine: `npm install @kalebtec/docsxai-engine@1.0.0 && npm audit signatures`. Expect `5 packages have audited signatures` (or however many depend on docsxai packages).
+9. From a fresh machine: `npm install @docsxai/engine@1.0.0 && npm audit signatures`. Expect `5 packages have audited signatures` (or however many depend on docsxai packages).
 
 ## 6. Post-publish hardening
 
@@ -58,14 +58,14 @@ For each of the 5 scoped packages — `@kalebtec/docsxai-backend`, `@kalebtec/do
 ## 7. Adopter readiness sanity
 
 - [ ] `docs/security-best-practices-for-adopters.md` reflects the v1.0 surface (capabilities, provenance verification command, install posture).
-- [ ] `README.md` install snippet uses the correct published name (`@kalebtec/docsxai-engine` for the library, `@kalebtec/docsxai-plugin` for the Claude Code plugin).
+- [ ] `README.md` install snippet uses the correct published name (`@docsxai/engine` for the library, `@docsxai/plugin` for the Claude Code plugin).
 - [ ] `CHANGELOG.md` entry for 1.0.0 reads cleanly to a stranger.
 
 ## 8. Rollback path
 
 If anything goes wrong after the first publish:
 
-- **Broken publish (wrong files, leak):** `npm deprecate @kalebtec/docsxai-<pkg>@1.0.0 "broken — use 1.0.1"`. Do **not** `npm unpublish` after the 72h grace; the version is permanently consumed either way. Publish 1.0.1 with the fix.
+- **Broken publish (wrong files, leak):** `npm deprecate @docsxai/<pkg>@1.0.0 "broken — use 1.0.1"`. Do **not** `npm unpublish` after the 72h grace; the version is permanently consumed either way. Publish 1.0.1 with the fix.
 - **Compromise during the window:** Rotate the maintainer's WebAuthn keys. Revoke any active sessions. File a GitHub Security Advisory. Use the breakglass account only as a last resort.
 - **Repo flip went out before npm was ready:** Flip the repo back to private. The git history is already public — that can't be undone. Don't panic; finish npm setup and re-flip.
 

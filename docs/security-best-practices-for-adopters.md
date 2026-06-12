@@ -4,8 +4,8 @@ Operational practices we recommend for teams integrating docsxai. Background and
 
 ## Install
 
-- `npm install @kalebtec/docsxai-engine --ignore-scripts` (or the equivalent for the package you need — backend, viewer, plugin, skill). docsxai has no install-time scripts; the flag enforces it as defense in depth.
-- Pin exact versions in `package.json` for high-assurance deployments (`"@kalebtec/docsxai-engine": "1.2.3"`, not `^1.2.3`).
+- `npm install @docsxai/engine --ignore-scripts` (or the equivalent for the package you need — backend, viewer, plugin, skill). docsxai has no install-time scripts; the flag enforces it as defense in depth.
+- Pin exact versions in `package.json` for high-assurance deployments (`"@docsxai/engine": "1.2.3"`, not `^1.2.3`).
 - Commit your lockfile. Use `npm ci` or `pnpm install --frozen-lockfile` in CI; never loose `install`.
 
 ## Verify
@@ -16,11 +16,11 @@ Operational practices we recommend for teams integrating docsxai. Background and
 
 ## Plugin install model
 
-The `@kalebtec/docsxai-plugin` package is a Claude Code plugin: it lands in `.claude/plugins/` and registers calibration skills + deterministic commands + an internal MCP. The plugin runs with the same privileges as your Claude Code session.
+The `@docsxai/plugin` package is a Claude Code plugin: it lands in `.claude/plugins/` and registers calibration skills + deterministic commands + an internal MCP. The plugin runs with the same privileges as your Claude Code session.
 
 - Prefer `@kalebtec/*` first-party packages.
 - For third-party packages that extend docsxai (writeups, custom flow-file libraries), treat them like dependency reviews — read the source before installing.
-- Vendor / version-pin via `@kalebtec/docsxai-skill` if you want a colocated fallback that lives inside your repo's `.claude/skills/` instead of being installed globally.
+- Vendor / version-pin via `@docsxai/skill` if you want a colocated fallback that lives inside your repo's `.claude/skills/` instead of being installed globally.
 
 ## Engine posture
 

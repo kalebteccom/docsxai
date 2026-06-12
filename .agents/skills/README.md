@@ -13,7 +13,7 @@ Today's scope: the seven expert agents listed below. docsxai does not yet have a
 
 ## Agents
 
-- `command-author.md` — Command / CLI / Plugin — adding a new `site-docs` CLI subcommand or a Claude Code plugin command.
+- `command-author.md` — Command / CLI / Plugin — adding a new `docsxai` CLI subcommand or a Claude Code plugin command.
 - `plugin-feature-author.md` — Plugin / Feature / Skill — adding a feature to the Claude Code plugin or the skill bundle.
 - `keystone-writer.md` — Keystone / Regression / Chromium — regression-gate keystone tests for runtime / actionability changes.
 - `security-reviewer.md` — Security / Egress / Auth — security checklist on workspace / auth-artifact / outbound-HTTP diffs.

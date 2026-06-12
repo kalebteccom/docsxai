@@ -22,7 +22,7 @@ docsxai's trust surface is narrower than a typical browser-automation tool: no `
 ### Auth artifacts
 
 - [ ] `capture-auth` output (`storageState`, cached cookies) lives under the workspace root and nowhere else.
-- [ ] Auth cookie values do not appear in halt context, diagnose output, or any doc-pack artifact emitted by `site-docs run`.
+- [ ] Auth cookie values do not appear in halt context, diagnose output, or any doc-pack artifact emitted by `docsxai run`.
 - [ ] `Authorization` headers from outbound HTTP are not logged to console or stderr.
 - [ ] The instrumented-browser path (`playwright-instrumented-browser.ts`) is only spawned via the operator's explicit `capture-auth` invocation; never silently.
 

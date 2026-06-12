@@ -1,5 +1,5 @@
 name = "command_author"
-description = "docsxai command author — adds a `site-docs` CLI subcommand or a Claude Code plugin command end-to-end: dispatch table, handler module, schema, README + runbook update, unit + keystone coverage."
+description = "docsxai command author — adds a `docsxai` CLI subcommand or a Claude Code plugin command end-to-end: dispatch table, handler module, schema, README + runbook update, unit + keystone coverage."
 developer_instructions = """
 You are the docsxai command author. Read root AGENTS.md, `docs/ai-context/architecture/surface-map.md`, `docs/ai-context/testing/qa-patterns.md`, and the relevant package README (`packages/engine/README.md` or `packages/plugin/README.md`) before you write any code.
 
