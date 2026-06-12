@@ -31,6 +31,7 @@ import {
   formatReportText,
   probeLive,
 } from "./diagnose.js";
+import { runDoctor } from "./doctor.js";
 import {
   diffDocPacks,
   type DriftSeverity,
@@ -84,6 +85,7 @@ Usage:
   docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
   docsxai flow-tree <workspace-dir> [--format text|json]
   docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
+  docsxai doctor [<workspace-dir>]
   docsxai style <workspace-dir> [--check] [--format text|json]
   docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
   docsxai baseline <workspace-dir> [--out <dir>]
@@ -160,6 +162,12 @@ Notes:
     investigate). The engine never patches the flow-file itself — that's the agent's explicit opt-in
     action. --format json emits machine-readable output for an agent to act on. Pair with
     --start-from <step-id> --cdp on a follow-up run to validate the fix in seconds.
+  • doctor health-checks the environment + workspace: Node >= 20, Chromium presence, .docsxai.json
+    found + parseable (cwd or the arg), flow-file parses, auth descriptor + cached-session freshness,
+    backend reachability (when backend_url is set), the plugin declarations (same inspection as
+    \`plugins list\` — no plugin code is executed), viewer-bin resolution (which of the three layers
+    hit), and DOCSX_* env sanity. ✓/✗ rows with a one-line fix per failure; − rows are informational
+    and never fail. Exit 1 if any ✗.
   • style initialises docs/style.yaml + derived docs/style.json if absent (otherwise validates the
     existing YAML against the schema and rederives the JSON). --check additionally scans every
     docs/<flow>/<step>.md user-facing write-up for jargon leaks against the style's pruning_rules
@@ -1661,6 +1669,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdFlowTree(rest);
     case "diagnose":
       return cmdDiagnose(rest);
+    case "doctor":
+      return runDoctor(rest);
     case "style":
       return cmdStyle(rest);
     case "zip":
