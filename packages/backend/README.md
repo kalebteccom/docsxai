@@ -92,6 +92,71 @@ The backend validates the envelope shape and stores it opaquely — **it never s
 | JSON (all JSON endpoints)   | 10 MB | **413** `{ "error": "payload_too_large" }` |
 | Raw blob (`POST /v1/blobs`) | 25 MB | **413** `{ "error": "payload_too_large" }` |
 
+## GitHub App (webhook surface)
+
+The GitHub integration is a **webhook surface on this backend** — one service, no Probot, no
+separate worker. Signature verification is raw `node:crypto` HMAC; GitHub API calls are plain
+`fetch`. Install-and-go: user repos carry **zero YAML** — everything per-project lives in the
+backend's webhook config.
+
+```
+GitHub push/PR ──▶ POST /v1/github/webhook          (no bearer auth; HMAC-verified)
+                     │  repo → project (webhook configs)
+                     │  X-Hub-Signature-256 against env[secret_env] (constant-time)
+                     │  event filter · replay guard (last 100 delivery ids)
+                     ▼  202 { delivery_id, project_id, dispatched: true }
+               QueuedDispatcher                      (serial per project)
+                     ▼
+               SpawnRunner: materialize revision artifacts → temp workspace
+                     ├─ spawn engine CLI (`site-docs run --workspace <dir>`)
+                     ├─ append run-history row
+                     ▼
+               output strategy: pr-comment │ viewer-refresh │ wiki-push
+```
+
+### Webhook config
+
+`GET`/`PUT /v1/workspaces/:ws/projects/:project/webhook-config` (bearer-auth'd, validated):
+
+| Field           | Type / values                                   | Default                    | Meaning                                                          |
+| --------------- | ----------------------------------------------- | -------------------------- | ---------------------------------------------------------------- |
+| `repo`          | `"owner/name"`                                  | — (required)               | GitHub repository this project documents                         |
+| `events`        | array of `push` \| `pull_request`               | — (required)               | deliveries outside this set are acknowledged (200) and ignored   |
+| `strategy`      | `pr-comment` \| `viewer-refresh` \| `wiki-push` | — (required)               | where run output goes                                            |
+| `workspace_rev` | `"head"` or a revision id                       | `"head"`                   | revision whose artifacts the run executes against                |
+| `secret_env`    | env-var name                                    | `SITE_DOCS_WEBHOOK_SECRET` | which env var holds the HMAC secret (the secret is never stored) |
+| `enabled`       | boolean                                         | `true`                     | disabled configs acknowledge deliveries without dispatching      |
+| `plugin`        | `"<ns>:<name>"`                                 | —                          | publisher plugin (required for `wiki-push`)                      |
+| `plugin_config` | object                                          | —                          | handed to the publisher; `sources: [<dir>]` names plugin paths   |
+
+### Webhook endpoint behavior
+
+`POST /v1/github/webhook` — unauthenticated route, strictly verified:
+
+- **401** missing/invalid `X-Hub-Signature-256`, or the configured secret env var is unset (fails closed).
+- **404** the payload's `repository.full_name` maps to no configured project.
+- **400** unparsable payload, missing `repository.full_name`, or missing `X-GitHub-Delivery`.
+- **200** `{ dispatched: false, reason }` for filtered events / disabled configs; `{ duplicate: true }` for replayed delivery ids (last 100 remembered, store-backed).
+- **202** `{ delivery_id, project_id, dispatched: true }` — job queued; execution happens after the response, serialized per project.
+
+### Output strategies
+
+- **`pr-comment`** — posts the run summary via GitHub REST: an issue-comment on the PR (`pull_request` events) or a commit comment on the pushed head commit. Token: injected `tokenProvider` (installation-token wiring) or `GITHUB_APP_TOKEN` env.
+- **`viewer-refresh`** — re-renders the viewer (`site-docs render`) from the materialized workspace and records `index.html` as a content-addressed blob.
+- **`wiki-push`** — loads the configured publisher plugin with the engine's plugin contract (`docsxai` manifest in the plugin's `package.json` + `register(api)` module) from `plugin_config.sources` dirs (or `path:` entries in the workspace's `site-docs.config.json`) and reports its `PublishResult` into the run-history summary.
+
+The engine CLI is resolved like the engine resolves its viewer bin: `SITE_DOCS_ENGINE_BIN` env override → the installed `@kalebtec/docsxai-engine` package's `site-docs` bin → `site-docs` on `PATH`.
+
+### Owner-gated checklist (App registration)
+
+Everything below requires owner credentials / a public URL and is **deliberately not automated**:
+
+- [ ] Register the GitHub App (org settings → Developer settings → GitHub Apps); permissions: Contents read, Pull requests write, Metadata read; subscribe to `push` + `pull_request`.
+- [ ] Set the App's webhook URL to the deployed backend's `https://<host>/v1/github/webhook`.
+- [ ] Generate a webhook secret; export it as `SITE_DOCS_WEBHOOK_SECRET` (or the name in each project's `secret_env`) on the backend host.
+- [ ] Wire installation tokens: exchange the App's private key for installation tokens and inject a `tokenProvider` (or export a `GITHUB_APP_TOKEN` for single-installation setups).
+- [ ] Install the App on the documented repositories, then `PUT` each project's webhook config.
+
 ## Environment variables
 
 | Variable                       | Effect                                                                                                       |
@@ -100,6 +165,9 @@ The backend validates the envelope shape and stores it opaquely — **it never s
 | `SITE_DOCS_TOKEN`              | the pre-issued CI bearer token; also the credential that auto-approves OAuth authorize requests              |
 | `SITE_DOCS_OAUTH_AUTO_APPROVE` | `1` auto-approves OAuth authorize requests without a bearer (local dev / tests)                              |
 | `SITE_DOCS_CACHE_KEY`          | client-side only — the base64 32-byte AES-256-GCM key for the auth-cache relay (the server never reads this) |
+| `SITE_DOCS_WEBHOOK_SECRET`     | default GitHub webhook HMAC secret (per-project override via the config's `secret_env`)                      |
+| `SITE_DOCS_ENGINE_BIN`         | explicit path to the engine CLI the webhook runner spawns                                                    |
+| `GITHUB_APP_TOKEN`             | GitHub token for the `pr-comment` strategy when no `tokenProvider` is injected                               |
 | `PORT`                         | bin default port (flag `--port=` wins)                                                                       |
 
 Design: `projects/automated-site-documentation-bot/spec.md` in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio.
