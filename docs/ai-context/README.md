@@ -19,12 +19,12 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 | Subdir                | Purpose                                                                                                                                                                   |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `agent-process/`      | Cross-cutting discipline: commits, dist-rebuild, code quality (the f3-inspired big one).                                                                                  |
-| `architecture/`       | Substrate references: surface map across the five packages, documentation contracts between layers.                                                                       |
+| `architecture/`       | Substrate references: surface map across the nine packages, documentation contracts between layers.                                                                       |
 | `secrets-and-egress/` | Trust posture for everything that writes to disk or surfaces text. No in-engine JS-injection surface; the trust surface is auth artifacts, screenshots, and halt context. |
 | `plugin-runtime/`     | Plugin lifecycle, namespacing, capability + lock discipline for the workspace plugin runtime (publishers / renderers / lint-rules / auth-strategies).                     |
 | `tool-registration/`  | The MCP tool registry discipline for `packages/mcp/`: one tool = one file, registry composed only in `server.ts`, the add-a-tool checklist.                               |
 | `testing/`            | Unit / keystone layering and the QA-patterns playbook.                                                                                                                    |
-| `release-process/`    | Semver clock, branch-protection stub (matures in D4).                                                                                                                     |
+| `release-process/`    | Semver clock, branch-protection reference, the public-flip checklist.                                                                                                     |
 | `investigations/`     | Root-cause write-ups for non-obvious bugs. Empty today; one-off entries land as `<YYYY-MM-DD>-<slug>.md`.                                                                 |
 | `adopter-reports/`    | Field reports from teams driving docsxai against real workloads. Empty today; reports land as dated entries.                                                              |
 

@@ -10,7 +10,7 @@ The flow-file parser + deterministic runtime + the `docsxai` CLI. The biggest pa
 
 ### `packages/engine/src/cli.ts`
 
-The `docsxai` bin. Subcommands: `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
+The `docsxai` bin. Subcommands: `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `export` (`adf`, `playwright`), `plugins`, `login`, `push`, `pull`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
 
 ### `packages/engine/src/flow-file.ts`
 
@@ -51,6 +51,14 @@ Halt-context + recommendations after a deterministic run halts. Reads the halt a
 ### `packages/engine/src/style.ts`
 
 Style.yaml init/validate + the `--check` jargon scan. Workspace-scoped.
+
+### `packages/engine/src/diff.ts`
+
+Drift detection: `diffDocPacks` compares the workspace against a `.baseline/` snapshot (the `baseline` + `diff` subcommands) — id-keyed step field deltas, annotation moves, screenshot pixel diffs with severity thresholds, prose line-change counts, locator changes. Deterministic report (no timestamps); `--format md` is PR-comment-ready. Pure analysis — detects, never patches.
+
+### `packages/engine/src/redact.ts`
+
+Deterministic screenshot redaction (`box` fill / `pixelate` mosaic) applied in-memory before any screenshot byte hits disk, halt screenshots included.
 
 ### `packages/engine/src/zip.ts`
 
@@ -97,13 +105,15 @@ The plugin loads at session start; commands are deterministic engine invocations
 
 ## `packages/backend/` — `@docsxai/backend`
 
-Authenticated stub service for doc-pack persistence.
+Authenticated doc-pack persistence service.
 
 - `src/api.ts` — `ROUTES` is the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators|run-history}`. Versioned via the `Docsxai-Api-Version` header.
-- `src/server.ts` — HTTP stub server. Loopback-bound by default.
-- `src/store.ts` — in-memory linear-immutable revisions (filesystem / DB persistence is post-MVP).
-
-OAuth 2.1 wires hosted deployment post-MVP; the stub runs with bearer tokens.
+- `src/server.ts` — the HTTP server. Loopback-bound by default; hosted deployment is owner-gated.
+- `src/store.ts` — in-memory linear-immutable revisions with content-addressed blobs.
+- `src/fs-store.ts` — filesystem persistence (same store contract; the durable default).
+- `src/oauth.ts` — OAuth 2.1 + PKCE auth surface (the CI bearer path is retained).
+- `src/webhook.ts` — the GitHub App webhook surface: signed dispatch → deterministic execution.
+- `src/runner.ts` / `src/strategy.ts` — webhook-triggered run execution + output strategies.
 
 ## `packages/skill/` — `@docsxai/skill`
 
@@ -116,12 +126,25 @@ For teams that prefer version-pinning in the consumer repo rather than relying o
 
 ## `packages/viewer/` — `@docsxai/viewer`
 
-Static-HTML viewer.
+The rendering surface: interactive viewer, burn renderer, Starlight site emitter.
 
 - `src/render.ts` — `buildViewer({ docsDir, outDir })`. Reads annotations + screenshots, emits `index.html` + per-flow pages.
 - `src/placement.ts` — `placeCallout(input)`. Pure Popper-like placement; coordinate-space-agnostic; tested independently.
+- `src/burn.ts` — browser-free baked-annotation renderer (Satori + resvg) for delivery surfaces that can't run the interactive viewer (Confluence, Notion). The workspace PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-inspectable; burning happens at export time.
+- `src/starlight.ts` — the Astro Starlight site emitter (production docs-site output from a doc pack).
+- `src/overlay-runtime.ts` — the interactive overlay (halo + numbered badges + callouts), bundled into `dist/generated/overlay.js` at build time.
 
-PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-inspectable. A future release adds `burn.ts` for delivery surfaces that can't run the interactive viewer (Confluence, Notion).
+## `packages/mcp/` — `@docsxai/mcp`
+
+Standalone stdio MCP server (`docsxai-mcp` bin) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives — live-page discovery is browxai's. One tool = one file under `src/tools/`; the registry is composed only in `src/server.ts`. Add-a-tool checklist: [`../tool-registration/mcp-tool-registry.md`](../tool-registration/mcp-tool-registry.md). Repo-only (`private: true`) at the v1.0 flip.
+
+## `packages/plugin-confluence/` — `@docsxai/plugin-confluence`
+
+First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins — the only sanctioned Confluence egress path (the engine emits ADF projections only). Repo-only (`private: true`) at the v1.0 flip.
+
+## `packages/plugin-starlight/` — `@docsxai/plugin-starlight`
+
+First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter. Repo-only (`private: true`) at the v1.0 flip.
 
 ## Load-bearing boundaries
 
@@ -129,6 +152,10 @@ PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-
 - **`BrowserDriver` is the only browser abstraction.** Direct `playwright-core` imports outside `playwright-driver.ts` and `playwright-instrumented-browser.ts` are an architectural violation.
 - **`resolveWorkspacePath` is the only filesystem root.** No `cwd`-relative paths in engine handlers.
 - **Calibration mode and execution mode are split.** Calibration helpers (`calibrate.ts`, the plugin's skill surface) are agent-aware; execution (`flow-runtime.ts`, the keystone test) has no agent in the loop. Don't re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see [`PHASE-1.md`](../../archive/phase-plans/PHASE-1.md) postmortem).
+
+## `packages/docsxai/` — `docsxai` (stub)
+
+The unscoped name-claim package: a throwing `index.js` + README that defends the `docsxai` npm namespace and proves the OIDC publish path. No build, no runtime surface.
 
 ## `docs/`, `scripts/`
 
