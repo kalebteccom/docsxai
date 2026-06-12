@@ -6,7 +6,7 @@
     "access": "public",
     "provenance": true
   },
-  "description": "Vitest-based interactive docs-app generator: overlays arrows + popups from annotations.json over clean screenshots at render time.",
+  "description": "Interactive docs-app generator + burned-annotation renderer: overlays (or bakes) halos, badges and callouts from annotations.json over clean screenshots.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
