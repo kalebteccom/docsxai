@@ -28,6 +28,9 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./cli": {
+      "default": "./dist/cli.js"
     }
   },
   "files": [
