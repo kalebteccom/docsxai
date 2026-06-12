@@ -37,22 +37,22 @@ and glass / halo surfaces. The mark stays monochrome in the header.
 
 ## Files
 
-| File                                     | What it is                                                           |
-| ---------------------------------------- | -------------------------------------------------------------------- |
-| `docsxai-mark.svg`                       | The glyph using `currentColor`.                                       |
-| `docsxai-mark-black.svg` / `-white.svg`  | The glyph in ink / white, for light / dark surfaces.                  |
+| File                                     | What it is                                                                                     |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `docsxai-mark.svg`                       | The glyph using `currentColor`.                                                                |
+| `docsxai-mark-black.svg` / `-white.svg`  | The glyph in ink / white, for light / dark surfaces.                                           |
 | `docsxai-favicon.svg`                    | Tile favicon: amber gradient square + white glyph (page lines dropped for small-size clarity). |
-| `favicon.ico`                            | Multi-resolution ICO (16/32/48).                                      |
-| `favicon-16.png` / `-32.png` / `-48.png` | Raster favicons.                                                      |
-| `apple-touch-icon.png`                   | 180px touch icon (the tile).                                          |
-| `docsxai-halo-fullbleed-1024.png`        | App-store icon master: glass glyph on the full-bleed halo field.      |
-| `docsxai-glass-halo-1024.png`            | Squircle marketing preview (Mac-dock margin + edge highlight).        |
-| `docsxai-avatar-512.png`                 | Social / GitHub-org avatar (white mark on near-black).                |
-| `icon-composer-layers/`                  | Flat background + flat glyph for Apple Icon Composer (no baked fx).   |
-| `halo-preview.png`                       | Reference render of the halo set (fullbleed / squircle / avatar).     |
-| `xai-family-preview.png`                 | Three-wide comparison with browxai + remotxai (rendered when siblings exist). |
-| `render.py`                              | Regenerates the favicons + standalone marks.                          |
-| `hig.py`                                 | Regenerates the halo app icons (palette lives in its `V` dict).       |
+| `favicon.ico`                            | Multi-resolution ICO (16/32/48).                                                               |
+| `favicon-16.png` / `-32.png` / `-48.png` | Raster favicons.                                                                               |
+| `apple-touch-icon.png`                   | 180px touch icon (the tile).                                                                   |
+| `docsxai-halo-fullbleed-1024.png`        | App-store icon master: glass glyph on the full-bleed halo field.                               |
+| `docsxai-glass-halo-1024.png`            | Squircle marketing preview (Mac-dock margin + edge highlight).                                 |
+| `docsxai-avatar-512.png`                 | Social / GitHub-org avatar (white mark on near-black).                                         |
+| `icon-composer-layers/`                  | Flat background + flat glyph for Apple Icon Composer (no baked fx).                            |
+| `halo-preview.png`                       | Reference render of the halo set (fullbleed / squircle / avatar).                              |
+| `xai-family-preview.png`                 | Three-wide comparison with browxai + remotxai (rendered when siblings exist).                  |
+| `render.py`                              | Regenerates the favicons + standalone marks.                                                   |
+| `hig.py`                                 | Regenerates the halo app icons (palette lives in its `V` dict).                                |
 
 ## Regenerating
 
