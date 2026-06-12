@@ -37,7 +37,7 @@ import {
   uploadScreenshotBlobs,
   writeDocPack,
 } from "./doc-pack-io.js";
-import { formatIssuesText, type LintIssue, lintFlow } from "./flow-lint.js";
+import { formatIssuesText, type LintIssue, type LintRule, lintFlow } from "./flow-lint.js";
 import { runFlow } from "./flow-runtime.js";
 import { buildFlowTree, formatTreeText } from "./flow-tree.js";
 import {
@@ -49,6 +49,8 @@ import {
   writeStyle,
 } from "./style.js";
 import { pluginsCli } from "./plugins-cli.js";
+import { readPluginsLock, readWorkspacePluginsConfig } from "./plugins/lock.js";
+import { resolvePlugins } from "./plugins/runtime.js";
 import { formatViewerBinFailure, resolveViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
@@ -331,6 +333,7 @@ async function cmdRun(args: string[]): Promise<number> {
         headed,
         ignoreHTTPSErrors,
         ...(cdpEndpoint ? { connectOverCdp: cdpEndpoint } : { storageState }),
+        ...(flow.environment ? { environment: flow.environment } : {}),
         docPackRoot: projectDir,
       });
     } catch (e) {
@@ -850,9 +853,29 @@ async function cmdLint(args: string[]): Promise<number> {
     return f;
   };
 
+  // Lint-rule plugins: resolve the workspace's plugin registry and feed registered
+  // rules through lintFlow's extraRules. A plugin-resolution failure degrades to
+  // core rules with a warning — lint must stay usable while a plugin is broken.
+  let extraRules: LintRule[] = [];
+  try {
+    const cfg = await readWorkspacePluginsConfig(projectDir);
+    if (cfg.sources.length > 0) {
+      const lock = await readPluginsLock(projectDir);
+      const registry = await resolvePlugins({
+        workspaceDir: projectDir,
+        sources: cfg.sources,
+        enabledCapabilities: cfg.capabilities,
+        lock,
+      });
+      extraRules = registry.getLintRules();
+    }
+  } catch (e) {
+    process.stderr.write(`lint: plugin rules skipped — ${(e as Error).message}\n`);
+  }
+
   const issues: LintIssue[] = [];
   for (const flow of targets) {
-    const result = await lintFlow(flow, { loadFlow });
+    const result = await lintFlow(flow, { loadFlow, extraRules });
     issues.push(...result);
   }
 

@@ -123,6 +123,7 @@ export default tseslint.config(
       "packages/*/node_modules/**",
       "coverage/**",
       "artifacts/**",
+      ".worktrees/**",
       "**/*.generated.*",
       ".claude/**",
     ],

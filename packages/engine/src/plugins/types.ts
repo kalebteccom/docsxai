@@ -2,8 +2,7 @@
 // auth-strategies code against these shapes; the runtime auto-prefixes registered names with
 // the plugin's namespace (`<ns>:<name>`).
 
-import type { FlowFile } from "../doc-pack.js";
-import type { LintIssue, LintOptions } from "../flow-lint.js";
+import type { LintRule } from "../flow-lint.js";
 
 /** Plugin-scoped logger. Writes to stderr prefixed `[plugin:<ns>]` — stdout stays clean for CLI output. */
 export interface PluginLogger {
@@ -63,9 +62,6 @@ export interface AuthStrategyPlugin {
   }>;
 }
 
-// Structurally identical to the rule shape `flow-lint.ts` is growing (an exported `LintRule` +
-// an `extraRules` param). Once that export lands, this alias should point at it directly.
-export interface PluginLintRule {
-  code: string;
-  check(flow: FlowFile, opts: LintOptions): Promise<LintIssue[]> | LintIssue[];
-}
+// The lint extension point is flow-lint's own injectable rule type — plugins register
+// rules that run after the built-ins through `lintFlow`'s `extraRules`.
+export type PluginLintRule = LintRule;

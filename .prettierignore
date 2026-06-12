@@ -9,5 +9,6 @@ package-lock.json
 .github
 CHANGELOG.md
 artifacts/
+.worktrees/
 .auth/
 *.storageState.json
