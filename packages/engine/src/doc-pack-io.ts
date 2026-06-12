@@ -2,11 +2,15 @@
 // and (for `pull`) deserialise the payloads back into workspace files.
 //
 // The backend treats payloads as opaque; the schemas here are the engine's own contract.
+// Screenshot bytes travel as content-addressed blobs — the screenshots artifact carries only a
+// sha256 manifest; `uploadScreenshotBlobs` / `fetchScreenshotBlobs` move the bytes.
 
+import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type {
   AnnotationsPayload,
+  BlobRef,
   FlowsPayload,
   LocatorsPayload,
   ScreenshotsPayload,
@@ -68,7 +72,7 @@ async function readAnnotations(workspace: string): Promise<AnnotationsPayload | 
 async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | null> {
   const docsDir = resolveWorkspacePath(workspace, "docs");
   const flows = await fs.readdir(docsDir, { withFileTypes: true }).catch(() => []);
-  const files: Record<string, string> = {};
+  const files: Record<string, BlobRef> = {};
   for (const ent of flows) {
     if (!ent.isDirectory()) continue;
     const screenDir = resolveWorkspacePath(workspace, "docs", ent.name, "screenshots");
@@ -79,11 +83,69 @@ async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | 
       const buf = await fs.readFile(
         resolveWorkspacePath(workspace, "docs", ent.name, "screenshots", f),
       );
-      files[`${ent.name}/screenshots/${f}`] = buf.toString("base64");
+      files[`${ent.name}/screenshots/${f}`] = {
+        sha256: createHash("sha256").update(buf).digest("hex"),
+        bytes: buf.byteLength,
+      };
     }
   }
   if (Object.keys(files).length === 0) return null;
-  return { schema: "site-docs/screenshots@1", files };
+  return { schema: "site-docs/screenshots@2", files };
+}
+
+// --- screenshot blob transport ------------------------------------------------
+
+export interface BlobUploader {
+  hasBlob(sha256: string): Promise<boolean>;
+  putBlob(data: Uint8Array): Promise<BlobRef>;
+}
+
+export interface BlobFetcher {
+  getBlob(sha256: string): Promise<Uint8Array>;
+}
+
+/** Upload the bytes behind a screenshots manifest, HEAD-probing first so shared blobs are skipped. */
+export async function uploadScreenshotBlobs(
+  workspace: string,
+  manifest: ScreenshotsPayload,
+  blobs: BlobUploader,
+): Promise<{ uploaded: number; skipped: number }> {
+  let uploaded = 0;
+  let skipped = 0;
+  for (const [rel, ref] of Object.entries(manifest.files)) {
+    if (await blobs.hasBlob(ref.sha256)) {
+      skipped++;
+      continue;
+    }
+    const data = await fs.readFile(resolveWorkspacePath(workspace, "docs", rel));
+    const stored = await blobs.putBlob(data);
+    if (stored.sha256 !== ref.sha256) {
+      throw new Error(
+        `screenshot ${rel} changed on disk between manifest and upload (sha256 ${ref.sha256} → ${stored.sha256})`,
+      );
+    }
+    uploaded++;
+  }
+  return { uploaded, skipped };
+}
+
+/** Fetch the bytes behind a screenshots manifest, verifying each blob against its sha256. */
+export async function fetchScreenshotBlobs(
+  manifest: ScreenshotsPayload,
+  blobs: BlobFetcher,
+): Promise<Record<string, Uint8Array>> {
+  const out: Record<string, Uint8Array> = {};
+  for (const [rel, ref] of Object.entries(manifest.files)) {
+    const data = await blobs.getBlob(ref.sha256);
+    const sha256 = createHash("sha256").update(data).digest("hex");
+    if (sha256 !== ref.sha256) {
+      throw new Error(
+        `blob for ${rel} failed integrity check (expected ${ref.sha256}, got ${sha256})`,
+      );
+    }
+    out[rel] = data;
+  }
+  return out;
 }
 
 async function readStyle(workspace: string): Promise<StylePayload | null> {
@@ -108,6 +170,10 @@ async function readLocators(workspace: string): Promise<LocatorsPayload | null> 
 export async function writeDocPack(
   workspace: string,
   payloads: Partial<DocPackPayloads>,
+  extras: {
+    /** Screenshot bytes keyed by manifest path (from {@link fetchScreenshotBlobs}). */
+    screenshotBytes?: Record<string, Uint8Array>;
+  } = {},
 ): Promise<{ filesWritten: number }> {
   let n = 0;
   // Pulled payload file names come from the backend — treat as untrusted and resolve with the
@@ -127,11 +193,13 @@ export async function writeDocPack(
       n++;
     }
   }
-  if (payloads.screenshots) {
-    for (const [rel, b64] of Object.entries(payloads.screenshots.files)) {
+  if (payloads.screenshots && extras.screenshotBytes) {
+    for (const rel of Object.keys(payloads.screenshots.files)) {
+      const data = extras.screenshotBytes[rel];
+      if (!data) continue;
       const abs = await resolveWorkspacePathReal(workspace, "docs", rel);
       await fs.mkdir(path.dirname(abs), { recursive: true });
-      await fs.writeFile(abs, Buffer.from(b64, "base64"));
+      await fs.writeFile(abs, data);
       n++;
     }
   }
