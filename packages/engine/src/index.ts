@@ -28,3 +28,5 @@ export * from "./plugins/lock.js";
 export * from "./redact.js";
 export * from "./viewer-bin.js";
 export * from "./export/adf.js";
+export * from "./export/playwright-test.js";
+export * from "./diff.js";

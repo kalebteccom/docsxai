@@ -32,6 +32,13 @@ import {
   probeLive,
 } from "./diagnose.js";
 import {
+  diffDocPacks,
+  type DriftSeverity,
+  formatDriftReportMarkdown,
+  formatDriftReportText,
+  severityAtLeast,
+} from "./diff.js";
+import {
   type DocPackPayloads,
   fetchScreenshotBlobs,
   readDocPack,
@@ -50,6 +57,7 @@ import {
   writeStyle,
 } from "./style.js";
 import { projectDocPackToAdf, type AdfExportMode } from "./export/adf.js";
+import { exportWorkspaceFlowsAsPlaywrightTests } from "./export/playwright-test.js";
 import { pluginsCli } from "./plugins-cli.js";
 import { readPluginsLock, readWorkspacePluginsConfig } from "./plugins/lock.js";
 import { resolvePlugins } from "./plugins/runtime.js";
@@ -78,7 +86,10 @@ Usage:
   site-docs diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
   site-docs style <workspace-dir> [--check] [--format text|json]
   site-docs zip <workspace-dir> [--out <output.zip>] [--include-viewer]
+  site-docs baseline <workspace-dir> [--out <dir>]
+  site-docs diff <workspace-dir> [--against <dir>] [--format json|md|text] [--fail-on warn|fail]
   site-docs export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
+  site-docs export playwright <workspace-dir> [--flow <name>] [--out <dir>]
   site-docs plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
   site-docs login --backend-url <url>
   site-docs push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
@@ -162,6 +173,19 @@ Notes:
     in the current dir; override with --out <path>. Zips in-process (no system 'zip' binary needed)
     and deterministically — sorted entries, fixed mtime, fixed compression — so the same doc pack
     always produces a byte-identical archive.
+  • baseline snapshots the doc pack — flows/, docs/<flow>/*.md, annotations.json, screenshots/, and
+    docs/locators.yaml — into <ws>/.baseline/ (or --out <dir>). Commit the baseline: it's the "before"
+    that diff compares against in CI.
+  • diff compares the workspace against a baseline (default <ws>/.baseline/, or --against <dir>) and
+    emits a deterministic drift report: per flow, step field deltas (id-keyed), annotation moves,
+    screenshot pixel diffs (changed-pixel count / % / changed-region bbox; dimension changes flagged
+    distinctly), prose line-change counts, and locator changes. --format md is PR-comment-ready.
+    --fail-on warn|fail exits 1 when the report severity is at/above the threshold (screenshot
+    severity: ≥1% changed pixels = warn, ≥5% = fail; structural changes = warn).
+  • export playwright emits one self-contained Playwright .spec.ts per flow (extends resolved) into
+    <ws>/.export/tests/ (or --out <dir>) — locators as consts, steps as page actions, success criteria
+    as expect() assertions, environment as test.use(); optional steps are try/catch-wrapped. Generated
+    files say so in a header: regenerate, don't hand-edit.
   • render builds the static viewer by spawning the docsxai-viewer bin, resolved in order: the
     SITE_DOCS_VIEWER_BIN env var (path to the viewer's bin script), the @kalebtec/docsxai-viewer
     package installed next to the engine, then \`docsxai-viewer\` on PATH.
@@ -1130,10 +1154,20 @@ async function cmdZip(args: string[]): Promise<number> {
 
 async function cmdExport(args: string[]): Promise<number> {
   const [format, ...rest] = args;
-  if (format !== "adf") {
-    process.stderr.write(`export: unknown format "${format ?? ""}" — supported: adf\n`);
-    return 2;
+  switch (format) {
+    case "adf":
+      return cmdExportAdf(rest);
+    case "playwright":
+      return cmdExportPlaywright(rest);
+    default:
+      process.stderr.write(
+        `export: unknown format "${format ?? ""}" — supported: adf, playwright\n`,
+      );
+      return 2;
   }
+}
+
+async function cmdExportAdf(rest: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(rest);
   if (!positionals[0]) {
     process.stderr.write(`export adf: missing <workspace-dir>\n`);
@@ -1184,6 +1218,166 @@ async function cmdExport(args: string[]): Promise<number> {
     return 0;
   } catch (e) {
     process.stderr.write(`export adf: ${(e as Error).message}\n`);
+    return 1;
+  }
+}
+
+async function cmdExportPlaywright(rest: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(rest);
+  if (!positionals[0]) {
+    process.stderr.write(`export playwright: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const flow = flags.get("flow");
+  const outFlag = flags.get("out");
+  const outDir =
+    typeof outFlag === "string"
+      ? path.resolve(outFlag)
+      : resolveWorkspacePath(projectDir, ".export", "tests");
+
+  try {
+    const specs = await exportWorkspaceFlowsAsPlaywrightTests({
+      workspaceDir: projectDir,
+      ...(typeof flow === "string" ? { flows: [flow] } : {}),
+    });
+    await fs.mkdir(outDir, { recursive: true });
+    for (const spec of specs) {
+      await fs.writeFile(path.join(outDir, spec.fileName), spec.content, "utf8");
+    }
+    process.stdout.write(
+      `export playwright: wrote ${specs.length} spec${specs.length === 1 ? "" : "s"} to ${outDir}\n`,
+    );
+    return 0;
+  } catch (e) {
+    if (e instanceof FlowFileError) {
+      process.stderr.write(`export playwright: ${e.message}\n`);
+      return 1;
+    }
+    process.stderr.write(`export playwright: ${(e as Error).message}\n`);
+    return 1;
+  }
+}
+
+/** Copy `src` → `dest` if `src` exists. Returns 1 if copied, 0 if absent. */
+async function copyIfExists(src: string, dest: string): Promise<number> {
+  try {
+    await fs.access(src);
+  } catch {
+    return 0;
+  }
+  await fs.mkdir(path.dirname(dest), { recursive: true });
+  await fs.copyFile(src, dest);
+  return 1;
+}
+
+async function cmdBaseline(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  if (!positionals[0]) {
+    process.stderr.write(`baseline: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const outFlag = flags.get("out");
+  const outDir =
+    typeof outFlag === "string"
+      ? path.resolve(outFlag)
+      : resolveWorkspacePath(projectDir, ".baseline");
+
+  try {
+    // Refresh = replace: a baseline is a derived snapshot, so the previous one is dropped whole
+    // rather than merged (a stale leftover file would read as drift).
+    await fs.rm(path.join(outDir, "flows"), { recursive: true, force: true });
+    await fs.rm(path.join(outDir, "docs"), { recursive: true, force: true });
+
+    let copied = 0;
+    const flowsDir = resolveWorkspacePath(projectDir, "flows");
+    for (const entry of (await fs.readdir(flowsDir).catch(() => [] as string[])).sort()) {
+      if (!entry.endsWith(".flow.yaml")) continue;
+      copied += await copyIfExists(path.join(flowsDir, entry), path.join(outDir, "flows", entry));
+    }
+
+    const docsDir = resolveWorkspacePath(projectDir, "docs");
+    copied += await copyIfExists(
+      path.join(docsDir, "locators.yaml"),
+      path.join(outDir, "docs", "locators.yaml"),
+    );
+    const docEntries = await fs.readdir(docsDir, { withFileTypes: true }).catch(() => []);
+    for (const entry of docEntries.sort((x, y) => x.name.localeCompare(y.name))) {
+      if (!entry.isDirectory()) continue;
+      const flowDir = path.join(docsDir, entry.name);
+      const outFlowDir = path.join(outDir, "docs", entry.name);
+      for (const f of (await fs.readdir(flowDir).catch(() => [] as string[])).sort()) {
+        if (f.endsWith(".md") || f === "annotations.json") {
+          copied += await copyIfExists(path.join(flowDir, f), path.join(outFlowDir, f));
+        }
+      }
+      const shotsDir = path.join(flowDir, "screenshots");
+      for (const f of (await fs.readdir(shotsDir).catch(() => [] as string[])).sort()) {
+        if (!f.endsWith(".png")) continue;
+        copied += await copyIfExists(
+          path.join(shotsDir, f),
+          path.join(outFlowDir, "screenshots", f),
+        );
+      }
+    }
+
+    process.stdout.write(
+      `baseline: snapshotted ${copied} file${copied === 1 ? "" : "s"} to ${outDir}\n`,
+    );
+    return 0;
+  } catch (e) {
+    process.stderr.write(`baseline: ${(e as Error).message}\n`);
+    return 1;
+  }
+}
+
+async function cmdDiff(args: string[]): Promise<number> {
+  const { positionals, flags } = parseFlags(args);
+  if (!positionals[0]) {
+    process.stderr.write(`diff: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const againstFlag = flags.get("against");
+  const againstDir =
+    typeof againstFlag === "string"
+      ? path.resolve(againstFlag)
+      : resolveWorkspacePath(projectDir, ".baseline");
+
+  const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
+  if (format !== "json" && format !== "md" && format !== "text") {
+    process.stderr.write(`diff: --format must be json | md | text (got "${format}")\n`);
+    return 2;
+  }
+  const failOnFlag = flags.get("fail-on");
+  let failOn: DriftSeverity | null = null;
+  if (failOnFlag !== undefined) {
+    if (failOnFlag !== "warn" && failOnFlag !== "fail") {
+      process.stderr.write(`diff: --fail-on must be warn | fail (got "${String(failOnFlag)}")\n`);
+      return 2;
+    }
+    failOn = failOnFlag;
+  }
+
+  try {
+    await fs.access(path.join(againstDir, "flows"));
+  } catch {
+    process.stderr.write(
+      `diff: no baseline at ${againstDir} — run \`site-docs baseline ${projectDir}\` first (or pass --against <dir>)\n`,
+    );
+    return 2;
+  }
+
+  try {
+    const report = await diffDocPacks(againstDir, projectDir);
+    if (format === "json") process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+    else if (format === "md") process.stdout.write(formatDriftReportMarkdown(report));
+    else process.stdout.write(formatDriftReportText(report));
+    if (failOn !== null && severityAtLeast(report.summary.severity, failOn)) return 1;
+    return 0;
+  } catch (e) {
+    process.stderr.write(`diff: ${(e as Error).message}\n`);
     return 1;
   }
 }
@@ -1464,6 +1658,10 @@ export async function main(argv: string[]): Promise<number> {
       return cmdStyle(rest);
     case "zip":
       return cmdZip(rest);
+    case "baseline":
+      return cmdBaseline(rest);
+    case "diff":
+      return cmdDiff(rest);
     case "export":
       return cmdExport(rest);
     case "plugins":
