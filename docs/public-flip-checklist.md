@@ -24,7 +24,7 @@ Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue
 
 - [ ] WebAuthn enrolled on the maintainer's npm account
 - [ ] Breakglass npm account created with separate keys + email
-- [ ] `@kalebtec` org scope claimed on npm with "Require 2FA" enforced
+- [x] `@docsxai` org scope claimed on npm (registered) - enforce "Require 2FA" on it before the first publish
 - [ ] `docsxai` unscoped package name claimed (precondition: D5 stub-publish path rework decides whether the unscoped entrypoint ships as a thin shim over `@docsxai/engine` or as a separate published package)
 - [ ] Typosquat package names pre-claimed and deprecated (`doxai`, `docsai`, `docsx-ai`, etc.)
 - [ ] npm trusted-publisher configuration set per package (repo + workflow + `release` environment binding) for all 8 scoped packages on the registered `@docsxai` org: `@docsxai/{backend,engine,plugin,skill,viewer,mcp,plugin-confluence,plugin-starlight}` plus `docsxai` unscoped if D5 lands

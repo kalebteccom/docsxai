@@ -18,7 +18,7 @@ Operational practices we recommend for teams integrating docsxai. Background and
 
 The `@docsxai/plugin` package is a Claude Code plugin: it lands in `.claude/plugins/` and registers calibration skills + deterministic commands + an internal MCP. The plugin runs with the same privileges as your Claude Code session.
 
-- Prefer `@kalebtec/*` first-party packages.
+- Prefer `@docsxai/*` first-party packages.
 - For third-party packages that extend docsxai (writeups, custom flow-file libraries), treat them like dependency reviews — read the source before installing.
 - Vendor / version-pin via `@docsxai/skill` if you want a colocated fallback that lives inside your repo's `.claude/skills/` instead of being installed globally.
 
