@@ -28,6 +28,8 @@ const KNOWN_CLI_COMMANDS = [
   "login",
   "push",
   "pull",
+  "plugins",
+  "export",
 ];
 
 describe("plugin scaffold — basics", () => {
