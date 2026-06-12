@@ -32,6 +32,13 @@ const pages = [
       "Hand this to a coding agent: set up and run docsxai against a running web app without modifying its repo - workspace layout, auth capture, halts, and the iteration loop.",
   },
   {
+    src: "docs/agent-guidance.md",
+    out: "guides/agent-guidance.md",
+    title: "Agent guidance",
+    description:
+      "The reach-for-this-not-that map for agents driving docsxai: ten temptations, why each bites, and the right call with a copyable example.",
+  },
+  {
     src: "docs/running-against-an-app-repo.md",
     out: "guides/running-against-an-app-repo.md",
     title: "Running against an app repo",

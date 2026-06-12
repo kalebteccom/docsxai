@@ -139,6 +139,7 @@ export default defineConfig({
           label: "Guides",
           items: [
             { label: "Agent runbook", slug: "guides/agent-runbook" },
+            { label: "Agent guidance", slug: "guides/agent-guidance" },
             { label: "Running against an app repo", slug: "guides/running-against-an-app-repo" },
             { label: "CI recipes", slug: "guides/ci-recipes" },
             { label: "Writing plugins", slug: "guides/writing-plugins" },

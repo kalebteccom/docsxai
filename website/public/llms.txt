@@ -19,6 +19,7 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 ## Guides
 
 - [Agent runbook](https://docsxai.com/guides/agent-runbook/): hand a coding agent everything it needs to run docsxai against an app repo
+- [Agent guidance](https://docsxai.com/guides/agent-guidance/): the reach-for-this-not-that map - ten temptations, why each bites, and the right call with a copyable example
 - [Running against an app repo](https://docsxai.com/guides/running-against-an-app-repo/): document an app without leaving a trace in its checkout
 - [CI recipes](https://docsxai.com/guides/ci-recipes/): deterministic doc refresh in your pipeline
 - [Writing plugins](https://docsxai.com/guides/writing-plugins/): the manifest, the four extension-point contracts, register(api), and a complete minimal publisher
@@ -45,6 +46,21 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 - [@docsxai/skill](https://docsxai.com/packages/skill/): the vendorable skill fallback
 - [@docsxai/plugin-confluence](https://docsxai.com/packages/plugin-confluence/): the Confluence publisher plugin
 - [@docsxai/plugin-starlight](https://docsxai.com/packages/plugin-starlight/): the Starlight site renderer plugin
+
+## Guidance
+
+The footgun map, one line each (temptation → the right call). Full entries with examples: https://docsxai.com/guides/agent-guidance/
+
+- Conditionally-present UI: not a permissive comma-selector that no-ops on one branch → `optional: true` on the step
+- Untested flow edits: not run-and-see → `docsxai lint` first; write-time signal beats run-time halt
+- Long flows: not a full re-walk per edit → `run --flow <name> --start-from <step> --cdp <endpoint>` against the warm browser
+- Broken selectors: not fallback selector lists (the engine refuses them) → one canonical locator; a halt is drift, recalibrate
+- Run-to-run pixel noise: not post-hoc screenshot fudging → pin `environment` (clock, locale, timezone, viewport)
+- Sensitive UI in captures: not editing PNGs → `redactions` in the flow-file, masked before any pixel hits disk
+- Wiki publishing: not hand-rolled HTTP push → a publisher plugin behind an `egress:<host>` capability grant
+- Artifact IO: not absolute paths or /tmp → workspace-rooted paths only (escapes throw)
+- Live-page discovery: not raw page eval → browxai's curated find()/snapshot()/actionable() surface
+- After a halt: not a blind retry (halts are deterministic) → `docsxai diagnose`, edit the flow, validate with `run --start-from`
 
 ## Project
 

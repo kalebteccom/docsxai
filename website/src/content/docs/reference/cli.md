@@ -198,6 +198,14 @@ $ docsxai run ~/docsxai/my-app --flow publish-post
 https://localhost:3000/editor/draft-7: … (halt screenshot: docs/publish-post/halts/publish.png)
 ```
 
+:::caution[For agents]
+A halt replays identically on a retry - the engine has no retry-until-green.
+The productive loop is `diagnose` → edit the flow-file →
+`run --start-from <step-id> --cdp <endpoint>` to validate the fix in seconds
+instead of re-walking the flow. See the
+[agent guidance](/guides/agent-guidance/#diagnose-after-a-halt-never-blind-retries).
+:::
+
 ### `docsxai render`
 
 Builds the static viewer by spawning the `docsxai-viewer` bin, resolved in

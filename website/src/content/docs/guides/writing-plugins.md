@@ -60,6 +60,15 @@ cannot smuggle an undisclosed capability past review. Publisher plugins are
 the only wiki/VCS egress path in the engine - the engine core emits files and
 payloads only.
 
+:::caution[For agents]
+If a doc pack needs to reach a wiki, the answer is a publisher plugin behind
+an `egress:` grant (or `docsxai export adf` handed to the host's own MCP
+tooling) - never a hand-rolled HTTP push from a script. Ad-hoc pushes skip
+capability review, handle credentials ad hoc, and are invisible to the next
+operator. See the
+[agent guidance](/guides/agent-guidance/#publishers-via-the-plugin-runtime-not-hand-rolled-http).
+:::
+
 ## The four extension-point contracts
 
 These are the exact contracts from the engine's plugin surface

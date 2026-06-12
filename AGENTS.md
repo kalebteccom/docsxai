@@ -51,7 +51,7 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 - `packages/viewer/` — `@docsxai/viewer`. The rendering surface: single-file interactive viewer (halo + numbered badges + Popper-placed callouts over clean screenshots), the browser-free `burn` renderer (Satori + resvg baked annotations for static delivery), and the Astro Starlight site emitter (production docs-site output).
 - `packages/plugin-confluence/` — `@docsxai/plugin-confluence`. First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins.
 - `packages/plugin-starlight/` — `@docsxai/plugin-starlight`. First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter.
-- `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
+- `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `agent-guidance.md` (the reach-for-this-not-that footgun map for calibration agents), `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
 - `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — archived phase closure summaries; kept for design-rationale archaeology, not live references.
 - `RELEASING.md` — gated go-public checklist (release is owner-deferred).
 

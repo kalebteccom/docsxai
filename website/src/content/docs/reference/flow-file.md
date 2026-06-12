@@ -32,6 +32,14 @@ locators:
   email_field: '[name="email"]'
 ```
 
+:::caution[For agents]
+Do not armour a broken locator with a fallback list
+(`'#save, [data-testid="save"]'`) - the engine refuses fallbacks on purpose.
+A selector that needs a fallback is a selector that needs fixing; when it
+breaks, the halt is the signal to recalibrate that one locator. See the
+[agent guidance](/guides/agent-guidance/#one-canonical-locator-drift-is-a-signal).
+:::
+
 ## Steps
 
 Every step:
@@ -48,6 +56,16 @@ Every step:
 | `annotation`  | no       | A single callout on this step's screenshot. Shorthand for a one-element `annotations` array.                                                                                                                                                                                                                                                            |
 | `annotations` | no       | Multiple callouts on the same screenshot, rendered as numbered badges (1, 2, ...). Mutually exclusive with `annotation`.                                                                                                                                                                                                                                |
 | `redactions`  | no       | Extra redactions for this step's screenshots, additive on top of the flow-level list.                                                                                                                                                                                                                                                                   |
+
+:::caution[For agents]
+When UI appears only sometimes (a confirm modal, a first-run tooltip), the
+tempting move is a permissive comma-selector that matches "the OK button or
+something harmless" so the step passes on both branches. It mis-clicks the
+moment the harmless element gains a handler. `optional: true` is the
+first-class primitive for exactly this; keep a `wait_for` or `success` guard
+on the step so real regressions are not swallowed (lint R008). See the
+[agent guidance](/guides/agent-guidance/#conditional-ui-optional-true-not-permissive-selectors).
+:::
 
 ### Action types
 

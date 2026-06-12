@@ -9,6 +9,13 @@ locator or success criterion fails, the run halts so you fix the flow-file or
 acknowledge the app changed. Do not retry blindly; read the cause, diagnose,
 edit, re-run.
 
+:::caution[For agents]
+Halts are deterministic: the same flow against the same target state halts
+identically, so a second run tells you nothing new. Spend the next action on
+`docsxai diagnose`, not on a retry. The full temptation list lives in the
+[agent guidance](/guides/agent-guidance/).
+:::
+
 ## Reading a halt
 
 A halted step's error message starts with a `[cause: ...]` prefix inferred
