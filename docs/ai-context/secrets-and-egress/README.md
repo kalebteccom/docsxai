@@ -46,3 +46,5 @@ A new outbound HTTP path:
 - [`../architecture/surface-map.md`](../architecture/surface-map.md) — the load-bearing boundaries.
 - [`../../../AGENTS.md`](../../../AGENTS.md) — "Trust + execution posture" section.
 - [`../../../SECURITY.md`](../../../SECURITY.md) — vulnerability reporting + trust posture.
+
+Per-strategy secret handling + the masking-before-write order: [`auth-catalogue-and-masking.md`](auth-catalogue-and-masking.md).

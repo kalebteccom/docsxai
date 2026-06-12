@@ -8,6 +8,7 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 - Adding a tool to the standalone MCP server (`packages/mcp/`) → read [`tool-registration/mcp-tool-registry.md`](tool-registration/mcp-tool-registry.md).
 - Writing a test → read [`testing/qa-patterns.md`](testing/qa-patterns.md) and [`testing/unit-vs-keystone.md`](testing/unit-vs-keystone.md).
 - Writing or touching a plugin (publisher / renderer / lint-rules / auth-strategy) → read [`plugin-runtime/lifecycle-and-namespacing.md`](plugin-runtime/lifecycle-and-namespacing.md).
+- Adding any gated/acting surface (MCP tool, plugin kind, auth strategy, webhook, output strategy) → read [`architecture/capability-posture-map.md`](architecture/capability-posture-map.md) and [`secrets-and-egress/auth-catalogue-and-masking.md`](secrets-and-egress/auth-catalogue-and-masking.md).
 - Touching the engine runtime, the `BrowserDriver` interface, or auth strategies → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`testing/qa-patterns.md`](testing/qa-patterns.md) — the keystone test is the regression gate.
 - Touching any code path that writes artifacts (screenshots, annotations, halt context, doc-pack zip) → read [`secrets-and-egress/README.md`](secrets-and-egress/README.md).
 - Releasing or changing the surface → read [`release-process/semver-clock.md`](release-process/semver-clock.md).
