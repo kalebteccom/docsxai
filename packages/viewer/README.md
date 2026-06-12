@@ -1,6 +1,6 @@
 # @kalebtec/docsxai-viewer
 
-Static-HTML interactive viewer + burned-annotation renderer. The viewer overlays a pulsing halo, a numbered badge (when a step has multiple call-outs), and a hover-revealed Popper-placed callout from `annotations.json` over clean screenshots at render time. Per-annotation `nudge: { x, y }` lets the author shift a callout aside when two would otherwise overlap; the halo stays anchored on the target.
+Static-HTML interactive viewer + burned-annotation renderer + Starlight docs-site emitter. The viewer overlays a pulsing halo, a numbered badge (when a step has multiple call-outs), and a hover-revealed Popper-placed callout from `annotations.json` over clean screenshots at render time. Per-annotation `nudge: { x, y }` lets the author shift a callout aside when two would otherwise overlap; the halo stays anchored on the target.
 
 PNGs in the doc pack stay clean (no baked annotations) — re-stylable, re-localisable, and machine-inspectable. For delivery surfaces that can't run the interactive viewer (Confluence, Notion, plain wikis), `burn` bakes the same annotations into copies of the PNGs.
 
@@ -10,9 +10,26 @@ PNGs in the doc pack stay clean (no baked annotations) — re-stylable, re-local
 - **`placeCallout(input)`** in `src/placement.ts` — Popper-like placement logic. Pure, coordinate-space-agnostic; tested independently. The single placement implementation shared by the browser overlay and the burner.
 - **`burnAnnotations({ screenshotPath | screenshotBuffer, annotations, options? })`** — returns the burned PNG as a `Buffer`.
 - **`burnFlow({ docsDir, flow, outDir? })`** — batch helper: burns every screenshot of a flow into `docs/<flow>/burned/` (annotation-less steps are copied unchanged so the directory is the complete drop-in image set).
+- **`emitStarlightSite({ workspaceDir, outDir, config? })`** / **`buildStarlightSite({ siteDir })`** — the production docs-site renderer; see [Starlight site](#starlight-site).
 - **`docsxai-viewer`** bin:
   - `docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...` — the engine's `site-docs render` shells out to this.
   - `docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>]` — writes `docs/<flow>/burned/<step>.png`.
+  - `docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...` — emits (and with `--build` builds) the Starlight site.
+
+## Starlight site
+
+`emitStarlightSite` writes a complete, buildable [Astro Starlight](https://starlight.astro.build/) project from a doc pack — the production docs-site renderer beside the single-file interactive viewer, not a replacement for it. The first-party plugin package `@kalebtec/docsxai-plugin-starlight` exposes it to the engine's plugin runtime as the `starlight:site` renderer.
+
+What gets emitted:
+
+- **One MDX page per flow** — an H2 per step, the step's `<step>.md` prose verbatim, and an `<AnnotatedShot>` figure per screenshot. The figure's caption lists each annotation's copy, numbered (`<li value>`) to match the badge indexes burned into the image — caption numbering and burned pixels can't drift apart.
+- **Burned-image preference** — `docs/<flow>/burned/<step>.png` is copied when present, the clean screenshot is the fallback, and a missing image becomes a placeholder plus a warning (never a failure).
+- **A landing page** of flow link-cards with step/annotation counts, and a **sidebar ordered by the workspace's flow `extends` graph** (roots alphabetical, children nested DFS; flows without a flow-file append alphabetically) — the same shape as `site-docs flow-tree`.
+- **Theme from the style artifact** — `docs/style.json`'s `visual` keys (`brand_color` > `accent` > `primary_color`) become a derived `--sl-color-accent-*` scale for both color schemes; `visual.logo` is copied in. Explicit `--title` / `--accent` / `--logo` config overrides win. An unparsable style accent is a warning; an unparsable explicit accent is an error.
+- **Pinned, self-contained output** — the emitted `package.json` exact-pins `astro@6.4.6` + `@astrojs/starlight@0.40.0` (both MIT; matching this package's devDependencies, where the pair is tested). No remote fonts, no CDN imports anywhere in the emitted tree — Starlight ships its own assets and Pagefind search at build time; a test greps every emitted text file for external URLs.
+- **Deterministic** — same doc pack + same config → byte-identical file tree (no timestamps, sorted writes), asserted by a two-emit golden test.
+
+`buildStarlightSite({ siteDir })` runs `astro build` programmatically: it resolves the astro bin from this package's own install and, when the emitted site has no `node_modules`, symlinks that install in — so building never touches the network. `ASTRO_TELEMETRY_DISABLED=1` is always set. The real-build E2E test is opt-in via `SITE_DOCS_STARLIGHT_BUILD=1` (the default test run never invokes astro).
 
 ## Overlay single-sourcing
 
