@@ -122,7 +122,10 @@ itself still succeeds:
 
 ```json
 // call
-{ "name": "diagnose_halt", "arguments": { "flow": "publish-post", "step": "publish", "cdp": "http://localhost:9222" } }
+{
+  "name": "diagnose_halt",
+  "arguments": { "flow": "publish-post", "step": "publish", "cdp": "http://localhost:9222" }
+}
 ```
 
 **Failure shape.** Any tool that cannot proceed returns the error pair

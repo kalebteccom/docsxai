@@ -8,18 +8,18 @@
 
 The one-line map:
 
-| Temptation                                                  | Reach for instead                                                        |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
-| A permissive comma-selector for UI that sometimes appears   | `optional: true` on the step                                             |
-| Running the flow to see if it works                         | `docsxai lint` first — write-time signal beats run-time halt             |
-| Re-walking a long flow to test one new step                 | `run --flow <name> --start-from <step> --cdp <endpoint>`                 |
-| Selector fallback lists                                     | One canonical locator; a halt is drift, recalibrate                      |
-| Fudging screenshots that differ per run                     | Pin the `environment` block (clock, locale, timezone, viewport)          |
-| Editing PNGs to hide sensitive UI                           | `redactions` in the flow-file                                            |
-| Hand-rolled HTTP push to a wiki                             | A publisher plugin + an `egress:<host>` capability grant                 |
-| Writing artifacts via absolute paths                        | Workspace-rooted IO only — path escapes throw                            |
-| Raw JS eval against the live page during calibration        | browxai's curated `find()` / `snapshot()` surface                        |
-| Retrying a halted run                                       | `docsxai diagnose`, edit the flow, then `run --start-from`               |
+| Temptation                                                | Reach for instead                                               |
+| --------------------------------------------------------- | --------------------------------------------------------------- |
+| A permissive comma-selector for UI that sometimes appears | `optional: true` on the step                                    |
+| Running the flow to see if it works                       | `docsxai lint` first — write-time signal beats run-time halt    |
+| Re-walking a long flow to test one new step               | `run --flow <name> --start-from <step> --cdp <endpoint>`        |
+| Selector fallback lists                                   | One canonical locator; a halt is drift, recalibrate             |
+| Fudging screenshots that differ per run                   | Pin the `environment` block (clock, locale, timezone, viewport) |
+| Editing PNGs to hide sensitive UI                         | `redactions` in the flow-file                                   |
+| Hand-rolled HTTP push to a wiki                           | A publisher plugin + an `egress:<host>` capability grant        |
+| Writing artifacts via absolute paths                      | Workspace-rooted IO only — path escapes throw                   |
+| Raw JS eval against the live page during calibration      | browxai's curated `find()` / `snapshot()` surface               |
+| Retrying a halted run                                     | `docsxai diagnose`, edit the flow, then `run --start-from`      |
 
 ## Conditional UI: `optional: true`, not permissive selectors
 
