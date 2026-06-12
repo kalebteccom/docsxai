@@ -92,7 +92,7 @@ The engine hosts a workspace plugin runtime (v1) with four extension points: **p
 ```
 
 - `apiVersion` — exact semver of the runtime contract the plugin codes against. Must share the engine's `RUNTIME_API_VERSION` major with minor ≤ the runtime's, or the plugin load-errors.
-- `namespace` — mandatory, `/^[a-z][a-z0-9-]*$/`. Every registered artifact is exposed as `<namespace>:<name>` (the runtime prefixes; plugins pass bare names). Reserved: `docsxai`, `docsxai`, `core`, `plugins`. Two plugins claiming one namespace are **both** disabled.
+- `namespace` — mandatory, `/^[a-z][a-z0-9-]*$/`. Every registered artifact is exposed as `<namespace>:<name>` (the runtime prefixes; plugins pass bare names). Reserved: `site-docs`, `docsxai`, `core`, `plugins`. Two plugins claiming one namespace are **both** disabled.
 - `kinds` — the extension points the plugin registers (≥1). Registering an undeclared kind throws and load-errors the plugin (capability-disclosure honesty).
 - `capabilities` — `egress:<host-glob>` declarations, subset-checked against the workspace's `plugin_capabilities`. Mismatch disables the plugin (status, not fatal). Publisher plugins are the **only** wiki/VCS egress path in the engine.
 - `dependsOn` — `{ plugin, version }` entries (package name + `^`/`~`/exact range). Load order is topological; cycles are rejected as a unit.

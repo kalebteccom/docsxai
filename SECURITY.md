@@ -11,9 +11,10 @@ will not commit to, and how to report a vulnerability.
 
 ## Supported versions
 
-docsxai is **pre-v1.0**. The current `docsxai` on npm is a typosquat-
-defensive pre-release stub that throws on import (see [`RELEASING.md`](RELEASING.md));
-the real package ships at v1.0. Until then:
+docsxai is **pre-v1.0** and unpublished. At the public flip the bare
+`docsxai` npm name is claimed with a typosquat-defensive stub that throws
+on import (see [`RELEASING.md`](RELEASING.md)); the real packages ship at
+v1.0. Until then:
 
 | Version range              | Support level                                                                                                                                                               |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -105,8 +106,8 @@ The following are not docsxai vulnerabilities:
   local-root attackers.
 - Social engineering, physical access, and denial-of-service via
   resource exhaustion on the operator's own machine.
-- Issues in adopter-side configuration (running the backend with
-  `--bind 0.0.0.0` on an untrusted network, running docsxai with
+- Issues in adopter-side configuration (exposing the backend beyond
+  loopback on an untrusted network, running docsxai with
   elevated OS privileges, calibrating against a hostile target site).
 - Issues in third-party flows or doc packs distributed by adopters.
   Report those to the doc pack's owner.

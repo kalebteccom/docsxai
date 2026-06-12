@@ -57,11 +57,6 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 - **Hand-off** — `docsxai zip` packages a reviewer-ready archive (excludes operator-local `.auth/`, halts, `.viewer/`).
 - **Backend client** — `docsxai login` / `push` / `pull` against the stub backend (linear immutable revisions).
 
-#### Engine — ADF export + Confluence publisher
-
-- **`docsxai export adf`** + `projectDocPackToAdf` — pure, deterministic Atlassian-Document-Format projection of a doc pack (markdown-subset → ADF, burned-screenshot media references with clean-screenshot fallback, single consolidated page or opt-in page-tree). Writes the agentic-path artifact a host agent hands to the Atlassian MCP.
-- **`@docsxai/plugin-confluence`** — first-party `confluence:push` publisher plugin (the plugin runtime's keystone consumer): Confluence Cloud REST v2 via built-in fetch, `egress:*.atlassian.net` capability, create/update keyed on a `docsxai-content-sha` content-property so re-publishes are idempotent (3×-republish test: zero mutations), attachment dedupe by sha, `{ section → pageId }` page-identity map for backend revision metadata, `<CONFLUENCE_TOKEN>` masking on every error path. Live-site validation remains owner-gated.
-
 #### Viewer — Starlight docs site (`@docsxai/viewer`)
 
 - **`emitStarlightSite` / `buildStarlightSite` + `docsxai-viewer site`** — emits a complete, buildable Astro Starlight project from a doc pack: one MDX page per flow (H2 per step, step prose verbatim, `<AnnotatedShot>` figures with captions numbered to the burned badge indexes), a landing page of flow cards, a sidebar ordered by the flow `extends` graph, theme accent/logo from the style artifact's `visual` keys (`--title`/`--accent` overrides). Burned PNGs preferred, clean-screenshot fallback. Deterministic (two emits byte-identical), self-contained (no remote fonts/CDN imports); `astro@6.4.6` + `@astrojs/starlight@0.40.0` (MIT) exact-pinned into the emitted `package.json`; `--build` runs `astro build` against the workspace-pinned install via per-package symlinks (zero network at build), real-build E2E gated behind `DOCSX_STARLIGHT_BUILD=1`. The single-file interactive viewer remains the zero-dependency default/embed renderer.

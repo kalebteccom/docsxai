@@ -6,7 +6,7 @@
 
 > **OSS engine + Claude Code plugin that walks a web application, follows written flows, and emits screenshot-rich user documentation.** LLM-agnostic engine — the host agent supplies inference, the engine never calls a model API.
 
-> **Naming.** One name everywhere: GitHub repo `kalebteccom/docsxai`, CLI `docsxai`, npm packages `@docsxai/*` (org registered). The bare `docsxai` on npm is a pre-release stub that throws on import — see [`RELEASING.md`](RELEASING.md). The real packages ship at `v1.0`.
+> **Naming.** One name everywhere: GitHub repo `kalebteccom/docsxai`, CLI `docsxai`, npm packages `@docsxai/*` (org registered). The bare `docsxai` npm name will be claimed at the public flip with a pre-release stub that throws on import (see [`RELEASING.md`](RELEASING.md)); the real packages ship at `v1.0`.
 
 The keystone bet: write a flow once (by hand, or via an agent-driven calibration cycle); replay it any time after that with **zero agent involvement and zero LLM calls** to produce fresh, deterministic docs. Calibration is rare and human-supervised; execution is cheap and CI-friendly.
 
@@ -60,7 +60,9 @@ docsxai calibrate ~/docsxai/my-app --from path/to/flow-guide.md
 docsxai run ~/docsxai/my-app
 
 # 5. Render the interactive viewer
-docsxai render ~/docsxai/my-app
+#    (from a source checkout, point the engine at the built viewer bin;
+#     installed @docsxai/viewer is found automatically)
+DOCSX_VIEWER_BIN="$PWD/packages/viewer/dist/index.js" docsxai render ~/docsxai/my-app
 open ~/docsxai/my-app/.viewer/index.html
 
 # 6. (When ready to hand off) package the doc pack into a zip
@@ -96,6 +98,9 @@ docsxai flow-tree <workspace>      # visualise the `extends` graph
 docsxai diagnose <workspace>       # halt-context + recommendations after a halt
 docsxai style <workspace>          # init/validate style.yaml; --check scans for jargon leaks
 docsxai zip <workspace>            # package the doc pack for hand-off (deterministic, in-process)
+docsxai baseline <workspace>       # snapshot the doc pack for drift comparison
+docsxai diff <workspace>           # deterministic drift report (--fail-on warn|fail CI gate)
+docsxai export adf|playwright      # wiki projection / Playwright spec export
 docsxai plugins <list|info|sync>   # workspace plugin runtime: status, manifests, sha256 lock
 docsxai export adf <workspace>     # pure Confluence ADF projection (agentic-path artifact)
 docsxai login [--oauth] / push / pull   # backend persistence (OAuth 2.1 PKCE or CI bearer)

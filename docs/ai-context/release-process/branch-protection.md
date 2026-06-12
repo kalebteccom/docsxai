@@ -1,12 +1,12 @@
 # Branch protection — stub
 
-Placeholder. The richer required-ruleset configuration matures alongside the public-flip checklist. Today the repo is private and the release path is `workflow_dispatch:`-gated; full branch-ruleset configuration goes into effect at the public flip.
+Placeholder. The richer required-ruleset configuration matures alongside the public-flip checklist. Today the repo is private; `release.yml` triggers on `v*.*.*` tag pushes, and the `release` environment approval that gates the publish jobs becomes enforceable at the public flip (environment protection is unavailable on private free-plan repos). Full branch-ruleset configuration goes into effect at the flip.
 
 ## What's already in place
 
 - `main` is the integration branch. PRs land via `gh pr create` + review.
 - Commits on `main` are signed (server-side requirement on the upstream repo). Local signing config must match.
-- `release.yml` is `workflow_dispatch:`-only until a maintainer triggers it explicitly. No automatic publish on tag-push at this stage.
+- `release.yml` runs on `v*.*.*` tag pushes; tags are maintainer-only today (private repo, single committer), and the publish jobs additionally sit behind the `release` environment once the flip makes that enforceable.
 
 ## What lands at the public flip
 
