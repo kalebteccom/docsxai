@@ -1,0 +1,51 @@
+{
+  "name": "@kalebtec/docsxai-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone stdio MCP server over the docsxai engine: calibration meta-orchestration + read-only doc-pack introspection for any MCP-speaking host.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalebteccom/docsxai.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/kalebteccom/docsxai#readme",
+  "bugs": "https://github.com/kalebteccom/docsxai/issues",
+  "keywords": [
+    "docsxai",
+    "documentation",
+    "mcp",
+    "model-context-protocol",
+    "agent"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "docsxai-mcp": "./dist/bin.js"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@kalebtec/docsxai-engine": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "playwright-core": "^1.47.0",
+    "vitest": "^2.0.0"
+  }
+}
