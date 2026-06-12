@@ -11,7 +11,7 @@ import {
 let tmp = "";
 beforeEach(async () => {
   // realpath up front — macOS tmpdir is itself a symlink (/var → /private/var)
-  tmp = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-wsp-test-")));
+  tmp = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-wsp-test-")));
 });
 afterEach(async () => {
   await fs.rm(tmp, { recursive: true, force: true });

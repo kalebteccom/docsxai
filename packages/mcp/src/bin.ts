@@ -10,7 +10,7 @@ Usage:
   docsxai-mcp [--workspace <dir>]
 
 Options:
-  --workspace <dir>   Default site-docs workspace for tool calls that omit \`workspace\`.
+  --workspace <dir>   Default docsxai workspace for tool calls that omit \`workspace\`.
   --help              Show this message.
 `;
 

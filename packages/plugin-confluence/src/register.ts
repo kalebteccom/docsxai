@@ -1,7 +1,7 @@
 // Plugin entry point — `package.json#docsxai.register` points here (built form). The runtime
 // prefixes the bare name with the manifest namespace: the publisher is `confluence:push`.
 
-import type { PluginRegisterApi } from "@kalebtec/docsxai-engine";
+import type { PluginRegisterApi } from "@docsxai/engine";
 import { createConfluencePublisher } from "./publisher.js";
 
 export function register(api: PluginRegisterApi): void {

@@ -4,12 +4,8 @@
 // renderer context's `config` keys (title / accent / logo / build) and flow filter through.
 
 import * as path from "node:path";
-import type { RendererContext, RendererPlugin, RendererResult } from "@kalebtec/docsxai-engine";
-import {
-  buildStarlightSite,
-  emitStarlightSite,
-  type StarlightSiteConfig,
-} from "@kalebtec/docsxai-viewer";
+import type { RendererContext, RendererPlugin, RendererResult } from "@docsxai/engine";
+import { buildStarlightSite, emitStarlightSite, type StarlightSiteConfig } from "@docsxai/viewer";
 
 function stringOpt(config: Record<string, unknown>, key: string): string | undefined {
   const v = config[key];

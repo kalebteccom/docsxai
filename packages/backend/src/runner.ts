@@ -1,6 +1,6 @@
 // The real webhook run executor. Materializes the configured revision's artifacts from the store
 // into a temp workspace dir (same-process store reads — no HTTP hop), spawns the engine CLI
-// (`site-docs run`), records the outcome in run-history, then routes output through the configured
+// (`docsxai run`), records the outcome in run-history, then routes output through the configured
 // strategy. Everything effectful is injectable (spawn, strategy, env) so the whole path is
 // unit-testable with a fake engine bin.
 
@@ -19,15 +19,15 @@ import {
   type StrategyResult,
 } from "./strategy.js";
 
-export const ENGINE_BIN_ENV = "SITE_DOCS_ENGINE_BIN";
-export const ENGINE_PACKAGE = "@kalebtec/docsxai-engine";
-export const ENGINE_BIN_NAME = "site-docs";
+export const ENGINE_BIN_ENV = "DOCSX_ENGINE_BIN";
+export const ENGINE_PACKAGE = "@docsxai/engine";
+export const ENGINE_BIN_NAME = "docsxai";
 
 /**
  * Resolve the engine CLI like the engine resolves its viewer bin:
- *   1. `SITE_DOCS_ENGINE_BIN` env override (a path to the bin script);
- *   2. the installed `@kalebtec/docsxai-engine` package's `site-docs` bin entry;
- *   3. bare `site-docs` on PATH.
+ *   1. `DOCSX_ENGINE_BIN` env override (a path to the bin script);
+ *   2. the installed `@docsxai/engine` package's `docsxai` bin entry;
+ *   3. bare `docsxai` on PATH.
  */
 export function resolveEngineBin(env: NodeJS.ProcessEnv = process.env): string {
   const fromEnv = env[ENGINE_BIN_ENV];
@@ -85,7 +85,7 @@ export class SpawnRunner {
   materializeWorkspace(job: WebhookJob): string {
     const { store, workRoot } = this.opts;
     const rev = store.getRevision(job.workspace_id, job.project_id, job.config.workspace_rev);
-    const dir = fs.mkdtempSync(path.join(workRoot ?? os.tmpdir(), "site-docs-webhook-"));
+    const dir = fs.mkdtempSync(path.join(workRoot ?? os.tmpdir(), "docsxai-webhook-"));
     for (const slot of rev.artifacts) {
       const payload = store.getArtifact(job.workspace_id, job.project_id, rev.id, slot);
       fs.writeFileSync(path.join(dir, `${slot}.json`), JSON.stringify(payload, null, 2) + "\n");

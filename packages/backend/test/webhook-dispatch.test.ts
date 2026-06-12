@@ -7,7 +7,7 @@ const CONFIG: WebhookConfig = {
   events: ["push"],
   strategy: "pr-comment",
   workspace_rev: "head",
-  secret_env: "SITE_DOCS_WEBHOOK_SECRET",
+  secret_env: "DOCSX_WEBHOOK_SECRET",
   enabled: true,
 };
 

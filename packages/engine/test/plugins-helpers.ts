@@ -18,20 +18,16 @@ export function fixturePlugin(name: string): string {
 
 const createdWorkspaces: string[] = [];
 
-/** Temp workspace with a `.site-docs.json`; `overrides` merge into the config JSON. */
+/** Temp workspace with a `.docsxai.json`; `overrides` merge into the config JSON. */
 export async function makeWorkspace(overrides: Record<string, unknown> = {}): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-plugins-test-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-plugins-test-"));
   createdWorkspaces.push(dir);
   const cfg = {
-    schema: "site-docs/workspace@1",
+    schema: "docsxai/workspace@1",
     created_at: "2026-01-01T00:00:00.000Z",
     ...overrides,
   };
-  await fs.writeFile(
-    path.join(dir, ".site-docs.json"),
-    JSON.stringify(cfg, null, 2) + "\n",
-    "utf8",
-  );
+  await fs.writeFile(path.join(dir, ".docsxai.json"), JSON.stringify(cfg, null, 2) + "\n", "utf8");
   return dir;
 }
 

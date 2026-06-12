@@ -1,7 +1,7 @@
 // Playwright-backed InstrumentedBrowser — the security-lowered, instrumented Chrome `manual-capture` drives.
 //
 // The plugin spawns this; the engineer logs into the target site interactively (Azure AD SSO, MFA,
-// conditional access — anything a human can click through); a console call `window.__siteDocs.capture()`
+// conditional access — anything a human can click through); a console call `window.__docsxai.capture()`
 // (or an injected on-page button) snapshots `storageState`. `--disable-web-security` etc. let the injected
 // helper work across the SSO-redirect origins and relaxed CSP. Headed by default — the human needs to see it.
 
@@ -15,7 +15,7 @@ export const SECURITY_LOWERED_ARGS: readonly string[] = [
   "--disable-site-isolation-trials",
 ];
 
-const CAPTURE_BINDING = "__siteDocs_capture";
+const CAPTURE_BINDING = "__docsxai_capture";
 
 export interface PlaywrightInstrumentedBrowserOptions {
   /** Headed by default (the human logs in there). Set true to run headless — for automated tests only. (Ignored when attaching.) */
@@ -36,7 +36,7 @@ export interface PlaywrightInstrumentedBrowserOptions {
    * of launching a fresh one. Use this to capture from the *same* Chrome the engineer is already logged into —
    * and that Claude in Chrome is driving for discovery — so they don't log in twice. Start that Chrome with
    * `--remote-debugging-port=9222 --disable-web-security --disable-features=IsolateOrigins,site-per-process --user-data-dir=<dir>`.
-   * site-docs will **not** close it on `close()` — it's the engineer's session.
+   * docsxai will **not** close it on `close()` — it's the engineer's session.
    */
   connectOverCdp?: string;
 }
@@ -44,8 +44,8 @@ export interface PlaywrightInstrumentedBrowserOptions {
 /**
  * The injected page-side helper. Self-cleans when the Node-side binding is gone (which happens
  * when the Playwright client detaches — e.g. `capture-auth` finishes and disconnects from a
- * shared `--cdp` Chrome that stays alive). Without this guard, a stale `__siteDocs.capture()`
- * call after detach throws `Function "__siteDocs_capture" is not exposed` in the page console —
+ * shared `--cdp` Chrome that stays alive). Without this guard, a stale `__docsxai.capture()`
+ * call after detach throws `Function "__docsxai_capture" is not exposed` in the page console —
  * cosmetic, but alarming to operators sharing the Chrome with another tool.
  *
  * Exported for unit-testing (run the returned script in a `vm` sandbox against a mock window).
@@ -53,26 +53,26 @@ export interface PlaywrightInstrumentedBrowserOptions {
 export function helperScript(trigger: CaptureTrigger): string {
   const button =
     trigger === "button"
-      ? `if (!document.getElementById("__siteDocs_btn")) {
+      ? `if (!document.getElementById("__docsxai_btn")) {
            var b = document.createElement("button");
-           b.id = "__siteDocs_btn"; b.textContent = "\\u2713 Capture session for site-docs";
+           b.id = "__docsxai_btn"; b.textContent = "\\u2713 Capture session for docsxai";
            b.style.cssText = "position:fixed;z-index:2147483647;right:12px;bottom:12px;padding:10px 14px;background:#1c1c1c;color:#fff;border:0;border-radius:8px;font:14px system-ui;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)";
-           b.onclick = function () { window.__siteDocs.capture(); };
+           b.onclick = function () { window.__docsxai.capture(); };
            (document.body || document.documentElement).appendChild(b);
          }`
       : "";
   return `(function () {
-    window.__siteDocs = window.__siteDocs || {};
-    window.__siteDocs.capture = function () {
+    window.__docsxai = window.__docsxai || {};
+    window.__docsxai.capture = function () {
       if (typeof window.${CAPTURE_BINDING} !== "function") {
         // Backing binding is gone (the Playwright client that injected this helper has detached).
         // Self-clean: drop the button + the helper, log a friendly note. Reload or re-run
-        // \`site-docs capture-auth\` to install a fresh helper.
-        var staleBtn = document.getElementById("__siteDocs_btn");
+        // \`docsxai capture-auth\` to install a fresh helper.
+        var staleBtn = document.getElementById("__docsxai_btn");
         if (staleBtn) staleBtn.remove();
-        delete window.__siteDocs.capture;
+        delete window.__docsxai.capture;
         if (typeof console !== "undefined" && console.info) {
-          console.info("[site-docs] capture helper detached; reload the page or re-run \`site-docs capture-auth\` to re-install.");
+          console.info("[docsxai] capture helper detached; reload the page or re-run \`docsxai capture-auth\` to re-install.");
         }
         return undefined;
       }
@@ -213,9 +213,9 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
 
   async close(): Promise<void> {
     if (this.attached) {
-      // Don't touch the engineer's Chrome — just detach. The injected `__siteDocs` helper detects
+      // Don't touch the engineer's Chrome — just detach. The injected `__docsxai` helper detects
       // the backing binding is gone on its next invocation, removes its injected button if any,
-      // logs a friendly info message, and self-deletes from `window.__siteDocs.capture`. Safe to
+      // logs a friendly info message, and self-deletes from `window.__docsxai.capture`. Safe to
       // share the Chrome with other automation clients.
       this.context = undefined;
       this.browser = undefined;

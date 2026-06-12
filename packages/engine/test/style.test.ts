@@ -26,7 +26,7 @@ describe("stylePathsFor", () => {
 describe("style — load/write/init", () => {
   let tmp = "";
   beforeEach(async () => {
-    tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-style-"));
+    tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-style-"));
   });
   afterEach(async () => {
     await fs.rm(tmp, { recursive: true, force: true });
@@ -115,7 +115,7 @@ describe("scanTextForJargon", () => {
 describe("scanWorkspaceForJargon", () => {
   let tmp = "";
   beforeEach(async () => {
-    tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-style-scan-"));
+    tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-style-scan-"));
   });
   afterEach(async () => {
     await fs.rm(tmp, { recursive: true, force: true });
@@ -140,7 +140,7 @@ describe("scanWorkspaceForJargon", () => {
     await fs.writeFile(path.join(tmp, "docs", "f1", "screenshot.png"), "fake", "utf8");
     await fs.writeFile(
       path.join(tmp, "docs", "f1", "annotations.json"),
-      '{"schema":"site-docs/annotations@1","flow":"f1","annotations":[]}',
+      '{"schema":"docsxai/annotations@1","flow":"f1","annotations":[]}',
       "utf8",
     );
     expect(await scanWorkspaceForJargon(tmp, DEFAULT_STYLE)).toEqual([]);
@@ -150,7 +150,7 @@ describe("scanWorkspaceForJargon", () => {
     await fs.mkdir(path.join(tmp, "docs", "f1"), { recursive: true });
     await fs.writeFile(path.join(tmp, "docs", "f1", "x.md"), "VERIFY all the things.", "utf8");
     expect(
-      await scanWorkspaceForJargon(tmp, { schema: "site-docs/style@1", pruning_rules: [] }),
+      await scanWorkspaceForJargon(tmp, { schema: "docsxai/style@1", pruning_rules: [] }),
     ).toEqual([]);
   });
 });

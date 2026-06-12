@@ -1,13 +1,13 @@
 // Calibration — the deterministic, structured-input path.
 //
-// `site-docs calibrate <workspace> --from <flow.md|.yaml>` takes a *structured flow-guide* — a flow-file in
+// `docsxai calibrate <workspace> --from <flow.md|.yaml>` takes a *structured flow-guide* — a flow-file in
 // YAML, or a Markdown doc containing a ```yaml fenced block that parses as one (the the first-consumer testing guide
 // shape: prerequisites + locators reference + per-step actions + success criteria) — and writes it as
-// `<workspace>/flows/<name>.flow.yaml`, plus a default `docs/style.yaml` if absent. Then `site-docs run`
+// `<workspace>/flows/<name>.flow.yaml`, plus a default `docs/style.yaml` if absent. Then `docsxai run`
 // exercises it against the live app to fill in screenshots + bounding boxes + the real `annotations.json`.
 //
 // Loose-prose flow descriptions (and live element-picking / ambiguity resolution) need the host agent —
-// that's the `/site-docs:calibrate` *skill* (see packages/plugin/skills/calibrate/SKILL.md); ambiguity
+// that's the `/docsxai:calibrate` *skill* (see packages/plugin/skills/calibrate/SKILL.md); ambiguity
 // signalling lives at the MCP/skill layer. This module covers only the part that's deterministic.
 
 import { promises as fs } from "node:fs";
@@ -59,12 +59,12 @@ export function extractFlowFile(text: string, source = "<flow-guide>"): FlowFile
     `${source}: not a structured flow-guide (no parseable flow-file YAML found).\n` +
       `\`calibrate --from\` only takes a flow-file in YAML, or a Markdown doc with a \`\`\`yaml fenced block that *is* one.\n` +
       `Loose prose — e.g. a hand-written test guide whose fenced blocks are numbered prose pseudo-steps for an agent\n` +
-      `to *test* rather than flow-file YAML — must be turned into a flow-file by hand: follow the /site-docs:calibrate skill\n` +
+      `to *test* rather than flow-file YAML — must be turned into a flow-file by hand: follow the /docsxai:calibrate skill\n` +
       `(walk the live app via Claude in Chrome, pin one canonical locator per step), then \`calibrate --from\` it or just \`run\`.`,
   );
 }
 
-// Default style is owned by the style module so `site-docs style init` and `calibrate` agree.
+// Default style is owned by the style module so `docsxai style init` and `calibrate` agree.
 
 export interface CalibrateOptions {
   workspaceDir: string;

@@ -18,7 +18,7 @@ import {
 } from "../src/auth.js";
 
 const MANUAL_CAPTURE_DESCRIPTOR = `
-schema: site-docs/auth-strategy@1
+schema: docsxai/auth-strategy@1
 default_role: editor
 roles:
   editor:
@@ -28,7 +28,7 @@ roles:
 `;
 
 const API_LOGIN_DESCRIPTOR = `
-schema: site-docs/auth-strategy@1
+schema: docsxai/auth-strategy@1
 default_role: editor
 roles:
   editor:
@@ -85,12 +85,12 @@ describe("parseAuthStrategyFile", () => {
   });
 
   it("rejects a descriptor whose default_role isn't in roles", () => {
-    const bad = `schema: site-docs/auth-strategy@1\ndefault_role: nope\nroles: { editor: { strategy: manual-capture } }\n`;
+    const bad = `schema: docsxai/auth-strategy@1\ndefault_role: nope\nroles: { editor: { strategy: manual-capture } }\n`;
     expect(() => parseAuthStrategyFile(bad)).toThrow(AuthStrategyConfigError);
   });
 
   it("rejects an unknown strategy name", () => {
-    const bad = `schema: site-docs/auth-strategy@1\ndefault_role: e\nroles: { e: { strategy: telepathy } }\n`;
+    const bad = `schema: docsxai/auth-strategy@1\ndefault_role: e\nroles: { e: { strategy: telepathy } }\n`;
     expect(() => parseAuthStrategyFile(bad)).toThrow(AuthStrategyConfigError);
   });
 });
@@ -215,7 +215,7 @@ describe("cookie expiry helpers", () => {
 describe("LocalStorageStateCache — expiry priority: auth_cookie > ttl > default", () => {
   let dir = "";
   beforeEach(async () => {
-    dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-cache-"));
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-cache-"));
   });
   afterEach(async () => {
     await fs.rm(dir, { recursive: true, force: true });
@@ -223,7 +223,7 @@ describe("LocalStorageStateCache — expiry priority: auth_cookie > ttl > defaul
   const now = 1_700_000_000_000;
   const roleAuth = (cache: Record<string, unknown>) =>
     parseAuthStrategyFile(
-      `schema: site-docs/auth-strategy@1\ndefault_role: editor\nroles: { editor: { strategy: manual-capture, cache: ${JSON.stringify(cache)} } }`,
+      `schema: docsxai/auth-strategy@1\ndefault_role: editor\nroles: { editor: { strategy: manual-capture, cache: ${JSON.stringify(cache)} } }`,
     ).roles.editor!;
 
   it("uses the auth_cookie's real expiry when set and present — ignoring ttl entirely", async () => {

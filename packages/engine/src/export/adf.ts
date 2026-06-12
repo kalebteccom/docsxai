@@ -1,7 +1,7 @@
 // ADF (Atlassian Document Format) projection of a doc pack — pure, deterministic, zero HTTP.
 //
 // The engine emits projections only; all Confluence egress lives in the capability-declared
-// publisher plugin (`@kalebtec/docsxai-plugin-confluence`). This module turns a workspace's
+// publisher plugin (`@docsxai/plugin-confluence`). This module turns a workspace's
 // doc pack (flow-files + step write-ups + burned screenshots) into Confluence Cloud REST v2
 // `atlas_doc_format` documents plus an attachments manifest, in one of two shapes:
 //
@@ -64,7 +64,7 @@ export interface AdfDocument {
 }
 
 export interface AdfProjection {
-  schema: "site-docs/adf-projection@1";
+  schema: "docsxai/adf-projection@1";
   mode: AdfExportMode;
   documents: AdfDocument[];
   warnings: string[];
@@ -405,7 +405,7 @@ export async function projectDocPackToAdf(opts: {
       ],
     };
     return {
-      schema: "site-docs/adf-projection@1",
+      schema: "docsxai/adf-projection@1",
       mode,
       documents: [
         { section: "project", title, adf: overview, attachments: [] },
@@ -422,7 +422,7 @@ export async function projectDocPackToAdf(opts: {
 
   // single: stitch every flow's section into one consolidated document.
   return {
-    schema: "site-docs/adf-projection@1",
+    schema: "docsxai/adf-projection@1",
     mode,
     documents: [
       {

@@ -50,7 +50,7 @@ describe("revision finalization over HTTP", () => {
     const before = await fetch(`${revUrl}/style`, {
       method: "PUT",
       headers: h(),
-      body: JSON.stringify({ schema: "site-docs/style-bundle@1", yaml: "x: y\n", json: null }),
+      body: JSON.stringify({ schema: "docsxai/style-bundle@1", yaml: "x: y\n", json: null }),
     });
     expect(before.status).toBe(200);
 
@@ -71,7 +71,7 @@ describe("revision finalization over HTTP", () => {
     const after = await fetch(`${revUrl}/style`, {
       method: "PUT",
       headers: h(),
-      body: JSON.stringify({ schema: "site-docs/style-bundle@1", yaml: "tampered\n", json: null }),
+      body: JSON.stringify({ schema: "docsxai/style-bundle@1", yaml: "tampered\n", json: null }),
     });
     expect(after.status).toBe(409);
     expect(((await after.json()) as { error: string }).error).toBe("revision-finalized");

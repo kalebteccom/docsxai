@@ -134,7 +134,7 @@ describe("runFlow", () => {
       "fill #title=My recap",
     ]);
     expect(r.annotations).toEqual({
-      schema: "site-docs/annotations@1",
+      schema: "docsxai/annotations@1",
       flow: "recap-open",
       annotations: [
         {

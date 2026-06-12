@@ -5,7 +5,7 @@
   "private": true,
   "docsxai": {
     "apiVersion": "1.0.0",
-    "namespace": "site-docs",
+    "namespace": "docsxai",
     "register": "./register.mjs",
     "kinds": [
       "publisher"

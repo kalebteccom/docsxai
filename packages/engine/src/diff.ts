@@ -1,8 +1,8 @@
 // Doc-pack drift detection — deterministic diff between two doc-pack directories.
 //
 // The engine DETECTS drift and reports it; proposing flow-file patches is the host agent's
-// calibration-time job (`diagnose` feeds that loop). `site-docs baseline` snapshots a doc pack;
-// `site-docs diff` compares the live workspace against it and emits this module's DriftReport —
+// calibration-time job (`diagnose` feeds that loop). `docsxai baseline` snapshots a doc pack;
+// `docsxai diff` compares the live workspace against it and emits this module's DriftReport —
 // per flow: step deltas (id-keyed field changes), annotation moves (bounding-box delta beyond a
 // pixel tolerance), screenshot pixel diffs (pngjs, exact RGBA compare, ignore-region aware),
 // prose line-change counts, and locator changes. Reports carry no timestamps: same two doc packs
@@ -137,7 +137,7 @@ export interface DriftSummary {
 }
 
 export interface DriftReport {
-  schema: "site-docs/drift@1";
+  schema: "docsxai/drift@1";
   a: string;
   b: string;
   /** Only flows with drift appear; sorted by flow name. */
@@ -561,7 +561,7 @@ export async function diffDocPacks(
   }
 
   return {
-    schema: "site-docs/drift@1",
+    schema: "docsxai/drift@1",
     a: aDir,
     b: bDir,
     flows,
@@ -648,7 +648,7 @@ function flowDetailLines(f: FlowDrift): string[] {
 
 /** PR-comment-ready markdown rendering of a {@link DriftReport}. */
 export function formatDriftReportMarkdown(report: DriftReport): string {
-  const lines: string[] = ["# site-docs drift report", ""];
+  const lines: string[] = ["# docsxai drift report", ""];
   lines.push(`\`${report.a}\` → \`${report.b}\``, "");
   if (report.flows.length === 0) {
     lines.push("No drift detected.", "");

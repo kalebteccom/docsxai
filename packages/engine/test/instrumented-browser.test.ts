@@ -19,7 +19,7 @@ describe("PlaywrightInstrumentedBrowser", () => {
   });
 
   it("accepts a profileDir option (persistent profile — login survives between captures)", () => {
-    const b = new PlaywrightInstrumentedBrowser({ profileDir: "/tmp/site-docs-chrome-profile" });
+    const b = new PlaywrightInstrumentedBrowser({ profileDir: "/tmp/docsxai-chrome-profile" });
     expect(b).toBeInstanceOf(PlaywrightInstrumentedBrowser);
   });
 
@@ -41,7 +41,7 @@ describe("PlaywrightInstrumentedBrowser", () => {
   });
 });
 
-// The injected page-side `__siteDocs.capture()` helper has a tricky lifecycle: when its
+// The injected page-side `__docsxai.capture()` helper has a tricky lifecycle: when its
 // Node-side `exposeFunction` binding is gone (e.g. capture-auth detached from a shared --cdp
 // Chrome), the bare-bones implementation would throw a TypeError on the page. These tests run
 // the helper script in a node:vm sandbox against a mock `window` to verify the graceful path.
@@ -53,7 +53,7 @@ function runHelperInSandbox(trigger: "console" | "button", bindingPresent: boole
   const document = {
     getElementById: (id: string) => {
       // Pretend the stale button exists when we want to verify removal.
-      if (id === "__siteDocs_btn") return { remove: () => removed.push("__siteDocs_btn") };
+      if (id === "__docsxai_btn") return { remove: () => removed.push("__docsxai_btn") };
       return null;
     },
     createElement: (_tag: string) => {
@@ -63,7 +63,7 @@ function runHelperInSandbox(trigger: "console" | "button", bindingPresent: boole
     documentElement: { appendChild: () => {} },
   };
   const win: Record<string, unknown> = {};
-  if (bindingPresent) win.__siteDocs_capture = () => "captured";
+  if (bindingPresent) win.__docsxai_capture = () => "captured";
   const ctx: Record<string, unknown> = {
     window: win,
     document,
@@ -75,47 +75,47 @@ function runHelperInSandbox(trigger: "console" | "button", bindingPresent: boole
   return { win, info, removed, ctx };
 }
 
-describe("helperScript (page-side __siteDocs.capture lifecycle)", () => {
-  it("installs window.__siteDocs.capture which invokes the binding when present", () => {
+describe("helperScript (page-side __docsxai.capture lifecycle)", () => {
+  it("installs window.__docsxai.capture which invokes the binding when present", () => {
     const r = runHelperInSandbox("console", true);
-    const siteDocs = r.win.__siteDocs as { capture: () => unknown };
-    expect(typeof siteDocs.capture).toBe("function");
-    expect(siteDocs.capture()).toBe("captured");
+    const docsxai = r.win.__docsxai as { capture: () => unknown };
+    expect(typeof docsxai.capture).toBe("function");
+    expect(docsxai.capture()).toBe("captured");
   });
 
   it("when the backing binding is missing, capture() logs a friendly info note and returns undefined", () => {
     const r = runHelperInSandbox("console", false);
-    const siteDocs = r.win.__siteDocs as { capture?: () => unknown };
-    expect(siteDocs.capture).toBeDefined();
-    expect(siteDocs.capture!()).toBeUndefined();
+    const docsxai = r.win.__docsxai as { capture?: () => unknown };
+    expect(docsxai.capture).toBeDefined();
+    expect(docsxai.capture!()).toBeUndefined();
     expect(r.info).toHaveLength(1);
     expect(String(r.info[0])).toMatch(/capture helper detached/i);
   });
 
-  it("when the backing binding is missing, capture() self-deletes from window.__siteDocs", () => {
+  it("when the backing binding is missing, capture() self-deletes from window.__docsxai", () => {
     const r = runHelperInSandbox("console", false);
-    const siteDocs = r.win.__siteDocs as { capture?: () => unknown };
-    siteDocs.capture!();
-    expect(siteDocs.capture).toBeUndefined();
+    const docsxai = r.win.__docsxai as { capture?: () => unknown };
+    docsxai.capture!();
+    expect(docsxai.capture).toBeUndefined();
   });
 
-  it("when the binding is missing AND a stale __siteDocs_btn exists, the button is removed", () => {
+  it("when the binding is missing AND a stale __docsxai_btn exists, the button is removed", () => {
     const r = runHelperInSandbox("button", false);
-    const siteDocs = r.win.__siteDocs as { capture?: () => unknown };
-    siteDocs.capture!();
-    expect(r.removed).toContain("__siteDocs_btn");
+    const docsxai = r.win.__docsxai as { capture?: () => unknown };
+    docsxai.capture!();
+    expect(r.removed).toContain("__docsxai_btn");
   });
 
-  it("doesn't double-overwrite a pre-existing window.__siteDocs (preserves namespacing)", () => {
+  it("doesn't double-overwrite a pre-existing window.__docsxai (preserves namespacing)", () => {
     const ctx: Record<string, unknown> = {
-      window: { __siteDocs: { sentinel: "preserve-me" }, __siteDocs_capture: () => "x" },
+      window: { __docsxai: { sentinel: "preserve-me" }, __docsxai_capture: () => "x" },
       document: { getElementById: () => null },
       console: { info: () => {} },
     };
     vm.runInNewContext(helperScript("console"), ctx);
-    const siteDocs = (ctx.window as { __siteDocs: { sentinel: string; capture: () => unknown } })
-      .__siteDocs;
-    expect(siteDocs.sentinel).toBe("preserve-me");
-    expect(typeof siteDocs.capture).toBe("function");
+    const docsxai = (ctx.window as { __docsxai: { sentinel: string; capture: () => unknown } })
+      .__docsxai;
+    expect(docsxai.sentinel).toBe("preserve-me");
+    expect(typeof docsxai.capture).toBe("function");
   });
 });

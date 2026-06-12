@@ -15,7 +15,7 @@ afterAll(async () => {
   await stub.close();
 });
 afterEach(() => {
-  delete process.env.SITE_DOCS_OAUTH_AUTO_APPROVE;
+  delete process.env.DOCSX_OAUTH_AUTO_APPROVE;
 });
 
 function pkcePair() {
@@ -27,7 +27,7 @@ function pkcePair() {
 function authorizeUrl(challenge: string, overrides: Record<string, string> = {}): string {
   const u = new URL(`${base}/v1/oauth/authorize`);
   const params: Record<string, string> = {
-    client_id: "site-docs-cli",
+    client_id: "docsxai-cli",
     code_challenge: challenge,
     code_challenge_method: "S256",
     redirect_uri: "http://127.0.0.1:39999/callback",
@@ -73,8 +73,8 @@ describe("authorize endpoint", () => {
     expect(loc.searchParams.get("state")).toBe("st4te");
   });
 
-  it("302s under SITE_DOCS_OAUTH_AUTO_APPROVE=1 without a bearer", async () => {
-    process.env.SITE_DOCS_OAUTH_AUTO_APPROVE = "1";
+  it("302s under DOCSX_OAUTH_AUTO_APPROVE=1 without a bearer", async () => {
+    process.env.DOCSX_OAUTH_AUTO_APPROVE = "1";
     const { challenge } = pkcePair();
     const res = await authorize(challenge);
     expect(res.status).toBe(302);

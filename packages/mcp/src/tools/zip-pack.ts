@@ -1,7 +1,7 @@
 // zip_pack — package the workspace's doc pack into a deterministic hand-off archive.
 
 import * as path from "node:path";
-import { zipDocPack, ZipError } from "@kalebtec/docsxai-engine";
+import { zipDocPack, ZipError } from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, fail, ok, requireWorkspace } from "../shared.js";
 
@@ -9,7 +9,7 @@ export const zipPackTool = defineTool({
   name: "zip_pack",
   title: "Zip the doc pack",
   description:
-    "Package the workspace's doc pack (flows/, docs/, .site-docs.json, auth/strategy.yaml, " +
+    "Package the workspace's doc pack (flows/, docs/, .docsxai.json, auth/strategy.yaml, " +
     "README.md) into a deterministic zip. Excludes .auth/, halts/, and .viewer/ by default.",
   inputSchema: {
     workspace: z

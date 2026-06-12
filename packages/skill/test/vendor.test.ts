@@ -6,23 +6,23 @@ import { vendorSkill, vendoredSkillDir } from "../src/index.js";
 
 let tmp = "";
 beforeEach(async () => {
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-skill-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-skill-"));
 });
 afterEach(async () => {
   await fs.rm(tmp, { recursive: true, force: true });
 });
 
 describe("vendorSkill", () => {
-  it("ships a site-docs/SKILL.md in the bundle with proper frontmatter", async () => {
-    const text = await fs.readFile(path.join(vendoredSkillDir, "site-docs", "SKILL.md"), "utf8");
-    expect(text).toMatch(/^---[\s\S]*?\nname:\s+site-docs/m);
+  it("ships a docsxai/SKILL.md in the bundle with proper frontmatter", async () => {
+    const text = await fs.readFile(path.join(vendoredSkillDir, "docsxai", "SKILL.md"), "utf8");
+    expect(text).toMatch(/^---[\s\S]*?\nname:\s+docsxai/m);
     expect(text).toMatch(/^---[\s\S]*?\ndescription:\s+\S/m);
-    expect(text).toMatch(/@kalebtec\/docsxai-plugin/);
+    expect(text).toMatch(/@docsxai\/plugin/);
   });
 
-  it("copies the bundle into <projectDir>/.claude/skills/site-docs/", async () => {
+  it("copies the bundle into <projectDir>/.claude/skills/docsxai/", async () => {
     const dest = await vendorSkill(tmp);
-    expect(dest).toBe(path.join(tmp, ".claude", "skills", "site-docs"));
+    expect(dest).toBe(path.join(tmp, ".claude", "skills", "docsxai"));
     await expect(fs.access(path.join(dest, "SKILL.md"))).resolves.toBeUndefined();
   });
 });

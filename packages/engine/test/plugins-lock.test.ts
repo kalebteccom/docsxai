@@ -25,7 +25,7 @@ async function fixtureRegisterSha(fixture: string, module = "register.mjs"): Pro
 }
 
 function lockFor(plugins: PluginsLockFile["plugins"]): PluginsLockFile {
-  return { schema: "site-docs/plugins-lock@1", plugins };
+  return { schema: "docsxai/plugins-lock@1", plugins };
 }
 
 describe("plugins-lock read/write", () => {
@@ -53,10 +53,10 @@ describe("plugins-lock read/write", () => {
     await expect(readPluginsLock(ws)).rejects.toThrow(PluginsLockError);
     await fs.writeFile(
       path.join(ws, "plugins-lock.json"),
-      JSON.stringify({ schema: "site-docs/plugins-lock@2", plugins: {} }),
+      JSON.stringify({ schema: "docsxai/plugins-lock@2", plugins: {} }),
       "utf8",
     );
-    await expect(readPluginsLock(ws)).rejects.toThrow(/site-docs\/plugins-lock@1/);
+    await expect(readPluginsLock(ws)).rejects.toThrow(/docsxai\/plugins-lock@1/);
   });
 });
 
@@ -76,7 +76,7 @@ describe("verifyLock", () => {
     });
     const reason = verifyLock(lock, "multi", bytes);
     expect(reason).toMatch(/lock mismatch/);
-    expect(reason).toMatch(/site-docs plugins sync/);
+    expect(reason).toMatch(/docsxai plugins sync/);
   });
 
   it("reports a plugin absent from the lock", () => {
@@ -120,7 +120,7 @@ describe("resolvePlugins with a lock", () => {
     const record = registry.listPlugins()[0]!;
     expect(record.status).toBe("load-error");
     expect(record.statusReason).toMatch(/lock mismatch/);
-    expect(record.statusReason).toMatch(/site-docs plugins sync/);
+    expect(record.statusReason).toMatch(/docsxai plugins sync/);
   });
 
   it("load-errors a plugin missing from an existing lock", async () => {
@@ -139,7 +139,7 @@ describe("resolvePlugins with a lock", () => {
 describe("readWorkspacePluginsConfig", () => {
   it("returns an empty config for a workspace without a config file", async () => {
     const ws = await makeWorkspace();
-    await fs.rm(path.join(ws, ".site-docs.json"));
+    await fs.rm(path.join(ws, ".docsxai.json"));
     expect(await readWorkspacePluginsConfig(ws)).toEqual({ sources: [], capabilities: [] });
   });
 

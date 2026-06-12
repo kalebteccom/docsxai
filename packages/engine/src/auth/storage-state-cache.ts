@@ -149,7 +149,7 @@ export type StorageStateCache = Pick<LocalStorageStateCache, "load" | "save" | "
  * Pick the state cache for a role. `store: local` (the default) caches under `<workspace>/.auth/`.
  * `store: backend` relays AES-256-GCM envelopes through the backend (encrypted client-side; the
  * backend never sees plaintext) — it needs a workspace that has been pushed (`backend_url` +
- * `backend_workspace_id` in `.site-docs.json`) and `SITE_DOCS_CACHE_KEY`.
+ * `backend_workspace_id` in `.docsxai.json`) and `DOCSX_CACHE_KEY`.
  */
 export async function resolveStateCache(
   roleAuth: RoleAuth,
@@ -159,13 +159,13 @@ export async function resolveStateCache(
     const cfg = await loadWorkspaceConfig(workspaceDir);
     if (!cfg?.backend_url || !cfg.backend_workspace_id) {
       throw new AuthStrategyConfigError(
-        "cache.store: backend needs a backend-bound workspace — run `site-docs push` first (backend_url + backend_workspace_id in .site-docs.json)",
+        "cache.store: backend needs a backend-bound workspace — run `docsxai push` first (backend_url + backend_workspace_id in .docsxai.json)",
       );
     }
-    const cacheKey = process.env.SITE_DOCS_CACHE_KEY;
+    const cacheKey = process.env.DOCSX_CACHE_KEY;
     if (!cacheKey) {
       throw new AuthStrategyConfigError(
-        "cache.store: backend requires SITE_DOCS_CACHE_KEY (base64-encoded 32-byte key)",
+        "cache.store: backend requires DOCSX_CACHE_KEY (base64-encoded 32-byte key)",
       );
     }
     const token = await resolveBackendToken({ baseUrl: cfg.backend_url, workspaceDir });

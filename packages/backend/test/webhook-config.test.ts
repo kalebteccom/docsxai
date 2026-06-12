@@ -18,7 +18,7 @@ const VALID: WebhookConfig = {
   events: ["push", "pull_request"],
   strategy: "pr-comment",
   workspace_rev: "head",
-  secret_env: "SITE_DOCS_WEBHOOK_SECRET",
+  secret_env: "DOCSX_WEBHOOK_SECRET",
   enabled: true,
 };
 
@@ -83,7 +83,7 @@ describe("webhook-config CRUD", () => {
       events: ["push"],
       strategy: "viewer-refresh",
       workspace_rev: "head",
-      secret_env: "SITE_DOCS_WEBHOOK_SECRET",
+      secret_env: "DOCSX_WEBHOOK_SECRET",
       enabled: true,
     });
   });
@@ -141,7 +141,7 @@ describe("store-level webhook surface", () => {
   });
 
   it("FsStore persists configs, repo mapping, and the replay guard across reopen", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "site-docs-webhook-fs-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "docsxai-webhook-fs-"));
     try {
       const a = new FsStore(dir);
       const ws = a.createWorkspace("ws");

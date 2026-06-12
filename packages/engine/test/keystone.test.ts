@@ -48,7 +48,7 @@ describe.skipIf(!chromiumAvailable)("keystone — calibrate → run → reproduc
     "runs the fixture flow against the toy site and emits the expected doc-pack artifacts",
     { timeout: 30_000 },
     async () => {
-      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-keystone-"));
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-"));
       try {
         const r = await calibratedRun(path.join(tmp, "run1"));
         expect(r.flow).toBe("recap-open");
@@ -83,7 +83,7 @@ describe.skipIf(!chromiumAvailable)("keystone — calibrate → run → reproduc
     "is reproducible — two independent runs produce identical structured artifacts",
     { timeout: 30_000 },
     async () => {
-      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-keystone-"));
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-"));
       try {
         const a = await calibratedRun(path.join(tmp, "run1"));
         const b = await calibratedRun(path.join(tmp, "run2"));
@@ -119,7 +119,7 @@ describe.skipIf(!chromiumAvailable)("keystone — frozen clock + redaction deter
     "masks the secret element with uniform black while a control region stays untouched",
     { timeout: 30_000 },
     async () => {
-      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-keystone-"));
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-"));
       try {
         // The flow's own success criterion asserts the rendered clock shows the frozen instant —
         // a non-frozen clock halts the run before any screenshot assertion happens.
@@ -156,7 +156,7 @@ describe.skipIf(!chromiumAvailable)("keystone — frozen clock + redaction deter
     "is byte-identical across two independent runs — the headline determinism claim",
     { timeout: 30_000 },
     async () => {
-      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-keystone-"));
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-"));
       try {
         const a = await redactedClockRun(path.join(tmp, "run1"));
         const b = await redactedClockRun(path.join(tmp, "run2"));

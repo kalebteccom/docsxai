@@ -1,8 +1,8 @@
-// @kalebtec/docsxai-plugin — the Claude Code plugin (first-class invocation surface).
+// @docsxai/plugin — the Claude Code plugin (first-class invocation surface).
 //
 // The plugin itself is the markdown/JSON tree alongside this file:
 //   .claude-plugin/plugin.json   — manifest
-//   commands/*.md                — deterministic slash commands (thin wrappers over the `site-docs` CLI)
+//   commands/*.md                — deterministic slash commands (thin wrappers over the `docsxai` CLI)
 //   skills/*/SKILL.md            — calibration skills (agent-driven; the host supplies inference)
 // This module is a small TS surface over that tree, for tooling/tests.
 
@@ -172,20 +172,20 @@ export async function validatePluginBundle(
         message: "frontmatter `description:` missing or too short",
       });
     }
-    // Body should reference an underlying engine command of the same name (`site-docs <cmd>`).
+    // Body should reference an underlying engine command of the same name (`docsxai <cmd>`).
     const body = text.slice(text.indexOf("---", 3) + 3);
-    if (!new RegExp(`\\bsite-docs\\s+${cmd}\\b`).test(body)) {
+    if (!new RegExp(`\\bdocsxai\\s+${cmd}\\b`).test(body)) {
       issues.push({
         severity: "warning",
         where: `commands/${cmd}.md`,
-        message: `body doesn't appear to invoke \`site-docs ${cmd}\` — wrapper may be misaligned with the underlying CLI`,
+        message: `body doesn't appear to invoke \`docsxai ${cmd}\` — wrapper may be misaligned with the underlying CLI`,
       });
     }
     if (opts.knownCliCommands && !opts.knownCliCommands.includes(cmd)) {
       issues.push({
         severity: "warning",
         where: `commands/${cmd}.md`,
-        message: `\`site-docs ${cmd}\` isn't in the engine CLI surface (known: ${opts.knownCliCommands.join(", ")})`,
+        message: `\`docsxai ${cmd}\` isn't in the engine CLI surface (known: ${opts.knownCliCommands.join(", ")})`,
       });
     }
   }

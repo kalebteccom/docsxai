@@ -47,7 +47,7 @@ async function readFlows(workspace: string): Promise<FlowsPayload | null> {
   for (const f of yamls) {
     files[f] = await fs.readFile(resolveWorkspacePath(workspace, "flows", f), "utf8");
   }
-  return { schema: "site-docs/flows@1", files };
+  return { schema: "docsxai/flows@1", files };
 }
 
 async function readAnnotations(workspace: string): Promise<AnnotationsPayload | null> {
@@ -66,7 +66,7 @@ async function readAnnotations(workspace: string): Promise<AnnotationsPayload | 
     }
   }
   if (Object.keys(files).length === 0) return null;
-  return { schema: "site-docs/annotations-bundle@1", files };
+  return { schema: "docsxai/annotations-bundle@1", files };
 }
 
 async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | null> {
@@ -90,7 +90,7 @@ async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | 
     }
   }
   if (Object.keys(files).length === 0) return null;
-  return { schema: "site-docs/screenshots@2", files };
+  return { schema: "docsxai/screenshots@2", files };
 }
 
 // --- screenshot blob transport ------------------------------------------------
@@ -155,14 +155,14 @@ async function readStyle(workspace: string): Promise<StylePayload | null> {
   const jsonText = await fs.readFile(jsonPath, "utf8").catch(() => null);
   if (yaml === null && jsonText === null) return null;
   const json = jsonText ? JSON.parse(jsonText) : null;
-  return { schema: "site-docs/style-bundle@1", yaml, json };
+  return { schema: "docsxai/style-bundle@1", yaml, json };
 }
 
 async function readLocators(workspace: string): Promise<LocatorsPayload | null> {
   const yamlPath = resolveWorkspacePath(workspace, "docs", "locators.yaml");
   const yaml = await fs.readFile(yamlPath, "utf8").catch(() => null);
   if (yaml === null) return null;
-  return { schema: "site-docs/locators@1", yaml };
+  return { schema: "docsxai/locators@1", yaml };
 }
 
 // --- write back (pull) ------------------------------------------------------

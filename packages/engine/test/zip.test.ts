@@ -9,10 +9,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { zipDocPack, ZipError } from "../src/zip.js";
 
 const FLOW_YAML = "name: f1\nsteps:\n  - id: s\n    action: wait\n";
-const ANNOTATIONS_JSON = '{"schema":"site-docs/annotations@1","flow":"f1","annotations":[]}';
+const ANNOTATIONS_JSON = '{"schema":"docsxai/annotations@1","flow":"f1","annotations":[]}';
 
 async function makeWorkspace(): Promise<string> {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-zip-"));
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-zip-"));
   await fs.mkdir(path.join(tmp, "flows"), { recursive: true });
   await fs.mkdir(path.join(tmp, "docs", "f1", "screenshots"), { recursive: true });
   await fs.mkdir(path.join(tmp, "docs", "f1", "halts"), { recursive: true });
@@ -28,10 +28,10 @@ async function makeWorkspace(): Promise<string> {
   await fs.writeFile(path.join(tmp, ".viewer", "index.html"), "<html></html>", "utf8");
   await fs.writeFile(
     path.join(tmp, "auth", "strategy.yaml"),
-    "schema: site-docs/auth-strategy@1\n",
+    "schema: docsxai/auth-strategy@1\n",
     "utf8",
   );
-  await fs.writeFile(path.join(tmp, ".site-docs.json"), '{"app_url":"https://x"}', "utf8");
+  await fs.writeFile(path.join(tmp, ".docsxai.json"), '{"app_url":"https://x"}', "utf8");
   await fs.writeFile(path.join(tmp, "README.md"), "# workspace\n", "utf8");
   return tmp;
 }
@@ -45,7 +45,7 @@ describe("zipDocPack", () => {
   let outDir = "";
   beforeEach(async () => {
     workspace = await makeWorkspace();
-    outDir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-zip-out-"));
+    outDir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-zip-out-"));
   });
   afterEach(async () => {
     await fs.rm(workspace, { recursive: true, force: true });
@@ -61,14 +61,14 @@ describe("zipDocPack", () => {
     expect(stat.size).toBe(r.bytes);
   });
 
-  it("includes flows/, docs/ (minus halts/), .site-docs.json, auth/strategy.yaml, README.md", async () => {
+  it("includes flows/, docs/ (minus halts/), .docsxai.json, auth/strategy.yaml, README.md", async () => {
     const out = path.join(outDir, "pack.zip");
     await zipDocPack({ workspace, output: out });
     const entries = Object.keys(await readArchive(out));
     expect(entries).toContain("flows/f1.flow.yaml");
     expect(entries).toContain("docs/f1/annotations.json");
     expect(entries).toContain("docs/f1/screenshots/s.png");
-    expect(entries).toContain(".site-docs.json");
+    expect(entries).toContain(".docsxai.json");
     expect(entries).toContain("auth/strategy.yaml");
     expect(entries).toContain("README.md");
   });
@@ -159,7 +159,7 @@ describe("zipDocPack", () => {
   });
 
   it("throws ZipError on a workspace with nothing to zip", async () => {
-    const empty = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-empty-"));
+    const empty = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-empty-"));
     await expect(
       zipDocPack({ workspace: empty, output: path.join(outDir, "x.zip") }),
     ).rejects.toThrow(/nothing to zip/);

@@ -22,7 +22,7 @@ export class StyleError extends Error {
 
 /** The seed style every workspace starts with — overwritable by the agent during calibration. */
 export const DEFAULT_STYLE: StyleArtifact = {
-  schema: "site-docs/style@1",
+  schema: "docsxai/style@1",
   voice: {
     tone: "concise, instructional, second-person ('you')",
     audience: "end users (not engineers)",

@@ -30,7 +30,7 @@ function seed(config: Partial<WebhookConfig> = {}) {
       events: ["push"],
       strategy: "pr-comment",
       workspace_rev: "head",
-      secret_env: "SITE_DOCS_WEBHOOK_SECRET",
+      secret_env: "DOCSX_WEBHOOK_SECRET",
       enabled: true,
       ...config,
     },
@@ -133,7 +133,7 @@ describe("SpawnRunner", () => {
         events: ["push"],
         strategy: "pr-comment",
         workspace_rev: rev.id,
-        secret_env: "SITE_DOCS_WEBHOOK_SECRET",
+        secret_env: "DOCSX_WEBHOOK_SECRET",
         enabled: true,
       },
       payload: {},
@@ -146,11 +146,11 @@ describe("SpawnRunner", () => {
 });
 
 describe("resolveEngineBin", () => {
-  it("prefers an existing SITE_DOCS_ENGINE_BIN", () => {
+  it("prefers an existing DOCSX_ENGINE_BIN", () => {
     expect(resolveEngineBin({ [ENGINE_BIN_ENV]: FAKE_BIN })).toBe(FAKE_BIN);
   });
 
-  it("ignores a dangling SITE_DOCS_ENGINE_BIN and falls back", () => {
+  it("ignores a dangling DOCSX_ENGINE_BIN and falls back", () => {
     const dangling = path.join(os.tmpdir(), `no-such-bin-${Date.now()}`);
     const resolved = resolveEngineBin({ [ENGINE_BIN_ENV]: dangling });
     expect(resolved).not.toBe(dangling);

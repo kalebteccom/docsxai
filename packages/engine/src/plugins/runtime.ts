@@ -112,7 +112,7 @@ function candidateRecord(
 
 /**
  * Stage 1 only: resolve every source to a validated manifest (or a load-error record). Never
- * imports plugin code — `site-docs plugins sync` pins hashes through this without executing
+ * imports plugin code — `docsxai plugins sync` pins hashes through this without executing
  * anything.
  */
 export async function resolvePluginSources(
@@ -380,7 +380,7 @@ export async function resolvePlugins(opts: ResolvePluginsOptions): Promise<Plugi
           c,
           "disabled-by-capability-mismatch",
           `plugin declares capabilities [${missing.join(", ")}] not enabled for this workspace — ` +
-            `add them to "plugin_capabilities" in .site-docs.json to opt in`,
+            `add them to "plugin_capabilities" in .docsxai.json to opt in`,
         ),
       );
       continue;

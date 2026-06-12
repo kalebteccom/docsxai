@@ -1,4 +1,4 @@
-// Dispatch + argument-contract tests for the `site-docs` CLI: the stable argv edge of each
+// Dispatch + argument-contract tests for the `docsxai` CLI: the stable argv edge of each
 // command (usage errors, flag validation, exit codes, output shape) — not command internals.
 
 import { promises as fs } from "node:fs";
@@ -15,7 +15,7 @@ let tmp = "";
 beforeEach(async () => {
   out = "";
   err = "";
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-cli-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-cli-"));
   vi.spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
     out += String(chunk);
     return true;
@@ -46,8 +46,8 @@ async function makeWorkspace(): Promise<string> {
   await fs.mkdir(path.join(ws, "docs"), { recursive: true });
   await fs.writeFile(path.join(ws, "flows", "clean.flow.yaml"), CLEAN_FLOW, "utf8");
   await fs.writeFile(
-    path.join(ws, ".site-docs.json"),
-    JSON.stringify({ schema: "site-docs/workspace@1", created_at: "2026-01-01T00:00:00.000Z" }),
+    path.join(ws, ".docsxai.json"),
+    JSON.stringify({ schema: "docsxai/workspace@1", created_at: "2026-01-01T00:00:00.000Z" }),
     "utf8",
   );
   return ws;
@@ -71,7 +71,7 @@ describe("zip dispatch", () => {
     expect(out).toMatch(/zip: wrote .*pack\.zip \(\d+ entries, [\d.]+ KB\)/);
     const entries = Object.keys(unzipSync(new Uint8Array(await fs.readFile(outZip))));
     expect(entries).toContain("flows/clean.flow.yaml");
-    expect(entries).toContain(".site-docs.json");
+    expect(entries).toContain(".docsxai.json");
   });
 
   it("zip --include-viewer bundles .viewer/", async () => {
@@ -108,13 +108,13 @@ describe("render dispatch", () => {
     return script;
   }
 
-  it("runs the bin named by $SITE_DOCS_VIEWER_BIN with build <docsDir> <outDir>", async () => {
+  it("runs the bin named by $DOCSX_VIEWER_BIN with build <docsDir> <outDir>", async () => {
     const ws = await makeWorkspace();
     const argvFile = path.join(tmp, "argv.json");
     const script = await makeFakeViewerScript(
       `require("node:fs").writeFileSync(${JSON.stringify(argvFile)}, JSON.stringify(process.argv.slice(2)));\n`,
     );
-    vi.stubEnv("SITE_DOCS_VIEWER_BIN", script);
+    vi.stubEnv("DOCSX_VIEWER_BIN", script);
     expect(await main(["render", ws])).toBe(0);
     expect(out).toMatch(/render: open .*index\.html/);
     const argv = JSON.parse(await fs.readFile(argvFile, "utf8")) as string[];
@@ -124,19 +124,19 @@ describe("render dispatch", () => {
   it("propagates the viewer's non-zero exit code", async () => {
     const ws = await makeWorkspace();
     const script = await makeFakeViewerScript("process.exit(3);\n");
-    vi.stubEnv("SITE_DOCS_VIEWER_BIN", script);
+    vi.stubEnv("DOCSX_VIEWER_BIN", script);
     expect(await main(["render", ws])).toBe(3);
     expect(out).not.toMatch(/render: open/);
   });
 
   it("fails with an error listing all three resolution attempts when no viewer is found", async () => {
     const ws = await makeWorkspace();
-    vi.stubEnv("SITE_DOCS_VIEWER_BIN", path.join(tmp, "no-such-viewer.js"));
+    vi.stubEnv("DOCSX_VIEWER_BIN", path.join(tmp, "no-such-viewer.js"));
     vi.stubEnv("PATH", "");
     expect(await main(["render", ws])).toBe(1);
     expect(err).toMatch(/could not be launched/);
-    expect(err).toMatch(/1\. \$SITE_DOCS_VIEWER_BIN → .*no-such-viewer\.js \(no such file\)/);
-    expect(err).toMatch(/2\. @kalebtec\/docsxai-viewer \(installed package\)/);
+    expect(err).toMatch(/1\. \$DOCSX_VIEWER_BIN → .*no-such-viewer\.js \(no such file\)/);
+    expect(err).toMatch(/2\. @docsxai\/viewer \(installed package\)/);
     expect(err).toMatch(/3\. `docsxai-viewer` on PATH — not found/);
   });
 });
@@ -156,9 +156,9 @@ describe("push / pull / login argument contracts", () => {
   it("push validates --kind before touching the backend", async () => {
     const ws = await makeWorkspace();
     await fs.writeFile(
-      path.join(ws, ".site-docs.json"),
+      path.join(ws, ".docsxai.json"),
       JSON.stringify({
-        schema: "site-docs/workspace@1",
+        schema: "docsxai/workspace@1",
         backend_url: "http://127.0.0.1:1",
         created_at: "2026-01-01T00:00:00.000Z",
       }),
@@ -184,14 +184,14 @@ describe("push / pull / login argument contracts", () => {
     expect(err).toMatch(/--backend-url <url> required/);
   });
 
-  it("login without SITE_DOCS_TOKEN exits 2", async () => {
-    const saved = process.env.SITE_DOCS_TOKEN;
-    delete process.env.SITE_DOCS_TOKEN;
+  it("login without DOCSX_TOKEN exits 2", async () => {
+    const saved = process.env.DOCSX_TOKEN;
+    delete process.env.DOCSX_TOKEN;
     try {
       expect(await main(["login", "--backend-url", "http://127.0.0.1:1"])).toBe(2);
-      expect(err).toMatch(/SITE_DOCS_TOKEN env var not set/);
+      expect(err).toMatch(/DOCSX_TOKEN env var not set/);
     } finally {
-      if (saved !== undefined) process.env.SITE_DOCS_TOKEN = saved;
+      if (saved !== undefined) process.env.DOCSX_TOKEN = saved;
     }
   });
 });

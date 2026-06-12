@@ -1,6 +1,6 @@
 // Confluence Cloud publisher — the ONLY Confluence egress path in the docsxai tree.
 //
-// Consumes the engine's ADF projection (`site-docs export adf` / `projectDocPackToAdf`) and
+// Consumes the engine's ADF projection (`docsxai export adf` / `projectDocPackToAdf`) and
 // pushes it through the Confluence Cloud REST v2 API with built-in `fetch`. Idempotent by
 // content hash: every published page carries a `docsxai-content-sha` content-property holding
 // the sha256 of its projected content (title + ADF + attachment shas). Re-publishing an
@@ -23,7 +23,7 @@ import {
   type PublisherPlugin,
   type PublishResult,
   resolveWorkspacePath,
-} from "@kalebtec/docsxai-engine";
+} from "@docsxai/engine";
 
 export const CONTENT_SHA_PROPERTY = "docsxai-content-sha";
 const SHA_COMMENT_PREFIX = "docsxai-sha256:";
@@ -295,14 +295,14 @@ function isProjection(value: unknown): value is AdfProjection {
 
 async function loadProjection(ctx: PublisherContext): Promise<AdfProjection> {
   if (isProjection(ctx.projection)) return ctx.projection;
-  // Fall back to the exported artifact (`site-docs export adf` writes it).
+  // Fall back to the exported artifact (`docsxai export adf` writes it).
   const p = resolveWorkspacePath(ctx.workspaceDir, ".export", "adf", "projection.json");
   let text: string;
   try {
     text = await fs.readFile(p, "utf8");
   } catch {
     throw new Error(
-      `confluence: no ADF projection — pass one in ctx.projection or run \`site-docs export adf\` first (looked at ${p})`,
+      `confluence: no ADF projection — pass one in ctx.projection or run \`docsxai export adf\` first (looked at ${p})`,
     );
   }
   const parsed = JSON.parse(text) as unknown;

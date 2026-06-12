@@ -29,7 +29,7 @@ function makeJob(
       events: ["push"],
       strategy,
       workspace_rev: "head",
-      secret_env: "SITE_DOCS_WEBHOOK_SECRET",
+      secret_env: "DOCSX_WEBHOOK_SECRET",
       enabled: true,
       ...extra,
     },
@@ -41,7 +41,7 @@ let workspaceDir = "";
 let run: StrategyRunInfo;
 
 beforeEach(() => {
-  workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), "site-docs-strategy-"));
+  workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), "docsxai-strategy-"));
   run = { ok: true, summary: "documented 3 flows, 0 drifted", workspace_dir: workspaceDir };
 });
 afterEach(() => {
@@ -113,7 +113,7 @@ describe("pr-comment strategy", () => {
       auth: "Bearer gh-token",
     });
     const body = (ghRequests[0]!.body as { body: string }).body;
-    expect(body).toContain("site-docs run passed");
+    expect(body).toContain("docsxai run passed");
     expect(body).toContain("documented 3 flows");
   });
 
@@ -207,9 +207,9 @@ describe("wiki-push strategy", () => {
     expect(call.projection).toEqual({ sections: ["intro", "flows"] });
   });
 
-  it("loads plugin sources from the workspace site-docs.config.json when not inlined", async () => {
+  it("loads plugin sources from the workspace docsxai.config.json when not inlined", async () => {
     fs.writeFileSync(
-      path.join(workspaceDir, "site-docs.config.json"),
+      path.join(workspaceDir, "docsxai.config.json"),
       JSON.stringify({ plugins: [`path:${RECORDER_PLUGIN_DIR}`] }),
     );
     const job = makeJob("wiki-push", {}, { plugin: "recorder:push", plugin_config: {} });

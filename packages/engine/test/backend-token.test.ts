@@ -1,7 +1,7 @@
 // OAuth token plumbing: stored-token file, resolution precedence, refresh rotation, the PKCE
 // login helper, and run-history recording — all against a real stub server.
 
-import { createBackendStub } from "@kalebtec/docsxai-backend";
+import { createBackendStub } from "@docsxai/backend";
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -22,8 +22,8 @@ let stub: ReturnType<typeof createBackendStub>;
 const savedEnv: Record<string, string | undefined> = {};
 
 beforeAll(async () => {
-  savedEnv.SITE_DOCS_TOKEN = process.env.SITE_DOCS_TOKEN;
-  savedEnv.SITE_DOCS_OAUTH_AUTO_APPROVE = process.env.SITE_DOCS_OAUTH_AUTO_APPROVE;
+  savedEnv.DOCSX_TOKEN = process.env.DOCSX_TOKEN;
+  savedEnv.DOCSX_OAUTH_AUTO_APPROVE = process.env.DOCSX_OAUTH_AUTO_APPROVE;
   stub = createBackendStub({ token: TOKEN });
   base = await stub.listen(0);
 });
@@ -35,17 +35,17 @@ afterAll(async () => {
   }
 });
 afterEach(() => {
-  delete process.env.SITE_DOCS_TOKEN;
-  delete process.env.SITE_DOCS_OAUTH_AUTO_APPROVE;
+  delete process.env.DOCSX_TOKEN;
+  delete process.env.DOCSX_OAUTH_AUTO_APPROVE;
 });
 
 async function tmpWorkspace(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "site-docs-token-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "docsxai-token-"));
 }
 
 /** Drive the full PKCE handshake; the "browser" is a fetch of the printed authorize URL. */
 async function loginViaAutoApprove(): Promise<BackendTokenFile> {
-  process.env.SITE_DOCS_OAUTH_AUTO_APPROVE = "1";
+  process.env.DOCSX_OAUTH_AUTO_APPROVE = "1";
   return oauthLogin({
     backendUrl: base,
     onAuthorizeUrl: (url) => {
@@ -86,7 +86,7 @@ describe("backend token file", () => {
 
 describe("resolveBackendToken precedence", () => {
   it("explicit option wins over the env var", async () => {
-    process.env.SITE_DOCS_TOKEN = "from-env";
+    process.env.DOCSX_TOKEN = "from-env";
     expect(await resolveBackendToken({ baseUrl: base, token: "explicit" })).toBe("explicit");
   });
 
@@ -97,7 +97,7 @@ describe("resolveBackendToken precedence", () => {
       refresh_token: "r",
       expires_at: Date.now() + 3_600_000,
     });
-    process.env.SITE_DOCS_TOKEN = "from-env";
+    process.env.DOCSX_TOKEN = "from-env";
     expect(await resolveBackendToken({ baseUrl: base, workspaceDir: ws })).toBe("from-env");
   });
 
@@ -119,9 +119,9 @@ describe("resolveBackendToken precedence", () => {
   it("throws a re-login hint when no token source exists", async () => {
     const ws = await tmpWorkspace();
     await expect(resolveBackendToken({ baseUrl: base, workspaceDir: ws })).rejects.toThrow(
-      /site-docs login .*--oauth/,
+      /docsxai login .*--oauth/,
     );
-    await expect(resolveBackendToken({ baseUrl: base })).rejects.toThrow(/SITE_DOCS_TOKEN/);
+    await expect(resolveBackendToken({ baseUrl: base })).rejects.toThrow(/DOCSX_TOKEN/);
   });
 });
 
@@ -162,7 +162,7 @@ describe("oauthLogin + refresh-on-expiry", () => {
       expires_at: Date.now() - 1000,
     });
     await expect(resolveBackendToken({ baseUrl: base, workspaceDir: ws })).rejects.toThrow(
-      /refresh failed.*site-docs login/,
+      /refresh failed.*docsxai login/,
     );
   });
 
@@ -187,7 +187,7 @@ describe("recordRunHistory", () => {
   });
 
   it("appends a run record for a bound workspace", async () => {
-    process.env.SITE_DOCS_TOKEN = TOKEN;
+    process.env.DOCSX_TOKEN = TOKEN;
     const client = new BackendClient({ baseUrl: base, token: TOKEN });
     const bws = await client.createWorkspace("run-history-ws");
     const proj = await client.createProject(bws.id, "p");
@@ -213,7 +213,7 @@ describe("recordRunHistory", () => {
   });
 
   it("returns a warning instead of throwing when the backend is unreachable", async () => {
-    process.env.SITE_DOCS_TOKEN = TOKEN;
+    process.env.DOCSX_TOKEN = TOKEN;
     const ws = await tmpWorkspace();
     const r = await recordRunHistory({
       workspaceDir: ws,

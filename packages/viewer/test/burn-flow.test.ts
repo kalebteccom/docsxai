@@ -10,7 +10,7 @@ let tmp = "";
 let docsDir = "";
 
 const ANNOTATIONS = {
-  schema: "site-docs/annotations@1",
+  schema: "docsxai/annotations@1",
   flow: "recap-open",
   annotations: [
     {
@@ -29,7 +29,7 @@ const ANNOTATIONS = {
 };
 
 beforeEach(async () => {
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-burn-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-burn-"));
   docsDir = path.join(tmp, "docs");
   const flowDir = path.join(docsDir, "recap-open");
   await fs.mkdir(path.join(flowDir, "screenshots"), { recursive: true });
@@ -100,7 +100,7 @@ describe("docsxai-viewer burn (CLI)", () => {
   });
 
   it("exits 1 when the workspace has no flows", async () => {
-    const empty = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-empty-"));
+    const empty = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-empty-"));
     expect(await runViewerCli(["burn", empty])).toBe(1);
     await fs.rm(empty, { recursive: true, force: true });
   });

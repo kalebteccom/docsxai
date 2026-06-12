@@ -1,4 +1,4 @@
-# @kalebtec/docsxai-plugin-starlight
+# @docsxai/plugin-starlight
 
 docsxai **renderer plugin** for [Astro Starlight](https://starlight.astro.build/). Registers `starlight:site`, a thin adapter over the viewer's `emitStarlightSite` / `buildStarlightSite`: it turns a doc pack into a complete, buildable Starlight project — one MDX page per flow, burned screenshots preferred (clean fallback), sidebar ordered by the flow `extends` graph, theme accents derived from the style artifact's `visual` keys.
 
@@ -6,11 +6,11 @@ No egress: the manifest declares zero capabilities. Emission is deterministic an
 
 ## Wiring
 
-`.site-docs.json`:
+`.docsxai.json`:
 
 ```json
 {
-  "plugins": [{ "package": "@kalebtec/docsxai-plugin-starlight" }]
+  "plugins": [{ "package": "@docsxai/plugin-starlight" }]
 }
 ```
 
@@ -27,7 +27,7 @@ Passed as the renderer's `config`:
 
 The context's `flows` filter restricts the site to those flows; empty means all flows under `docs/`.
 
-All emission behavior (MDX shape, accent scale, image preference, determinism, the no-network posture) is documented and tested in [`@kalebtec/docsxai-viewer`](../viewer/README.md#starlight-site).
+All emission behavior (MDX shape, accent scale, image preference, determinism, the no-network posture) is documented and tested in [`@docsxai/viewer`](../viewer/README.md#starlight-site).
 
 ## License
 

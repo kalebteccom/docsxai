@@ -1,6 +1,6 @@
-# @kalebtec/docsxai-engine
+# @docsxai/engine
 
-LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, and the full `site-docs` CLI.
+LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, and the full `docsxai` CLI.
 
 The engine **never** calls a model API. Calibration-time inference is supplied by the host agent (Claude Code, Codex, anything that speaks MCP) through the plugin's skill surface; execution is deterministic and replays a doc pack through headless Playwright.
 
@@ -11,7 +11,7 @@ The engine **never** calls a model API. Calibration-time inference is supplied b
 - **Redactions** — flow-level + per-step `RedactionSpec[]` (`{ selector }` or `{ region }`, style `box` | `pixelate`) masked deterministically before any screenshot (halt shots included) hits disk. The pure pixel transform is `applyRedactions` in `redact.ts`.
 - **`BrowserDriver`** interface — what the runtime needs from a browser. The `PlaywrightDriver` implementation includes the `actionable()` predicate (see [`docs/actionability-contract.md`](../../docs/actionability-contract.md)) that browser-bridge consumers can mirror, plus a real `element_stable` wait (bounding-box polling, 10 s best-effort budget).
 - **Auth strategies** — `auth/strategy.yaml` descriptor + a catalogue of scripted strategies (`api-login`, `ui-form` with a TOTP hop, `email-otp`, `webauthn`, `jwt-injection`, `http-basic`, `pat-header`, `mtls`, `test-backdoor`) alongside the human-in-the-loop `manual-capture`. See [Auth strategies](#auth-strategies) below.
-- **CLI** — `site-docs <command>`. See `--help` or the [top-level README](../../README.md) for the full surface; this package's `dist/cli.js` is the binary.
+- **CLI** — `docsxai <command>`. See `--help` or the [top-level README](../../README.md) for the full surface; this package's `dist/cli.js` is the binary.
 
 ## CLI commands
 
@@ -21,7 +21,7 @@ capture-auth   cache an authed session
 calibrate      extract a flow-file from a structured guide
 inspect        discover [data-testid] locators on the live page
 run            execute flows headless; emit annotations + screenshots
-render         build the static viewer (spawns the @kalebtec/docsxai-viewer bin)
+render         build the static viewer (spawns the @docsxai/viewer bin)
 lint           static checks across flow-files (R001-R010; `extraRules` injectable via `lintFlow`)
 flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt
@@ -34,19 +34,19 @@ export         project the doc pack to a publisher format (`export adf` — Conf
 
 `run` has a sub-3-second iteration mode for long-async flows: `--start-from <step-id> --cdp <endpoint>` skips every step before the target and attaches to an already-warm Chrome.
 
-`zip` packages the doc pack in-process (via fflate) — no system `zip` binary required — and **deterministically**: entries are sorted, every entry's mtime is pinned to the zip epoch (1980-01-01), and the compression level is fixed, so the same doc pack always produces a byte-identical archive. Includes `flows/`, `docs/`, `.site-docs.json`, `auth/strategy.yaml`, `README.md`; excludes `.auth/`, `**/halts/`, and (unless `--include-viewer`) `.viewer/`. Symlinks that point outside the workspace are never followed into the archive.
+`zip` packages the doc pack in-process (via fflate) — no system `zip` binary required — and **deterministically**: entries are sorted, every entry's mtime is pinned to the zip epoch (1980-01-01), and the compression level is fixed, so the same doc pack always produces a byte-identical archive. Includes `flows/`, `docs/`, `.docsxai.json`, `auth/strategy.yaml`, `README.md`; excludes `.auth/`, `**/halts/`, and (unless `--include-viewer`) `.viewer/`. Symlinks that point outside the workspace are never followed into the archive.
 
-`export adf` projects the doc pack to Confluence Cloud ADF (`projectDocPackToAdf` from the library surface) — pure and deterministic, zero HTTP. Default `--mode single` emits one consolidated document (flows as anchored H2 sections); `--mode page-tree` emits a parent overview plus one document per flow. Output lands in `<workspace>/.export/adf/` as `projection.json` + `attachments.json` (file name, source path, sha256 per burned screenshot — falling back to the clean screenshot with a warning when no burned PNG exists). A host agent hands these to the Atlassian MCP, or the `@kalebtec/docsxai-plugin-confluence` publisher (`confluence:push`) consumes them; **all** Confluence HTTP lives in that capability-declared plugin, never in the engine.
+`export adf` projects the doc pack to Confluence Cloud ADF (`projectDocPackToAdf` from the library surface) — pure and deterministic, zero HTTP. Default `--mode single` emits one consolidated document (flows as anchored H2 sections); `--mode page-tree` emits a parent overview plus one document per flow. Output lands in `<workspace>/.export/adf/` as `projection.json` + `attachments.json` (file name, source path, sha256 per burned screenshot — falling back to the clean screenshot with a warning when no burned PNG exists). A host agent hands these to the Atlassian MCP, or the `@docsxai/plugin-confluence` publisher (`confluence:push`) consumes them; **all** Confluence HTTP lives in that capability-declared plugin, never in the engine.
 
-`baseline` + `diff` are the drift-detection pair. `baseline` snapshots `flows/` + `docs/` (step `.md`s, `annotations.json`, `screenshots/`, `locators.yaml`) into `<workspace>/.baseline/` (or `--out <dir>`); `diff` compares the live workspace against it (`diffDocPacks` on the library surface) and emits a deterministic `site-docs/drift@1` report — per flow: id-keyed step field deltas, annotation moves beyond a pixel tolerance, screenshot pixel diffs via pngjs (changed-pixel count / pct / changed-region bbox; dimension changes flagged distinctly; `ignore_regions` excluded), prose line-change counts, and locator changes. `--format md` (`formatDriftReportMarkdown`) is PR-comment-ready; `--fail-on warn|fail` exits 1 at/above the threshold (defaults: ≥1% changed pixels = warn, ≥5% = fail, structural change = warn). The engine detects and reports; proposing flow-file patches stays with the host agent (`diagnose`).
+`baseline` + `diff` are the drift-detection pair. `baseline` snapshots `flows/` + `docs/` (step `.md`s, `annotations.json`, `screenshots/`, `locators.yaml`) into `<workspace>/.baseline/` (or `--out <dir>`); `diff` compares the live workspace against it (`diffDocPacks` on the library surface) and emits a deterministic `docsxai/drift@1` report — per flow: id-keyed step field deltas, annotation moves beyond a pixel tolerance, screenshot pixel diffs via pngjs (changed-pixel count / pct / changed-region bbox; dimension changes flagged distinctly; `ignore_regions` excluded), prose line-change counts, and locator changes. `--format md` (`formatDriftReportMarkdown`) is PR-comment-ready; `--fail-on warn|fail` exits 1 at/above the threshold (defaults: ≥1% changed pixels = warn, ≥5% = fail, structural change = warn). The engine detects and reports; proposing flow-file patches stays with the host agent (`diagnose`).
 
 `export playwright` renders each flow (with `extends` resolved) as a self-contained Playwright `.spec.ts` (`exportFlowAsPlaywrightTest`) into `<workspace>/.export/tests/`: locator consts, steps as page actions, `wait_for` as waits, `success` as `expect()` assertions, `environment` as `test.use()` + `page.clock.setFixedTime`, `optional` steps in try/catch. Deterministic; generated files carry a "regenerate, don't hand-edit" header.
 
-`render` locates the viewer bin in order: `SITE_DOCS_VIEWER_BIN` (path to the viewer's bin script or an executable), the `@kalebtec/docsxai-viewer` package installed next to the engine (its `bin` run with the current Node), then `docsxai-viewer` on PATH. A launch failure reports all three attempts.
+`render` locates the viewer bin in order: `DOCSX_VIEWER_BIN` (path to the viewer's bin script or an executable), the `@docsxai/viewer` package installed next to the engine (its `bin` run with the current Node), then `docsxai-viewer` on PATH. A launch failure reports all three attempts.
 
 ## Auth strategies
 
-Target-site auth lives in `src/auth/` (one module per strategy) behind the `src/auth.ts` re-export shim. Every strategy implements `AuthStrategy.authenticate(ctx) → AuthResult` and reduces to the same universal artifact: a **`storageState`** (cookies + localStorage) the runtime seeds the browser context with, plus — for connection-level schemes — `contextOptions` (`httpCredentials` / `extraHTTPHeaders` / `clientCertificates`) passed through to `browser.newContext`. Roles are declared in `<workspace>/auth/strategy.yaml` (`site-docs/auth-strategy@1`): per-role `strategy`, `creds_env` (credential **keys → env-var names**, never values), `options`, and `cache` (local/backend store, `ttl`, `auth_cookie` expiry pinning).
+Target-site auth lives in `src/auth/` (one module per strategy) behind the `src/auth.ts` re-export shim. Every strategy implements `AuthStrategy.authenticate(ctx) → AuthResult` and reduces to the same universal artifact: a **`storageState`** (cookies + localStorage) the runtime seeds the browser context with, plus — for connection-level schemes — `contextOptions` (`httpCredentials` / `extraHTTPHeaders` / `clientCertificates`) passed through to `browser.newContext`. Roles are declared in `<workspace>/auth/strategy.yaml` (`docsxai/auth-strategy@1`): per-role `strategy`, `creds_env` (credential **keys → env-var names**, never values), `options`, and `cache` (local/backend store, `ttl`, `auth_cookie` expiry pinning).
 
 | Strategy         | Scheme                                                                                                                                                                                                             | Browser needed |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
@@ -77,7 +77,7 @@ The engine hosts a workspace plugin runtime (v1) with four extension points: **p
 
 ```json
 {
-  "name": "@kalebtec/docsxai-plugin-confluence",
+  "name": "@docsxai/plugin-confluence",
   "version": "0.1.0",
   "docsxai": {
     "apiVersion": "1.0.0",
@@ -92,7 +92,7 @@ The engine hosts a workspace plugin runtime (v1) with four extension points: **p
 ```
 
 - `apiVersion` — exact semver of the runtime contract the plugin codes against. Must share the engine's `RUNTIME_API_VERSION` major with minor ≤ the runtime's, or the plugin load-errors.
-- `namespace` — mandatory, `/^[a-z][a-z0-9-]*$/`. Every registered artifact is exposed as `<namespace>:<name>` (the runtime prefixes; plugins pass bare names). Reserved: `site-docs`, `docsxai`, `core`, `plugins`. Two plugins claiming one namespace are **both** disabled.
+- `namespace` — mandatory, `/^[a-z][a-z0-9-]*$/`. Every registered artifact is exposed as `<namespace>:<name>` (the runtime prefixes; plugins pass bare names). Reserved: `docsxai`, `docsxai`, `core`, `plugins`. Two plugins claiming one namespace are **both** disabled.
 - `kinds` — the extension points the plugin registers (≥1). Registering an undeclared kind throws and load-errors the plugin (capability-disclosure honesty).
 - `capabilities` — `egress:<host-glob>` declarations, subset-checked against the workspace's `plugin_capabilities`. Mismatch disables the plugin (status, not fatal). Publisher plugins are the **only** wiki/VCS egress path in the engine.
 - `dependsOn` — `{ plugin, version }` entries (package name + `^`/`~`/exact range). Load order is topological; cycles are rejected as a unit.
@@ -103,26 +103,23 @@ The register module exports a `register(api)` function (named or default). `api`
 
 ### Workspace config + lock
 
-Two optional `.site-docs.json` keys wire plugins into a workspace:
+Two optional `.docsxai.json` keys wire plugins into a workspace:
 
 ```json
 {
-  "plugins": [
-    { "package": "@kalebtec/docsxai-plugin-confluence" },
-    { "path": "../my-local-plugin" }
-  ],
+  "plugins": [{ "package": "@docsxai/plugin-confluence" }, { "path": "../my-local-plugin" }],
   "plugin_capabilities": ["egress:*.atlassian.net"]
 }
 ```
 
-`plugins-lock.json` (schema `site-docs/plugins-lock@1`, next to the config) pins each plugin's register-module sha256. When it exists, every resolve verifies the bytes **before** importing; a mismatch fails closed with a "run `site-docs plugins sync`" message.
+`plugins-lock.json` (schema `docsxai/plugins-lock@1`, next to the config) pins each plugin's register-module sha256. When it exists, every resolve verifies the bytes **before** importing; a mismatch fails closed with a "run `docsxai plugins sync`" message.
 
 ### CLI
 
 ```
-site-docs plugins list <workspace>             status table (loaded / disabled reasons); exit 1 if any plugin isn't loaded
-site-docs plugins info <workspace> <namespace> manifest + registered artifact names
-site-docs plugins sync <workspace>             (re)write plugins-lock.json — never executes plugin code
+docsxai plugins list <workspace>             status table (loaded / disabled reasons); exit 1 if any plugin isn't loaded
+docsxai plugins info <workspace> <namespace> manifest + registered artifact names
+docsxai plugins sync <workspace>             (re)write plugins-lock.json — never executes plugin code
 ```
 
 All three accept `--format json`. Plugins are resolved once per CLI invocation — there is no hot reload. See `docs/ai-context/plugin-runtime/lifecycle-and-namespacing.md` for the full lifecycle contract.

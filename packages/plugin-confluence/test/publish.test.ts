@@ -13,7 +13,7 @@ import {
   type PublisherContext,
   projectDocPackToAdf,
   resolvePlugins,
-} from "@kalebtec/docsxai-engine";
+} from "@docsxai/engine";
 import { createConfluencePublisher } from "../src/publisher.js";
 import { type FakeConfluence, startFakeConfluence } from "./fake-confluence.js";
 
@@ -47,7 +47,7 @@ const PNG_B = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 2]);
 
 /** Two flows, one documented step each — enough to exercise both modes + attachments. */
 async function makeWorkspace(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-confluence-test-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-confluence-test-"));
   tempDirs.push(dir);
   for (const [flow, png] of [
     ["checkout", PNG_A],

@@ -1,8 +1,8 @@
-// plugins-lock.json + the plugin keys of `.site-docs.json`.
+// plugins-lock.json + the plugin keys of `.docsxai.json`.
 //
 // The lock pins the sha256 of each plugin's register-module bytes. When the file exists, every
 // resolve verifies the hash BEFORE importing — a silently-swapped module fails closed with a
-// "run `site-docs plugins sync`" message. `site-docs plugins sync` (re)writes it without ever
+// "run `docsxai plugins sync`" message. `docsxai plugins sync` (re)writes it without ever
 // executing plugin code.
 
 import { createHash } from "node:crypto";
@@ -11,7 +11,7 @@ import { z } from "zod";
 import { resolveWorkspacePath, WORKSPACE_CONFIG_FILE } from "../workspace.js";
 
 export const PLUGINS_LOCK_FILE = "plugins-lock.json";
-export const PLUGINS_LOCK_SCHEMA = "site-docs/plugins-lock@1";
+export const PLUGINS_LOCK_SCHEMA = "docsxai/plugins-lock@1";
 
 /** Where a plugin comes from: an installed package (resolved via Node) or a local directory. */
 export type PluginSourceSpec = { package: string } | { path: string };
@@ -66,13 +66,13 @@ export async function readPluginsLock(workspaceDir: string): Promise<PluginsLock
     raw = JSON.parse(text);
   } catch {
     throw new PluginsLockError(
-      `${p} is not valid JSON — fix or delete it, then run \`site-docs plugins sync\``,
+      `${p} is not valid JSON — fix or delete it, then run \`docsxai plugins sync\``,
     );
   }
   const result = lockSchema.safeParse(raw);
   if (!result.success) {
     throw new PluginsLockError(
-      `${p} does not match schema "${PLUGINS_LOCK_SCHEMA}" — delete it and run \`site-docs plugins sync\``,
+      `${p} does not match schema "${PLUGINS_LOCK_SCHEMA}" — delete it and run \`docsxai plugins sync\``,
     );
   }
   return result.data;
@@ -105,23 +105,23 @@ export function verifyLock(
 ): string | null {
   const entry = lock.plugins[namespace];
   if (!entry) {
-    return `plugin "${namespace}" is not in ${PLUGINS_LOCK_FILE} — run \`site-docs plugins sync\``;
+    return `plugin "${namespace}" is not in ${PLUGINS_LOCK_FILE} — run \`docsxai plugins sync\``;
   }
   if (registerBytes === null) {
-    return `plugin "${namespace}" register module is unreadable — reinstall it, then run \`site-docs plugins sync\``;
+    return `plugin "${namespace}" register module is unreadable — reinstall it, then run \`docsxai plugins sync\``;
   }
   const actual = sha256Hex(registerBytes);
   if (actual !== entry.sha256) {
     return (
       `lock mismatch for plugin "${namespace}": register module sha256 ${actual} does not match ` +
-      `${PLUGINS_LOCK_FILE} (${entry.sha256}) — if the change is intentional, run \`site-docs plugins sync\``
+      `${PLUGINS_LOCK_FILE} (${entry.sha256}) — if the change is intentional, run \`docsxai plugins sync\``
     );
   }
   return null;
 }
 
 // ---------------------------------------------------------------------------
-// `.site-docs.json` plugin keys
+// `.docsxai.json` plugin keys
 // ---------------------------------------------------------------------------
 //
 // Two optional keys extend the workspace config:
@@ -151,7 +151,7 @@ const pluginsConfigSchema = z.object({
   plugin_capabilities: z.array(z.string()).default([]),
 });
 
-/** Read the plugin keys from `<workspace>/.site-docs.json`. Absent file → empty config. */
+/** Read the plugin keys from `<workspace>/.docsxai.json`. Absent file → empty config. */
 export async function readWorkspacePluginsConfig(
   workspaceDir: string,
 ): Promise<WorkspacePluginsConfig> {

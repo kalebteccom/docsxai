@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// @kalebtec/docsxai-backend — authenticated doc-pack persistence service.
+// @docsxai/backend — authenticated doc-pack persistence service.
 //
 // This module is both the library entry (re-exports the contract + `createBackendStub`) and the bin
 // entry `docsxai-backend` (starts the server). Storage is in-memory by default; `--data-dir=<dir>`
-// (or SITE_DOCS_DATA_DIR) persists to disk via `FsStore`. Auth accepts the pre-issued bearer token
-// (SITE_DOCS_TOKEN) and OAuth-2.1-issued access tokens (authorization-code + PKCE; see /v1/oauth/*).
+// (or DOCSX_DATA_DIR) persists to disk via `FsStore`. Auth accepts the pre-issued bearer token
+// (DOCSX_TOKEN) and OAuth-2.1-issued access tokens (authorization-code + PKCE; see /v1/oauth/*).
 
 import { pathToFileURL } from "node:url";
 
@@ -31,9 +31,9 @@ export async function runBackendStubCli(argv: string[]): Promise<number> {
       .find((a) => /^--data-dir=/.test(a))
       ?.split("=")
       .slice(1)
-      .join("=") ?? process.env.SITE_DOCS_DATA_DIR;
+      .join("=") ?? process.env.DOCSX_DATA_DIR;
   const stub = createBackendStub({
-    ...(process.env.SITE_DOCS_TOKEN ? { token: process.env.SITE_DOCS_TOKEN } : {}),
+    ...(process.env.DOCSX_TOKEN ? { token: process.env.DOCSX_TOKEN } : {}),
     ...(dataDir ? { dataDir } : {}),
   });
   const url = await stub.listen(port);

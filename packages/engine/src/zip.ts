@@ -39,7 +39,7 @@ export class ZipError extends Error {
   }
 }
 
-const DEFAULT_INCLUDES = ["flows/", "docs/", ".site-docs.json", "auth/strategy.yaml", "README.md"];
+const DEFAULT_INCLUDES = ["flows/", "docs/", ".docsxai.json", "auth/strategy.yaml", "README.md"];
 
 const FIXED_MTIME = new Date(1980, 0, 1);
 const FIXED_LEVEL = 6;

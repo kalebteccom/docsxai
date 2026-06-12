@@ -1,9 +1,9 @@
-// @kalebtec/docsxai-engine
+// @docsxai/engine
 // LLM-agnostic engine: flow-file parser + deterministic runtime + the target-site auth-strategy
 // layer + calibration-aid helpers (lint, diagnose, flow-tree, style) + doc-pack IO, the backend
 // client, and the zip hand-off packager.
 
-export const name = "@kalebtec/docsxai-engine";
+export const name = "@docsxai/engine";
 
 export * from "./doc-pack.js";
 export * from "./doc-pack-io.js";

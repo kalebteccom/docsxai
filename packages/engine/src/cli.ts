@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// `site-docs` — the deterministic CLI. The plugin's commands wrap this; calibration runs in an agent
+// `docsxai` — the deterministic CLI. The plugin's commands wrap this; calibration runs in an agent
 // context and is exposed by the plugin, not here.
 
 import { spawn } from "node:child_process";
@@ -72,37 +72,37 @@ import {
   resolveWorkspacePathReal,
 } from "./workspace.js";
 
-const USAGE = `site-docs — deterministic execution CLI
+const USAGE = `docsxai — deterministic execution CLI
 
 Usage:
-  site-docs init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>] [--ttl <dur>]
+  docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>] [--ttl <dur>]
                                  [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                  [--persist tmp] [--force]
-  site-docs calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
-  site-docs inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
-  site-docs run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
-  site-docs lint <workspace-dir> [--flow <name>] [--format text|json]
-  site-docs flow-tree <workspace-dir> [--format text|json]
-  site-docs diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
-  site-docs style <workspace-dir> [--check] [--format text|json]
-  site-docs zip <workspace-dir> [--out <output.zip>] [--include-viewer]
-  site-docs baseline <workspace-dir> [--out <dir>]
-  site-docs diff <workspace-dir> [--against <dir>] [--format json|md|text] [--fail-on warn|fail]
-  site-docs export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
-  site-docs export playwright <workspace-dir> [--flow <name>] [--out <dir>]
-  site-docs plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
-  site-docs login --backend-url <url>
-  site-docs push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
-  site-docs pull <workspace-dir> [--rev <id>]
-  site-docs render <workspace-dir>
-  site-docs capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
-  site-docs --help
+  docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
+  docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
+  docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+  docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
+  docsxai flow-tree <workspace-dir> [--format text|json]
+  docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
+  docsxai style <workspace-dir> [--check] [--format text|json]
+  docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
+  docsxai baseline <workspace-dir> [--out <dir>]
+  docsxai diff <workspace-dir> [--against <dir>] [--format json|md|text] [--fail-on warn|fail]
+  docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
+  docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]
+  docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
+  docsxai login --backend-url <url>
+  docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
+  docsxai pull <workspace-dir> [--rev <id>]
+  docsxai render <workspace-dir>
+  docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
+  docsxai --help
 
 Notes:
   • A *workspace* (created by \`init\`) holds flows/<flow>.flow.yaml, docs/, auth/strategy.yaml, .auth/, .viewer/,
-    and a .site-docs.json config. Put it OUTSIDE the app's source repo — site-docs documents a running app from
+    and a .docsxai.json config. Put it OUTSIDE the app's source repo — docsxai documents a running app from
     outside and never writes into the app repo.
-  • run / capture-auth read app_url + ignore_https_errors from .site-docs.json if you don't pass the flags.
+  • run / capture-auth read app_url + ignore_https_errors from .docsxai.json if you don't pass the flags.
   • run launches Chromium; if no browser binary is present, install one:  npx playwright install chromium
   • --ignore-https-errors accepts self-signed/invalid TLS (e.g. an app's local HTTPS dev cert)
   • run --stop-after <step-id> runs only a prefix of the flow (up to & incl. that step); --pause keeps the
@@ -118,11 +118,11 @@ Notes:
     than re-walking the whole extends chain. New annotations MERGE into the existing annotations.json by
     step id; the prior steps' annotations and screenshots are preserved.
   • run --cdp <endpoint> attaches to a running Chrome (start it with --remote-debugging-port=N) instead of
-    launching one. site-docs won't close that Chrome. When --cdp is set, the cached storageState is NOT
+    launching one. docsxai won't close that Chrome. When --cdp is set, the cached storageState is NOT
     loaded into the context — the operator's Chrome owns its auth state. Useful with --start-from for the
     sub-3-sec iteration loop on long-async flows.
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
-    engineer logs into; window.__siteDocs.capture() or an injected button snapshots the session) and caches
+    engineer logs into; window.__docsxai.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you
     can identify the app's real auth/session cookie.
   • capture-auth keeps a persistent Chrome profile at <workspace>/.auth/chrome-profile/ (gitignored) — re-running
@@ -130,7 +130,7 @@ Notes:
   • --cdp <endpoint> makes capture-auth *attach to an already-running Chrome* (start it with
     --remote-debugging-port=N --disable-web-security --user-data-dir=<dir>) instead of launching a fresh one —
     use this to capture from the same Chrome the engineer is already logged into (and that Claude in Chrome is
-    driving for discovery), so they don't log in twice. site-docs won't close that Chrome. (--cdp ignores --fresh.)
+    driving for discovery), so they don't log in twice. docsxai won't close that Chrome. (--cdp ignores --fresh.)
   • auth_cookie (set via \`init --auth-cookie\`, \`capture-auth --auth-cookie\`, or hand-edited into
     auth/strategy.yaml) names that cookie; when set, the cached session's expiry tracks *that* cookie's
     expiry rather than the \`ttl\` guess (an interactive SSO login leaves ephemeral IdP scratch cookies, so
@@ -143,7 +143,7 @@ Notes:
     attaches to an already-running Chrome (e.g. the one from capture-auth --cdp) instead of launching one.
   • calibrate takes a *structured flow-guide* (a flow-file in YAML, or a .md with a yaml fenced block) and
     writes flows/<name>.flow.yaml + a default docs/style.yaml. Loose-prose descriptions / live element-picking
-    need the host agent — that's the /site-docs:calibrate *skill* (see the plugin), which then refines/produces
+    need the host agent — that's the /docsxai:calibrate *skill* (see the plugin), which then refines/produces
     the flow-file; this CLI command covers only the deterministic structured-input case.
   • lint runs pure-static checks across the workspace's flow-files — no Playwright, no live page. Rules:
     R001 (deep extends chain), R002 (annotation anchored to a likely-unmounting click/navigate target —
@@ -167,7 +167,7 @@ Notes:
     enforcement layer for the semantic-reshape exit criterion. --format json emits machine-readable
     output for tooling.
   • zip packages the workspace's doc pack into a single archive for hand-off. Includes flows/, docs/,
-    .site-docs.json, auth/strategy.yaml (env-var names only, no creds), README.md. Excludes .auth/
+    .docsxai.json, auth/strategy.yaml (env-var names only, no creds), README.md. Excludes .auth/
     (operator-local session state), **/halts/ (debug screenshots), .viewer/ by default (re-renderable
     from the doc pack; pass --include-viewer to bundle it). Defaults output to <workspace-name>.zip
     in the current dir; override with --out <path>. Zips in-process (no system 'zip' binary needed)
@@ -187,13 +187,13 @@ Notes:
     as expect() assertions, environment as test.use(); optional steps are try/catch-wrapped. Generated
     files say so in a header: regenerate, don't hand-edit.
   • render builds the static viewer by spawning the docsxai-viewer bin, resolved in order: the
-    SITE_DOCS_VIEWER_BIN env var (path to the viewer's bin script), the @kalebtec/docsxai-viewer
+    DOCSX_VIEWER_BIN env var (path to the viewer's bin script), the @docsxai/viewer
     package installed next to the engine, then \`docsxai-viewer\` on PATH.
   • login validates a bearer token against a backend URL — hits /v1/health, /v1/workspaces. Reads
-    the token from SITE_DOCS_TOKEN env var. Prints what the backend sees if the call succeeds,
+    the token from DOCSX_TOKEN env var. Prints what the backend sees if the call succeeds,
     or a clear error if not. Stateless: doesn't store anything; configure the env var in your shell.
   • push serialises the workspace's doc pack (flows + annotations + screenshots + style + locators)
-    and POSTs it as a new revision against the backend named in .site-docs.json (backend_url +
+    and POSTs it as a new revision against the backend named in .docsxai.json (backend_url +
     optionally backend_workspace_id / backend_project_id; created on first push if absent and
     persisted to the config). --kind defaults to "calibrate"; --author defaults to the OS user.
   • pull fetches a revision's artifacts back into the workspace files (default: HEAD). Useful for
@@ -503,7 +503,7 @@ async function cmdCaptureAuth(args: string[]): Promise<number> {
     wsCfg?.app_url;
   if (!baseURL) {
     process.stderr.write(
-      "capture-auth: --base-url <url> is required (or set app_url in the workspace's .site-docs.json)\n",
+      "capture-auth: --base-url <url> is required (or set app_url in the workspace's .docsxai.json)\n",
     );
     return 2;
   }
@@ -646,7 +646,7 @@ async function cmdInit(args: string[]): Promise<number> {
       `init: workspace ${r.ephemeral ? "(ephemeral) " : ""}at ${r.dir}\n  created: ${r.created.join(", ")}\n`,
     );
     process.stdout.write(
-      `  next: ${appUrl ? "" : "(set app_url in .site-docs.json, then) "}site-docs capture-auth ${r.dir}  →  …calibrate…  →  site-docs run ${r.dir}  →  site-docs render ${r.dir}\n`,
+      `  next: ${appUrl ? "" : "(set app_url in .docsxai.json, then) "}docsxai capture-auth ${r.dir}  →  …calibrate…  →  docsxai run ${r.dir}  →  docsxai render ${r.dir}\n`,
     );
     return 0;
   } catch (e) {
@@ -688,7 +688,7 @@ async function cmdCalibrate(args: string[]): Promise<number> {
     process.stdout.write(`calibrate: wrote ${r.flowFilePath}  (${r.flow.steps.length} steps)\n`);
     if (r.wroteStyle) process.stdout.write(`calibrate: wrote default ${r.stylePath}\n`);
     process.stdout.write(
-      `  next: site-docs run ${workspaceDir}  (then: site-docs render ${workspaceDir})\n`,
+      `  next: docsxai run ${workspaceDir}  (then: docsxai render ${workspaceDir})\n`,
     );
     return 0;
   } catch (e) {
@@ -711,7 +711,7 @@ async function cmdInspect(args: string[]): Promise<number> {
   const url = explicitUrl ?? wsCfg?.app_url;
   if (!cdp && !url) {
     process.stderr.write(
-      "inspect: no URL — pass --url <url>, set app_url in .site-docs.json, or use --cdp <endpoint>\n",
+      "inspect: no URL — pass --url <url>, set app_url in .docsxai.json, or use --cdp <endpoint>\n",
     );
     return 2;
   }
@@ -742,7 +742,7 @@ async function cmdInspect(args: string[]): Promise<number> {
       undefined;
     if (!storageState) {
       process.stderr.write(
-        `inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`site-docs capture-auth\` first if the app needs login)\n`,
+        `inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`docsxai capture-auth\` first if the app needs login)\n`,
       );
     }
   }
@@ -1364,7 +1364,7 @@ async function cmdDiff(args: string[]): Promise<number> {
     await fs.access(path.join(againstDir, "flows"));
   } catch {
     process.stderr.write(
-      `diff: no baseline at ${againstDir} — run \`site-docs baseline ${projectDir}\` first (or pass --against <dir>)\n`,
+      `diff: no baseline at ${againstDir} — run \`docsxai baseline ${projectDir}\` first (or pass --against <dir>)\n`,
     );
     return 2;
   }
@@ -1420,9 +1420,9 @@ async function cmdLogin(args: string[]): Promise<number> {
       return 1;
     }
   }
-  if (!process.env.SITE_DOCS_TOKEN) {
+  if (!process.env.DOCSX_TOKEN) {
     process.stderr.write(
-      `login: SITE_DOCS_TOKEN env var not set. Export it before running: SITE_DOCS_TOKEN=<token> site-docs login --backend-url ${backendUrl}\n`,
+      `login: DOCSX_TOKEN env var not set. Export it before running: DOCSX_TOKEN=<token> docsxai login --backend-url ${backendUrl}\n`,
     );
     return 2;
   }
@@ -1486,7 +1486,7 @@ async function cmdPush(args: string[]): Promise<number> {
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url) {
     process.stderr.write(
-      `push: no backend_url in ${path.join(projectDir, ".site-docs.json")}. Set it before pushing.\n`,
+      `push: no backend_url in ${path.join(projectDir, ".docsxai.json")}. Set it before pushing.\n`,
     );
     return 2;
   }
@@ -1517,14 +1517,14 @@ async function cmdPush(args: string[]): Promise<number> {
       path.basename(path.resolve(projectDir)),
     );
     if (binding.createdAny) {
-      // Persist the new IDs back to .site-docs.json so subsequent push/pull don't re-create.
+      // Persist the new IDs back to .docsxai.json so subsequent push/pull don't re-create.
       const updated = {
         ...wsCfg,
         backend_workspace_id: binding.wsId,
         backend_project_id: binding.projectId,
       };
       await fs.writeFile(
-        resolveWorkspacePath(projectDir, ".site-docs.json"),
+        resolveWorkspacePath(projectDir, ".docsxai.json"),
         JSON.stringify(updated, null, 2) + "\n",
         "utf8",
       );
@@ -1579,7 +1579,7 @@ async function cmdPull(args: string[]): Promise<number> {
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url || !wsCfg.backend_workspace_id || !wsCfg.backend_project_id) {
     process.stderr.write(
-      `pull: workspace isn't bound to a backend yet. Run \`push\` first (or hand-edit .site-docs.json's backend_workspace_id / backend_project_id).\n`,
+      `pull: workspace isn't bound to a backend yet. Run \`push\` first (or hand-edit .docsxai.json's backend_workspace_id / backend_project_id).\n`,
     );
     return 2;
   }

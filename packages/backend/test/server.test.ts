@@ -24,7 +24,7 @@ describe("backend stub", () => {
     const r = await fetch(`${base}/v1/health`);
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual({ ok: true, version: API_VERSION });
-    expect(r.headers.get("site-docs-api-version")).toBe(API_VERSION);
+    expect(r.headers.get("docsxai-api-version")).toBe(API_VERSION);
   });
 
   it("401s without a Bearer token, and on a wrong token", async () => {
@@ -74,7 +74,7 @@ describe("backend stub", () => {
     expect(head.id).toBe(rev2.id);
 
     // PUT then GET an artifact
-    const payload = { schema: "site-docs/annotations@1", flow: "f", annotations: [] };
+    const payload = { schema: "docsxai/annotations@1", flow: "f", annotations: [] };
     const put = await fetch(
       `${base}/v1/workspaces/${ws.id}/projects/${proj.id}/revisions/${rev2.id}/annotations`,
       {

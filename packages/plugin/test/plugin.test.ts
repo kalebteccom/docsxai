@@ -35,7 +35,7 @@ const KNOWN_CLI_COMMANDS = [
 describe("plugin scaffold — basics", () => {
   it("has a well-formed manifest", async () => {
     const m = await readManifest();
-    expect(m.name).toBe("site-docs");
+    expect(m.name).toBe("docsxai");
     expect(m.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(m.description.length).toBeGreaterThan(20);
   });
@@ -54,7 +54,7 @@ describe("validateManifest", () => {
   it("returns no issues for a clean manifest", () => {
     expect(
       validateManifest({
-        name: "site-docs",
+        name: "docsxai",
         version: "0.1.0",
         description: "A reasonable description with enough characters.",
         homepage: "https://example.com",
@@ -98,7 +98,7 @@ describe("validatePluginBundle (static validation)", () => {
     }
   });
 
-  it("every command body references its underlying `site-docs <name>` CLI command", async () => {
+  it("every command body references its underlying `docsxai <name>` CLI command", async () => {
     const issues = await validatePluginBundle({ knownCliCommands: KNOWN_CLI_COMMANDS });
     const misalignedWrappers = issues.filter((i) => i.message.includes("doesn't appear to invoke"));
     expect(misalignedWrappers, misalignedWrappers.map((i) => i.where).join(", ")).toEqual([]);

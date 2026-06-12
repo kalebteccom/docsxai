@@ -1,5 +1,5 @@
 {
-  "name": "@kalebtec/docsxai-backend",
+  "name": "@docsxai/backend",
   "version": "0.1.0",
   "type": "module",
   "publishConfig": {

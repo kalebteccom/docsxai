@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Fake `site-docs` engine bin for webhook tests. Supports the two subcommands the webhook
+// Fake `docsxai` engine bin for webhook tests. Supports the two subcommands the webhook
 // surface spawns (`run`, `render`); writes canned artifacts so tests can assert it really ran.
 // FAKE_ENGINE_EXIT forces a non-zero exit to exercise failure paths.
 "use strict";

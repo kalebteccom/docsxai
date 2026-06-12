@@ -24,7 +24,7 @@ function sha256(buf: Buffer): string {
 
 /** Workspace with one flow (`checkout`, two steps): step-1 has md + burned png; step-2 md + clean png only. */
 async function makeWorkspace(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-adf-test-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-adf-test-"));
   tempDirs.push(dir);
   await fs.mkdir(path.join(dir, "flows"), { recursive: true });
   await fs.mkdir(path.join(dir, "docs", "checkout", "burned"), { recursive: true });
@@ -259,7 +259,7 @@ describe("projectDocPackToAdf", () => {
   });
 });
 
-describe("site-docs export adf (CLI)", () => {
+describe("docsxai export adf (CLI)", () => {
   it("writes projection.json + attachments.json under <workspace>/.export/adf/", async () => {
     const dir = await makeWorkspace();
     const code = await main(["export", "adf", dir, "--title", "Shop docs"]);
@@ -268,7 +268,7 @@ describe("site-docs export adf (CLI)", () => {
     const projection = JSON.parse(
       await fs.readFile(path.join(dir, ".export", "adf", "projection.json"), "utf8"),
     );
-    expect(projection.schema).toBe("site-docs/adf-projection@1");
+    expect(projection.schema).toBe("docsxai/adf-projection@1");
     expect(projection.documents).toHaveLength(1);
 
     const manifest = JSON.parse(

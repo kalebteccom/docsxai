@@ -76,7 +76,7 @@ describe("recommendStatic", () => {
 describe("buildDiagnoseReport", () => {
   let tmp = "";
   beforeEach(async () => {
-    tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-diagnose-"));
+    tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-diagnose-"));
   });
   afterEach(async () => {
     await fs.rm(tmp, { recursive: true, force: true });

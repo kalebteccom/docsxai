@@ -27,7 +27,7 @@ More prose after the block.
 
 let tmp = "";
 beforeEach(async () => {
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-calibrate-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-calibrate-"));
 });
 afterEach(async () => {
   await fs.rm(tmp, { recursive: true, force: true });
@@ -49,7 +49,7 @@ describe("extractFlowFile", () => {
     try {
       extractFlowFile("Just click the play button.", "loose.md");
     } catch (e) {
-      expect((e as Error).message).toMatch(/site-docs:calibrate skill/);
+      expect((e as Error).message).toMatch(/docsxai:calibrate skill/);
     }
   });
   it("rejects a malformed yaml block with the schema error", () => {
@@ -74,7 +74,7 @@ describe("calibrate", () => {
     const written = parseFlowFile(await fs.readFile(r.flowFilePath, "utf8"));
     expect(written).toEqual(r.flow);
     const style = await fs.readFile(r.stylePath, "utf8");
-    expect(style).toMatch(/site-docs\/style@1/);
+    expect(style).toMatch(/docsxai\/style@1/);
     expect(style).toMatch(/pruning_rules/);
   });
   it("respects --name (override the flow name in the output path)", async () => {
@@ -87,7 +87,7 @@ describe("calibrate", () => {
     await fs.mkdir(path.join(ws, "docs"), { recursive: true });
     await fs.writeFile(
       path.join(ws, "docs", "style.yaml"),
-      "schema: site-docs/style@1\ncustom: true\n",
+      "schema: docsxai/style@1\ncustom: true\n",
     );
     const r = await calibrate({ workspaceDir: ws, fromText: FLOW_YAML });
     expect(r.wroteStyle).toBe(false);

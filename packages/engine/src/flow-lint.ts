@@ -1,5 +1,5 @@
 // Static analysis of flow-files. Catches common authoring mistakes at write-time, before a run.
-// Pure-static — no Playwright, no live page. Run via `site-docs lint`.
+// Pure-static — no Playwright, no live page. Run via `docsxai lint`.
 
 import type { FlowFile } from "./doc-pack.js";
 import { locatorRefName, referencedLocatorNames } from "./flow-file.js";

@@ -7,13 +7,13 @@ import { buildViewer } from "../src/render.js";
 let tmp = "";
 
 beforeEach(async () => {
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-viewer-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-viewer-"));
   const flowDir = path.join(tmp, "docs", "recap-open");
   await fs.mkdir(path.join(flowDir, "screenshots"), { recursive: true });
   await fs.writeFile(
     path.join(flowDir, "annotations.json"),
     JSON.stringify({
-      schema: "site-docs/annotations@1",
+      schema: "docsxai/annotations@1",
       flow: "recap-open",
       annotations: [
         {
@@ -73,7 +73,7 @@ describe("buildViewer", () => {
     await fs.writeFile(
       path.join(flowDir, "annotations.json"),
       JSON.stringify({
-        schema: "site-docs/annotations@1",
+        schema: "docsxai/annotations@1",
         flow: "recap-open",
         annotations: [
           {
@@ -134,7 +134,7 @@ describe("buildViewer", () => {
     await fs.writeFile(
       path.join(flowDir, "annotations.json"),
       JSON.stringify({
-        schema: "site-docs/annotations@1",
+        schema: "docsxai/annotations@1",
         flow: "recap-open",
         annotations: [
           {
@@ -214,7 +214,7 @@ describe("buildViewer", () => {
     await fs.writeFile(
       path.join(flowDir, "annotations.json"),
       JSON.stringify({
-        schema: "site-docs/annotations@1",
+        schema: "docsxai/annotations@1",
         flow: "recap-open",
         annotations: [
           { step: "open-sidebar", selector: "#play", copy: "<script>alert(1)</script> & stuff" },

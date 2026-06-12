@@ -1,6 +1,6 @@
 // Integration test: backend client ↔ real stub server (spun up in-process per test).
 
-import { createBackendStub } from "@kalebtec/docsxai-backend";
+import { createBackendStub } from "@docsxai/backend";
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
@@ -24,7 +24,7 @@ async function createStubServer() {
 
 beforeAll(async () => {
   stub = await createStubServer();
-  process.env.SITE_DOCS_TOKEN = "test-token";
+  process.env.DOCSX_TOKEN = "test-token";
 });
 afterAll(async () => {
   await stub.close();
@@ -55,7 +55,7 @@ describe("BackendClient ↔ stub server", () => {
     expect(rev.kind).toBe("calibrate");
 
     const payload = {
-      schema: "site-docs/flows@1" as const,
+      schema: "docsxai/flows@1" as const,
       files: { "f.flow.yaml": "name: f\nsteps:\n  - id: s\n    action: wait\n" },
     };
     await client.putArtifact(ws.id, proj.id, rev.id, "flows", payload);
@@ -70,10 +70,10 @@ describe("BackendClient ↔ stub server", () => {
   });
 
   it("throws BackendClientError on missing token", () => {
-    const prev = process.env.SITE_DOCS_TOKEN;
-    delete process.env.SITE_DOCS_TOKEN;
+    const prev = process.env.DOCSX_TOKEN;
+    delete process.env.DOCSX_TOKEN;
     expect(() => new BackendClient({ baseUrl: stub.url })).toThrow(/no bearer token/);
-    process.env.SITE_DOCS_TOKEN = prev;
+    process.env.DOCSX_TOKEN = prev;
   });
 
   it("throws BackendClientError on 4xx/5xx", async () => {
@@ -102,7 +102,7 @@ describe("BackendClient ↔ stub server", () => {
     expect(rev.finalized).toBe(false);
 
     await client.putArtifact(ws.id, proj.id, rev.id, "locators", {
-      schema: "site-docs/locators@1",
+      schema: "docsxai/locators@1",
       yaml: "a: b\n",
     });
     const finalized = await client.finalizeRevision(ws.id, proj.id, rev.id);
@@ -160,8 +160,8 @@ describe("push round-trip (readDocPack → backend → writeDocPack)", () => {
   let workspaceSrc = "";
   let workspaceDst = "";
   beforeAll(async () => {
-    workspaceSrc = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-push-src-"));
-    workspaceDst = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-push-dst-"));
+    workspaceSrc = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-push-src-"));
+    workspaceDst = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-push-dst-"));
     // Populate src with a minimal doc pack.
     await fs.mkdir(path.join(workspaceSrc, "flows"), { recursive: true });
     await fs.mkdir(path.join(workspaceSrc, "docs", "f"), { recursive: true });
@@ -173,7 +173,7 @@ describe("push round-trip (readDocPack → backend → writeDocPack)", () => {
     );
     await fs.writeFile(
       path.join(workspaceSrc, "docs", "f", "annotations.json"),
-      '{"schema":"site-docs/annotations@1","flow":"f","annotations":[]}',
+      '{"schema":"docsxai/annotations@1","flow":"f","annotations":[]}',
       "utf8",
     );
     await fs.writeFile(
@@ -182,12 +182,12 @@ describe("push round-trip (readDocPack → backend → writeDocPack)", () => {
     );
     await fs.writeFile(
       path.join(workspaceSrc, "docs", "style.yaml"),
-      "schema: site-docs/style@1\n",
+      "schema: docsxai/style@1\n",
       "utf8",
     );
     await fs.writeFile(
       path.join(workspaceSrc, "docs", "style.json"),
-      '{"schema":"site-docs/style@1"}',
+      '{"schema":"docsxai/style@1"}',
       "utf8",
     );
   });
@@ -209,7 +209,7 @@ describe("push round-trip (readDocPack → backend → writeDocPack)", () => {
 
     // The screenshots payload is a sha256 manifest, not base64 bytes.
     const srcPng = await fs.readFile(path.join(workspaceSrc, "docs", "f", "screenshots", "s.png"));
-    expect(payloads.screenshots!.schema).toBe("site-docs/screenshots@2");
+    expect(payloads.screenshots!.schema).toBe("docsxai/screenshots@2");
     expect(payloads.screenshots!.files["f/screenshots/s.png"]).toEqual({
       sha256: createHash("sha256").update(srcPng).digest("hex"),
       bytes: srcPng.byteLength,

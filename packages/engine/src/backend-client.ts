@@ -1,4 +1,4 @@
-// HTTP client for `@kalebtec/docsxai-backend`. Used by `site-docs push` / `pull` / `login` / `run`.
+// HTTP client for `@docsxai/backend`. Used by `docsxai push` / `pull` / `login` / `run`.
 //
 // The contract types are *redeclared* here (not imported from the backend package) so the engine
 // stays decoupled at the package level — there's no runtime nor build-time dep on the backend.
@@ -12,7 +12,7 @@ import { type RevisionKind } from "./doc-pack.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 
 export const API_VERSION = "1" as const;
-export const API_VERSION_HEADER = "site-docs-api-version";
+export const API_VERSION_HEADER = "docsxai-api-version";
 
 export type RevisionArtifact = "flows" | "annotations" | "screenshots" | "style" | "locators";
 
@@ -71,7 +71,7 @@ export class BackendClientError extends Error {
 
 export interface BackendClientOptions {
   baseUrl: string;
-  /** Bearer token. Reads from `SITE_DOCS_TOKEN` env if omitted. */
+  /** Bearer token. Reads from `DOCSX_TOKEN` env if omitted. */
   token?: string;
   /** Override the HTTP fetch (for tests). Defaults to `globalThis.fetch`. */
   fetch?: typeof globalThis.fetch;
@@ -85,11 +85,11 @@ export class BackendClient {
   constructor(opts: BackendClientOptions) {
     if (!opts.baseUrl) throw new BackendClientError("baseUrl is required");
     this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
-    this.token = opts.token ?? process.env.SITE_DOCS_TOKEN ?? "";
+    this.token = opts.token ?? process.env.DOCSX_TOKEN ?? "";
     this.doFetch = opts.fetch ?? globalThis.fetch;
     if (!this.token) {
       throw new BackendClientError(
-        "no bearer token — set SITE_DOCS_TOKEN env var or pass `token`. Run `site-docs login` to validate.",
+        "no bearer token — set DOCSX_TOKEN env var or pass `token`. Run `docsxai login` to validate.",
       );
     }
   }
@@ -277,28 +277,28 @@ export class BackendClient {
 // a manifest of sha256 references.
 
 export interface FlowsPayload {
-  schema: "site-docs/flows@1";
+  schema: "docsxai/flows@1";
   files: Record<string, string>; // filename → YAML text
 }
 
 export interface AnnotationsPayload {
-  schema: "site-docs/annotations-bundle@1";
+  schema: "docsxai/annotations-bundle@1";
   files: Record<string, unknown>; // `<flow>/annotations.json` content
 }
 
 export interface ScreenshotsPayload {
-  schema: "site-docs/screenshots@2";
+  schema: "docsxai/screenshots@2";
   files: Record<string, BlobRef>; // workspace-relative path (under docs/) → blob reference
 }
 
 export interface StylePayload {
-  schema: "site-docs/style-bundle@1";
+  schema: "docsxai/style-bundle@1";
   yaml: string | null;
   json: unknown;
 }
 
 export interface LocatorsPayload {
-  schema: "site-docs/locators@1";
+  schema: "docsxai/locators@1";
   yaml: string | null;
 }
 
@@ -360,7 +360,7 @@ export async function saveBackendTokenFile(
 /**
  * Resolve the bearer token for a backend call, in priority order:
  *   1. the explicit `token` option,
- *   2. the `SITE_DOCS_TOKEN` env var (the CI path),
+ *   2. the `DOCSX_TOKEN` env var (the CI path),
  *   3. the workspace's stored OAuth tokens (`.auth/backend-token.json`), refreshing them against
  *      the backend when expired (rotated tokens are written back to the file).
  */
@@ -372,8 +372,8 @@ export async function resolveBackendToken(opts: {
   now?: number;
 }): Promise<string> {
   if (opts.token) return opts.token;
-  if (process.env.SITE_DOCS_TOKEN) return process.env.SITE_DOCS_TOKEN;
-  const reloginHint = `set SITE_DOCS_TOKEN or run \`site-docs login --backend-url ${opts.baseUrl} --oauth <workspace-dir>\``;
+  if (process.env.DOCSX_TOKEN) return process.env.DOCSX_TOKEN;
+  const reloginHint = `set DOCSX_TOKEN or run \`docsxai login --backend-url ${opts.baseUrl} --oauth <workspace-dir>\``;
   if (!opts.workspaceDir) {
     throw new BackendClientError(`no bearer token — ${reloginHint}`);
   }
@@ -429,7 +429,7 @@ export async function createBackendClient(
   });
 }
 
-// --- OAuth 2.1 + PKCE login (`site-docs login --oauth`) ----------------------
+// --- OAuth 2.1 + PKCE login (`docsxai login --oauth`) ----------------------
 
 export interface OAuthLoginOptions {
   backendUrl: string;
@@ -468,12 +468,12 @@ export async function oauthLogin(opts: OAuthLoginOptions): Promise<BackendTokenF
     const gotCode = u.searchParams.get("code");
     if (u.searchParams.get("state") !== state || !gotCode) {
       res.writeHead(400, { "content-type": "text/plain" });
-      res.end("site-docs login: state mismatch or missing code\n");
+      res.end("docsxai login: state mismatch or missing code\n");
       rejectCode(new BackendClientError("OAuth redirect carried a bad state or no code"));
       return;
     }
     res.writeHead(200, { "content-type": "text/plain" });
-    res.end("site-docs login complete — you can close this tab.\n");
+    res.end("docsxai login complete — you can close this tab.\n");
     resolveCode(gotCode);
   });
 
@@ -488,7 +488,7 @@ export async function oauthLogin(opts: OAuthLoginOptions): Promise<BackendTokenF
   const redirectUri = `http://127.0.0.1:${port}/callback`;
 
   const authorizeUrl = new URL(`${base}/v1/oauth/authorize`);
-  authorizeUrl.searchParams.set("client_id", "site-docs-cli");
+  authorizeUrl.searchParams.set("client_id", "docsxai-cli");
   authorizeUrl.searchParams.set("code_challenge", challenge);
   authorizeUrl.searchParams.set("code_challenge_method", "S256");
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
@@ -537,11 +537,11 @@ export async function oauthLogin(opts: OAuthLoginOptions): Promise<BackendTokenF
   };
 }
 
-// --- run-history wiring (`site-docs run`) -------------------------------------
+// --- run-history wiring (`docsxai run`) -------------------------------------
 
 /**
  * Append an execution-run record for a backend-bound workspace. A no-op when the workspace config
- * lacks the backend binding; never throws — `site-docs run` must stay offline-tolerant, so failures
+ * lacks the backend binding; never throws — `docsxai run` must stay offline-tolerant, so failures
  * come back as a warning string for the caller to surface.
  */
 export async function recordRunHistory(opts: {
@@ -620,13 +620,13 @@ export interface BackendStateCacheOptions {
   baseUrl: string;
   token: string;
   workspaceId: string;
-  /** Base64-encoded 32-byte AES key — the resolved value of `SITE_DOCS_CACHE_KEY`. */
+  /** Base64-encoded 32-byte AES key — the resolved value of `DOCSX_CACHE_KEY`. */
   cacheKey: string;
   fetch?: typeof globalThis.fetch;
 }
 
 interface AuthCacheEnvelope {
-  schema: "site-docs/auth-cache@1";
+  schema: "docsxai/auth-cache@1";
   alg: "aes-256-gcm";
   iv: string;
   ciphertext: string;
@@ -673,13 +673,13 @@ export class BackendStateCache {
   constructor(opts: BackendStateCacheOptions) {
     if (!opts.cacheKey) {
       throw new BackendStateCacheError(
-        "missing cache key — set SITE_DOCS_CACHE_KEY to a base64-encoded 32-byte key",
+        "missing cache key — set DOCSX_CACHE_KEY to a base64-encoded 32-byte key",
       );
     }
     const key = Buffer.from(opts.cacheKey, "base64");
     if (key.length !== 32) {
       throw new BackendStateCacheError(
-        `malformed cache key — SITE_DOCS_CACHE_KEY must decode to exactly 32 bytes (got ${key.length})`,
+        `malformed cache key — DOCSX_CACHE_KEY must decode to exactly 32 bytes (got ${key.length})`,
       );
     }
     this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
@@ -794,7 +794,7 @@ export class BackendStateCache {
     const cipher = createCipheriv("aes-256-gcm", this.key, iv);
     const ciphertext = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
     return {
-      schema: "site-docs/auth-cache@1",
+      schema: "docsxai/auth-cache@1",
       alg: "aes-256-gcm",
       iv: iv.toString("base64"),
       ciphertext: ciphertext.toString("base64"),
@@ -816,7 +816,7 @@ export class BackendStateCache {
       ]).toString("utf8");
     } catch {
       throw new BackendStateCacheError(
-        "auth-cache decryption failed — wrong SITE_DOCS_CACHE_KEY or tampered ciphertext",
+        "auth-cache decryption failed — wrong DOCSX_CACHE_KEY or tampered ciphertext",
       );
     }
   }

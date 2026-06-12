@@ -11,7 +11,7 @@ import {
   resolveWorkspacePath,
   WORKSPACE_CONFIG_FILE,
   type FlowFile,
-} from "@kalebtec/docsxai-engine";
+} from "@docsxai/engine";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -83,7 +83,7 @@ export const NO_WORKSPACE_HINT =
 
 /**
  * Resolve the workspace dir (explicit arg wins over the server default) and verify it is a
- * site-docs workspace (a `.site-docs.json` marker exists). Returns the absolute path.
+ * docsxai workspace (a `.docsxai.json` marker exists). Returns the absolute path.
  */
 export async function requireWorkspace(
   explicit: string | undefined,
@@ -96,8 +96,8 @@ export async function requireWorkspace(
     await fs.access(path.join(abs, WORKSPACE_CONFIG_FILE));
   } catch {
     throw new ToolInputError(
-      `${abs} is not a site-docs workspace (no ${WORKSPACE_CONFIG_FILE} found)`,
-      "create one with the init_workspace tool (or `site-docs init <dir>`)",
+      `${abs} is not a docsxai workspace (no ${WORKSPACE_CONFIG_FILE} found)`,
+      "create one with the init_workspace tool (or `docsxai init <dir>`)",
     );
   }
   return abs;

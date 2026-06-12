@@ -140,7 +140,7 @@ async function prComment(
     };
   }
   const body = [
-    `### site-docs run ${run.ok ? "passed" : "failed"}`,
+    `### docsxai run ${run.ok ? "passed" : "failed"}`,
     "",
     run.summary,
     "",
@@ -175,7 +175,7 @@ async function viewerRefresh(
     const { spawn } = await import("node:child_process");
     return viewerRefresh(job, run, { ...deps, spawnImpl: spawn });
   }
-  const bin = deps.engineBin ?? "site-docs";
+  const bin = deps.engineBin ?? "docsxai";
   const outDir = path.join(run.workspace_dir, "viewer");
   const { code, output } = await spawnCapture(
     spawnImpl,
@@ -204,7 +204,7 @@ async function viewerRefresh(
 
 // --- wiki-push ----------------------------------------------------------------
 
-/** Engine publisher contract (mirrors `@kalebtec/docsxai-engine` plugin types — no dep needed). */
+/** Engine publisher contract (mirrors `@docsxai/engine` plugin types — no dep needed). */
 interface PublisherPluginLike {
   publish(ctx: {
     workspaceDir: string;
@@ -225,7 +225,7 @@ interface PublisherPluginLike {
  * Load publisher plugins the way the engine does (package.json `docsxai` manifest naming a
  * register(api) module; registered names auto-prefixed `<ns>:<name>`), from local path sources:
  * `plugin_config.sources` (dirs, absolute or workspace-relative), falling back to `path:` entries
- * in the workspace's `site-docs.config.json` `plugins` array.
+ * in the workspace's `docsxai.config.json` `plugins` array.
  */
 async function loadPublishers(
   job: WebhookJob,
@@ -236,7 +236,7 @@ async function loadPublishers(
   if (Array.isArray(configured)) {
     for (const s of configured) if (typeof s === "string") sources.push(s);
   } else {
-    const wsConfig = path.join(workspaceDir, "site-docs.config.json");
+    const wsConfig = path.join(workspaceDir, "docsxai.config.json");
     if (fs.existsSync(wsConfig)) {
       const parsed = JSON.parse(fs.readFileSync(wsConfig, "utf8")) as { plugins?: unknown };
       if (Array.isArray(parsed.plugins)) {

@@ -1,7 +1,7 @@
 // Halt diagnosis — gather the context a calibration agent needs to propose a recalibration diff.
 // Pure data + recommendations; the engine never patches the flow-file itself (that's an explicit
 // opt-in action by the agent / human, never ambient). The agent reads the report, walks the live
-// page (typically via browxai), picks a fix, and edits the flow-file. `site-docs run --start-from
+// page (typically via browxai), picks a fix, and edits the flow-file. `docsxai run --start-from
 // <step-id> --cdp <endpoint>` then validates the edit in seconds.
 
 import { promises as fs } from "node:fs";
@@ -68,7 +68,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
           rationale:
             "Selector matches 0 elements on the live page — the element was renamed, moved, or removed.",
           suggestion:
-            "Re-discover the element via the calibration loop (browxai's `find()`, or `site-docs inspect`). Pick a new canonical locator and commit it as the step's `target` (or update the named entry in the flow's `locators:` block).",
+            "Re-discover the element via the calibration loop (browxai's `find()`, or `docsxai inspect`). Pick a new canonical locator and commit it as the step's `target` (or update the named entry in the flow's `locators:` block).",
         },
       ];
     case "multiple-matches":

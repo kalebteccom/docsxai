@@ -1,6 +1,6 @@
 // BackendStateCache ↔ real stub server: client-side-encrypted storage-state relay.
 
-import { createBackendStub } from "@kalebtec/docsxai-backend";
+import { createBackendStub } from "@docsxai/backend";
 import { randomBytes } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -165,7 +165,7 @@ describe("BackendStateCache", () => {
     const envelope = (await (
       await fetch(envelopeUrl("editor"), { headers: authedHeaders })
     ).json()) as Record<string, unknown>;
-    expect(envelope.schema).toBe("site-docs/auth-cache@1");
+    expect(envelope.schema).toBe("docsxai/auth-cache@1");
     expect(envelope.alg).toBe("aes-256-gcm");
     expect(typeof envelope.iv).toBe("string");
     expect(typeof envelope.tag).toBe("string");
@@ -195,7 +195,7 @@ describe("BackendStateCache", () => {
     });
 
     await expect(cache.load("editor")).rejects.toThrow(BackendStateCacheError);
-    await expect(cache.load("editor")).rejects.toThrow(/tampered|wrong SITE_DOCS_CACHE_KEY/);
+    await expect(cache.load("editor")).rejects.toThrow(/tampered|wrong DOCSX_CACHE_KEY/);
   });
 
   it("fails decryption under a different key", async () => {
@@ -215,10 +215,10 @@ describe("BackendStateCache", () => {
     await cache.clear("cleared"); // no throw on a second clear
   });
 
-  it("rejects an absent or malformed cache key, naming SITE_DOCS_CACHE_KEY", () => {
-    expect(() => makeCache({ cacheKey: "" })).toThrow(/SITE_DOCS_CACHE_KEY/);
+  it("rejects an absent or malformed cache key, naming DOCSX_CACHE_KEY", () => {
+    expect(() => makeCache({ cacheKey: "" })).toThrow(/DOCSX_CACHE_KEY/);
     expect(() => makeCache({ cacheKey: randomBytes(16).toString("base64") })).toThrow(
-      /SITE_DOCS_CACHE_KEY.*32 bytes/,
+      /DOCSX_CACHE_KEY.*32 bytes/,
     );
     expect(() => makeCache({ cacheKey: "!!!not-base64!!!" })).toThrow(BackendStateCacheError);
   });

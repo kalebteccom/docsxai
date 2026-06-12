@@ -2,7 +2,7 @@
   "name": "docsxai-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "docsxai monorepo — OSS engine + Claude Code plugin that walks a web app, follows written flows, and emits screenshot-rich user documentation. Codename `site-docs`.",
+  "description": "docsxai monorepo — OSS engine + Claude Code plugin that walks a web app, follows written flows, and emits screenshot-rich user documentation. Codename `docsxai`.",
   "license": "Apache-2.0",
   "author": "Kalebtec <security@kalebtec.com>",
   "homepage": "https://github.com/kalebteccom/docsxai",

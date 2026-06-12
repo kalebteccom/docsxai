@@ -34,7 +34,7 @@ export interface BackendStubOptions {
   token?: string;
   /** Bring your own store. Takes precedence over `dataDir`. */
   store?: BackendStore;
-  /** Persist to this directory via `FsStore`. Falls back to env `SITE_DOCS_DATA_DIR`; default is in-memory. */
+  /** Persist to this directory via `FsStore`. Falls back to env `DOCSX_DATA_DIR`; default is in-memory. */
   dataDir?: string;
   /** Webhook run dispatcher. Default: a `QueuedDispatcher` driving `SpawnRunner` (real engine CLI). */
   dispatcher?: RunDispatcher;
@@ -115,7 +115,7 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
 
 function resolveStore(opts: BackendStubOptions): BackendStore {
   if (opts.store) return opts.store;
-  const dataDir = opts.dataDir ?? process.env.SITE_DOCS_DATA_DIR;
+  const dataDir = opts.dataDir ?? process.env.DOCSX_DATA_DIR;
   return dataDir ? new FsStore(dataDir) : new MemoryStore();
 }
 
@@ -346,7 +346,7 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
             return sendJson(res, 400, {
               error: "bad_request",
               message:
-                "body must be a site-docs/auth-cache@1 envelope ({ schema, alg: aes-256-gcm, iv, ciphertext, tag, expires_at? })",
+                "body must be a docsxai/auth-cache@1 envelope ({ schema, alg: aes-256-gcm, iv, ciphertext, tag, expires_at? })",
             });
           }
           store.putAuthCache(ws!, role, envelope);
@@ -469,16 +469,16 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
       );
     }
     // Stub-grade consent: auto-approve for callers holding the CI bearer token, or when
-    // SITE_DOCS_OAUTH_AUTO_APPROVE=1. A real interactive consent UI is hosted-deployment
+    // DOCSX_OAUTH_AUTO_APPROVE=1. A real interactive consent UI is hosted-deployment
     // scope (owner-gated).
     const token = bearerToken(req);
     const approved =
-      (token !== null && isCiToken(token)) || process.env.SITE_DOCS_OAUTH_AUTO_APPROVE === "1";
+      (token !== null && isCiToken(token)) || process.env.DOCSX_OAUTH_AUTO_APPROVE === "1";
     if (!approved) {
       return sendJson(res, 403, {
         error: "consent_required",
         message:
-          "auto-approval declined — present Authorization: Bearer <SITE_DOCS_TOKEN> or set SITE_DOCS_OAUTH_AUTO_APPROVE=1 (interactive consent is hosted-deployment scope)",
+          "auto-approval declined — present Authorization: Bearer <DOCSX_TOKEN> or set DOCSX_OAUTH_AUTO_APPROVE=1 (interactive consent is hosted-deployment scope)",
       });
     }
     const code = oauth.issueCode({ challenge, redirectUri });

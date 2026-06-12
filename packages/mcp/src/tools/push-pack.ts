@@ -1,5 +1,5 @@
 // push_pack — serialise the workspace's doc pack and POST it as a new revision against the
-// backend named in .site-docs.json (binding created + persisted on first push).
+// backend named in .docsxai.json (binding created + persisted on first push).
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
@@ -10,7 +10,7 @@ import {
   resolveWorkspacePath,
   uploadScreenshotBlobs,
   type DocPackPayloads,
-} from "@kalebtec/docsxai-engine";
+} from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, fail, ok, requireWorkspace } from "../shared.js";
 
@@ -19,7 +19,7 @@ export const pushPackTool = defineTool({
   title: "Push the doc pack to the backend",
   description:
     "Serialise the workspace's doc pack (flows + annotations + screenshots + style + locators) " +
-    "and push it as a new revision to the backend named in .site-docs.json. Screenshot bytes go " +
+    "and push it as a new revision to the backend named in .docsxai.json. Screenshot bytes go " +
     "up as content-addressed blobs; unchanged PNGs are skipped.",
   inputSchema: {
     workspace: z
@@ -34,7 +34,7 @@ export const pushPackTool = defineTool({
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);
-    const cfgPath = resolveWorkspacePath(ws, ".site-docs.json");
+    const cfgPath = resolveWorkspacePath(ws, ".docsxai.json");
     const wsCfg = JSON.parse(await fs.readFile(cfgPath, "utf8")) as {
       backend_url?: string;
       backend_workspace_id?: string;
@@ -44,7 +44,7 @@ export const pushPackTool = defineTool({
     if (!wsCfg.backend_url) {
       return fail(
         `no backend_url in ${cfgPath}`,
-        "set backend_url in .site-docs.json before pushing",
+        "set backend_url in .docsxai.json before pushing",
       );
     }
     const kind = args.kind ?? "calibrate";
@@ -102,7 +102,7 @@ export const pushPackTool = defineTool({
       });
     } catch (e) {
       if (e instanceof BackendClientError) {
-        return fail(e.message, "is the backend reachable and the token valid (SITE_DOCS_TOKEN)?");
+        return fail(e.message, "is the backend reachable and the token valid (DOCSX_TOKEN)?");
       }
       throw e;
     }

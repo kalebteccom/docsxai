@@ -1,9 +1,9 @@
-// Resolution of the `docsxai-viewer` bin for `site-docs render`. The viewer is its own package and
+// Resolution of the `docsxai-viewer` bin for `docsxai render`. The viewer is its own package and
 // the engine doesn't depend on it at build time, so the bin is located at run time, in order:
 //
-//   1. `SITE_DOCS_VIEWER_BIN` — explicit operator override; a path to the viewer's bin script
+//   1. `DOCSX_VIEWER_BIN` — explicit operator override; a path to the viewer's bin script
 //      (run with the current Node when it's a `.js`/`.mjs`/`.cjs` file) or to an executable.
-//   2. The `@kalebtec/docsxai-viewer` package installed next to the engine: its `package.json` is
+//   2. The `@docsxai/viewer` package installed next to the engine: its `package.json` is
 //      looked up along the engine's node_modules ancestor chain and the `bin` entry is run with
 //      the current Node — covers installs where the package is present but no PATH shim is.
 //      (A direct manifest read, not `require.resolve("…/package.json")` — the viewer's `exports`
@@ -15,8 +15,8 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const VIEWER_BIN_ENV = "SITE_DOCS_VIEWER_BIN";
-export const VIEWER_PACKAGE = "@kalebtec/docsxai-viewer";
+export const VIEWER_BIN_ENV = "DOCSX_VIEWER_BIN";
+export const VIEWER_PACKAGE = "@docsxai/viewer";
 export const VIEWER_BIN_NAME = "docsxai-viewer";
 
 export interface ViewerBinResolution {

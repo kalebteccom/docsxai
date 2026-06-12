@@ -271,7 +271,7 @@ steps:
 `;
 
 async function makeWorkspace(): Promise<string> {
-  const ws = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-pw-export-"));
+  const ws = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-pw-export-"));
   tempDirs.push(ws);
   await fs.mkdir(path.join(ws, "flows"), { recursive: true });
   await fs.writeFile(path.join(ws, "flows", "base.flow.yaml"), BASE_FLOW, "utf8");

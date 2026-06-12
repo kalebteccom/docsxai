@@ -1,16 +1,16 @@
-# @kalebtec/docsxai-plugin-confluence
+# @docsxai/plugin-confluence
 
-docsxai **publisher plugin** for Confluence Cloud. Registers `confluence:push`, which takes the engine's ADF projection (`site-docs export adf` / `projectDocPackToAdf`) and publishes it through the Confluence Cloud REST v2 API — idempotently.
+docsxai **publisher plugin** for Confluence Cloud. Registers `confluence:push`, which takes the engine's ADF projection (`docsxai export adf` / `projectDocPackToAdf`) and publishes it through the Confluence Cloud REST v2 API — idempotently.
 
 The engine emits projections only and performs no wiki egress; this plugin is the Confluence egress path, declared in its manifest as `egress:*.atlassian.net` and gated by the workspace's `plugin_capabilities` opt-in. All HTTP uses the built-in `fetch`.
 
 ## Wiring
 
-`.site-docs.json`:
+`.docsxai.json`:
 
 ```json
 {
-  "plugins": [{ "package": "@kalebtec/docsxai-plugin-confluence" }],
+  "plugins": [{ "package": "@docsxai/plugin-confluence" }],
   "plugin_capabilities": ["egress:*.atlassian.net"]
 }
 ```

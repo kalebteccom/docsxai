@@ -7,7 +7,7 @@ import { initWorkspace, loadWorkspaceConfig } from "../src/workspace.js";
 
 let tmp = "";
 beforeEach(async () => {
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-ws-test-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-ws-test-"));
 });
 afterEach(async () => {
   await fs.rm(tmp, { recursive: true, force: true });
@@ -30,7 +30,7 @@ describe("initWorkspace", () => {
 
     const cfg = await loadWorkspaceConfig(dir);
     expect(cfg).toMatchObject({
-      schema: "site-docs/workspace@1",
+      schema: "docsxai/workspace@1",
       app_url: "https://localhost:5173",
       ignore_https_errors: true,
     });
@@ -88,11 +88,11 @@ describe("initWorkspace", () => {
 });
 
 describe("loadWorkspaceConfig", () => {
-  it("returns null for a dir without (or with a bad) .site-docs.json", async () => {
+  it("returns null for a dir without (or with a bad) .docsxai.json", async () => {
     expect(await loadWorkspaceConfig(tmp)).toBeNull();
-    await fs.writeFile(path.join(tmp, ".site-docs.json"), "{not json");
+    await fs.writeFile(path.join(tmp, ".docsxai.json"), "{not json");
     expect(await loadWorkspaceConfig(tmp)).toBeNull();
-    await fs.writeFile(path.join(tmp, ".site-docs.json"), JSON.stringify({ schema: "wrong" }));
+    await fs.writeFile(path.join(tmp, ".docsxai.json"), JSON.stringify({ schema: "wrong" }));
     expect(await loadWorkspaceConfig(tmp)).toBeNull();
   });
 });

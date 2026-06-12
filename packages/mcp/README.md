@@ -1,8 +1,8 @@
-# @kalebtec/docsxai-mcp
+# @docsxai/mcp
 
 Standalone **stdio MCP server** over the docsxai engine. It lets _any_ MCP-speaking host agent
 (Claude Code, Codex, Cursor, a scripted client, …) drive the calibration workflow and introspect a
-doc pack — without shelling out to the `site-docs` CLI. The tools wrap the same engine functions
+doc pack — without shelling out to the `docsxai` CLI. The tools wrap the same engine functions
 the CLI wraps; behaviour is identical by construction.
 
 ## Boundary (load-bearing) — vs. browxai
@@ -11,13 +11,13 @@ This server exposes **calibration meta-orchestration + read-only doc-pack intros
 It deliberately exposes **no browser primitives** — no click/fill/inspect on an arbitrary live
 page. Live-page discovery during calibration is [browxai](../../docs/browxai-asks.md)'s surface;
 docsxai-mcp orchestrates the deterministic engine around it. Keeping the two surfaces disjoint is
-what keeps `site-docs run` agent-free and reproducible.
+what keeps `docsxai run` agent-free and reproducible.
 
 ## Install / run
 
 ```sh
 pnpm -r build           # the bin runs from dist/
-node packages/mcp/dist/bin.js --workspace ~/site-docs/my-app
+node packages/mcp/dist/bin.js --workspace ~/docsxai/my-app
 ```
 
 `--workspace <dir>` sets the default workspace for tool calls that omit the `workspace` argument;
@@ -31,7 +31,7 @@ wire.
   "mcpServers": {
     "docsxai": {
       "command": "docsxai-mcp",
-      "args": ["--workspace", "/absolute/path/to/site-docs-workspace"]
+      "args": ["--workspace", "/absolute/path/to/docsxai-workspace"]
     }
   }
 }
@@ -44,7 +44,7 @@ checkout.)
 
 | Tool                | Kind          | What it does                                                                                                                                                                                                                                                      |
 | ------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `init_workspace`    | orchestration | Scaffold a new site-docs workspace (flows/, docs/, auth/strategy.yaml, `.site-docs.json`).                                                                                                                                                                        |
+| `init_workspace`    | orchestration | Scaffold a new docsxai workspace (flows/, docs/, auth/strategy.yaml, `.docsxai.json`).                                                                                                                                                                            |
 | `run_flows`         | orchestration | Deterministic execution: flow filter, `startFrom`/`stopAfter` prefix runs, CDP attach, bounded concurrency. Per-flow ok / halt cause / artifact paths. The merged flow's `environment` (frozen clock, locale, viewport, …) is passed into the Playwright session. |
 | `render_viewer`     | orchestration | Build the static viewer by spawning the `docsxai-viewer` bin (engine's resolution order).                                                                                                                                                                         |
 | `lint_flows`        | introspection | Static lint rules (R001–R004, …) plus plugin-contributed `extraRules` when the workspace's plugin set resolves.                                                                                                                                                   |
@@ -65,11 +65,11 @@ others.
 
 ## Environment variables
 
-| Var                    | Used by                       | Meaning                                                              |
-| ---------------------- | ----------------------------- | -------------------------------------------------------------------- |
-| `SITE_DOCS_VIEWER_BIN` | `render_viewer`               | Explicit path to the viewer bin (overrides package/PATH resolution). |
-| `SITE_DOCS_TOKEN`      | `push_pack`, `pull_pack`      | Backend bearer token (when not using the OAuth token file).          |
-| `SITE_DOCS_*` creds    | `run_flows` (auth strategies) | Per-role credential env vars named in `auth/strategy.yaml`.          |
+| Var                | Used by                       | Meaning                                                              |
+| ------------------ | ----------------------------- | -------------------------------------------------------------------- |
+| `DOCSX_VIEWER_BIN` | `render_viewer`               | Explicit path to the viewer bin (overrides package/PATH resolution). |
+| `DOCSX_TOKEN`      | `push_pack`, `pull_pack`      | Backend bearer token (when not using the OAuth token file).          |
+| `DOCSX_*` creds    | `run_flows` (auth strategies) | Per-role credential env vars named in `auth/strategy.yaml`.          |
 
 ## Tests
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @kalebtec/docsxai-viewer — interactive docs-app generator + burned-annotation renderer +
+// @docsxai/viewer — interactive docs-app generator + burned-annotation renderer +
 // Starlight site emitter.
 //
 // Library entry (re-exports `buildViewer`, `burnAnnotations`, `burnFlow`, `emitStarlightSite`,
@@ -7,7 +7,7 @@
 //   docsxai-viewer build <docs-dir> <out-dir> [--flow <name> ...]
 //   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>]
 //   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>]
-// The plugin's `render` command (and `site-docs render`) shell out to `build`.
+// The plugin's `render` command (and `docsxai render`) shell out to `build`.
 
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -71,12 +71,12 @@ Usage:
     <out-dir>   where the generated viewer is written
 
   burn — bake annotations into the PNGs (for surfaces that can't run the viewer)
-    <workspace>  a site-docs workspace (reads <workspace>/docs)
+    <workspace>  a docsxai workspace (reads <workspace>/docs)
     --flow       restrict to these flows (default: all flows with annotations.json)
     --out        output root (default: docs/<flow>/burned/<step>.png)
 
   site — emit a production Astro Starlight docs site (burned images preferred)
-    <workspace>  a site-docs workspace (reads <workspace>/docs + <workspace>/flows)
+    <workspace>  a docsxai workspace (reads <workspace>/docs + <workspace>/flows)
     --out        site project directory (default: <workspace>/site)
     --build      also run astro build (writes <out>/dist)
     --title      site title (default: "Documentation")

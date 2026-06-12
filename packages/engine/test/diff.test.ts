@@ -140,7 +140,7 @@ interface PackFiles {
 }
 
 async function makePack(files: PackFiles): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-drift-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-drift-"));
   tempDirs.push(dir);
   await fs.mkdir(path.join(dir, "flows"), { recursive: true });
   await fs.mkdir(path.join(dir, "docs", "checkout", "screenshots"), { recursive: true });
@@ -167,7 +167,7 @@ async function makePack(files: PackFiles): Promise<string> {
 
 function annotationsFile(boxes: Array<{ step: string; x: number; y: number }>): object {
   return {
-    schema: "site-docs/annotations@1",
+    schema: "docsxai/annotations@1",
     flow: "checkout",
     annotations: boxes.map((b) => ({
       step: b.step,
@@ -184,7 +184,7 @@ describe("diffDocPacks", () => {
     const a = await makePack({ screenshots: { "pay.png": shot }, prose: { "pay.md": "Pay.\n" } });
     const b = await makePack({ screenshots: { "pay.png": shot }, prose: { "pay.md": "Pay.\n" } });
     const report = await diffDocPacks(a, b);
-    expect(report.schema).toBe("site-docs/drift@1");
+    expect(report.schema).toBe("docsxai/drift@1");
     expect(report.flows).toEqual([]);
     expect(report.summary).toEqual({
       flows_changed: 0,
@@ -437,7 +437,7 @@ describe("formatDriftReportMarkdown", () => {
     });
     const report = await diffDocPacks(a, b);
     expect(formatDriftReportMarkdown(report)).toBe(
-      `# site-docs drift report
+      `# docsxai drift report
 
 \`${a}\` → \`${b}\`
 
@@ -518,19 +518,19 @@ describe("baseline + diff CLI", () => {
       schema: string;
       summary: { severity: string; steps_changed: number };
     };
-    expect(report.schema).toBe("site-docs/drift@1");
+    expect(report.schema).toBe("docsxai/drift@1");
     expect(report.summary.severity).toBe("warn");
     expect(report.summary.steps_changed).toBe(1);
 
     out = "";
     expect(await main(["diff", ws, "--format", "md"])).toBe(0);
-    expect(out).toMatch(/^# site-docs drift report/);
+    expect(out).toMatch(/^# docsxai drift report/);
   });
 
   it("diff without a baseline exits 2 with a hint; bad flags exit 2", async () => {
     const ws = await makePack({});
     expect(await main(["diff", ws])).toBe(2);
-    expect(err).toMatch(/run `site-docs baseline/);
+    expect(err).toMatch(/run `docsxai baseline/);
     expect(await main(["diff", ws, "--format", "yaml"])).toBe(2);
     expect(await main(["diff", ws, "--fail-on", "info"])).toBe(2);
     expect(await main(["diff"])).toBe(2);

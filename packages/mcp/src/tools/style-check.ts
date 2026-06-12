@@ -8,7 +8,7 @@ import {
   scanWorkspaceForJargon,
   StyleError,
   writeStyle,
-} from "@kalebtec/docsxai-engine";
+} from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, fail, ok, requireWorkspace } from "../shared.js";
 

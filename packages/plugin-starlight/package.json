@@ -1,5 +1,5 @@
 {
-  "name": "@kalebtec/docsxai-plugin-starlight",
+  "name": "@docsxai/plugin-starlight",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -40,8 +40,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@kalebtec/docsxai-engine": "workspace:*",
-    "@kalebtec/docsxai-viewer": "workspace:*"
+    "@docsxai/engine": "workspace:*",
+    "@docsxai/viewer": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

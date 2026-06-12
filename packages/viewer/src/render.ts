@@ -207,7 +207,7 @@ function indexHtml(meta: FlowSummary[], renderedAt: string): string {
     })
     .join("\n");
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_CSP}${HEAD_NOCACHE}<title>Documentation</title><style>${STYLE}</style></head>
-<body><h1>Documentation</h1>${cards ? `<div class="flow-grid">${cards}</div>` : "<p class='meta'>(no flows yet — run <code>site-docs run</code>, then <code>site-docs render</code>)</p>"}${renderedFooter(renderedAt)}</body></html>`;
+<body><h1>Documentation</h1>${cards ? `<div class="flow-grid">${cards}</div>` : "<p class='meta'>(no flows yet — run <code>docsxai run</code>, then <code>docsxai render</code>)</p>"}${renderedFooter(renderedAt)}</body></html>`;
 }
 
 /** Build the static viewer. Returns the generated page paths (relative to `outDir`), index first. */

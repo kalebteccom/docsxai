@@ -1,6 +1,6 @@
 // Flow-file runtime — the deterministic execution side.
 //
-// `site-docs run` translates a parsed flow-file into a sequence of browser actions, executes
+// `docsxai run` translates a parsed flow-file into a sequence of browser actions, executes
 // them headlessly with zero LLM involvement, re-captures screenshots, and re-emits the doc-pack
 // artifacts (annotations, etc.). One canonical locator per step; execution halts on locator or
 // success-criterion failure — drift is a signal to recalibrate, not to absorb (no fallbacks).
@@ -440,6 +440,6 @@ export async function runFlow(
   return {
     flow: flow.name,
     steps: executed,
-    annotations: { schema: "site-docs/annotations@1", flow: flow.name, annotations },
+    annotations: { schema: "docsxai/annotations@1", flow: flow.name, annotations },
   };
 }

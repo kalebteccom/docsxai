@@ -31,10 +31,10 @@ afterEach(async () => {
   await cleanupWorkspaces();
 });
 
-describe("site-docs plugins — argument edge", () => {
+describe("docsxai plugins — argument edge", () => {
   it("plugins with no subcommand exits 2 with usage", async () => {
     expect(await main(["plugins"])).toBe(2);
-    expect(out).toMatch(/site-docs plugins list/);
+    expect(out).toMatch(/docsxai plugins list/);
   });
 
   it("plugins --help exits 0", async () => {
@@ -62,14 +62,14 @@ describe("site-docs plugins — argument edge", () => {
     expect(err).toMatch(/missing <namespace>/);
   });
 
-  it("a malformed plugins key in .site-docs.json exits 1 with a clear error", async () => {
+  it("a malformed plugins key in .docsxai.json exits 1 with a clear error", async () => {
     const ws = await makeWorkspace({ plugins: [{ package: "x", path: "y" }] });
     expect(await main(["plugins", "list", ws])).toBe(1);
     expect(err).toMatch(/invalid plugin configuration/);
   });
 });
 
-describe("site-docs plugins list", () => {
+describe("docsxai plugins list", () => {
   it("reports an unconfigured workspace and exits 0", async () => {
     const ws = await makeWorkspace();
     expect(await main(["plugins", "list", ws])).toBe(0);
@@ -108,7 +108,7 @@ describe("site-docs plugins list", () => {
   });
 });
 
-describe("site-docs plugins info", () => {
+describe("docsxai plugins info", () => {
   it("prints manifest + artifacts for a namespace", async () => {
     const ws = await makeWorkspace({ plugins: [{ path: fixturePlugin("multi-kind") }] });
     expect(await main(["plugins", "info", ws, "multi"])).toBe(0);
@@ -133,7 +133,7 @@ describe("site-docs plugins info", () => {
   });
 });
 
-describe("site-docs plugins sync", () => {
+describe("docsxai plugins sync", () => {
   it("writes plugins-lock.json with the register module's sha256", async () => {
     const ws = await makeWorkspace({ plugins: [{ path: fixturePlugin("multi-kind") }] });
     expect(await main(["plugins", "sync", ws])).toBe(0);
@@ -142,7 +142,7 @@ describe("site-docs plugins sync", () => {
       schema: string;
       plugins: Record<string, { source: string; version: string; sha256: string }>;
     };
-    expect(lock.schema).toBe("site-docs/plugins-lock@1");
+    expect(lock.schema).toBe("docsxai/plugins-lock@1");
     const bytes = await fs.readFile(path.join(fixturePlugin("multi-kind"), "register.mjs"));
     expect(lock.plugins.multi).toEqual({
       source: `path:${fixturePlugin("multi-kind")}`,
@@ -160,7 +160,7 @@ describe("site-docs plugins sync", () => {
   });
 
   it("a tampered register module fails closed until re-synced", async () => {
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-tamper-"));
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-tamper-"));
     try {
       const pluginDir = await writeTempPlugin(tmp, { namespace: "tamper" });
       const ws = await makeWorkspace({ plugins: [{ path: pluginDir }] });
@@ -169,7 +169,7 @@ describe("site-docs plugins sync", () => {
       out = "";
       expect(await main(["plugins", "list", ws])).toBe(1);
       expect(out).toMatch(/lock mismatch/);
-      expect(out).toMatch(/site-docs plugins sync/);
+      expect(out).toMatch(/docsxai plugins sync/);
       out = "";
       expect(await main(["plugins", "sync", ws])).toBe(0);
       out = "";
@@ -200,7 +200,7 @@ describe("site-docs plugins sync", () => {
       failures: unknown[];
     };
     expect(result.lockPath).toBe(path.join(ws, "plugins-lock.json"));
-    expect(result.lock.schema).toBe("site-docs/plugins-lock@1");
+    expect(result.lock.schema).toBe("docsxai/plugins-lock@1");
     expect(Object.keys(result.lock.plugins)).toEqual(["multi"]);
     expect(result.failures).toEqual([]);
   });

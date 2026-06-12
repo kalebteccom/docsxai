@@ -20,16 +20,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("site-docs CLI — main()", () => {
+describe("docsxai CLI — main()", () => {
   it("prints usage and exits 0 with --help / help / no args", async () => {
     expect(await main(["--help"])).toBe(0);
     expect(out).toMatch(/Usage:/);
     out = "";
     expect(await main([])).toBe(0);
-    expect(out).toMatch(/site-docs run/);
+    expect(out).toMatch(/docsxai run/);
     out = "";
     expect(await main(["help"])).toBe(0);
-    expect(out).toMatch(/site-docs render/);
+    expect(out).toMatch(/docsxai render/);
   });
 
   it("exits 2 on an unknown command", async () => {
@@ -108,7 +108,7 @@ describe("site-docs CLI — main()", () => {
     expect(err).toMatch(/cannot read/);
   });
 
-  it("inspect requires a workspace dir and a URL (flag or .site-docs.json)", async () => {
+  it("inspect requires a workspace dir and a URL (flag or .docsxai.json)", async () => {
     expect(await main(["inspect"])).toBe(2);
     expect(err).toMatch(/missing <workspace-dir>/);
     err = "";

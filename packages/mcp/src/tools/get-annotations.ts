@@ -1,7 +1,7 @@
 // get_annotations — read-only: a flow's emitted annotations.json (validated against the schema).
 
 import { promises as fs } from "node:fs";
-import { AnnotationsFile, resolveWorkspacePath } from "@kalebtec/docsxai-engine";
+import { AnnotationsFile, resolveWorkspacePath } from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, fail, ok, requireWorkspace } from "../shared.js";
 

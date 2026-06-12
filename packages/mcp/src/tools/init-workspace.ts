@@ -1,14 +1,14 @@
-// init_workspace — scaffold a new site-docs workspace (wraps the engine's initWorkspace).
+// init_workspace — scaffold a new docsxai workspace (wraps the engine's initWorkspace).
 
-import { initWorkspace } from "@kalebtec/docsxai-engine";
+import { initWorkspace } from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, fail, ok } from "../shared.js";
 
 export const initWorkspaceTool = defineTool({
   name: "init_workspace",
-  title: "Initialize a site-docs workspace",
+  title: "Initialize a docsxai workspace",
   description:
-    "Scaffold a new site-docs workspace directory (flows/, docs/, auth/strategy.yaml, .site-docs.json). " +
+    "Scaffold a new docsxai workspace directory (flows/, docs/, auth/strategy.yaml, .docsxai.json). " +
     "Put it OUTSIDE the documented app's source repo.",
   inputSchema: {
     dir: z.string().min(1).describe("Directory to create the workspace in"),

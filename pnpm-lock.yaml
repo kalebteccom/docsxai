@@ -71,7 +71,7 @@ importers:
         specifier: ^3.23.0
         version: 3.25.76
     devDependencies:
-      '@kalebtec/docsxai-backend':
+      '@docsxai/backend':
         specifier: workspace:*
         version: link:../backend
       '@types/node':
@@ -86,7 +86,7 @@ importers:
 
   packages/mcp:
     dependencies:
-      '@kalebtec/docsxai-engine':
+      '@docsxai/engine':
         specifier: workspace:*
         version: link:../engine
       '@modelcontextprotocol/sdk':
@@ -117,7 +117,7 @@ importers:
 
   packages/plugin-confluence:
     dependencies:
-      '@kalebtec/docsxai-engine':
+      '@docsxai/engine':
         specifier: workspace:*
         version: link:../engine
     devDependencies:
@@ -130,10 +130,10 @@ importers:
 
   packages/plugin-starlight:
     dependencies:
-      '@kalebtec/docsxai-engine':
+      '@docsxai/engine':
         specifier: workspace:*
         version: link:../engine
-      '@kalebtec/docsxai-viewer':
+      '@docsxai/viewer':
         specifier: workspace:*
         version: link:../viewer
     devDependencies:

@@ -270,7 +270,7 @@ export type AnnotationRecord = z.infer<typeof AnnotationRecord>;
 
 export const AnnotationsFile = z
   .object({
-    schema: z.literal("site-docs/annotations@1"),
+    schema: z.literal("docsxai/annotations@1"),
     flow: z.string().min(1),
     annotations: z.array(AnnotationRecord),
   })
@@ -283,7 +283,7 @@ export type AnnotationsFile = z.infer<typeof AnnotationsFile>;
 
 export const StyleArtifact = z
   .object({
-    schema: z.literal("site-docs/style@1"),
+    schema: z.literal("docsxai/style@1"),
     voice: z.record(z.string(), z.unknown()).optional(),
     structure: z.record(z.string(), z.unknown()).optional(),
     terminology: z.record(z.string(), z.string()).optional(),
@@ -301,7 +301,7 @@ export type StyleArtifact = z.infer<typeof StyleArtifact>;
 
 export const LocatorManifest = z
   .object({
-    schema: z.literal("site-docs/locators@1"),
+    schema: z.literal("docsxai/locators@1"),
     /** flow name → locator name → canonical selector. One per name; no fallbacks. */
     flows: z.record(z.string(), z.record(z.string(), z.string())),
   })
@@ -363,7 +363,7 @@ export type RoleAuth = z.infer<typeof RoleAuth>;
 
 export const AuthStrategyDescriptor = z
   .object({
-    schema: z.literal("site-docs/auth-strategy@1"),
+    schema: z.literal("docsxai/auth-strategy@1"),
     default_role: z.string().min(1),
     roles: z.record(z.string(), RoleAuth),
   })

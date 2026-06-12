@@ -3,7 +3,7 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { resolveWorkspacePath } from "@kalebtec/docsxai-engine";
+import { resolveWorkspacePath } from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, ok, requireWorkspace } from "../shared.js";
 

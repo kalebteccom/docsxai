@@ -7,7 +7,7 @@ import {
   loadWorkspaceConfig,
   writeDocPack,
   type DocPackPayloads,
-} from "@kalebtec/docsxai-engine";
+} from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, fail, ok, requireWorkspace } from "../shared.js";
 
@@ -30,7 +30,7 @@ export const pullPackTool = defineTool({
     if (!wsCfg?.backend_url || !wsCfg.backend_workspace_id || !wsCfg.backend_project_id) {
       return fail(
         "workspace isn't bound to a backend yet",
-        "push_pack first (or hand-edit .site-docs.json's backend_workspace_id / backend_project_id)",
+        "push_pack first (or hand-edit .docsxai.json's backend_workspace_id / backend_project_id)",
       );
     }
     try {
@@ -62,7 +62,7 @@ export const pullPackTool = defineTool({
       });
     } catch (e) {
       if (e instanceof BackendClientError) {
-        return fail(e.message, "is the backend reachable and the token valid (SITE_DOCS_TOKEN)?");
+        return fail(e.message, "is the backend reachable and the token valid (DOCSX_TOKEN)?");
       }
       throw e;
     }

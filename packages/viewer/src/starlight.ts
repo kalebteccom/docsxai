@@ -37,7 +37,7 @@ export interface StarlightSiteConfig {
 }
 
 export interface EmitStarlightSiteOptions {
-  /** A site-docs workspace (reads `<workspaceDir>/docs` + `<workspaceDir>/flows`). */
+  /** A docsxai workspace (reads `<workspaceDir>/docs` + `<workspaceDir>/flows`). */
   workspaceDir: string;
   /** Where the Starlight project is written (created if missing). */
   outDir: string;
@@ -134,7 +134,7 @@ function themeCss(accent: string): string {
 
 /**
  * Order `flows` by the workspace's flow `extends` graph: roots alphabetical, children DFS'd
- * alphabetically under their parent (matching `site-docs flow-tree`'s shape). Parsed with a
+ * alphabetically under their parent (matching `docsxai flow-tree`'s shape). Parsed with a
  * line regex — no YAML dependency; flows absent from `flows/` append alphabetically.
  */
 export async function deriveFlowOrder(workspaceDir: string, flows: string[]): Promise<string[]> {
@@ -251,7 +251,7 @@ function indexMdx(
     .join("\n");
   const grid = flows.length
     ? `<CardGrid>\n${cards}\n</CardGrid>`
-    : "_(no flows yet — run `site-docs run`, then re-emit the site)_";
+    : "_(no flows yet — run `docsxai run`, then re-emit the site)_";
   return `---
 title: ${yamlQuote(title)}
 description: ${yamlQuote("Step-by-step flows with annotated screenshots.")}

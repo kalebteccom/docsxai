@@ -1,18 +1,18 @@
 // Workspace scaffolding & config.
 //
-// A *workspace* is the directory site-docs reads/writes for a project: `flows/`, `docs/`, `auth/`, plus
-// (gitignored) `.auth/` and `.viewer/`, plus a small `.site-docs.json` config so `run`/`render`/`capture-auth`
-// don't need `--base-url` / `--ignore-https-errors` on every call. **It must live outside the app repo** — site-docs
+// A *workspace* is the directory docsxai reads/writes for a project: `flows/`, `docs/`, `auth/`, plus
+// (gitignored) `.auth/` and `.viewer/`, plus a small `.docsxai.json` config so `run`/`render`/`capture-auth`
+// don't need `--base-url` / `--ignore-https-errors` on every call. **It must live outside the app repo** — docsxai
 // operates *on* a running app from outside; it never writes into the app's source tree.
 //
-// `site-docs init <dir> --app-url <url>` scaffolds one; `--persist tmp` puts it in a throwaway temp dir.
+// `docsxai init <dir> --app-url <url>` scaffolds one; `--persist tmp` puts it in a throwaway temp dir.
 
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { stringify as stringifyYaml } from "yaml";
 
-export const WORKSPACE_CONFIG_FILE = ".site-docs.json";
+export const WORKSPACE_CONFIG_FILE = ".docsxai.json";
 
 /** Thrown when a workspace-relative path resolves outside the workspace root. */
 export class WorkspacePathEscapeError extends Error {
@@ -75,7 +75,7 @@ export async function resolveWorkspacePathReal(
 }
 
 export interface WorkspaceConfig {
-  schema: "site-docs/workspace@1";
+  schema: "docsxai/workspace@1";
   /** Base URL of the running app this workspace documents. Used as the default for `run`/`capture-auth`. */
   app_url?: string;
   /** Accept self-signed/invalid TLS for `app_url` (e.g. a local HTTPS dev cert). */
@@ -117,9 +117,9 @@ export interface InitWorkspaceResult {
   ephemeral: boolean;
 }
 
-const README = (cfg: WorkspaceConfig) => `# site-docs workspace
+const README = (cfg: WorkspaceConfig) => `# docsxai workspace
 
-This directory is a **site-docs workspace** — it holds the doc pack for one running app:
+This directory is a **docsxai workspace** — it holds the doc pack for one running app:
 
 - \`flows/<flow>.flow.yaml\` — hand-editable flow-files (the source of truth for execution)
 - \`docs/<flow>/{annotations.json, screenshots/, <step>.md}\`, \`docs/{style.yaml, locators.yaml}\` — the generated docs
@@ -128,16 +128,16 @@ This directory is a **site-docs workspace** — it holds the doc pack for one ru
 - \`.viewer/\` — the generated interactive viewer (gitignored)
 - \`${WORKSPACE_CONFIG_FILE}\` — workspace config (\`app_url${cfg.app_url ? ` = ${cfg.app_url}` : ""}\`, \`ignore_https_errors = ${!!cfg.ignore_https_errors}\`)
 
-**Do NOT place this directory inside the app's source repo.** site-docs documents the *running* app from outside;
+**Do NOT place this directory inside the app's source repo.** docsxai documents the *running* app from outside;
 keeping the workspace separate is what guarantees zero traces in the app repo.
 
 Usage (from this directory):
 
 \`\`\`
-site-docs capture-auth .     # if auth is manual-capture: opens an instrumented browser; log in, then run window.__siteDocs.capture()
-site-docs calibrate . --description path/to/flow.md   # (when the calibration stages land) produce/refresh flow-files
-site-docs run .              # replay the flow-files headlessly; refresh annotations + screenshots
-site-docs render . && open .viewer/index.html
+docsxai capture-auth .     # if auth is manual-capture: opens an instrumented browser; log in, then run window.__docsxai.capture()
+docsxai calibrate . --description path/to/flow.md   # (when the calibration stages land) produce/refresh flow-files
+docsxai run .              # replay the flow-files headlessly; refresh annotations + screenshots
+docsxai render . && open .viewer/index.html
 \`\`\`
 `;
 
@@ -155,7 +155,7 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
   let dir: string;
   let ephemeral = false;
   if (opts.persistTmp) {
-    dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-workspace-"));
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-workspace-"));
     ephemeral = true;
   } else {
     if (!opts.dir) throw new Error("init: a target directory is required (or use --persist tmp)");
@@ -180,7 +180,7 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
   created.push(".gitignore");
 
   const cfg: WorkspaceConfig = {
-    schema: "site-docs/workspace@1",
+    schema: "docsxai/workspace@1",
     ...(opts.appUrl ? { app_url: opts.appUrl } : {}),
     ...(opts.ignoreHttpsErrors ? { ignore_https_errors: true } : {}),
     created_at: new Date().toISOString(),
@@ -194,7 +194,7 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
 
   if (auth === "manual-capture") {
     const descriptor = {
-      schema: "site-docs/auth-strategy@1",
+      schema: "docsxai/auth-strategy@1",
       default_role: role,
       roles: {
         [role]: {
@@ -223,12 +223,12 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
   return { dir, created, ephemeral };
 }
 
-/** Read `<dir>/.site-docs.json` if present. Returns `null` if absent or unreadable. */
+/** Read `<dir>/.docsxai.json` if present. Returns `null` if absent or unreadable. */
 export async function loadWorkspaceConfig(dir: string): Promise<WorkspaceConfig | null> {
   try {
     const text = await fs.readFile(resolveWorkspacePath(dir, WORKSPACE_CONFIG_FILE), "utf8");
     const parsed = JSON.parse(text) as WorkspaceConfig;
-    if (parsed && parsed.schema === "site-docs/workspace@1") return parsed;
+    if (parsed && parsed.schema === "docsxai/workspace@1") return parsed;
     return null;
   } catch {
     return null;

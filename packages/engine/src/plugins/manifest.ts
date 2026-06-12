@@ -7,10 +7,14 @@ import { z } from "zod";
 /** The plugin-runtime contract version this engine build advertises. */
 export const RUNTIME_API_VERSION = "1.0.0";
 
-/** Namespaces plugins can never claim — the engine's own surfaces live here. */
+/**
+ * Namespaces plugins can never claim — the engine's own surfaces live here.
+ * `site-docs` (the pre-rename CLI/product name) stays reserved defensively so a
+ * plugin can never squat the old identity.
+ */
 export const RESERVED_NAMESPACES: ReadonlyArray<string> = [
-  "site-docs",
   "docsxai",
+  "site-docs",
   "core",
   "plugins",
 ];

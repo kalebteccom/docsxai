@@ -59,7 +59,7 @@ beforeAll(async () => {
   stub = createBackendStub({
     token: TOKEN,
     dispatcher,
-    env: { SITE_DOCS_WEBHOOK_SECRET: SECRET },
+    env: { DOCSX_WEBHOOK_SECRET: SECRET },
   });
   runnerRef.current = new SpawnRunner({
     store: stub.store,
@@ -146,7 +146,7 @@ describe("signed push event end-to-end", () => {
     expect(ghPosts[0]!.url).toBe(
       "/repos/octo-org/docs-site/commits/59b20b8d5c6ff8d09518454d4dd8b7b30f095ab5/comments",
     );
-    expect(ghPosts[0]!.body).toContain("site-docs run passed");
+    expect(ghPosts[0]!.body).toContain("docsxai run passed");
 
     // The run-history row exists and carries the engine + strategy outcome.
     const runs = (await (

@@ -287,7 +287,7 @@ export interface BurnOptions {
 export interface BurnInput {
   screenshotPath?: string;
   screenshotBuffer?: Buffer;
-  /** `site-docs/annotations@1`-shaped records for ONE screenshot. */
+  /** `docsxai/annotations@1`-shaped records for ONE screenshot. */
   annotations: AnnotationRecord[];
   options?: BurnOptions;
 }

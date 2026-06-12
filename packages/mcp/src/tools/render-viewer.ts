@@ -1,13 +1,9 @@
 // render_viewer — build the static viewer by resolving + spawning the docsxai-viewer bin
-// (the engine's resolution order: SITE_DOCS_VIEWER_BIN, the installed package, PATH).
+// (the engine's resolution order: DOCSX_VIEWER_BIN, the installed package, PATH).
 
 import { spawn } from "node:child_process";
 import * as path from "node:path";
-import {
-  formatViewerBinFailure,
-  resolveViewerBin,
-  resolveWorkspacePath,
-} from "@kalebtec/docsxai-engine";
+import { formatViewerBinFailure, resolveViewerBin, resolveWorkspacePath } from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, fail, ok, requireWorkspace, type ToolResult } from "../shared.js";
 
@@ -16,8 +12,8 @@ export const renderViewerTool = defineTool({
   title: "Render the static viewer",
   description:
     "Build the workspace's static HTML viewer from docs/ into .viewer/ by spawning the " +
-    "docsxai-viewer bin (resolved via SITE_DOCS_VIEWER_BIN, the installed " +
-    "@kalebtec/docsxai-viewer package, then PATH).",
+    "docsxai-viewer bin (resolved via DOCSX_VIEWER_BIN, the installed " +
+    "@docsxai/viewer package, then PATH).",
   inputSchema: {
     workspace: z
       .string()

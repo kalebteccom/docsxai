@@ -1,10 +1,6 @@
 // plugins_list — resolve + load the workspace's configured plugins and report each one's status.
 
-import {
-  readPluginsLock,
-  readWorkspacePluginsConfig,
-  resolvePlugins,
-} from "@kalebtec/docsxai-engine";
+import { readPluginsLock, readWorkspacePluginsConfig, resolvePlugins } from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, ok, requireWorkspace } from "../shared.js";
 
@@ -12,7 +8,7 @@ export const pluginsListTool = defineTool({
   name: "plugins_list",
   title: "List workspace plugins",
   description:
-    "Resolve and load the workspace's configured plugin set (.site-docs.json `plugins` + " +
+    "Resolve and load the workspace's configured plugin set (.docsxai.json `plugins` + " +
     "`plugin_capabilities`) and report each plugin's status, trust, and registered artifacts.",
   inputSchema: {
     workspace: z

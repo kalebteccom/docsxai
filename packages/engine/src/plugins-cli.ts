@@ -1,4 +1,4 @@
-// `site-docs plugins <list|info|sync>` — the operator surface over the plugin runtime.
+// `docsxai plugins <list|info|sync>` — the operator surface over the plugin runtime.
 //
 //   list  — resolve + load the workspace's plugins; print the full status table.
 //   info  — manifest + registered artifact names for one plugin (by namespace).
@@ -21,15 +21,15 @@ import {
 import type { PluginRecord } from "./plugins/registry.js";
 import { resolvePlugins, resolvePluginSources } from "./plugins/runtime.js";
 
-const PLUGINS_USAGE = `site-docs plugins — workspace plugin runtime
+const PLUGINS_USAGE = `docsxai plugins — workspace plugin runtime
 
 Usage:
-  site-docs plugins list <workspace-dir> [--format text|json]
-  site-docs plugins info <workspace-dir> <namespace> [--format text|json]
-  site-docs plugins sync <workspace-dir> [--format text|json]
+  docsxai plugins list <workspace-dir> [--format text|json]
+  docsxai plugins info <workspace-dir> <namespace> [--format text|json]
+  docsxai plugins sync <workspace-dir> [--format text|json]
 
 Notes:
-  • Plugins are declared in the workspace's .site-docs.json:
+  • Plugins are declared in the workspace's .docsxai.json:
       "plugins":             [{ "package": "<npm-name>" } | { "path": "<dir>" }, …]
       "plugin_capabilities": ["egress:<host-glob>", …]
   • list resolves and loads the declared set, then prints every plugin's status (loaded, or the
@@ -91,7 +91,7 @@ async function cmdList(workspaceDir: string, format: "text" | "json"): Promise<n
   if (format === "json") {
     process.stdout.write(JSON.stringify(records, null, 2) + "\n");
   } else if (records.length === 0) {
-    process.stdout.write('plugins: none configured (add a "plugins" array to .site-docs.json)\n');
+    process.stdout.write('plugins: none configured (add a "plugins" array to .docsxai.json)\n');
   } else {
     const loaded = records.filter((r) => r.status === "loaded").length;
     process.stdout.write(`plugins (${records.length} configured, ${loaded} loaded):\n`);

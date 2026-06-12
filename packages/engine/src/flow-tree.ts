@@ -1,5 +1,5 @@
 // Visualise the `extends` graph across a workspace's flow-files; report step-id collisions
-// across the merged step list. Pure-static — no Playwright, no live page. Run via `site-docs flow-tree`.
+// across the merged step list. Pure-static — no Playwright, no live page. Run via `docsxai flow-tree`.
 
 import type { FlowFile } from "./doc-pack.js";
 import { resolveFlowExtends } from "./flow-file.js";

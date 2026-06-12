@@ -54,7 +54,7 @@ describe("FsStore", () => {
     const proj = a.createProject(ws.id, "p");
     const rev = a.createRevision(ws.id, proj.id, "calibrate", "x");
 
-    const payload = { schema: "site-docs/flows@1", files: { "f.flow.yaml": "name: f\n" } };
+    const payload = { schema: "docsxai/flows@1", files: { "f.flow.yaml": "name: f\n" } };
     const updated = a.putArtifact(ws.id, proj.id, rev.id, "flows", payload);
     expect(updated.artifacts).toEqual(["flows"]);
 
@@ -117,7 +117,7 @@ describe("FsStore", () => {
     const a = new FsStore(dir);
     const ws = a.createWorkspace("w");
     const envelope = {
-      schema: "site-docs/auth-cache@1" as const,
+      schema: "docsxai/auth-cache@1" as const,
       alg: "aes-256-gcm" as const,
       iv: "aXY=",
       ciphertext: "Y3Q=",
@@ -160,7 +160,7 @@ describe("FsStore", () => {
     // A traversal-shaped role on a write path must throw, not write outside the root.
     expect(() =>
       store.putAuthCache(ws.id, "../../../fs-store-escape-probe/x", {
-        schema: "site-docs/auth-cache@1",
+        schema: "docsxai/auth-cache@1",
         alg: "aes-256-gcm",
         iv: "aXY=",
         ciphertext: "Y3Q=",
@@ -201,10 +201,10 @@ describe("createBackendStub store selection", () => {
     expect(listed).toEqual([created]);
   });
 
-  it("honors the SITE_DOCS_DATA_DIR env var", async () => {
+  it("honors the DOCSX_DATA_DIR env var", async () => {
     const dir = dataDir();
-    const prev = process.env.SITE_DOCS_DATA_DIR;
-    process.env.SITE_DOCS_DATA_DIR = dir;
+    const prev = process.env.DOCSX_DATA_DIR;
+    process.env.DOCSX_DATA_DIR = dir;
     try {
       const stub = createBackendStub({ token: "t" });
       expect(stub.store).toBeInstanceOf(FsStore);
@@ -217,8 +217,8 @@ describe("createBackendStub store selection", () => {
       await stub.close();
       expect(fs.existsSync(path.join(dir, "workspaces.json"))).toBe(true);
     } finally {
-      if (prev === undefined) delete process.env.SITE_DOCS_DATA_DIR;
-      else process.env.SITE_DOCS_DATA_DIR = prev;
+      if (prev === undefined) delete process.env.DOCSX_DATA_DIR;
+      else process.env.DOCSX_DATA_DIR = prev;
     }
   });
 

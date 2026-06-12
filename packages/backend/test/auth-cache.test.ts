@@ -14,7 +14,7 @@ const h = (extra: Record<string, string> = {}) => ({
 });
 
 const VALID_ENVELOPE = {
-  schema: "site-docs/auth-cache@1",
+  schema: "docsxai/auth-cache@1",
   alg: "aes-256-gcm",
   iv: "MTIzNDU2Nzg5MGFi",
   ciphertext: "b3BhcXVlLWJ5dGVz",
@@ -61,7 +61,7 @@ describe("auth-cache relay", () => {
   it("rejects malformed envelopes with 400", async () => {
     const malformed: unknown[] = [
       {},
-      { ...VALID_ENVELOPE, schema: "site-docs/auth-cache@99" },
+      { ...VALID_ENVELOPE, schema: "docsxai/auth-cache@99" },
       { ...VALID_ENVELOPE, alg: "aes-128-cbc" },
       { ...VALID_ENVELOPE, iv: "" },
       { ...VALID_ENVELOPE, tag: undefined },

@@ -9,7 +9,7 @@ import {
   resolvePlugins,
   type LintIssue,
   type LintRule,
-} from "@kalebtec/docsxai-engine";
+} from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, fail, loadFlowsByName, ok, requireWorkspace } from "../shared.js";
 

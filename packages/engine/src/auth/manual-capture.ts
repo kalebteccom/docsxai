@@ -18,7 +18,7 @@ export interface InstrumentedBrowser {
   /** Launch the browser and open the target site. */
   open(baseURL: string): Promise<void>;
   /**
-   * Inject the capture helper (a console function `window.__siteDocs.capture()` and/or an on-page button)
+   * Inject the capture helper (a console function `window.__docsxai.capture()` and/or an on-page button)
    * and resolve once the human triggers it. The human does the interactive login (SSO / MFA / conditional
    * access — anything they can click through) before triggering.
    */
@@ -29,7 +29,7 @@ export interface InstrumentedBrowser {
 }
 
 export interface ManualCaptureOptions {
-  /** `console` (default): `window.__siteDocs.capture()`. `button`: an injected on-page button. */
+  /** `console` (default): `window.__docsxai.capture()`. `button`: an injected on-page button. */
   capture_trigger?: CaptureTrigger;
 }
 

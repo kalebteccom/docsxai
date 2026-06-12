@@ -6,7 +6,7 @@ argument-hint: <project-dir>
 Build the static viewer:
 
 ```
-site-docs render $ARGUMENTS
+docsxai render $ARGUMENTS
 ```
 
 (Under the hood this runs `docsxai-viewer build <project-dir>/docs <project-dir>/.viewer`.) Report where

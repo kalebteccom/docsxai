@@ -8,7 +8,7 @@ import {
   probeLive,
   resolveWorkspacePath,
   type DiagnoseReport,
-} from "@kalebtec/docsxai-engine";
+} from "@docsxai/engine";
 import { z } from "zod";
 import { defineTool, fail, loadMergedFlow, ok, requireWorkspace } from "../shared.js";
 

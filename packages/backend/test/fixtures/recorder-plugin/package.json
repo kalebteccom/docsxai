@@ -1,5 +1,5 @@
 {
-  "name": "site-docs-test-recorder-plugin",
+  "name": "docsxai-test-recorder-plugin",
   "version": "0.0.0",
   "private": true,
   "description": "Local path publisher plugin fixture — records publish() calls into the workspace.",

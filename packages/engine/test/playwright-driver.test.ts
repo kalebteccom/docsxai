@@ -30,7 +30,7 @@ describe("PlaywrightDriver.screenshot — capture options (bug 3: mid-transition
         return Buffer.from("");
       },
     } as unknown as Page;
-    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-pwd-"));
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-pwd-"));
     try {
       const d = new PlaywrightDriver(fakePage, tmp);
       await d.screenshot("docs/f/screenshots/s.png");
@@ -101,7 +101,7 @@ describe.skipIf(!chromiumAvailable)(
       });
       const page = await ctx.newPage();
       await page.goto(FIXTURE);
-      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-redact-"));
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-redact-"));
       try {
         const d = new PlaywrightDriver(page, tmp);
         // The CSS rect of #box — must black out device px (200,120)–(600,200).
@@ -224,7 +224,7 @@ describe.skipIf(!chromiumAvailable)(
   "PlaywrightDriver.screenshot — redactions",
   () => {
     it("a redaction selector matching nothing is skipped (screenshot still written, never a halt)", async () => {
-      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-redact-"));
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-redact-"));
       const session = await launchPlaywrightSession({ docPackRoot: tmp });
       try {
         await session.driver.goto(CLOCK_FIXTURE);

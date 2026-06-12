@@ -1,12 +1,12 @@
 {
-  "name": "@kalebtec/docsxai-engine",
+  "name": "@docsxai/engine",
   "version": "0.1.0",
   "type": "module",
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
-  "description": "LLM-agnostic engine: flow-file parser + deterministic runtime + the site-docs CLI + the target-site auth-strategy layer.",
+  "description": "LLM-agnostic engine: flow-file parser + deterministic runtime + the docsxai CLI + the target-site auth-strategy layer.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -34,7 +34,7 @@
     "dist"
   ],
   "bin": {
-    "site-docs": "./dist/cli.js"
+    "docsxai": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc -b tsconfig.build.json",
@@ -49,7 +49,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@kalebtec/docsxai-backend": "workspace:*",
+    "@docsxai/backend": "workspace:*",
     "@types/node": "^20.14.0",
     "@types/pngjs": "^6.0.5",
     "vitest": "^2.0.0"

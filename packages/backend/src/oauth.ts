@@ -1,6 +1,6 @@
 // Minimal OAuth 2.1 authorization server: authorization-code + PKCE (S256 only), rotating refresh
 // tokens. Stub-grade by design — consent is auto-approved for callers that present the CI bearer
-// token (or SITE_DOCS_OAUTH_AUTO_APPROVE=1); a real consent UI is hosted-deployment scope.
+// token (or DOCSX_OAUTH_AUTO_APPROVE=1); a real consent UI is hosted-deployment scope.
 //
 // Secret hygiene: codes and tokens are random 32-byte values handed to the client once; the server
 // retains only their sha256 hashes. Nothing in this module logs or throws a secret value.

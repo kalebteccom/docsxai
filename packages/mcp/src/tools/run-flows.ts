@@ -1,5 +1,5 @@
 // run_flows — deterministic execution of the workspace's flows (the same engine functions
-// `site-docs run` wraps: parse → resolve extends → launch session → runFlow → write annotations).
+// `docsxai run` wraps: parse → resolve extends → launch session → runFlow → write annotations).
 // Per-flow results carry ok / halt-cause / artifact paths. The merged flow's `environment`
 // (frozen clock, locale, timezone, viewport, …) is passed into the Playwright session.
 
@@ -16,7 +16,7 @@ import {
   runFlow,
   type FlowFile,
   type StorageState,
-} from "@kalebtec/docsxai-engine";
+} from "@docsxai/engine";
 import { z } from "zod";
 import {
   defineTool,
@@ -54,7 +54,7 @@ async function loadAuthStorageState(workspace: string): Promise<StorageState | u
   if (!state) {
     throw new Error(
       `auth/strategy.yaml configures role "${role}" but no valid cached session exists — ` +
-        `capture one first (\`site-docs capture-auth\`)`,
+        `capture one first (\`docsxai capture-auth\`)`,
     );
   }
   return state;
@@ -90,7 +90,7 @@ export const runFlowsTool = defineTool({
       .max(16)
       .optional()
       .describe("Run up to N flows in parallel (forced to 1 with startFrom/stopAfter/cdp)"),
-    baseUrl: z.string().optional().describe("Base URL override (default: .site-docs.json app_url)"),
+    baseUrl: z.string().optional().describe("Base URL override (default: .docsxai.json app_url)"),
     headed: z.boolean().optional().describe("Run headed instead of headless"),
     ignoreHttpsErrors: z.boolean().optional(),
   },

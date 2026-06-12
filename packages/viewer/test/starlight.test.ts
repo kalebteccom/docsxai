@@ -3,7 +3,7 @@
 // indexes), config generation from the style artifact's `visual` keys + explicit overrides,
 // burned-image preference with clean-screenshot fallback, extends-graph sidebar ordering,
 // byte-identical determinism, the no-external-URL self-containment check, and the `site` CLI
-// argument paths. The real `astro build` E2E is gated behind SITE_DOCS_STARLIGHT_BUILD=1 so the
+// argument paths. The real `astro build` E2E is gated behind DOCSX_STARLIGHT_BUILD=1 so the
 // default run stays fast.
 
 import { promises as fs } from "node:fs";
@@ -71,7 +71,7 @@ afterAll(async () => {
 });
 
 async function makeWorkspace(spec: WorkspaceSpec): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-starlight-test-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-starlight-test-"));
   tempDirs.push(dir);
   for (const flow of spec.flows) {
     const flowDir = path.join(dir, "docs", flow.name);
@@ -87,7 +87,7 @@ async function makeWorkspace(spec: WorkspaceSpec): Promise<string> {
     );
     await fs.writeFile(
       path.join(flowDir, "annotations.json"),
-      JSON.stringify({ schema: "site-docs/annotations@1", flow: flow.name, annotations }, null, 2),
+      JSON.stringify({ schema: "docsxai/annotations@1", flow: flow.name, annotations }, null, 2),
       "utf8",
     );
     for (const step of flow.steps) {
@@ -116,7 +116,7 @@ async function makeWorkspace(spec: WorkspaceSpec): Promise<string> {
     await fs.mkdir(path.join(dir, "docs"), { recursive: true });
     await fs.writeFile(
       path.join(dir, "docs", "style.json"),
-      JSON.stringify({ schema: "site-docs/style@1", visual: spec.visual }, null, 2),
+      JSON.stringify({ schema: "docsxai/style@1", visual: spec.visual }, null, 2),
       "utf8",
     );
   }
@@ -162,7 +162,7 @@ function goldenSpec(): WorkspaceSpec {
 }
 
 async function outDir(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-starlight-out-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-starlight-out-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -644,12 +644,12 @@ describe("resolveAstroBin", () => {
   });
 });
 
-// Real `astro build` E2E — opt-in only (SITE_DOCS_STARLIGHT_BUILD=1). Builds the golden fixture
+// Real `astro build` E2E — opt-in only (DOCSX_STARLIGHT_BUILD=1). Builds the golden fixture
 // site against the workspace-pinned astro + starlight via the node_modules symlink path. The
 // site is emitted under this package (not os.tmpdir): the zero-install build shortcut requires
 // a shared filesystem ancestor with the astro install — see buildStarlightSite's contract.
-describe.runIf(process.env["SITE_DOCS_STARLIGHT_BUILD"] === "1")(
-  "astro build E2E (SITE_DOCS_STARLIGHT_BUILD=1)",
+describe.runIf(process.env["DOCSX_STARLIGHT_BUILD"] === "1")(
+  "astro build E2E (DOCSX_STARLIGHT_BUILD=1)",
   () => {
     it("builds the emitted site to dist/ with a page per flow", async () => {
       const ws = await makeWorkspace(goldenSpec());

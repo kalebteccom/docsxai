@@ -41,7 +41,7 @@ describe("parsePluginManifest", () => {
   });
 
   it("rejects every reserved namespace", () => {
-    for (const namespace of ["site-docs", "docsxai", "core", "plugins"]) {
+    for (const namespace of ["docsxai", "docsxai", "core", "plugins"]) {
       expect(() => parsePluginManifest({ ...VALID_MANIFEST, namespace }, "pkg")).toThrow(
         /reserved/,
       );

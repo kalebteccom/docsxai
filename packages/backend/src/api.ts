@@ -2,14 +2,14 @@
 //
 // REST + per-resource endpoints under /v1/workspaces/{ws}/projects/{project}/revisions/{rev}/...
 // Auth: OAuth 2.1 authorization-code+PKCE for humans (the backend is its own minimal authorization
-// server — see /v1/oauth/*), pre-issued bearer token (SITE_DOCS_TOKEN) for CI.
-// Versioning: clients send `Site-Docs-API-Version: 1`; the server echoes it and warns on mismatch.
+// server — see /v1/oauth/*), pre-issued bearer token (DOCSX_TOKEN) for CI.
+// Versioning: clients send `Docsxai-Api-Version: 1`; the server echoes it and warns on mismatch.
 // Revisions: linear and immutable — POST .../revisions creates a new revision whose parent is the
 // current head; finalizing a revision freezes its artifacts (PUT after finalize → 409).
 // Binary artifacts (screenshots) travel as content-addressed blobs under /v1/blobs.
 
 export const API_VERSION = "1" as const;
-export const API_VERSION_HEADER = "site-docs-api-version";
+export const API_VERSION_HEADER = "docsxai-api-version";
 
 /** Maximum accepted JSON request body. Larger bodies get a 413 `ApiError`. */
 export const JSON_BODY_LIMIT_BYTES = 10 * 1024 * 1024;
@@ -17,7 +17,7 @@ export const JSON_BODY_LIMIT_BYTES = 10 * 1024 * 1024;
 export const BLOB_BODY_LIMIT_BYTES = 25 * 1024 * 1024;
 
 /** The only OAuth client this authorization server knows. */
-export const OAUTH_CLIENT_ID = "site-docs-cli";
+export const OAUTH_CLIENT_ID = "docsxai-cli";
 
 /** The artifact slots a revision carries (mirrors the on-disk doc pack). Payloads are opaque to the backend. */
 export const REVISION_ARTIFACTS = [
@@ -208,10 +208,10 @@ export interface BlobRef {
 /**
  * Client-side-encrypted storage-state envelope relayed through the backend. The backend validates
  * the shape and stores it opaquely — it never sees the plaintext (the AES-256-GCM key never leaves
- * the client; see `SITE_DOCS_CACHE_KEY`).
+ * the client; see `DOCSX_CACHE_KEY`).
  */
 export interface AuthCacheEnvelope {
-  schema: "site-docs/auth-cache@1";
+  schema: "docsxai/auth-cache@1";
   alg: "aes-256-gcm";
   /** Base64-encoded 12-byte GCM IV. */
   iv: string;
@@ -234,7 +234,7 @@ export const WEBHOOK_STRATEGIES = ["pr-comment", "viewer-refresh", "wiki-push"] 
 export type WebhookStrategy = (typeof WEBHOOK_STRATEGIES)[number];
 
 /** Default env var the webhook HMAC secret is read from. */
-export const DEFAULT_WEBHOOK_SECRET_ENV = "SITE_DOCS_WEBHOOK_SECRET";
+export const DEFAULT_WEBHOOK_SECRET_ENV = "DOCSX_WEBHOOK_SECRET";
 
 /**
  * Per-project GitHub webhook configuration. Lives entirely in the backend — user repos carry
@@ -324,7 +324,7 @@ export function isAuthCacheEnvelope(v: unknown): v is AuthCacheEnvelope {
   if (typeof v !== "object" || v === null) return false;
   const e = v as Record<string, unknown>;
   return (
-    e.schema === "site-docs/auth-cache@1" &&
+    e.schema === "docsxai/auth-cache@1" &&
     e.alg === "aes-256-gcm" &&
     typeof e.iv === "string" &&
     e.iv.length > 0 &&

@@ -32,7 +32,7 @@ let ws: string; // a valid workspace with the fixture flow, no auth
 beforeAll(async () => {
   tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-mcp-unit-"));
   ws = path.join(tmp, "ws");
-  const { initWorkspace } = await import("@kalebtec/docsxai-engine");
+  const { initWorkspace } = await import("@docsxai/engine");
   await initWorkspace({ dir: ws, auth: "none" });
   await fs.copyFile(fixtureFlow, path.join(ws, "flows", "recap-open.flow.yaml"));
 });
@@ -137,7 +137,7 @@ describe("run_flows", () => {
   it("a workspace with no flows dir fails cleanly", async () => {
     const bare = path.join(tmp, "bare-ws");
     await fs.mkdir(bare, { recursive: true });
-    await fs.writeFile(path.join(bare, ".site-docs.json"), "{}\n");
+    await fs.writeFile(path.join(bare, ".docsxai.json"), "{}\n");
     const r = await run("run_flows", { workspace: bare }).catch((e: unknown) => ({
       ok: false as const,
       error: (e as Error).message,

@@ -7,7 +7,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
-import { type PluginLogger, type RendererContext, resolvePlugins } from "@kalebtec/docsxai-engine";
+import { type PluginLogger, type RendererContext, resolvePlugins } from "@docsxai/engine";
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -26,7 +26,7 @@ afterAll(async () => {
 
 /** Two flows (`checkout` extends `login`), one annotated step each, login burned. */
 async function makeWorkspace(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-starlight-plugin-test-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-starlight-plugin-test-"));
   tempDirs.push(dir);
   await fs.mkdir(path.join(dir, "flows"), { recursive: true });
   for (const flow of ["login", "checkout"]) {
@@ -35,7 +35,7 @@ async function makeWorkspace(): Promise<string> {
     await fs.writeFile(
       path.join(flowDir, "annotations.json"),
       JSON.stringify({
-        schema: "site-docs/annotations@1",
+        schema: "docsxai/annotations@1",
         flow,
         annotations: [{ step: "step-1", selector: "#go", copy: `Start ${flow}` }],
       }),

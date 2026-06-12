@@ -12,7 +12,7 @@ import {
 
 let tmp = "";
 beforeEach(async () => {
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "site-docs-viewer-bin-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-viewer-bin-"));
 });
 afterEach(async () => {
   await fs.rm(tmp, { recursive: true, force: true });
@@ -41,7 +41,7 @@ async function makeFakeViewerPackage(opts: {
 }
 
 describe("resolveViewerBin", () => {
-  it("prefers $SITE_DOCS_VIEWER_BIN, running a .js script with the current Node", async () => {
+  it("prefers $DOCSX_VIEWER_BIN, running a .js script with the current Node", async () => {
     const script = path.join(tmp, "viewer-bin.js");
     await fs.writeFile(script, "process.exit(0);\n", "utf8");
     const r = await resolveViewerBin({
@@ -51,7 +51,7 @@ describe("resolveViewerBin", () => {
     expect(r).toMatchObject({ command: process.execPath, prefixArgs: [script], source: "env" });
   });
 
-  it("runs a non-.js $SITE_DOCS_VIEWER_BIN target directly as the command", async () => {
+  it("runs a non-.js $DOCSX_VIEWER_BIN target directly as the command", async () => {
     const exe = path.join(tmp, "viewer-shim");
     await fs.writeFile(exe, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
     const r = await resolveViewerBin({
@@ -84,7 +84,7 @@ describe("resolveViewerBin", () => {
     expect(r.attempts.some((a) => a.includes("bin file missing"))).toBe(true);
   });
 
-  it("falls past a $SITE_DOCS_VIEWER_BIN that points at a missing file", async () => {
+  it("falls past a $DOCSX_VIEWER_BIN that points at a missing file", async () => {
     const ghost = path.join(tmp, "no-such-bin.js");
     const binJs = await makeFakeViewerPackage({ bin: { [VIEWER_BIN_NAME]: "./dist/index.js" } });
     const r = await resolveViewerBin({ env: { [VIEWER_BIN_ENV]: ghost }, resolveFrom: [tmp] });

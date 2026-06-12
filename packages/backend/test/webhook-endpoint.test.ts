@@ -67,7 +67,7 @@ beforeEach(async () => {
   stub = createBackendStub({
     token: TOKEN,
     dispatcher: recordingDispatcher,
-    env: { SITE_DOCS_WEBHOOK_SECRET: SECRET },
+    env: { DOCSX_WEBHOOK_SECRET: SECRET },
   });
   base = await stub.listen(0);
   const ws = (await (

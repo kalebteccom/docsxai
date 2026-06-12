@@ -122,7 +122,7 @@ describe("scripted client — init_workspace", () => {
       const r = await call(client, "init_workspace", { dir: path.join(tmp, "ws") });
       expect(r.ok).toBe(true);
       expect(r.dir).toBe(path.join(tmp, "ws"));
-      await fs.access(path.join(tmp, "ws", ".site-docs.json"));
+      await fs.access(path.join(tmp, "ws", ".docsxai.json"));
       await client.close();
     } finally {
       await fs.rm(tmp, { recursive: true, force: true });
