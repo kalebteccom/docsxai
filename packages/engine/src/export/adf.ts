@@ -89,9 +89,7 @@ function text(value: string, marks: AdfMark[]): AdfNode {
 }
 
 /** Earliest inline token in `s`, or null. Order of tie-breaks: leftmost, then longest opener. */
-function findInlineToken(
-  s: string,
-): {
+function findInlineToken(s: string): {
   start: number;
   end: number;
   kind: "code" | "strong" | "em" | "link";

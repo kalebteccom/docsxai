@@ -219,11 +219,7 @@ class ConfluenceClient {
     comment: string;
   }): Promise<V2Attachment> {
     const form = new FormData();
-    form.append(
-      "file",
-      new Blob([opts.data], { type: "image/png" }),
-      opts.fileName,
-    );
+    form.append("file", new Blob([opts.data], { type: "image/png" }), opts.fileName);
     form.append("comment", opts.comment);
     form.append("minorEdit", "true");
     const res = await this.request<{ results: V2Attachment[] } | V2Attachment>(
