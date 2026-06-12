@@ -8,7 +8,7 @@ The keystone bet: write a flow once (by hand, or via an agent-driven calibration
 
 ## Status
 
-Prototype + validation closed **2026-05-15** — architectural bet proven on a real authed heavy-SPA target. MVP closed **2026-05-19** — engine-complete: deterministic agent-free replay, the full calibration-aid surface (lint / diagnose / flow-tree / `optional:true` / zip / style), browxai integration, ~193 tests. The public OSS release is **prepared but deferred by owner decision** — this repo stays private/unpublished until the project is further along; see [`RELEASING.md`](RELEASING.md). The next planning cycle covers GitHub App, engine-side Confluence push, and a standalone MCP server.
+Prototype + validation closed **2026-05-15** — architectural bet proven on a real authed heavy-SPA target. MVP closed **2026-05-19** — engine-complete. The beta surface landed **2026-06-12**: workspace **plugin runtime** (publishers / renderers / lint-rules / auth-strategies), **Confluence ADF export + idempotent publisher plugin**, **GitHub App webhook surface** on the backend, **standalone stdio MCP server**, the full **scripted auth catalogue** (11 strategies), backend **filesystem persistence + OAuth 2.1 PKCE + content-addressed blobs + finalized revisions**, execution **determinism controls** (`environment` clock/locale/viewport/color-scheme) + **deterministic redaction**, the browser-free **burn renderer**, and a **Starlight docs-site emitter** — 760+ tests. The public OSS release is **prepared but deferred by owner decision** — this repo stays private/unpublished; see [`RELEASING.md`](RELEASING.md). Live-credential integration validation (real Confluence space, registered GitHub App) is owner-gated.
 
 ## Two-mode architecture
 
@@ -67,13 +67,16 @@ Full agent-driven workflow + the calibration-loop affordances (`lint`, `flow-tre
 
 ## Packages
 
-| package                                          | role                                                                                                                                                            |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@kalebtec/docsxai-engine`](packages/engine/)   | LLM-agnostic engine: flow-file parser + runtime, calibration helpers, target-site auth strategies, the full `site-docs` CLI.                                    |
-| [`@kalebtec/docsxai-plugin`](packages/plugin/)   | Claude Code plugin — calibrate + diagnose skills, run/render/login commands. The recommended invocation surface for agent-driven workflows.                     |
-| [`@kalebtec/docsxai-backend`](packages/backend/) | Authenticated stub service for doc-pack persistence (in-memory linear-immutable revisions today; hosted deployment is post-MVP). REST + per-resource endpoints. |
-| [`@kalebtec/docsxai-skill`](packages/skill/)     | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                  |
-| [`@kalebtec/docsxai-viewer`](packages/viewer/)   | Static-HTML viewer with halo + numbered badges + Popper-placed callouts overlaid on clean screenshots at render time.                                           |
+| package                                                              | role                                                                                                                                                                                                 |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@kalebtec/docsxai-engine`](packages/engine/)                       | LLM-agnostic engine: flow-file parser + deterministic runtime (environment controls, redaction), the plugin runtime, the 11-strategy auth catalogue, pure exporters (ADF), the full `site-docs` CLI. |
+| [`@kalebtec/docsxai-plugin`](packages/plugin/)                       | Claude Code plugin — calibrate + diagnose skills; run/render/login/push/pull/plugins/export commands. The recommended invocation surface for agent-driven workflows.                                 |
+| [`@kalebtec/docsxai-mcp`](packages/mcp/)                             | Standalone stdio MCP server: calibration meta-orchestration + doc-pack introspection for any MCP-speaking host (no browser primitives — browxai owns discovery).                                     |
+| [`@kalebtec/docsxai-backend`](packages/backend/)                     | Doc-pack persistence service: FS or in-memory store, content-addressed blobs, finalized linear-immutable revisions, OAuth 2.1 + PKCE, encrypted auth-cache relay, GitHub App webhook surface.        |
+| [`@kalebtec/docsxai-skill`](packages/skill/)                         | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                                                       |
+| [`@kalebtec/docsxai-viewer`](packages/viewer/)                       | Rendering surface: interactive single-file viewer, browser-free `burn` renderer (baked annotations), Astro Starlight docs-site emitter.                                                              |
+| [`@kalebtec/docsxai-plugin-confluence`](packages/plugin-confluence/) | First-party publisher plugin — idempotent Confluence Cloud REST v2 push (`confluence:push`), capability-gated egress.                                                                                |
+| [`@kalebtec/docsxai-plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin — Starlight site emission (`starlight:site`).                                                                                                                            |
 
 ## CLI reference (one line each)
 
@@ -88,7 +91,10 @@ site-docs lint <workspace>           # static checks across flow-files
 site-docs flow-tree <workspace>      # visualise the `extends` graph
 site-docs diagnose <workspace>       # halt-context + recommendations after a halt
 site-docs style <workspace>          # init/validate style.yaml; --check scans for jargon leaks
-site-docs zip <workspace>            # package the doc pack for hand-off
+site-docs zip <workspace>            # package the doc pack for hand-off (deterministic, in-process)
+site-docs plugins <list|info|sync>   # workspace plugin runtime: status, manifests, sha256 lock
+site-docs export adf <workspace>     # pure Confluence ADF projection (agentic-path artifact)
+site-docs login [--oauth] / push / pull   # backend persistence (OAuth 2.1 PKCE or CI bearer)
 ```
 
 `site-docs --help` shows the full surface. Per-command details are in the inline `Notes:` block.
