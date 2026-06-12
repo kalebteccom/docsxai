@@ -20,6 +20,7 @@ import { PatHeaderStrategy } from "./pat-header.js";
 import { TestBackdoorStrategy } from "./test-backdoor.js";
 import { TotpStrategy } from "./totp.js";
 import { UiFormStrategy } from "./ui-form.js";
+import { WebauthnStrategy } from "./webauthn.js";
 import {
   AuthStrategyConfigError,
   NotImplementedStrategyError,
@@ -40,6 +41,7 @@ export * from "./storage-state-cache.js";
 export * from "./test-backdoor.js";
 export * from "./totp.js";
 export * from "./ui-form.js";
+export * from "./webauthn.js";
 
 // ---------------------------------------------------------------------------
 // Descriptor (`auth/strategy.yaml`)
@@ -165,6 +167,8 @@ export function makeStrategy(roleAuth: RoleAuth, deps: StrategyDeps): AuthStrate
       return new UiFormStrategy(launchAuthPage, deps.env);
     case "email-otp":
       return new EmailOtpStrategy(launchAuthPage, deps.env);
+    case "webauthn":
+      return new WebauthnStrategy(launchAuthPage, deps.env);
     default:
       throw new NotImplementedStrategyError(roleAuth.strategy);
   }
