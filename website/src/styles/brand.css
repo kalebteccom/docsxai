@@ -371,51 +371,499 @@ main:has(.docsx-404) > .content-panel {
   }
 }
 
-/* The doc loop, drawn as a flow diagram: calibrate -> run -> render ->
-   publish, with a dashed return arc back to the start. */
-.docsx-diagram {
-  margin-top: clamp(2rem, 5vw, 3rem);
+/* ---- Two-mode split diagram (architecture page) ------------------------- */
+/* Calibration lane and execution lane, with a handoff arrow from the
+   committed flow-file into the deterministic engine core. HTML+CSS panels so
+   every label wraps; SVG only for the down-arrows, the handoff arrow, and the
+   loop icon. Stacks vertically under ~40rem. */
+.docsx-modes {
+  margin: 1.25rem 0 2rem;
 }
-.docsx-loop-svg {
+.dxm-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  gap: clamp(1.25rem, 4vw, 2.75rem);
+  align-items: start;
+  position: relative;
+}
+.dxm-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+  border: 1px solid var(--docsx-glass-border);
+  border-radius: 0.8rem;
+  padding: 1rem 1rem 1.15rem;
+  background: color-mix(in srgb, var(--sl-color-bg-sidebar) 40%, transparent);
+}
+.dxm-lane--exec {
+  border-color: color-mix(in srgb, var(--docsx-amber-400) 32%, var(--docsx-glass-border));
+  background: color-mix(in srgb, var(--docsx-amber-500) 6%, transparent);
+}
+.dxm-lane-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.1rem;
+}
+.dxm-lane-tag {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-2);
+}
+.dxm-lane-tag--exec {
+  color: var(--sl-color-text-accent);
+}
+.dxm-lane-note {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.66rem;
+  color: var(--sl-color-gray-3);
+}
+
+.dxm-box {
+  border: 1px solid var(--sl-color-hairline-shade);
+  border-radius: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  background: color-mix(in srgb, var(--sl-color-bg-sidebar) 65%, var(--sl-color-bg));
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+.dxm-box--art {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--docsx-amber-400) 45%, var(--sl-color-hairline-shade));
+}
+.dxm-box--out {
+  border-color: color-mix(in srgb, var(--docsx-amber-400) 40%, var(--sl-color-hairline-shade));
+}
+.dxm-box-name {
+  font-family: var(--docsx-font-display);
+  font-weight: 600;
+  font-size: 0.98rem;
+  color: var(--sl-color-white);
+}
+:root[data-theme="light"] .dxm-box-name,
+:root[data-theme="light"] .dxm-core-name {
+  color: var(--sl-color-gray-1);
+}
+.dxm-box-sub {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--sl-color-gray-3);
+}
+
+/* The engine core: the load-bearing block, with the BrowserDriver seam. */
+.dxm-core {
+  border: 1px solid color-mix(in srgb, var(--docsx-amber-400) 40%, var(--sl-color-hairline-shade));
+  border-radius: 0.6rem;
+  padding: 0.8rem 0.85rem 0.7rem;
+  background: var(--docsx-glass);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  box-shadow: 0 14px 36px -24px var(--docsx-glow);
+}
+.dxm-core-name {
+  font-family: var(--docsx-font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--sl-color-white);
+}
+.dxm-core-sub {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--sl-color-gray-2);
+}
+.dxm-seam {
+  margin-top: 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.5rem;
+  border-top: 1px dashed color-mix(in srgb, var(--docsx-amber-400) 40%, transparent);
+}
+.dxm-seam-label {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.72rem;
+  color: var(--sl-color-text-accent);
+}
+.dxm-seam-chip {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.66rem;
+  color: var(--sl-color-gray-3);
+  border: 1px solid var(--sl-color-hairline-shade);
+  border-radius: 0.3rem;
+  padding: 0.1rem 0.4rem;
+}
+
+/* Down-arrows inside a lane. */
+.dxm-down {
+  display: flex;
+  justify-content: center;
+  color: var(--sl-color-text-accent);
+}
+.dxm-down svg {
+  width: 1.1rem;
+  height: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+/* The handoff arrow from the calibration lane into the execution lane. Sits in
+   the gutter on wide layouts; becomes a downward arrow when stacked. */
+.dxm-handoff {
+  position: absolute;
+  top: 4.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(1.5rem, 3vw, 3rem);
+  color: var(--sl-color-text-accent);
+}
+.dxm-handoff svg {
   display: block;
   width: 100%;
   height: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.docsx-loop-svg .dx-node rect {
-  fill: color-mix(in srgb, var(--sl-color-bg-sidebar) 70%, var(--sl-color-bg));
-  stroke: var(--sl-color-hairline-shade);
-  stroke-width: 1;
-  transition: stroke 0.15s ease;
+
+.dxm-loop {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.4rem 0 0;
+  font-family: var(--docsx-font-mono);
+  font-size: 0.72rem;
+  color: var(--sl-color-gray-3);
 }
-.docsx-loop-svg .dx-node:hover rect {
-  stroke: color-mix(in srgb, var(--docsx-amber-400) 55%, transparent);
-}
-.docsx-loop-svg .dx-node-name {
-  fill: var(--sl-color-text-accent);
-  font-family: var(--docsx-font-display);
-  font-weight: 600;
-  font-size: 17px;
-}
-.docsx-loop-svg .dx-node-sub {
-  fill: var(--sl-color-gray-3);
-  font-family: var(--docsx-font-body);
-  font-size: 12.5px;
-}
-.docsx-loop-svg .dx-link {
+.dxm-loop-ico {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  fill: none;
   stroke: var(--sl-color-text-accent);
   stroke-width: 2;
-  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
-.docsx-loop-svg .dx-loopback {
-  stroke-dasharray: 5 6;
-  opacity: 0.5;
+@media (prefers-reduced-motion: no-preference) {
+  .dxm-loop-ico {
+    animation: dxf-spin 9s linear infinite;
+    transform-origin: 50% 50%;
+  }
 }
-.docsx-loop-svg .dx-loop-label {
-  fill: var(--sl-color-gray-4);
+
+@media (max-width: 40rem) {
+  .dxm-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+  }
+  .dxm-handoff {
+    position: static;
+    transform: rotate(90deg);
+    width: 1.4rem;
+    margin: 0.1rem auto;
+    align-self: center;
+  }
+}
+
+/* ---- Landing hero transform (site -> flow -> annotated doc) -------------- */
+/* The on-concept hero graphic: a running-app screen on the left, the written
+   flow in the middle, and the same screen re-emitted as an annotated doc on
+   the right, with a replay loop beneath. HTML+CSS for every text-bearing panel
+   (so labels wrap and never overflow); SVG only for arrows, the annotation
+   halo, and the loop icon. Reflows to a vertical stack under ~620px. */
+.docsx-transform {
+  margin-top: clamp(2rem, 5vw, 3rem);
+}
+.dxf-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(0.4rem, 1.4vw, 1rem);
+}
+
+.dxf-panel {
+  margin: 0;
+  min-width: 0;
+}
+.dxf-tag,
+.dxf-mid-tag {
+  display: block;
   font-family: var(--docsx-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: 0.7rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+/* The browser-screen mock used by both the app and the doc panel. */
+.dxf-screen {
+  border: 1px solid var(--docsx-glass-border);
+  border-radius: 0.7rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--sl-color-bg-sidebar) 80%, var(--sl-color-bg));
+  box-shadow: 0 18px 44px -26px rgba(0, 0, 0, 0.65);
+}
+.dxf-chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--sl-color-hairline-shade);
+  background: color-mix(in srgb, var(--sl-color-bg) 45%, transparent);
+}
+.dxf-chrome i {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: var(--sl-color-gray-5);
+  flex-shrink: 0;
+}
+.dxf-chrome span {
+  margin-left: 0.3rem;
+  font-family: var(--docsx-font-mono);
+  font-size: 0.62rem;
+  color: var(--sl-color-gray-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dxf-ui {
+  padding: 0.7rem 0.7rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.dxf-ui-h {
+  height: 0.5rem;
+  width: 55%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--docsx-amber-400) 30%, transparent);
+}
+.dxf-ui-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+}
+.dxf-ui-grid span {
+  height: 1.5rem;
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--sl-color-gray-5) 26%, transparent);
+}
+.dxf-ui-grid span.wide {
+  grid-column: span 2;
+}
+.dxf-ui-cta {
+  align-self: flex-start;
+  position: relative;
+  font-family: var(--docsx-font-display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  color: #fff;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.4rem;
+  background: linear-gradient(180deg, var(--docsx-amber-500), var(--docsx-amber-600));
+}
+
+/* The annotation layer on the doc panel: halo ring, numbered badge, callout. */
+.dxf-haloed {
+  margin: 0.35rem 0 0.2rem;
+}
+.dxf-halo {
+  position: absolute;
+  inset: -7px -6px;
+  width: auto;
+  height: auto;
+  pointer-events: none;
+}
+.dxf-halo rect {
+  fill: none;
+  stroke: var(--sl-color-text-accent);
+  stroke-width: 2.5;
+  stroke-dasharray: 5 4;
+}
+.dxf-badge {
+  position: absolute;
+  top: -0.6rem;
+  right: -0.6rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--sl-color-text-accent);
+  color: var(--sl-color-bg);
+  font-family: var(--docsx-font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+.dxf-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.66rem;
+  line-height: 1.4;
+  color: var(--sl-color-gray-2);
+  border: 1px solid var(--docsx-glass-border);
+  border-left: 2px solid var(--sl-color-text-accent);
+  border-radius: 0.35rem;
+  padding: 0.35rem 0.45rem;
+  background: color-mix(in srgb, var(--docsx-amber-500) 7%, transparent);
+}
+.dxf-callout-n {
+  flex-shrink: 0;
+  font-family: var(--docsx-font-mono);
+  font-weight: 700;
+  color: var(--sl-color-text-accent);
+}
+
+/* The middle column: the flow-file as the source of the walk. */
+.dxf-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+.dxf-flow {
+  width: 100%;
+  border: 1px solid var(--docsx-glass-border);
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.6rem 0.65rem;
+  background: var(--docsx-glass);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+.dxf-flow-name {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--sl-color-text-accent);
+  margin-bottom: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dxf-flow-name .ext {
+  color: var(--sl-color-gray-3);
+  font-weight: 400;
+}
+.dxf-flow code {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.66rem;
+  color: var(--sl-color-gray-2);
+  background: none;
+  border: 0;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dxf-flow code b {
+  color: var(--sl-color-text-accent);
+  font-weight: 600;
+}
+.dxf-flow code.muted {
+  opacity: 0.6;
+}
+.dxf-mid-tag {
+  margin: 0.55rem 0 0;
+  color: var(--sl-color-text-accent);
+}
+
+/* Connecting arrows between columns (CSS-placed, so they always land on the
+   panel edges no matter the breakpoint). Hidden when the stack goes vertical. */
+.dxf-arrow {
+  display: block;
+  width: clamp(1.4rem, 3vw, 2.6rem);
+  color: var(--sl-color-text-accent);
+}
+.dxf-arrow svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The replay-loop caption beneath the stage. The icon is the brand mark's
+   open loop with the escaping line. */
+.dxf-loop-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1.1rem 0 0;
+  font-family: var(--docsx-font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: var(--sl-color-gray-3);
+  text-align: center;
+}
+.dxf-loop-ico {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--sl-color-text-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dxf-loop-ico {
+    animation: dxf-spin 9s linear infinite;
+    transform-origin: 50% 50%;
+  }
+}
+@keyframes dxf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Reflow to a vertical stack on narrow screens: arrows rotate to point down,
+   panels go full width, nothing overflows. */
+@media (max-width: 39rem) {
+  .dxf-stage {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0.2rem;
+  }
+  .dxf-panel,
+  .dxf-mid {
+    width: 100%;
+    max-width: 22rem;
+  }
+  .dxf-arrow {
+    width: 1.3rem;
+    transform: rotate(90deg);
+    margin: 0.15rem 0;
+  }
 }
 
 /* Feature grid. */
@@ -673,6 +1121,155 @@ main:has(.docsx-404) > .content-panel {
 }
 .sl-markdown-content table :is(th, td) {
   vertical-align: top;
+}
+
+/* ---- browxai / docsxai boundary diagram (ecosystem page) ---------------- */
+/* Two side cards split by a dashed seam carrying the shared actionability
+   contract. HTML+CSS throughout (label-heavy); the seam is a CSS rail, no SVG
+   text. Stacks vertically under ~40rem, seam rotates to horizontal. */
+.docsx-boundary {
+  margin: 1.5rem 0 2rem;
+}
+.dxb-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(0.75rem, 2.5vw, 1.5rem);
+}
+.dxb-side {
+  min-width: 0;
+  border: 1px solid var(--docsx-glass-border);
+  border-radius: 0.75rem;
+  padding: 1rem 1.05rem 1.1rem;
+  background: color-mix(in srgb, var(--sl-color-bg-sidebar) 45%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.dxb-side--docs {
+  border-color: color-mix(in srgb, var(--docsx-amber-400) 32%, var(--docsx-glass-border));
+  background: color-mix(in srgb, var(--docsx-amber-500) 6%, transparent);
+}
+.dxb-side-tag {
+  font-family: var(--docsx-font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--sl-color-white);
+}
+:root[data-theme="light"] .dxb-side-tag {
+  color: var(--sl-color-gray-1);
+}
+.dxb-side-tag--docs {
+  color: var(--sl-color-text-accent);
+}
+.dxb-side-role {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--sl-color-text-accent);
+  margin-bottom: 0.25rem;
+}
+.dxb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+.dxb-list li {
+  position: relative;
+  padding-left: 0.95rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--sl-color-gray-2);
+}
+.dxb-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--docsx-amber-400) 70%, transparent);
+}
+.dxb-when {
+  margin-top: 0.55rem;
+  font-family: var(--docsx-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--sl-color-gray-3);
+  border-top: 1px solid var(--sl-color-hairline-shade);
+  padding-top: 0.5rem;
+}
+.dxb-when--docs {
+  color: var(--sl-color-text-accent);
+}
+
+/* The seam between the two sides: a dashed rail with the contract pill. */
+.dxb-seam {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  text-align: center;
+  position: relative;
+  min-width: 0;
+}
+.dxb-seam-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed color-mix(in srgb, var(--docsx-amber-400) 50%, transparent);
+}
+.dxb-seam-pill {
+  position: relative;
+  font-family: var(--docsx-font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--sl-color-bg);
+  background: var(--sl-color-text-accent);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  white-space: nowrap;
+}
+.dxb-seam-sub {
+  position: relative;
+  max-width: 9rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--sl-color-gray-3);
+  background: var(--sl-color-bg);
+  padding: 0 0.3rem;
+}
+
+@media (max-width: 40rem) {
+  .dxb-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+  .dxb-seam {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.6rem;
+    padding: 0.3rem 0;
+  }
+  .dxb-seam-rail {
+    top: 50%;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 0;
+    border-left: 0;
+    border-top: 2px dashed color-mix(in srgb, var(--docsx-amber-400) 50%, transparent);
+  }
+  .dxb-seam-sub {
+    max-width: none;
+  }
 }
 
 /* ---- Trust-boundary diagram (security pages) ----------------------------- */

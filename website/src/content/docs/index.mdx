@@ -31,24 +31,24 @@ lastUpdated: false
       <span class="docsx-window-title">docsxai <span class="dot">·</span> run</span>
     </div>
     <div class="docsx-snap">
-      <div class="docsx-snap-note"># docsxai run ./workspace --flow publish-post</div>
+      <div class="docsx-snap-note"># docsxai run --flow publish-post</div>
       <div class="row">
         <span class="t-time">run</span>
         <span class="t-kind">publish-post</span>
-        <span class="t-body">4 step(s) executed, 4 annotation(s) written</span>
+        <span class="t-body">4 steps, 4 annotations</span>
       </div>
-      <div class="docsx-snap-note"># docsxai diff ./workspace --fail-on warn</div>
+      <div class="docsx-snap-note"># docsxai diff --fail-on warn</div>
       <div class="row">
         <span class="t-time">diff</span>
         <span class="t-kind">drift</span>
-        <span class="t-body">no drift detected</span>
+        <span class="t-body">none detected</span>
       </div>
       <div class="row">
         <span class="t-time"></span>
         <span class="t-kind">totals</span>
-        <span class="t-body">0 flows changed, severity none</span>
+        <span class="t-body">0 changed, sev none</span>
       </div>
-      <div class="docsx-snap-note"># docsxai render ./workspace</div>
+      <div class="docsx-snap-note"># docsxai render</div>
       <div class="row">
         <span class="t-time">render</span>
         <span class="t-kind">.viewer/</span>
@@ -58,56 +58,70 @@ lastUpdated: false
   </div>
 </div>
 
-<div class="docsx-diagram not-content">
-  <svg
-    class="docsx-loop-svg"
-    viewBox="0 0 960 210"
-    role="img"
-    aria-label="The doc loop: calibrate, run, render, publish, repeating."
-  >
-    <defs>
-      <marker
-        id="dx-arrow"
-        viewBox="0 0 10 10"
-        refX="8.5"
-        refY="5"
-        markerWidth="7"
-        markerHeight="7"
-        orient="auto-start-reverse"
-      >
-        <path d="M0 0 L10 5 L0 10 z" fill="var(--sl-color-text-accent)" />
-      </marker>
-    </defs>
+<div class="docsx-transform not-content" role="img" aria-label="The docsxai transform: a written flow walks your running web app on the left, and docsxai emits the same screen as an annotated documentation page on the right, with halo and numbered callout. A replay loop beneath re-derives the doc byte-identically on every change, with no agent in the run.">
+  <div class="dxf-stage" aria-hidden="true">
 
-    <line class="dx-link" x1="202" y1="75" x2="262" y2="75" marker-end="url(#dx-arrow)" />
-    <line class="dx-link" x1="448" y1="75" x2="508" y2="75" marker-end="url(#dx-arrow)" />
-    <line class="dx-link" x1="694" y1="75" x2="754" y2="75" marker-end="url(#dx-arrow)" />
+    <figure class="dxf-panel dxf-app">
+      <figcaption class="dxf-tag">running app</figcaption>
+      <div class="dxf-screen">
+        <div class="dxf-chrome"><i></i><i></i><i></i><span>app.example.com</span></div>
+        <div class="dxf-ui">
+          <div class="dxf-ui-row dxf-ui-h"></div>
+          <div class="dxf-ui-grid">
+            <span></span><span></span><span class="wide"></span><span></span>
+          </div>
+          <div class="dxf-ui-cta">Publish post</div>
+        </div>
+      </div>
+    </figure>
 
-    <path class="dx-link dx-loopback" d="M848 110 C 848 190, 110 190, 110 112" marker-end="url(#dx-arrow)" />
-    <text class="dx-loop-label" x="479" y="184" text-anchor="middle">replay</text>
+    <span class="dxf-arrow" aria-hidden="true">
+      <svg viewBox="0 0 44 24"><path d="M2 12 H34" /><path d="M30 6 L40 12 L30 18" /></svg>
+    </span>
 
-    <g class="dx-node">
-      <rect x="20" y="44" width="180" height="62" rx="12" />
-      <text class="dx-node-name" x="38" y="73">calibrate</text>
-      <text class="dx-node-sub" x="38" y="92">agent-assisted, once</text>
-    </g>
-    <g class="dx-node">
-      <rect x="266" y="44" width="180" height="62" rx="12" />
-      <text class="dx-node-name" x="284" y="73">run</text>
-      <text class="dx-node-sub" x="284" y="92">deterministic, agent-free</text>
-    </g>
-    <g class="dx-node">
-      <rect x="512" y="44" width="180" height="62" rx="12" />
-      <text class="dx-node-name" x="530" y="73">render</text>
-      <text class="dx-node-sub" x="530" y="92">halos, badges, callouts</text>
-    </g>
-    <g class="dx-node">
-      <rect x="758" y="44" width="180" height="62" rx="12" />
-      <text class="dx-node-name" x="776" y="73">publish</text>
-      <text class="dx-node-sub" x="776" y="92">viewer, Starlight, Confluence</text>
-    </g>
+    <div class="dxf-mid">
+      <div class="dxf-flow">
+        <span class="dxf-flow-name">publish-post<span class="ext">.flow.yaml</span></span>
+        <code><b>goto</b> /editor</code>
+        <code><b>fill</b> title</code>
+        <code><b>click</b> publish</code>
+        <code class="muted"><b>expect</b> toast</code>
+      </div>
+      <span class="dxf-mid-tag">walk the flow</span>
+    </div>
 
-  </svg>
+    <span class="dxf-arrow" aria-hidden="true">
+      <svg viewBox="0 0 44 24"><path d="M2 12 H34" /><path d="M30 6 L40 12 L30 18" /></svg>
+    </span>
+
+    <figure class="dxf-panel dxf-doc">
+      <figcaption class="dxf-tag">annotated doc</figcaption>
+      <div class="dxf-screen">
+        <div class="dxf-chrome"><i></i><i></i><i></i><span>publish-post · step 3</span></div>
+        <div class="dxf-ui">
+          <div class="dxf-ui-row dxf-ui-h"></div>
+          <div class="dxf-ui-grid">
+            <span></span><span></span><span class="wide"></span><span></span>
+          </div>
+          <div class="dxf-ui-cta dxf-haloed">
+            Publish post
+            <svg class="dxf-halo" viewBox="0 0 132 56" preserveAspectRatio="none" aria-hidden="true">
+              <rect x="2.5" y="2.5" width="127" height="51" rx="9" />
+            </svg>
+            <span class="dxf-badge">1</span>
+          </div>
+          <div class="dxf-callout"><span class="dxf-callout-n">1</span>Press Publish to push the post live.</div>
+        </div>
+      </div>
+    </figure>
+  </div>
+
+  <p class="dxf-loop-label" aria-hidden="true">
+    <svg class="dxf-loop-ico" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 12 A8 8 0 1 1 17.5 6.2" /><path d="M17.8 2.5 L18 6.4 L14.2 6" />
+    </svg>
+    <span>replay on every change · no agent in the run</span>
+  </p>
 </div>
 
 <div class="docsx-section not-content">
