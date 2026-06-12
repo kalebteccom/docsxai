@@ -11,6 +11,7 @@ import { z } from "zod";
 import { AuthStrategyDescriptor, type RoleAuth } from "../doc-pack.js";
 import { ApiLoginStrategy } from "./api-login.js";
 import { launchAuthPage } from "./browser-session.js";
+import { EmailOtpStrategy } from "./email-otp.js";
 import { HttpBasicStrategy } from "./http-basic.js";
 import { JwtInjectionStrategy } from "./jwt-injection.js";
 import { type InstrumentedBrowser, ManualCaptureStrategy } from "./manual-capture.js";
@@ -29,6 +30,7 @@ export * from "./types.js";
 export * from "./cookie-jar.js";
 export * from "./api-login.js";
 export * from "./browser-session.js";
+export * from "./email-otp.js";
 export * from "./http-basic.js";
 export * from "./jwt-injection.js";
 export * from "./manual-capture.js";
@@ -161,6 +163,8 @@ export function makeStrategy(roleAuth: RoleAuth, deps: StrategyDeps): AuthStrate
       return new TotpStrategy();
     case "ui-form":
       return new UiFormStrategy(launchAuthPage, deps.env);
+    case "email-otp":
+      return new EmailOtpStrategy(launchAuthPage, deps.env);
     default:
       throw new NotImplementedStrategyError(roleAuth.strategy);
   }
