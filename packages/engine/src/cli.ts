@@ -48,6 +48,7 @@ import {
   StyleError,
   writeStyle,
 } from "./style.js";
+import { projectDocPackToAdf, type AdfExportMode } from "./export/adf.js";
 import { pluginsCli } from "./plugins-cli.js";
 import { readPluginsLock, readWorkspacePluginsConfig } from "./plugins/lock.js";
 import { resolvePlugins } from "./plugins/runtime.js";
@@ -76,6 +77,7 @@ Usage:
   site-docs diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
   site-docs style <workspace-dir> [--check] [--format text|json]
   site-docs zip <workspace-dir> [--out <output.zip>] [--include-viewer]
+  site-docs export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
   site-docs plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
   site-docs login --backend-url <url>
   site-docs push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
@@ -1125,6 +1127,66 @@ async function cmdZip(args: string[]): Promise<number> {
   }
 }
 
+async function cmdExport(args: string[]): Promise<number> {
+  const [format, ...rest] = args;
+  if (format !== "adf") {
+    process.stderr.write(`export: unknown format "${format ?? ""}" — supported: adf\n`);
+    return 2;
+  }
+  const { positionals, flags } = parseFlags(rest);
+  if (!positionals[0]) {
+    process.stderr.write(`export adf: missing <workspace-dir>\n`);
+    return 2;
+  }
+  const projectDir = positionals[0];
+  const modeFlag = flags.get("mode");
+  let mode: AdfExportMode = "single";
+  if (typeof modeFlag === "string") {
+    if (modeFlag !== "single" && modeFlag !== "page-tree") {
+      process.stderr.write(
+        `export adf: --mode must be "single" or "page-tree" (got "${modeFlag}")\n`,
+      );
+      return 2;
+    }
+    mode = modeFlag;
+  }
+  const flow = flags.get("flow");
+  const title = flags.get("title");
+
+  try {
+    const projection = await projectDocPackToAdf({
+      workspaceDir: projectDir,
+      ...(typeof flow === "string" ? { flows: [flow] } : {}),
+      options: { mode, ...(typeof title === "string" ? { title } : {}) },
+    });
+
+    // The agentic-path artifact: a host agent hands these files to the Atlassian MCP (or the
+    // confluence publisher plugin consumes them). Default destination is inside the workspace.
+    const outFlag = flags.get("out");
+    const outDir =
+      typeof outFlag === "string"
+        ? path.resolve(outFlag)
+        : resolveWorkspacePath(projectDir, ".export", "adf");
+    await fs.mkdir(outDir, { recursive: true });
+    const projectionPath = path.join(outDir, "projection.json");
+    const attachmentsPath = path.join(outDir, "attachments.json");
+    await fs.writeFile(projectionPath, JSON.stringify(projection, null, 2) + "\n", "utf8");
+    const manifest = projection.documents.flatMap((d) =>
+      d.attachments.map((a) => ({ section: d.section, ...a })),
+    );
+    await fs.writeFile(attachmentsPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
+
+    process.stdout.write(
+      `export adf: wrote ${projectionPath} (${projection.documents.length} document${projection.documents.length === 1 ? "" : "s"}, mode ${projection.mode}) + ${attachmentsPath} (${manifest.length} attachment${manifest.length === 1 ? "" : "s"})\n`,
+    );
+    for (const w of projection.warnings) process.stderr.write(`export adf: warning: ${w}\n`);
+    return 0;
+  } catch (e) {
+    process.stderr.write(`export adf: ${(e as Error).message}\n`);
+    return 1;
+  }
+}
+
 async function cmdLogin(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   const backendUrl =
@@ -1401,6 +1463,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdStyle(rest);
     case "zip":
       return cmdZip(rest);
+    case "export":
+      return cmdExport(rest);
     case "plugins":
       return pluginsCli(rest);
     case "login":

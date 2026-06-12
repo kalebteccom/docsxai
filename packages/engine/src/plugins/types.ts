@@ -23,7 +23,13 @@ export interface PublisherContext {
 export interface PublishResult {
   ok: boolean;
   target: string;
-  pages: Array<{ id: string; url?: string; action: "created" | "updated" | "unchanged" }>;
+  /** `section` echoes the projection section a page belongs to, so callers can rebuild their `{ section → pageId }` map from the result. */
+  pages: Array<{
+    id: string;
+    url?: string;
+    action: "created" | "updated" | "unchanged";
+    section?: string;
+  }>;
   warnings: string[];
 }
 
