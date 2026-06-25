@@ -121,7 +121,7 @@ For a new agent session in this repo, read in order:
 
 1. `README.md` — substrate at a glance + install + quick start + package map.
 2. This file (`AGENTS.md`) — operating rules + repo map + trust posture.
-3. `docs/ai-context/README.md` — agent-facing routing layer; points at the right subdir for the area you're touching. For any change that moves a boundary, adds a world-touching surface, or sits on a hot path, read `docs/ai-context/architecture/architecture-principles.md` (the Kalebtec architecture doctrine) alongside `docs/ai-context/agent-process/code-quality.md`.
+3. `docs/ai-context/README.md` — agent-facing routing layer; points at the right subdir for the area you're touching. For any change that moves a boundary, adds a world-touching surface, or sits on a hot path, read `docs/ai-context/architecture/architecture-principles.md` (the Kalebtec architecture doctrine) alongside `docs/ai-context/agent-process/code-quality.md`. For where new code goes and what to call it, read `docs/ai-context/architecture/hexagonal-and-ddd.md` (the layer map + ubiquitous language); for the one-reason-to-change file/module size budget, `docs/ai-context/architecture/module-and-file-size.md`; for what is mechanically enforced, `docs/ai-context/architecture/fitness-functions.md`.
 4. `docs/archive/phase-plans/PHASE-1.md` — closure narrative + agent-integration-contract postmortem (it's the single best source for _why_ the engine is shaped the way it is).
 5. `docs/agent-runbook.md` — the hand-to-an-agent workflow for calibration.
 6. The package READMEs under `packages/*/README.md` for the area you're touching.

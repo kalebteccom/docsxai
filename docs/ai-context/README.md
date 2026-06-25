@@ -4,9 +4,13 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 
 ## Read this before touching the relevant area
 
+- Moving a boundary, adding a world-touching surface, or working a hot path → read [`architecture/architecture-principles.md`](architecture/architecture-principles.md) (macro doctrine) alongside [`agent-process/code-quality.md`](agent-process/code-quality.md) (micro layer).
+- Figuring out where new code goes, or what to call it → read [`architecture/hexagonal-and-ddd.md`](architecture/hexagonal-and-ddd.md) (the layer map, ubiquitous language, the where-does-it-go rule).
+- Creating or splitting a file/module → read [`architecture/module-and-file-size.md`](architecture/module-and-file-size.md) (the one-reason-to-change size budget and its ratchet).
+- Adding an architectural guarantee, or before relying on one → read [`architecture/fitness-functions.md`](architecture/fitness-functions.md) (what is enforced today vs built in the enforcement pass).
 - Adding a CLI subcommand or plugin command → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`architecture/documentation-contracts.md`](architecture/documentation-contracts.md).
 - Adding a tool to the standalone MCP server (`packages/mcp/`) → read [`tool-registration/mcp-tool-registry.md`](tool-registration/mcp-tool-registry.md).
-- Writing a test → read [`testing/qa-patterns.md`](testing/qa-patterns.md) and [`testing/unit-vs-keystone.md`](testing/unit-vs-keystone.md).
+- Writing a test → read [`testing/tdd-and-test-strategy.md`](testing/tdd-and-test-strategy.md) (test-first workflow + the layers), [`testing/qa-patterns.md`](testing/qa-patterns.md), and [`testing/unit-vs-keystone.md`](testing/unit-vs-keystone.md).
 - Writing or touching a plugin (publisher / renderer / lint-rules / auth-strategy) → read [`plugin-runtime/lifecycle-and-namespacing.md`](plugin-runtime/lifecycle-and-namespacing.md).
 - Adding any gated/acting surface (MCP tool, plugin kind, auth strategy, webhook, output strategy) → read [`architecture/capability-posture-map.md`](architecture/capability-posture-map.md) and [`secrets-and-egress/auth-catalogue-and-masking.md`](secrets-and-egress/auth-catalogue-and-masking.md).
 - Touching the engine runtime, the `BrowserDriver` interface, or auth strategies → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`testing/qa-patterns.md`](testing/qa-patterns.md) — the keystone test is the regression gate.
@@ -16,17 +20,17 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 
 ## Information architecture
 
-| Subdir                | Purpose                                                                                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `agent-process/`      | Cross-cutting discipline: commits, dist-rebuild, code quality (the f3-inspired big one).                                                                                  |
-| `architecture/`       | Substrate references: surface map across the nine packages, documentation contracts between layers.                                                                       |
-| `secrets-and-egress/` | Trust posture for everything that writes to disk or surfaces text. No in-engine JS-injection surface; the trust surface is auth artifacts, screenshots, and halt context. |
-| `plugin-runtime/`     | Plugin lifecycle, namespacing, capability + lock discipline for the workspace plugin runtime (publishers / renderers / lint-rules / auth-strategies).                     |
-| `tool-registration/`  | The MCP tool registry discipline for `packages/mcp/`: one tool = one file, registry composed only in `server.ts`, the add-a-tool checklist.                               |
-| `testing/`            | Unit / keystone layering and the QA-patterns playbook.                                                                                                                    |
-| `release-process/`    | Semver clock, branch-protection reference, the public-flip checklist.                                                                                                     |
-| `investigations/`     | Root-cause write-ups for non-obvious bugs. Empty today; one-off entries land as `<YYYY-MM-DD>-<slug>.md`.                                                                 |
-| `adopter-reports/`    | Field reports from teams driving docsxai against real workloads. Empty today; reports land as dated entries.                                                              |
+| Subdir                | Purpose                                                                                                                                                                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent-process/`      | Cross-cutting discipline: commits, dist-rebuild, code quality (the f3-inspired big one).                                                                                                                                                                                |
+| `architecture/`       | Substrate references: the Kalebtec architecture-principles doctrine, the hexagonal/DDD layer map + ubiquitous language, the module/file-size discipline, the fitness-function index, surface map across the nine packages, capability posture, documentation contracts. |
+| `secrets-and-egress/` | Trust posture for everything that writes to disk or surfaces text. No in-engine JS-injection surface; the trust surface is auth artifacts, screenshots, and halt context.                                                                                               |
+| `plugin-runtime/`     | Plugin lifecycle, namespacing, capability + lock discipline for the workspace plugin runtime (publishers / renderers / lint-rules / auth-strategies).                                                                                                                   |
+| `tool-registration/`  | The MCP tool registry discipline for `packages/mcp/`: one tool = one file, registry composed only in `server.ts`, the add-a-tool checklist.                                                                                                                             |
+| `testing/`            | Unit / keystone layering and the QA-patterns playbook.                                                                                                                                                                                                                  |
+| `release-process/`    | Semver clock, branch-protection reference, the public-flip checklist.                                                                                                                                                                                                   |
+| `investigations/`     | Root-cause write-ups for non-obvious bugs. Empty today; one-off entries land as `<YYYY-MM-DD>-<slug>.md`.                                                                                                                                                               |
+| `adopter-reports/`    | Field reports from teams driving docsxai against real workloads. Empty today; reports land as dated entries.                                                                                                                                                            |
 
 ## How this differs from the public `docs/` runbooks
 
