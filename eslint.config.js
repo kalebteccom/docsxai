@@ -290,4 +290,41 @@ export default tseslint.config(
       "no-console": "off",
     },
   },
+  // Module/file-size discipline - docs/ai-context/architecture/module-and-file-size.md.
+  // Whole-tree file-size ceiling across every production package-src file. docsxai
+  // historically shipped no max-lines rule, which is how engine/cli.ts reached
+  // ~1700 lines. Calibrated at 450 (the family number); pre-existing god-files are
+  // parked in the cap-debt allowlist below with a split reason, de-allowlisted and
+  // the ceiling ratcheted down as the refactor waves land. Tests/scripts/config
+  // are excluded (colocated tests carry table-driven bulk legitimately).
+  {
+    files: ["packages/*/src/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}", "**/*.spec.ts", "**/*.d.ts"],
+    rules: {
+      "max-lines": ["error", { max: 450, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  // cap-debt allowlist - files over the 450 ceiling when the budget landed. The
+  // ceiling is REMOVED here (not raised) so each file is visibly parked, not
+  // silently passing, and is restored as its split lands. No NEW file may join
+  // this list. Each split is tracked in docs/ai-context/architecture/module-and-file-size.md:
+  //   engine/cli.ts          - thin dispatch table + one file per subcommand body
+  //   engine/backend-client.ts - transport/auth client vs request builders
+  //   engine/diff.ts         - diff math vs severity/report shaping
+  //   engine/doctor.ts       - per-check probes vs checklist orchestration
+  //   viewer/starlight.ts    - Starlight site emitter split into sub-emitters
+  //   backend/server.ts      - route handlers vs server composition
+  {
+    files: [
+      "packages/engine/src/cli.ts",
+      "packages/engine/src/backend-client.ts",
+      "packages/engine/src/diff.ts",
+      "packages/engine/src/doctor.ts",
+      "packages/viewer/src/starlight.ts",
+      "packages/backend/src/server.ts",
+    ],
+    rules: {
+      "max-lines": "off",
+    },
+  },
 );
