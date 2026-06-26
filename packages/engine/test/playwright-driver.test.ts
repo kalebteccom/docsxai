@@ -52,7 +52,9 @@ describe.skipIf(!chromiumAvailable)(
     });
     afterAll(async () => {
       await browser.close();
-    });
+      // 120s hook budget: a describe/test timeout does not cover hooks, and the
+      // browser's graceful shutdown can take ~30s on macOS headless.
+    }, 120_000);
 
     const FIXTURE = `data:text/html,${encodeURIComponent(
       `<!doctype html><html><body style="margin:0">
@@ -122,7 +124,9 @@ describe.skipIf(!chromiumAvailable)(
       }
     });
   },
-  30000,
+  // 120s: a real-Chromium session's graceful shutdown can take ~30s on macOS
+  // headless (GPU/sandbox-helper teardown), which alone exhausts a 30s budget.
+  120_000,
 );
 
 const CLOCK_FIXTURE = `data:text/html,${encodeURIComponent(
@@ -188,7 +192,9 @@ describe.skipIf(!chromiumAvailable)(
       }
     });
   },
-  30000,
+  // 120s: a real-Chromium session's graceful shutdown can take ~30s on macOS
+  // headless (GPU/sandbox-helper teardown), which alone exhausts a 30s budget.
+  120_000,
 );
 
 describe.skipIf(!chromiumAvailable)(
@@ -217,7 +223,9 @@ describe.skipIf(!chromiumAvailable)(
       }
     });
   },
-  30000,
+  // 120s: a real-Chromium session's graceful shutdown can take ~30s on macOS
+  // headless (GPU/sandbox-helper teardown), which alone exhausts a 30s budget.
+  120_000,
 );
 
 describe.skipIf(!chromiumAvailable)(
@@ -239,5 +247,7 @@ describe.skipIf(!chromiumAvailable)(
       }
     });
   },
-  30000,
+  // 120s: a real-Chromium session's graceful shutdown can take ~30s on macOS
+  // headless (GPU/sandbox-helper teardown), which alone exhausts a 30s budget.
+  120_000,
 );

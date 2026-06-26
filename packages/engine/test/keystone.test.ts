@@ -46,7 +46,10 @@ async function calibratedRun(outDir: string) {
 describe.skipIf(!chromiumAvailable)("keystone — calibrate → run → reproduce", () => {
   it(
     "runs the fixture flow against the toy site and emits the expected doc-pack artifacts",
-    { timeout: 30_000 },
+    // 120s headroom: each calibratedRun launches + gracefully closes a real
+    // Chromium (~30s teardown on macOS headless); the two-run reproducibility
+    // tests close two browsers, so 30s is too tight here.
+    { timeout: 120_000 },
     async () => {
       const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-"));
       try {
@@ -81,7 +84,10 @@ describe.skipIf(!chromiumAvailable)("keystone — calibrate → run → reproduc
 
   it(
     "is reproducible — two independent runs produce identical structured artifacts",
-    { timeout: 30_000 },
+    // 120s headroom: each calibratedRun launches + gracefully closes a real
+    // Chromium (~30s teardown on macOS headless); the two-run reproducibility
+    // tests close two browsers, so 30s is too tight here.
+    { timeout: 120_000 },
     async () => {
       const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-"));
       try {
@@ -117,7 +123,10 @@ async function redactedClockRun(outDir: string) {
 describe.skipIf(!chromiumAvailable)("keystone — frozen clock + redaction determinism", () => {
   it(
     "masks the secret element with uniform black while a control region stays untouched",
-    { timeout: 30_000 },
+    // 120s headroom: each calibratedRun launches + gracefully closes a real
+    // Chromium (~30s teardown on macOS headless); the two-run reproducibility
+    // tests close two browsers, so 30s is too tight here.
+    { timeout: 120_000 },
     async () => {
       const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-"));
       try {
@@ -154,7 +163,10 @@ describe.skipIf(!chromiumAvailable)("keystone — frozen clock + redaction deter
 
   it(
     "is byte-identical across two independent runs — the headline determinism claim",
-    { timeout: 30_000 },
+    // 120s headroom: each calibratedRun launches + gracefully closes a real
+    // Chromium (~30s teardown on macOS headless); the two-run reproducibility
+    // tests close two browsers, so 30s is too tight here.
+    { timeout: 120_000 },
     async () => {
       const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-"));
       try {
