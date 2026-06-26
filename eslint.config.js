@@ -304,17 +304,6 @@ export default tseslint.config(
       "max-lines": ["error", { max: 450, skipBlankLines: true, skipComments: true }],
     },
   },
-  // cap-debt allowlist - files over the 450 ceiling when the budget landed. The
-  // ceiling is REMOVED here (not raised) so each file is visibly parked, not
-  // silently passing, and is restored as its split lands. No NEW file may join
-  // this list. Each split is tracked in docs/ai-context/architecture/module-and-file-size.md:
-  //   engine/cli.ts          - thin dispatch table + one file per subcommand body
-  {
-    files: ["packages/engine/src/cli.ts"],
-    rules: {
-      "max-lines": "off",
-    },
-  },
   // Load-bearing boundaries, mechanized (AGENTS.md two-mode contract +
   // architecture-principles.md §1). Two import bans across all production src:
   //   1. No model-provider SDK - the engine never calls a model API; inference
