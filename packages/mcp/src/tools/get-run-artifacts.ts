@@ -57,23 +57,23 @@ export const getRunArtifactsTool = defineTool({
 
     const flows = [];
     for (const name of flowDirs) {
-      const flowDir = path.join(docsDir, name);
-      const annotations = path.join(flowDir, "annotations.json");
+      const flowDir = resolveWorkspacePath(ws, "docs", name);
+      const annotations = resolveWorkspacePath(ws, "docs", name, "annotations.json");
       const writeUps = (await fs.readdir(flowDir).catch(() => [] as string[]))
         .filter((e) => e.endsWith(".md"))
         .sort()
-        .map((e) => path.join(flowDir, e));
+        .map((e) => resolveWorkspacePath(ws, "docs", name, e));
       flows.push({
         flow: name,
         ...((await exists(annotations)) ? { annotations } : {}),
-        screenshots: await listPngs(path.join(flowDir, "screenshots")),
-        halts: await listPngs(path.join(flowDir, "halts")),
+        screenshots: await listPngs(resolveWorkspacePath(ws, "docs", name, "screenshots")),
+        halts: await listPngs(resolveWorkspacePath(ws, "docs", name, "halts")),
         writeUps,
       });
     }
 
-    const styleYaml = path.join(docsDir, "style.yaml");
-    const locatorsYaml = path.join(docsDir, "locators.yaml");
+    const styleYaml = resolveWorkspacePath(ws, "docs", "style.yaml");
+    const locatorsYaml = resolveWorkspacePath(ws, "docs", "locators.yaml");
     const viewerIndex = resolveWorkspacePath(ws, ".viewer", "index.html");
     return ok({
       workspace: ws,
