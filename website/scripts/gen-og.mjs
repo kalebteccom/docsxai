@@ -41,7 +41,7 @@ const svg = `
 
   <text x="90" y="170" font-family="Courier New, monospace" font-weight="700" font-size="24" letter-spacing="6" fill="${amber}">DETERMINISTIC SCREENSHOT DOCS</text>
 
-  <text x="90" y="560" font-family="Courier New, monospace" font-size="26" fill="#8a7556">docsxai.com</text>
+  <text x="90" y="560" font-family="Courier New, monospace" font-size="26" fill="#8a7556">docsxai.dev</text>
   <text x="600" y="560" text-anchor="middle" font-family="Courier New, monospace" font-size="26" fill="#8a7556">Apache-2.0 licensed</text>
   <text x="1110" y="560" text-anchor="end" font-family="Courier New, monospace" font-size="26" fill="#8a7556">Kalebtec</text>
 </svg>`;

@@ -20,4 +20,4 @@ npx playwright-core install chromium
 - **`docsxai`** (this package) — you want the CLI: `init`, `capture-auth`, `calibrate`, `run`, `render`, `lint`, `diff`, `doctor`, … One install, everything wired.
 - **`@docsxai/engine`** — you want the library (flow-file parser, deterministic runtime, exporters, backend client) as a dependency. This package re-exports the engine's library surface (`import { parseFlowFile } from "docsxai"` works), but depending on the engine directly keeps your tree minimal and skips the viewer.
 
-Docs: <https://docsxai.com> · Source + issues: <https://github.com/kalebteccom/docsxai>
+Docs: <https://docsxai.dev> · Source + issues: <https://github.com/kalebteccom/docsxai>

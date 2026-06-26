@@ -3,12 +3,12 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
 
-// The docsxai documentation site, served at docsxai.com.
+// The docsxai documentation site, served at docsxai.dev.
 // Static Astro + Starlight. The published content lives in
 // src/content/docs/; internal working docs stay in the repo's docs/ tree
 // and never ship here.
 export default defineConfig({
-  site: "https://docsxai.com",
+  site: "https://docsxai.dev",
   trailingSlash: "always",
   integrations: [
     starlight({
@@ -33,7 +33,7 @@ export default defineConfig({
       },
       favicon: "/favicon.svg",
       head: [
-        { tag: "meta", attrs: { property: "og:image", content: "https://docsxai.com/og.png" } },
+        { tag: "meta", attrs: { property: "og:image", content: "https://docsxai.dev/og.png" } },
         { tag: "meta", attrs: { property: "og:image:type", content: "image/png" } },
         { tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
         { tag: "meta", attrs: { property: "og:image:height", content: "630" } },
@@ -42,7 +42,7 @@ export default defineConfig({
           attrs: { property: "og:image:alt", content: "docsxai - deterministic screenshot docs" },
         },
         { tag: "meta", attrs: { property: "og:site_name", content: "docsxai" } },
-        { tag: "meta", attrs: { name: "twitter:image", content: "https://docsxai.com/og.png" } },
+        { tag: "meta", attrs: { name: "twitter:image", content: "https://docsxai.dev/og.png" } },
         {
           tag: "meta",
           attrs: { name: "twitter:image:alt", content: "docsxai - deterministic screenshot docs" },
@@ -71,7 +71,7 @@ export default defineConfig({
               "Deterministic documentation engine: walks a web app, follows written flows, and emits screenshot-rich user docs that replay agent-free in CI.",
             applicationCategory: "DeveloperApplication",
             operatingSystem: "Node.js (>=20)",
-            url: "https://docsxai.com",
+            url: "https://docsxai.dev",
             license: "https://www.apache.org/licenses/LICENSE-2.0",
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
             author: { "@type": "Organization", name: "Kalebtec", url: "https://kalebtec.com" },

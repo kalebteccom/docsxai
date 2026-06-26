@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The docsxai documentation site (docsxai.com). Astro + Starlight.",
+  "description": "The docsxai documentation site (docsxai.dev). Astro + Starlight.",
   "scripts": {
     "dev": "node scripts/sync-docs.mjs && astro dev",
     "start": "node scripts/sync-docs.mjs && astro dev",
