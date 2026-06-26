@@ -59,6 +59,6 @@
   },
   "author": "Kalebtec <security@kalebtec.com>",
   "engines": {
-    "node": ">=20"
+    "node": ">=26"
   }
 }
