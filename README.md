@@ -4,24 +4,41 @@
 
 # docsxai
 
-> **OSS engine + Claude Code plugin that walks a web application, follows written flows, and emits screenshot-rich user documentation.** LLM-agnostic engine — the host agent supplies inference, the engine never calls a model API.
+> **Turn a real web app into step-by-step, screenshot-rich user guides that stay current automatically.**
 
-> **Naming.** One name everywhere: GitHub repo `kalebteccom/docsxai`, CLI `docsxai`, npm packages `@docsxai/*` (org registered). The bare `docsxai` npm package is the batteries-included CLI meta-package — one global install wraps `@docsxai/engine`'s CLI and ships `@docsxai/viewer` (see [`RELEASING.md`](RELEASING.md)); everything publishes at `v1.0`.
+docsxai walks your web application, follows flows you describe in plain files, and emits documentation with clean, annotated screenshots — halos, numbered badges, callouts, captions. You teach it a flow **once**; after that it replays the same flow headlessly, on demand, producing the same docs every time. The core engine never calls a model API, so regenerating your docs on every commit is cheap and reproducible instead of expensive and flaky.
 
-The keystone bet: write a flow once (by hand, or via an agent-driven calibration cycle); replay it any time after that with **zero agent involvement and zero LLM calls** to produce fresh, deterministic docs. Calibration is rare and human-supervised; execution is cheap and CI-friendly.
+**Who it's for.** Product, platform, and docs engineers who maintain end-user documentation for a web app — especially an authenticated SPA whose UI changes often enough that hand-maintained screenshots go stale. Two roles share the workflow:
 
-## Status
+- a **calibration author** (often working through an AI coding agent like Claude Code or Codex over MCP) who teaches docsxai a user flow once;
+- a **CI / automation owner** who then re-runs `docsxai run` on every commit to regenerate the docs deterministically — no LLM calls, no agent in the loop.
 
-Prototype + validation closed **2026-05-15** — architectural bet proven on a real authed heavy-SPA target. MVP closed **2026-05-19** — engine-complete. The beta surface landed **2026-06-12**: workspace **plugin runtime** (publishers / renderers / lint-rules / auth-strategies), **Confluence ADF export + idempotent publisher plugin**, **GitHub App webhook surface** on the backend, **standalone stdio MCP server**, the full **scripted auth catalogue** (11 strategies), backend **filesystem persistence + OAuth 2.1 PKCE + content-addressed blobs + finalized revisions**, execution **determinism controls** (`environment` clock/locale/viewport/color-scheme) + **deterministic redaction**, the browser-free **burn renderer**, and a **Starlight docs-site emitter** — 760+ tests. The public OSS release is **prepared but deferred by owner decision** — this repo stays private/unpublished; see [`RELEASING.md`](RELEASING.md). Live-credential integration validation (real Confluence space, registered GitHub App) is owner-gated.
+**What you can do with it:**
 
-## Two-mode architecture
+- Keep an authenticated SaaS app's user guide in sync — calibrate the key flows once, regenerate annotated screenshots on every release so the docs never show stale UI.
+- Catch documentation drift in CI — `docsxai baseline` + `docsxai diff --fail-on warn` flags a PR whose UI change breaks a documented flow, before it merges.
+- Publish a polished docs site — emit an Astro Starlight site or a single-file interactive viewer with per-step screenshots, callouts, and captions.
+- Push the same docs into an existing knowledge base — idempotent Confluence Cloud publishing, so re-running an unchanged flow makes zero edits and only real changes land.
+- Document flows that need login and clean data — capture an authed session (interactive manual capture or one of ten scripted strategies, eleven in all) and apply deterministic redactions so secrets and PII never reach a screenshot.
 
-- **Calibration** (AI-assisted, rare). The host agent — Claude Code, Codex, or anything that speaks MCP — drives the discovery → mapping+testing → commit pipeline through the engine's CLI + a browser bridge ([browxai](https://github.com/kalebteccom/browxai) is the canonical model-agnostic driver). Output: a self-sufficient **doc pack** (flow-files + `annotations.json` + `style.yaml` + per-step markdown + screenshots + locator manifest + auth-strategy descriptor).
-- **Execution** (deterministic, continuous). `docsxai run` replays the doc pack through headless Playwright. No agent, no MCP, no model calls. CI-friendly. Same input → same output.
+## How it works: two modes
 
-The split is what makes the cost story honest: per-commit LLM runs would be untenable; per-commit Playwright runs are standard.
+The thing that makes docsxai's cost story honest is a clean split between an expensive step you run rarely and a cheap step you run constantly.
+
+- **Calibration — AI-assisted, rare.** A host agent (Claude Code, Codex, or anything that speaks MCP) drives the discovery → mapping + testing → commit pipeline through the engine's CLI and a browser bridge ([browxai](https://github.com/kalebteccom/browxai) is the canonical model-agnostic driver). The output is a self-sufficient **doc pack**: flow files, `annotations.json`, `style.yaml`, per-step markdown, screenshots, a locator manifest, and an auth-strategy descriptor. You pay for an agent here, once.
+- **Execution — deterministic, continuous.** `docsxai run` replays the doc pack through headless Playwright. No agent, no MCP, no model calls. Same input → same output. This is what runs in CI on every commit.
+
+Per-commit LLM runs would be untenable; per-commit Playwright runs are standard. That's the whole bet.
 
 ## Install (Node 20+)
+
+```bash
+pnpm add -g docsxai      # batteries-included: the docsxai CLI + the viewer
+```
+
+The granular equivalent is `pnpm add -g @docsxai/engine @docsxai/viewer`.
+
+### From source
 
 ```bash
 corepack enable          # provides pnpm
@@ -30,10 +47,10 @@ pnpm -C packages/engine exec playwright-core install chromium
 pnpm -r build
 ```
 
-Once published, the packaged install is `pnpm add -g docsxai` (the batteries-included meta-package: the `docsxai` CLI plus the viewer; `pnpm add -g @docsxai/engine @docsxai/viewer` is the granular equivalent). From a source checkout, the `docsxai` CLI binary lands at `packages/engine/dist/cli.js`; two convenient ways to put it on `PATH`:
+The `docsxai` CLI binary lands at `packages/engine/dist/cli.js`. Two convenient ways to put it on your `PATH`:
 
 ```bash
-# Option A — wrapper scripts (sidesteps pnpm-global-store quirks):
+# Option A — wrapper script (sidesteps pnpm-global-store quirks):
 mkdir -p "$HOME/.local/bin"
 printf '#!/usr/bin/env bash\nexec node "%s/packages/engine/dist/cli.js" "$@"\n' "$(pwd)" > "$HOME/.local/bin/docsxai"
 chmod +x "$HOME/.local/bin/docsxai"
@@ -46,85 +63,81 @@ pnpm -C packages/engine link --global
 ## Quick start
 
 ```bash
-# 1. Scaffold a workspace (outside the app's source repo)
+# 1. Scaffold a workspace (keep it OUTSIDE the app's source repo — docsxai documents
+#    a running app from outside and never writes into the app repo)
 docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
 
-# 2. Capture an authed session (instrumented Chrome opens; log in; the cookie's cached locally)
+# 2. Capture an authed session (an instrumented Chrome opens; log in; the session is cached locally)
 docsxai capture-auth ~/docsxai/my-app
 
-# 3. Calibrate a flow — either from a structured guide:
+# 3. Calibrate a flow — either from a structured guide…
 docsxai calibrate ~/docsxai/my-app --from path/to/flow-guide.md
-#    …or by hand-authoring `flows/<name>.flow.yaml` after exploring the live page (see docs/agent-runbook.md)
+#    …or hand-author `flows/<name>.flow.yaml` after exploring the live page (see docs/agent-runbook.md)
 
 # 4. Run it (deterministic; no agent context, no LLM calls)
 docsxai run ~/docsxai/my-app
 
 # 5. Render the interactive viewer
 #    (from a source checkout, point the engine at the built viewer bin;
-#     installed @docsxai/viewer is found automatically)
+#     an installed @docsxai/viewer is found automatically)
 DOCSX_VIEWER_BIN="$PWD/packages/viewer/dist/index.js" docsxai render ~/docsxai/my-app
 open ~/docsxai/my-app/.viewer/index.html
 
-# 6. (When ready to hand off) package the doc pack into a zip
+# 6. Package the doc pack into a zip for hand-off
 docsxai zip ~/docsxai/my-app --out my-app-docs.zip
 ```
 
-Full agent-driven workflow + the calibration-loop affordances (`lint`, `flow-tree`, `diagnose`, `style --check`, `run --start-from --cdp` for the sub-3-second iteration loop): see [**docs/agent-runbook.md**](docs/agent-runbook.md).
+> `docsxai run` launches Chromium. If no browser binary is present, install one with
+> `npx playwright-core install chromium` (or, from a source checkout,
+> `pnpm -C packages/engine exec playwright-core install chromium`).
 
-## Packages
+For the full agent-driven workflow and the fast calibration loop (`lint`, `flow-tree`, `diagnose`, `style --check`, and `run --start-from --cdp` for the sub-3-second iteration loop), see [**docs/agent-runbook.md**](docs/agent-runbook.md).
 
-| package                                                     | role                                                                                                                                                                                               |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@docsxai/engine`](packages/engine/)                       | LLM-agnostic engine: flow-file parser + deterministic runtime (environment controls, redaction), the plugin runtime, the 11-strategy auth catalogue, pure exporters (ADF), the full `docsxai` CLI. |
-| [`@docsxai/plugin`](packages/plugin/)                       | Claude Code plugin — calibrate + diagnose skills; run/render/login/push/pull/plugins/export commands. The recommended invocation surface for agent-driven workflows.                               |
-| [`@docsxai/mcp`](packages/mcp/)                             | Standalone stdio MCP server: calibration meta-orchestration + doc-pack introspection for any MCP-speaking host (no browser primitives — browxai owns discovery).                                   |
-| [`@docsxai/backend`](packages/backend/)                     | Doc-pack persistence service: FS or in-memory store, content-addressed blobs, finalized linear-immutable revisions, OAuth 2.1 + PKCE, encrypted auth-cache relay, GitHub App webhook surface.      |
-| [`@docsxai/skill`](packages/skill/)                         | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                                                     |
-| [`@docsxai/viewer`](packages/viewer/)                       | Rendering surface: interactive single-file viewer, browser-free `burn` renderer (baked annotations), Astro Starlight docs-site emitter.                                                            |
-| [`@docsxai/plugin-confluence`](packages/plugin-confluence/) | First-party publisher plugin — idempotent Confluence Cloud REST v2 push (`confluence:push`), capability-gated egress.                                                                              |
-| [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin — Starlight site emission (`starlight:site`).                                                                                                                          |
-
-## CLI reference (one line each)
+## CLI reference
 
 ```
 docsxai init <workspace>           # scaffold a workspace
 docsxai capture-auth <workspace>   # cache an authed session (manual-capture strategy)
-docsxai calibrate <workspace>      # extract a flow-file from a structured guide
+docsxai calibrate <workspace>      # extract a flow file from a structured guide
 docsxai inspect <workspace>        # discover [data-testid] locators on the live (authed) page
 docsxai run <workspace>            # execute flows headless; emit annotations + screenshots
-docsxai render <workspace>         # build the static viewer
-docsxai lint <workspace>           # static checks across flow-files
+docsxai render <workspace>         # build the static / interactive viewer
+docsxai lint <workspace>           # static checks across flow files
 docsxai flow-tree <workspace>      # visualise the `extends` graph
 docsxai diagnose <workspace>       # halt-context + recommendations after a halt
-docsxai doctor [<workspace>]       # environment + workspace health-check (one-line fix per ✗)
+docsxai doctor [<workspace>]       # environment + workspace health check (one-line fix per ✗)
 docsxai style <workspace>          # init/validate style.yaml; --check scans for jargon leaks
 docsxai zip <workspace>            # package the doc pack for hand-off (deterministic, in-process)
 docsxai baseline <workspace>       # snapshot the doc pack for drift comparison
-docsxai diff <workspace>           # deterministic drift report (--fail-on warn|fail CI gate)
-docsxai export adf|playwright      # wiki projection / Playwright spec export
+docsxai diff <workspace>           # deterministic drift report (--fail-on warn|fail as a CI gate)
+docsxai export adf|playwright      # Confluence ADF projection / Playwright spec export
 docsxai plugins <list|info|sync>   # workspace plugin runtime: status, manifests, sha256 lock
-docsxai export adf <workspace>     # pure Confluence ADF projection (agentic-path artifact)
-docsxai login [--oauth] / push / pull   # backend persistence (OAuth 2.1 PKCE or CI bearer)
+docsxai login / push / pull        # backend persistence (OAuth 2.1 PKCE or CI bearer)
 ```
 
-`docsxai --help` shows the full surface. Per-command details are in the inline `Notes:` block.
+`docsxai --help` shows every command, flag, and the inline `Notes:` block with per-command detail.
 
-## Key docs
+## Packages
 
-- [**docs/agent-runbook.md**](docs/agent-runbook.md) — the hand-to-an-agent workflow runbook
+| package                                                     | role                                                                                                                                                                                                       |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@docsxai/engine`](packages/engine/)                       | The LLM-agnostic engine: flow-file parser + deterministic runtime (environment controls, redaction), the plugin runtime, the 11-strategy auth catalogue, pure exporters (ADF), and the full `docsxai` CLI. |
+| [`@docsxai/plugin`](packages/plugin/)                       | Claude Code plugin — calibrate + diagnose skills; run/render/login/push/pull/plugins/export commands. The recommended surface for agent-driven workflows.                                                  |
+| [`@docsxai/viewer`](packages/viewer/)                       | Rendering surface: interactive single-file viewer, browser-free `burn` renderer (baked annotations), and the Astro Starlight docs-site emitter.                                                            |
+| [`@docsxai/backend`](packages/backend/)                     | Doc-pack persistence service: FS or in-memory store, content-addressed blobs, finalized linear-immutable revisions, OAuth 2.1 + PKCE, encrypted auth-cache relay, GitHub App webhook surface.              |
+| [`@docsxai/skill`](packages/skill/)                         | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                                                             |
+| [`@docsxai/mcp`](packages/mcp/)                             | Standalone stdio MCP server: calibration meta-orchestration + doc-pack introspection for any MCP host (no browser primitives — browxai owns discovery).                                                    |
+| [`@docsxai/plugin-confluence`](packages/plugin-confluence/) | First-party publisher plugin — idempotent Confluence Cloud REST v2 push (`confluence:push`), capability-gated egress.                                                                                      |
+| [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin — Starlight site emission (`starlight:site`).                                                                                                                                  |
+
+## Documentation
+
+- [**docs/agent-runbook.md**](docs/agent-runbook.md) — hand-it-to-an-agent workflow runbook
 - [**docs/running-against-an-app-repo.md**](docs/running-against-an-app-repo.md) — human-readable runbook
+- [**docs/ci-recipes.md**](docs/ci-recipes.md) — wiring `run` / `baseline` / `diff` into CI
 - [**docs/actionability-contract.md**](docs/actionability-contract.md) — the portable `actionable()` predicate contract, for browser-bridge consumers
 - [**docs/browxai-asks.md**](docs/browxai-asks.md) — integration contract with the discovery driver
-- [`docs/archive/phase-plans/`](docs/archive/phase-plans/) — archived closure summaries (prototype + MVP) and agent-integration-contract postmortem
-- [`CHANGELOG.md`](CHANGELOG.md) — `0.1.0` (unreleased) contents · [`RELEASING.md`](RELEASING.md) — gated go-public checklist
-
-The **canonical spec & roadmap** live in the [`project-ideas`](https://github.com/kalebteccom/project-ideas) portfolio repo, under `projects/automated-site-documentation-bot/`:
-
-- `spec.md` — what & why
-- `roadmap.md` — phases + exit criteria
-- `progress.md` — history
-
-Treat the portfolio docs as the source of truth; keep them in sync when implementation forces a design change.
+- [`CHANGELOG.md`](CHANGELOG.md) — release notes · [`RELEASING.md`](RELEASING.md) — release process
 
 ## Contributing
 
