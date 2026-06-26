@@ -19,6 +19,7 @@
 # Publish-side configuration — every line here is a Sigstore-trusted-publisher
 # binding dependency.
 /package.json                       @rowinbot
+/packages/*/package.json            @rowinbot
 /pnpm-lock.yaml                     @rowinbot
 /pnpm-workspace.yaml                @rowinbot
 /.npmrc                             @rowinbot
