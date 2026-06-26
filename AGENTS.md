@@ -20,7 +20,7 @@ The architecture splits into two modes: **calibration** (AI-assisted, rare; host
 
 ### Naming policy
 
-One name everywhere: the product, the GitHub repo (`kalebteccom/docsxai`), the CLI command (`docsxai`), and the npm org (`@docsxai`, registered) are all `docsxai`. Scoped packages are `@docsxai/<name>` (bins `docsxai-<name>`); the bare `docsxai` package is the batteries-included CLI meta-package (bin wraps `@docsxai/engine`'s CLI in-process; depends on `@docsxai/viewer` so `render` works from one global install). Env vars use the `DOCSX_*` prefix (family precedent: browxai's `BROWX_*`), the workspace config file is `.docsxai.json`, schema ids are `docsxai/<thing>@N`, and the backend API version header is `Docsxai-Api-Version`. This replaced the old codename-stability rule (the `site-docs` CLI / `SITE_DOCS_*` / `.site-docs.json` surfaces) by owner decision on 2026-06-12 — a pre-publish clean break with no compatibility aliases; nothing had shipped, so nothing was kept. The only deliberate survivor: the plugin runtime keeps `site-docs` in `RESERVED_NAMESPACES` so no plugin can squat the old identity.
+One name everywhere: the product, the GitHub repo (`kalebteccom/docsxai`), the CLI command (`docsxai`), and the npm org (`@docsxai`, registered) are all `docsxai`. Scoped packages are `@docsxai/<name>` (bins `docsxai-<name>`); the bare `docsxai` package is the batteries-included CLI meta-package (bin wraps `@docsxai/engine`'s CLI in-process; depends on `@docsxai/viewer` so `render` works from one global install). Env vars use the `DOCSX_*` prefix (family precedent: browxai's `BROWX_*`), the workspace config file is `.docsxai.json`, schema ids are `docsxai/<thing>@N`, and the backend API version header is `Docsxai-Api-Version`. There are no compatibility aliases — `docsxai` is the only identity these surfaces answer to. The plugin runtime keeps `site-docs` in `RESERVED_NAMESPACES` so no plugin can squat that identity.
 
 ## Commands the agent must not run
 
@@ -52,7 +52,7 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 - `packages/plugin-confluence/` — `@docsxai/plugin-confluence`. First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins.
 - `packages/plugin-starlight/` — `@docsxai/plugin-starlight`. First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter.
 - `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `agent-guidance.md` (the reach-for-this-not-that footgun map for calibration agents), `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
-- `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — archived phase closure summaries; kept for design-rationale archaeology, not live references.
+- `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — recorded decision history. Consult for the rationale behind a fixed boundary; the standing spec and scope live in `AGENTS.md`, `docs/`, and `docs/ai-context/`, not here.
 - `RELEASING.md` — gated go-public checklist (release is owner-deferred).
 
 ## Trust + execution posture
@@ -87,11 +87,11 @@ The engine has two modes — **calibration** (AI-assisted, rare) and **execution
 - `docsxai run` reproduces a doc pack byte-identically from the same flow-file + same target state. The keystone test asserts this against a real browser.
 - Adding model-provider code anywhere in `packages/{engine,plugin,backend,viewer,skill}/` is a contract violation. The future commercial SaaS surface is the only place provider SDKs live, and it's not in this repo.
 
-Write-time signal beats run-time control. `actionable()`, the halt-cause prefix, `lint`, `diagnose`, `flow-tree` — these let the calibration agent decide _before_ committing a step whether it'll hold. Future contract work biases here; do not re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see the `docs/archive/phase-plans/PHASE-1.md` postmortem).
+Write-time signal beats run-time control. `actionable()`, the halt-cause prefix, `lint`, `diagnose`, `flow-tree` — these let the calibration agent decide _before_ committing a step whether it'll hold. Future contract work biases here. Agent orchestration belongs in the agent's tooling layer; the engine is the deterministic floor (parse, run, emit) plus write-time signal. Do not re-introduce in-engine agent-orchestration state machines — the engine carries no `DiscoveryStage`/`MappingStage`/`CommitStage`-style pipeline (rationale recorded in `docs/archive/phase-plans/PHASE-1.md`).
 
 ## Browser-driver decoupling
 
-The engine sits behind a `BrowserDriver` interface, not hard-wired to Playwright. The one Playwright integration point (`PlaywrightDriver`) stays small. This is what lets browxai slot in as the model-agnostic discovery driver during calibration. Keep this boundary sharp — any new browser-touching surface goes through `BrowserDriver`, not a direct Playwright import.
+The engine sits behind a `BrowserDriver` interface, not hard-wired to Playwright. The one Playwright integration point (`PlaywrightDriver`) stays small. `BrowserDriver` is a proven seam: a second real implementation exists — browxai slots in as the model-agnostic discovery driver during calibration — so the port earns its keep. Keep this boundary sharp — any new browser-touching surface goes through `BrowserDriver`, not a direct Playwright import.
 
 ## Conditional UI + the flow-file format
 
@@ -111,7 +111,7 @@ Three doc surfaces with distinct contracts:
 
 - **`docs/`** — public adopter contract. Runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`) and cross-repo contracts (`actionability-contract.md`, `browxai-asks.md`). Every public behavior change updates the relevant runbook.
 - **Colocated `README.md`** — per-package internal contracts (`packages/engine/README.md`, `packages/plugin/README.md`, …). Each package describes its own surface, not the whole repo.
-- **`docs/archive/phase-plans/PHASE-N.md`** — archived phase closure summaries, snapshotted as each phase closed. Source of truth for current spec/scope is the repo-local docs (`AGENTS.md`, `docs/`, `docs/ai-context/`); these archives are kept for design-rationale archaeology.
+- **`docs/archive/phase-plans/PHASE-N.md`** — recorded decision history. The source of truth for current spec and scope is the repo-local docs (`AGENTS.md`, `docs/`, `docs/ai-context/`); these archives hold the rationale behind fixed boundaries, not live references.
 
 Every behavior-change diff includes a docs-impact pass: update the relevant runbook, update `CHANGELOG.md`, update `AGENTS.md` if a rule changed, and surface scope/shape movement to the owner so the internal planning archive stays current.
 
@@ -121,11 +121,12 @@ For a new agent session in this repo, read in order:
 
 1. `README.md` — substrate at a glance + install + quick start + package map.
 2. This file (`AGENTS.md`) — operating rules + repo map + trust posture.
-3. `docs/ai-context/README.md` — agent-facing routing layer; points at the right subdir for the area you're touching. For any change that moves a boundary, adds a world-touching surface, or sits on a hot path, read `docs/ai-context/architecture/architecture-principles.md` (the Kalebtec architecture doctrine) alongside `docs/ai-context/agent-process/code-quality.md`. For where new code goes and what to call it, read `docs/ai-context/architecture/hexagonal-and-ddd.md` (the layer map + ubiquitous language); for the one-reason-to-change file/module size budget, `docs/ai-context/architecture/module-and-file-size.md`; for what is mechanically enforced, `docs/ai-context/architecture/fitness-functions.md`.
-4. `docs/archive/phase-plans/PHASE-1.md` — closure narrative + agent-integration-contract postmortem (it's the single best source for _why_ the engine is shaped the way it is).
+3. `docs/ai-context/README.md` — agent-facing routing layer; points at the right subdir for the area you're touching. For any change that moves a boundary, adds a world-touching surface, or sits on a hot path, read `docs/ai-context/architecture/architecture-principles.md` (the Kalebtec architecture doctrine) alongside `docs/ai-context/agent-process/code-quality.md`. For where new code goes and what to call it, read `docs/ai-context/architecture/hexagonal-and-ddd.md` (the layer map + ubiquitous language); for the one-reason-to-change file/module size budget, `docs/ai-context/architecture/module-and-file-size.md`; for what is mechanically enforced, `docs/ai-context/architecture/fitness-functions.md`. The standing _why_ behind the engine's shape lives in these architecture docs.
+4. For tests, read the testing doctrine trio: `docs/ai-context/testing/tdd-and-test-strategy.md` (test-first workflow + the layers), `docs/ai-context/testing/qa-patterns.md` (the QA playbook), and `docs/ai-context/testing/unit-vs-keystone.md` (why boundary behavior is keystone-tested against a real browser). The keystone test is the regression gate; these docs govern what to test, at which layer, and why.
 5. `docs/agent-runbook.md` — the hand-to-an-agent workflow for calibration.
 6. The package READMEs under `packages/*/README.md` for the area you're touching.
 7. `docs/actionability-contract.md` + `docs/browxai-asks.md` for browser-bridge work.
+8. `docs/archive/phase-plans/PHASE-1.md` — recorded decision history; consult when you need the rationale behind a fixed boundary, not as primary onboarding.
 
 ## Multi-harness auto-discovery
 

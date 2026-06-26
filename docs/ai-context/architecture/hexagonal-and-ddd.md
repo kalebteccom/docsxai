@@ -8,12 +8,10 @@ boundary. It is the unifying frame over [`surface-map.md`](surface-map.md) (the
 nine-package map) and [`capability-posture-map.md`](capability-posture-map.md)
 (the gated lattice).
 
-docsxai already obeys ports-and-adapters - the architecture doctrine calls it
-"the family's cleanest illustration." Dependencies point **inward**: the engine
-core depends on nothing outward, and every outward concern (a browser, a model
+docsxai is ports-and-adapters. Dependencies point **inward**: the engine core
+depends on nothing outward, and every outward concern (a browser, a model
 provider, the filesystem, a wiki/VCS egress, an HTTP transport) sits behind a
-port the core owns. The mapping below is descriptive of the code as it is, not an
-idealized target.
+port the core owns. The map below is where each kind of code lives.
 
 ## The layers
 
@@ -31,7 +29,8 @@ dependency-cruiser plus the custom lint rules - see
 | Adapters      | `playwright-driver.ts` + `playwright-instrumented-browser.ts` (the **only** `playwright-core` importers), the first-party plugins (`plugin-confluence`, `plugin-starlight`), the viewer renderers (`@docsxai/viewer`), the backend store, the auth-strategy implementations | concrete port implementations                          | domain rules, cross-layer reach-in          |
 | Composition   | the `docsxai` CLI dispatch (`cli.ts`, `plugins-cli.ts`), `@docsxai/backend` `server.ts`, `@docsxai/mcp` `server.ts`, `@docsxai/plugin`                                                                                                                                      | wiring; dispatch tables, no business logic             | domain rules                                |
 
-The three non-negotiables, all already true and worth keeping mechanically true:
+The three non-negotiables, enforced mechanically (see
+[`fitness-functions.md`](fitness-functions.md)):
 
 - **No `playwright-core` outside the driver.** `flow-runtime.ts` and everything
   else depend on the `BrowserDriver` interface. Only `playwright-driver.ts` (and
@@ -40,7 +39,7 @@ The three non-negotiables, all already true and worth keeping mechanically true:
 - **No model SDK anywhere in the engine.** `openai` / `@anthropic-ai/*` /
   `@google/genai` never appear. Inference at calibration time comes from the host
   agent over MCP; execution has no agent in the loop. The provider SDK lives in
-  the future SaaS surface, not this repo. This is the load-bearing contract.
+  the SaaS surface, not this repo. This is the load-bearing contract.
 - **All filesystem IO through `resolveWorkspacePath`.** One chokepoint, one place
   to enforce the no-escape rule. No `cwd`-relative paths in handler code.
 

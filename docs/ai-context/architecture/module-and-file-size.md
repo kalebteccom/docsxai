@@ -3,40 +3,38 @@
 A file over its budget is almost always doing two jobs. The size cap is a proxy
 for the real rule - **one reason to change per module**
 ([`architecture-principles.md`](architecture-principles.md) §5) - and a
-mechanically-enforced backstop for it. This is the Kalebtec family standard
-(browxai enforces the same shape on its TypeScript tree via the ESLint
-`max-lines` budget); docsxai adopts it here.
+mechanically-enforced backstop for it. This is the Kalebtec family standard;
+browxai enforces the same `max-lines` shape on its TypeScript tree.
 
 ## The budget
 
 Enforced in `eslint.config.js`, run via `pnpm lint`, sized with
 `skipBlankLines` + `skipComments` so the number is _code_ lines, not whitespace.
 
-| Scope                                                 | Cap (code lines)           | Notes                                                                                                                                     |
-| ----------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| every production `packages/**/src/**/*.ts`            | **the whole-tree ceiling** | calibrated to the largest legitimately-cohesive file (the dispatch tables / registration modules), then ratcheted down as god-files split |
-| a composition root (`cli.ts` dispatch, a `server.ts`) | **tighter**                | wiring-only; any business-logic creep trips it                                                                                            |
-| dispatch / registration tables                        | **exempt or generous**     | a flat subcommand/tool/plugin registration list has one reason to change already                                                          |
-| `*.test.ts`                                           | higher / out of scope      | colocated tests carry table-driven bulk legitimately                                                                                      |
+| Scope                                                 | Cap (code lines)           | Notes                                                                                                                                                            |
+| ----------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| every production `packages/**/src/**/*.ts`            | **the whole-tree ceiling** | set just above the largest genuinely cohesive file (the dispatch tables / registration modules); the ceiling only ever tightens, never loosens to land a feature |
+| a composition root (`cli.ts` dispatch, a `server.ts`) | **tighter**                | wiring-only; any business-logic creep trips it                                                                                                                   |
+| dispatch / registration tables                        | **exempt or generous**     | a flat subcommand/tool/plugin registration list has one reason to change already                                                                                 |
+| `*.test.ts`                                           | higher / out of scope      | colocated tests carry table-driven bulk legitimately                                                                                                             |
 
 The companion per-function budgets (`max-lines-per-function`, `complexity`,
 `max-params`) enforce the same one-job rule at the function grain. A function that
 needs blank-line section dividers is two functions.
 
-> Status: docsxai historically shipped without a `max-lines` rule, which is how
-> `engine/cli.ts` reached ~1700 lines. The enforcement pass adds the budget
-> across the whole tree at a calibrated ceiling, allowlists the current god-files
-> with a visible split reason, and ratchets the ceiling down wave by wave as they
-> split - never relaxing it to land a feature. See
+> The `max-lines` budget is globbed across the whole production tree. A god-file
+> splits along its second responsibility; its allowlist entry carries a visible
+> split reason until the split lands. The ceiling ratchets down wave by wave and
+> is never relaxed to land a feature. `engine/cli.ts` is the live exemplar of a
+> file that must stay split - a fused entry point earns no quarter. See
 > [`fitness-functions.md`](fitness-functions.md).
 
 ## Coverage is half the rule
 
-A budget only bites the files it is globbed onto. The enforcement pass globs
-every production source file under each package's `src`, so the gate sees the
-whole monorepo and no oversized file can land in any package. New code lands
-inside the covered glob; a file added over the ceiling fails `pnpm lint`, not
-review.
+A budget only bites the files it is globbed onto. Every production source file
+under each package's `src` is globbed, so the gate sees the whole monorepo and no
+oversized file can land in any package. New code lands inside the covered glob; a
+file added over the ceiling fails `pnpm lint`, not review.
 
 ## How to split - along the second responsibility
 
@@ -60,7 +58,7 @@ split is invisible to callers and the dependency graph is unchanged. A split mus
 never introduce a `playwright-core` import outside the driver, a model-SDK
 import, or an IO path that bypasses `resolveWorkspacePath`.
 
-## The honest counter-rule
+## The counter-rule: smaller is not always better
 
 Smaller is not always better. The doctrine also says three similar lines beat a
 premature abstraction, and shredding one cohesive idea across a dozen tiny files

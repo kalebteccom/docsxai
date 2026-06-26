@@ -30,7 +30,7 @@ Security-lowered instrumented Chrome used by the `manual-capture` auth strategy.
 
 ### `packages/engine/src/auth.ts`
 
-Auth strategy descriptor (`auth/strategy.yaml`) + the `manual-capture` strategy. The interface is shaped to accommodate other strategies (API-direct, JWT-injection) without runtime changes.
+Auth strategy descriptor (`auth/strategy.yaml`) + the `manual-capture` strategy. The interface accommodates other strategies (API-direct, JWT-injection) without runtime changes.
 
 ### `packages/engine/src/calibrate.ts`
 
@@ -38,7 +38,7 @@ The `calibrate` command — extracts a flow-file from a structured guide. Calibr
 
 ### `packages/engine/src/flow-lint.ts`
 
-Static checks across flow-files. R001–R010 today (and counting), plus `extraRules` injection — the lint-rules plugin extension point. Pure analysis on parsed flows; no browser touch.
+Static checks across flow-files. The numbered `R0NN` rule set, plus `extraRules` injection — the lint-rules plugin extension point. Pure analysis on parsed flows; no browser touch.
 
 ### `packages/engine/src/flow-tree.ts`
 
@@ -70,7 +70,7 @@ Doc-pack hand-off packager. Reads from the workspace root via `workspace.ts`; wr
 
 ### `packages/engine/src/doc-pack.ts`, `doc-pack-io.ts`
 
-Doc-pack shape (zod schemas incl. `environment` + `redactions`) + payload IO. `doc-pack-io.ts` carries the `screenshots@2` sha256 blob manifests for backend transport. (The old `pipeline.ts` Stage contract is gone — agent orchestration lives at the harness/MCP layer, never in-engine.)
+Doc-pack shape (zod schemas incl. `environment` + `redactions`) + payload IO. `doc-pack-io.ts` carries the `screenshots@2` sha256 blob manifests for backend transport. Agent orchestration lives at the harness/MCP layer, never in the engine.
 
 ### `packages/engine/src/plugins/`
 
@@ -86,11 +86,11 @@ Pure projections out of a doc pack (no HTTP): `adf.ts` (Confluence ADF + attachm
 
 ### `packages/engine/src/backend-client.ts`
 
-HTTP client for `@docsxai/backend`. Used when the operator opts into hosted persistence; local file output is the default for MVP.
+HTTP client for `@docsxai/backend`. Used when the operator opts into hosted persistence; local file output is the default.
 
 ### `packages/engine/test/keystone.test.ts`
 
-The regression gate. Drives the runtime end-to-end against real Chromium with a fixture site. Catches behavior regressions that unit tests with a mocked `BrowserDriver` will silently pass. Mandatory for any change to `flow-runtime.ts`, `playwright-driver.ts`, or the actionability predicate.
+The regression gate. Drives the runtime end-to-end against real Chromium with a fixture site. Catches behavior regressions that unit tests with a mocked `BrowserDriver` silently pass. Mandatory for any change to `flow-runtime.ts`, `playwright-driver.ts`, or the actionability predicate.
 
 ## `packages/plugin/` — `@docsxai/plugin`
 
@@ -111,7 +111,7 @@ Authenticated doc-pack persistence service.
 - `src/server.ts` — the HTTP server. Loopback-bound by default; hosted deployment is owner-gated.
 - `src/store.ts` — in-memory linear-immutable revisions with content-addressed blobs.
 - `src/fs-store.ts` — filesystem persistence (same store contract; the durable default).
-- `src/oauth.ts` — OAuth 2.1 + PKCE auth surface (the CI bearer path is retained).
+- `src/oauth.ts` — OAuth 2.1 + PKCE auth surface; the CI bearer path is a first-class entry.
 - `src/webhook.ts` — the GitHub App webhook surface: signed dispatch → deterministic execution.
 - `src/runner.ts` / `src/strategy.ts` — webhook-triggered run execution + output strategies.
 
@@ -136,22 +136,22 @@ The rendering surface: interactive viewer, burn renderer, Starlight site emitter
 
 ## `packages/mcp/` — `@docsxai/mcp`
 
-Standalone stdio MCP server (`docsxai-mcp` bin) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives — live-page discovery is browxai's. One tool = one file under `src/tools/`; the registry is composed only in `src/server.ts`. Add-a-tool checklist: [`../tool-registration/mcp-tool-registry.md`](../tool-registration/mcp-tool-registry.md). Repo-only (`private: true`) at the v1.0 flip.
+Standalone stdio MCP server (`docsxai-mcp` bin) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives — live-page discovery is browxai's. One tool = one file under `src/tools/`; the registry is composed only in `src/server.ts`. Add-a-tool checklist: [`../tool-registration/mcp-tool-registry.md`](../tool-registration/mcp-tool-registry.md). Repo-only (`private: true`).
 
 ## `packages/plugin-confluence/` — `@docsxai/plugin-confluence`
 
-First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins — the only sanctioned Confluence egress path (the engine emits ADF projections only). Repo-only (`private: true`) at the v1.0 flip.
+First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins — the only sanctioned Confluence egress path (the engine emits ADF projections only). Repo-only (`private: true`).
 
 ## `packages/plugin-starlight/` — `@docsxai/plugin-starlight`
 
-First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter. Repo-only (`private: true`) at the v1.0 flip.
+First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter. Repo-only (`private: true`).
 
 ## Load-bearing boundaries
 
-- **The engine never calls a model API.** No `openai`, `@anthropic-ai/*`, `@google/genai`, no provider SDK import path. Lock the boundary with `pnpm licenses:check` + grep at PR time if a future ESLint rule lands.
+- **The engine never calls a model API.** No `openai`, `@anthropic-ai/*`, `@google/genai`, no provider SDK import path. Lock the boundary with `pnpm licenses:check` + grep at PR time; an ESLint rule enforces it where one applies.
 - **`BrowserDriver` is the only browser abstraction.** Direct `playwright-core` imports outside `playwright-driver.ts` and `playwright-instrumented-browser.ts` are an architectural violation.
 - **`resolveWorkspacePath` is the only filesystem root.** No `cwd`-relative paths in engine handlers.
-- **Calibration mode and execution mode are split.** Calibration helpers (`calibrate.ts`, the plugin's skill surface) are agent-aware; execution (`flow-runtime.ts`, the keystone test) has no agent in the loop. Don't re-introduce in-engine agent-orchestration state machines (the dropped `DiscoveryStage`/`MappingStage`/`CommitStage` design is the cautionary tale; see [`PHASE-1.md`](../../archive/phase-plans/PHASE-1.md) postmortem).
+- **Calibration mode and execution mode are split.** Calibration helpers (`calibrate.ts`, the plugin's skill surface) are agent-aware; execution (`flow-runtime.ts`, the keystone test) has no agent in the loop. Agent orchestration belongs in the harness/MCP layer, not an in-engine state machine — never reintroduce `DiscoveryStage`/`MappingStage`/`CommitStage`-style orchestration into the engine (rationale: [`PHASE-1.md`](../../archive/phase-plans/PHASE-1.md)).
 
 ## `packages/docsxai/` — `docsxai` (meta-package)
 

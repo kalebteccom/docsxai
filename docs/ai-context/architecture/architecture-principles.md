@@ -53,7 +53,7 @@ concrete. browxai's server handlers depend on abstract `Page` / `BrowserContext`
 not a concrete CDP backend, and its plugin runtime exposes a `PluginApi` port that
 plugins call rather than reaching into internals.
 
-### The honest tension: abstract only at a proven seam
+### Abstract only at a proven seam
 
 A port you do not need is tech debt, the same as a missing one. Speculative
 generality is the more seductive failure because it looks like good architecture.
@@ -77,21 +77,19 @@ around is not.
 
 "Perfect architecture" does not mean maximal architecture. It means **the
 simplest design that honors the proven seams** - no fewer boundaries (the core
-must stay clean), no more (every speculative port is deleted). The two pulls
-resolve cleanly once you separate proven from speculative: hold the proven seams
-without compromise, and refuse every unproven one.
+must stay clean), no more (no speculative port survives). The two pulls resolve
+cleanly once you separate proven from speculative: hold the proven seams without
+compromise, and refuse every unproven one.
 
-The family's own cautionary tale is docsxai's dropped `DiscoveryStage` /
-`MappingStage` / `CommitStage` pipeline (the deleted `pipeline.ts`). The original
-design put the agent-orchestration loop **inside the engine** as resumable stage
-objects. In practice, browxai's MCP surface plus the calibrate-skill playbook
-covered the same ground with no bespoke in-engine state machine. The lesson, from
-the repo's own postmortem (`docs/archive/phase-plans/PHASE-1.md`): agent
-orchestration belongs in the agent's tooling layer, not duplicated in the engine.
-The engine's job is the deterministic floor (parse, run, emit) plus write-time
+Agent orchestration belongs in the agent's tooling layer, never duplicated in the
+engine. The engine is the deterministic floor (parse, run, emit) plus write-time
 signal (`actionable()`, `lint`, `diagnose`); the inference loop is the host
-agent's. Removing that premature abstraction made the system smaller **and**
-more correct.
+agent's. The agent-orchestration loop is not an in-engine resumable state machine
+of `DiscoveryStage` / `MappingStage` / `CommitStage` objects - browxai's MCP
+surface plus the calibrate-skill playbook cover that ground without a bespoke
+in-engine state machine. The rationale is recorded in
+`docs/archive/phase-plans/PHASE-1.md` (see §6). The simplest design that honors
+the proven seams is both smaller and more correct.
 
 Concrete rules that follow:
 
@@ -200,9 +198,8 @@ re-litigate it.
 - Root-cause findings and one-off diagnoses go in `investigations/` under this
   `ai-context/` tree.
 - Closed-out design narratives live in the phase-plan archive
-  (`docs/archive/phase-plans/`) - the `PHASE-1` postmortem is the canonical
-  example of a decision (dropping the Stage pipeline) captured well enough that
-  nobody re-proposes it.
+  (`docs/archive/phase-plans/`) - the `PHASE-1` record is the canonical example of
+  a non-obvious architecture decision captured well enough that it stays settled.
 
 Keep provenance out of the code and the public docs (no ticket IDs, no phase
 tags); keep it in the commit body, the RFC, and this `ai-context/` tree.
