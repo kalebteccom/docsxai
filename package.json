@@ -15,7 +15,7 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=26"
   },
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",

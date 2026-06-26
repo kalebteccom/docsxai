@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [20, 22]
+        node-version: [26]
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
@@ -103,7 +103,7 @@ jobs:
           # addition to npm >= 11.5.1, installed below) — the OIDC token
           # exchange code path is gated on it; on Node 20 the publish would
           # fall back to token auth and fail (no NPM_TOKEN, by design).
-          node-version: 22
+          node-version: 26
           registry-url: https://registry.npmjs.org
       - name: Upgrade npm (need >= 11.5.1 for trusted publishing)
         run: npm install -g npm@latest
@@ -163,7 +163,7 @@ jobs:
       # No `cache` opt-in — see cache-poisoning note on build job above.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2 # zizmor: ignore[cache-poisoning]
         with:
-          node-version: 20
+          node-version: 26
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Generate CycloneDX SBOM (pinned cdxgen)

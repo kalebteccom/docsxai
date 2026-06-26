@@ -65,14 +65,14 @@ afterAll(async () => {
 });
 
 describe("checkNode", () => {
-  it("passes on Node >= 20", () => {
-    const c = checkNode("20.11.0");
+  it("passes on Node >= 26", () => {
+    const c = checkNode("26.0.0");
     expect(c.ok).toBe(true);
-    expect(c.detail).toContain("v20.11.0");
+    expect(c.detail).toContain("v26.0.0");
   });
 
-  it("fails on Node < 20 with an upgrade fix", () => {
-    const c = checkNode("18.19.1");
+  it("fails on Node < 26 with an upgrade fix", () => {
+    const c = checkNode("24.0.0");
     expect(c.ok).toBe(false);
     expect(c.fix).toMatch(/upgrade Node/);
   });
@@ -542,7 +542,7 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
     await fs.writeFile(bin, "export {};\n", "utf8");
     const checks = await buildDoctorChecks({
       workspaceDir: tmp,
-      nodeVersion: "20.11.0",
+      nodeVersion: "26.0.0",
       chromiumProbe: async () => ({ ok: true, detail: "/fake/chromium" }),
       env: { DOCSX_VIEWER_BIN: bin, PATH: "" },
       now: NOW,
@@ -564,7 +564,7 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
   it("skips workspace-scoped checks outside a workspace", async () => {
     const checks = await buildDoctorChecks({
       workspaceDir: tmp,
-      nodeVersion: "20.11.0",
+      nodeVersion: "26.0.0",
       chromiumProbe: async () => ({ ok: true, detail: "/fake/chromium" }),
       env: { PATH: "" },
       now: NOW,
@@ -575,7 +575,7 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
 
   it("renders ✗ rows with their one-line fix and the failure summary", () => {
     const text = formatDoctorChecks([
-      { name: "node", ok: true, detail: "v20.11.0" },
+      { name: "node", ok: true, detail: "v26.0.0" },
       { name: "chromium", ok: false, detail: "missing", fix: "install it" },
     ]);
     expect(text).toContain("✗ chromium");
