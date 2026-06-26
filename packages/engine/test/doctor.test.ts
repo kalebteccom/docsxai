@@ -92,8 +92,8 @@ describe("checkChromium", () => {
     expect(c.fix).toMatch(/pnpm -C packages\/engine exec playwright-core install chromium/);
   });
 
-  it.skipIf(!chromiumAvailable)("real probe finds the installed Chromium", async () => {
-    const r = await probeChromium();
+  it.skipIf(!chromiumAvailable)("real probe finds the installed Chromium", () => {
+    const r = probeChromium();
     expect(r.ok).toBe(true);
     expect(existsSync(r.detail)).toBe(true);
   });

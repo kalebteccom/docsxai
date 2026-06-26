@@ -18,6 +18,7 @@ import {
   sha256Hex,
   writePluginsLock,
 } from "./plugins/lock.js";
+import { parseFlags } from "./cli-shared.js";
 import type { PluginRecord } from "./plugins/registry.js";
 import { resolvePlugins, resolvePluginSources } from "./plugins/runtime.js";
 
@@ -38,27 +39,6 @@ Notes:
     When the lock exists, every resolve verifies the bytes before importing — a changed module
     fails closed until you re-run sync. sync itself never executes plugin code.
 `;
-
-function parseFlags(args: string[]): { positionals: string[]; flags: Map<string, string | true> } {
-  const positionals: string[] = [];
-  const flags = new Map<string, string | true>();
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i]!;
-    if (a.startsWith("--")) {
-      const key = a.slice(2);
-      const next = args[i + 1];
-      if (next !== undefined && !next.startsWith("--")) {
-        flags.set(key, next);
-        i++;
-      } else {
-        flags.set(key, true);
-      }
-    } else {
-      positionals.push(a);
-    }
-  }
-  return { positionals, flags };
-}
 
 function parseFormat(flags: Map<string, string | true>): "text" | "json" | null {
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";

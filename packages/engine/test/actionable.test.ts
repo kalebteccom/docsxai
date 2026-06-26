@@ -56,5 +56,7 @@ describe.skipIf(!chromiumAvailable)("PlaywrightDriver.actionable", () => {
     } finally {
       await session.close();
     }
-  }, 30000);
+    // 120s: a real-Chromium session's graceful shutdown can take ~30s on macOS
+    // headless (GPU/sandbox-helper teardown); the assertions themselves are fast.
+  }, 120_000);
 });

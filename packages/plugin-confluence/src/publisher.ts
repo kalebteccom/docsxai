@@ -24,6 +24,16 @@ import {
   type PublishResult,
   resolveWorkspacePath,
 } from "@docsxai/engine";
+import { ConfluenceClient } from "./confluence-client.js";
+
+// Re-export the provider-neutral REST v2 transport + DTOs so external importers/tests can
+// still reach them through this module's path after the split.
+export {
+  ConfluenceClient,
+  type V2Attachment,
+  type V2Page,
+  type V2Property,
+} from "./confluence-client.js";
 
 export const CONTENT_SHA_PROPERTY = "docsxai-content-sha";
 const SHA_COMMENT_PREFIX = "docsxai-sha256:";
@@ -76,159 +86,6 @@ export function makeMasker(secrets: string[]): (message: string) => string {
     for (const n of needles) out = out.split(n).join("<CONFLUENCE_TOKEN>");
     return out;
   };
-}
-
-// ---------------------------------------------------------------------------
-// REST v2 client (built-in fetch only)
-// ---------------------------------------------------------------------------
-
-interface V2Page {
-  id: string;
-  title: string;
-  version: { number: number };
-  _links?: { webui?: string };
-}
-
-interface V2Property {
-  id: string;
-  key: string;
-  value: unknown;
-  version: { number: number };
-}
-
-interface V2Attachment {
-  id: string;
-  title: string;
-  comment?: string;
-  fileId?: string;
-}
-
-class ConfluenceClient {
-  private readonly authHeader: string;
-  constructor(
-    private readonly baseUrl: string,
-    email: string,
-    token: string,
-    private readonly mask: (s: string) => string,
-  ) {
-    this.authHeader = `Basic ${Buffer.from(`${email}:${token}`).toString("base64")}`;
-  }
-
-  private async request<T>(
-    method: string,
-    apiPath: string,
-    body?: string | FormData,
-    contentType?: string,
-  ): Promise<T> {
-    const url = `${this.baseUrl}${apiPath}`;
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method,
-        headers: {
-          authorization: this.authHeader,
-          accept: "application/json",
-          ...(contentType ? { "content-type": contentType } : {}),
-          ...(method !== "GET" ? { "x-atlassian-token": "nocheck" } : {}),
-        },
-        ...(body !== undefined ? { body } : {}),
-      });
-    } catch (e) {
-      throw new Error(
-        this.mask(`confluence: ${method} ${apiPath} failed: ${(e as Error).message}`),
-      );
-    }
-    const text = await res.text();
-    if (!res.ok) {
-      throw new Error(
-        this.mask(`confluence: ${method} ${apiPath} → HTTP ${res.status}: ${text.slice(0, 500)}`),
-      );
-    }
-    return (text ? JSON.parse(text) : {}) as T;
-  }
-
-  private json<T>(method: string, apiPath: string, payload: unknown): Promise<T> {
-    return this.request<T>(method, apiPath, JSON.stringify(payload), "application/json");
-  }
-
-  getPage(id: string): Promise<V2Page> {
-    return this.request<V2Page>("GET", `/wiki/api/v2/pages/${id}`);
-  }
-
-  createPage(opts: {
-    spaceId: string;
-    title: string;
-    parentId?: string;
-    adf: AdfDoc;
-  }): Promise<V2Page> {
-    return this.json<V2Page>("POST", "/wiki/api/v2/pages", {
-      spaceId: opts.spaceId,
-      status: "current",
-      title: opts.title,
-      ...(opts.parentId ? { parentId: opts.parentId } : {}),
-      body: { representation: "atlas_doc_format", value: JSON.stringify(opts.adf) },
-    });
-  }
-
-  updatePage(opts: { id: string; title: string; version: number; adf: AdfDoc }): Promise<V2Page> {
-    return this.json<V2Page>("PUT", `/wiki/api/v2/pages/${opts.id}`, {
-      id: opts.id,
-      status: "current",
-      title: opts.title,
-      version: { number: opts.version },
-      body: { representation: "atlas_doc_format", value: JSON.stringify(opts.adf) },
-    });
-  }
-
-  async getContentProperty(pageId: string, key: string): Promise<V2Property | null> {
-    const res = await this.request<{ results: V2Property[] }>(
-      "GET",
-      `/wiki/api/v2/pages/${pageId}/properties?key=${encodeURIComponent(key)}`,
-    );
-    return res.results.find((p) => p.key === key) ?? null;
-  }
-
-  createContentProperty(pageId: string, key: string, value: unknown): Promise<V2Property> {
-    return this.json<V2Property>("POST", `/wiki/api/v2/pages/${pageId}/properties`, {
-      key,
-      value,
-    });
-  }
-
-  updateContentProperty(pageId: string, property: V2Property, value: unknown): Promise<V2Property> {
-    return this.json<V2Property>("PUT", `/wiki/api/v2/pages/${pageId}/properties/${property.id}`, {
-      key: property.key,
-      value,
-      version: { number: property.version.number + 1 },
-    });
-  }
-
-  async listAttachments(pageId: string): Promise<V2Attachment[]> {
-    const res = await this.request<{ results: V2Attachment[] }>(
-      "GET",
-      `/wiki/api/v2/pages/${pageId}/attachments`,
-    );
-    return res.results;
-  }
-
-  /** Multipart upload; `comment` carries the sha marker the skip-unchanged check reads back. */
-  async uploadAttachment(opts: {
-    pageId: string;
-    fileName: string;
-    data: Uint8Array;
-    comment: string;
-  }): Promise<V2Attachment> {
-    const form = new FormData();
-    form.append("file", new Blob([opts.data], { type: "image/png" }), opts.fileName);
-    form.append("comment", opts.comment);
-    form.append("minorEdit", "true");
-    const res = await this.request<{ results: V2Attachment[] } | V2Attachment>(
-      "POST",
-      `/wiki/api/v2/pages/${opts.pageId}/attachments`,
-      form,
-    );
-    return "results" in res ? res.results[0]! : res;
-  }
 }
 
 // ---------------------------------------------------------------------------

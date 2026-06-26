@@ -290,4 +290,93 @@ export default tseslint.config(
       "no-console": "off",
     },
   },
+  // Module/file-size discipline - docs/ai-context/architecture/module-and-file-size.md.
+  // Whole-tree file-size ceiling across every production package-src file. docsxai
+  // historically shipped no max-lines rule, which is how engine/cli.ts reached
+  // ~1700 lines. Calibrated at 450 (the family number); pre-existing god-files are
+  // parked in the cap-debt allowlist below with a split reason, de-allowlisted and
+  // the ceiling ratcheted down as the refactor waves land. Tests/scripts/config
+  // are excluded (colocated tests carry table-driven bulk legitimately).
+  {
+    files: ["packages/*/src/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}", "**/*.spec.ts", "**/*.d.ts"],
+    rules: {
+      "max-lines": ["error", { max: 450, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  // Load-bearing boundaries, mechanized (AGENTS.md two-mode contract +
+  // architecture-principles.md §1). Two import bans across all production src:
+  //   1. No model-provider SDK - the engine never calls a model API; inference
+  //      comes from the host agent over MCP. Provider SDKs live in the future
+  //      SaaS surface, not this repo.
+  //   2. No Playwright outside the driver - everything depends on the
+  //      `BrowserDriver` interface; only playwright-driver.ts and
+  //      playwright-instrumented-browser.ts may import playwright-core.
+  {
+    files: ["packages/*/src/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "openai",
+                "openai/*",
+                "@anthropic-ai/*",
+                "@google/genai",
+                "@google/generative-ai",
+                "@mistralai/*",
+                "cohere-ai",
+                "@aws-sdk/client-bedrock*",
+                "@azure/openai",
+                "groq-sdk",
+                "ollama",
+              ],
+              message:
+                "The engine never calls a model API (AGENTS.md two-mode contract). Inference comes from the host agent over MCP; provider SDKs live in the future SaaS surface, not this repo.",
+            },
+            {
+              group: ["playwright", "playwright-core", "playwright-core/*"],
+              message:
+                "Only playwright-driver.ts / playwright-instrumented-browser.ts may import Playwright. Everything else depends on the BrowserDriver interface (architecture-principles.md §1).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // The single Playwright integration point: re-allow playwright-core here (the
+  // model-SDK ban still applies, re-stated since no-restricted-imports replaces).
+  {
+    files: [
+      "packages/engine/src/playwright-driver.ts",
+      "packages/engine/src/playwright-instrumented-browser.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "openai",
+                "openai/*",
+                "@anthropic-ai/*",
+                "@google/genai",
+                "@google/generative-ai",
+                "@mistralai/*",
+                "cohere-ai",
+                "@aws-sdk/client-bedrock*",
+                "@azure/openai",
+                "groq-sdk",
+                "ollama",
+              ],
+              message: "The engine never calls a model API (AGENTS.md two-mode contract).",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

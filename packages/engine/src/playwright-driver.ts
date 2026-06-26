@@ -8,7 +8,7 @@
 // `npx playwright-core install chromium` (global/npx installs). For execution
 // against an authed site, the context is created with a captured `storageState` (see the auth layer).
 
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
 import * as path from "node:path";
 import {
   chromium,
@@ -31,6 +31,19 @@ import {
 import { type StorageState } from "./auth.js";
 import { applyRedactions, type RedactionBox } from "./redact.js";
 import { resolveWorkspacePathReal } from "./workspace.js";
+
+/**
+ * The cached Chromium binary path, or `undefined` when `playwright-core` has none installed.
+ *
+ * This is the single sanctioned entry point to `chromium.executablePath()`: keeping the
+ * availability probe here (the one module allowed to static-import playwright-core) means callers
+ * like `docsxai doctor` can ask "is a browser present?" without opening a second playwright-core
+ * import site. `executablePath()` only reports where the binary *would* live, so we existsSync it.
+ */
+export function chromiumExecutablePath(): string | undefined {
+  const p = chromium.executablePath();
+  return p && existsSync(p) ? p : undefined;
+}
 
 /**
  * Transparent pass-through to `browser.newContext` for auth mechanisms the engine doesn't model
