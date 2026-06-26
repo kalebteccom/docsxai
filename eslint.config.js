@@ -310,15 +310,11 @@ export default tseslint.config(
   // this list. Each split is tracked in docs/ai-context/architecture/module-and-file-size.md:
   //   engine/cli.ts          - thin dispatch table + one file per subcommand body
   //   engine/backend-client.ts - transport/auth client vs request builders
-  //   engine/doctor.ts       - per-check probes vs checklist orchestration
-  //   viewer/starlight.ts    - Starlight site emitter split into sub-emitters
   //   backend/server.ts      - route handlers vs server composition
   {
     files: [
       "packages/engine/src/cli.ts",
       "packages/engine/src/backend-client.ts",
-      "packages/engine/src/doctor.ts",
-      "packages/viewer/src/starlight.ts",
       "packages/backend/src/server.ts",
     ],
     rules: {
