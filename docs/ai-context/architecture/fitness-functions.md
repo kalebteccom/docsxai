@@ -12,27 +12,23 @@ keeps that distinction honest.
 
 ## Enforced today
 
-| Check                     | What it proves                                                                                                                      | Where                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| TypeScript project graph  | Package layering: a package cannot import another it does not declare; `@docsxai/engine` does not depend on `@docsxai/backend` etc. | `tsc` project references, via `pnpm typecheck`                      |
-| docsxai custom lint rules | The repo-specific invariants wired as `error` from day one                                                                          | `eslint.config.js`, via `pnpm lint`                                 |
-| Keystone determinism      | `docsxai run` reproduces a doc pack byte-identically from the same flow-file + target state, against a real browser                 | `packages/engine/test/keystone.test.ts`, via `pnpm test` (Chromium) |
-| Unit + integration suites | Domain and use-case behavior                                                                                                        | `vitest`, via `pnpm test`                                           |
+| Check                     | What it proves                                                                                                                      | Where                                                                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript project graph  | Package layering: a package cannot import another it does not declare; `@docsxai/engine` does not depend on `@docsxai/backend` etc. | `tsc` project references, via `pnpm typecheck`                                                                                      |
+| docsxai custom lint rules | The repo-specific invariants wired as `error` from day one                                                                          | `eslint.config.js`, via `pnpm lint`                                                                                                 |
+| Keystone determinism      | `docsxai run` reproduces a doc pack byte-identically from the same flow-file + target state, against a real browser                 | `packages/engine/test/keystone.test.ts`, via `pnpm test` (Chromium)                                                                 |
+| Unit + integration suites | Domain and use-case behavior                                                                                                        | `vitest`, via `pnpm test`                                                                                                           |
+| `max-lines` budget        | No production file exceeds its cap; god-files never re-form                                                                         | ESLint `max-lines` globbed across `packages/*/src`, ratcheted as files split ([`module-and-file-size.md`](module-and-file-size.md)) |
+| Import bans               | No `playwright-core` outside `playwright-driver.ts` / `playwright-instrumented-browser.ts`; no model-provider SDK in any package    | ESLint `no-restricted-imports`, via `pnpm lint`                                                                                     |
+| `no-circular`             | No runtime import cycles (type-only cycles excluded - they are erased at compile)                                                   | dependency-cruiser, via `pnpm depcruise`                                                                                            |
+| Duplication budget        | Copy-paste stays under the 3% budget                                                                                                | jscpd, via `pnpm jscpd:check`                                                                                                       |
 
-## Built in the enforcement pass (this refactor)
-
-These are the checks docsxai lacked and this pass adds; once green, they move up.
-
-| Check                           | What it proves                                                                                                                                                                                                          | Mechanism                                                                                                                            |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `max-lines` budget              | No production file exceeds its cap; god-files never re-form                                                                                                                                                             | ESLint `max-lines` globbed across `packages/**/src`, ratcheted as files split ([`module-and-file-size.md`](module-and-file-size.md)) |
-| Dependency-direction (layering) | The engine core depends inward; **only** `playwright-driver.ts` / `playwright-instrumented-browser.ts` import `playwright-core`; the engine imports **no** model-provider SDK; IO routes through `resolveWorkspacePath` | dependency-cruiser rules, via `pnpm depcruise`                                                                                       |
-| Duplication budget              | Copy-paste does not accrete across the splits                                                                                                                                                                           | jscpd, via `pnpm jscpd:check`                                                                                                        |
-
-The no-model-API contract and the `BrowserDriver` boundary are the two
-load-bearing invariants the layering rules make mechanical: a `playwright-core`
-import outside the driver, or any `openai` / `@anthropic-ai/*` / `@google/genai`
-import in `packages/{engine,plugin,backend,viewer,skill}`, fails the graph.
+The bottom four landed in the hexagonal/DDD refactor pass that adopted this
+doctrine - docsxai previously shipped without a `max-lines` rule, layering gate,
+or duplication budget. The no-model-API contract and the `BrowserDriver`
+boundary are the two load-bearing invariants the import bans make mechanical: a
+`playwright-core` import outside the driver, or any `openai` / `@anthropic-ai/*`
+/ `@google/genai` import in any package, fails `pnpm lint`.
 
 ## How to use this index
 

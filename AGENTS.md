@@ -140,7 +140,7 @@ Adding a new harness: place a pointer file in the harness's discovery location, 
 
 ## Quality gate contract
 
-All five of the following must exit 0 on a clean branch before pushing:
+All of the following must exit 0 on a clean branch before pushing:
 
 ```
 pnpm typecheck
@@ -148,7 +148,14 @@ pnpm test
 pnpm lint
 pnpm format:check
 pnpm build
+pnpm depcruise
+pnpm jscpd:check
 ```
+
+`pnpm depcruise` is the graph-level layering gate (no runtime import cycles; the
+no-`playwright-core`-outside-the-driver and no-model-SDK bans are additionally
+enforced by eslint). `pnpm jscpd:check` is the duplication budget. Both are part
+of the gate; see `docs/ai-context/architecture/fitness-functions.md`.
 
 The keystone test (`packages/engine/test/keystone.test.ts`) requires Chromium and runs the runtime end-to-end against a real browser — run it for anything touching page interaction, the runtime, or auth strategies.
 
