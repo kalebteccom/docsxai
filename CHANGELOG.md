@@ -1,10 +1,8 @@
 # Changelog
 
-All notable changes to this project. Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versioning is semver once the public release lands.
+All notable changes to this project. Format loosely follows [Keep a Changelog](https://keepachangelog.com/); this project adheres to [Semantic Versioning](https://semver.org/).
 
-## Unreleased
-
-> **Not yet published.** The repo is release-*prepared* but stays private; the public flip (npm publish + repo visibility + git tag) is owner-deferred (2026-05-19). See [`RELEASING.md`](RELEASING.md) for the mechanical go-public checklist. This section documents what the first published release *will* ship.
+## [0.2.0] - 2026-06-26
 
 The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follows written flows, and emits screenshot-rich docs. Calibration is AI-assisted and rare; execution is deterministic, agent-free, and CI-friendly.
 
@@ -12,7 +10,7 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 #### Bare `docsxai` meta-package
 
-- **`docsxai` on npm is the real batteries-included CLI package** (it replaced the planned throwing name-claim stub; owner decision, 2026-06-12). `packages/docsxai/` carries a `bin.mjs` that resolves `@docsxai/engine`'s CLI entry (new `@docsxai/engine/cli` export) and runs it **in-process** (no spawn), plus `index.mjs`/`index.d.mts` re-exporting the engine's library surface. Dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` — the viewer dep is deliberate, so one `pnpm add -g docsxai` puts `docsxai-viewer` on the path and `docsxai render` works out of the box through the engine's layered viewer resolution. Gated by a real subprocess test (`init` + `lint` against a fixture workspace through the wrapper bin).
+- **`docsxai` on npm is the batteries-included CLI package.** `packages/docsxai/` carries a `bin.mjs` that resolves `@docsxai/engine`'s CLI entry (new `@docsxai/engine/cli` export) and runs it **in-process** (no spawn), plus `index.mjs`/`index.d.mts` re-exporting the engine's library surface. Dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` — the viewer dep is deliberate, so one `pnpm add -g docsxai` puts `docsxai-viewer` on the path and `docsxai render` works out of the box through the engine's layered viewer resolution. Gated by a real subprocess test (`init` + `lint` against a fixture workspace through the wrapper bin).
 
 #### Engine — `docsxai doctor`
 
@@ -22,7 +20,7 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 - **Standalone stdio MCP server** (`docsxai-mcp` bin, `--workspace <dir>` default) exposing calibration meta-orchestration + read-only doc-pack introspection to any MCP-speaking host — no browser primitives (live-page discovery stays browxai's surface). Fourteen tools: `init_workspace`, `run_flows` (flow filter / `startFrom` / `stopAfter` / CDP attach / bounded concurrency; per-flow ok / halt-cause / artifact paths; merged-flow `environment` passed into the Playwright session), `render_viewer`, `lint_flows` (incl. plugin `extraRules`), `flow_tree`, `diagnose_halt`, `style_check`, `zip_pack`, `push_pack`, `pull_pack`, `list_flows`, `get_annotations`, `get_run_artifacts` (paths only), `plugins_list`. Structured `{ok, …} | {ok:false, error, hint}` results throughout.
 - **Scripted-client acceptance suite** — an in-process linked client/server pair over the SDK's `InMemoryTransport` drives the whole surface as a non-Claude MCP client, including `run_flows` against the toy-site fixture over real Chromium (loopback `node:http`, Chromium-gated). Add-a-tool checklist: `docs/ai-context/tool-registration/mcp-tool-registry.md`.
-- Streamable-HTTP transport deferred per roadmap; the package stays `private: true` until the public flip.
+- Streamable-HTTP transport is not yet implemented; the stdio transport is the supported surface.
 
 #### Engine — plugins runtime (`@docsxai/engine`)
 
@@ -120,7 +118,7 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 #### Cross-cutting
 
-- Apache-2.0; OSS-clean; public-release-ready content (history scrubbed of client identifiers 2026-05-15).
+- Apache-2.0; OSS-clean; public-release-ready content.
 - ~208 tests across the monorepo; typecheck clean; CI = typecheck + test on Node 20 / pnpm.
 - Browxai is the canonical model-agnostic discovery driver (integration contract in `docs/browxai-asks.md`).
 
@@ -131,7 +129,7 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 - Multi-harness configuration: `AGENTS.md`, `.cursor/rules/`, `.codex/`, `.agents/skills/`, `.claude/agents/`.
 - `docs/ai-context` subtree — architecture, agent-process, secrets-and-egress, testing, release-process, investigations, adopter-reports.
 - Governance: `SECURITY.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `MAINTAINERS.md`, `THIRD_PARTY_NOTICES.md`, expanded `CONTRIBUTING.md`.
-- Public-flip checklists (planning + operational), security best practices for adopters.
+- Security best practices for adopters.
 - Per-package `tsconfig.build.json` (`sourceMap` and `declarationMap` off; excludes test files).
 - Per-package builds clean `dist/` + `tsconfig.build.tsbuildinfo` first (`scripts/clean-dist.mjs`), so stale compiled artifacts can never survive a rebuild or leak into a published tarball; `scripts/audit-package-contents.mjs` now audits the `docsxai` stub tarball too.
 - Dedicated `packages/docsxai/` publishable stub with `publishConfig` for OIDC trusted publishing.
@@ -147,16 +145,13 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 
 ### Changed
 
-- **Project-wide rename to `docsxai`** — a single pre-publish clean break (owner decision, 2026-06-12; nothing published, no compatibility aliases): CLI `site-docs` → `docsxai`; npm packages `@kalebtec/docsxai-*` → `@docsxai/*` on the registered `@docsxai` org; env vars `SITE_DOCS_*` → `DOCSX_*`; workspace config `.site-docs.json` → `.docsxai.json`; schema ids `site-docs/<thing>@N` → `docsxai/<thing>@N`; API version header `Site-Docs-API-Version` → `Docsxai-Api-Version`; page helper `window.__siteDocs` → `window.__docsxai`; Claude Code plugin manifest + slash commands `/site-docs:*` → `/docsxai:*`. The plugin runtime keeps `site-docs` in `RESERVED_NAMESPACES` defensively.
+- **Project-wide rename to `docsxai`** — a single pre-publish clean break (no compatibility aliases): CLI `site-docs` → `docsxai`; npm packages `@kalebtec/docsxai-*` → `@docsxai/*` on the registered `@docsxai` org; env vars `SITE_DOCS_*` → `DOCSX_*`; workspace config `.site-docs.json` → `.docsxai.json`; schema ids `site-docs/<thing>@N` → `docsxai/<thing>@N`; API version header `Site-Docs-API-Version` → `Docsxai-Api-Version`; page helper `window.__siteDocs` → `window.__docsxai`; Claude Code plugin manifest + slash commands `/site-docs:*` → `/docsxai:*`. The plugin runtime keeps `site-docs` in `RESERVED_NAMESPACES` defensively.
 - Renamed workspace packages `@kalebtec/site-docs-*` → `@kalebtec/docsxai-*` (engine, backend, plugin, skill, viewer); workspace root `site-docs-monorepo` → `docsxai-monorepo`.
 - CLI bin names `site-docs-backend` → `docsxai-backend`, etc.
 - 5 scoped workspace packages flipped from `private: true` to publishable.
 - Repo root structure: historical closure plans moved to `docs/archive/phase-plans/`.
 - Lint baseline driven to 0 errors / 0 warnings (load-bearing CI gate).
 - Sourcemap leak gates added; published tarballs verified clean.
-- Scrubbed planning / cross-repo-tracking references from source-file headers (`packages/backend/src/api.ts`, `packages/engine/src/{cli,index,backend-client}.ts`, `packages/viewer/src/render.ts`) so the inline narration reads standalone.
-- Scrubbed migration / cross-repo-comparison phrasing from permanent docs so the project reads standalone. Technical interop references (browxai as the canonical model-agnostic discovery driver, the integration contract at `docs/browxai-asks.md`, the actionability contract for browser-bridge consumers) stay.
-- Scrubbed every internal phase / round reference across `README.md`, `AGENTS.md`, `RELEASING.md`, `MAINTAINERS.md`, `THIRD_PARTY_NOTICES.md`, `docs/`, `docs/ai-context/`, `packages/*/README.md`, `packages/plugin/commands/`, `.agents/skills/`, `.claude/agents/`, and `.codex/agents/`. Adopters landing on the repo see no internal phase nomenclature; the portfolio repo carries the planning history.
 - Updated `docs/agent-runbook.md` and `docs/running-against-an-app-repo.md` to use the current viewer / backend bin names (`docsxai-viewer`, `docsxai-backend`) after the rename from `site-docs-*`.
 - Refreshed `packages/plugin/README.md`: `push` / `pull` commands shipped, dropped from the TODO row; `style-learn` / `translate` removed entirely (not on the near-term roadmap); MCP-server note recast as a possible future addition rather than a deferred deliverable.
 - Added `TypeScript configs for packages and libs` and `Package formatting scripts` sections to `docs/ai-context/agent-process/code-quality.md`, codifying the per-package `tsconfig.json` (dev / typecheck) + `tsconfig.build.json` (emit, excludes tests) split and the root-cwd `pnpm format` / `format:check` convention.

@@ -6,18 +6,36 @@ name: release
 #   - Tag-triggered only. Never `pull_request*`-reachable; OIDC + secrets
 #     must never be exposed to PR-derived code.
 #   - `permissions: {}` at workflow-level; per-job narrowing.
-#   - `id-token: write` lives ONLY on publish jobs; build jobs are
-#     `contents: read` only.
-#   - `environment: release` gates publish jobs behind manual approval
+#   - `id-token: write` lives ONLY on the publish job; build/sbom jobs are
+#     `contents: read` (sbom takes `contents: write` only to attach the
+#     release) and never see the OIDC token.
+#   - `environment: release` gates the publish job behind manual approval
 #     (configured in the GitHub Environment settings — see RELEASING.md).
 #   - No NPM_TOKEN. Trusted publishing on the npm side binds this exact
 #     repo + workflow filename + environment name (configured per package
 #     on npmjs.com under each of the 6 published names — see RELEASING.md).
 #
+# Why pack-then-`npm publish`, NOT `pnpm publish` (the bug this fixes):
+#   npm OIDC trusted publishing needs npm >= 11.5.1 (installed by the
+#   upgrade step below). pnpm 9's bundled registry client never sees that
+#   upgraded npm CLI, so `pnpm publish` / `pnpm -r ... publish` falls back
+#   to token auth and FAILS — there is no NPM_TOKEN, by design. So the real
+#   publisher must be the upgraded `npm` CLI.
+#
+#   BUT this is a pnpm workspace: `docsxai` depends on `@docsxai/engine` +
+#   `@docsxai/viewer`, and several packages carry `workspace:*` specs. Plain
+#   `npm publish` from a source dir would ship a literal `workspace:*`
+#   dependency (broken on the registry). `pnpm pack` rewrites `workspace:*`
+#   to the resolved real version inside the produced tarball, so we
+#   `pnpm --filter <pkg> pack` first, then hand that tarball to
+#   `npm publish <tarball> --provenance --access public`.
+#
 # Publish surface (6 packages on tag; the @docsxai npm org is registered):
 #   - `docsxai`                       — batteries-included CLI meta-package
 #                                       from packages/docsxai/ (wraps the
-#                                       engine CLI; ships the viewer bin)
+#                                       engine CLI; ships the viewer bin;
+#                                       depends on engine + viewer via
+#                                       workspace:* → rewritten on pack)
 #   - `@docsxai/backend`
 #   - `@docsxai/engine`
 #   - `@docsxai/plugin`
@@ -25,7 +43,7 @@ name: release
 #   - `@docsxai/viewer`
 #
 # Repo-only — `private: true`, never published by this workflow (excluded
-# below by explicit filters AND by their private flags; both must agree):
+# below by the explicit allow-list AND by their private flags; both agree):
 #   - `@docsxai/mcp`, `@docsxai/plugin-confluence`,
 #     `@docsxai/plugin-starlight`, `@docsxai/website`
 
@@ -64,13 +82,13 @@ jobs:
       - run: pnpm -r build
       - run: pnpm -r test
 
-  publish-docsxai:
+  publish:
     needs: [build]
     runs-on: ubuntu-latest
     environment: release
     permissions:
-      id-token: write
-      contents: read
+      id-token: write # mints the OIDC token npm trusted publishing exchanges
+      contents: read # checkout of the workspace sources
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
@@ -81,49 +99,57 @@ jobs:
       # No `cache` opt-in — see cache-poisoning note on build job above.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2 # zizmor: ignore[cache-poisoning]
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-      - name: Upgrade npm (need >= 11.5.1 for trusted publishing)
-        run: npm install -g npm@latest
-      - name: Publish docsxai meta-package with provenance
-        run: pnpm -F docsxai publish --provenance --access public --no-git-checks
-
-  publish-scoped:
-    needs: [build]
-    runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.0.0
-        with:
-          version: 9.15.9
-      # No `cache` opt-in — see cache-poisoning note on build job above.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2 # zizmor: ignore[cache-poisoning]
-        with:
-          node-version: 20
+          # Node >= 22.14.0 is required for npm OIDC trusted publishing (in
+          # addition to npm >= 11.5.1, installed below) — the OIDC token
+          # exchange code path is gated on it; on Node 20 the publish would
+          # fall back to token auth and fail (no NPM_TOKEN, by design).
+          node-version: 22
           registry-url: https://registry.npmjs.org
       - name: Upgrade npm (need >= 11.5.1 for trusted publishing)
         run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Build scoped packages
+      # The tarballs ship built dist/; build before packing. (The build job
+      # gates the release, but its artifacts are not carried into this OIDC
+      # job — re-build from the checked-out tagged commit.)
+      - name: Build all packages
         run: pnpm -r build
-      - name: Publish @docsxai/* with provenance
-        run: >-
-          pnpm -r
-          --filter "@docsxai/*"
-          --filter "!@docsxai/website"
-          --filter "!@docsxai/mcp"
-          --filter "!@docsxai/plugin-confluence"
-          --filter "!@docsxai/plugin-starlight"
-          publish --provenance --access public --no-git-checks
+      - name: Pack + publish the 6 packages with provenance
+        # For each publishable package: `pnpm --filter <pkg> pack` produces a
+        # tarball with workspace:* rewritten to real versions, then the
+        # upgraded `npm` CLI publishes that tarball over OIDC trusted
+        # publishing (npm >= 11.5.1) with Sigstore provenance — no token.
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/tarballs"
+          mkdir -p "$out"
+          packages=(
+            docsxai
+            @docsxai/engine
+            @docsxai/viewer
+            @docsxai/plugin
+            @docsxai/skill
+            @docsxai/backend
+          )
+          for pkg in "${packages[@]}"; do
+            echo "::group::pack ${pkg}"
+            pnpm --filter "${pkg}" pack --pack-destination "$out"
+            echo "::endgroup::"
+          done
+          shopt -s nullglob
+          tarballs=("$out"/*.tgz)
+          if [ "${#tarballs[@]}" -ne "${#packages[@]}" ]; then
+            echo "expected ${#packages[@]} tarballs, found ${#tarballs[@]} in $out" >&2
+            printf '%s\n' "${tarballs[@]}" >&2
+            exit 1
+          fi
+          for tarball in "${tarballs[@]}"; do
+            echo "::group::publish ${tarball}"
+            npm publish "${tarball}" --provenance --access public
+            echo "::endgroup::"
+          done
 
   github-release:
-    needs: [publish-docsxai, publish-scoped]
+    needs: [publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -14,11 +14,14 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # The lockfile is written by pnpm 10.x, and the repo root package.json has no
+  # `packageManager` field to pin the version, so pin pnpm 10 here to make sure
+  # Netlify reads the pnpm-10 lockfile correctly.
+  PNPM_VERSION = "10"
   # The repo's .npmrc sets ignore-scripts=true as a supply-chain guard, so the
   # Astro toolchain's native binaries are not compiled on install. The
   # `pnpm rebuild esbuild sharp` step in the build command compiles the two the
-  # build actually needs. (If Netlify ever resolves the wrong pnpm, pin it with
-  # PNPM_VERSION = "10".)
+  # build actually needs.
 
 # Content-hashed assets never change - cache them for a year.
 [[headers]]
