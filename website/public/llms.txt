@@ -6,51 +6,51 @@ docsxai treats screenshot docs as a build artifact: a written flow-file is the s
 
 ## Start here
 
-- [Introduction](https://docsxai.dev/getting-started/introduction/): what docsxai is, the two-mode bet, the naming table, and when to use it over a recorder
-- [Installation](https://docsxai.dev/getting-started/installation/): `pnpm add -g docsxai` (the batteries-included meta-package: engine CLI + viewer), the scoped per-package install, the from-source build, the Chromium one-shot, and verification
-- [Quickstart](https://docsxai.dev/getting-started/quickstart/): init a workspace, capture auth, author a first flow, run it, render the viewer
+- [Introduction](https://docsxai.dev/getting-started/introduction.md): what docsxai is, the two-mode bet, the naming table, and when to use it over a recorder
+- [Installation](https://docsxai.dev/getting-started/installation.md): `pnpm add -g docsxai` (the batteries-included meta-package: engine CLI + viewer), the scoped per-package install, the from-source build, the Chromium one-shot, and verification
+- [Quickstart](https://docsxai.dev/getting-started/quickstart.md): init a workspace, capture auth, author a first flow, run it, render the viewer
 
 ## Concepts
 
-- [Architecture](https://docsxai.dev/concepts/architecture/): the calibration/execution split, the engine-never-calls-models contract, and the BrowserDriver seam
-- [The doc pack](https://docsxai.dev/concepts/doc-pack/): the on-disk layout, each artifact's role, and the six versioned schemas
-- [The browxai ecosystem](https://docsxai.dev/concepts/browxai-ecosystem/): the discovery/execution boundary, the CDP-attach calibration shape, and the recording accelerator
+- [Architecture](https://docsxai.dev/concepts/architecture.md): the calibration/execution split, the engine-never-calls-models contract, and the BrowserDriver seam
+- [The doc pack](https://docsxai.dev/concepts/doc-pack.md): the on-disk layout, each artifact's role, and the six versioned schemas
+- [The browxai ecosystem](https://docsxai.dev/concepts/browxai-ecosystem.md): the discovery/execution boundary, the CDP-attach calibration shape, and the recording accelerator
 
 ## Guides
 
-- [Agent runbook](https://docsxai.dev/guides/agent-runbook/): hand a coding agent everything it needs to run docsxai against an app repo
-- [Agent guidance](https://docsxai.dev/guides/agent-guidance/): the reach-for-this-not-that map - ten temptations, why each bites, and the right call with a copyable example
-- [Running against an app repo](https://docsxai.dev/guides/running-against-an-app-repo/): document an app without leaving a trace in its checkout
-- [CI recipes](https://docsxai.dev/guides/ci-recipes/): deterministic doc refresh in your pipeline
-- [Writing plugins](https://docsxai.dev/guides/writing-plugins/): the manifest, the four extension-point contracts, register(api), and a complete minimal publisher
-- [Security best practices](https://docsxai.dev/guides/security-best-practices/): operational hardening for adopters
-- [Troubleshooting](https://docsxai.dev/guides/troubleshooting/): the halt-cause vocabulary, the diagnose loop, locator gotchas, wait tuning, and the lint rules
+- [Agent runbook](https://docsxai.dev/guides/agent-runbook.md): hand a coding agent everything it needs to run docsxai against an app repo
+- [Agent guidance](https://docsxai.dev/guides/agent-guidance.md): the reach-for-this-not-that map - ten temptations, why each bites, and the right call with a copyable example
+- [Running against an app repo](https://docsxai.dev/guides/running-against-an-app-repo.md): document an app without leaving a trace in its checkout
+- [CI recipes](https://docsxai.dev/guides/ci-recipes.md): deterministic doc refresh in your pipeline
+- [Writing plugins](https://docsxai.dev/guides/writing-plugins.md): the manifest, the four extension-point contracts, register(api), and a complete minimal publisher
+- [Security best practices](https://docsxai.dev/guides/security-best-practices.md): operational hardening for adopters
+- [Troubleshooting](https://docsxai.dev/guides/troubleshooting.md): the halt-cause vocabulary, the diagnose loop, locator gotchas, wait tuning, and the lint rules
 
 ## Reference
 
-- [CLI](https://docsxai.dev/reference/cli/): every docsxai command and flag, with the help text's notes rendered per command - including `docsxai doctor`, the ✓/✗ environment + workspace health-check with a one-line fix per failure
-- [Flow-file format](https://docsxai.dev/reference/flow-file/): every field - steps, actions, waits, success, annotations, environment, redactions, extends
-- [Auth strategies](https://docsxai.dev/reference/auth-strategies/): the eleven-strategy catalogue, the descriptor, user pools, and the session caches
-- [Plugins](https://docsxai.dev/reference/plugins/): the manifest fields, the status enum, the lock file, the plugins CLI, and capability strings
-- [MCP tools](https://docsxai.dev/reference/mcp-tools/): the fourteen docsxai-mcp tools and their structured result contract
-- [Backend API](https://docsxai.dev/reference/backend-api/): every endpoint - revisions, blobs, the auth-cache relay, OAuth 2.1, and the GitHub webhook
-- [Actionability contract](https://docsxai.dev/reference/actionability/): the portable element-state vocabulary shared with browxai
+- [CLI](https://docsxai.dev/reference/cli.md): every docsxai command and flag, with the help text's notes rendered per command - including `docsxai doctor`, the ✓/✗ environment + workspace health-check with a one-line fix per failure
+- [Flow-file format](https://docsxai.dev/reference/flow-file.md): every field - steps, actions, waits, success, annotations, environment, redactions, extends
+- [Auth strategies](https://docsxai.dev/reference/auth-strategies.md): the eleven-strategy catalogue, the descriptor, user pools, and the session caches
+- [Plugins](https://docsxai.dev/reference/plugins.md): the manifest fields, the status enum, the lock file, the plugins CLI, and capability strings
+- [MCP tools](https://docsxai.dev/reference/mcp-tools.md): the fourteen docsxai-mcp tools and their structured result contract
+- [Backend API](https://docsxai.dev/reference/backend-api.md): every endpoint - revisions, blobs, the auth-cache relay, OAuth 2.1, and the GitHub webhook
+- [Actionability contract](https://docsxai.dev/reference/actionability.md): the portable element-state vocabulary shared with browxai
 
 ## Packages
 
 - docsxai (bare, npm): the batteries-included CLI meta-package - wraps @docsxai/engine's CLI in-process and ships @docsxai/viewer so `docsxai render` works from one global install
-- [@docsxai/engine](https://docsxai.dev/packages/engine/): flow-file parser + deterministic runtime + the docsxai CLI
-- [@docsxai/plugin](https://docsxai.dev/packages/plugin/): the Claude Code plugin
-- [@docsxai/mcp](https://docsxai.dev/packages/mcp/): the standalone stdio MCP server
-- [@docsxai/backend](https://docsxai.dev/packages/backend/): the authenticated doc-pack service
-- [@docsxai/viewer](https://docsxai.dev/packages/viewer/): interactive viewer + burned-annotation renderer
-- [@docsxai/skill](https://docsxai.dev/packages/skill/): the vendorable skill fallback
-- [@docsxai/plugin-confluence](https://docsxai.dev/packages/plugin-confluence/): the Confluence publisher plugin
-- [@docsxai/plugin-starlight](https://docsxai.dev/packages/plugin-starlight/): the Starlight site renderer plugin
+- [@docsxai/engine](https://docsxai.dev/packages/engine.md): flow-file parser + deterministic runtime + the docsxai CLI
+- [@docsxai/plugin](https://docsxai.dev/packages/plugin.md): the Claude Code plugin
+- [@docsxai/mcp](https://docsxai.dev/packages/mcp.md): the standalone stdio MCP server
+- [@docsxai/backend](https://docsxai.dev/packages/backend.md): the authenticated doc-pack service
+- [@docsxai/viewer](https://docsxai.dev/packages/viewer.md): interactive viewer + burned-annotation renderer
+- [@docsxai/skill](https://docsxai.dev/packages/skill.md): the vendorable skill fallback
+- [@docsxai/plugin-confluence](https://docsxai.dev/packages/plugin-confluence.md): the Confluence publisher plugin
+- [@docsxai/plugin-starlight](https://docsxai.dev/packages/plugin-starlight.md): the Starlight site renderer plugin
 
 ## Guidance
 
-The footgun map, one line each (temptation → the right call). Full entries with examples: https://docsxai.dev/guides/agent-guidance/
+The footgun map, one line each (temptation → the right call). Full entries with examples: https://docsxai.dev/guides/agent-guidance.md
 
 - Conditionally-present UI: not a permissive comma-selector that no-ops on one branch → `optional: true` on the step
 - Untested flow edits: not run-and-see → `docsxai lint` first; write-time signal beats run-time halt
@@ -65,9 +65,9 @@ The footgun map, one line each (temptation → the right call). Full entries wit
 
 ## Project
 
-- [Changelog](https://docsxai.dev/project/changelog/): all notable changes
-- [Contributing](https://docsxai.dev/project/contributing/): how to contribute
-- [Security](https://docsxai.dev/project/security/): the security policy and how to report
+- [Changelog](https://docsxai.dev/project/changelog.md): all notable changes
+- [Contributing](https://docsxai.dev/project/contributing.md): how to contribute
+- [Security](https://docsxai.dev/project/security.md): the security policy and how to report
 
 ## Optional
 
