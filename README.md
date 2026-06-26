@@ -30,35 +30,21 @@ The thing that makes docsxai's cost story honest is a clean split between an exp
 
 Per-commit LLM runs would be untenable; per-commit Playwright runs are standard. That's the whole bet.
 
-## Install (Node 20+)
+## Install
+
+Requires [Node 26+](https://nodejs.org/).
 
 ```bash
 pnpm add -g docsxai      # batteries-included: the docsxai CLI + the viewer
 ```
 
-The granular equivalent is `pnpm add -g @docsxai/engine @docsxai/viewer`.
-
-### From source
+The granular equivalent is `pnpm add -g @docsxai/engine @docsxai/viewer`. Then fetch the Chromium the engine drives (a one-shot, never an install-time script):
 
 ```bash
-corepack enable          # provides pnpm
-pnpm install
-pnpm -C packages/engine exec playwright-core install chromium
-pnpm -r build
+npx playwright-core install chromium
 ```
 
-The `docsxai` CLI binary lands at `packages/engine/dist/cli.js`. Two convenient ways to put it on your `PATH`:
-
-```bash
-# Option A — wrapper script (sidesteps pnpm-global-store quirks):
-mkdir -p "$HOME/.local/bin"
-printf '#!/usr/bin/env bash\nexec node "%s/packages/engine/dist/cli.js" "$@"\n' "$(pwd)" > "$HOME/.local/bin/docsxai"
-chmod +x "$HOME/.local/bin/docsxai"
-export PATH="$HOME/.local/bin:$PATH"
-
-# Option B — pnpm global link (when the store is consistent):
-pnpm -C packages/engine link --global
-```
+Building from source is for contributors — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Quick start
 
@@ -95,27 +81,7 @@ For the full agent-driven workflow and the fast calibration loop (`lint`, `flow-
 
 ## CLI reference
 
-```
-docsxai init <workspace>           # scaffold a workspace
-docsxai capture-auth <workspace>   # cache an authed session (manual-capture strategy)
-docsxai calibrate <workspace>      # extract a flow file from a structured guide
-docsxai inspect <workspace>        # discover [data-testid] locators on the live (authed) page
-docsxai run <workspace>            # execute flows headless; emit annotations + screenshots
-docsxai render <workspace>         # build the static / interactive viewer
-docsxai lint <workspace>           # static checks across flow files
-docsxai flow-tree <workspace>      # visualise the `extends` graph
-docsxai diagnose <workspace>       # halt-context + recommendations after a halt
-docsxai doctor [<workspace>]       # environment + workspace health check (one-line fix per ✗)
-docsxai style <workspace>          # init/validate style.yaml; --check scans for jargon leaks
-docsxai zip <workspace>            # package the doc pack for hand-off (deterministic, in-process)
-docsxai baseline <workspace>       # snapshot the doc pack for drift comparison
-docsxai diff <workspace>           # deterministic drift report (--fail-on warn|fail as a CI gate)
-docsxai export adf|playwright      # Confluence ADF projection / Playwright spec export
-docsxai plugins <list|info|sync>   # workspace plugin runtime: status, manifests, sha256 lock
-docsxai login / push / pull        # backend persistence (OAuth 2.1 PKCE or CI bearer)
-```
-
-`docsxai --help` shows every command, flag, and the inline `Notes:` block with per-command detail.
+`docsxai --help` lists every command, flag, and the inline `Notes:` block with per-command detail. The full reference — every command and flag, rendered per command — lives at the [CLI reference](https://docsxai.dev/reference/cli/).
 
 ## Packages
 

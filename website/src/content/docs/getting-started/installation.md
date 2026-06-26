@@ -3,7 +3,7 @@ title: Installation
 description: Install the docsxai engine and viewer from npm or from source, fetch the Chromium runtime the engine drives, and verify the docsxai CLI works.
 ---
 
-docsxai needs Node.js 20 or newer and a Chromium binary. Everything else is
+docsxai needs [Node.js 26 or newer](https://nodejs.org/) and a Chromium binary. Everything else is
 plain npm packages.
 
 ## From npm
@@ -43,36 +43,9 @@ deterministic command works standalone.
 
 ## From source
 
-Clone the repo and build the workspace. The repo uses pnpm via Corepack, so
-`corepack enable` is the only setup:
-
-```sh
-git clone https://github.com/kalebteccom/docsxai
-cd docsxai
-corepack enable          # provides pnpm
-pnpm install
-pnpm -C packages/engine exec playwright-core install chromium
-pnpm -r build
-```
-
-The CLI binary lands at `packages/engine/dist/cli.js`. Two ways to put it on
-`PATH`:
-
-```sh
-# Option A - wrapper scripts (sidesteps pnpm-global-store quirks):
-mkdir -p "$HOME/.local/bin"
-printf '#!/usr/bin/env bash\nexec node "%s/packages/engine/dist/cli.js" "$@"\n' "$(pwd)" > "$HOME/.local/bin/docsxai"
-chmod +x "$HOME/.local/bin/docsxai"
-export PATH="$HOME/.local/bin:$PATH"
-
-# Option B - pnpm global link (when the store is consistent):
-pnpm -C packages/engine link --global
-```
-
-The wrapper-script route is the robust one: pnpm global links break with
-`ERR_PNPM_UNEXPECTED_STORE` on long-lived machines, and the wrapper sidesteps
-that entirely. Add a matching `docsxai-viewer` wrapper pointing at
-`packages/viewer/dist/index.js` if you build the viewer from source too.
+Building from source is for contributors - see
+[CONTRIBUTING.md](https://github.com/kalebteccom/docsxai/blob/main/CONTRIBUTING.md)
+for the full workspace setup.
 
 ## Verify
 
