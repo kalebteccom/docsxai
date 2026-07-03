@@ -76,8 +76,8 @@ importers:
         specifier: ^0.8.3
         version: 0.8.3
       playwright-core:
-        specifier: ^1.61.0
-        version: 1.61.0
+        specifier: ^1.61.1
+        version: 1.61.1
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0
@@ -117,8 +117,8 @@ importers:
         specifier: ^20.14.0
         version: 20.19.42
       playwright-core:
-        specifier: ^1.61.0
-        version: 1.61.0
+        specifier: ^1.61.1
+        version: 1.61.1
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.42)
@@ -3325,8 +3325,8 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  playwright-core@1.61.0:
-    resolution: {integrity: sha512-caX7TrY3Ml6egyDX0WUcTHDxodl/b51y5wJOdCEA36QviK/s2g081hvmGs8eaE3DWb6NYZQ6BjO/QkNRPenoPA==}
+  playwright-core@1.61.1:
+    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -5435,6 +5435,14 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 5.4.21(@types/node@20.19.42)
+
+  '@vitest/mocker@2.1.9(vite@5.4.21(@types/node@24.13.2))':
+    dependencies:
+      '@vitest/spy': 2.1.9
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 5.4.21(@types/node@24.13.2)
 
   '@vitest/pretty-format@2.1.9':
     dependencies:
@@ -7681,7 +7689,7 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  playwright-core@1.61.0: {}
+  playwright-core@1.61.1: {}
 
   pngjs@7.0.0: {}
 
@@ -8665,7 +8673,7 @@ snapshots:
   vitest@2.1.9(@types/node@24.13.2):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(vite@5.4.21(@types/node@20.19.42))
+      '@vitest/mocker': 2.1.9(vite@5.4.21(@types/node@24.13.2))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
