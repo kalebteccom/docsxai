@@ -104,7 +104,7 @@ jobs:
           persist-credentials: false
       # Repo moved from woodruffw/* to zizmorcore/* in early 2026; the old
       # location returns 404 ("Unable to resolve action"). Same v0.4.0 tag.
-      - uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
+      - uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
         with:
           persona: auditor
 
