@@ -42,7 +42,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
-    "@types/node": "^20.14.0",
+    "@types/node": "^20.19.43",
     "vitest": "^2.0.0"
   },
   "author": "Kalebtec <security@kalebtec.com>",
