@@ -2,6 +2,12 @@
 
 All notable changes to this project. Format loosely follows [Keep a Changelog](https://keepachangelog.com/); this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Woodpecker CI pipeline** (`.woodpecker.yml`): a push-triggered mirror of the GitHub quality gate (typecheck, lint, format check, build, depcruise, jscpd, unit tests, docs site build), each step run through `scripts/gate-slot.sh` so runs share one pool of concurrency slots. It has no publish step and uses no secrets; releases stay in `.github/workflows/release.yml`. The keystone suite has a separate step that stays disabled until the CI image ships a Chromium binary.
+
 ## [0.2.0] - 2026-06-26
 
 The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follows written flows, and emits screenshot-rich docs. Calibration is AI-assisted and rare; execution is deterministic, agent-free, and CI-friendly.
