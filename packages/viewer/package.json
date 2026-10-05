@@ -44,15 +44,15 @@
   },
   "devDependencies": {
     "@astrojs/starlight": "0.40.0",
-    "@types/node": "^20.14.0",
-    "astro": "6.4.6",
-    "esbuild": "^0.28.1",
+    "@types/node": "^20.19.43",
+    "astro": "6.4.8",
+    "esbuild": "^0.28.2",
     "vitest": "^2.0.0"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "micromark": "^4.0.2",
-    "satori": "^0.26.0"
+    "satori": "^0.33.4"
   },
   "author": "Kalebtec <security@kalebtec.com>",
   "engines": {

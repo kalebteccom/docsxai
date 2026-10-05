@@ -32,8 +32,7 @@ import { locatorRefName } from "./flow-file.js";
  * them to the screenshot's device-pixel space.
  */
 export type ResolvedRedaction =
-  | { selector: string; style: RedactionStyle }
-  | { region: RedactionRegion; style: RedactionStyle };
+  { selector: string; style: RedactionStyle } | { region: RedactionRegion; style: RedactionStyle };
 
 /** What the runtime needs from a browser. Selectors passed here are already resolved (no `$ref`). */
 export interface BrowserDriver {

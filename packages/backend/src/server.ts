@@ -221,8 +221,7 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
           if (method === "GET") return sendJson(res, 200, store.listRuns(ws!, project!));
           {
             const b = (await readJsonBody(req)) as
-              | { rev?: string; ok?: boolean; duration_ms?: number; summary?: string }
-              | undefined;
+              { rev?: string; ok?: boolean; duration_ms?: number; summary?: string } | undefined;
             if (!b || typeof b.rev !== "string")
               return sendJson(res, 400, {
                 error: "bad_request",

@@ -8,6 +8,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 - **Woodpecker CI pipeline** (`.woodpecker.yml`): a push-triggered mirror of the GitHub quality gate (typecheck, lint, format check, build, depcruise, jscpd, unit tests, docs site build), each step run through `scripts/gate-slot.sh` so runs share one pool of concurrency slots. It has no publish step and uses no secrets; releases stay in `.github/workflows/release.yml`. The keystone suite has a separate step that stays disabled until the CI image ships a Chromium binary.
 
+### Changed
+
+- **Dependency refresh.** Bumps `yaml` 2.9.1, `satori` 0.33, `playwright-core` 1.63, `@modelcontextprotocol/sdk` 1.30, `prettier` 3.9, `eslint-plugin-import-x` 4.17, `typescript-eslint` 8.62, the `dev-deps-patch` group (`@eslint/js`, `@types/node`, `astro` 6.4.8, `esbuild`, `sharp`), and the pinned `actions/checkout` 4.4.0, `trufflehog` 3.97.6 and `zizmor-action` 0.6.4 workflow actions. `@astrojs/starlight` 0.41 and `starlight-links-validator` 0.25 stay put: Starlight 0.41 requires Astro 7.
+
 ### Fixed
 
 - **CI is green again.** `ci` builds before `pnpm -r typecheck` and `quality` builds before `pnpm lint`, since both resolve `@docsxai/*` imports through `dist/`. The lockfile moves transitive `fast-uri` to 3.1.8 and `ip-address` to 10.7.3 (via `@modelcontextprotocol/sdk`), clearing the high advisories `pnpm audit:prod` reported.

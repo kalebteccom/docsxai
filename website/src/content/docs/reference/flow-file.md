@@ -98,12 +98,12 @@ steps:
 ### `wait_for` forms
 
 ```yaml
-wait_for: network_idle                              # named primitive
-wait_for: load                                      # named primitive
-wait_for: element_stable                            # polls the step target's bounding box until stable (10s budget)
-wait_for: { selector: $done_marker }                # wait for an element to appear (~30s default)
-wait_for: { selector: $done_marker, timeout_ms: 180000 }  # per-step override for slow backend ops
-wait_for: { timeout_ms: 800 }                       # blind sleep - last resort, for animations, not state
+wait_for: network_idle # named primitive
+wait_for: load # named primitive
+wait_for: element_stable # polls the step target's bounding box until stable (10s budget)
+wait_for: { selector: $done_marker } # wait for an element to appear (~30s default)
+wait_for: { selector: $done_marker, timeout_ms: 180000 } # per-step override for slow backend ops
+wait_for: { timeout_ms: 800 } # blind sleep - last resort, for animations, not state
 ```
 
 `element_stable` needs a step `target` to watch; without one it waits on
@@ -113,10 +113,10 @@ selector; `timeout_ms` is the override for multi-minute backend operations.
 ### `success` forms
 
 ```yaml
-success: { visible: $recap_panel }                                  # element is visible
-success: { hidden: $spinner }                                       # no visible match
-success: { url_matches: "/dashboard/reports" }                      # current URL matches the regex
-success: { text_contains: { selector: $status, text: "Published" } }  # element text contains
+success: { visible: $recap_panel } # element is visible
+success: { hidden: $spinner } # no visible match
+success: { url_matches: "/dashboard/reports" } # current URL matches the regex
+success: { text_contains: { selector: $status, text: "Published" } } # element text contains
 ```
 
 A failed `success` halts the run with the actual state in the message (the
