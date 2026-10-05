@@ -37,8 +37,7 @@ export interface ResolvedPluginSource {
 }
 
 export type PluginSourceResolution =
-  | { ok: true; candidate: ResolvedPluginSource }
-  | { ok: false; record: PluginRecord };
+  { ok: true; candidate: ResolvedPluginSource } | { ok: false; record: PluginRecord };
 
 export interface ResolvePluginsOptions {
   /** The workspace all plugin file IO is contained to. */
