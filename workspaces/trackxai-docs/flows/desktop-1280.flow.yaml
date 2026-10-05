@@ -21,6 +21,7 @@ locators:
   palette: div[role="dialog"][aria-label="Search and commands"]
   palette_input: input.palette__input
   dev_badge: nextjs-portal [data-next-badge]
+  loopback_text: ':text-matches("127[.]0[.]0[.]1|localhost", "i"), input[placeholder*="127.0.0.1" i], input[placeholder*="localhost" i], input[value*="127.0.0.1" i], input[value*="localhost" i] >> visible=true >> nth=0'
   palette_list: div[role="listbox"][aria-label="Results"]
   list_gap_btn: button.row__gapsbtn >> nth=0
   filters: div.filters[role="group"]
@@ -48,6 +49,7 @@ locators:
   settings_rename_key: button.lrow__act >> nth=0
   settings_conventions: "#conventions-heading"
   tokens_config: section[aria-labelledby="connect-heading"] pre
+  tokens_config_text: section[aria-labelledby="connect-heading"] pre code
   tokens_copy: section[aria-labelledby="connect-heading"] button.button--quiet
   tokens_form_input: form.pane__section input >> nth=0
   tokens_table_head: table.table th >> nth=0
@@ -55,6 +57,7 @@ locators:
   connect_pick_first: span.connect__client >> nth=0
   connect_card: section.connect__card
   connect_url: div.connect__copy
+  connect_url_text: div.connect__copy pre
 steps:
   - id: board-open
     action: navigate
@@ -68,6 +71,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: board-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: board
     action: wait
     target: $page_title
@@ -93,6 +100,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: palette-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: palette
     action: wait
     target: $palette_input
@@ -121,6 +132,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: ticket-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: ticket
     action: wait
     target: $ticket_title
@@ -147,6 +162,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: waiting-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: waiting
     action: wait
     target: $page_title
@@ -172,6 +191,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: list-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: list
     action: wait
     target: $page_title
@@ -198,6 +221,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: backlog-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: backlog
     action: wait
     target: $page_title
@@ -221,6 +248,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: epics-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: epics
     action: wait
     target: $page_title
@@ -247,6 +278,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: epic-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: epic
     action: wait
     target: $epic_status
@@ -273,6 +308,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: progress-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: progress
     action: wait
     target: $page_title
@@ -299,6 +338,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: documents-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: documents
     action: wait
     target: $docs_title
@@ -322,6 +365,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: document-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: document
     action: wait
     target: $doc_title
@@ -348,6 +395,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: mine-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: mine
     action: wait
     target: $page_title
@@ -371,6 +422,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: settings-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: settings
     action: wait
     target: $page_title
@@ -397,6 +452,14 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: agent-tokens-hide-url
+    action: hide
+    target: $tokens_config_text
+    timeout_ms: 5000
+  - id: agent-tokens-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: agent-tokens
     action: wait
     target: $page_title
@@ -408,6 +471,9 @@ steps:
       - target: $tokens_copy
         copy: Copy the whole block in one click.
         arrow: right
+  - id: agent-tokens-show-url
+    action: show
+    target: $tokens_config_text
   - id: agent-tokens-issued-open
     action: navigate
     value: /w/acme-demo/tokens
@@ -424,6 +490,14 @@ steps:
     action: hover
     target: $tokens_table_head
     wait_for: element_stable
+  - id: agent-tokens-issued-hide-url
+    action: hide
+    target: $tokens_config_text
+    timeout_ms: 5000
+  - id: agent-tokens-issued-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: agent-tokens-issued
     action: wait
     target: $tokens_table_head
@@ -435,6 +509,9 @@ steps:
       - target: $tokens_agent_cell
         copy: Each token belongs to one agent, so every write says which agent made it.
         arrow: top
+  - id: agent-tokens-issued-show-url
+    action: show
+    target: $tokens_config_text
   - id: connect-open
     action: navigate
     value: /w/acme-demo/connect
@@ -447,6 +524,14 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: connect-hide-url
+    action: hide
+    target: $connect_url_text
+    timeout_ms: 5000
+  - id: connect-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: connect
     action: wait
     target: $page_title
@@ -463,3 +548,8 @@ steps:
       - target: $connect_url
         copy: Copy the connector URL into the app when it asks for one.
         arrow: top
+  - id: connect-show-url
+    action: show
+    target: $connect_url_text
+    success:
+      visible: $connect_url

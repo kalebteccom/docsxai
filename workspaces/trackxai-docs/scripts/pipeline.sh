@@ -1,6 +1,8 @@
 #!/bin/sh
 # lint -> run (page by page) -> burn -> pack.
 # Needs the demo target up on 127.0.0.1:3100 and DOCSXAI=<docsxai checkout>.
+# Every page has a `<page>-no-loopback` step that halts the run when 127.0.0.1 or localhost is
+# visible in the page text, so the demo address never reaches a screenshot.
 # DOCSXAI_VIEWER=<path to viewer dist/index.js> burns with another viewer build.
 # Usage: scripts/pipeline.sh [out-dir]   (default out-dir: .screens)
 set -e
@@ -26,6 +28,12 @@ run_segment() { # flow first-step last-step
     $DOCSXAI_CLI run "$W" --flow "$1" --start-from "$2" --stop-after "$3" >"$LOG" 2>&1 && ok=1
     if [ "$ok" = 1 ] && ! grep -q "obstacle scan skipped" "$LOG"; then
       return 0
+    fi
+    # A loopback address on screen is a flow bug, not a flaky load: stop at once, no retries.
+    if grep -q -- "-no-loopback" "$LOG"; then
+      grep -- "-no-loopback" "$LOG" | head -3 >&2
+      echo "pipeline: $1 $2 shows a loopback address (127.0.0.1 or localhost); hide it in the flow" >&2
+      exit 1
     fi
     grep -v "^run: .* annotation(s)" "$LOG" | head -3 >&2
     [ "$attempt" -ge 8 ] && { echo "pipeline: $1 $2 failed after $attempt attempts" >&2; exit 1; }
