@@ -104,9 +104,11 @@ For non-trivial changes, open an issue first so we can align on shape — the is
 
 ## Stability & the public surface
 
-docsxai will follow semver post-v1.0. Until v1.0, the public API may change at any time; we will still note breaking changes in `CHANGELOG.md`.
+docsxai is `0.x`. A minor version (`0.2` to `0.3`) may include breaking changes to the public surface, and each one is noted in `CHANGELOG.md`. A patch version carries fixes only. 1.0 is the stability milestone: from there semver applies in full. No date is set for it.
 
-The **stable surface** post-v1.0 — `docsxai` subcommand names + documented flags, flow-file schema, doc-pack output shape, the actionability-contract predicate, the `BrowserDriver` interface, the backend's REST surface — does not change in a `patch`; an additive change is a `minor`; a breaking change requires a `major` bump plus a changelog entry and a deprecation note.
+The **stable surface** at 1.0 — `docsxai` subcommand names + documented flags, flow-file schema, doc-pack output shape, the actionability-contract predicate, the `BrowserDriver` interface, the backend's REST surface — does not change in a `patch`; an additive change is a `minor`; a breaking change requires a `major` bump plus a changelog entry and a deprecation note. In `0.x` the same surface already moves only in a minor, never in a patch.
+
+What 1.0 gates, as the project docs already state it: the semver guarantee on that surface, the supported-version windows in [`SECURITY.md`](SECURITY.md) (`1.(latest).x` patched, `1.(latest-1).x` critical only), and the maintainer track in [`MAINTAINERS.md`](MAINTAINERS.md).
 
 ## Plugin contribution guide
 

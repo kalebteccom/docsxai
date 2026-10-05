@@ -14,11 +14,11 @@ will not commit to, and how to report a vulnerability.
 docsxai is **pre-v1.0**. `0.2.0` is published on npm: the bare
 `docsxai` package (the batteries-included CLI meta-package over
 `@docsxai/engine` + `@docsxai/viewer`) alongside `@docsxai/{engine,viewer,plugin,skill,backend}`
-(see [`RELEASING.md`](RELEASING.md)). Until v1.0:
+(see [`RELEASING.md`](RELEASING.md)). The support windows below start at v1.0; until then:
 
 | Version range              | Support level                                                                                                                                                               |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0.x` (pre-release)        | Pre-release versions carry no security guarantees. `security@kalebtec.com` still triages reports in good faith and ships fixes on a best-effort basis on the active branch. |
+| `0.x` (pre-v1.0)           | Versions before v1.0 carry no security guarantees. `security@kalebtec.com` still triages reports in good faith and ships fixes on a best-effort basis on the active branch. |
 | `1.(latest).x` (post-v1.0) | Patches for any qualifying vulnerability.                                                                                                                                   |
 | `1.(latest-1).x`           | Critical only.                                                                                                                                                              |
 | `1.(latest-2).x` and older | No support. Upgrade.                                                                                                                                                        |

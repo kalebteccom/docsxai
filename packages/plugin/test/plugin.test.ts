@@ -52,6 +52,24 @@ describe("plugin scaffold — basics", () => {
     expect(pkg.description).not.toMatch(/mcp registration/i);
   });
 
+  it("repo-root marketplace.json lists this plugin and its source exists", async () => {
+    const repoRoot = path.resolve(pluginDir, "..", "..");
+    const mkt = JSON.parse(
+      await fs.readFile(path.join(repoRoot, ".claude-plugin", "marketplace.json"), "utf8"),
+    ) as { name: string; owner: { name: string }; plugins: { name: string; source: string }[] };
+    const m = await readManifest();
+    expect(mkt.name).toBe("docsxai");
+    expect(mkt.owner.name).toBeTruthy();
+    const entry = mkt.plugins.find((p) => p.name === m.name);
+    expect(entry).toBeDefined();
+    expect(entry?.source.startsWith("./")).toBe(true);
+    const sourceDir = path.resolve(repoRoot, entry?.source ?? "");
+    expect(sourceDir).toBe(pluginDir);
+    await expect(
+      fs.access(path.join(sourceDir, ".claude-plugin", "plugin.json")),
+    ).resolves.toBeUndefined();
+  });
+
   it("ships the deterministic commands", async () => {
     const cmds = await listCommands();
     expect(cmds).toEqual(expect.arrayContaining(["login", "render", "run", "push", "pull"]));
