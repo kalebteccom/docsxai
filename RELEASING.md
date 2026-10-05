@@ -22,6 +22,7 @@ Releases use **npm Trusted Publishing via GitHub OIDC** — no `NPM_TOKEN` exist
 - `environment: release` is referenced by the `publish` job. The environment does **not exist yet**: GitHub would create it unprotected on first use, so the required-reviewer gate and the branch/tag restriction are not in place until the owner configures them (see Release TODO below).
 - npm-side: every published name (the bare `docsxai` meta-package and the five scoped packages) is bound to this exact repo + workflow filename + environment name. Anything else trying to publish under our identity fails closed.
 - `--provenance` always — Sigstore attestation proves the artifact came from this workflow on this tagged commit.
+- Residual exposure, accepted for now: the `publish` job fetches `npm@11.5.1` from the registry (`npm install -g`), and `github-release` fetches `@cyclonedx/cdxgen@12.5.1` through `npx`, both at job time and without an integrity hash. Both versions are pinned, the registry serves immutable versions, and the installs are not restructured here. The `publish` job runs `pnpm install --frozen-lockfile --ignore-scripts`, so dependency install scripts never run in it, and the pack step runs with lifecycle scripts disabled (`npm_config_ignore_scripts`).
 
 ## Cutting a release (in order)
 
@@ -30,7 +31,7 @@ Each step is mechanical:
 1. **Pre-flight.** `pnpm install && pnpm -r build && pnpm -r typecheck && pnpm -r test` — all green (build first: typecheck resolves `@docsxai/*` through `dist/`). Full-history secret/identifier scan clean (the 2026-05-15 scrub holds; re-audit any docs added since). Run the [dry run](#dry-run) against your branch.
 2. **Verify the publish set.** The six publishable manifests (`packages/docsxai` + `packages/{engine,plugin,backend,skill,viewer}`) carry no `"private"` flag; `@docsxai/{mcp,plugin-confluence,plugin-starlight}`, `@docsxai/website`, and the workspace root keep `"private": true`.
 3. **Finalise the CHANGELOG.** Promote `## [Unreleased]` to `## [X.Y.Z] - <date>`; add the compare link.
-4. **Version + tag.** Bump all six publishable packages to the same `X.Y.Z` (the workflow fails if any differs from the tag), commit `chore(release): vX.Y.Z`, then `git tag -s vX.Y.Z -m "vX.Y.Z"` and `git push origin vX.Y.Z`.
+4. **Version + tag.** The protected `release` environment must exist first (Release TODO). Bump all six publishable packages to the same `X.Y.Z` (the workflow fails if any differs from the tag), commit `chore(release): vX.Y.Z`, then `git tag -s vX.Y.Z -m "vX.Y.Z"` and `git push origin vX.Y.Z`.
 5. **Publish.** The tag push triggers `release.yml`; approve the `release` environment gate (once it exists). The workflow publishes the six packages with provenance, attaches the SBOM, and creates the GitHub Release. Verify each package on npm — never publish locally. If a run dies midway, rerun the failed jobs: versions already on npm are skipped.
 6. **Repo check.** The repo `kalebteccom/docsxai` is already public. Confirm the README renders on the release commit, the LICENSE is detected, CONTRIBUTING is linked.
 7. **Site + announce.** Deploy the docs site (`website/` via Netlify) and verify DNS, then announce. The operational ordering (publish → site deploy → DNS checks) lives in `docs/ai-context/release-process/public-flip-checklist.md`.
@@ -80,7 +81,8 @@ It does not prove the trusted-publisher binding: `npm publish --dry-run` never e
 
 Owner tasks, tracked on the board, none done yet. These items must be in place before the workflow can publish. **Do not skip — the npm side fails closed without them, and the GitHub side fails open.**
 
-- [ ] **Create the GitHub `release` environment** (it does not exist; GitHub would auto-create it unprotected on first use) with required reviewers. Restrict deployments to `main` and `release/*` branches and the `v*` tags.
+- [ ] **Hard precondition for any `v*.*.*` tag: create the protected GitHub `release` environment first.** It does not exist, and GitHub would auto-create it unprotected on first use, so a tag pushed before this runs the publish with no approval and no tag restriction. Required: a required reviewer and a deployment restriction that covers the `v*` tags (below). Do not push a release tag until this box is ticked.
+  - Restrict deployments to `main` and `release/*` branches and the `v*` tags.
 - [ ] **Register npm Trusted Publisher bindings** (the 0.2.0 packages have none) — one per published name, 6 total: the bare `docsxai` meta-package plus the 5 scoped packages under the `@docsxai` org (org registered 2026-06-12): `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/backend`, `@docsxai/skill`, `@docsxai/viewer`. (`@docsxai/{mcp,plugin-confluence,plugin-starlight}` stay repo-only and need no binding until they flip.) On npmjs.com → package → Settings → Trusted Publishers, bind each to:
   - Repository: `kalebteccom/docsxai`
   - Workflow filename: `release.yml`

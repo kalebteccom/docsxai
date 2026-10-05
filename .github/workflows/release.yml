@@ -110,7 +110,7 @@ jobs:
         with:
           version: 9.15.9
       # No `cache` opt-in — see cache-poisoning note on build job above.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2 # zizmor: ignore[cache-poisoning]
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2
         with:
           node-version: 26
           registry-url: https://registry.npmjs.org

@@ -12,6 +12,7 @@
 # A version already on npm is skipped, so a rerun after a partial publish
 # finishes the remaining packages instead of failing with a 403.
 set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 mode="${1:-}"
 case "$mode" in
@@ -23,6 +24,8 @@ case "$mode" in
 esac
 
 # Dependencies before dependents: `docsxai` depends on engine + viewer.
+# plugin, skill and backend do not depend on the engine at install time, so
+# their position after those three is arbitrary.
 packages=(
   @docsxai/engine
   @docsxai/viewer
@@ -58,7 +61,12 @@ for i in "${!packages[@]}"; do
   mkdir -p "$dest"
   echo "::group::pack ${pkg}"
   # `pnpm pack` rewrites workspace:* to the real version inside the tarball.
-  pnpm --filter "${pkg}" pack --pack-destination "$dest"
+  # npm_config_ignore_scripts keeps prepack/prepare from running with the OIDC
+  # token in scope (pnpm 9 rejects a `pack --ignore-scripts` flag but honours
+  # the env var). The tarballs ship the dist/ built by the preceding build step.
+  # Packed from the package directory: pnpm 9 rejects `--filter ... pack`
+  # ("Unknown option: 'recursive'").
+  (cd "packages/${pkg#@docsxai/}" && npm_config_ignore_scripts=true pnpm pack --pack-destination "$dest")
   echo "::endgroup::"
   shopt -s nullglob
   found=("$dest"/*.tgz)
@@ -98,21 +106,35 @@ done
 dist_tag=latest
 case "$expected" in *-*) dist_tag=next ;; esac
 
-# Returns 0 when name@version is on the registry, 1 when it is not. Any other
-# registry failure aborts the run.
+# Returns 0 when name@version is on the registry, 1 when it is not. Anything
+# else (network failure, auth error, unparseable output) aborts the run.
 published() {
-  local spec="$1" found rc=0 err
-  err="$out/view.err"
-  found="$(npm view "$spec" version 2>"$err")" || rc=$?
-  if [ "$rc" -eq 0 ]; then
-    [ -n "$found" ]
-    return
-  fi
-  if grep -q 'E404' "$err"; then
-    return 1
-  fi
-  cat "$err" >&2
-  echo "npm view ${spec} failed; refusing to guess" >&2
+  local spec="$1" version="$2" body rc=0 verdict
+  body="$(npm view "$spec" version --json 2>"$out/view.err")" || rc=$?
+  verdict="$(printf '%s' "$body" | node -e '
+    const [rc, version] = process.argv.slice(1);
+    const raw = require("node:fs").readFileSync(0, "utf8").trim();
+    let out;
+    try {
+      out = JSON.parse(raw);
+    } catch {
+      out = undefined;
+    }
+    if (out && typeof out === "object" && !Array.isArray(out) && out.error) {
+      console.log(out.error.code === "E404" ? "absent" : "error");
+    } else if (rc === "0" && out === version) {
+      console.log("present");
+    } else {
+      console.log("error");
+    }
+  ' "$rc" "$version")"
+  case "$verdict" in
+    present) return 0 ;;
+    absent) return 1 ;;
+  esac
+  cat "$out/view.err" >&2
+  printf '%s\n' "$body" >&2
+  echo "npm view ${spec} gave an unexpected answer; refusing to guess" >&2
   exit 1
 }
 
@@ -127,7 +149,7 @@ for i in "${!packages[@]}"; do
   pkg="${packages[$i]}"
   spec="${pkg}@${versions[$i]}"
   echo "::group::${mode} ${spec}"
-  if published "$spec"; then
+  if published "$spec" "${versions[$i]}"; then
     echo "${spec} already on npm, skipping"
   else
     npm publish "${tarballs[$i]}" "${flags[@]}"
