@@ -224,6 +224,21 @@ describe("burn --report", () => {
     ).resolves.toBeTruthy();
   });
 
+  it("resolves a relative --report path under the workspace root and keeps an absolute one", async () => {
+    expect(await runViewerCli(["burn", tmp, "--report", "reports/burn.json"])).toBe(0);
+    expect(
+      JSON.parse(await fs.readFile(path.join(tmp, "reports", "burn.json"), "utf8")).schema,
+    ).toBe(BURN_REPORT_SCHEMA);
+    const elsewhere = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-burn-abs-"));
+    try {
+      const abs = path.join(elsewhere, "abs.json");
+      expect(await runViewerCli(["burn", tmp, "--report", abs])).toBe(0);
+      await expect(fs.stat(abs)).resolves.toBeTruthy();
+    } finally {
+      await fs.rm(elsewhere, { recursive: true, force: true });
+    }
+  });
+
   it("takes --max-overlap and rejects a bad one", async () => {
     const file = path.join(tmp, "report.json");
     expect(await runViewerCli(["burn", tmp, "--report", file, "--max-overlap", "9"])).toBe(0);

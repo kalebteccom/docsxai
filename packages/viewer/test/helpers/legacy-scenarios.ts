@@ -1,6 +1,7 @@
 // Annotation sets whose burned tree must stay exactly what it was before the adaptive width,
 // `placement` and report features. `fixtures/legacy-burn-trees.json` holds the trees the renderer
 // produced for them at that point; burn-legacy.test.ts compares the current output to it.
+// Provenance and the rule for touching either file: fixtures/README.md.
 
 import type { AnnotationRecord } from "../../src/annotations.js";
 

@@ -62,6 +62,8 @@ const CLEARANCE = 4;
 /** Distances beyond the base gap that are tried, in px. */
 const EXTRA_DISTANCES = [0, 12, 28, 48, 76, 112, 160, 224, 320];
 const SLIDE_STEP = 8;
+/** A slide range is cut into at most this many steps; only ranges over 1600 px coarsen the 8 px step. */
+const MAX_SLIDE_STEPS = 200;
 /** Arrow tip stays this far inside the target's ends. */
 const ARROW_INSET = 6;
 /** The stem leaves the callout at least this far from its corners. */
@@ -131,7 +133,7 @@ interface SlideRange {
 const ALIGN_FRACTION = { start: 0, center: 0.5, end: 1 } as const;
 
 /** Callout start positions along the target's edge that keep a stem attachable, nearest first. */
-function slideStarts(
+export function slideStarts(
   span: { from: number; length: number },
   calloutLength: number,
   limit: number,
@@ -148,7 +150,8 @@ function slideStarts(
       : span.from + (span.length - calloutLength) * ALIGN_FRACTION[align];
   const centred = clamp(rest, lo, hi);
   const starts = new Set<number>([centred, lo, hi]);
-  for (let s = SLIDE_STEP; centred - s >= lo || centred + s <= hi; s += SLIDE_STEP) {
+  const step = Math.max(SLIDE_STEP, Math.ceil((hi - lo) / MAX_SLIDE_STEPS));
+  for (let s = step; centred - s >= lo || centred + s <= hi; s += step) {
     if (centred - s >= lo) starts.add(centred - s);
     if (centred + s <= hi) starts.add(centred + s);
   }

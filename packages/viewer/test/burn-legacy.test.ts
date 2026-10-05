@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildBurnTree } from "../src/burn.js";
+import { widthLadder } from "../src/burn-callout.js";
 import { parseFontMetrics } from "../src/font-metrics.js";
 import { LEGACY_SCENARIOS } from "./helpers/legacy-scenarios.js";
 
@@ -11,6 +12,17 @@ const legacy = JSON.parse(
 ) as Record<string, unknown>;
 
 describe("burn output without the new options", () => {
+  it("only holds scenarios whose width ladder is the fixed 280, as before the ladder existed", () => {
+    for (const scenario of LEGACY_SCENARIOS) {
+      for (const a of scenario.annotations) {
+        expect(
+          widthLadder(scenario.image.width, (a.obstacles?.length ?? 0) > 0, a.placement),
+          scenario.name,
+        ).toEqual([280]);
+      }
+    }
+  });
+
   for (const scenario of LEGACY_SCENARIOS) {
     it(`is identical to the output before adaptive width and placement: ${scenario.name}`, () => {
       const tree = buildBurnTree({

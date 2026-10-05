@@ -93,7 +93,8 @@ Usage:
     --flow       restrict to these flows (default: all flows with annotations.json)
     --out        output root (default: docs/<flow>/burned/<step>.png)
     --report     write a JSON placement report (callout and badge boxes, overlaps, unplaceable
-                 flags) to <file>; every callout is drawn either way
+                 flags) to <file>, resolved under <workspace> when relative; every callout is drawn
+                 either way
     --max-overlap  share of its own area a callout may cover before the report flags it
                  unplaceable (default ${DEFAULT_UNPLACEABLE_RATIO})
 
@@ -197,10 +198,11 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     }
     if (args.report) {
       const report = burnReport(reports, ratio);
-      await fs.mkdir(path.dirname(path.resolve(args.report)), { recursive: true });
-      await fs.writeFile(args.report, JSON.stringify(report, null, 2) + "\n");
+      const reportPath = path.resolve(workspace, args.report);
+      await fs.mkdir(path.dirname(reportPath), { recursive: true });
+      await fs.writeFile(reportPath, JSON.stringify(report, null, 2) + "\n");
       process.stdout.write(
-        `burn: wrote report to ${args.report} (${report.unplaceable} unplaceable)\n`,
+        `burn: wrote report to ${reportPath} (${report.unplaceable} unplaceable)\n`,
       );
     }
     return 0;

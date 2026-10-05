@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { overlapArea, planCallout } from "../src/obstacle-placement.js";
+import { overlapArea, planCallout, slideStarts } from "../src/obstacle-placement.js";
 import type { Rect } from "../src/placement.js";
 
 const image = { width: 1000, height: 800 };
@@ -106,5 +106,32 @@ describe("planCallout pinArrow", () => {
   it("is deterministic", () => {
     const input = { ...base, preferred: "right" as const, nudge, pinArrow: true };
     expect(planCallout(input)).toEqual(planCallout(input));
+  });
+});
+
+describe("slideStarts step cap", () => {
+  // inset 6 and margin 10 leave a slide range of length - 16 for a 100 px callout
+  const range = (length: number) => slideStarts({ from: 0, length }, 100, 10 ** 7);
+
+  it("keeps the 8 px steps up to a 1600 px range", () => {
+    const { starts, lo, hi } = range(1616);
+    expect(hi - lo).toBe(1600);
+    const centred = starts[0]!;
+    const expected = new Set<number>([centred, lo, hi]);
+    for (let s = 8; centred - s >= lo || centred + s <= hi; s += 8) {
+      if (centred - s >= lo) expected.add(centred - s);
+      if (centred + s <= hi) expected.add(centred + s);
+    }
+    expect(starts).toEqual(
+      [...expected].sort((a, b) => Math.abs(a - centred) - Math.abs(b - centred) || a - b),
+    );
+  });
+
+  it("coarsens the step only past that, and stays bounded on an absurd range", () => {
+    const { starts, lo, hi } = range(100016);
+    expect(hi - lo).toBe(100000);
+    expect(starts.length).toBeLessThanOrEqual(205);
+    expect(starts).toContain(lo);
+    expect(starts).toContain(hi);
   });
 });
