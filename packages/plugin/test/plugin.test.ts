@@ -41,6 +41,17 @@ describe("plugin scaffold — basics", () => {
     expect(m.description.length).toBeGreaterThan(20);
   });
 
+  it("manifest version matches package.json and registers no MCP server", async () => {
+    const m = (await readManifest()) as unknown as Record<string, unknown>;
+    const pkg = JSON.parse(await fs.readFile(path.join(pluginDir, "package.json"), "utf8")) as {
+      version: string;
+      description: string;
+    };
+    expect(m.version).toBe(pkg.version);
+    expect(m).not.toHaveProperty("mcpServers");
+    expect(pkg.description).not.toMatch(/mcp registration/i);
+  });
+
   it("ships the deterministic commands", async () => {
     const cmds = await listCommands();
     expect(cmds).toEqual(expect.arrayContaining(["login", "render", "run", "push", "pull"]));

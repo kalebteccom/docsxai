@@ -117,6 +117,8 @@ Two optional `.docsxai.json` keys wire plugins into a workspace:
 }
 ```
 
+`@docsxai/plugin-confluence` is repo-only (`private: true`, not on npm). Build it in a checkout (`pnpm -r build`) and wire it by path instead: `{ "path": "<checkout>/packages/plugin-confluence" }`. The `{ "package": ... }` form resolves only once the package is installed in the workspace.
+
 `plugins-lock.json` (schema `docsxai/plugins-lock@1`, next to the config) pins each plugin's register-module sha256. When it exists, every resolve verifies the bytes **before** importing; a mismatch fails closed with a "run `docsxai plugins sync`" message.
 
 ### CLI

@@ -9,7 +9,7 @@ Breakglass owner exists per universal-baseline A3. No further detail published.
 ## Backing
 
 Kalebtec sponsors development time. docsxai is an Apache-2.0 licensed
-project. The OSS engine + plugin + backend stub are the open surface;
+project. The OSS engine + plugin + backend are the open surface;
 a future commercial SaaS is the only place model-provider SDKs and
 hosted deployment live, and it is not in this repo.
 
@@ -36,8 +36,11 @@ review and contribution:
 - **Plugin** (`packages/plugin/`) — the Claude Code invocation
   surface. Changes here defer to engine semantics; new capability lives
   in the engine and the plugin exposes it.
-- **Backend** (`packages/backend/`) — stub today, full service
-  post-MVP. Auth + persistence shape is owner-decided.
+- **Backend** (`packages/backend/`) — a working doc-pack persistence
+  service: REST API, OAuth 2.1 + PKCE and CI bearer tokens, in-memory or
+  filesystem storage, loopback by default. A hosted multi-tenant
+  deployment (consent UI, durable token store, database) is post-MVP and
+  owner-gated. Auth + persistence shape is owner-decided.
 - **Skill** (`packages/skill/`) — vendorable fallback. Stays minimal
   by design; delegates to the plugin.
 - **Viewer** (`packages/viewer/`) — static-HTML emit surface. Changes

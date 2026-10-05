@@ -91,7 +91,7 @@ Notes:
     investigate). The engine never patches the flow-file itself — that's the agent's explicit opt-in
     action. --format json emits machine-readable output for an agent to act on. Pair with
     --start-from <step-id> --cdp on a follow-up run to validate the fix in seconds.
-  • doctor health-checks the environment + workspace: Node >= 20, Chromium presence, .docsxai.json
+  • doctor health-checks the environment + workspace: Node >= 26, Chromium presence, .docsxai.json
     found + parseable (cwd or the arg), flow-file parses, auth descriptor + cached-session freshness,
     backend reachability (when backend_url is set), the plugin declarations (same inspection as
     \`plugins list\` — no plugin code is executed), viewer-bin resolution (which of the three layers

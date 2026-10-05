@@ -208,6 +208,8 @@ Two optional keys in the workspace's `.docsxai.json` activate plugins:
 }
 ```
 
+`@docsxai/plugin-confluence` is repo-only (`private: true`, not on npm). Build it in a checkout (`pnpm -r build`) and wire it by path instead: `{ "path": "<checkout>/packages/plugin-confluence" }`. The `{ "package": ... }` form resolves only once the package is installed in the workspace.
+
 Then pin and verify:
 
 ```sh

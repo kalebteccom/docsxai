@@ -6,7 +6,7 @@
     "access": "public",
     "provenance": true
   },
-  "description": "Claude Code plugin — the first-class invocation surface. Calibration skills + deterministic commands + internal MCP registration.",
+  "description": "Claude Code plugin — the first-class invocation surface. Calibration skills + deterministic commands. Registers no MCP server.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

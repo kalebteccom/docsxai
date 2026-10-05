@@ -170,6 +170,8 @@ the workspace:
 }
 ```
 
+`@docsxai/plugin-confluence` is repo-only (`private: true`, not on npm). Build it in a checkout (`pnpm -r build`) and wire it by path instead: `{ "path": "<checkout>/packages/plugin-confluence" }`. The `{ "package": ... }` form resolves only once the package is installed in the workspace.
+
 Then `docsxai plugins sync` (pin the lock) and invoke `confluence:push` — idempotent by
 content-sha. For agent-supervised publishing without any plugin, `docsxai export adf` writes
 the projection for the Atlassian MCP and the engine never holds wiki credentials at all.

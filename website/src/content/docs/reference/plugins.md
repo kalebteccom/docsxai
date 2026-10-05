@@ -67,6 +67,8 @@ Two optional `.docsxai.json` keys:
 }
 ```
 
+`@docsxai/plugin-confluence` is repo-only (`private: true`, not on npm). Build it in a checkout (`pnpm -r build`) and wire it by path instead: `{ "path": "<checkout>/packages/plugin-confluence" }`. The `{ "package": ... }` form resolves only once the package is installed in the workspace.
+
 A source is either `{ package }` (resolved through Node from the workspace)
 or `{ path }` (a local directory). Plugins are resolved once per CLI
 invocation; there is no hot reload.
