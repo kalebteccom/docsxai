@@ -1,0 +1,449 @@
+name: mobile-390
+environment:
+  clock: 2026-01-15T10:00:00Z
+  locale: en-US
+  timezone: UTC
+  viewport:
+    width: 390
+    height: 844
+  color_scheme: dark
+  reduced_motion: true
+locators:
+  page_title: h1.page__title
+  view_tabs: nav.etabs
+  col_progress: section.column[aria-label="In progress"]
+  ticket_title: h2.tread__title
+  ticket_status: button.tpill[aria-label^="Status:"]
+  ticket_gaps: section[aria-labelledby="gaps-heading"]
+  first_gap_slot: button.rowgap__slot >> nth=0
+  palette: div[role="dialog"][aria-label="Search and commands"]
+  palette_input: input.palette__input
+  dev_badge: nextjs-portal [data-next-badge]
+  palette_list: div[role="listbox"][aria-label="Results"]
+  list_gap_btn: button.row__gapsbtn >> nth=0
+  filters: div.filters[role="group"]
+  assignment_chip: div.qbar--assignment button.chip
+  group_toggle: button.grp__toggle >> nth=0
+  group_add: button.grp__add >> nth=0
+  epics_display: div.qbar[aria-label="Display"]
+  epic_row_first: a.erow >> nth=0
+  epic_progress_first: span.eprogress >> nth=0
+  epic_status: button.pill[aria-label^="Status:"]
+  epic_add_task: button.chip:has-text("Add task")
+  progress_bar: div.lsum__bar
+  progress_row_first: nav.llist a.ledrow >> nth=0
+  docs_title: h1.dindex__title
+  docs_scopes: nav.dindex__scopes
+  docs_table: table.dtable
+  doc_belongs: dl.dread__props dd >> nth=0
+  doc_outline: nav.doutline
+  doc_title: .live__field[aria-label^="Document title"]
+  mine_tabs: nav.etabs[aria-label="Mine"]
+  settings_key_input: form.invite input >> nth=0
+  settings_rename_key: button.lrow__act >> nth=0
+  tokens_config: section[aria-labelledby="connect-heading"] pre
+  tokens_copy: section[aria-labelledby="connect-heading"] button.button--quiet
+  tokens_table_head: table.table th >> nth=0
+  tokens_agent_cell: table.table td >> nth=1
+  connect_pick_first: span.connect__client >> nth=0
+  connect_card: section.connect__card
+  connect_url: div.connect__copy
+steps:
+  - id: board-open
+    action: navigate
+    value: /w/acme-demo/board
+    wait_for:
+      selector: $col_progress
+  - id: board-idle
+    action: wait
+    wait_for: network_idle
+  - id: board-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: board
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    annotations:
+      - target: $page_title
+        copy: The board shows every task as a card, grouped by status.
+        arrow: right
+      - target: $view_tabs
+        copy: Switch between the board, the backlog and the full list.
+        arrow: bottom
+      - target: $col_progress
+        copy: Tasks an agent is working on right now sit in In progress.
+        arrow: bottom
+  - id: palette-open
+    action: press
+    value: /
+    wait_for:
+      selector: $palette_input
+    success:
+      visible: $palette
+  - id: palette-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: palette
+    action: wait
+    target: $palette_input
+    wait_for: element_stable
+    annotations:
+      - target: $palette_input
+        copy: Press / or Cmd+K on any page to search or run a command.
+        arrow: bottom
+      - target: $palette_list
+        copy: Results mix tasks, epics, people and commands.
+        arrow: top
+  - id: palette-close
+    action: press
+    value: Escape
+    success:
+      hidden: $palette
+  - id: ticket-open
+    action: navigate
+    value: /w/acme-demo/t/WEB-8
+    wait_for:
+      selector: $ticket_title
+  - id: ticket-idle
+    action: wait
+    wait_for: network_idle
+  - id: ticket-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: ticket
+    action: wait
+    target: $ticket_title
+    wait_for: element_stable
+    annotations:
+      - target: $ticket_title
+        copy: A task keeps its title, address and description in one place.
+        arrow: right
+      - target: $ticket_status
+        copy: The status pill shows where the task stands.
+        arrow: bottom
+      - target: $ticket_gaps
+        copy: A gap is a question an agent raised. Answer it here to unblock the work.
+        arrow: top
+  - id: waiting-open
+    action: navigate
+    value: /w/acme-demo?attention=waiting
+    wait_for:
+      selector: $first_gap_slot
+  - id: waiting-idle
+    action: wait
+    wait_for: network_idle
+  - id: waiting-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: waiting
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    success:
+      visible: $first_gap_slot
+    annotations:
+      - target: $page_title
+        copy: Waiting on you lists the tasks blocked on your answer.
+        arrow: right
+      - target: $first_gap_slot
+        copy: Answer an open gap on a row without leaving the list.
+        arrow: top
+  - id: list-open
+    action: navigate
+    value: /w/acme-demo
+    wait_for:
+      selector: $list_gap_btn
+  - id: list-idle
+    action: wait
+    wait_for: network_idle
+  - id: list-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: list
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    annotations:
+      - target: $filters
+        copy: Filter the list, or add a filter on any field.
+        arrow: bottom
+      - target: $assignment_chip
+        copy: Narrow the list by who holds each task.
+        arrow: bottom
+      - target: $list_gap_btn
+        copy: A gap count means an agent is waiting on you. Open it to answer.
+        arrow: left
+  - id: backlog-open
+    action: navigate
+    value: /w/acme-demo?attention=backlog
+    wait_for:
+      selector: $group_toggle
+  - id: backlog-idle
+    action: wait
+    wait_for: network_idle
+  - id: backlog-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: backlog
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    annotations:
+      - target: $group_toggle
+        copy: Tasks group by epic. Collapse a group to skim the rest.
+        arrow: bottom
+      - target: $list_gap_btn
+        copy: A gap count means an agent needs an answer before the task can move.
+        arrow: left
+      - target: $group_add
+        copy: Add a task straight into an epic.
+        arrow: left
+  - id: epics-open
+    action: navigate
+    value: /w/acme-demo/epics
+    wait_for:
+      selector: $epic_row_first
+  - id: epics-idle
+    action: wait
+    wait_for: network_idle
+  - id: epics-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: epics
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    annotations:
+      - target: $epics_display
+        copy: Change how epics are grouped and sorted.
+        arrow: bottom
+      - target: $epic_progress_first
+        copy: The bar counts tasks done and tasks in progress.
+        arrow: top
+      - target: $epic_row_first
+        copy: Open an epic to see its goal, milestones and task sequence.
+        arrow: right
+  - id: epic-open
+    action: navigate
+    value: /w/acme-demo/epics/checkout-redesign-WEB-E1
+    wait_for:
+      selector: $epic_status
+  - id: epic-idle
+    action: wait
+    wait_for: network_idle
+  - id: epic-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: epic
+    action: wait
+    target: $epic_status
+    wait_for: element_stable
+    annotations:
+      - target: $epic_add_task
+        copy: Add a task to this epic from here.
+        arrow: bottom
+      - target: $epic_status
+        copy: Change the epic's status here. Priority, lead and dates sit under Properties.
+        arrow: right
+  - id: progress-open
+    action: navigate
+    value: /w/acme-demo/progress
+    wait_for:
+      selector: $progress_bar
+  - id: progress-idle
+    action: wait
+    wait_for: network_idle
+  - id: progress-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: progress
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    annotations:
+      - target: $progress_bar
+        copy: "The bar splits every task by phase: done, in progress, waiting, claimed or open."
+        arrow: bottom
+      - target: $progress_row_first
+        copy: Open tasks group by epic. Select one to read it.
+        arrow: right
+  - id: documents-open
+    action: navigate
+    value: /w/acme-demo/documents
+    wait_for:
+      selector: $docs_table
+  - id: documents-idle
+    action: wait
+    wait_for: network_idle
+  - id: documents-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: documents
+    action: wait
+    target: $docs_title
+    wait_for: element_stable
+    annotations:
+      - target: $docs_scopes
+        copy: "Filter documents by what owns them: the workspace, an epic, a team or a project."
+        arrow: bottom
+      - target: $docs_table
+        copy: Open a document to read it. Each one shows its version.
+        arrow: top
+  - id: document-open
+    action: navigate
+    value: /w/acme-demo/documents/0000000000013d5d45df0000ab
+    wait_for:
+      selector: $doc_title
+  - id: document-idle
+    action: wait
+    wait_for: network_idle
+  - id: document-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: document
+    action: wait
+    target: $doc_title
+    wait_for: element_stable
+    annotations:
+      - target: $doc_belongs
+        copy: A document belongs to the workspace, an epic, a team or a project.
+        arrow: right
+      - target: $doc_outline
+        copy: Contents lists the headings. Tap one to jump to it.
+        arrow: top
+      - target: $doc_title
+        copy: Tap the title or body to edit. It saves when you stop typing.
+        arrow: bottom
+  - id: mine-open
+    action: navigate
+    value: /w/acme-demo/mine?tab=leading
+    wait_for:
+      selector: $epic_row_first
+  - id: mine-idle
+    action: wait
+    wait_for: network_idle
+  - id: mine-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: mine
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    annotations:
+      - target: $mine_tabs
+        copy: Claimed is what you hold, Reported what you filed, Leading the epics you lead.
+        arrow: bottom
+      - target: $epic_row_first
+        copy: Each epic you lead shows its progress and who holds the work.
+        arrow: top
+  - id: settings-open
+    action: navigate
+    value: /w/acme-demo/settings
+    wait_for:
+      selector: $settings_key_input
+  - id: settings-idle
+    action: wait
+    wait_for: network_idle
+  - id: settings-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: settings
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    annotations:
+      - target: $settings_key_input
+        copy: The workspace key prefixes every task number, such as ACME-142.
+        arrow: bottom
+      - target: $settings_rename_key
+        copy: Rename a project key. The old one keeps opening its tasks.
+        arrow: left
+  - id: agent-tokens-open
+    action: navigate
+    value: /w/acme-demo/tokens
+    wait_for:
+      selector: $tokens_config
+  - id: agent-tokens-idle
+    action: wait
+    wait_for: network_idle
+  - id: agent-tokens-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: agent-tokens
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    annotations:
+      - target: $tokens_config
+        copy: Your agent needs this MCP configuration. Swap the placeholder for your own token.
+        arrow: left
+      - target: $tokens_copy
+        copy: Copy the whole block in one click.
+        arrow: right
+  - id: agent-tokens-issued-open
+    action: navigate
+    value: /w/acme-demo/tokens
+    wait_for:
+      selector: $tokens_table_head
+  - id: agent-tokens-issued-idle
+    action: wait
+    wait_for: network_idle
+  - id: agent-tokens-issued-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: agent-tokens-issued-scroll
+    action: hover
+    target: $tokens_table_head
+    wait_for: element_stable
+  - id: agent-tokens-issued
+    action: wait
+    target: $tokens_table_head
+    wait_for: element_stable
+    annotations:
+      - target: $tokens_agent_cell
+        copy: Each token belongs to one agent, so every write says which agent made it.
+        arrow: top
+  - id: connect-open
+    action: navigate
+    value: /w/acme-demo/connect
+    wait_for:
+      selector: $connect_url
+  - id: connect-idle
+    action: wait
+    wait_for: network_idle
+  - id: connect-no-dev-overlay
+    action: wait
+    success:
+      hidden: $dev_badge
+  - id: connect
+    action: wait
+    target: $page_title
+    wait_for: element_stable
+    success:
+      visible: $connect_url
+    annotations:
+      - target: $connect_pick_first
+        copy: Pick the app you want to connect.
+        arrow: right
+      - target: $connect_card
+        copy: Follow the steps for that app. An agent never needs to see your token.
+        arrow: right
+      - target: $connect_url
+        copy: Copy the connector URL into the app when it asks for one.
+        arrow: top

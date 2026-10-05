@@ -105,6 +105,12 @@ export function startJsonLoginServer(): Promise<FixtureServer> {
       res.end();
       return;
     }
+    if (req.method === "GET" && url.pathname === "/login-link") {
+      issueSid();
+      res.writeHead(303, { location: "/session" });
+      res.end();
+      return;
+    }
     if (url.pathname === "/issue") {
       if (cookieMap(req).pre !== "1") {
         sendJson(res, 400, { ok: false, error: "redirect hop lost the pre cookie" });

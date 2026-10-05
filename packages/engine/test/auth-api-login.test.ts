@@ -41,6 +41,13 @@ describe("api-login strategy", () => {
     expect(r.storageState.cookies.map((c) => c.name)).toEqual(["sid"]);
   });
 
+  it("supports a GET login link: no body, cookies kept across the 303", async () => {
+    const r = await new ApiLoginStrategy().authenticate(
+      ctx({ login_url: "/login-link", method: "GET", success_check: { cookie: "sid" } }, {}),
+    );
+    expect(r.storageState.cookies.map((c) => c.name)).toEqual(["sid"]);
+  });
+
   it("reports expiresAt from the success cookie's expiry", async () => {
     const before = Date.now();
     const r = await new ApiLoginStrategy().authenticate(
