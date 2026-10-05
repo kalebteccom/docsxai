@@ -13,6 +13,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Changed
 
 - **Driver contract.** `BrowserDriver` gains two required methods, `hideElements(selector, timeoutMs?)` and `showElements(selector | null)`. Seven existing signatures widen with an optional trailing `timeoutMs`: `click`, `fill`, `upload`, `press`, `hover`, `selectOption` and `setChecked`. `PlaywrightDriver` implements all of it; pre-1.0 that is a minor bump for third-party drivers, which must add the two methods and may ignore `timeoutMs` until they want the per-step budget.
+- **Burned badges keep off the target's text and its neighbours.** On annotation records with `obstacles`, `docsxai-viewer burn` now places the numbered badge at the corner of the halo, up to 26 px out, that covers the least of the obstacles, other halos and callouts, and of the target's own box. A flush-text target (a title, a tab, a list row) no longer loses its first letter under the badge. Callouts keep clear of the badge where it landed. Records without `obstacles` burn byte-identically to before; the same input still yields identical bytes.
 
 ## [0.2.1-rc.1] - 2026-10-05
 
