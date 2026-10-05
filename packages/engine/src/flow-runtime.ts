@@ -147,6 +147,10 @@ export class FlowExecutionError extends Error {
  */
 export function inferHaltCause(rawError: string): string | undefined {
   const hints: Array<[RegExp, string]> = [
+    [
+      /docsxai: cannot hide/i,
+      "the browser can't apply the hide rule (no constructable stylesheets), so the element would stay visible",
+    ],
     [/element is disabled\b/i, "target is disabled"],
     [/element is not enabled\b/i, "target is not enabled"],
     [

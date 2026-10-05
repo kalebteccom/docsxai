@@ -251,7 +251,12 @@ export class PlaywrightDriver implements BrowserDriver {
       .first()
       .waitFor({ state: "attached", ...budget(timeoutMs) });
     this.hidden.add(selector);
-    await this.syncHidden();
+    try {
+      await this.syncHidden();
+    } catch (e) {
+      this.hidden.delete(selector); // a rule the page can't take must not poison every later screenshot
+      throw e;
+    }
   }
   async showElements(selector: string | null): Promise<void> {
     if (selector === null) this.hidden.clear();

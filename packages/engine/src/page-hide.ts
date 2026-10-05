@@ -10,7 +10,7 @@
 // by a data attribute. Visibility keeps the element's box, so nothing around it reflows, and it
 // inherits into a shadow tree, so hiding a host hides its contents too. Constructable stylesheets
 // and attribute writes are not blocked by a page's Content-Security-Policy; a `<style>` element
-// would be. The DOM lib isn't in this package's TypeScript config, so the shapes used are local.
+// would be. The attribute name is reserved (see the flow-file reference). The DOM lib isn't in this package's TypeScript config, so the shapes used are local.
 
 /** Attribute that marks an element hidden by a `hide` step. The stylesheet rule keys on it. */
 export const HIDDEN_ATTR = "data-docsxai-hidden";
@@ -28,13 +28,22 @@ interface DomMarkable {
   getRootNode(): DomRoot | null;
 }
 
-/** Mark `els` hidden and make sure each one's root carries the rule that hides marked elements. */
+/**
+ * Mark `els` hidden and make sure each one's root carries the rule that hides marked elements.
+ * Throws, before marking anything, when the page can't take a constructable stylesheet: leaving
+ * the element visible would put exactly what the step meant to remove into the screenshot.
+ */
 export function markHidden(els: unknown[], attr: string): void {
   const sheetCtor = (globalThis as { CSSStyleSheet?: new () => DomSheet }).CSSStyleSheet;
-  for (const el of els as DomMarkable[]) {
+  const roots = (els as DomMarkable[]).map((el) => el.getRootNode());
+  if (!sheetCtor || roots.some((r) => !r || !Array.isArray(r.adoptedStyleSheets))) {
+    throw new Error(
+      "docsxai: cannot hide: this browser has no constructable stylesheets (CSSStyleSheet / adoptedStyleSheets) for the element's document or shadow root",
+    );
+  }
+  for (const [i, el] of (els as DomMarkable[]).entries()) {
+    const root = roots[i] as Required<DomRoot>;
     el.setAttribute(attr, "");
-    const root = el.getRootNode();
-    if (!root || !root.adoptedStyleSheets || !sheetCtor) continue;
     const present = root.adoptedStyleSheets.some((s) =>
       s.cssRules[0]?.cssText.startsWith(`[${attr}]`),
     );
