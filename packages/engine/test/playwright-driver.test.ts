@@ -129,6 +129,26 @@ describe.skipIf(!chromiumAvailable)(
   120_000,
 );
 
+describe("PlaywrightDriver.nearbyBoxes — a hung page", () => {
+  const hungPage = (evaluate: () => Promise<unknown>) =>
+    ({
+      locator: () => ({ first: () => ({ waitFor: async () => undefined, evaluate }) }),
+    }) as unknown as Page;
+
+  it("rejects once the timeout passes while the in-page scan never returns", async () => {
+    const d = new PlaywrightDriver(hungPage(() => new Promise(() => undefined)));
+    const started = Date.now();
+    await expect(d.nearbyBoxes("#t", 320, 100)).rejects.toThrow(/timed out after 100ms/);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it("returns the scan when it finishes inside the timeout", async () => {
+    const scan = { image: { width: 1, height: 1 }, scale: 1, boxes: [] };
+    const d = new PlaywrightDriver(hungPage(async () => scan));
+    await expect(d.nearbyBoxes("#t", 320, 100)).resolves.toEqual(scan);
+  });
+});
+
 describe.skipIf(!chromiumAvailable)(
   "PlaywrightDriver.nearbyBoxes — what a callout must not cover",
   () => {

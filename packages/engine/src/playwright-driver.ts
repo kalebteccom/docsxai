@@ -188,6 +188,16 @@ export async function launchPlaywrightSession(
   };
 }
 
+/** Rejects with a timeout error if `work` takes longer than `ms` (no limit when `ms` is undefined). */
+function withTimeout<T>(work: Promise<T>, ms: number | undefined): Promise<T> {
+  if (ms === undefined) return work;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
 export class PlaywrightDriver implements BrowserDriver {
   constructor(
     private readonly page: Page,
@@ -374,7 +384,8 @@ export class PlaywrightDriver implements BrowserDriver {
     } catch {
       return null;
     }
-    return loc.evaluate(collectNearbyBoxes, radius);
+    // `evaluate` has no timeout of its own; a hung page must not stall the run.
+    return withTimeout(loc.evaluate(collectNearbyBoxes, radius), timeoutMs);
   }
   async screenshot(relPath: string, redactions: ResolvedRedaction[] = []): Promise<void> {
     // relPath segments carry flow names + step ids from the flow-file — containment-checked

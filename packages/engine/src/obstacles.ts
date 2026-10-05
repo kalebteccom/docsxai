@@ -5,12 +5,12 @@
 // annotation record: boxes in screenshot pixels that a burned callout must not cover. No IO, no
 // browser: same scan in, same boxes out, so the doc pack stays byte-identical across runs.
 
-import { type BoundingBox } from "./doc-pack.js";
+import { MAX_OBSTACLES, type BoundingBox } from "./doc-pack.js";
 
 /** How far from the target (CSS px) page content still counts as an obstacle. */
 export const OBSTACLE_RADIUS = 320;
 /** The most obstacles one annotation records; the ones nearest the target win. */
-export const OBSTACLE_LIMIT = 40;
+export const OBSTACLE_LIMIT = MAX_OBSTACLES;
 
 /** What a driver reports about the content around a target. Every box is in screenshot pixels. */
 export interface NearbyBoxes {

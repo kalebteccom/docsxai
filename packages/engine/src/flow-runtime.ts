@@ -72,7 +72,8 @@ export interface BrowserDriver {
    * the screenshot's pixel space (scaled by the device scale factor, like {@link boundingBox}).
    * The target's own subtree and interactive elements containing it are left out. Order is the
    * driver's; `selectObstacles` sorts, clips and caps. Returns `null` when the target isn't visible
-   * within `timeoutMs`. Only called when a workspace turns on `annotations.obstacles`.
+   * within `timeoutMs`; rejects if the scan itself runs past `timeoutMs`. The scan happens after the
+   * screenshot, so a continuously animating page can drift from the image. Only called when a workspace turns on `annotations.obstacles`.
    */
   nearbyBoxes(selector: string, radius: number, timeoutMs?: number): Promise<NearbyBoxes | null>;
   /** Capture a clean screenshot (no baked annotations), applying any `redactions` before it hits disk. */
