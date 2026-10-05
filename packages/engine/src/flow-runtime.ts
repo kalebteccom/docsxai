@@ -20,6 +20,7 @@ import {
   type WaitSpec,
 } from "./doc-pack.js";
 import { locatorRefName } from "./flow-file.js";
+import { OBSTACLE_RADIUS, selectObstacles, type NearbyBoxes } from "./obstacles.js";
 
 // ---------------------------------------------------------------------------
 // BrowserDriver
@@ -66,6 +67,15 @@ export interface BrowserDriver {
 
   /** Bounding box of an element, in page pixels. Pass `timeoutMs` (default = driver default) so this fails fast when the target has vanished. Returns `null` on miss. */
   boundingBox(selector: string, timeoutMs?: number): Promise<BoundingBox | null>;
+  /**
+   * Boxes of the visible text and interactive elements within `radius` CSS px of `selector`, in
+   * the screenshot's pixel space (scaled by the device scale factor, like {@link boundingBox}).
+   * The target's own subtree and interactive elements containing it are left out. Order is the
+   * driver's; `selectObstacles` sorts, clips and caps. Returns `null` when the target isn't visible
+   * within `timeoutMs`; rejects if the scan itself runs past `timeoutMs`. The scan happens after the
+   * screenshot, so a continuously animating page can drift from the image. Only called when a workspace turns on `annotations.obstacles`.
+   */
+  nearbyBoxes(selector: string, radius: number, timeoutMs?: number): Promise<NearbyBoxes | null>;
   /** Capture a clean screenshot (no baked annotations), applying any `redactions` before it hits disk. */
   screenshot(relPath: string, redactions?: ResolvedRedaction[]): Promise<void>;
 
@@ -172,6 +182,12 @@ export interface RunFlowOptions {
    * the caller is responsible for preserving the previous run's artifacts for them.
    */
   startFrom?: string;
+  /**
+   * Record the visible text and controls around each annotation's target as `obstacles` on its
+   * record (screenshot pixels, target excluded) so the burner keeps callouts off them. Default
+   * false: records are then exactly what they were before the field existed.
+   */
+  obstacles?: boolean;
 }
 
 export interface ExecutedStep {
@@ -205,6 +221,24 @@ export function resolveTarget(
     throw new Error(`unresolved locator $${name}`);
   }
   return resolved;
+}
+
+/** Obstacles around `selector`, best-effort like the halo box: a failed scan leaves the field off. */
+async function obstaclesAround(
+  driver: BrowserDriver,
+  selector: string,
+  target: BoundingBox,
+  stepId: string,
+): Promise<BoundingBox[]> {
+  try {
+    const scan = await driver.nearbyBoxes(selector, OBSTACLE_RADIUS, 2000);
+    return scan ? selectObstacles(scan, target) : [];
+  } catch (e) {
+    process.stderr.write(
+      `runFlow: step "${stepId}" — obstacle scan skipped (${(e as Error).message})\n`,
+    );
+    return [];
+  }
 }
 
 async function applyWait(
@@ -416,10 +450,15 @@ export async function runFlow(
           const ann = anns[i]!;
           const annSelector = ann.target ? resolve(ann.target) : selector;
           const bbox = annSelector ? await driver.boundingBox(annSelector, 2000) : null;
+          const obstacles =
+            opts.obstacles && annSelector && bbox
+              ? await obstaclesAround(driver, annSelector, bbox, step.id)
+              : [];
           annotations.push({
             step: step.id,
             selector: annSelector ?? "",
             ...(bbox ? { bounding_box: bbox } : {}),
+            ...(obstacles.length > 0 ? { obstacles } : {}),
             copy: ann.copy,
             ...(ann.arrow ? { arrow_style: ann.arrow } : {}),
             ...(ann.nudge ? { nudge: ann.nudge } : {}),

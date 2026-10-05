@@ -160,6 +160,7 @@ export const runFlowsTool = defineTool({
           resolveLocator: (n) => flow.locators[n],
           ...(args.stopAfter ? { stopAfter: args.stopAfter } : {}),
           ...(args.startFrom ? { startFrom: args.startFrom } : {}),
+          ...(wsCfg?.annotations?.obstacles === true ? { obstacles: true } : {}),
         });
         await fs.mkdir(resolveWorkspacePath(ws, "docs", flow.name), { recursive: true });
         const annotationsPath = await resolveWorkspacePathReal(

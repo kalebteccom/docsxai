@@ -29,6 +29,8 @@ import {
   type ResolvedRedaction,
 } from "./flow-runtime.js";
 import { type StorageState } from "./auth.js";
+import { type NearbyBoxes } from "./obstacles.js";
+import { collectNearbyBoxes } from "./page-nearby-boxes.js";
 import { applyRedactions, type RedactionBox } from "./redact.js";
 import { resolveWorkspacePathReal } from "./workspace.js";
 
@@ -184,6 +186,16 @@ export async function launchPlaywrightSession(
       await browser.close().catch(() => {});
     },
   };
+}
+
+/** Rejects with a timeout error if `work` takes longer than `ms` (no limit when `ms` is undefined). */
+function withTimeout<T>(work: Promise<T>, ms: number | undefined): Promise<T> {
+  if (ms === undefined) return work;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
 }
 
 export class PlaywrightDriver implements BrowserDriver {
@@ -357,6 +369,23 @@ export class PlaywrightDriver implements BrowserDriver {
         return { x: x * dpr, y: y * dpr, width: (right - x) * dpr, height: (bottom - y) * dpr };
       })
       .catch(() => null);
+  }
+  async nearbyBoxes(
+    selector: string,
+    radius: number,
+    timeoutMs?: number,
+  ): Promise<NearbyBoxes | null> {
+    const loc = this.page.locator(selector).first();
+    try {
+      await loc.waitFor({
+        state: "visible",
+        ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
+      });
+    } catch {
+      return null;
+    }
+    // `evaluate` has no timeout of its own; a hung page must not stall the run.
+    return withTimeout(loc.evaluate(collectNearbyBoxes, radius), timeoutMs);
   }
   async screenshot(relPath: string, redactions: ResolvedRedaction[] = []): Promise<void> {
     // relPath segments carry flow names + step ids from the flow-file — containment-checked

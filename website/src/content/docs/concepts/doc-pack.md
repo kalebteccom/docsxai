@@ -59,9 +59,11 @@ loudly on shape changes instead of mis-parsing.
 
 **`docsxai/annotations@1`** - the per-flow annotation file: a `flow` name
 plus an array of records (`step`, `selector`, `bounding_box`, `copy`,
-`arrow_style`, `nudge`, `index`). Bounding boxes are measured at capture
-time, so the file is a faithful map of where things were on that exact
-screenshot.
+`arrow_style`, `nudge`, `index`, and optionally `obstacles`). Bounding boxes
+are measured at capture time, so the file is a faithful map of where things
+were on that exact screenshot. `obstacles` is a list of boxes (screenshot
+pixels) of nearby text and controls that a burned callout must not cover;
+`run` writes it only when `.docsxai.json` sets `annotations.obstacles`.
 
 **`docsxai/style@1`** - the style artifact: free-form `voice`, `structure`,
 `visual`, and `localisation` sections, a `terminology` map, and the

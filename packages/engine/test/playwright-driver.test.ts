@@ -129,6 +129,126 @@ describe.skipIf(!chromiumAvailable)(
   120_000,
 );
 
+describe("PlaywrightDriver.nearbyBoxes — a hung page", () => {
+  const hungPage = (evaluate: () => Promise<unknown>) =>
+    ({
+      locator: () => ({ first: () => ({ waitFor: async () => undefined, evaluate }) }),
+    }) as unknown as Page;
+
+  it("rejects once the timeout passes while the in-page scan never returns", async () => {
+    const d = new PlaywrightDriver(hungPage(() => new Promise(() => undefined)));
+    const started = Date.now();
+    await expect(d.nearbyBoxes("#t", 320, 100)).rejects.toThrow(/timed out after 100ms/);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it("returns the scan when it finishes inside the timeout", async () => {
+    const scan = { image: { width: 1, height: 1 }, scale: 1, boxes: [] };
+    const d = new PlaywrightDriver(hungPage(async () => scan));
+    await expect(d.nearbyBoxes("#t", 320, 100)).resolves.toEqual(scan);
+  });
+});
+
+describe.skipIf(!chromiumAvailable)(
+  "PlaywrightDriver.nearbyBoxes — what a callout must not cover",
+  () => {
+    let browser: Awaited<ReturnType<typeof chromium.launch>>;
+    beforeAll(async () => {
+      browser = await chromium.launch();
+    });
+    afterAll(async () => {
+      await browser.close();
+    }, 120_000);
+
+    const FIXTURE = `data:text/html,${encodeURIComponent(
+      `<!doctype html><html><body style="margin:0;font:16px/20px sans-serif">
+       <button id="target" style="position:absolute;left:300px;top:200px;width:100px;height:30px">Go <span id="inner">now</span></button>
+       <p id="beside" style="position:absolute;left:20px;top:200px;width:200px;margin:0">Text beside the target</p>
+       <a id="link" href="#x" style="position:absolute;left:450px;top:205px">A link</a>
+       <p id="hidden" style="display:none;position:absolute;left:20px;top:300px">Hidden text</p>
+       <p id="invisible" style="visibility:hidden;position:absolute;left:20px;top:330px;margin:0">Invisible text</p>
+       <div style="position:absolute;left:20px;top:360px;width:60px;height:20px;overflow:hidden">
+         <span style="position:absolute;left:0;top:100px">Clipped away</span>
+       </div>
+       <p id="far" style="position:absolute;left:900px;top:650px;margin:0">Far away</p>
+       <script>document.body.style.height = "2000px"</script>
+     </body></html>`,
+    )}`;
+
+    const scan = async (scale: number) => {
+      const ctx = await browser.newContext({
+        viewport: { width: 1000, height: 700 },
+        deviceScaleFactor: scale,
+      });
+      try {
+        const page = await ctx.newPage();
+        await page.goto(FIXTURE);
+        const result = await new PlaywrightDriver(page).nearbyBoxes("#target", 320, 2000);
+        return { result };
+      } finally {
+        await ctx.close();
+      }
+    };
+    /** Boxes overlapping a CSS-pixel region, after undoing the scale. */
+    const hits = (boxes: BoundingBoxLike[], scale: number, r: BoundingBoxLike) =>
+      boxes.filter((b) => {
+        const [x, y, w, h] = [b.x / scale, b.y / scale, b.width / scale, b.height / scale];
+        return x < r.x + r.width && x + w > r.x && y < r.y + r.height && y + h > r.y;
+      });
+
+    it.each([1, 2])(
+      "dpr=%i: reports text and controls near the target, in screenshot pixels",
+      async (dpr) => {
+        const { result } = await scan(dpr);
+        expect(result).not.toBeNull();
+        expect(result!.scale).toBe(dpr);
+        expect(result!.image).toEqual({ width: 1000 * dpr, height: 700 * dpr });
+        const boxes = result!.boxes;
+        expect(hits(boxes, dpr, { x: 20, y: 200, width: 200, height: 20 }).length).toBeGreaterThan(
+          0,
+        );
+        expect(hits(boxes, dpr, { x: 450, y: 205, width: 60, height: 20 }).length).toBeGreaterThan(
+          0,
+        );
+        // the beside paragraph's box is one text line (a glyph box inside the 20px line), scaled with the screenshot
+        const beside = hits(boxes, dpr, { x: 20, y: 200, width: 200, height: 20 })[0]!;
+        expect(beside.x).toBeCloseTo(20 * dpr, 0);
+        expect(beside.height).toBeGreaterThan(12 * dpr);
+        expect(beside.height).toBeLessThanOrEqual(20 * dpr);
+      },
+    );
+
+    it("leaves out the target's own subtree, hidden, invisible and clipped content, and anything beyond the radius", async () => {
+      const { result } = await scan(1);
+      const boxes = result!.boxes;
+      expect(hits(boxes, 1, { x: 300, y: 200, width: 100, height: 30 })).toEqual([]);
+      expect(hits(boxes, 1, { x: 20, y: 300, width: 200, height: 20 })).toEqual([]);
+      expect(hits(boxes, 1, { x: 20, y: 330, width: 200, height: 20 })).toEqual([]);
+      expect(hits(boxes, 1, { x: 20, y: 360, width: 60, height: 20 })).toEqual([]);
+      expect(hits(boxes, 1, { x: 900, y: 650, width: 100, height: 20 })).toEqual([]);
+    });
+
+    it("returns null when the target never becomes visible", async () => {
+      const ctx = await browser.newContext({ viewport: { width: 1000, height: 700 } });
+      try {
+        const page = await ctx.newPage();
+        await page.goto(FIXTURE);
+        expect(await new PlaywrightDriver(page).nearbyBoxes("#hidden", 320, 300)).toBeNull();
+      } finally {
+        await ctx.close();
+      }
+    });
+  },
+  120_000,
+);
+
+interface BoundingBoxLike {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 const CLOCK_FIXTURE = `data:text/html,${encodeURIComponent(
   `<!doctype html><html><body>
    <div id="clock"></div>

@@ -82,6 +82,14 @@ export interface WorkspaceConfig {
   ignore_https_errors?: boolean;
   /** Backend stub/service URL for `push`/`pull` (e.g. `http://localhost:4477`). Optional — workspaces operate fully locally without it. */
   backend_url?: string;
+  /** How `run` records annotations. Absent keys keep today's output. */
+  annotations?: {
+    /**
+     * Write per-annotation `obstacles` (boxes of nearby text and controls, screenshot pixels, the
+     * target excluded) so the burner keeps callouts off page content. Default false.
+     */
+    obstacles?: boolean;
+  };
   /** Backend workspace ID, set by `push` after first round-trip. */
   backend_workspace_id?: string;
   /** Backend project ID, set by `push` after first round-trip. */
