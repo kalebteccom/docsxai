@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Packs burned screenshots into the delivery shape: hashed PNGs + manifest.json.
 // Usage: node scripts/build-screens.mjs <out-dir>   (run after `docsxai run` + `docsxai-viewer burn`)
-// Writes <out>/<flow>/<step>.<hash8>.png and <out>/manifest.json (docsxai/screens-manifest@1).
+// Writes <out>/<flow>/<step>.<hash8>.png and <out>/manifest.json (docsxai/screens-pack@1).
 // Variants are named <language>.<scheme>.<width>; add a flow to VARIANTS to pack it.
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -37,6 +37,6 @@ for (const [flow, variant] of Object.entries(VARIANTS)) {
     };
   }
 }
-const manifest = { schema: "docsxai/screens-manifest@1", screens };
+const manifest = { schema: "docsxai/screens-pack@1", screens };
 writeFileSync(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 process.stdout.write(`wrote ${Object.keys(screens).length} screens to ${out}\n`);
