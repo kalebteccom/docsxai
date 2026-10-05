@@ -7,6 +7,8 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { BoundingBox, FlowFile, Step } from "./doc-pack.js";
+import { hiddenAtEachStep } from "./flow-hidden.js";
+import { locatorRefName } from "./flow-file.js";
 import type { ActionableState, BrowserDriver } from "./flow-runtime.js";
 
 export type DiagnoseRecommendationKind =
@@ -68,7 +70,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
           rationale:
             "Selector matches 0 elements on the live page — the element was renamed, moved, or removed.",
           suggestion:
-            "Re-discover the element via the calibration loop (browxai's `find()`, or `docsxai inspect`). Pick a new canonical locator and commit it as the step's `target` (or update the named entry in the flow's `locators:` block).",
+            "Re-discover the element via the calibration loop (browxai's `find()`, or `docsxai inspect`). Pick a new canonical locator and commit it as the step's `target` (or update the named entry in the flow's `locators:` block). If the element is only sometimes there, declare that instead: `optional: true` with a short `timeout_ms` (e.g. 1500) skips a miss in seconds, not after the full 30 s default.",
         },
       ];
     case "multiple-matches":
@@ -146,6 +148,15 @@ export function recommendStatic(
       suggestion: "Open the screenshot; compare the visual state to what the step expects.",
     });
   }
+  if (step.action === "hide") {
+    recs.push({
+      kind: "selector",
+      rationale:
+        "A `hide` step waits for its target to exist (not to be visible); it halts when no element matched within the step's budget.",
+      suggestion:
+        "Check the locator against the live page. If the element is conditionally present (a dev-only overlay, a banner), set `optional: true` with a short `timeout_ms` (e.g. 1500) so a miss is skipped quickly.",
+    });
+  }
   const success = step.success as unknown;
   if (success && typeof success === "object" && success !== null && "text_contains" in success) {
     recs.push({
@@ -157,6 +168,26 @@ export function recommendStatic(
     });
   }
   return recs;
+}
+
+/** The step reaches an element an earlier `hide` step hid: a hidden element is never visible, so waits on it run out. */
+export function recommendHiddenTarget(flow: FlowFile, step: Step): DiagnoseRecommendation[] {
+  const index = flow.steps.findIndex((s) => s.id === step.id);
+  if (index < 0 || !step.target || step.action === "hide" || step.action === "show") return [];
+  const resolve = (v: string): string => {
+    const name = locatorRefName(v);
+    return name ? (flow.locators[name] ?? v) : v;
+  };
+  if (!hiddenAtEachStep(flow, resolve)[index]!.before.has(resolve(step.target))) return [];
+  return [
+    {
+      kind: "split_step",
+      rationale:
+        "An earlier `hide` step hides this step's target (`visibility: hidden`), so it is never visible or actionable here.",
+      suggestion:
+        "Insert a `show` step with this target (or none, to show everything) before this step, or move the `hide` step after it.",
+    },
+  ];
 }
 
 /** Build the full report. `liveProbe` is invoked lazily (only if a driver is supplied). */
@@ -181,6 +212,7 @@ export async function buildDiagnoseReport(opts: {
 
   const recommendations: DiagnoseRecommendation[] = [
     ...recommendStatic(opts.step, { screenshotRelPath: haltRel }),
+    ...recommendHiddenTarget(opts.flow, opts.step),
     ...(live ? recommendFromActionable(live.actionable) : []),
   ];
 

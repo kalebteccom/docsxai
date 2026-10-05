@@ -10,6 +10,9 @@ import {
   runFlow,
 } from "../src/flow-runtime.js";
 
+/** Call-log suffix for a timeout argument; empty when the runtime passed none. */
+const ms = (t?: number) => (t === undefined ? "" : ` [${t}ms]`);
+
 class FakeDriver implements BrowserDriver {
   calls: string[] = [];
   visible = new Set<string>();
@@ -24,26 +27,34 @@ class FakeDriver implements BrowserDriver {
     this.rec(`goto ${url}`);
     this.url = url;
   }
-  async click(s: string) {
-    this.rec(`click ${s}`);
+  async click(s: string, t?: number) {
+    this.rec(`click ${s}${ms(t)}`);
   }
-  async fill(s: string, v: string) {
-    this.rec(`fill ${s}=${v}`);
+  async fill(s: string, v: string, t?: number) {
+    this.rec(`fill ${s}=${v}${ms(t)}`);
   }
-  async upload(s: string, v: string) {
-    this.rec(`upload ${s}=${v}`);
+  async upload(s: string, v: string, t?: number) {
+    this.rec(`upload ${s}=${v}${ms(t)}`);
   }
-  async press(s: string | null, k: string) {
-    this.rec(`press ${s ?? "<page>"} ${k}`);
+  async press(s: string | null, k: string, t?: number) {
+    this.rec(`press ${s ?? "<page>"} ${k}${ms(t)}`);
   }
-  async hover(s: string) {
-    this.rec(`hover ${s}`);
+  async hover(s: string, t?: number) {
+    this.rec(`hover ${s}${ms(t)}`);
   }
-  async selectOption(s: string, v: string) {
-    this.rec(`select ${s}=${v}`);
+  async selectOption(s: string, v: string, t?: number) {
+    this.rec(`select ${s}=${v}${ms(t)}`);
   }
-  async setChecked(s: string, c: boolean) {
-    this.rec(`setChecked ${s}=${c}`);
+  async setChecked(s: string, c: boolean, t?: number) {
+    this.rec(`setChecked ${s}=${c}${ms(t)}`);
+  }
+  hideError?: Error;
+  async hideElements(s: string, t?: number) {
+    this.rec(`hide ${s}${ms(t)}`);
+    if (this.hideError) throw this.hideError;
+  }
+  async showElements(s: string | null) {
+    this.rec(`show ${s ?? "<all>"}`);
   }
   async waitForNetworkIdle() {
     this.rec("waitNetworkIdle");
@@ -643,5 +654,135 @@ describe("inferHaltCause", () => {
 
   it("returns undefined when the error doesn't match any known pattern", () => {
     expect(inferHaltCause("network error: ECONNREFUSED")).toBeUndefined();
+  });
+});
+
+describe("runFlow — hide / show", () => {
+  const HIDE_FLOW = `
+name: hide-flow
+locators:
+  badge: 'nextjs-portal'
+  banner: '#banner'
+  save: '#save'
+steps:
+  - id: open
+    action: navigate
+    value: 'https://app.example/'
+  - id: hide-badge
+    action: hide
+    target: $badge
+  - id: shot-clean
+    action: wait
+    target: $save
+    annotation: { copy: "Save" }
+  - id: show-all
+    action: show
+  - id: shot-full
+    action: wait
+    target: $save
+    annotation: { copy: "Save again" }
+`;
+
+  it("hide runs before the screenshot it should keep clean; show runs before the one that needs it back", async () => {
+    const d = new FakeDriver();
+    d.boxes.set("#save", { x: 1, y: 2, width: 3, height: 4 });
+    await runFlow(parseFlowFile(HIDE_FLOW), d);
+    expect(d.calls).toEqual([
+      "goto https://app.example/",
+      "hide nextjs-portal",
+      "screenshot docs/hide-flow/screenshots/shot-clean.png",
+      "show <all>",
+      "screenshot docs/hide-flow/screenshots/shot-full.png",
+    ]);
+  });
+
+  it("show with a target passes the resolved selector (the one hide used)", async () => {
+    const d = new FakeDriver();
+    const flow = parseFlowFile(`
+name: f
+locators: { banner: '#banner' }
+steps:
+  - { id: h, action: hide, target: $banner }
+  - { id: s, action: show, target: $banner }
+`);
+    await runFlow(flow, d);
+    expect(d.calls).toEqual(["hide #banner", "show #banner"]);
+  });
+
+  it("hide requires a target and halts without one", async () => {
+    const flow = parseFlowFile(`
+name: f
+steps:
+  - { id: h, action: hide }
+`);
+    await expect(runFlow(flow, new FakeDriver())).rejects.toThrow(/requires a `target`/);
+  });
+
+  it("an optional hide whose target is missing is skipped and the flow continues", async () => {
+    const d = new FakeDriver();
+    d.hideError = new Error("Timeout 1500ms exceeded.");
+    const flow = parseFlowFile(`
+name: f
+steps:
+  - { id: h, action: hide, target: '#nope', optional: true, timeout_ms: 1500 }
+  - { id: next, action: click, target: '#go' }
+`);
+    const r = await runFlow(flow, d);
+    expect(r.steps.map((s) => s.id)).toEqual(["next"]);
+    expect(d.calls).toEqual(["hide #nope [1500ms]", "click #go"]);
+  });
+
+  it("a non-optional hide that finds nothing halts", async () => {
+    const d = new FakeDriver();
+    d.hideError = new Error("Timeout 30000ms exceeded.");
+    const flow = parseFlowFile(`
+name: f
+steps:
+  - { id: h, action: hide, target: '#nope' }
+`);
+    await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(/step "h" \(hide\)/);
+  });
+});
+
+describe("runFlow — step timeout_ms", () => {
+  it("is passed to every target action; steps without it pass nothing (default behaviour untouched)", async () => {
+    const d = new FakeDriver();
+    const flow = parseFlowFile(`
+name: f
+steps:
+  - { id: a, action: click, target: '#a', timeout_ms: 1500 }
+  - { id: b, action: fill, target: '#b', value: x, timeout_ms: 200 }
+  - { id: c, action: hover, target: '#c', timeout_ms: 300 }
+  - { id: d, action: select, target: '#d', value: v, timeout_ms: 400 }
+  - { id: e, action: check, target: '#e', timeout_ms: 500 }
+  - { id: f, action: uncheck, target: '#f', timeout_ms: 600 }
+  - { id: g, action: upload, target: '#g', value: p, timeout_ms: 700 }
+  - { id: h, action: press, target: '#h', value: Enter, timeout_ms: 800 }
+  - { id: i, action: click, target: '#i' }
+`);
+    await runFlow(flow, d);
+    expect(d.calls).toEqual([
+      "click #a [1500ms]",
+      "fill #b=x [200ms]",
+      "hover #c [300ms]",
+      "select #d=v [400ms]",
+      "setChecked #e=true [500ms]",
+      "setChecked #f=false [600ms]",
+      "upload #g=p [700ms]",
+      "press #h Enter [800ms]",
+      "click #i",
+    ]);
+  });
+
+  it("a `wait` step's timeout_ms bounds its wait_for selector; the wait_for's own value wins", async () => {
+    const d = new FakeDriver();
+    const flow = parseFlowFile(`
+name: f
+steps:
+  - { id: a, action: wait, wait_for: { selector: '#banner' }, timeout_ms: 1500, optional: true }
+  - { id: b, action: wait, wait_for: { selector: '#late', timeout_ms: 90000 } }
+`);
+    await runFlow(flow, d);
+    expect(d.calls).toEqual(["waitSelector #banner (1500ms)", "waitSelector #late (90000ms)"]);
   });
 });

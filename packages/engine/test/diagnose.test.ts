@@ -172,3 +172,40 @@ describe("formatReportText", () => {
     expect(text).toContain("→ add :visible");
   });
 });
+
+describe("diagnose — hide / timeout hints", () => {
+  const flow = parseFlowFile(`
+name: f
+locators: { badge: 'nextjs-portal' }
+steps:
+  - { id: h, action: hide, target: $badge }
+  - { id: c, action: click, target: 'nextjs-portal' }
+  - { id: ok, action: click, target: '#other' }
+`);
+
+  it("a halted hide step points at the locator and at optional + a short timeout_ms", () => {
+    const recs = recommendStatic(flow.steps[0]!, {});
+    expect(recs).toHaveLength(1);
+    expect(recs[0]!.kind).toBe("selector");
+    expect(recs[0]!.suggestion).toMatch(/optional: true.*timeout_ms/);
+  });
+
+  it("`not-found` suggests declaring conditional UI with optional + a short timeout_ms", () => {
+    expect(recommendFromActionable("not-found")[0]!.suggestion).toMatch(
+      /optional: true.*timeout_ms/,
+    );
+  });
+
+  it("flags a step whose target an earlier hide step hid, matching by resolved selector", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-diagnose-"));
+    try {
+      const hidden = await buildDiagnoseReport({ workspace: dir, flow, step: flow.steps[1]! });
+      expect(hidden.recommendations.map((r) => r.kind)).toEqual(["split_step"]);
+      expect(hidden.recommendations[0]!.suggestion).toMatch(/`show` step/);
+      const clear = await buildDiagnoseReport({ workspace: dir, flow, step: flow.steps[2]! });
+      expect(clear.recommendations).toEqual([]);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+});

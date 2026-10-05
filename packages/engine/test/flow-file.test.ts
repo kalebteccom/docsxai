@@ -215,3 +215,49 @@ steps:
     ).rejects.toThrow(/unresolved locator/i);
   });
 });
+
+describe("parseFlowFile — hide / show / timeout_ms", () => {
+  const wrap = (step: string) => `name: f\nsteps:\n  - { id: s, ${step} }\n`;
+
+  it("accepts hide and show, with and without a target", () => {
+    expect(parseFlowFile(wrap("action: hide, target: '#x'")).steps[0]!.action).toBe("hide");
+    expect(parseFlowFile(wrap("action: show")).steps[0]!.action).toBe("show");
+    expect(parseFlowFile(wrap("action: show, target: '#x'")).steps[0]!.target).toBe("#x");
+  });
+
+  it("accepts timeout_ms within 100..30000 on a step that waits for a target", () => {
+    for (const ms of [100, 1500, 30000]) {
+      const f = parseFlowFile(wrap(`action: click, target: '#x', timeout_ms: ${ms}`));
+      expect(f.steps[0]!.timeout_ms).toBe(ms);
+    }
+    expect(
+      parseFlowFile(wrap("action: hide, target: '#x', optional: true, timeout_ms: 1500")).steps[0]!
+        .timeout_ms,
+    ).toBe(1500);
+  });
+
+  it("rejects timeout_ms outside the bounds or non-integer", () => {
+    for (const ms of ["99", "30001", "0", "-5", "1.5"]) {
+      expect(() => parseFlowFile(wrap(`action: click, target: '#x', timeout_ms: ${ms}`))).toThrow(
+        FlowFileError,
+      );
+    }
+  });
+
+  it("rejects timeout_ms where it would bound nothing", () => {
+    for (const step of [
+      "action: navigate, value: /x, timeout_ms: 1500",
+      "action: click, timeout_ms: 1500",
+      "action: show, target: '#x', timeout_ms: 1500",
+      "action: wait, wait_for: network_idle, timeout_ms: 1500",
+      "action: wait, wait_for: { selector: '#x', timeout_ms: 5000 }, timeout_ms: 1500",
+    ]) {
+      expect(() => parseFlowFile(wrap(step))).toThrow(/has no effect/);
+    }
+  });
+
+  it("accepts a wait step whose wait_for selector takes the step timeout_ms", () => {
+    const f = parseFlowFile(wrap("action: wait, wait_for: { selector: '#x' }, timeout_ms: 1500"));
+    expect(f.steps[0]!.timeout_ms).toBe(1500);
+  });
+});

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hide page</title>
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+        font: 16px/20px sans-serif;
+      }
+      #top {
+        height: 50px;
+        background: #00f;
+      }
+      #cookie {
+        height: 80px;
+        background: #f00;
+      }
+      #below {
+        height: 60px;
+        background: #0a0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="top"></div>
+    <div id="cookie">Accept cookies</div>
+    <div id="below">Content that must not move</div>
+    <x-portal></x-portal>
+    <script>
+      // A shadow host with a fixed badge inside, the shape of a framework dev overlay.
+      const shadow = document.querySelector("x-portal").attachShadow({ mode: "open" });
+      shadow.innerHTML =
+        '<div style="position:fixed;right:20px;bottom:20px;width:60px;height:40px;background:#f0f"></div>';
+    </script>
+  </body>
+</html>

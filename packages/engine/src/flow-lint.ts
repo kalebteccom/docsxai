@@ -3,6 +3,7 @@
 
 import type { FlowFile } from "./doc-pack.js";
 import { locatorRefName, referencedLocatorNames } from "./flow-file.js";
+import { hiddenAtEachStep } from "./flow-hidden.js";
 
 export type LintSeverity = "error" | "warning" | "info";
 
@@ -36,6 +37,29 @@ const LONG_ASYNC = /generate|create|process|submit|upload|translate|render|publi
 const BARE_DATA_ATTR = /^\[data-[a-z][a-z0-9-]*="[^"]+"\]$/;
 
 const DEEP_CHAIN_THRESHOLD = 4;
+
+/** Actions that wait on their `target`, so an absent target costs the whole default timeout. */
+const TARGET_WAIT_ACTIONS = new Set([
+  "click",
+  "fill",
+  "upload",
+  "press",
+  "hover",
+  "select",
+  "check",
+  "uncheck",
+  "hide",
+]);
+
+/** Steps that stall the full default wait when their element is absent, and set no shorter one. */
+function waitsFullDefault(step: FlowFile["steps"][number]): boolean {
+  if (step.timeout_ms !== undefined) return false;
+  if (TARGET_WAIT_ACTIONS.has(step.action)) return step.target !== undefined;
+  const w = step.wait_for;
+  return (
+    step.action === "wait" && typeof w === "object" && "selector" in w && w.timeout_ms === undefined
+  );
+}
 
 export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<LintIssue[]> {
   const issues: LintIssue[] = [];
@@ -104,7 +128,9 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
     (flow.redactions ?? []).flatMap((r) => ("selector" in r ? [resolveMaybe(r.selector)] : [])),
   );
 
-  for (const step of flow.steps) {
+  const hiddenAt = hiddenAtEachStep(flow, resolveMaybe);
+
+  for (const [index, step] of flow.steps.entries()) {
     const anns = step.annotation ? [step.annotation] : (step.annotations ?? []);
 
     // R002 — annotation anchored to a likely-unmounting action target
@@ -168,6 +194,61 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
           "`optional: true` with no `wait_for` or `success` — every failure is silently swallowed, so a real regression on this step would be masked",
         suggestion:
           "add a `wait_for: { selector: … }` or a `success:` check to make the presence test explicit",
+      });
+    }
+
+    // R011 — optional step with no short timeout: a miss costs the full default wait
+    if (step.optional && waitsFullDefault(step)) {
+      issues.push({
+        code: "R011",
+        severity: "info",
+        flow: flow.name,
+        stepId: step.id,
+        message:
+          "`optional: true` step has no `timeout_ms` — when its element is absent the run waits Playwright's full 30 s default before skipping it",
+        suggestion:
+          step.action === "wait"
+            ? "add `timeout_ms: 1500` to the step (or to its `wait_for`) so a miss is skipped fast"
+            : "add `timeout_ms: 1500` (100–30000) so a miss is skipped fast; keep the default only if the element can legitimately take longer to appear",
+      });
+    }
+
+    // R012 — `hide` with no target (the runtime would halt on it)
+    if (step.action === "hide" && !step.target) {
+      issues.push({
+        code: "R012",
+        severity: "error",
+        flow: flow.name,
+        stepId: step.id,
+        message:
+          "`hide` has no `target` — there is nothing to hide, and the run halts on this step",
+        suggestion: "set `target` to the element (a `$ref` or an inline selector) to hide",
+      });
+    }
+
+    // R013 — step reaches an element an earlier `hide` step hid: a hidden element isn't visible,
+    // so a click waits out its timeout, an annotation has nothing to anchor to, a visible-wait never ends
+    const reached: Array<[string, string, ReadonlySet<string>]> = [];
+    if (step.target && !["hide", "show", "navigate"].includes(step.action))
+      reached.push([step.target, `\`${step.action}\` target`, hiddenAt[index]!.before]);
+    for (const ann of anns) {
+      const anchor = ann.target ?? step.target;
+      if (anchor) reached.push([anchor, "annotation anchor", hiddenAt[index]!.after]);
+    }
+    if (step.wait_for && typeof step.wait_for === "object" && "selector" in step.wait_for)
+      reached.push([step.wait_for.selector, "`wait_for` selector", hiddenAt[index]!.after]);
+    if (step.success && "visible" in step.success)
+      reached.push([step.success.visible, "`success.visible` selector", hiddenAt[index]!.after]);
+    for (const [ref, role, hidden] of reached) {
+      if (!hidden.has(resolveMaybe(ref))) continue;
+      issues.push({
+        code: "R013",
+        severity: "warning",
+        flow: flow.name,
+        stepId: step.id,
+        message: `${role} \`${ref}\` is hidden by an earlier \`hide\` step, so it can never be visible here`,
+        suggestion:
+          "add a `show` step (with this target, or none to show everything) before this step, or move the `hide` after it",
       });
     }
 

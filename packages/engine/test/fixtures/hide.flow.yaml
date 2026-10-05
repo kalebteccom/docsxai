@@ -1,0 +1,47 @@
+# Fixture flow for the hide keystone (runs against test/fixtures/toy-site/hide.html).
+# Screenshots of the same page before hiding, while hidden, after a reload, and after `show`.
+name: hide
+environment:
+  viewport: { width: 800, height: 600 }
+locators:
+  cookie: "#cookie"
+  portal: "x-portal"
+  below: "#below"
+steps:
+  - id: open
+    action: navigate
+    value: hide.html
+    wait_for: load
+  - id: shot-visible
+    action: wait
+    target: $below
+    annotation: { copy: "Content below the banner" }
+  - id: hide-cookie
+    action: hide
+    target: $cookie
+  - id: hide-portal
+    action: hide
+    target: $portal
+  - id: hide-missing
+    action: hide
+    target: "#not-on-this-page"
+    optional: true
+    timeout_ms: 300
+  - id: shot-hidden
+    action: wait
+    target: $below
+    annotation: { copy: "Content below the banner" }
+  - id: reload
+    action: navigate
+    value: hide.html
+    wait_for: load
+  - id: shot-after-reload
+    action: wait
+    target: $below
+    annotation: { copy: "Content below the banner" }
+  - id: show-all
+    action: show
+  - id: shot-restored
+    action: wait
+    target: $below
+    annotation: { copy: "Content below the banner" }
