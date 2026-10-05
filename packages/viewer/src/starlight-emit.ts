@@ -18,8 +18,8 @@ import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
 import { discoverFlows } from "./render.js";
 
 /** Exact versions pinned into the emitted site's package.json — verified to install + build. */
-export const ASTRO_VERSION = "6.4.8";
-export const STARLIGHT_VERSION = "0.40.0";
+export const ASTRO_VERSION = "7.3.5";
+export const STARLIGHT_VERSION = "0.41.2";
 
 export interface StarlightSiteConfig {
   /** Site title. Default: `"Documentation"`. */

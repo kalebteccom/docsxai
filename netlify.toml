@@ -14,7 +14,7 @@
 
 [build.environment]
   # Node is locked to 26 in .nvmrc (read by nvm locally and by Netlify);
-  # mirrored here explicitly for robustness — keep the two in sync. Astro 6
+  # mirrored here explicitly for robustness — keep the two in sync. Astro 7
   # needs Node >= 22.12.0; the published engine/CLI packages still run on
   # Node 20, so this lock is build/dev-only.
   NODE_VERSION = "26"
