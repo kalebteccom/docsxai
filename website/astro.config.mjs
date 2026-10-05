@@ -2,6 +2,7 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
+import rehypeStripAgentAsides from "./plugins/rehype-strip-agent-asides.mjs";
 
 // The docsxai documentation site, served at docsxai.dev.
 // Static Astro + Starlight. The published content lives in
@@ -10,6 +11,12 @@ import starlightLinksValidator from "starlight-links-validator";
 export default defineConfig({
   site: "https://docsxai.dev",
   trailingSlash: "always",
+  // Remove "For agents" asides from the rendered HTML. The same guidance stays
+  // in the page source and is served from the plaintext .md endpoint, so the
+  // human site stays end-user-focused while agents still get it via llms.txt.
+  markdown: {
+    rehypePlugins: [rehypeStripAgentAsides],
+  },
   integrations: [
     starlight({
       title: "docsxai",
@@ -138,8 +145,6 @@ export default defineConfig({
         {
           label: "Guides",
           items: [
-            { label: "Agent runbook", slug: "guides/agent-runbook" },
-            { label: "Agent guidance", slug: "guides/agent-guidance" },
             { label: "Running against an app repo", slug: "guides/running-against-an-app-repo" },
             { label: "CI recipes", slug: "guides/ci-recipes" },
             { label: "Writing plugins", slug: "guides/writing-plugins" },

@@ -109,7 +109,7 @@ Parallel agents that modify the same working tree collide. Dispatch multi-agent 
 
 Three doc surfaces with distinct contracts:
 
-- **`docs/`** — public adopter contract. Runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`) and cross-repo contracts (`actionability-contract.md`, `browxai-asks.md`). Every public behavior change updates the relevant runbook.
+- **`docs/`** — public adopter contract. Runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`) and cross-repo contracts (`actionability-contract.md`, `browxai-asks.md`). Every public behavior change updates the relevant runbook. The rendered docs site is for end users: agent-only notes go in a `**For agents:**` blockquote (or a `:::caution[For agents]` aside in `website/src/content/`), which the HTML build strips and the plaintext `.md` twin linked from `llms.txt` keeps. `agent-runbook.md` and `agent-guidance.md` render as `.md` only. See `docs/README.md`.
 - **Colocated `README.md`** — per-package internal contracts (`packages/engine/README.md`, `packages/plugin/README.md`, …). Each package describes its own surface, not the whole repo.
 - **`docs/archive/phase-plans/PHASE-N.md`** — recorded decision history. The source of truth for current spec and scope is the repo-local docs (`AGENTS.md`, `docs/`, `docs/ai-context/`); these archives hold the rationale behind fixed boundaries, not live references.
 

@@ -61,7 +61,7 @@ steps:
 To find good locators on the live, authed page, use
 `docsxai inspect ~/docsxai/my-app` - it loads the cached session and
 prints the page's `[data-testid]` elements. To author with an agent instead
-of by hand, follow the [agent runbook](/guides/agent-runbook/). Before
+of by hand, follow the [agent runbook](https://github.com/kalebteccom/docsxai/blob/main/docs/agent-runbook.md). Before
 running, catch authoring mistakes statically:
 
 ```sh
@@ -94,7 +94,7 @@ pulsing halos - hover one to read its callout.
 
 ## Where to next
 
-- [Agent runbook](/guides/agent-runbook/) - hand calibration to a coding agent end to end.
+- [Agent runbook](https://github.com/kalebteccom/docsxai/blob/main/docs/agent-runbook.md) - hand calibration to a coding agent end to end.
 - [CI recipes](/guides/ci-recipes/) - refresh the pack in your pipeline, gate on drift with `baseline` + `diff`.
 - [Flow-file format](/reference/flow-file/) - every field, including `extends`, `environment`, and redactions.
 - [The doc pack](/concepts/doc-pack/) - what just landed in your workspace.
