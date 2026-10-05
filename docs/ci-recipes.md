@@ -9,7 +9,7 @@
 
 ## What execution mode needs
 
-- Node 20+, pnpm, and a Chromium binary
+- Node 26+, pnpm, and a Chromium binary
   (`pnpm exec playwright-core install chromium`).
 - The doc-pack workspace checked out (flows/, docs/, auth/strategy.yaml,
   `.docsxai.json`) — typically its own repo or a docs/ subdirectory.
@@ -79,7 +79,7 @@ strategy posts it automatically.
 
 ```yaml
 refresh-docs:
-  image: node:20
+  image: node:26
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   script:

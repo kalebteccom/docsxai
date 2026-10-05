@@ -85,4 +85,4 @@ Adding a tool? Follow the numbered checklist in
 ## Deferred
 
 Streamable-HTTP transport is deferred per the roadmap — stdio only for now. The package is
-`private: true` until the go-public flip.
+`private: true` and not on npm; run it from a source checkout.

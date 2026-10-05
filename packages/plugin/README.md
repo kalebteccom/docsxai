@@ -16,6 +16,8 @@ claude plugin install https://github.com/kalebteccom/docsxai   # (the plugin liv
 | `/docsxai:pull <project-dir>`   | Download the doc pack from the configured backend.                      |
 | `/docsxai:login`                | OAuth login to the backend (CI uses `DOCSX_TOKEN`).                     |
 | `/docsxai:doctor`               | Environment + workspace health-check (✓/✗ + one-line fixes).            |
+| `/docsxai:plugins`              | List, inspect, and lock the workspace's plugins.                        |
+| `/docsxai:export`               | Export the doc pack as a wiki-ready ADF projection.                     |
 
 ## Skills (calibration — agent-driven; the host supplies inference)
 
@@ -26,7 +28,7 @@ claude plugin install https://github.com/kalebteccom/docsxai   # (the plugin liv
 
 ## MCP
 
-The skills shell out to the `docsxai` CLI and use the externally-provided **Claude in Chrome** MCP for
-the discovery stage's live-browser driving. An internal MCP server (engine operations the calibration
-skills call — parse-flow-file, run-flow, apply-ambiguity-resolution, …) is a possible future addition if
-shelling out becomes the bottleneck.
+The plugin registers no MCP server. The skills shell out to the `docsxai` CLI and use the
+externally-provided **browxai** MCP (any MCP browser bridge works) for the discovery stage's live-browser
+driving. Hosts that prefer MCP tools over shell-outs can register the standalone `@docsxai/mcp` server
+(engine operations as tools: `run_flows`, `lint_flows`, `diagnose_halt`, …; repo-only, see its README).

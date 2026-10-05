@@ -88,13 +88,15 @@ For the full agent-driven workflow and the fast calibration loop (`lint`, `flow-
 | package                                                     | role                                                                                                                                                                                                       |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`@docsxai/engine`](packages/engine/)                       | The LLM-agnostic engine: flow-file parser + deterministic runtime (environment controls, redaction), the plugin runtime, the 11-strategy auth catalogue, pure exporters (ADF), and the full `docsxai` CLI. |
-| [`@docsxai/plugin`](packages/plugin/)                       | Claude Code plugin — calibrate + diagnose skills; run/render/login/push/pull/plugins/export commands. The recommended surface for agent-driven workflows.                                                  |
+| [`@docsxai/plugin`](packages/plugin/)                       | Claude Code plugin — calibrate + diagnose skills; run/render/login/push/pull/doctor/plugins/export commands. The recommended surface for agent-driven workflows.                                           |
 | [`@docsxai/viewer`](packages/viewer/)                       | Rendering surface: interactive single-file viewer, browser-free `burn` renderer (baked annotations), and the Astro Starlight docs-site emitter.                                                            |
 | [`@docsxai/backend`](packages/backend/)                     | Doc-pack persistence service: FS or in-memory store, content-addressed blobs, finalized linear-immutable revisions, OAuth 2.1 + PKCE, encrypted auth-cache relay, GitHub App webhook surface.              |
 | [`@docsxai/skill`](packages/skill/)                         | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                                                             |
 | [`@docsxai/mcp`](packages/mcp/)                             | Standalone stdio MCP server: calibration meta-orchestration + doc-pack introspection for any MCP host (no browser primitives — browxai owns discovery).                                                    |
 | [`@docsxai/plugin-confluence`](packages/plugin-confluence/) | First-party publisher plugin — idempotent Confluence Cloud REST v2 push (`confluence:push`), capability-gated egress.                                                                                      |
 | [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin — Starlight site emission (`starlight:site`).                                                                                                                                  |
+
+`@docsxai/mcp`, `@docsxai/plugin-confluence` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (0.2.0).
 
 ## Documentation
 

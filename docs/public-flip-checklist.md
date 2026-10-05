@@ -1,6 +1,6 @@
-# Public flip checklist (v1.0)
+# Public flip checklist
 
-Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue for each item; close as you complete. The operational, walk-through-on-the-day version lives at `docs/ai-context/release-process/public-flip-checklist.md`.
+Planning-level checklist for the docsxai public flip. The repo is public and `0.2.0` is on npm (2026-06-26); unchecked items below were not verified from the repo and need an owner pass. Open a tracking issue for each item; close as you complete. The operational, walk-through-on-the-day version lives at `docs/ai-context/release-process/public-flip-checklist.md`.
 
 ## Pre-flight: governance + multi-harness substrate merged
 
@@ -25,7 +25,7 @@ Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue
 - [ ] WebAuthn enrolled on the maintainer's npm account
 - [ ] Breakglass npm account created with separate keys + email
 - [x] `@docsxai` org scope claimed on npm (registered) - enforce "Require 2FA" on it before the first publish
-- [ ] `docsxai` unscoped package name claimed — ships as the real batteries-included meta-package from `packages/docsxai/` (bin wraps `@docsxai/engine`'s CLI in-process; depends on `@docsxai/viewer`), published by `release.yml` alongside the scoped packages
+- [x] `docsxai` unscoped package name claimed — ships as the real batteries-included meta-package from `packages/docsxai/` (bin wraps `@docsxai/engine`'s CLI in-process; depends on `@docsxai/viewer`), published by `release.yml` alongside the scoped packages
 - [ ] Typosquat package names pre-claimed and deprecated (`doxai`, `docsai`, `docsx-ai`, etc.)
 - [ ] npm trusted-publisher configuration set per published name (repo + workflow + `release` environment binding) — 6 bindings total: `docsxai` unscoped plus the 5 published scoped packages on the registered `@docsxai` org, `@docsxai/{backend,engine,plugin,skill,viewer}`. `@docsxai/{mcp,plugin-confluence,plugin-starlight}` stay `private: true` / repo-only at the flip (documented as such; revisit post-flip) and need no bindings
 - [ ] GitHub `release` environment configured (required reviewer, branch restriction)
@@ -40,16 +40,16 @@ Planning-level checklist for the docsxai v1.0 public flip. Open a tracking issue
 
 ## Flip-day ordered actions
 
-1. Promote `## Unreleased` in `CHANGELOG.md` to `## [1.0.0] - YYYY-MM-DD`.
-2. Bump each publishable `packages/*/package.json` to `1.0.0` (the workspace root and the repo-only packages stay as they are).
-3. Commit `chore(release): v1.0.0`.
-4. Sign and push tag: `git tag -s v1.0.0 && git push origin main --tags`.
+1. Promote `## [Unreleased]` in `CHANGELOG.md` to `## [X.Y.Z] - YYYY-MM-DD`.
+2. Bump each publishable `packages/*/package.json` to `X.Y.Z` (the workspace root and the repo-only packages stay as they are).
+3. Commit `chore(release): vX.Y.Z`.
+4. Sign and push tag: `git tag -s vX.Y.Z && git push origin main --tags`.
 5. Watch the GitHub Actions run; approve the `release` environment gate when prompted.
 6. `release.yml` publishes the 6 packages via OIDC + uploads the SBOM + creates the GitHub Release.
-7. Verify `npm install @docsxai/engine@1.0.0` from a clean machine. Run `npm audit signatures`.
+7. Verify `npm install @docsxai/engine@X.Y.Z` from a clean machine. Run `npm audit signatures`.
 8. After the first OIDC publish succeeds, enable "Require 2FA and disallow tokens" on every published package on the npm side.
 9. In GitHub repo settings: branch protection on `main` with required CI, required reviews, no force-push, signed commits. Verify CODEOWNERS protections on `.github/`, manifests, license, release workflow.
-10. Flip repository visibility to public.
+10. Flip repository visibility to public (done: the repo is public).
 11. Website go-live (publish-first ordering — npm packages above, then the site, then DNS):
     1. Trigger the Netlify production deploy of `website/` against the tagged commit; confirm the build is green.
     2. Verify DNS + TLS for the site domain resolve to Netlify and the apex/`www` redirect works.

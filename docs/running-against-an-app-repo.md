@@ -18,7 +18,7 @@ Set this once for the rest of the runbook:
 
 ```bash
 export APP_REPO=/path/to/the/app/checkout          # e.g. your local example-app
-export TOOL_REPO=/path/to/automated-site-documentation-bot
+export TOOL_REPO=/path/to/docsxai
 export WORKSPACE=$HOME/docsxai/$(basename "$APP_REPO")   # docsxai artifacts go HERE, never in $APP_REPO
 export APP_RUN=/tmp/docsxai-app-run                       # disposable copy of $APP_REPO to actually run
 ```
@@ -41,7 +41,7 @@ Make the CLIs callable. Either link them globally —
 ```bash
 pnpm -C "$TOOL_REPO/packages/engine"  link --global   # → `docsxai`
 pnpm -C "$TOOL_REPO/packages/viewer"  link --global   # → `docsxai-viewer`  (docsxai render shells out to it)
-pnpm -C "$TOOL_REPO/packages/backend" link --global   # → `docsxai-backend` (optional; the in-memory stub)
+pnpm -C "$TOOL_REPO/packages/backend" link --global   # → `docsxai-backend` (optional; local dev backend)
 ```
 
 — or skip linking and call them directly: `node "$TOOL_REPO/packages/engine/dist/cli.js" …`. (Below assumes
@@ -52,10 +52,11 @@ skills — `claude plugin install` it if you want `/docsxai:calibrate` etc. (The
 a plugin living in a monorepo subdirectory still needs validating against current Claude Code plugin docs — see
 `docs/archive/phase-plans/PHASE-0.md`; until then, the calibration playbook in `packages/plugin/skills/calibrate/SKILL.md` is the script.)
 
-> **Heads-up on calibration:** the _deterministic_ side (`run`, `render`, `capture-auth`) is real and usable
-> today. The calibration _pipeline stages_ (the discovery → mapping → commit code that produces a doc pack from
-> a written flow description) aren't built yet — only the contract + the playbook. So "calibrate" right now means
-> _drive the playbook manually_ (Claude Code + the Claude-in-Chrome MCP + the engine primitives), not one command.
+> **Heads-up on calibration:** the _deterministic_ side (`run`, `render`, `capture-auth`) is a plain CLI. Agent-driven
+> calibration runs through the plugin's `calibrate` and `diagnose` skills (or any MCP host driving the `@docsxai/mcp`
+> tools), with browxai for live-page discovery. There is no single `docsxai` command that turns a written flow
+> description into a doc pack: the agent drives the playbook and calls the engine primitives. `docsxai calibrate --from`
+> covers only structured flow-guides.
 
 ---
 
@@ -116,11 +117,10 @@ docsxai capture-auth "$WORKSPACE" --base-url "$APP_URL" --ignore-https-errors
 
 ### 2d. Calibrate — produce the doc pack
 
-Drive the calibration playbook (`packages/plugin/skills/calibrate/SKILL.md`): with the dev server running and you
-authed in the Claude-in-Chrome session, walk each flow on the live app, settle one canonical locator per step,
+Run the plugin's `calibrate` skill (`/docsxai:calibrate`; the playbook is `packages/plugin/skills/calibrate/SKILL.md`): with the dev server running and the
+browser your discovery driver (browxai) attaches to authed, walk each flow on the live app, settle one canonical locator per step,
 add `wait_for`/`success` criteria, write `$WORKSPACE/flows/<flow>.flow.yaml`, and capture screenshots +
-`annotations.json` + the style artifact + `locators.yaml` — all into `$WORKSPACE`. (When the calibration stages
-are built this becomes `/docsxai:calibrate <flow.md> --url "$APP_URL" --into "$WORKSPACE"`.)
+`annotations.json` + the style artifact + `locators.yaml` — all into `$WORKSPACE`.
 
 ### 2e. Re-run deterministically (refresh the docs)
 
@@ -161,7 +161,7 @@ git -C "$APP_REPO" status                                # should be clean — y
 
 ## Caveats / known gaps
 
-- **Agent-driven calibration isn't built** — `docsxai calibrate --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / the first-consumer testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
+- **No one-command calibration** — agent-driven calibration is the plugin's `calibrate` skill (or the `@docsxai/mcp` tools) following the playbook. `docsxai calibrate --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / the first-consumer testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
 - **Plugin install from a monorepo subdir** isn't validated yet (`docs/archive/phase-plans/PHASE-0.md` "plugin packaging prototype"). If `claude plugin install` doesn't pick up `packages/plugin/`, copy that dir somewhere installable, or just use the playbook + CLIs.
 - **`--persist tmp`** is implemented for `init` (an ephemeral workspace in a temp dir); `rm -rf` it when done.
 - **HTTPS dev certs:** pass `--ignore-https-errors` (or bake it into `.docsxai.json` via `init`). The `manual-capture` browser also runs security-lowered so the injected capture helper works across SSO-redirect origins. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot.

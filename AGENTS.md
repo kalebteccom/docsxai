@@ -44,7 +44,7 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 ## Repo map
 
 - `packages/engine/` — `@docsxai/engine`. The flow-file parser + deterministic runtime, the `docsxai` CLI (`init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `plugins`, `export`, `push`, `pull`, `login`, plus drift tooling as it lands), the target-site auth-strategy catalogue (`src/auth/`), the workspace plugin runtime (`src/plugins/` — publishers / renderers / lint-rules / auth-strategies), pure exporters (`src/export/`), the `BrowserDriver` interface + `PlaywrightDriver` implementation, calibration-aid helpers. The engine never calls a model API — that's the load-bearing contract.
-- `packages/plugin/` — `@docsxai/plugin`. The Claude Code plugin: calibrate + diagnose skills, run/render/login commands, internal MCP registration. The recommended invocation surface for agent-driven workflows.
+- `packages/plugin/` — `@docsxai/plugin`. The Claude Code plugin: calibrate + diagnose skills, deterministic commands (run, render, login, push, pull, doctor, plugins, export). The recommended invocation surface for agent-driven workflows.
 - `packages/backend/` — `@docsxai/backend`. Authenticated doc-pack persistence service: REST + per-resource endpoints, filesystem or in-memory store, content-addressed blobs, finalized linear-immutable revisions, OAuth 2.1 + PKCE (CI bearer path retained), client-side-encrypted auth-cache relay, and the GitHub App webhook surface (signed dispatch → deterministic execution → output strategies). Loopback by default; hosted deployment is owner-gated.
 - `packages/skill/` — `@docsxai/skill`. Optional vendorable `.claude/skills/` fallback that delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.
 - `packages/mcp/` — `@docsxai/mcp`. Standalone stdio MCP server (`docsxai-mcp` bin) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives — live-page discovery is browxai's. Tool registry discipline: `docs/ai-context/tool-registration/mcp-tool-registry.md`.
@@ -53,7 +53,7 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 - `packages/plugin-starlight/` — `@docsxai/plugin-starlight`. First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter.
 - `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `agent-guidance.md` (the reach-for-this-not-that footgun map for calibration agents), `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
 - `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — recorded decision history. Consult for the rationale behind a fixed boundary; the standing spec and scope live in `AGENTS.md`, `docs/`, and `docs/ai-context/`, not here.
-- `RELEASING.md` — gated go-public checklist (release is owner-deferred).
+- `RELEASING.md` — release checklist (OIDC trusted publishing via `release.yml`).
 
 ## Trust + execution posture
 
@@ -167,5 +167,5 @@ Every behavior-change diff verifies this gate locally before pushing — never p
 - [`SECURITY.md`](SECURITY.md) — vulnerability reporting + trust posture.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contributor workflow + DCO posture.
 - [`MAINTAINERS.md`](MAINTAINERS.md) — maintainer roster + decision-making.
-- [`RELEASING.md`](RELEASING.md) — gated go-public checklist.
+- [`RELEASING.md`](RELEASING.md) — release checklist.
 - [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — runtime third-party dependencies.
