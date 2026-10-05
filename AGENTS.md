@@ -99,7 +99,7 @@ The engine sits behind a `BrowserDriver` interface, not hard-wired to Playwright
 
 ## Workspace + paths
 
-All file IO is workspace-rooted, never `cwd`. A `docsxai` workspace is the directory passed as the CLI argument (e.g. `~/docsxai/my-app`); all artifacts (flow-files, `annotations.json`, screenshots, locator manifest, auth descriptor, halt context, viewer output) live under it. Internal Kalebtec paths do not appear in code, comments, tests, or public docs.
+All file IO is workspace-rooted, never `cwd`. A `docsxai` workspace is the directory passed as the CLI argument (e.g. `~/docsxai/my-app`); all artifacts (flow-files, `annotations.json`, screenshots, locator manifest, auth descriptor, halt context, viewer output) live under it. Internal Kalebtec paths do not appear in code, comments, tests, or public docs. The one exception is the CI runner's lock and cache mount paths in `.woodpecker.yml` and `scripts/gate-slot.sh`; they name directories on the CI host and carry no secrets.
 
 ## Worktree conventions
 

@@ -1,0 +1,91 @@
+# ci-optimised: v1
+# Mirrors remotxai's Woodpecker layout. Gates match the AGENTS.md quality gate contract.
+# INVARIANT: this pipeline never publishes and names no secrets; releases stay in .github/workflows/release.yml (OIDC).
+
+# INVARIANT: push events only. The repo is public and Woodpecker runs with allow_pr=false, so a PR gets its status from the push to its branch; no pull_request, tag or release events.
+when:
+  - event: push
+
+steps:
+  - name: setup
+    image: remotxai-ci:latest
+    depends_on: []
+    volumes:
+      - /home/gitops/cache/docsxai/pnpm-store:/pnpm-store
+    commands:
+      - pnpm config set store-dir /pnpm-store
+      - pnpm install --frozen-lockfile --ignore-scripts
+
+  # Runs after build: tsc resolves @docsxai/engine and @docsxai/viewer types from their dist/ output.
+  - name: typecheck
+    image: remotxai-ci:latest
+    depends_on: [build]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    commands:
+      - bash scripts/gate-slot.sh pnpm typecheck
+
+  - name: lint
+    image: remotxai-ci:latest
+    depends_on: [build]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    commands:
+      - bash scripts/gate-slot.sh pnpm lint
+      - bash scripts/gate-slot.sh pnpm format:check
+
+  - name: build
+    image: remotxai-ci:latest
+    depends_on: [setup]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    commands:
+      - bash scripts/gate-slot.sh pnpm build
+
+  - name: architecture
+    image: remotxai-ci:latest
+    depends_on: [setup]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    commands:
+      - bash scripts/gate-slot.sh pnpm depcruise
+      - bash scripts/gate-slot.sh pnpm jscpd:check
+
+  # Runs after build: the docsxai meta-package test spawns the built dist/ output.
+  # The keystone suite inside this step skips itself when Chromium is absent (see keystone below).
+  - name: test
+    image: remotxai-ci:latest
+    depends_on: [build]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    # PERFORMANCE: the slot pool is shared with trackxai and remotxai, so cap the packages tested in parallel.
+    environment:
+      npm_config_workspace_concurrency: "2"
+    commands:
+      - bash scripts/gate-slot.sh pnpm test
+
+  - name: docs-build
+    image: remotxai-ci:latest
+    depends_on: [build]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    commands:
+      - bash scripts/gate-slot.sh pnpm docs:build
+
+  # DISABLED: remotxai-ci carries the Chromium system libraries but not the browser binary, so the keystone suite in the test step skips silently.
+  # Enable by deleting the evaluate guard once the image is confirmed to run Chromium headless; the download below is the install ci.yml uses.
+  - name: keystone
+    image: remotxai-ci:latest
+    depends_on: [build]
+    when:
+      - evaluate: "false"
+    volumes:
+      - /home/gitops/cache/docsxai/pnpm-store:/pnpm-store
+      - /home/gitops/cache/docsxai/playwright-browsers:/playwright-browsers
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    environment:
+      PLAYWRIGHT_BROWSERS_PATH: /playwright-browsers
+    commands:
+      - pnpm config set store-dir /pnpm-store
+      - pnpm -C packages/engine exec playwright-core install chromium
+      - bash scripts/gate-slot.sh pnpm -C packages/engine exec vitest run test/keystone.test.ts
