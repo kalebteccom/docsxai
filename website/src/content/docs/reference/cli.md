@@ -299,7 +299,7 @@ Recommendations (1):
 
 Health-checks the environment and the workspace, browxai-style: a `✓`/`✗`
 checklist with a one-line fix per failing row (`−` rows are informational and
-never fail). The checks: Node >= 20, a Chromium binary for playwright-core,
+never fail). The checks: Node >= 26, a Chromium binary for playwright-core,
 `.docsxai.json` found and parseable (the argument, or the current directory),
 every flow-file parses, the auth descriptor plus the cached session's
 freshness, backend reachability when `backend_url` is configured (plus a
@@ -313,7 +313,7 @@ unknown `DOCSX_*` names flagged as likely typos). Exit 1 on any `✗`.
 $ docsxai doctor ~/docsxai/my-app
 docsxai doctor — environment & workspace health
 
-  ✓ node       v22.15.0 (>= 20 required)
+  ✓ node       v26.1.0 (>= 26 required)
   ✓ chromium   ~/Library/Caches/ms-playwright/chromium-1223/…/Google Chrome for Testing
   ✓ workspace  ~/docsxai/my-app/.docsxai.json (docsxai/workspace@1, app_url https://localhost:3000)
   ✓ flows      3 flow-file(s) parse

@@ -16,7 +16,7 @@ pnpm install
 pnpm -C packages/engine exec playwright-core install chromium   # needed for the keystone test + `docsxai run`
 ```
 
-Node 20+. Package manager is pnpm 9.x.
+Node 26+. Package manager is pnpm 9.x.
 
 Checks (all must pass before a PR merges — CI runs them):
 
@@ -38,9 +38,12 @@ the runtime, auth strategies, or the deterministic-replay contract.
 packages/
   engine/    @docsxai/engine    — flow-file runtime, CLI, auth strategies
   plugin/    @docsxai/plugin    — Claude Code plugin (the invocation surface)
-  backend/   @docsxai/backend   — auth'd persistence (stub today)
+  backend/   @docsxai/backend   — auth'd doc-pack persistence service
   skill/     @docsxai/skill     — vendorable .claude/skills/ fallback
-  viewer/    @docsxai/viewer    — static-HTML viewer
+  viewer/    @docsxai/viewer    — viewer, burn renderer, Starlight site emitter
+  mcp/       @docsxai/mcp       — standalone stdio MCP server
+  docsxai/   docsxai            — batteries-included CLI meta-package
+  plugin-confluence/ plugin-starlight/  — first-party publisher / renderer plugins
 docs/        runbooks + cross-repo contracts (browser-bridge integration, actionability)
 ```
 

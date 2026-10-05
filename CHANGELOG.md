@@ -17,6 +17,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Fixed
 
+- **Docs match the code.** Stale claims corrected across the README, runbooks, package READMEs, `RELEASING.md`, `SECURITY.md` and the docs site: Node 26+ (not 20) in the CI recipes, `CONTRIBUTING.md` and the `doctor` reference; the repo is public and `0.2.0` is published (not "unpublished" or "owner-deferred"); agent-driven calibration is the plugin's `calibrate` skill plus the `@docsxai/mcp` tools (not "not built"), though there is still no one-command calibration; the plugin registers no MCP server; `@docsxai/mcp` and the two publisher/renderer plugins are repo-only; the release workflow has one `publish` job on Node 26; `capture-auth` is the headed command and `run` is headless by default.
 - **CI is green again.** `ci` builds before `pnpm -r typecheck` and `quality` builds before `pnpm lint`, since both resolve `@docsxai/*` imports through `dist/`. The lockfile moves transitive `fast-uri` to 3.1.8 and `ip-address` to 10.7.3 (via `@modelcontextprotocol/sdk`), clearing the high advisories `pnpm audit:prod` reported.
 
 ## [0.2.0] - 2026-06-26

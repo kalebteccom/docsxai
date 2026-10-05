@@ -31,6 +31,10 @@ zip            package the doc pack for hand-off
 baseline       snapshot the doc pack (flows, prose, annotations, screenshots, locators) for drift comparison
 diff           deterministic drift report against a baseline (--fail-on warn|fail gates CI)
 export         project the doc pack to a publisher format (`export adf` — Confluence ADF; `export playwright` — Playwright specs)
+plugins        list / info / sync the workspace plugin set (see Plugins below)
+login          validate a backend bearer token (`--oauth` runs the OAuth 2.1 + PKCE flow)
+push           upload the doc pack to the backend as a new revision
+pull           fetch a backend revision's artifacts into the workspace
 ```
 
 `run` has a sub-3-second iteration mode for long-async flows: `--start-from <step-id> --cdp <endpoint>` skips every step before the target and attaches to an already-warm Chrome.

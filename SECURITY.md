@@ -11,11 +11,10 @@ will not commit to, and how to report a vulnerability.
 
 ## Supported versions
 
-docsxai is **pre-v1.0** and unpublished. At the public flip the bare
-`docsxai` npm name publishes as the real batteries-included CLI
-meta-package over `@docsxai/engine` + `@docsxai/viewer` (see
-[`RELEASING.md`](RELEASING.md)), alongside the scoped packages, at v1.0.
-Until then:
+docsxai is **pre-v1.0**. `0.2.0` is published on npm: the bare
+`docsxai` package (the batteries-included CLI meta-package over
+`@docsxai/engine` + `@docsxai/viewer`) alongside `@docsxai/{engine,viewer,plugin,skill,backend}`
+(see [`RELEASING.md`](RELEASING.md)). Until v1.0:
 
 | Version range              | Support level                                                                                                                                                               |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
