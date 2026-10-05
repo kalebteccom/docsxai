@@ -27,7 +27,7 @@ steps:
 
   - name: lint
     image: remotxai-ci:latest
-    depends_on: [setup]
+    depends_on: [build]
     volumes:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     commands:
