@@ -19,7 +19,10 @@ import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import type { Rect } from "./placement.js";
 import { anchorBadge, planBadge, BADGE_DEFAULT_OFFSET, BADGE_INNER } from "./badge-placement.js";
-import { arrowGeometry, type ArrowGeometry } from "./arrow.js";
+import { arrowGeometry, growRect, type ArrowGeometry } from "./arrow.js";
+import { connectorNodes } from "./burn-connector.js";
+import type { PixelGrid } from "./connector-contrast.js";
+import { decodeScreenshot } from "./screenshot-pixels.js";
 import { measureText, parseFontMetrics, type FontMetrics } from "./font-metrics.js";
 import {
   CALLOUT_BORDER,
@@ -93,6 +96,11 @@ export interface BurnTreeInput {
   report?: AnnotationReport[];
   /** `overlap_ratio` above which a report entry is `unplaceable`. Default {@link DEFAULT_UNPLACEABLE_RATIO}. */
   unplaceableRatio?: number;
+  /**
+   * The screenshot's pixels. With them, an arrow or stem over a dark background gets a white
+   * outline. Without them every connector is plain ink.
+   */
+  pixels?: PixelGrid;
 }
 
 /** Outer size of the numbered badge: the circle widens for multi-digit indexes. */
@@ -111,17 +119,10 @@ function badgeBox(t: BoundingBox, index: number, image: Size, metrics: FontMetri
   return anchorBadge(t, "top-left", BADGE_DEFAULT_OFFSET, badgeSize(index, metrics), image);
 }
 
-const inflate = (r: Rect, m: number): Rect => ({
-  x: r.x - m,
-  y: r.y - m,
-  width: r.width + 2 * m,
-  height: r.height + 2 * m,
-});
-
 /** Keep-clear boxes around every other annotation's halo. */
 function otherHalos(annotations: AnnotationRecord[], self: AnnotationRecord): Rect[] {
   return annotations.flatMap((other) =>
-    other !== self && other.bounding_box ? [inflate(other.bounding_box, HALO_MARGIN)] : [],
+    other !== self && other.bounding_box ? [growRect(other.bounding_box, HALO_MARGIN)] : [],
   );
 }
 
@@ -141,7 +142,7 @@ function keepClear(
   for (const other of annotations) {
     const box = other.bounding_box;
     if (!box) continue;
-    if (other !== self) clear.push(inflate(box, HALO_MARGIN));
+    if (other !== self) clear.push(growRect(box, HALO_MARGIN));
     if (typeof other.index === "number") {
       clear.push(badges.get(other) ?? badgeBox(box, other.index, image, metrics));
     }
@@ -155,35 +156,9 @@ interface DrawnCallout {
   boxes: Rect[];
 }
 
-function calloutNodes(layout: CalloutLayout): DrawnCallout {
-  const { lines, size: callout, nudge, stem } = layout;
-  const nodes: BurnNode[] = [];
-  if (stem) {
-    nodes.push(
-      div({
-        position: "absolute",
-        left: stem.x + nudge.x,
-        top: stem.y + nudge.y,
-        width: stem.width,
-        height: stem.height,
-        backgroundColor: INK,
-      }),
-    );
-  }
-  if (layout.side && layout.arrow) {
-    const arrow = arrowGeometry(layout.side, layout.arrow);
-    nodes.push(
-      div({
-        position: "absolute",
-        left: arrow.left + nudge.x,
-        top: arrow.top + nudge.y,
-        width: arrow.width,
-        height: arrow.height,
-        backgroundColor: INK,
-        clipPath: arrow.clipPath,
-      }),
-    );
-  }
+function calloutNodes(layout: CalloutLayout, pixels?: PixelGrid): DrawnCallout {
+  const { lines, size: callout, nudge } = layout;
+  const nodes: BurnNode[] = connectorNodes(layout, pixels);
   nodes.push(
     div(
       {
@@ -293,7 +268,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     if (ann.copy) {
       const clear = keepClear(input.annotations, ann, image, input.metrics, placed, badges);
       layout = layoutCallout({ ann, target: t, image, metrics: input.metrics, clear });
-      const drawn = calloutNodes(layout);
+      const drawn = calloutNodes(layout, input.pixels);
       children.push(...drawn.nodes);
       placed.push(...drawn.boxes);
       calloutBox = drawn.boxes[0]!;
@@ -327,6 +302,12 @@ export interface BurnOptions {
    * (default {@link DEFAULT_UNPLACEABLE_RATIO}). Reporting only: every callout is drawn either way.
    */
   unplaceableRatio?: number;
+  /**
+   * Outline the arrow and stem in white where the screenshot under them is dark (default
+   * `"auto"`; `"off"` always draws plain ink). Screenshots that are light under the connector
+   * burn the same either way.
+   */
+  connector?: "auto" | "off";
 }
 
 export interface BurnInput {
@@ -354,11 +335,17 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
   const { width, height } = pngDimensions(screenshot);
   const font = await loadFont();
   const report: AnnotationReport[] = [];
+  const hasConnector = input.annotations.some((a) => a.copy && a.bounding_box);
+  const pixels =
+    input.options?.connector !== "off" && hasConnector
+      ? decodeScreenshot(screenshot, width, height)
+      : undefined;
   const tree = buildBurnTree({
     image: { width, height, dataUri: `data:image/png;base64,${screenshot.toString("base64")}` },
     annotations: input.annotations,
     metrics: font.metrics,
     report,
+    ...(pixels ? { pixels } : {}),
     ...(input.options?.warn ? { warn: input.options.warn } : {}),
     ...(input.options?.unplaceableRatio !== undefined
       ? { unplaceableRatio: input.options.unplaceableRatio }
@@ -387,6 +374,8 @@ export interface BurnFlowOptions {
   warn?: Warn;
   /** See {@link BurnOptions.unplaceableRatio}. */
   unplaceableRatio?: number;
+  /** See {@link BurnOptions.connector}. */
+  connector?: "auto" | "off";
 }
 
 export interface BurnFlowResult {
@@ -457,6 +446,7 @@ export async function burnFlow(opts: BurnFlowOptions): Promise<BurnFlowResult> {
           ...(opts.unplaceableRatio !== undefined
             ? { unplaceableRatio: opts.unplaceableRatio }
             : {}),
+          ...(opts.connector ? { connector: opts.connector } : {}),
         },
       });
       await fs.writeFile(dest, burned.png);

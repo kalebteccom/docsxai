@@ -145,3 +145,24 @@ export function solidPng(
   }
   return encodePng(rgba, width, height);
 }
+
+/** A `width`×`height` opaque screenshot stand-in: a `base` grey with grey `rects` painted over it, in order. */
+export function layeredPng(
+  width: number,
+  height: number,
+  base: number,
+  rects: { x: number; y: number; width: number; height: number; grey: number }[] = [],
+): Buffer {
+  const rgba = new Uint8Array(width * height * 4).fill(255);
+  const paint = (x0: number, y0: number, w: number, h: number, grey: number) => {
+    for (let y = Math.max(0, y0); y < Math.min(height, y0 + h); y++) {
+      for (let x = Math.max(0, x0); x < Math.min(width, x0 + w); x++) {
+        const i = (y * width + x) * 4;
+        rgba[i] = rgba[i + 1] = rgba[i + 2] = grey;
+      }
+    }
+  };
+  paint(0, 0, width, height, base);
+  for (const r of rects) paint(r.x, r.y, r.width, r.height, r.grey);
+  return encodePng(rgba, width, height);
+}

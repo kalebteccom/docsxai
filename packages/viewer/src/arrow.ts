@@ -83,3 +83,91 @@ export function stemGeometry(
       return { x: tip.x + ARROW_LENGTH, y: tip.y - half, width: length, height: STEM_WIDTH };
   }
 }
+
+type Pt = { x: number; y: number };
+
+/** The arrow's triangle in image space, in the order `arrowGeometry`'s polygon lists it. */
+function arrowVertices(side: Side, tip: Pt): [Pt, Pt, Pt] {
+  const { x, y } = tip;
+  switch (side) {
+    case "top":
+      return [
+        { x: x - ARROW_HALF, y: y - ARROW_LENGTH },
+        { x: x + ARROW_HALF, y: y - ARROW_LENGTH },
+        { x, y },
+      ];
+    case "bottom":
+      return [
+        { x, y },
+        { x: x + ARROW_HALF, y: y + ARROW_LENGTH },
+        { x: x - ARROW_HALF, y: y + ARROW_LENGTH },
+      ];
+    case "left":
+      return [
+        { x: x - ARROW_LENGTH, y: y - ARROW_HALF },
+        { x, y },
+        { x: x - ARROW_LENGTH, y: y + ARROW_HALF },
+      ];
+    case "right":
+      return [
+        { x: x + ARROW_LENGTH, y: y - ARROW_HALF },
+        { x: x + ARROW_LENGTH, y: y + ARROW_HALF },
+        { x, y },
+      ];
+  }
+}
+
+/** Where the lines `a + s*da` and `b + t*db` cross (the triangle's edges never run parallel). */
+function crossing(a: Pt, da: Pt, b: Pt, db: Pt): Pt {
+  const s = ((b.x - a.x) * db.y - (b.y - a.y) * db.x) / (da.x * db.y - da.y * db.x);
+  return { x: a.x + s * da.x, y: a.y + s * da.y };
+}
+
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+/**
+ * The arrow's triangle grown outward by `margin` px on every edge (mitred corners), as a box and a
+ * px polygon in the same shape as {@link arrowGeometry}. Painted in a light colour under the ink
+ * arrow it outlines it on dark pixels. The tip reaches about 1.5 x `margin` past the ink tip.
+ */
+export function arrowHaloGeometry(side: Side, tip: Pt, margin: number): ArrowGeometry {
+  const v = arrowVertices(side, tip);
+  const centre = { x: (v[0].x + v[1].x + v[2].x) / 3, y: (v[0].y + v[1].y + v[2].y) / 3 };
+  // Each edge moved `margin` away from the centre along its normal: a point and a direction.
+  const edges = v.map((p, i) => {
+    const q = v[(i + 1) % 3]!;
+    const d = { x: q.x - p.x, y: q.y - p.y };
+    const len = Math.hypot(d.x, d.y);
+    let n = { x: d.y / len, y: -d.x / len };
+    if (n.x * (p.x - centre.x) + n.y * (p.y - centre.y) < 0) n = { x: -n.x, y: -n.y };
+    return { p: { x: p.x + n.x * margin, y: p.y + n.y * margin }, d };
+  });
+  // Vertex i sits where the edges before and after it cross.
+  const grown = v.map((_, i) => {
+    const prev = edges[(i + 2) % 3]!;
+    const next = edges[i]!;
+    return crossing(prev.p, prev.d, next.p, next.d);
+  });
+  const left = Math.floor(Math.min(...grown.map((p) => p.x)));
+  const top = Math.floor(Math.min(...grown.map((p) => p.y)));
+  const right = Math.ceil(Math.max(...grown.map((p) => p.x)));
+  const bottom = Math.ceil(Math.max(...grown.map((p) => p.y)));
+  const points = grown.map((p) => `${round2(p.x - left)}px ${round2(p.y - top)}px`).join(", ");
+  return {
+    left,
+    top,
+    width: right - left,
+    height: bottom - top,
+    clipPath: `polygon(${points})`,
+  };
+}
+
+/** `r` grown by `margin` px on every side. */
+export function growRect(r: Rect, margin: number): Rect {
+  return {
+    x: r.x - margin,
+    y: r.y - margin,
+    width: r.width + 2 * margin,
+    height: r.height + 2 * margin,
+  };
+}
