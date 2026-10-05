@@ -50,10 +50,41 @@ describe("anchorBadge", () => {
 });
 
 describe("planBadge", () => {
-  it("keeps the default up-left position when it covers no obstacle", () => {
-    const far = { x: 500, y: 400, width: 50, height: 20 };
-    expect(plan([far])).toEqual(defaultBox());
-    expect(plan([])).toEqual(defaultBox());
+  it("with nothing around, moves off the target's own box to the nearest clear corner", () => {
+    // the default box sits on the target's first glyphs; up-left at 26 px is the first spot clear of it
+    expect(overlapArea(defaultBox(), TITLE)).toBeGreaterThan(0);
+    const box = plan([]);
+    expect(box).toEqual(anchorBadge(TITLE, "top-left", 26, SIZE, IMAGE));
+    expect(overlapArea(box, TITLE)).toBe(0);
+    expect(plan([{ x: 500, y: 400, width: 50, height: 20 }])).toEqual(box);
+  });
+
+  it("keeps the badge off a flush-text target's own box when a corner is clear", () => {
+    // text box = target box, neighbours packed tight on all four sides
+    const target = { x: 300, y: 200, width: 90, height: 18 };
+    const ring = [
+      { x: 200, y: 196, width: 74, height: 26 },
+      { x: 418, y: 196, width: 74, height: 26 },
+      { x: 300, y: 150, width: 90, height: 24 },
+      { x: 300, y: 244, width: 90, height: 24 },
+    ];
+    const box = plan(ring, [], target);
+    expect(overlapArea(box, target)).toBe(0);
+    for (const o of ring) expect(overlapArea(box, o)).toBe(0);
+  });
+
+  it("weighs an obstacle at twice the target: a sliver of obstacle beats a hidden target glyph", () => {
+    // every spot at 26 px is blocked by 1 px² of text; every nearer one hides >= 2 px² of target
+    const target = { x: 300, y: 200, width: 6, height: 6 };
+    const specks = [
+      { x: 274, y: 174, width: 1, height: 1 },
+      { x: 306, y: 174, width: 1, height: 1 },
+      { x: 274, y: 207, width: 1, height: 1 },
+      { x: 306, y: 207, width: 1, height: 1 },
+    ];
+    const box = plan(specks, [], target);
+    expect(specks.reduce((n, o) => n + overlapArea(box, o), 0)).toBe(1);
+    expect(overlapArea(box, target)).toBe(0);
   });
 
   it("moves a flush-text target's badge to a clear corner when obstacles sit left and above", () => {

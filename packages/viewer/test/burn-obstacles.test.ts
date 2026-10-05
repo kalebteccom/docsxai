@@ -144,6 +144,18 @@ const titleAnnotation = (overrides: Partial<AnnotationRecord> = {}) =>
   });
 
 describe("burn badge placement", () => {
+  it("keeps the badge off the target's own box, the glyphs it would hide, when a corner is clear", () => {
+    const tree = treeFor([titleAnnotation({ obstacles: NEIGHBOURS })]);
+    expect(overlapArea(rectOf(badgesOf(tree)[0]!), TITLE)).toBe(0);
+  });
+
+  it("keeps the callout off the badge's moved position", () => {
+    const tree = treeFor([titleAnnotation({ obstacles: NEIGHBOURS })]);
+    const badge = rectOf(badgesOf(tree)[0]!);
+    expect(overlapArea(badge, rectOf(calloutsOf(tree)[0]!))).toBe(0);
+    for (const arrow of arrowsOf(tree)) expect(overlapArea(badge, rectOf(arrow))).toBe(0);
+  });
+
   it("keeps the badge up-left of the halo without obstacles, as before", () => {
     const [badge] = badgesOf(treeFor([titleAnnotation()]));
     expect(rectOf(badge!)).toMatchObject({ x: TITLE.x - 8, y: TITLE.y - 8 });

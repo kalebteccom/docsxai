@@ -134,20 +134,26 @@ function otherHalos(annotations: AnnotationRecord[], self: AnnotationRecord): Re
   );
 }
 
-/** What an annotation's callout must stay clear of besides page content: halos, badges, earlier callouts. */
+/**
+ * What an annotation's callout must stay clear of besides page content: halos, badges, earlier
+ * callouts. Badges already planned stand where they were put; the rest at their default spot.
+ */
 function keepClear(
   annotations: AnnotationRecord[],
   self: AnnotationRecord,
   image: Size,
   metrics: FontMetrics,
   placed: Rect[],
+  badges: Map<AnnotationRecord, Rect>,
 ): Rect[] {
   const clear: Rect[] = [];
   for (const other of annotations) {
     const box = other.bounding_box;
     if (!box) continue;
     if (other !== self) clear.push(inflate(box, HALO_MARGIN));
-    if (typeof other.index === "number") clear.push(badgeBox(box, other.index, image, metrics));
+    if (typeof other.index === "number") {
+      clear.push(badges.get(other) ?? badgeBox(box, other.index, image, metrics));
+    }
   }
   return [...clear, ...placed];
 }
@@ -271,7 +277,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     },
   ];
   const placed: Rect[] = [];
-  const badges: Rect[] = [];
+  const badges = new Map<AnnotationRecord, Rect>();
 
   for (const ann of input.annotations) {
     if (!ann.bounding_box) {
@@ -292,26 +298,29 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       }),
     );
 
+    // The badge goes first so this annotation's callout and later ones keep clear of where it landed.
+    const badge =
+      typeof ann.index === "number"
+        ? ann.obstacles?.length
+          ? planBadge({
+              image,
+              target: t,
+              size: badgeSize(ann.index, input.metrics),
+              obstacles: ann.obstacles,
+              avoid: [...otherHalos(input.annotations, ann), ...placed, ...badges.values()],
+            })
+          : badgeBox(t, ann.index, image, input.metrics)
+        : undefined;
+    if (badge) badges.set(ann, badge);
+
     if (ann.copy) {
-      const clear = keepClear(input.annotations, ann, image, input.metrics, placed);
+      const clear = keepClear(input.annotations, ann, image, input.metrics, placed, badges);
       const drawn = calloutNodes(ann, t, image, input.metrics, clear);
       children.push(...drawn.nodes);
       placed.push(...drawn.boxes);
     }
 
-    if (typeof ann.index === "number") {
-      const box = ann.obstacles?.length
-        ? planBadge({
-            image,
-            target: t,
-            size: badgeSize(ann.index, input.metrics),
-            obstacles: ann.obstacles,
-            avoid: [...otherHalos(input.annotations, ann), ...placed, ...badges],
-          })
-        : badgeBox(t, ann.index, image, input.metrics);
-      badges.push(box);
-      children.push(badgeNode(box, ann.index));
-    }
+    if (badge && typeof ann.index === "number") children.push(badgeNode(badge, ann.index));
   }
 
   return div(
