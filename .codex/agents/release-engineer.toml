@@ -23,7 +23,7 @@ Pre-release state (today):
 - Keep the pipeline buildable. Every PR exits 0 on the quality gate.
 - Keep `## Unreleased` in `CHANGELOG.md` truthful.
 - Keep version numbers across `package.json` files consistent during refactors.
-- Do NOT publish. Do NOT cut a `v*` tag. The first published tag is `v1.0.0`.
+- Do NOT publish. Do NOT cut a `v*` tag. The first published tag was `v0.2.0`; 1.0 is the stability milestone, not a fixed next tag.
 
 What NOT to do:
 - Do not release with a yellow CI run.
