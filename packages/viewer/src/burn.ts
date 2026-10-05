@@ -17,9 +17,13 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
-import { placeCallout, type Side } from "./placement.js";
+import { placeCallout, type Rect, type Side } from "./placement.js";
+import { planCallout } from "./obstacle-placement.js";
+import { arrowGeometry, type ArrowGeometry } from "./arrow.js";
 import { measureText, parseFontMetrics, wrapText, type FontMetrics } from "./font-metrics.js";
-import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
+import type { AnnotationRecord, AnnotationsFile, BoundingBox } from "./annotations.js";
+
+export { arrowGeometry, type ArrowGeometry };
 
 const ACCENT = "#e8590c";
 const INK = "#1c1c1c";
@@ -33,8 +37,8 @@ const MAX_CALLOUT_WIDTH = 280;
 const BADGE_INNER = 22;
 const BADGE_BORDER = 2;
 const BADGE_FONT_SIZE = 12;
-const ARROW_HALF = 7;
-const ARROW_LENGTH = 8;
+/** Margin of the keep-clear box around another annotation's halo (border + glow + slack). */
+const HALO_MARGIN = 6;
 const SIDES: readonly string[] = ["top", "bottom", "left", "right"];
 
 type Warn = (message: string) => void;
@@ -51,58 +55,6 @@ export interface BurnNodeProps {
 export interface BurnNode {
   type: string;
   props: BurnNodeProps;
-}
-
-export interface ArrowGeometry {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  /** Triangle outline; the box is filled with INK and clipped to this shape. */
-  clipPath: string;
-}
-
-/**
- * Triangle geometry for the callout arrow, tip at `tip` on the target's edge — the static mirror
- * of the viewer's `.sd-arrow.<side>` CSS triangles (7px half-base, 8px length). Satori renders
- * CSS border-triangles as filled boxes, so the burner clips an INK box to a polygon instead.
- */
-export function arrowGeometry(side: Side, tip: { x: number; y: number }): ArrowGeometry {
-  const base = ARROW_HALF * 2;
-  switch (side) {
-    case "top": // callout above → arrow points down
-      return {
-        left: tip.x - ARROW_HALF,
-        top: tip.y - ARROW_LENGTH,
-        width: base,
-        height: ARROW_LENGTH,
-        clipPath: "polygon(0% 0%, 100% 0%, 50% 100%)",
-      };
-    case "bottom": // callout below → arrow points up
-      return {
-        left: tip.x - ARROW_HALF,
-        top: tip.y,
-        width: base,
-        height: ARROW_LENGTH,
-        clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)",
-      };
-    case "left": // callout left → arrow points right
-      return {
-        left: tip.x - ARROW_LENGTH,
-        top: tip.y - ARROW_HALF,
-        width: ARROW_LENGTH,
-        height: base,
-        clipPath: "polygon(0% 0%, 100% 50%, 0% 100%)",
-      };
-    case "right": // callout right → arrow points left
-      return {
-        left: tip.x,
-        top: tip.y - ARROW_HALF,
-        width: ARROW_LENGTH,
-        height: base,
-        clipPath: "polygon(100% 0%, 100% 100%, 0% 50%)",
-      };
-  }
 }
 
 /** Reads PNG dimensions from the IHDR chunk. */
@@ -133,9 +85,170 @@ export interface BurnTreeInput {
   warn?: Warn;
 }
 
+type Size = { width: number; height: number };
+
+/** Wraps the callout copy to the 280px clamp and sizes the box around it. */
+function measureCallout(label: string, metrics: FontMetrics): { lines: string[]; size: Size } {
+  const contentMax = MAX_CALLOUT_WIDTH - 2 * (CALLOUT_PADDING_X + CALLOUT_BORDER);
+  const lines = wrapText(label, FONT_SIZE, contentMax, metrics);
+  const contentWidth = Math.min(
+    Math.ceil(Math.max(...lines.map((l) => measureText(l, FONT_SIZE, metrics)))),
+    contentMax,
+  );
+  return {
+    lines,
+    size: {
+      width: contentWidth + 2 * (CALLOUT_PADDING_X + CALLOUT_BORDER),
+      height: lines.length * LINE_HEIGHT + 2 * (CALLOUT_PADDING_Y + CALLOUT_BORDER),
+    },
+  };
+}
+
+/** Box of the numbered badge: top-left of the halo, pulled slightly outside it, clamped to the image. */
+function badgeBox(t: BoundingBox, index: number, image: Size, metrics: FontMetrics): Rect {
+  const width = Math.max(
+    BADGE_INNER + 2 * BADGE_BORDER,
+    Math.ceil(measureText(String(index), BADGE_FONT_SIZE, metrics)) + 12 + 2 * BADGE_BORDER,
+  );
+  return {
+    x: Math.max(0, Math.min(t.x - 8, image.width - BADGE_INNER)),
+    y: Math.max(0, Math.min(t.y - 8, image.height - BADGE_INNER)),
+    width,
+    height: BADGE_INNER + 2 * BADGE_BORDER,
+  };
+}
+
+const inflate = (r: Rect, m: number): Rect => ({
+  x: r.x - m,
+  y: r.y - m,
+  width: r.width + 2 * m,
+  height: r.height + 2 * m,
+});
+
+/** What an annotation's callout must stay clear of besides page content: halos, badges, earlier callouts. */
+function keepClear(
+  annotations: AnnotationRecord[],
+  self: AnnotationRecord,
+  image: Size,
+  metrics: FontMetrics,
+  placed: Rect[],
+): Rect[] {
+  const clear: Rect[] = [];
+  for (const other of annotations) {
+    const box = other.bounding_box;
+    if (!box) continue;
+    if (other !== self) clear.push(inflate(box, HALO_MARGIN));
+    if (typeof other.index === "number") clear.push(badgeBox(box, other.index, image, metrics));
+  }
+  return [...clear, ...placed];
+}
+
+interface DrawnCallout {
+  nodes: BurnNode[];
+  /** Boxes the callout, arrow and stem occupy (nudge applied), for later annotations to avoid. */
+  boxes: Rect[];
+}
+
+function calloutNodes(
+  ann: AnnotationRecord,
+  t: BoundingBox,
+  image: Size,
+  metrics: FontMetrics,
+  clear: Rect[],
+): DrawnCallout {
+  const label = (typeof ann.index === "number" ? `${ann.index}. ` : "") + ann.copy;
+  const { lines, size: callout } = measureCallout(label, metrics);
+  // Nudge moves callout + arrow together; the halo stays on the target (same as the viewer).
+  const nudge = { x: ann.nudge?.x ?? 0, y: ann.nudge?.y ?? 0 };
+  const input = { image, target: t, callout, preferred: preferredSide(ann.arrow_style) };
+  const p = ann.obstacles?.length
+    ? planCallout({ ...input, obstacles: ann.obstacles, avoid: clear, nudge })
+    : { ...placeCallout(input), stem: null };
+
+  const arrow = arrowGeometry(p.side, p.arrow);
+  const stem = p.stem;
+  const arrowBox = { x: arrow.left, y: arrow.top, width: arrow.width, height: arrow.height };
+  const calloutBox = { x: p.callout.x, y: p.callout.y, ...callout };
+  const nodes: BurnNode[] = [];
+  if (stem) {
+    nodes.push(
+      div({
+        position: "absolute",
+        left: stem.x + nudge.x,
+        top: stem.y + nudge.y,
+        width: stem.width,
+        height: stem.height,
+        backgroundColor: INK,
+      }),
+    );
+  }
+  nodes.push(
+    div({
+      position: "absolute",
+      left: arrow.left + nudge.x,
+      top: arrow.top + nudge.y,
+      width: arrow.width,
+      height: arrow.height,
+      backgroundColor: INK,
+      clipPath: arrow.clipPath,
+    }),
+    div(
+      {
+        position: "absolute",
+        left: p.callout.x + nudge.x,
+        top: p.callout.y + nudge.y,
+        width: callout.width,
+        height: callout.height,
+        display: "flex",
+        flexDirection: "column",
+        paddingTop: CALLOUT_PADDING_Y,
+        paddingBottom: CALLOUT_PADDING_Y,
+        paddingLeft: CALLOUT_PADDING_X,
+        paddingRight: CALLOUT_PADDING_X,
+        backgroundColor: "#fff",
+        border: `${CALLOUT_BORDER}px solid ${INK}`,
+        borderRadius: 7,
+        color: INK,
+        fontSize: FONT_SIZE,
+      },
+      lines.map((line) =>
+        div({ height: LINE_HEIGHT, lineHeight: `${LINE_HEIGHT}px`, whiteSpace: "nowrap" }, line),
+      ),
+    ),
+  );
+  const boxes = [calloutBox, arrowBox, ...(stem ? [stem] : [])].map((r) => ({
+    ...r,
+    x: r.x + nudge.x,
+    y: r.y + nudge.y,
+  }));
+  return { nodes, boxes };
+}
+
+function badgeNode(box: Rect, index: number): BurnNode {
+  return div(
+    {
+      position: "absolute",
+      left: box.x,
+      top: box.y,
+      width: box.width,
+      height: box.height,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: ACCENT,
+      border: `${BADGE_BORDER}px solid #fff`,
+      borderRadius: box.height / 2,
+      color: "#fff",
+      fontSize: BADGE_FONT_SIZE,
+    },
+    String(index),
+  );
+}
+
 /** Builds the Satori element tree: the screenshot full-bleed, overlays absolutely positioned. */
 export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const { width, height } = input.image;
+  const image = { width, height };
   const warn = input.warn ?? defaultWarn;
   const children: BurnNode[] = [
     {
@@ -148,6 +261,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       },
     },
   ];
+  const placed: Rect[] = [];
 
   for (const ann of input.annotations) {
     if (!ann.bounding_box) {
@@ -155,8 +269,6 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       continue;
     }
     const t = ann.bounding_box;
-    const label = (typeof ann.index === "number" ? `${ann.index}. ` : "") + ann.copy;
-
     children.push(
       div({
         position: "absolute",
@@ -171,95 +283,14 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     );
 
     if (ann.copy) {
-      const contentMax = MAX_CALLOUT_WIDTH - 2 * (CALLOUT_PADDING_X + CALLOUT_BORDER);
-      const lines = wrapText(label, FONT_SIZE, contentMax, input.metrics);
-      const contentWidth = Math.min(
-        Math.ceil(Math.max(...lines.map((l) => measureText(l, FONT_SIZE, input.metrics)))),
-        contentMax,
-      );
-      const callout = {
-        width: contentWidth + 2 * (CALLOUT_PADDING_X + CALLOUT_BORDER),
-        height: lines.length * LINE_HEIGHT + 2 * (CALLOUT_PADDING_Y + CALLOUT_BORDER),
-      };
-      const p = placeCallout({
-        image: { width, height },
-        target: t,
-        callout,
-        preferred: preferredSide(ann.arrow_style),
-      });
-      // Nudge moves callout + arrow together; the halo stays on the target (same as the viewer).
-      const nx = ann.nudge?.x ?? 0;
-      const ny = ann.nudge?.y ?? 0;
-
-      const arrow = arrowGeometry(p.side, p.arrow);
-      children.push(
-        div({
-          position: "absolute",
-          left: arrow.left + nx,
-          top: arrow.top + ny,
-          width: arrow.width,
-          height: arrow.height,
-          backgroundColor: INK,
-          clipPath: arrow.clipPath,
-        }),
-        div(
-          {
-            position: "absolute",
-            left: p.callout.x + nx,
-            top: p.callout.y + ny,
-            width: callout.width,
-            height: callout.height,
-            display: "flex",
-            flexDirection: "column",
-            paddingTop: CALLOUT_PADDING_Y,
-            paddingBottom: CALLOUT_PADDING_Y,
-            paddingLeft: CALLOUT_PADDING_X,
-            paddingRight: CALLOUT_PADDING_X,
-            backgroundColor: "#fff",
-            border: `${CALLOUT_BORDER}px solid ${INK}`,
-            borderRadius: 7,
-            color: INK,
-            fontSize: FONT_SIZE,
-          },
-          lines.map((line) =>
-            div(
-              { height: LINE_HEIGHT, lineHeight: `${LINE_HEIGHT}px`, whiteSpace: "nowrap" },
-              line,
-            ),
-          ),
-        ),
-      );
+      const clear = keepClear(input.annotations, ann, image, input.metrics, placed);
+      const drawn = calloutNodes(ann, t, image, input.metrics, clear);
+      children.push(...drawn.nodes);
+      placed.push(...drawn.boxes);
     }
 
     if (typeof ann.index === "number") {
-      const text = String(ann.index);
-      const badgeWidth = Math.max(
-        BADGE_INNER + 2 * BADGE_BORDER,
-        Math.ceil(measureText(text, BADGE_FONT_SIZE, input.metrics)) + 12 + 2 * BADGE_BORDER,
-      );
-      // Top-left of the halo, pulled slightly outside it; clamped to the image (viewer math).
-      const bx = Math.max(0, Math.min(t.x - 8, width - BADGE_INNER));
-      const by = Math.max(0, Math.min(t.y - 8, height - BADGE_INNER));
-      children.push(
-        div(
-          {
-            position: "absolute",
-            left: bx,
-            top: by,
-            width: badgeWidth,
-            height: BADGE_INNER + 2 * BADGE_BORDER,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: ACCENT,
-            border: `${BADGE_BORDER}px solid #fff`,
-            borderRadius: (BADGE_INNER + 2 * BADGE_BORDER) / 2,
-            color: "#fff",
-            fontSize: BADGE_FONT_SIZE,
-          },
-          text,
-        ),
-      );
+      children.push(badgeNode(badgeBox(t, ann.index, image, input.metrics), ann.index));
     }
   }
 
