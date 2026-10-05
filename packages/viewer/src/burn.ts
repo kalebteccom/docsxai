@@ -19,6 +19,7 @@ import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import { placeCallout, type Rect, type Side } from "./placement.js";
 import { planCallout } from "./obstacle-placement.js";
+import { anchorBadge, planBadge, BADGE_DEFAULT_OFFSET, BADGE_INNER } from "./badge-placement.js";
 import { arrowGeometry, type ArrowGeometry } from "./arrow.js";
 import { measureText, parseFontMetrics, wrapText, type FontMetrics } from "./font-metrics.js";
 import type { AnnotationRecord, AnnotationsFile, BoundingBox } from "./annotations.js";
@@ -34,7 +35,6 @@ const CALLOUT_PADDING_Y = 8;
 const CALLOUT_BORDER = 1;
 /** Same outer-width clamp as the interactive overlay's measuring probe. */
 const MAX_CALLOUT_WIDTH = 280;
-const BADGE_INNER = 22;
 const BADGE_BORDER = 2;
 const BADGE_FONT_SIZE = 12;
 /** Margin of the keep-clear box around another annotation's halo (border + glow + slack). */
@@ -104,18 +104,20 @@ function measureCallout(label: string, metrics: FontMetrics): { lines: string[];
   };
 }
 
-/** Box of the numbered badge: top-left of the halo, pulled slightly outside it, clamped to the image. */
-function badgeBox(t: BoundingBox, index: number, image: Size, metrics: FontMetrics): Rect {
-  const width = Math.max(
-    BADGE_INNER + 2 * BADGE_BORDER,
-    Math.ceil(measureText(String(index), BADGE_FONT_SIZE, metrics)) + 12 + 2 * BADGE_BORDER,
-  );
+/** Outer size of the numbered badge: the circle widens for multi-digit indexes. */
+function badgeSize(index: number, metrics: FontMetrics): Size {
   return {
-    x: Math.max(0, Math.min(t.x - 8, image.width - BADGE_INNER)),
-    y: Math.max(0, Math.min(t.y - 8, image.height - BADGE_INNER)),
-    width,
+    width: Math.max(
+      BADGE_INNER + 2 * BADGE_BORDER,
+      Math.ceil(measureText(String(index), BADGE_FONT_SIZE, metrics)) + 12 + 2 * BADGE_BORDER,
+    ),
     height: BADGE_INNER + 2 * BADGE_BORDER,
   };
+}
+
+/** Default box of the numbered badge: top-left of the halo, pulled slightly outside it, clamped to the image. */
+function badgeBox(t: BoundingBox, index: number, image: Size, metrics: FontMetrics): Rect {
+  return anchorBadge(t, "top-left", BADGE_DEFAULT_OFFSET, badgeSize(index, metrics), image);
 }
 
 const inflate = (r: Rect, m: number): Rect => ({
@@ -124,6 +126,13 @@ const inflate = (r: Rect, m: number): Rect => ({
   width: r.width + 2 * m,
   height: r.height + 2 * m,
 });
+
+/** Keep-clear boxes around every other annotation's halo. */
+function otherHalos(annotations: AnnotationRecord[], self: AnnotationRecord): Rect[] {
+  return annotations.flatMap((other) =>
+    other !== self && other.bounding_box ? [inflate(other.bounding_box, HALO_MARGIN)] : [],
+  );
+}
 
 /** What an annotation's callout must stay clear of besides page content: halos, badges, earlier callouts. */
 function keepClear(
@@ -262,6 +271,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     },
   ];
   const placed: Rect[] = [];
+  const badges: Rect[] = [];
 
   for (const ann of input.annotations) {
     if (!ann.bounding_box) {
@@ -290,7 +300,17 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     }
 
     if (typeof ann.index === "number") {
-      children.push(badgeNode(badgeBox(t, ann.index, image, input.metrics), ann.index));
+      const box = ann.obstacles?.length
+        ? planBadge({
+            image,
+            target: t,
+            size: badgeSize(ann.index, input.metrics),
+            obstacles: ann.obstacles,
+            avoid: [...otherHalos(input.annotations, ann), ...placed, ...badges],
+          })
+        : badgeBox(t, ann.index, image, input.metrics);
+      badges.push(box);
+      children.push(badgeNode(box, ann.index));
     }
   }
 

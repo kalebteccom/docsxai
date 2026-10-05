@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Changed
+
+- **Burned badges keep off neighbouring text.** On annotation records with `obstacles`, `docsxai-viewer burn` now moves the numbered badge to another corner of the halo, or further out, when the default up-left spot would cover an obstacle, another annotation's halo or a placed callout. This stops a flush target (a title, a tab, a list row) losing its neighbour's first letter or a chip under the badge. The default spot wins whenever it is clear, ties break deterministically, and records without `obstacles` burn byte-identically to before.
+
 ## [0.2.1-rc.1] - 2026-10-05
 
 Prerelease, published under the `next` dist-tag to prove the OIDC trusted-publishing path. `0.2.0` stays `latest`.

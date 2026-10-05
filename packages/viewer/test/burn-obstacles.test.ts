@@ -5,7 +5,7 @@ import { parseFontMetrics } from "../src/font-metrics.js";
 import { overlapArea } from "../src/obstacle-placement.js";
 import type { Rect } from "../src/placement.js";
 import type { AnnotationRecord } from "../src/annotations.js";
-import { solidPng } from "./helpers/png.js";
+import { decodePng, pixelAt, solidPng } from "./helpers/png.js";
 
 const FONT = await fs.readFile(new URL("../assets/fonts/inter-regular.ttf", import.meta.url));
 const METRICS = parseFontMetrics(FONT);
@@ -122,5 +122,78 @@ describe("burn with obstacles", () => {
     const a = await burnAnnotations({ screenshotBuffer: shot, annotations: annotations() });
     const b = await burnAnnotations({ screenshotBuffer: shot, annotations: annotations() });
     expect(a.equals(b)).toBe(true);
+  });
+});
+
+// A page title flush with a back arrow on its left and a breadcrumb row above it.
+const TITLE = { x: 100, y: 100, width: 120, height: 24 };
+const NEIGHBOURS = [
+  { x: 40, y: 96, width: 56, height: 32 },
+  { x: 100, y: 70, width: 200, height: 24 },
+];
+const badgesOf = (t: BurnNode) =>
+  nodes(t).filter((n) => styleOf(n).backgroundColor === "#e8590c" && styleOf(n).display);
+const titleAnnotation = (overrides: Partial<AnnotationRecord> = {}) =>
+  annotation({
+    step: "board",
+    selector: "h1",
+    bounding_box: TITLE,
+    copy: "Board title",
+    index: 1,
+    ...overrides,
+  });
+
+describe("burn badge placement", () => {
+  it("keeps the badge up-left of the halo without obstacles, as before", () => {
+    const [badge] = badgesOf(treeFor([titleAnnotation()]));
+    expect(rectOf(badge!)).toMatchObject({ x: TITLE.x - 8, y: TITLE.y - 8 });
+    const [kept] = badgesOf(treeFor([titleAnnotation({ obstacles: [] })]));
+    expect(rectOf(kept!)).toMatchObject({ x: TITLE.x - 8, y: TITLE.y - 8 });
+  });
+
+  it("keeps the badge off neighbours of a flush-text target", () => {
+    const tree = treeFor([titleAnnotation({ obstacles: NEIGHBOURS })]);
+    const [badge] = badgesOf(tree);
+    const box = rectOf(badge!);
+    expect(box).not.toMatchObject({ x: TITLE.x - 8, y: TITLE.y - 8 });
+    for (const o of NEIGHBOURS) expect(overlapArea(box, o)).toBe(0);
+  });
+
+  it("burns the moved badge into the PNG and leaves the up-left spot to the page", async () => {
+    const annotations = [titleAnnotation({ obstacles: NEIGHBOURS })];
+    const box = rectOf(badgesOf(treeFor(annotations))[0]!);
+    for (const o of NEIGHBOURS) expect(overlapArea(box, o)).toBe(0);
+
+    const out = decodePng(
+      await burnAnnotations({ screenshotBuffer: solidPng(800, 600), annotations }),
+    );
+    // inside the circle, left of the digit: accent fill at the new box, untouched page at the old one
+    const [r, g, b] = pixelAt(out, box.x + 5, box.y + box.height / 2);
+    expect([r, g, b]).toEqual([0xe8, 0x59, 0x0c]);
+    // the default up-left box (92..118) no longer carries a badge
+    expect(pixelAt(out, TITLE.x - 6, TITLE.y - 6)).toEqual(pixelAt(out, 700, 500));
+  });
+
+  it("is deterministic, down to the PNG bytes", async () => {
+    const annotations = () => [titleAnnotation({ obstacles: NEIGHBOURS })];
+    expect(JSON.stringify(treeFor(annotations()))).toBe(JSON.stringify(treeFor(annotations())));
+    const shot = solidPng(800, 600);
+    const a = await burnAnnotations({ screenshotBuffer: shot, annotations: annotations() });
+    const b = await burnAnnotations({ screenshotBuffer: shot, annotations: annotations() });
+    expect(a.equals(b)).toBe(true);
+  });
+
+  it("keeps a badge off another annotation's halo and earlier callout", () => {
+    const other = annotation({
+      selector: "#tabs",
+      bounding_box: { x: 60, y: 60, width: 36, height: 16 },
+      copy: "Tabs",
+      index: 2,
+    });
+    const tree = treeFor([other, titleAnnotation({ obstacles: NEIGHBOURS })]);
+    const box = rectOf(badgesOf(tree)[1]!);
+    const [otherHalo] = halosOf(tree).map(rectOf) as [Rect];
+    expect(overlapArea(box, otherHalo)).toBe(0);
+    for (const c of calloutsOf(tree)) expect(overlapArea(box, rectOf(c))).toBe(0);
   });
 });
