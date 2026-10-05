@@ -28,7 +28,7 @@ The repo is private; `release.yml` is tag-triggered (`v*.*.*`) and gated by the 
 - Keep the pipeline buildable. Every PR exits 0 on the quality gate.
 - Keep `## Unreleased` in `CHANGELOG.md` truthful — every behavior change appends an entry.
 - Keep version numbers across `package.json` files consistent during refactors. The pnpm workspace topology requires it.
-- Do NOT publish. Do NOT cut a `v*` tag. The first published tag is `v1.0.0` per the owner's deferred-release decision, with possible `0.0.x-rc.N` rehearsals against a private registry beforehand.
+- Do NOT publish. Do NOT cut a `v*` tag. The first published tag was `v0.2.0`; 1.0 is the stability milestone (see `semver-clock.md`), not a fixed next tag.
 
 ## Success criteria
 
