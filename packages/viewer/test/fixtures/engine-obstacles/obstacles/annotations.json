@@ -1,0 +1,56 @@
+{
+  "schema": "docsxai/annotations@1",
+  "flow": "obstacles",
+  "annotations": [
+    {
+      "step": "share",
+      "selector": "#share",
+      "bounding_box": {
+        "x": 300,
+        "y": 200,
+        "width": 100,
+        "height": 30
+      },
+      "obstacles": [
+        {
+          "x": 300,
+          "y": 151,
+          "width": 317,
+          "height": 18
+        },
+        {
+          "x": 300,
+          "y": 171,
+          "width": 49,
+          "height": 18
+        },
+        {
+          "x": 20,
+          "y": 201,
+          "width": 225,
+          "height": 18
+        },
+        {
+          "x": 430,
+          "y": 205,
+          "width": 82,
+          "height": 20
+        },
+        {
+          "x": 20,
+          "y": 221,
+          "width": 254,
+          "height": 18
+        },
+        {
+          "x": 300,
+          "y": 246,
+          "width": 301,
+          "height": 18
+        }
+      ],
+      "copy": "Share the page from here",
+      "arrow_style": "top-right"
+    }
+  ]
+}

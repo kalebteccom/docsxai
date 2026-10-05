@@ -10,6 +10,7 @@ The engine **never** calls a model API. Calibration-time inference is supplied b
 - **Execution environment** — optional `environment` block (`EnvironmentSpec`): frozen `clock` (Playwright clock API), `locale`, `timezone`, `viewport` (`VIEWPORT_PRESETS`: desktop / tablet / mobile, or explicit size), `color_scheme`, `reduced_motion`. Applied at context creation by `launchPlaywrightSession({ environment })`; on CDP-attached sessions only the clock applies (one stderr warning lists skipped fields). `contextOptions` passes `httpCredentials` / `clientCertificates` / `extraHTTPHeaders` through to `browser.newContext`.
 - **Redactions** — flow-level + per-step `RedactionSpec[]` (`{ selector }` or `{ region }`, style `box` | `pixelate`) masked deterministically before any screenshot (halt shots included) hits disk. The pure pixel transform is `applyRedactions` in `redact.ts`.
 - **`BrowserDriver`** interface — what the runtime needs from a browser. The `PlaywrightDriver` implementation includes the `actionable()` predicate (see [`docs/actionability-contract.md`](../../docs/actionability-contract.md)) that browser-bridge consumers can mirror, plus a real `element_stable` wait (bounding-box polling, 10 s best-effort budget).
+- **Annotation obstacles** — opt-in (`.docsxai.json` → `"annotations": { "obstacles": true }`, default off). After a step's screenshot, `runFlow` asks the driver for `nearbyBoxes(selector, 320)`: the visible text (per rendered line) and interactive elements around the target, in screenshot pixels, the target's subtree and elements containing it excluded. The pure `selectObstacles` (`obstacles.ts`) rounds boxes outward to whole pixels, clips them to the screenshot, drops duplicates, boxes inside the target and boxes covered by another kept box, caps at the 40 nearest and sorts by y, x, width, height. The result lands as `obstacles` on the annotation record, where the viewer's `burn` uses it to keep callouts off page content. The scan reads the page's own DOM (no iframe or shadow-root content) and runs only through the driver, so any `BrowserDriver` must implement `nearbyBoxes`. Off or absent, records and screenshots are unchanged.
 - **Auth strategies** — `auth/strategy.yaml` descriptor + a catalogue of scripted strategies (`api-login`, `ui-form` with a TOTP hop, `email-otp`, `webauthn`, `jwt-injection`, `http-basic`, `pat-header`, `mtls`, `test-backdoor`) alongside the human-in-the-loop `manual-capture`. See [Auth strategies](#auth-strategies) below.
 - **CLI** — `docsxai <command>`. See `--help` or the [top-level README](../../README.md) for the full surface; this package's `dist/cli.js` is the binary.
 
@@ -108,7 +109,7 @@ The register module exports a `register(api)` function (named or default). `api`
 
 ### Workspace config + lock
 
-Two optional `.docsxai.json` keys wire plugins into a workspace:
+Two optional `.docsxai.json` keys wire plugins into a workspace (a third, `annotations.obstacles`, switches on obstacle scanning for `run`; see the engine overview above):
 
 ```json
 {

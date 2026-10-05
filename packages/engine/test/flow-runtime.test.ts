@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseFlowFile } from "../src/flow-file.js";
 import { type BoundingBox } from "../src/doc-pack.js";
+import { type NearbyBoxes } from "../src/obstacles.js";
 import {
   type ActionableState,
   type BrowserDriver,
@@ -82,6 +83,13 @@ class FakeDriver implements BrowserDriver {
     if (this.boundingBoxError) throw this.boundingBoxError;
     return this.boxes.get(s) ?? null;
   }
+  nearby = new Map<string, NearbyBoxes>();
+  nearbyError?: Error;
+  async nearbyBoxes(s: string, radius: number) {
+    this.rec(`nearby ${s} r=${radius}`);
+    if (this.nearbyError) throw this.nearbyError;
+    return this.nearby.get(s) ?? null;
+  }
   screenshots: Array<{ path: string; redactions: ResolvedRedaction[] }> = [];
   async screenshot(p: string, redactions: ResolvedRedaction[] = []) {
     this.rec(`screenshot ${p}`);
@@ -147,6 +155,81 @@ describe("runFlow", () => {
       ],
     });
     expect(r.steps[1]!.screenshot).toBe("docs/recap-open/screenshots/open-sidebar.png");
+  });
+
+  describe("obstacles option", () => {
+    const PLAY = { x: 100, y: 100, width: 40, height: 20 };
+    const driver = () => {
+      const d = new FakeDriver();
+      d.visible.add("#recap");
+      d.boxes.set("#play", PLAY);
+      d.nearby.set("#play", {
+        image: { width: 800, height: 600 },
+        scale: 1,
+        boxes: [
+          { x: 200, y: 105, width: 80, height: 12 },
+          { x: 20, y: 105, width: 60, height: 12 },
+          { x: 105, y: 104, width: 10, height: 10 }, // inside the target: not an obstacle
+          { x: 700, y: 500, width: 50, height: 12 }, // beyond the radius
+        ],
+      });
+      return d;
+    };
+
+    it("is off by default: no scan, records unchanged", async () => {
+      const d = driver();
+      const r = await runFlow(parseFlowFile(FLOW), d);
+      expect(d.calls.some((c) => c.startsWith("nearby"))).toBe(false);
+      expect(r.annotations.annotations[0]).not.toHaveProperty("obstacles");
+    });
+
+    it("writes selected, sorted obstacles on each annotation when on", async () => {
+      const d = driver();
+      const r = await runFlow(parseFlowFile(FLOW), d, { obstacles: true });
+      expect(d.calls).toContain("nearby #play r=320");
+      expect(r.annotations.annotations[0]!.obstacles).toEqual([
+        { x: 20, y: 105, width: 60, height: 12 },
+        { x: 200, y: 105, width: 80, height: 12 },
+      ]);
+    });
+
+    it("leaves everything but the obstacles field exactly as the off run", async () => {
+      const off = await runFlow(parseFlowFile(FLOW), driver());
+      const on = await runFlow(parseFlowFile(FLOW), driver(), { obstacles: true });
+      const stripped = structuredClone(on.annotations);
+      for (const a of stripped.annotations) delete a.obstacles;
+      expect(stripped).toEqual(off.annotations);
+      expect(await runFlow(parseFlowFile(FLOW), driver(), { obstacles: true })).toEqual(on);
+    });
+
+    it("omits the field when no content is near, or the target has no box", async () => {
+      const d = driver();
+      d.nearby.set("#play", { image: { width: 800, height: 600 }, scale: 1, boxes: [] });
+      const empty = await runFlow(parseFlowFile(FLOW), d, { obstacles: true });
+      expect(empty.annotations.annotations[0]).not.toHaveProperty("obstacles");
+
+      const noBox = driver();
+      noBox.boxes.clear();
+      const r = await runFlow(parseFlowFile(FLOW), noBox, { obstacles: true });
+      expect(noBox.calls.some((c) => c.startsWith("nearby"))).toBe(false);
+      expect(r.annotations.annotations[0]).not.toHaveProperty("obstacles");
+    });
+
+    it("keeps the annotation and warns when the scan throws", async () => {
+      const d = driver();
+      d.nearbyError = new Error("page closed");
+      const writes: string[] = [];
+      const original = process.stderr.write.bind(process.stderr);
+      process.stderr.write = (chunk: string | Uint8Array) => (writes.push(String(chunk)), true);
+      try {
+        const r = await runFlow(parseFlowFile(FLOW), d, { obstacles: true });
+        expect(r.annotations.annotations).toHaveLength(1);
+        expect(r.annotations.annotations[0]).not.toHaveProperty("obstacles");
+      } finally {
+        process.stderr.write = original;
+      }
+      expect(writes.join("")).toMatch(/obstacle scan skipped \(page closed\)/);
+    });
   });
 
   it("halts with FlowExecutionError when a success criterion fails", async () => {

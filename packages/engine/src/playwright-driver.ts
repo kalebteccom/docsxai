@@ -29,6 +29,8 @@ import {
   type ResolvedRedaction,
 } from "./flow-runtime.js";
 import { type StorageState } from "./auth.js";
+import { type NearbyBoxes } from "./obstacles.js";
+import { collectNearbyBoxes } from "./page-nearby-boxes.js";
 import { applyRedactions, type RedactionBox } from "./redact.js";
 import { resolveWorkspacePathReal } from "./workspace.js";
 
@@ -357,6 +359,22 @@ export class PlaywrightDriver implements BrowserDriver {
         return { x: x * dpr, y: y * dpr, width: (right - x) * dpr, height: (bottom - y) * dpr };
       })
       .catch(() => null);
+  }
+  async nearbyBoxes(
+    selector: string,
+    radius: number,
+    timeoutMs?: number,
+  ): Promise<NearbyBoxes | null> {
+    const loc = this.page.locator(selector).first();
+    try {
+      await loc.waitFor({
+        state: "visible",
+        ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
+      });
+    } catch {
+      return null;
+    }
+    return loc.evaluate(collectNearbyBoxes, radius);
   }
   async screenshot(relPath: string, redactions: ResolvedRedaction[] = []): Promise<void> {
     // relPath segments carry flow names + step ids from the flow-file — containment-checked

@@ -40,7 +40,9 @@ A _workspace_ (created by `init`) holds `flows/<flow>.flow.yaml`, `docs/`,
 Put it OUTSIDE the app's source repo - docsxai documents a running app from
 outside and never writes into the app repo. `run` and `capture-auth` read
 `app_url` and `ignore_https_errors` from `.docsxai.json` if you do not pass
-the flags, and `--ignore-https-errors` accepts self-signed or invalid TLS
+the flags. `run` also reads `"annotations": { "obstacles": true }` (default
+off): it then records the text and controls around each annotated element so
+burned screenshots keep callouts off them. `--ignore-https-errors` accepts self-signed or invalid TLS
 (an app's local HTTPS dev cert, say).
 
 Every command exits 0 on success. Validation problems (a missing argument, a
