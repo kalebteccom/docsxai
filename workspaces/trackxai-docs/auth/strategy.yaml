@@ -1,0 +1,15 @@
+schema: docsxai/auth-strategy@1
+default_role: ana
+roles:
+  ana:
+    strategy: api-login
+    creds_env: {}
+    options:
+      login_url: /api/demo/login?as=ana&next=/w/acme-demo/board
+      method: GET
+      success_check: { cookie: trackxai_session }
+    cache:
+      enabled: true
+      store: local
+      ttl: 1h
+      auth_cookie: trackxai_session

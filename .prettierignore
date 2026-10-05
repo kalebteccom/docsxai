@@ -12,3 +12,8 @@ artifacts/
 .worktrees/
 .auth/
 *.storageState.json
+
+# docsxai workspace output: generated, never committed
+workspaces/*/.screens
+workspaces/*/.viewer
+workspaces/*/docs
