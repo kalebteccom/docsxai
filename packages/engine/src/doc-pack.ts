@@ -248,10 +248,19 @@ export type FlowFile = z.infer<typeof FlowFile>;
 // Annotations (`<flow>/annotations.json`)
 // ---------------------------------------------------------------------------
 
+/** A rectangle in screenshot pixels: finite position, finite non-negative size. */
 export const BoundingBox = z
-  .object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() })
+  .object({
+    x: z.number().finite(),
+    y: z.number().finite(),
+    width: z.number().finite().nonnegative(),
+    height: z.number().finite().nonnegative(),
+  })
   .strict();
 export type BoundingBox = z.infer<typeof BoundingBox>;
+
+/** Most `obstacles` one annotation record may carry (the writer keeps the nearest this many). */
+export const MAX_OBSTACLES = 40;
 
 export const AnnotationRecord = z
   .object({
@@ -264,12 +273,14 @@ export const AnnotationRecord = z
     nudge: NudgeOffset.optional(),
     /**
      * Optional boxes of page content (text, controls), in screenshot pixels, that the burner keeps this
-     * annotation's callout from covering. The target itself is not listed. The engine never writes it:
-     * a pipeline that knows the page layout adds it to `annotations.json` before burning. Absent or
+     * annotation's callout from covering. The target itself is not listed. `docsxai run` writes it when
+     * the workspace sets `annotations.obstacles`; a pipeline that knows the page layout may add it by
+     * hand. At most {@link MAX_OBSTACLES} boxes. The engine measures them right after the screenshot, so
+     * on a page that animates continuously they can differ slightly from what the image shows. Absent or
      * empty: the callout goes next to the target. The structural mirror in `packages/viewer/src/annotations.ts`
      * carries the same field.
      */
-    obstacles: z.array(BoundingBox).optional(),
+    obstacles: z.array(BoundingBox).max(MAX_OBSTACLES).optional(),
     /** 1-based index of this annotation *within its step's screenshot* — set only when the step has > 1 annotation, so the viewer can render a numbered badge. Absent → render as a plain (un-numbered) halo. */
     index: z.number().int().positive().optional(),
   })

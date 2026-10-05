@@ -178,6 +178,7 @@ export async function cmdRun(args: string[]): Promise<number> {
         resolveLocator: (n) => flow.locators[n],
         ...(stopAfter ? { stopAfter } : {}),
         ...(startFrom ? { startFrom } : {}),
+        ...(wsCfg?.annotations?.obstacles === true ? { obstacles: true } : {}),
       });
       await fs.mkdir(resolveWorkspacePath(projectDir, "docs", flow.name), { recursive: true });
       // Flow names come from the flow-files — resolve the write target symlink-aware.

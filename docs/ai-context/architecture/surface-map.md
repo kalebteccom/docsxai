@@ -24,6 +24,10 @@ The deterministic execution loop. Reads a parsed flow + locator manifest + auth 
 
 The one `BrowserDriver` implementation. Includes the `actionable()` predicate (the load-bearing portable contract — see [`../../actionability-contract.md`](../../actionability-contract.md)). All Playwright API touch goes through this file; nothing else in the engine imports `playwright-core` directly.
 
+### `packages/engine/src/obstacles.ts` + `page-nearby-boxes.ts`
+
+The opt-in `annotations.obstacles` path (`.docsxai.json`, default off). `page-nearby-boxes.ts` is the in-page scan behind `BrowserDriver.nearbyBoxes` (self-contained, serialized by Playwright, no `playwright-core` import); `obstacles.ts` is the pure selection (round outward, clip to the screenshot, drop duplicates and covered boxes, nearest 40, sorted by y, x, width, height). Boxes only, never page text, so nothing sensitive reaches `annotations.json`. Keystone: `keystone-obstacles.test.ts`.
+
 ### `packages/engine/src/playwright-instrumented-browser.ts`
 
 Security-lowered instrumented Chrome used by the `manual-capture` auth strategy. Spawns a real (head-full) browser so a human can log in; cookies + `storageState` cached afterwards. This path lives behind the operator's explicit `capture-auth` invocation; never spawned silently.

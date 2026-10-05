@@ -67,7 +67,7 @@ does not exist. Two consequences worth internalising:
 
 The runtime is written against a thin `BrowserDriver` interface, not against
 Playwright directly: `goto`, `click`, `fill`, the wait primitives, the
-success-check reads, `screenshot`, `boundingBox`, and the write-time
+success-check reads, `screenshot`, `boundingBox`, `nearbyBoxes`, and the write-time
 `actionable(selector)` probe. The one Playwright integration point
 (`PlaywrightDriver`) stays small and is the engine's single Playwright import
 site. This seam is what lets browxai slot in as the model-agnostic discovery
