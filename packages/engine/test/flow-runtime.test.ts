@@ -226,6 +226,50 @@ describe("runFlow", () => {
       expect(r.annotations.annotations[0]).not.toHaveProperty("obstacles");
     });
 
+    describe("per-annotation placement", () => {
+      const withPlacement = (placement: string) =>
+        parseFlowFile(`
+name: recap-open
+locators: { play: '#play', recap: '#recap' }
+steps:
+  - id: open-sidebar
+    action: click
+    target: $play
+    wait_for: { selector: $recap }
+    success: { visible: $recap }
+    annotation: { copy: "Click Play", placement: ${placement} }
+`);
+
+      it("scans and selects with the annotation's own radius", async () => {
+        const d = driver();
+        const r = await runFlow(withPlacement("{ obstacle_radius: 30 }"), d, { obstacles: true });
+        expect(d.calls).toContain("nearby #play r=30");
+        // the box at x 20 is 20 px from the target, the one at x 200 is 60 px away
+        expect(r.annotations.annotations[0]!.obstacles).toEqual([
+          { x: 20, y: 105, width: 60, height: 12 },
+        ]);
+      });
+
+      it("caps the recorded obstacles at the annotation's own limit, nearest first", async () => {
+        const r = await runFlow(withPlacement("{ obstacle_limit: 1 }"), driver(), {
+          obstacles: true,
+        });
+        expect(r.annotations.annotations[0]!.obstacles).toEqual([
+          { x: 20, y: 105, width: 60, height: 12 },
+        ]);
+      });
+
+      it("copies placement onto the record, scan or no scan", async () => {
+        const r = await runFlow(withPlacement("{ inside: true, side: bottom }"), driver());
+        expect(r.annotations.annotations[0]!.placement).toEqual({ inside: true, side: "bottom" });
+      });
+
+      it("leaves records without placement exactly as before", async () => {
+        const r = await runFlow(parseFlowFile(FLOW), driver(), { obstacles: true });
+        expect(r.annotations.annotations[0]).not.toHaveProperty("placement");
+      });
+    });
+
     it("keeps the annotation and warns when the scan throws", async () => {
       const d = driver();
       d.nearbyError = new Error("page closed");

@@ -17,29 +17,40 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
-import { placeCallout, type Rect, type Side } from "./placement.js";
-import { planCallout } from "./obstacle-placement.js";
+import type { Rect } from "./placement.js";
 import { anchorBadge, planBadge, BADGE_DEFAULT_OFFSET, BADGE_INNER } from "./badge-placement.js";
 import { arrowGeometry, type ArrowGeometry } from "./arrow.js";
-import { measureText, parseFontMetrics, wrapText, type FontMetrics } from "./font-metrics.js";
+import { measureText, parseFontMetrics, type FontMetrics } from "./font-metrics.js";
+import {
+  CALLOUT_BORDER,
+  CALLOUT_PADDING_X,
+  CALLOUT_PADDING_Y,
+  FONT_SIZE,
+  LINE_HEIGHT,
+  layoutBoxes,
+  layoutCallout,
+  type CalloutLayout,
+  type Size,
+} from "./burn-callout.js";
+import {
+  annotationReport,
+  skippedReport,
+  BURN_REPORT_SCHEMA,
+  DEFAULT_UNPLACEABLE_RATIO,
+  type AnnotationReport,
+  type BurnReport,
+  type FlowBurnReport,
+} from "./burn-report.js";
 import type { AnnotationRecord, AnnotationsFile, BoundingBox } from "./annotations.js";
 
 export { arrowGeometry, type ArrowGeometry };
 
 const ACCENT = "#e8590c";
 const INK = "#1c1c1c";
-const FONT_SIZE = 14;
-const LINE_HEIGHT = 19;
-const CALLOUT_PADDING_X = 11;
-const CALLOUT_PADDING_Y = 8;
-const CALLOUT_BORDER = 1;
-/** Same outer-width clamp as the interactive overlay's measuring probe. */
-const MAX_CALLOUT_WIDTH = 280;
 const BADGE_BORDER = 2;
 const BADGE_FONT_SIZE = 12;
 /** Margin of the keep-clear box around another annotation's halo (border + glow + slack). */
 const HALO_MARGIN = 6;
-const SIDES: readonly string[] = ["top", "bottom", "left", "right"];
 
 type Warn = (message: string) => void;
 const defaultWarn: Warn = (message) => console.warn(message);
@@ -69,11 +80,6 @@ export function pngDimensions(png: Uint8Array): { width: number; height: number 
   return { width: view.getUint32(16), height: view.getUint32(20) };
 }
 
-function preferredSide(arrowStyle: string | undefined): Side {
-  const pref = (arrowStyle ?? "top").split("-")[0] ?? "top";
-  return SIDES.includes(pref) ? (pref as Side) : "top";
-}
-
 function div(style: Record<string, string | number>, children?: BurnNode[] | string): BurnNode {
   return { type: "div", props: { style, ...(children !== undefined ? { children } : {}) } };
 }
@@ -83,25 +89,10 @@ export interface BurnTreeInput {
   annotations: AnnotationRecord[];
   metrics: FontMetrics;
   warn?: Warn;
-}
-
-type Size = { width: number; height: number };
-
-/** Wraps the callout copy to the 280px clamp and sizes the box around it. */
-function measureCallout(label: string, metrics: FontMetrics): { lines: string[]; size: Size } {
-  const contentMax = MAX_CALLOUT_WIDTH - 2 * (CALLOUT_PADDING_X + CALLOUT_BORDER);
-  const lines = wrapText(label, FONT_SIZE, contentMax, metrics);
-  const contentWidth = Math.min(
-    Math.ceil(Math.max(...lines.map((l) => measureText(l, FONT_SIZE, metrics)))),
-    contentMax,
-  );
-  return {
-    lines,
-    size: {
-      width: contentWidth + 2 * (CALLOUT_PADDING_X + CALLOUT_BORDER),
-      height: lines.length * LINE_HEIGHT + 2 * (CALLOUT_PADDING_Y + CALLOUT_BORDER),
-    },
-  };
+  /** Receives one entry per input annotation, in order, for `burn --report`. */
+  report?: AnnotationReport[];
+  /** `overlap_ratio` above which a report entry is `unplaceable`. Default {@link DEFAULT_UNPLACEABLE_RATIO}. */
+  unplaceableRatio?: number;
 }
 
 /** Outer size of the numbered badge: the circle widens for multi-digit indexes. */
@@ -164,26 +155,8 @@ interface DrawnCallout {
   boxes: Rect[];
 }
 
-function calloutNodes(
-  ann: AnnotationRecord,
-  t: BoundingBox,
-  image: Size,
-  metrics: FontMetrics,
-  clear: Rect[],
-): DrawnCallout {
-  const label = (typeof ann.index === "number" ? `${ann.index}. ` : "") + ann.copy;
-  const { lines, size: callout } = measureCallout(label, metrics);
-  // Nudge moves callout + arrow together; the halo stays on the target (same as the viewer).
-  const nudge = { x: ann.nudge?.x ?? 0, y: ann.nudge?.y ?? 0 };
-  const input = { image, target: t, callout, preferred: preferredSide(ann.arrow_style) };
-  const p = ann.obstacles?.length
-    ? planCallout({ ...input, obstacles: ann.obstacles, avoid: clear, nudge })
-    : { ...placeCallout(input), stem: null };
-
-  const arrow = arrowGeometry(p.side, p.arrow);
-  const stem = p.stem;
-  const arrowBox = { x: arrow.left, y: arrow.top, width: arrow.width, height: arrow.height };
-  const calloutBox = { x: p.callout.x, y: p.callout.y, ...callout };
+function calloutNodes(layout: CalloutLayout): DrawnCallout {
+  const { lines, size: callout, nudge, stem } = layout;
   const nodes: BurnNode[] = [];
   if (stem) {
     nodes.push(
@@ -197,21 +170,26 @@ function calloutNodes(
       }),
     );
   }
+  if (layout.side && layout.arrow) {
+    const arrow = arrowGeometry(layout.side, layout.arrow);
+    nodes.push(
+      div({
+        position: "absolute",
+        left: arrow.left + nudge.x,
+        top: arrow.top + nudge.y,
+        width: arrow.width,
+        height: arrow.height,
+        backgroundColor: INK,
+        clipPath: arrow.clipPath,
+      }),
+    );
+  }
   nodes.push(
-    div({
-      position: "absolute",
-      left: arrow.left + nudge.x,
-      top: arrow.top + nudge.y,
-      width: arrow.width,
-      height: arrow.height,
-      backgroundColor: INK,
-      clipPath: arrow.clipPath,
-    }),
     div(
       {
         position: "absolute",
-        left: p.callout.x + nudge.x,
-        top: p.callout.y + nudge.y,
+        left: layout.callout.x + nudge.x,
+        top: layout.callout.y + nudge.y,
         width: callout.width,
         height: callout.height,
         display: "flex",
@@ -231,12 +209,7 @@ function calloutNodes(
       ),
     ),
   );
-  const boxes = [calloutBox, arrowBox, ...(stem ? [stem] : [])].map((r) => ({
-    ...r,
-    x: r.x + nudge.x,
-    y: r.y + nudge.y,
-  }));
-  return { nodes, boxes };
+  return { nodes, boxes: layoutBoxes(layout) };
 }
 
 function badgeNode(box: Rect, index: number): BurnNode {
@@ -278,10 +251,12 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   ];
   const placed: Rect[] = [];
   const badges = new Map<AnnotationRecord, Rect>();
+  const threshold = input.unplaceableRatio ?? DEFAULT_UNPLACEABLE_RATIO;
 
   for (const ann of input.annotations) {
     if (!ann.bounding_box) {
       warn(`burn: annotation on step "${ann.step}" has no bounding_box — skipped`);
+      input.report?.push(skippedReport(ann, "no bounding_box"));
       continue;
     }
     const t = ann.bounding_box;
@@ -313,14 +288,19 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
         : undefined;
     if (badge) badges.set(ann, badge);
 
+    let layout: CalloutLayout | null = null;
+    let calloutBox: Rect | null = null;
     if (ann.copy) {
       const clear = keepClear(input.annotations, ann, image, input.metrics, placed, badges);
-      const drawn = calloutNodes(ann, t, image, input.metrics, clear);
+      layout = layoutCallout({ ann, target: t, image, metrics: input.metrics, clear });
+      const drawn = calloutNodes(layout);
       children.push(...drawn.nodes);
       placed.push(...drawn.boxes);
+      calloutBox = drawn.boxes[0]!;
     }
 
     if (badge && typeof ann.index === "number") children.push(badgeNode(badge, ann.index));
+    input.report?.push(annotationReport(ann, layout, calloutBox, badge, threshold));
   }
 
   return div(
@@ -342,6 +322,11 @@ async function loadFont(): Promise<{ data: Buffer; metrics: FontMetrics }> {
 export interface BurnOptions {
   /** Receives skip warnings (default: console.warn). */
   warn?: Warn;
+  /**
+   * Share of its own area a callout may still cover before the report flags it `unplaceable`
+   * (default {@link DEFAULT_UNPLACEABLE_RATIO}). Reporting only: every callout is drawn either way.
+   */
+  unplaceableRatio?: number;
 }
 
 export interface BurnInput {
@@ -352,8 +337,14 @@ export interface BurnInput {
   options?: BurnOptions;
 }
 
-/** Renders `annotations` onto the screenshot; returns the burned PNG (byte-stable across runs). */
-export async function burnAnnotations(input: BurnInput): Promise<Buffer> {
+export interface BurnRender {
+  png: Buffer;
+  /** One entry per input annotation, in order. */
+  report: AnnotationReport[];
+}
+
+/** Renders `annotations` onto the screenshot; returns the burned PNG and where everything landed. */
+export async function renderBurn(input: BurnInput): Promise<BurnRender> {
   const screenshot =
     input.screenshotBuffer ??
     (input.screenshotPath !== undefined ? await fs.readFile(input.screenshotPath) : undefined);
@@ -362,18 +353,29 @@ export async function burnAnnotations(input: BurnInput): Promise<Buffer> {
   }
   const { width, height } = pngDimensions(screenshot);
   const font = await loadFont();
+  const report: AnnotationReport[] = [];
   const tree = buildBurnTree({
     image: { width, height, dataUri: `data:image/png;base64,${screenshot.toString("base64")}` },
     annotations: input.annotations,
     metrics: font.metrics,
+    report,
     ...(input.options?.warn ? { warn: input.options.warn } : {}),
+    ...(input.options?.unplaceableRatio !== undefined
+      ? { unplaceableRatio: input.options.unplaceableRatio }
+      : {}),
   });
   const svg = await satori(tree, {
     width,
     height,
     fonts: [{ name: "Inter", data: font.data, weight: 400, style: "normal" }],
   });
-  return new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng();
+  const png = new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng();
+  return { png, report };
+}
+
+/** Renders `annotations` onto the screenshot; returns the burned PNG (byte-stable across runs). */
+export async function burnAnnotations(input: BurnInput): Promise<Buffer> {
+  return (await renderBurn(input)).png;
 }
 
 export interface BurnFlowOptions {
@@ -383,11 +385,28 @@ export interface BurnFlowOptions {
   /** Default: `<docsDir>/<flow>/burned`. */
   outDir?: string;
   warn?: Warn;
+  /** See {@link BurnOptions.unplaceableRatio}. */
+  unplaceableRatio?: number;
 }
 
 export interface BurnFlowResult {
   /** PNG filenames written under `outDir`, sorted. */
   written: string[];
+  /** Per-annotation placement report for the flow: screenshots in name order, then steps with no screenshot. */
+  report: FlowBurnReport;
+}
+
+/** Wraps flow reports into the document `burn --report` writes. */
+export function burnReport(
+  flows: FlowBurnReport[],
+  threshold: number = DEFAULT_UNPLACEABLE_RATIO,
+): BurnReport {
+  return {
+    schema: BURN_REPORT_SCHEMA,
+    threshold,
+    flows,
+    unplaceable: flows.reduce((n, f) => n + f.annotations.filter((a) => a.unplaceable).length, 0),
+  };
 }
 
 /**
@@ -420,6 +439,7 @@ export async function burnFlow(opts: BurnFlowOptions): Promise<BurnFlowResult> {
   await fs.mkdir(outDir, { recursive: true });
 
   const written: string[] = [];
+  const reports: AnnotationReport[] = [];
   const burnedSteps = new Set<string>();
   for (const file of shots) {
     const step = file.replace(/\.png$/, "");
@@ -429,19 +449,26 @@ export async function burnFlow(opts: BurnFlowOptions): Promise<BurnFlowResult> {
     if (annotations.length === 0) {
       await fs.copyFile(path.join(shotsDir, file), dest);
     } else {
-      const burned = await burnAnnotations({
+      const burned = await renderBurn({
         screenshotPath: path.join(shotsDir, file),
         annotations,
-        options: { warn },
+        options: {
+          warn,
+          ...(opts.unplaceableRatio !== undefined
+            ? { unplaceableRatio: opts.unplaceableRatio }
+            : {}),
+        },
       });
-      await fs.writeFile(dest, burned);
+      await fs.writeFile(dest, burned.png);
+      reports.push(...burned.report);
     }
     written.push(file);
   }
   for (const step of byStep.keys()) {
     if (!burnedSteps.has(step)) {
       warn(`burn: step "${step}" has annotations but no screenshot — skipped`);
+      reports.push(...byStep.get(step)!.map((a) => skippedReport(a, "no screenshot")));
     }
   }
-  return { written };
+  return { written, report: { flow: opts.flow, annotations: reports } };
 }

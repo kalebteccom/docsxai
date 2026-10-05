@@ -190,6 +190,40 @@ export const RedactionSpec = z.union([
 ]);
 export type RedactionSpec = z.infer<typeof RedactionSpec>;
 
+/** Most `obstacles` one annotation record may carry (the writer keeps the nearest this many). */
+export const MAX_OBSTACLES = 40;
+
+/** Bounds of `placement.max_width`, the widest outer callout box the burner may use, in screenshot px. */
+export const MIN_CALLOUT_WIDTH = 120;
+export const MAX_CALLOUT_WIDTH = 560;
+/** Widest `placement.obstacle_radius` (CSS px) a flow may ask the obstacle scan for. */
+export const MAX_OBSTACLE_RADIUS = 2000;
+
+/**
+ * Optional per-annotation placement settings for the burner. Every key is optional and an empty or
+ * absent object changes nothing. The interactive viewer ignores them; `obstacle_radius` and
+ * `obstacle_limit` steer the capture-time obstacle scan, the rest steer `docsxai-viewer burn`.
+ */
+export const AnnotationPlacement = z
+  .object({
+    /** Put the callout inside the target when the target is big enough to hold it (no arrow). */
+    inside: z.boolean().optional(),
+    /** Only try this side of the target (falls back to the usual order when nothing fits there). */
+    side: z.enum(["top", "bottom", "left", "right"]).optional(),
+    /** Where along the target's edge the callout sits: flush with its start, centred, or flush with its end. */
+    align: z.enum(["start", "center", "end"]).optional(),
+    /** `nudge` moves only the callout: the arrow stays on the target and a stem joins the two. */
+    pin_arrow: z.boolean().optional(),
+    /** Widest outer callout box in px (default 280, narrower on small screenshots with obstacles). */
+    max_width: z.number().finite().min(MIN_CALLOUT_WIDTH).max(MAX_CALLOUT_WIDTH).optional(),
+    /** CSS px around the target the obstacle scan covers (default 320). Read by `docsxai run`. */
+    obstacle_radius: z.number().finite().min(0).max(MAX_OBSTACLE_RADIUS).optional(),
+    /** Most obstacles recorded for this annotation (default {@link MAX_OBSTACLES}). Read by `docsxai run`. */
+    obstacle_limit: z.number().int().min(1).max(MAX_OBSTACLES).optional(),
+  })
+  .strict();
+export type AnnotationPlacement = z.infer<typeof AnnotationPlacement>;
+
 export const StepAnnotation = z
   .object({
     copy: z.string().min(1),
@@ -201,6 +235,8 @@ export const StepAnnotation = z
      * Image-space pixels; small values (5–40 px in either direction) typically suffice.
      */
     nudge: NudgeOffset.optional(),
+    /** Optional burner placement settings — see {@link AnnotationPlacement}. Copied onto the annotation record. */
+    placement: AnnotationPlacement.optional(),
     /**
      * Optional override: the locator to anchor the halo/arrow to. Default = the step's `target`. Use this on
      * a step whose action *transitions the UI* — the action target vanishes (gets unmounted / replaced) and
@@ -308,9 +344,6 @@ export const BoundingBox = z
   .strict();
 export type BoundingBox = z.infer<typeof BoundingBox>;
 
-/** Most `obstacles` one annotation record may carry (the writer keeps the nearest this many). */
-export const MAX_OBSTACLES = 40;
-
 export const AnnotationRecord = z
   .object({
     step: z.string().min(1),
@@ -330,6 +363,8 @@ export const AnnotationRecord = z
      * carries the same field.
      */
     obstacles: z.array(BoundingBox).max(MAX_OBSTACLES).optional(),
+    /** Optional burner placement settings (inside the target, side, alignment, pinned arrow, width) — see {@link AnnotationPlacement}. */
+    placement: AnnotationPlacement.optional(),
     /** 1-based index of this annotation *within its step's screenshot* — set only when the step has > 1 annotation, so the viewer can render a numbered badge. Absent → render as a plain (un-numbered) halo. */
     index: z.number().int().positive().optional(),
   })

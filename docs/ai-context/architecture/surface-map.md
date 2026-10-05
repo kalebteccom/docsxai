@@ -135,6 +135,7 @@ The rendering surface: interactive viewer, burn renderer, Starlight site emitter
 - `src/render.ts` — `buildViewer({ docsDir, outDir })`. Reads annotations + screenshots, emits `index.html` + per-flow pages.
 - `src/placement.ts` — `placeCallout(input)`. Pure Popper-like placement; coordinate-space-agnostic; tested independently.
 - `src/burn.ts` — browser-free baked-annotation renderer (Satori + resvg) for delivery surfaces that can't run the interactive viewer (Confluence, Notion). The workspace PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-inspectable; burning happens at export time.
+- `src/burn-callout.ts` + `src/inside-placement.ts` + `src/burn-report.ts` — callout sizing and layout for the burner (adaptive width ladder, `placement` options, inside-the-target placement) and the `burn --report` placement report. `obstacle-placement.ts` and `badge-placement.ts` hold the planners they build on.
 - `src/starlight.ts` — the Astro Starlight site emitter (production docs-site output from a doc pack).
 - `src/overlay-runtime.ts` — the interactive overlay (halo + numbered badges + callouts), bundled into `dist/generated/overlay.js` at build time.
 

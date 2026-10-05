@@ -6,7 +6,7 @@
 // covers, and keeps the cheapest. Pure and deterministic: candidates are enumerated in a fixed
 // order and a candidate only replaces the best on a strictly better (cost, side rank, travel).
 
-import { arrowGeometry, stemGeometry } from "./arrow.js";
+import { ARROW_LENGTH, arrowGeometry, stemGeometry } from "./arrow.js";
 import {
   placeCallout,
   type PlaceInput,
@@ -22,6 +22,16 @@ export interface PlanInput extends PlaceInput {
   avoid?: Rect[];
   /** Offset the renderer adds to callout + arrow after placement; candidates are scored shifted. */
   nudge?: { x: number; y: number };
+  /** Try only `preferred`'s side; the other sides are tried when it has no spot inside the image. */
+  strictSide?: boolean;
+  /** Where the callout rests along the target's edge before it slides. Default `"center"`. */
+  align?: "start" | "center" | "end";
+  /**
+   * Fold `nudge` into the callout's distance and slide instead of moving callout and arrow
+   * together: the arrow tip stays on the target and a stem joins it to the callout. The nudge is
+   * bounded by what keeps the stem attached and the callout inside the image.
+   */
+  pinArrow?: boolean;
 }
 
 export interface PlannedPlacement extends Placement {
@@ -31,6 +41,8 @@ export interface PlannedPlacement extends Placement {
   stem: Rect | null;
   /** Pixels of the callout and arrow still covering an obstacle or avoided box (0 = clear). */
   overlap: number;
+  /** True when `nudge` is already part of `callout` and `stem`; the renderer must not add it again. */
+  nudgeBaked?: boolean;
 }
 
 export interface ScoreContext {
@@ -50,6 +62,8 @@ const CLEARANCE = 4;
 /** Distances beyond the base gap that are tried, in px. */
 const EXTRA_DISTANCES = [0, 12, 28, 48, 76, 112, 160, 224, 320];
 const SLIDE_STEP = 8;
+/** A slide range is cut into at most this many steps; only ranges over 1600 px coarsen the 8 px step. */
+const MAX_SLIDE_STEPS = 200;
 /** Arrow tip stays this far inside the target's ends. */
 const ARROW_INSET = 6;
 /** The stem leaves the callout at least this far from its corners. */
@@ -109,24 +123,43 @@ interface Scored extends PlannedPlacement {
   travel: number;
 }
 
+interface SlideRange {
+  /** Callout start positions that keep a stem attachable, nearest the resting spot first. */
+  starts: number[];
+  lo: number;
+  hi: number;
+}
+
+const ALIGN_FRACTION = { start: 0, center: 0.5, end: 1 } as const;
+
 /** Callout start positions along the target's edge that keep a stem attachable, nearest first. */
-function slideStarts(
+export function slideStarts(
   span: { from: number; length: number },
   calloutLength: number,
   limit: number,
-): number[] {
+  align: "start" | "center" | "end" = "center",
+): SlideRange {
   const inset = Math.min(ARROW_INSET, span.length / 2);
   const margin = Math.min(ATTACH_MARGIN, calloutLength / 2);
   const lo = Math.max(0, span.from + inset - calloutLength + margin);
   const hi = Math.min(limit - calloutLength, span.from + span.length - inset - margin);
-  if (lo > hi) return [];
-  const centred = clamp(span.from + span.length / 2 - calloutLength / 2, lo, hi);
+  if (lo > hi) return { starts: [], lo, hi };
+  const rest =
+    align === "center"
+      ? span.from + span.length / 2 - calloutLength / 2
+      : span.from + (span.length - calloutLength) * ALIGN_FRACTION[align];
+  const centred = clamp(rest, lo, hi);
   const starts = new Set<number>([centred, lo, hi]);
-  for (let s = SLIDE_STEP; centred - s >= lo || centred + s <= hi; s += SLIDE_STEP) {
+  const step = Math.max(SLIDE_STEP, Math.ceil((hi - lo) / MAX_SLIDE_STEPS));
+  for (let s = step; centred - s >= lo || centred + s <= hi; s += step) {
     if (centred - s >= lo) starts.add(centred - s);
     if (centred + s <= hi) starts.add(centred + s);
   }
-  return [...starts].sort((a, b) => Math.abs(a - centred) - Math.abs(b - centred) || a - b);
+  return {
+    starts: [...starts].sort((a, b) => Math.abs(a - centred) - Math.abs(b - centred) || a - b),
+    lo,
+    hi,
+  };
 }
 
 function layout(side: Side, inp: PlaceInput, distance: number, start: number) {
@@ -157,22 +190,45 @@ function layout(side: Side, inp: PlaceInput, distance: number, start: number) {
   }
 }
 
+/**
+ * `nudge` as a move of the callout alone: its component across the target edge changes the
+ * distance, its component along the edge slides the callout. Arrow tip and edge stay put.
+ */
+function pinnedOffsets(side: Side, nudge: { x: number; y: number }) {
+  switch (side) {
+    case "top":
+      return { across: -nudge.y, along: nudge.x };
+    case "bottom":
+      return { across: nudge.y, along: nudge.x };
+    case "left":
+      return { across: -nudge.x, along: nudge.y };
+    case "right":
+      return { across: nudge.x, along: nudge.y };
+  }
+}
+
 function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scored> {
   const { image, target: t, callout: c } = inp;
   const nudge = inp.nudge ?? { x: 0, y: 0 };
+  const pin = inp.pinArrow === true;
+  const shiftBy = pin ? { x: 0, y: 0 } : nudge;
   const ctx: ScoreContext = { image, obstacles: inp.obstacles, avoid: inp.avoid ?? [] };
   for (const [rank, side] of order.entries()) {
     const horizontal = side === "top" || side === "bottom";
     const span = horizontal ? { from: t.x, length: t.width } : { from: t.y, length: t.height };
-    const starts = slideStarts(
+    const slide = slideStarts(
       span,
       horizontal ? c.width : c.height,
       horizontal ? image.width : image.height,
+      inp.align,
     );
+    const { starts } = slide;
     const centred = starts[0] ?? 0;
+    const offsets = pin ? pinnedOffsets(side, nudge) : { across: 0, along: 0 };
     for (const extra of EXTRA_DISTANCES) {
-      const distance = gap + extra;
-      for (const start of starts) {
+      for (const baseStart of starts) {
+        const distance = pin ? Math.max(ARROW_LENGTH, gap + extra + offsets.across) : gap + extra;
+        const start = pin ? clamp(baseStart + offsets.along, slide.lo, slide.hi) : baseStart;
         const l = layout(side, inp, distance, start);
         const rect = { x: l.x, y: l.y, width: c.width, height: c.height };
         const inside =
@@ -182,13 +238,16 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
           rect.y + rect.height <= image.height;
         if (!inside) continue;
         const a = arrowGeometry(side, l.arrow);
-        const stem = extra > 0 ? stemGeometry(side, l.arrow, distance) : null;
+        const stem = (pin ? distance > gap : extra > 0)
+          ? stemGeometry(side, l.arrow, distance)
+          : null;
         const connector = [
           { x: a.left, y: a.top, width: a.width, height: a.height },
           ...(stem ? [stem] : []),
-        ].map((r) => shift(r, nudge));
-        const { cost, overlap } = scorePlacement({ callout: shift(rect, nudge), connector }, ctx);
-        const travel = extra * STEM_COST + Math.abs(start - centred) * SLIDE_COST;
+        ].map((r) => shift(r, shiftBy));
+        const { cost, overlap } = scorePlacement({ callout: shift(rect, shiftBy), connector }, ctx);
+        // Travel is measured from the un-nudged candidate, so a nudge is not charged as a detour.
+        const travel = extra * STEM_COST + Math.abs(baseStart - centred) * SLIDE_COST;
         yield {
           side,
           callout: { x: rect.x, y: rect.y },
@@ -218,12 +277,24 @@ export function planCallout(inp: PlanInput): PlannedPlacement {
   const gap = inp.gap ?? 10;
   const preferred = inp.preferred ?? "top";
   const order = [preferred, ...SIDES.filter((s) => s !== preferred)];
-  let best: Scored | undefined;
-  for (const cand of candidates(inp, order, gap)) if (better(cand, best)) best = cand;
+  const search = (sides: Side[]) => {
+    let found: Scored | undefined;
+    for (const cand of candidates(inp, sides, gap)) if (better(cand, found)) found = cand;
+    return found;
+  };
+  const best = (inp.strictSide ? search([preferred]) : undefined) ?? search(order);
   if (!best) {
     const p = placeCallout(inp);
     return { ...p, distance: gap, stem: null, overlap: 0 };
   }
   const { side, callout, arrow, distance, stem, overlap } = best;
-  return { side, callout, arrow, distance, stem, overlap };
+  return {
+    side,
+    callout,
+    arrow,
+    distance,
+    stem,
+    overlap,
+    ...(inp.pinArrow ? { nudgeBaked: true } : {}),
+  };
 }

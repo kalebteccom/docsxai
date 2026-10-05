@@ -9,6 +9,7 @@
 // without a real browser; the Playwright-backed driver lives in a separate module.
 
 import {
+  type AnnotationPlacement,
   type AnnotationRecord,
   type AnnotationsFile,
   type BoundingBox,
@@ -249,10 +250,17 @@ async function obstaclesAround(
   selector: string,
   target: BoundingBox,
   stepId: string,
+  placement?: AnnotationPlacement,
 ): Promise<BoundingBox[]> {
+  const radius = placement?.obstacle_radius ?? OBSTACLE_RADIUS;
   try {
-    const scan = await driver.nearbyBoxes(selector, OBSTACLE_RADIUS, 2000);
-    return scan ? selectObstacles(scan, target) : [];
+    const scan = await driver.nearbyBoxes(selector, radius, 2000);
+    return scan
+      ? selectObstacles(scan, target, {
+          radius,
+          ...(placement?.obstacle_limit !== undefined ? { limit: placement.obstacle_limit } : {}),
+        })
+      : [];
   } catch (e) {
     process.stderr.write(
       `runFlow: step "${stepId}" — obstacle scan skipped (${(e as Error).message})\n`,
@@ -484,7 +492,7 @@ export async function runFlow(
           const bbox = annSelector ? await driver.boundingBox(annSelector, 2000) : null;
           const obstacles =
             opts.obstacles && annSelector && bbox
-              ? await obstaclesAround(driver, annSelector, bbox, step.id)
+              ? await obstaclesAround(driver, annSelector, bbox, step.id, ann.placement)
               : [];
           annotations.push({
             step: step.id,
@@ -494,6 +502,7 @@ export async function runFlow(
             copy: ann.copy,
             ...(ann.arrow ? { arrow_style: ann.arrow } : {}),
             ...(ann.nudge ? { nudge: ann.nudge } : {}),
+            ...(ann.placement ? { placement: ann.placement } : {}),
             ...(anns.length > 1 ? { index: i + 1 } : {}),
           });
         }

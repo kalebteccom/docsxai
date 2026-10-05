@@ -1,7 +1,14 @@
 // `docsxai/annotations@1` stays additive: `obstacles` is optional, files without it still parse.
 
 import { describe, expect, it } from "vitest";
-import { AnnotationsFile, MAX_OBSTACLES } from "../src/doc-pack.js";
+import {
+  AnnotationsFile,
+  FlowFile,
+  MAX_CALLOUT_WIDTH,
+  MAX_OBSTACLES,
+  MAX_OBSTACLE_RADIUS,
+  MIN_CALLOUT_WIDTH,
+} from "../src/doc-pack.js";
 
 const record = { step: "open", selector: "#play", copy: "Click Play" };
 const file = (annotations: unknown[]) => ({
@@ -45,5 +52,64 @@ describe("AnnotationRecord.obstacles", () => {
   it("holds bounding_box to the same shape", () => {
     const bad = { ...record, bounding_box: { x: 0, y: 0, width: -1, height: 5 } };
     expect(AnnotationsFile.safeParse(file([bad])).success).toBe(false);
+  });
+});
+
+describe("AnnotationRecord.placement", () => {
+  const withPlacement = (placement: unknown) =>
+    AnnotationsFile.safeParse(file([{ ...record, placement }])).success;
+
+  it("accepts records written before the field existed, and an empty object", () => {
+    expect(AnnotationsFile.safeParse(file([record])).success).toBe(true);
+    expect(withPlacement({})).toBe(true);
+  });
+
+  it("accepts every documented key", () => {
+    expect(
+      withPlacement({
+        inside: true,
+        side: "left",
+        align: "end",
+        pin_arrow: true,
+        max_width: 200,
+        obstacle_radius: 120,
+        obstacle_limit: 10,
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects unknown keys and bad enum values", () => {
+    expect(withPlacement({ outside: true })).toBe(false);
+    expect(withPlacement({ side: "top-left" })).toBe(false);
+    expect(withPlacement({ align: "middle" })).toBe(false);
+    expect(withPlacement({ inside: "yes" })).toBe(false);
+  });
+
+  it("bounds the numbers and rejects non-finite ones", () => {
+    expect(withPlacement({ max_width: MIN_CALLOUT_WIDTH })).toBe(true);
+    expect(withPlacement({ max_width: MAX_CALLOUT_WIDTH })).toBe(true);
+    expect(withPlacement({ max_width: MIN_CALLOUT_WIDTH - 1 })).toBe(false);
+    expect(withPlacement({ max_width: MAX_CALLOUT_WIDTH + 1 })).toBe(false);
+    expect(withPlacement({ max_width: Number.NaN })).toBe(false);
+    expect(withPlacement({ obstacle_radius: 0 })).toBe(true);
+    expect(withPlacement({ obstacle_radius: MAX_OBSTACLE_RADIUS })).toBe(true);
+    expect(withPlacement({ obstacle_radius: -1 })).toBe(false);
+    expect(withPlacement({ obstacle_radius: MAX_OBSTACLE_RADIUS + 1 })).toBe(false);
+    expect(withPlacement({ obstacle_radius: Number.POSITIVE_INFINITY })).toBe(false);
+    expect(withPlacement({ obstacle_limit: 1 })).toBe(true);
+    expect(withPlacement({ obstacle_limit: MAX_OBSTACLES })).toBe(true);
+    expect(withPlacement({ obstacle_limit: 0 })).toBe(false);
+    expect(withPlacement({ obstacle_limit: MAX_OBSTACLES + 1 })).toBe(false);
+    expect(withPlacement({ obstacle_limit: 2.5 })).toBe(false);
+  });
+
+  it("is accepted on a flow-file step annotation and held to the same bounds", () => {
+    const flow = (placement: unknown) =>
+      FlowFile.safeParse({
+        name: "f",
+        steps: [{ id: "a", action: "click", target: "#x", annotation: { copy: "c", placement } }],
+      }).success;
+    expect(flow({ inside: true, obstacle_radius: 200 })).toBe(true);
+    expect(flow({ obstacle_limit: 0 })).toBe(false);
   });
 });
