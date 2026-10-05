@@ -77,7 +77,7 @@ export default defineConfig({
             description:
               "Deterministic documentation engine: walks a web app, follows written flows, and emits screenshot-rich user docs that replay agent-free in CI.",
             applicationCategory: "DeveloperApplication",
-            operatingSystem: "Node.js (>=20)",
+            operatingSystem: "Node.js (>=26)",
             url: "https://docsxai.dev",
             license: "https://www.apache.org/licenses/LICENSE-2.0",
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },

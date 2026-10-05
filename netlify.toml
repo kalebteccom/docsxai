@@ -15,8 +15,8 @@
 [build.environment]
   # Node is locked to 26 in .nvmrc (read by nvm locally and by Netlify);
   # mirrored here explicitly for robustness — keep the two in sync. Astro 7
-  # needs Node >= 22.12.0; the published engine/CLI packages still run on
-  # Node 20, so this lock is build/dev-only.
+  # needs Node >= 22.12.0; the engine/CLI packages require Node >= 26, the
+  # same version this lock pins.
   NODE_VERSION = "26"
   # The lockfile is written by pnpm 10.x, and the repo root package.json has no
   # `packageManager` field to pin the version, so pin pnpm 10 here to make sure
