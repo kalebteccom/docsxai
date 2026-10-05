@@ -11,6 +11,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Changed
 
 - **Dependency refresh.** Bumps `yaml` 2.9.1, `satori` 0.33, `playwright-core` 1.63, `@modelcontextprotocol/sdk` 1.30, `prettier` 3.9, `eslint-plugin-import-x` 4.17, `typescript-eslint` 8.62, the `dev-deps-patch` group (`@eslint/js`, `@types/node`, `astro` 6.4.8, `esbuild`, `sharp`), and the pinned `actions/checkout` 4.4.0, `trufflehog` 3.97.6 and `zizmor-action` 0.6.4 workflow actions. `@astrojs/starlight` 0.41 and `starlight-links-validator` 0.25 stay put: Starlight 0.41 requires Astro 7.
+- **Astro 7.** Moves the docs site and the Starlight site emitter to `astro` 7.3.5, `@astrojs/starlight` 0.41.2 and `starlight-links-validator` 0.25. Sites emitted by `docsxai-viewer site` now pin `astro@7.3.5` and `@astrojs/starlight@0.41.2` (Vite 8 and the Rust compiler underneath, Node >=22.12 to build). The page output and `--build` flow are unchanged.
 
 ### Fixed
 

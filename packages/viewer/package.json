@@ -43,9 +43,9 @@
     "test": "node scripts/bundle-overlay.mjs && vitest run"
   },
   "devDependencies": {
-    "@astrojs/starlight": "0.40.0",
+    "@astrojs/starlight": "0.41.2",
     "@types/node": "^20.19.43",
-    "astro": "6.4.8",
+    "astro": "7.3.5",
     "esbuild": "^0.28.2",
     "vitest": "^2.0.0"
   },
