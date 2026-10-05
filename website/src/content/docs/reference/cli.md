@@ -230,7 +230,7 @@ Pure-static checks across the workspace's flow-files - no Playwright, no
 live page. The core rules cover deep `extends` chains, annotations anchored
 to likely-unmounting click/navigate targets, selector waits with no
 `timeout_ms` on long-async-looking steps, bare `[data-*=...]` selectors
-prone to hidden duplicates, and more - the full R001-R010 table is in
+prone to hidden duplicates, and more - the full R001-R013 table is in
 [Troubleshooting](/guides/troubleshooting/). Workspace plugins can add
 rules. Exit 1 if any warning or error; `--format json` emits
 machine-readable output for tooling.

@@ -30,6 +30,7 @@ import {
 } from "./flow-runtime.js";
 import { type StorageState } from "./auth.js";
 import { type NearbyBoxes } from "./obstacles.js";
+import { HIDDEN_ATTR, markHidden, unmarkHidden } from "./page-hide.js";
 import { collectNearbyBoxes } from "./page-nearby-boxes.js";
 import { applyRedactions, type RedactionBox } from "./redact.js";
 import { resolveWorkspacePathReal } from "./workspace.js";
@@ -198,6 +199,11 @@ function withTimeout<T>(work: Promise<T>, ms: number | undefined): Promise<T> {
   return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
 }
 
+/** Playwright per-call options for a step's `timeout_ms`; empty when unset so the default is untouched. */
+function budget(timeoutMs: number | undefined): { timeout?: number } {
+  return timeoutMs === undefined ? {} : { timeout: timeoutMs };
+}
+
 export class PlaywrightDriver implements BrowserDriver {
   constructor(
     private readonly page: Page,
@@ -207,26 +213,66 @@ export class PlaywrightDriver implements BrowserDriver {
   goto(url: string): Promise<void> {
     return this.page.goto(url).then(() => undefined);
   }
-  click(selector: string): Promise<void> {
-    return this.page.click(selector);
+  click(selector: string, timeoutMs?: number): Promise<void> {
+    return this.page.click(selector, budget(timeoutMs));
   }
-  fill(selector: string, value: string): Promise<void> {
-    return this.page.fill(selector, value);
+  fill(selector: string, value: string, timeoutMs?: number): Promise<void> {
+    return this.page.fill(selector, value, budget(timeoutMs));
   }
-  upload(selector: string, filePath: string): Promise<void> {
-    return this.page.setInputFiles(selector, path.resolve(this.docPackRoot, filePath));
+  upload(selector: string, filePath: string, timeoutMs?: number): Promise<void> {
+    return this.page.setInputFiles(
+      selector,
+      path.resolve(this.docPackRoot, filePath),
+      budget(timeoutMs),
+    );
   }
-  press(selector: string | null, key: string): Promise<void> {
-    return selector ? this.page.press(selector, key) : this.page.keyboard.press(key);
+  press(selector: string | null, key: string, timeoutMs?: number): Promise<void> {
+    return selector
+      ? this.page.press(selector, key, budget(timeoutMs))
+      : this.page.keyboard.press(key);
   }
-  hover(selector: string): Promise<void> {
-    return this.page.hover(selector);
+  hover(selector: string, timeoutMs?: number): Promise<void> {
+    return this.page.hover(selector, budget(timeoutMs));
   }
-  selectOption(selector: string, value: string): Promise<void> {
-    return this.page.selectOption(selector, value).then(() => undefined);
+  selectOption(selector: string, value: string, timeoutMs?: number): Promise<void> {
+    return this.page.selectOption(selector, value, budget(timeoutMs)).then(() => undefined);
   }
-  setChecked(selector: string, checked: boolean): Promise<void> {
-    return this.page.setChecked(selector, checked);
+  setChecked(selector: string, checked: boolean, timeoutMs?: number): Promise<void> {
+    return this.page.setChecked(selector, checked, budget(timeoutMs));
+  }
+
+  /** Selectors a `hide` step registered; re-applied before every screenshot (see {@link syncHidden}). */
+  private readonly hidden = new Set<string>();
+
+  async hideElements(selector: string, timeoutMs?: number): Promise<void> {
+    // Wait for the element to exist, not to be visible: it may already be hidden by the page.
+    await this.page
+      .locator(selector)
+      .first()
+      .waitFor({ state: "attached", ...budget(timeoutMs) });
+    this.hidden.add(selector);
+    try {
+      await this.syncHidden();
+    } catch (e) {
+      this.hidden.delete(selector); // a rule the page can't take must not poison every later screenshot
+      throw e;
+    }
+  }
+  async showElements(selector: string | null): Promise<void> {
+    if (selector === null) this.hidden.clear();
+    else this.hidden.delete(selector);
+    await this.syncHidden();
+  }
+  /**
+   * Re-mark every element a registered selector matches right now. Navigation drops the marks and
+   * a framework re-render can replace the elements, so the registry (not the DOM) is the source of
+   * truth and the marks are rebuilt from it. Unmark first so a `show` takes effect.
+   */
+  private async syncHidden(): Promise<void> {
+    await this.page.locator(`[${HIDDEN_ATTR}]`).evaluateAll(unmarkHidden, HIDDEN_ATTR);
+    for (const selector of this.hidden) {
+      await this.page.locator(selector).evaluateAll(markHidden, HIDDEN_ATTR);
+    }
   }
 
   waitForNetworkIdle(): Promise<void> {
@@ -396,6 +442,8 @@ export class PlaywrightDriver implements BrowserDriver {
     // and cancels infinite ones, so an element transitioning in (opacity/transform) is captured
     // fully settled instead of mid-fade. `caret: "hide"` keeps a blinking text caret out of shots.
     const shotOptions = { animations: "disabled", caret: "hide" } as const;
+    // Elements a `hide` step registered are re-marked first: a navigation or re-render since may have dropped the marks.
+    if (this.hidden.size > 0) await this.syncHidden();
     if (redactions.length === 0) {
       await this.page.screenshot({ path: abs, ...shotOptions });
       return;

@@ -38,13 +38,29 @@ export type ResolvedRedaction =
 /** What the runtime needs from a browser. Selectors passed here are already resolved (no `$ref`). */
 export interface BrowserDriver {
   goto(url: string): Promise<void>;
-  click(selector: string): Promise<void>;
-  fill(selector: string, value: string): Promise<void>;
-  upload(selector: string, filePath: string): Promise<void>;
-  press(selector: string | null, key: string): Promise<void>;
-  hover(selector: string): Promise<void>;
-  selectOption(selector: string, value: string): Promise<void>;
-  setChecked(selector: string, checked: boolean): Promise<void>;
+  /**
+   * The seven target actions take an optional `timeoutMs`: how long to wait for the target to become
+   * actionable before throwing. Undefined keeps the driver default, so a step without `timeout_ms`
+   * behaves exactly as before.
+   */
+  click(selector: string, timeoutMs?: number): Promise<void>;
+  fill(selector: string, value: string, timeoutMs?: number): Promise<void>;
+  upload(selector: string, filePath: string, timeoutMs?: number): Promise<void>;
+  press(selector: string | null, key: string, timeoutMs?: number): Promise<void>;
+  hover(selector: string, timeoutMs?: number): Promise<void>;
+  selectOption(selector: string, value: string, timeoutMs?: number): Promise<void>;
+  setChecked(selector: string, checked: boolean, timeoutMs?: number): Promise<void>;
+
+  /**
+   * Hide every element `selector` matches: `visibility: hidden`, so the element keeps its box and
+   * nothing reflows, and it stays out of every later screenshot (halt shots too). Waits up to
+   * `timeoutMs` for a match to exist, throws if none does. The hiding is by selector and holds for
+   * the rest of the session, across navigations and re-renders, until {@link showElements}.
+   * Implementations apply a fixed engine-owned rule; the selector is data, never CSS or script.
+   */
+  hideElements(selector: string, timeoutMs?: number): Promise<void>;
+  /** Undo {@link hideElements} for the selector as it was given there, or for everything when `null`. Instant; matching nothing is fine. */
+  showElements(selector: string | null): Promise<void>;
 
   waitForNetworkIdle(): Promise<void>;
   waitForLoad(): Promise<void>;
@@ -131,6 +147,10 @@ export class FlowExecutionError extends Error {
  */
 export function inferHaltCause(rawError: string): string | undefined {
   const hints: Array<[RegExp, string]> = [
+    [
+      /docsxai: cannot hide/i,
+      "the browser can't apply the hide rule (no constructable stylesheets), so the element would stay visible",
+    ],
     [/element is disabled\b/i, "target is disabled"],
     [/element is not enabled\b/i, "target is not enabled"],
     [
@@ -245,6 +265,7 @@ async function applyWait(
   driver: BrowserDriver,
   wait: WaitSpec,
   resolve: (v: string) => string,
+  stepTimeoutMs?: number,
 ): Promise<void> {
   if (typeof wait === "string") {
     if (wait === "network_idle") return driver.waitForNetworkIdle();
@@ -252,7 +273,8 @@ async function applyWait(
     // element_stable without a selector is a no-op signal in this prototype; a real driver may track layout.
     return;
   }
-  if ("selector" in wait) return driver.waitForSelector(resolve(wait.selector), wait.timeout_ms);
+  if ("selector" in wait)
+    return driver.waitForSelector(resolve(wait.selector), wait.timeout_ms ?? stepTimeoutMs);
   if ("timeout_ms" in wait) return driver.waitForTimeout(wait.timeout_ms);
 }
 
@@ -319,29 +341,33 @@ async function executeAction(
         throw new FlowExecutionError("navigate requires `value` (path/URL)", step.id);
       return driver.goto(step.value);
     case "click":
-      return driver.click(needSelector(selector, step));
+      return driver.click(needSelector(selector, step), step.timeout_ms);
     case "fill":
       if (step.value === undefined) throw new FlowExecutionError("fill requires `value`", step.id);
-      return driver.fill(needSelector(selector, step), step.value);
+      return driver.fill(needSelector(selector, step), step.value, step.timeout_ms);
     case "upload":
       if (step.value === undefined)
         throw new FlowExecutionError("upload requires `value` (file path)", step.id);
-      return driver.upload(needSelector(selector, step), step.value);
+      return driver.upload(needSelector(selector, step), step.value, step.timeout_ms);
     case "press":
       if (!step.value) throw new FlowExecutionError("press requires `value` (key)", step.id);
-      return driver.press(selector, step.value);
+      return driver.press(selector, step.value, step.timeout_ms);
     case "hover":
-      return driver.hover(needSelector(selector, step));
+      return driver.hover(needSelector(selector, step), step.timeout_ms);
     case "select":
       if (step.value === undefined)
         throw new FlowExecutionError("select requires `value` (option)", step.id);
-      return driver.selectOption(needSelector(selector, step), step.value);
+      return driver.selectOption(needSelector(selector, step), step.value, step.timeout_ms);
     case "check":
-      return driver.setChecked(needSelector(selector, step), true);
+      return driver.setChecked(needSelector(selector, step), true, step.timeout_ms);
     case "uncheck":
-      return driver.setChecked(needSelector(selector, step), false);
+      return driver.setChecked(needSelector(selector, step), false, step.timeout_ms);
     case "wait":
       return; // a bare `wait` step just runs its `wait_for`
+    case "hide":
+      return driver.hideElements(needSelector(selector, step), step.timeout_ms);
+    case "show":
+      return driver.showElements(selector); // no target = show everything hidden so far
   }
 }
 
@@ -396,7 +422,13 @@ export async function runFlow(
       if (step.wait_for) {
         if (step.wait_for === "element_stable" && selector)
           await driver.waitForElementStable(selector);
-        else await applyWait(driver, step.wait_for, resolve);
+        else
+          await applyWait(
+            driver,
+            step.wait_for,
+            resolve,
+            step.action === "wait" ? step.timeout_ms : undefined,
+          );
       }
       if (step.success) await checkSuccess(driver, step.success, resolve, step.id);
     } catch (e) {

@@ -222,6 +222,45 @@ steps:
     expect(spec).toContain(`// step "s1": click without a target — nothing to emit`);
   });
 
+  it("emits a per-call timeout from `timeout_ms`, and hide / show as marker + inline visibility", () => {
+    const spec = generate(
+      `name: hidey
+locators:
+  badge: "nextjs-portal"
+steps:
+  - id: dismiss
+    action: click
+    target: "#ok"
+    optional: true
+    timeout_ms: 1500
+  - id: type
+    action: fill
+    target: "#t"
+    value: x
+    timeout_ms: 200
+  - id: hide-badge
+    action: hide
+    target: $badge
+    timeout_ms: 300
+  - id: show-badge
+    action: show
+    target: $badge
+  - id: show-all
+    action: show
+`,
+      "hidey",
+    );
+    expect(spec).toContain(`await page.locator("#ok").click({ timeout: 1500 });`);
+    expect(spec).toContain(`await page.locator("#t").fill("x", { timeout: 200 });`);
+    expect(spec).toContain(`await badge.first().waitFor({ state: "attached", timeout: 300 });`);
+    expect(spec).toContain(`el.setAttribute("data-docsxai-hidden", "");`);
+    expect(spec).toContain(`el.style.setProperty("visibility", "hidden", "important");`);
+    expect(spec).toContain(
+      `await badge.evaluateAll((els) => els.forEach((el) => { el.removeAttribute(`,
+    );
+    expect(spec).toContain(`await page.locator("[data-docsxai-hidden]").evaluateAll(`);
+  });
+
   it("rejects flows with an unresolved extends chain", () => {
     const flow = parseFlowFile(`name: child
 extends: base

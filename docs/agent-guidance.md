@@ -50,6 +50,27 @@ can't help you because the step looks structurally fine.
 A skipped optional step logs to stderr and emits no screenshot. Keep a `wait_for` or `success`
 guard on it — an unguarded `optional` swallows real regressions (lint R008).
 
+Give it a short `timeout_ms` too (`timeout_ms: 1500`, allowed 100–30000). Without one, a missing
+target waits Playwright's full 30 s before the step is skipped (lint R011).
+
+## Hiding UI: `hide`, not CSS injection and not PNG edits
+
+**The temptation.** A dev overlay badge or a chat bubble sits in every screenshot. Inject a
+style tag, run a script, or paint over the PNG.
+
+**Why it bites.** Page-side script and arbitrary CSS are exactly what the flow vocabulary exists
+to avoid, and an edited PNG stops matching the page it documents.
+
+**The right call.**
+
+```yaml
+- id: hide-dev-badge
+  action: hide # visibility: hidden, layout kept; lasts until a `show`
+  target: nextjs-portal
+  optional: true
+  timeout_ms: 1500
+```
+
 ## Lint before run
 
 **The temptation.** The flow looks right; run it and see.
@@ -66,7 +87,7 @@ docsxai lint "$WORKSPACE" && docsxai run "$WORKSPACE" --flow <name>
 
 `lint` is pure-static and exits 1 on any warning: deep `extends` chains, annotations anchored
 to unmounting targets, missing `timeout_ms` on long-async steps, hidden-duplicate-prone bare
-`[data-*=…]` selectors, unguarded optional steps, and more (R001–R010). `docsxai flow-tree`
+`[data-*=…]` selectors, unguarded optional steps, and more (R001–R013). `docsxai flow-tree`
 does the same for the `extends` graph.
 
 ## The `--start-from --cdp` inner loop, not full re-walks

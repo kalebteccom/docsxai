@@ -514,3 +514,106 @@ describe("formatIssuesText", () => {
     expect(formatIssuesText([])).toContain("no issues");
   });
 });
+
+describe("lintFlow — R011 (optional step with no short timeout)", () => {
+  const lint = async (steps: string) =>
+    (
+      await lintFlow(
+        parseFlowFile(`
+name: f
+locators: { btn: '#btn', done: '#done' }
+steps:
+${steps}
+  - { id: end, action: click, target: $btn, success: { visible: $done } }
+`),
+      )
+    ).filter((i) => i.code === "R011");
+
+  it("flags an optional target step and an optional wait-on-selector step that set no timeout", async () => {
+    const issues = await lint(`
+  - { id: dismiss, action: click, target: $btn, optional: true, wait_for: { selector: $done } }
+  - { id: probe, action: wait, wait_for: { selector: $btn }, optional: true }
+  - { id: hide-it, action: hide, target: $btn, optional: true, wait_for: network_idle }`);
+    expect(issues.map((i) => i.stepId)).toEqual(["dismiss", "probe", "hide-it"]);
+    expect(issues[0]).toMatchObject({ severity: "info" });
+    expect(issues[0]!.suggestion).toMatch(/timeout_ms: 1500/);
+  });
+
+  it("stays quiet when a timeout is set, the step is not optional, or nothing waits on a target", async () => {
+    const issues = await lint(`
+  - { id: a, action: click, target: $btn, optional: true, timeout_ms: 1500, wait_for: network_idle }
+  - { id: b, action: wait, wait_for: { selector: $btn, timeout_ms: 1500 }, optional: true }
+  - { id: c, action: wait, wait_for: { selector: $btn }, timeout_ms: 1500, optional: true }
+  - { id: d, action: click, target: $btn }
+  - { id: e, action: navigate, value: /x, optional: true, wait_for: load }
+  - { id: f, action: show, optional: true }`);
+    expect(issues).toEqual([]);
+  });
+});
+
+describe("lintFlow — R012 / R013 (hide)", () => {
+  const codes = async (yaml: string, code: string) =>
+    (await lintFlow(parseFlowFile(yaml))).filter((i) => i.code === code);
+
+  it("R012 errors on a hide with no target", async () => {
+    const issues = await codes(
+      `
+name: f
+steps:
+  - { id: h, action: hide }
+  - { id: end, action: click, target: '#x', success: { url_matches: x } }
+`,
+      "R012",
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatchObject({ severity: "error", stepId: "h" });
+  });
+
+  const R013 = `
+name: f
+locators: { badge: 'nextjs-portal', go: '#go' }
+steps:
+  - { id: h, action: hide, target: $badge }
+  - { id: use, action: click, target: 'nextjs-portal' }
+  - { id: anchor, action: click, target: $go, annotation: { copy: x, target: $badge } }
+  - { id: lifted, action: show, target: $badge }
+  - { id: after, action: click, target: $badge, success: { visible: $go } }
+`;
+
+  it("R013 warns on a target or annotation anchor an earlier hide hid, by resolved selector", async () => {
+    const issues = await codes(R013, "R013");
+    expect(issues.map((i) => i.stepId)).toEqual(["use", "anchor"]);
+    expect(issues[0]!.message).toMatch(/`click` target/);
+    expect(issues[1]!.message).toMatch(/annotation anchor/);
+    expect(issues[0]!.suggestion).toMatch(/`show`/);
+  });
+
+  it("R013 flags the hide step's own annotation (its shot is taken after the hide), and clears after a show", async () => {
+    const issues = await codes(
+      `
+name: f
+steps:
+  - { id: h, action: hide, target: '#x', annotation: { copy: x } }
+  - { id: s, action: show }
+  - { id: w, action: wait, target: '#x', success: { visible: '#x' } }
+`,
+      "R013",
+    );
+    expect(issues.map((i) => i.stepId)).toEqual(["h"]);
+  });
+
+  it("show with no target lifts every hide", async () => {
+    const issues = await codes(
+      `
+name: f
+steps:
+  - { id: h1, action: hide, target: '#a' }
+  - { id: h2, action: hide, target: '#b' }
+  - { id: s, action: show }
+  - { id: c, action: click, target: '#a', wait_for: { selector: '#b' } }
+`,
+      "R013",
+    );
+    expect(issues).toEqual([]);
+  });
+});

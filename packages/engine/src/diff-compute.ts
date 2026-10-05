@@ -163,6 +163,7 @@ async function loadAnnotations(dir: string, flow: string): Promise<AnnotationRec
 const STEP_FIELDS = [
   "action",
   "optional",
+  "timeout_ms",
   "target",
   "value",
   "wait_for",

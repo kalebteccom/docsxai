@@ -49,8 +49,44 @@ export const ActionType = z.enum([
   "check",
   "uncheck",
   "wait",
+  "hide",
+  "show",
 ]);
 export type ActionType = z.infer<typeof ActionType>;
+
+/** Bounds for a step's `timeout_ms`, in milliseconds. 30 s is Playwright's own default wait. */
+export const STEP_TIMEOUT_MIN_MS = 100;
+export const STEP_TIMEOUT_MAX_MS = 30_000;
+
+/** Actions whose `target` wait `timeout_ms` can bound (`show` acts instantly; `navigate`/`wait` have no target wait). */
+const TARGET_WAIT_ACTIONS: ReadonlySet<ActionType> = new Set([
+  "click",
+  "fill",
+  "upload",
+  "press",
+  "hover",
+  "select",
+  "check",
+  "uncheck",
+  "hide",
+]);
+
+/** True when a step's `timeout_ms` bounds something: its target wait, or a `wait` step's own `wait_for` selector. */
+function stepTimeoutHasEffect(s: {
+  action: ActionType;
+  target?: string | undefined;
+  wait_for?: WaitSpec | undefined;
+}): boolean {
+  if (TARGET_WAIT_ACTIONS.has(s.action)) return s.target !== undefined;
+  const w = s.wait_for;
+  return (
+    s.action === "wait" &&
+    w !== undefined &&
+    typeof w === "object" &&
+    "selector" in w &&
+    w.timeout_ms === undefined
+  );
+}
 
 /**
  * What to wait for after a step's action settles. `network_idle` / `element_stable` / `load` are named
@@ -188,7 +224,15 @@ export const Step = z
      * this over a permissive comma-selector that no-ops on one branch.
      */
     optional: z.boolean().optional(),
-    /** Locator ref (`$name`) or inline selector. Optional for actions like `navigate` (uses `value`) or `wait`. */
+    /**
+     * How long, in ms, this step waits for its `target` before giving up (100–30000). Unset keeps the
+     * driver default (Playwright's 30 s), so existing flows run exactly as before. The reason to set it
+     * is an `optional: true` step whose target is usually absent: a short value (e.g. 1500) skips it fast
+     * instead of holding the run for the full default. On a `wait` step it bounds the `wait_for`
+     * `{ selector }` wait when that has no `timeout_ms` of its own. Rejected where it would bound nothing.
+     */
+    timeout_ms: z.number().int().min(STEP_TIMEOUT_MIN_MS).max(STEP_TIMEOUT_MAX_MS).optional(),
+    /** Locator ref (`$name`) or inline selector. Optional for actions like `navigate` (uses `value`), `wait`, and `show` (no target = show everything hidden). */
     target: LocatorRef.optional(),
     /** Action payload: text for `fill`, file path for `upload`, key for `press`, path/URL for `navigate`, option for `select`. */
     value: z.string().optional(),
@@ -211,6 +255,11 @@ export const Step = z
     message:
       "step has both `annotation` and `annotations`; use one (`annotations: [...]` for the multi-callout form)",
     path: ["annotations"],
+  })
+  .refine((s) => s.timeout_ms === undefined || stepTimeoutHasEffect(s), {
+    message:
+      "`timeout_ms` has no effect on this step: it bounds the wait for a `target` (click, fill, upload, press, hover, select, check, uncheck, hide), or a `wait` step's `wait_for: { selector }` that has no `timeout_ms` of its own",
+    path: ["timeout_ms"],
   });
 export type Step = z.infer<typeof Step>;
 

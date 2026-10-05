@@ -80,39 +80,65 @@ function actionLines(step: Step, ids: Map<string, string>): string[] {
   const missing = (what: string): string[] => [
     `// step "${step.id}": ${step.action} without ${what} — nothing to emit`,
   ];
+  // A step's `timeout_ms` becomes Playwright's per-call `{ timeout }`; absent, the call is unchanged.
+  const callOpts = step.timeout_ms !== undefined ? `{ timeout: ${step.timeout_ms} }` : null;
+  const call = (method: string, ...args: string[]): string =>
+    `await ${target}.${method}(${[...args, ...(callOpts ? [callOpts] : [])].join(", ")});`;
   switch (step.action) {
     case "navigate":
       return value === undefined
         ? missing("a value")
         : [`await page.goto(${JSON.stringify(value)});`];
     case "click":
-      return target === null ? missing("a target") : [`await ${target}.click();`];
+      return target === null ? missing("a target") : [call("click")];
     case "fill":
-      return target === null
-        ? missing("a target")
-        : [`await ${target}.fill(${JSON.stringify(value ?? "")});`];
+      return target === null ? missing("a target") : [call("fill", JSON.stringify(value ?? ""))];
     case "select":
       return target === null || value === undefined
         ? missing("a target/value")
-        : [`await ${target}.selectOption(${JSON.stringify(value)});`];
+        : [call("selectOption", JSON.stringify(value))];
     case "check":
-      return target === null ? missing("a target") : [`await ${target}.check();`];
+      return target === null ? missing("a target") : [call("check")];
     case "uncheck":
-      return target === null ? missing("a target") : [`await ${target}.uncheck();`];
+      return target === null ? missing("a target") : [call("uncheck")];
     case "hover":
-      return target === null ? missing("a target") : [`await ${target}.hover();`];
+      return target === null ? missing("a target") : [call("hover")];
     case "press":
       if (value === undefined) return missing("a key value");
       return target === null
         ? [`await page.keyboard.press(${JSON.stringify(value)});`]
-        : [`await ${target}.press(${JSON.stringify(value)});`];
+        : [call("press", JSON.stringify(value))];
     case "upload":
       return target === null || value === undefined
         ? missing("a target/value")
-        : [`await ${target}.setInputFiles(${JSON.stringify(value)});`];
+        : [call("setInputFiles", JSON.stringify(value))];
     case "wait":
       return []; // the step's wait_for carries the semantics
+    case "hide":
+      return target === null ? missing("a target") : hideLines(target, step.timeout_ms);
+    case "show":
+      return showLines(target);
   }
+}
+
+// `hide` / `show` have no Playwright call of their own. The generated spec marks the matched
+// elements with the engine's data attribute and gives them an inline `visibility: hidden` (the same
+// look as the engine's rule, layout kept), so a later `show` lifts exactly what a `hide` set. It
+// waits for the element to exist, as the runtime does. The code is the spec's own, in the
+// adopter's suite.
+const HIDE_MARK = "data-docsxai-hidden";
+
+function hideLines(target: string, timeoutMs: number | undefined): string[] {
+  const wait = timeoutMs !== undefined ? `, timeout: ${timeoutMs}` : "";
+  return [
+    `await ${target}.first().waitFor({ state: "attached"${wait} });`,
+    `await ${target}.evaluateAll((els) => els.forEach((el) => { el.setAttribute("${HIDE_MARK}", ""); el.style.setProperty("visibility", "hidden", "important"); }));`,
+  ];
+}
+
+function showLines(target: string | null): string[] {
+  const lift = `els.forEach((el) => { el.removeAttribute("${HIDE_MARK}"); el.style.removeProperty("visibility"); })`;
+  return [`await ${target ?? `page.locator("[${HIDE_MARK}]")`}.evaluateAll((els) => ${lift});`];
 }
 
 function waitLines(wait: WaitSpec, step: Step, ids: Map<string, string>): string[] {
