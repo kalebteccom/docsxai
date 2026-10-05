@@ -466,7 +466,7 @@ steps:
     wait_for: element_stable
     annotations:
       - target: $tokens_config
-        copy: Your agent needs this MCP configuration. Swap the placeholder for your own token.
+        copy: Your agent's MCP install snippet lives here.
         arrow: left
       - target: $tokens_copy
         copy: Copy the whole block in one click.
@@ -546,7 +546,7 @@ steps:
         copy: Follow the steps for that app. An agent never needs to see your token.
         arrow: right
       - target: $connect_url
-        copy: Copy the connector URL into the app when it asks for one.
+        copy: Copy the connector URL from here when the app asks for one.
         arrow: top
   - id: connect-show-url
     action: show
