@@ -81,7 +81,7 @@ const USAGE = `docsxai-viewer — static viewer generator
 
 Usage:
   docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...
-  docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>]
+  docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]
   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...
 
   build — emit the interactive HTML viewer
@@ -97,6 +97,8 @@ Usage:
                  either way
     --max-overlap  share of its own area a callout may cover before the report flags it
                  unplaceable (default ${DEFAULT_UNPLACEABLE_RATIO})
+    --no-connector-outline  keep every arrow and stem plain ink; by default one over a dark
+                 part of the screenshot gets a white outline
 
   site — emit a production Astro Starlight docs site (burned images preferred)
     <workspace>  a docsxai workspace (reads <workspace>/docs + <workspace>/flows)
@@ -115,11 +117,12 @@ interface ParsedArgs {
   accent?: string;
   report?: string;
   maxOverlap?: number;
+  plainConnectors: boolean;
   build: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
-  const parsed: ParsedArgs = { positional: [], flows: [], build: false };
+  const parsed: ParsedArgs = { positional: [], flows: [], plainConnectors: false, build: false };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--flow" && argv[i + 1]) {
       parsed.flows.push(argv[i + 1]!);
@@ -139,6 +142,8 @@ function parseArgs(argv: string[]): ParsedArgs {
     } else if (argv[i] === "--max-overlap" && argv[i + 1]) {
       parsed.maxOverlap = Number(argv[i + 1]);
       i++;
+    } else if (argv[i] === "--no-connector-outline") {
+      parsed.plainConnectors = true;
     } else if (argv[i] === "--build") {
       parsed.build = true;
     } else parsed.positional.push(argv[i]!);
@@ -192,6 +197,7 @@ async function runBurn(args: ParsedArgs): Promise<number> {
         flow,
         outDir,
         ...(ratio !== undefined ? { unplaceableRatio: ratio } : {}),
+        ...(args.plainConnectors ? { connector: "off" as const } : {}),
       });
       reports.push(r.report);
       process.stdout.write(`burn: wrote ${r.written.length} image(s) to ${outDir}\n`);
