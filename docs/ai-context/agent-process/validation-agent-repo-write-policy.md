@@ -38,6 +38,6 @@ Maintainers apply tool-repo changes after review.
 ## Related
 
 - [`commit-discipline.md`](commit-discipline.md) — commit rules for the consumer workspace too
-  (single-line conventional ≤72 chars, no AI trailers).
+  (single-line conventional ≤72 chars, trailers-only body).
 - Repo-root [`AGENTS.md`](../../../AGENTS.md) — the contributor-facing operating rules (a
   validation agent is _not_ a contributor; that's the point of this page).

@@ -22,6 +22,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
+    "test:hooks": "bash scripts/test-commit-hooks.sh",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "depcruise": "depcruise packages/*/src --config .dependency-cruiser.cjs",

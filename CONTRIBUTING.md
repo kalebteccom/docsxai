@@ -65,7 +65,8 @@ The engine has two modes — **calibration** (AI-assisted, rare) and **execution
 
 ## Commits
 
-- **Single-line conventional-commit subjects, ≤72 chars.** No body, no AI trailers. Hook-enforced (`.claude/hooks/`); don't bypass them.
+- **Single-line conventional-commit subjects, ≤72 chars.** No prose body, no bullets. The only lines allowed after the subject (separated by one blank line) are trailers: your `Signed-off-by:` (see DCO below) and, if an AI assistant helped, exactly one `Co-Authored-By: <Claude model name> <noreply@anthropic.com>`, e.g. `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Commits written without AI help need no `Co-Authored-By`. Hook-enforced (`.claude/hooks/`, `.githooks/commit-msg`); don't bypass them.
+- **AI-assisted PRs** end their description with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`. That line goes in the PR body only, not in commit messages.
 - **One logical change per commit.** Don't `git add .` — stage paths explicitly with `git add <paths>`.
 - For a multi-package change, one commit per package unless the change is genuinely atomic.
 - Allowed types: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`.
@@ -80,7 +81,7 @@ docs(agent-runbook): document the calibration discovery driver
 
 ## Developer Certificate of Origin (DCO)
 
-We require contributors to sign off on commits with `git commit -s`. This adds a `Signed-off-by:` trailer that attests you wrote (or have the right to contribute) the change under the project's license. We use DCO instead of a CLA. The DCO text lives at https://developercertificate.org/.
+We require contributors to sign off on commits with `git commit -s`. This adds a `Signed-off-by:` trailer (allowed by the commit hooks, alongside an optional `Co-Authored-By`) that attests you wrote (or have the right to contribute) the change under the project's license. We use DCO instead of a CLA. The DCO text lives at https://developercertificate.org/.
 
 ## Branch model
 
