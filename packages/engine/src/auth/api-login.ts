@@ -53,6 +53,8 @@ export class ApiLoginStrategy implements AuthStrategy {
     const opts = parseStrategyOptions(this.name, ApiLoginOptions, ctx.options);
     const url = new URL(opts.login_url, ctx.baseURL);
     const isJson = opts.body_format === "json";
+    // GET and HEAD cannot carry a body (fetch throws), so a link-style login sends none.
+    const hasBody = !["GET", "HEAD"].includes(opts.method.toUpperCase());
     const body = isJson ? JSON.stringify(ctx.creds) : new URLSearchParams(ctx.creds).toString();
 
     const result = await fetchCollectingCookies(
@@ -60,10 +62,12 @@ export class ApiLoginStrategy implements AuthStrategy {
       {
         method: opts.method,
         headers: {
-          "content-type": isJson ? "application/json" : "application/x-www-form-urlencoded",
+          ...(hasBody
+            ? { "content-type": isJson ? "application/json" : "application/x-www-form-urlencoded" }
+            : {}),
           accept: "application/json, text/html;q=0.9, */*;q=0.8",
         },
-        body,
+        ...(hasBody ? { body } : {}),
       },
       { fetchImpl: this.fetchImpl },
     );
