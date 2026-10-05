@@ -87,6 +87,9 @@ on the step so real regressions are not swallowed (lint R008). See the
   `target: nextjs-portal` removes the Next.js dev overlay badge from the shots.
 - `show` undoes `hide`: with a `target`, the `hide` that used that same selector; with none,
   every `hide`.
+- `hide` matches in the main frame, including open shadow roots, and does not reach into
+  iframes. It marks matches with the reserved attribute `data-docsxai-hidden`; do not use that
+  attribute in the app under documentation.
 
 One step of each shape:
 

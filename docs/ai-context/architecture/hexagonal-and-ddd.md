@@ -51,7 +51,9 @@ second implementation today or a committed one (the proven-seam test,
 ports:
 
 - **`BrowserDriver`** - `PlaywrightDriver` today, browxai as the committed second
-  driver. The interface earns its keep.
+  driver. The interface earns its keep. A driver that implements `hideElements` applies a fixed,
+  engine-owned rule and treats the selector as data; `PlaywrightDriver` marks elements with the
+  reserved attribute `data-docsxai-hidden`, which no page or flow may rely on or set.
 - **the plugin-runtime ports** - publisher / renderer / lint-rule / auth-strategy
   each have multiple implementations (first-party plugins + workspace plugins).
 - **the auth-strategy interface** - one per target-site auth shape.
