@@ -12,7 +12,7 @@ A docsxai workspace that documents trackxai. It walks the seeded demo target (Ac
 
 Both flows run English, dark, `en-US`, UTC, reduced motion, with the browser clock pinned to the demo clock (`2026-01-15T10:00:00Z`).
 
-Pages, per viewport: board, palette (command palette), ticket (WEB-8), waiting (waiting on you), list, backlog, epics, epic (checkout redesign), progress, documents, document (checkout redesign brief), mine (leading tab), settings, agent-tokens, agent-tokens-issued (the token table, scrolled into view) and connect. Each has 1 to 3 callouts. The mobile flow shows fewer callouts on pages where the desktop target is hidden or off screen.
+Pages, per viewport: board, palette (command palette), ticket (WEB-8), waiting (waiting on you), list, backlog, epics, epic (checkout redesign), progress, documents, document (checkout redesign brief), mine (leading tab), settings, agent-tokens, agent-tokens-issued (the token table, scrolled into view) and connect. Each has 1 to 3 callouts. The mobile flow shows fewer callouts: a 280 px callout over a 390 px page has no free spot on most pages, so only the callouts that land clear of text are kept, and the target is also left out where it is hidden or off screen.
 
 ## Start the demo target
 
@@ -24,7 +24,7 @@ pnpm install --frozen-lockfile && pnpm exec tsc --build
 PG_BIN=/opt/homebrew/opt/postgresql@18/bin scripts/demo/start.sh   # http://127.0.0.1:3100
 ```
 
-Add `devIndicators: false` to `nextConfig` in the clone's `apps/web/next.config.mjs` first. Without it the Next dev badge shows on every load and the `*-no-dev-overlay` guard halts every page. With it, the badge still shows on about one load in ten (a "1 Issue" toast), which `pipeline.sh` retries.
+trackxai main sets `devIndicators: false` in `apps/web/next.config.mjs`. A clone from before that commit needs the same line in `nextConfig`, or the Next dev badge shows on every load and the `*-no-dev-overlay` guard halts every page. If the badge still shows on a load, `pipeline.sh` retries it.
 
 Stop it when done: `scripts/demo/start.sh stop --clean-build`. One demo instance at a time.
 
@@ -36,6 +36,8 @@ cd workspaces/trackxai-docs
 sh scripts/pipeline.sh            # packs into .screens/
 sh scripts/pipeline.sh /some/dir  # packs somewhere else
 ```
+
+Set `DOCSXAI_VIEWER=<path to a viewer dist/index.js>` to burn with another viewer build than the one in `$DOCSXAI`.
 
 `pipeline.sh` does five things:
 

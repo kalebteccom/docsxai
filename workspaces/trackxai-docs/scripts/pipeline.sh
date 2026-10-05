@@ -1,6 +1,7 @@
 #!/bin/sh
 # lint -> run (page by page) -> burn -> pack.
 # Needs the demo target up on 127.0.0.1:3100 and DOCSXAI=<docsxai checkout>.
+# DOCSXAI_VIEWER=<path to viewer dist/index.js> burns with another viewer build.
 # Usage: scripts/pipeline.sh [out-dir]   (default out-dir: .screens)
 set -e
 W=$(cd "$(dirname "$0")/.." && pwd)
@@ -46,6 +47,6 @@ for flowfile in "$W"/flows/*.flow.yaml; do
   echo "run: $flow done"
 done
 
-node "$D/packages/viewer/dist/index.js" burn "$W"
+node "${DOCSXAI_VIEWER:-$D/packages/viewer/dist/index.js}" burn "$W"
 node "$W/scripts/build-screens.mjs" "${1:-$W/.screens}"
 echo "pipeline: $RETRIES retried attempt(s)"

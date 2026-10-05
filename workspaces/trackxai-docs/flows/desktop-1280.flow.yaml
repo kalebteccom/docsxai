@@ -12,6 +12,8 @@ locators:
   page_title: h1.page__title
   view_tabs: nav.etabs
   col_progress: section.column[aria-label="In progress"]
+  col_progress_head: section.column[aria-label="In progress"] h2.column__heading
+  tab_backlog: nav.etabs a:has-text("Backlog")
   ticket_title: h2.tread__title
   ticket_status: button.tpill[aria-label^="Status:"]
   ticket_gaps: section[aria-labelledby="gaps-heading"]
@@ -44,7 +46,7 @@ locators:
   mine_tabs: nav.etabs[aria-label="Mine"]
   settings_key_input: form.invite input >> nth=0
   settings_rename_key: button.lrow__act >> nth=0
-  settings_conventions: button.conv__pick
+  settings_conventions: "#conventions-heading"
   tokens_config: section[aria-labelledby="connect-heading"] pre
   tokens_copy: section[aria-labelledby="connect-heading"] button.button--quiet
   tokens_form_input: form.pane__section input >> nth=0
@@ -77,9 +79,9 @@ steps:
       - target: $view_tabs
         copy: Switch between the board, the backlog and the full list.
         arrow: bottom
-      - target: $col_progress
+      - target: $col_progress_head
         copy: Tasks an agent is working on right now sit in In progress.
-        arrow: bottom
+        arrow: top
   - id: palette-open
     action: press
     value: /
@@ -129,7 +131,7 @@ steps:
         arrow: right
       - target: $ticket_status
         copy: The status pill shows where the task stands.
-        arrow: bottom
+        arrow: top
       - target: $ticket_gaps
         copy: A gap is a question an agent raised. Answer it here to unblock the work.
         arrow: top
@@ -201,15 +203,12 @@ steps:
     target: $page_title
     wait_for: element_stable
     annotations:
-      - target: $col_head
+      - target: $tab_backlog
         copy: The backlog holds open tasks that nobody has claimed yet.
         arrow: top
       - target: $group_progress
         copy: Each group shows how far its epic has come.
         arrow: bottom
-      - target: $list_gap_btn
-        copy: A gap count means an agent needs an answer before the task can move.
-        arrow: left
   - id: epics-open
     action: navigate
     value: /w/acme-demo/epics
