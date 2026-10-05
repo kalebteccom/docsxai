@@ -23,6 +23,13 @@ export interface AnnotationRecord {
   arrow_style?: string;
   /** Optional pixel offset applied to the callout + arrow after Popper-like placement; halo stays put. */
   nudge?: NudgeOffset;
+  /**
+   * Boxes of page content (text, controls) the burner keeps this annotation's callout from covering,
+   * in the screenshot's pixel space. List the neighbours only: the target is excluded, and a box that
+   * contains the target cannot be avoided. Absent or empty: the callout goes next to the target as
+   * before. Used by the static burner; the interactive viewer ignores it.
+   */
+  obstacles?: BoundingBox[];
   /** 1-based index within the step's screenshot — set only when the step has > 1 annotation. */
   index?: number;
 }

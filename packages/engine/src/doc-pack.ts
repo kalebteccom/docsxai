@@ -262,6 +262,14 @@ export const AnnotationRecord = z
     arrow_style: ArrowStyle.optional(),
     /** Optional pixel offset applied to the callout + arrow at render time — see {@link NudgeOffset}. */
     nudge: NudgeOffset.optional(),
+    /**
+     * Optional boxes of page content (text, controls), in screenshot pixels, that the burner keeps this
+     * annotation's callout from covering. The target itself is not listed. The engine never writes it:
+     * a pipeline that knows the page layout adds it to `annotations.json` before burning. Absent or
+     * empty: the callout goes next to the target. The structural mirror in `packages/viewer/src/annotations.ts`
+     * carries the same field.
+     */
+    obstacles: z.array(BoundingBox).optional(),
     /** 1-based index of this annotation *within its step's screenshot* — set only when the step has > 1 annotation, so the viewer can render a numbered badge. Absent → render as a plain (un-numbered) halo. */
     index: z.number().int().positive().optional(),
   })
