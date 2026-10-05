@@ -10,6 +10,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Changed
 
+- **Docs site is for end users; agent content is plaintext Markdown.** A rehype plugin strips `For agents` asides from the rendered HTML, and every published page now has a `.md` twin (`/reference/cli.md`, ...) that keeps them. `agent-runbook` and `agent-guidance` render as `.md` only and leave the sidebar. `llms.txt` links the `.md` versions. Agent-only notes in canonical sources are `**For agents:**` blockquotes, converted to asides by `sync-docs.mjs` (shared transform in `doc-pipeline.mjs`). `pnpm docs:build` now checks the split. End-user pages link to the agent runbook on GitHub. The emitted Starlight sites from `@docsxai/viewer` are unchanged: they have no agent-aside convention.
 - **Dependency refresh.** Bumps `yaml` 2.9.1, `satori` 0.33, `playwright-core` 1.63, `@modelcontextprotocol/sdk` 1.30, `prettier` 3.9, `eslint-plugin-import-x` 4.17, `typescript-eslint` 8.62, the `dev-deps-patch` group (`@eslint/js`, `@types/node`, `astro` 6.4.8, `esbuild`, `sharp`), and the pinned `actions/checkout` 4.4.0, `trufflehog` 3.97.6 and `zizmor-action` 0.6.4 workflow actions. `@astrojs/starlight` 0.41 and `starlight-links-validator` 0.25 stay put: Starlight 0.41 requires Astro 7.
 
 ### Fixed

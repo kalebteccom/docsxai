@@ -328,4 +328,4 @@ Plugins can add schemes or replace a built-in via
 `registerAuthStrategy(name, impl)`, consulted before the built-ins - see
 [Writing plugins](/guides/writing-plugins/). For the workflow around all of
 this (identifying the right cookie, the shared-CDP single-login setup), see
-the [agent runbook](/guides/agent-runbook/).
+the [agent runbook](https://github.com/kalebteccom/docsxai/blob/main/docs/agent-runbook.md).

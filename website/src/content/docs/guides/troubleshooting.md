@@ -135,4 +135,4 @@ launches; exit 1 on any warning or error. The rules:
 Plugins can contribute additional rules; see
 [Writing plugins](/guides/writing-plugins/). For the full calibration
 iteration playbook - shared preambles via `extends`, `--stop-after --pause`,
-parallel flows - read the [agent runbook](/guides/agent-runbook/).
+parallel flows - read the [agent runbook](https://github.com/kalebteccom/docsxai/blob/main/docs/agent-runbook.md).

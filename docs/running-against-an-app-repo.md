@@ -1,9 +1,11 @@
 # Running docsxai against an app repo — without leaving a trace
 
-> The step-by-step that's kept current (incl. field notes from real test drives — `auth_cookie` pinning,
+> This is the conceptual overview. The one-command setup is `docsxai init`.
+
+> **For agents:** The step-by-step that's kept current (incl. field notes from real test drives — `auth_cookie` pinning,
 > copying gitignored `.env`/dev-cert into the worktree, dev-server port collisions, the `pnpm link` gotcha,
-> loose-prose/test-guides needing hand-authoring) lives in **[`agent-runbook.md`](./agent-runbook.md)**. This file is the
-> conceptual overview; where the two differ, the agent runbook wins. The one-command setup is `docsxai init`.
+> loose-prose/test-guides needing hand-authoring) lives in **[`agent-runbook.md`](./agent-runbook.md)**. Where the two
+> differ, the agent runbook wins.
 
 docsxai documents a **running web app**, not a source tree. If the app you want to document is built and
 served from a local repo (an `example-app` checkout, say), the rule is: **docsxai operates _on_ that
