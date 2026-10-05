@@ -1,3 +1,4 @@
+# ci-optimised: v1
 # Mirrors remotxai's Woodpecker layout. Gates match the AGENTS.md quality gate contract.
 # INVARIANT: this pipeline never publishes and names no secrets; releases stay in .github/workflows/release.yml (OIDC).
 
