@@ -1,6 +1,6 @@
 # Semver clock — the API-stable-clock
 
-docsxai is pre-1.0. The path to 1.0 runs through an "API stable ~1 week" clock that gates the public flip.
+docsxai is pre-1.0 (`0.2.0` is on npm). 1.0 is the stability milestone, and the path to it runs through an "API stable ~1 week" clock.
 
 ## What's frozen today (the stable surface)
 
@@ -54,7 +54,7 @@ Every minor bump pre-1.0 may include surface changes. The clock guards against _
 
 ## When the clock matters
 
-Once the OSS release lands (owner-deferred), the clock starts. Until then, the surface can move freely — but the discipline above is the shape the surface needs to settle into _before_ the public flip. Every pre-1.0 surface decision is a draft of the eventual 1.0 contract.
+The clock gates 1.0. Until then the surface can move in minor versions, with a changelog entry for each break, and the discipline above is the shape it needs to settle into _before_ 1.0. Every pre-1.0 surface decision is a draft of the eventual 1.0 contract.
 
 ## Related
 

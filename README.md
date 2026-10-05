@@ -44,6 +44,15 @@ The granular equivalent is `pnpm add -g @docsxai/engine @docsxai/viewer`. Then f
 npx playwright-core install chromium
 ```
 
+Claude Code users can also install the plugin (calibration skills and the `/docsxai:*` commands) from this repo's marketplace:
+
+```
+/plugin marketplace add kalebteccom/docsxai
+/plugin install docsxai@docsxai
+```
+
+To try a checkout without installing, run `claude --plugin-dir /path/to/docsxai/packages/plugin`. See [`packages/plugin`](packages/plugin/).
+
 Building from source is for contributors — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Quick start

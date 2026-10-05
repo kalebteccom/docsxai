@@ -4,13 +4,31 @@ The first-class invocation surface for the docsxai engine.
 
 ## Install
 
-The plugin directory (`packages/plugin/`, with `.claude-plugin/plugin.json`) passes `claude plugin validate`. Load it from a checkout:
+From inside Claude Code, add the marketplace this repo publishes (`.claude-plugin/marketplace.json` at the repo root, marketplace name `docsxai`) and install the plugin:
+
+```
+/plugin marketplace add kalebteccom/docsxai
+/plugin install docsxai@docsxai
+```
+
+The same from a shell:
+
+```
+claude plugin marketplace add kalebteccom/docsxai
+claude plugin install docsxai@docsxai
+```
+
+The marketplace entry points at `./packages/plugin`, which holds `.claude-plugin/plugin.json`. Both manifests pass `claude plugin validate`.
+
+**Verified:** adding a local checkout as a marketplace (`claude plugin marketplace add /path/to/docsxai`) and installing `docsxai@docsxai` from it, in an isolated Claude Code config directory. **Unverified:** the `kalebteccom/docsxai` GitHub shorthand, which resolves only once the manifest is on the default branch.
+
+### Local development
+
+Load the plugin straight from a checkout, with no marketplace:
 
 ```
 claude --plugin-dir /path/to/docsxai/packages/plugin
 ```
-
-**Unverified:** installing straight from the GitHub URL (`claude plugin install https://github.com/kalebteccom/docsxai`) is not a documented install form, and this repo ships no `.claude-plugin/marketplace.json`. Claude Code's documented install path is `claude plugin install <plugin>@<marketplace>` from a registered marketplace, where a marketplace entry can point at a subdirectory with a relative `source` or a `git-subdir` source. Whether that works for this monorepo subdirectory has not been tested here, because no marketplace exists yet.
 
 ## Commands (deterministic — thin wrappers over the `docsxai` CLI)
 

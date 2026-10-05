@@ -40,20 +40,20 @@ For each of the 6 published names — the unscoped `docsxai` meta-package (the b
 
 ## 5. First OIDC publish — supervised
 
-1. Promote `## Unreleased` in `CHANGELOG.md` → `## [1.0.0] - YYYY-MM-DD`.
-2. Bump every publishable `packages/*/package.json` to `1.0.0` (root and the repo-only packages keep their versions). Verify `pnpm-lock.yaml` is consistent.
-3. Commit on a PR: `chore(release): v1.0.0`. Squash-merge to `main` (do not force-push to `main`).
+1. Promote `## Unreleased` in `CHANGELOG.md` → `## [X.Y.Z] - YYYY-MM-DD`.
+2. Bump every publishable `packages/*/package.json` to `X.Y.Z` (root and the repo-only packages keep their versions). Verify `pnpm-lock.yaml` is consistent.
+3. Commit on a PR: `chore(release): vX.Y.Z`. Squash-merge to `main` (do not force-push to `main`).
 4. Pull the merged commit locally: `git pull --ff-only origin main`.
-5. Sign and push the tag: `git tag -s v1.0.0 -m "v1.0.0" && git push origin v1.0.0`.
+5. Sign and push the tag: `git tag -s vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
 6. Watch the Actions tab. The `release.yml` job will pause on the `release` environment gate.
 7. Verify the workflow run is on the expected SHA and tag. Approve the gate.
 8. Watch each package publish. Each step should emit `npm notice Publishing to https://registry.npmjs.org/...` and the provenance attestation.
-9. From a fresh machine: `npm install @docsxai/engine@1.0.0 && npm audit signatures`. Expect `5 packages have audited signatures` (or however many depend on docsxai packages).
+9. From a fresh machine: `npm install @docsxai/engine@X.Y.Z && npm audit signatures`. Expect `5 packages have audited signatures` (or however many depend on docsxai packages).
 
 ## 6. Post-publish hardening
 
 - [ ] On each published npm package: "Require 2FA and disallow tokens" → ON.
-- [ ] Add the v1.0.0 release notes to GitHub Releases (the workflow creates the entry; flesh out the body).
+- [ ] Add the vX.Y.Z release notes to GitHub Releases (the workflow creates the entry; flesh out the body).
 - [ ] Verify SBOM upload on the GitHub Release.
 - [ ] Verify the published tarballs against `scripts/audit-package-contents.mjs` policy — pull each `.tgz` from the registry and re-audit.
 
@@ -70,15 +70,15 @@ Do not point DNS at a site that documents packages that aren't installable yet �
 
 ## 8. Adopter readiness sanity
 
-- [ ] `docs/security-best-practices-for-adopters.md` reflects the v1.0 surface (capabilities, provenance verification command, install posture).
+- [ ] `docs/security-best-practices-for-adopters.md` reflects the released surface (capabilities, provenance verification command, install posture).
 - [ ] `README.md` install snippet uses the correct published name (`@docsxai/engine` for the library, `@docsxai/plugin` for the Claude Code plugin).
-- [ ] `CHANGELOG.md` entry for 1.0.0 reads cleanly to a stranger.
+- [ ] `CHANGELOG.md` entry for X.Y.Z reads cleanly to a stranger.
 
 ## 9. Rollback path
 
 If anything goes wrong after the first publish:
 
-- **Broken publish (wrong files, leak):** `npm deprecate @docsxai/<pkg>@1.0.0 "broken — use 1.0.1"`. Do **not** `npm unpublish` after the 72h grace; the version is permanently consumed either way. Publish 1.0.1 with the fix.
+- **Broken publish (wrong files, leak):** `npm deprecate @docsxai/<pkg>@X.Y.Z "broken — use X.Y.(Z+1)"`. Do **not** `npm unpublish` after the 72h grace; the version is permanently consumed either way. Publish the next patch with the fix.
 - **Compromise during the window:** Rotate the maintainer's WebAuthn keys. Revoke any active sessions. File a GitHub Security Advisory. Use the breakglass account only as a last resort.
 - **Repo flip went out before npm was ready:** Flip the repo back to private. The git history is already public — that can't be undone. Don't panic; finish npm setup and re-flip.
 
