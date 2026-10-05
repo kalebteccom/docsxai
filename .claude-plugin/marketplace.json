@@ -1,0 +1,20 @@
+{
+  "name": "docsxai",
+  "owner": {
+    "name": "Kalebtec"
+  },
+  "metadata": {
+    "description": "Claude Code plugins for docsxai: walk a web app, follow written flows, emit screenshot-rich user documentation."
+  },
+  "plugins": [
+    {
+      "name": "docsxai",
+      "source": "./packages/plugin",
+      "description": "Calibration skills and deterministic commands for the docsxai engine. Registers no MCP server.",
+      "homepage": "https://github.com/kalebteccom/docsxai",
+      "license": "Apache-2.0",
+      "category": "documentation",
+      "keywords": ["docsxai", "documentation", "playwright", "screenshots"]
+    }
+  ]
+}
