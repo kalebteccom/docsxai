@@ -10,22 +10,16 @@ environment:
   reduced_motion: true
 locators:
   page_title: h1.page__title
-  view_tabs: nav.etabs
   col_progress: section.column[aria-label="In progress"]
   ticket_title: h2.tread__title
-  ticket_status: button.tpill[aria-label^="Status:"]
-  ticket_gaps: section[aria-labelledby="gaps-heading"]
   first_gap_slot: button.rowgap__slot >> nth=0
   palette: div[role="dialog"][aria-label="Search and commands"]
   palette_input: input.palette__input
   dev_badge: nextjs-portal [data-next-badge]
-  palette_list: div[role="listbox"][aria-label="Results"]
+  loopback_text: ':text-matches("127[.]0[.]0[.]1|localhost", "i"), input[placeholder*="127.0.0.1" i], input[placeholder*="localhost" i], input[value*="127.0.0.1" i], input[value*="localhost" i] >> visible=true >> nth=0'
   list_gap_btn: button.row__gapsbtn >> nth=0
   filters: div.filters[role="group"]
-  assignment_chip: div.qbar--assignment button.chip
   group_toggle: button.grp__toggle >> nth=0
-  group_add: button.grp__add >> nth=0
-  epics_display: div.qbar[aria-label="Display"]
   epic_row_first: a.erow >> nth=0
   epic_progress_first: span.eprogress >> nth=0
   epic_status: button.pill[aria-label^="Status:"]
@@ -33,21 +27,21 @@ locators:
   progress_bar: div.lsum__bar
   progress_row_first: nav.llist a.ledrow >> nth=0
   docs_title: h1.dindex__title
-  docs_scopes: nav.dindex__scopes
   docs_table: table.dtable
   doc_belongs: dl.dread__props dd >> nth=0
-  doc_outline: nav.doutline
   doc_title: .live__field[aria-label^="Document title"]
   mine_tabs: nav.etabs[aria-label="Mine"]
   settings_key_input: form.invite input >> nth=0
   settings_rename_key: button.lrow__act >> nth=0
   tokens_config: section[aria-labelledby="connect-heading"] pre
+  tokens_config_text: section[aria-labelledby="connect-heading"] pre code
   tokens_copy: section[aria-labelledby="connect-heading"] button.button--quiet
   tokens_table_head: table.table th >> nth=0
   tokens_agent_cell: table.table td >> nth=1
   connect_pick_first: span.connect__client >> nth=0
   connect_card: section.connect__card
   connect_url: div.connect__copy
+  connect_url_text: div.connect__copy pre
 steps:
   - id: board-open
     action: navigate
@@ -61,6 +55,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: board-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: board
     action: wait
     target: $page_title
@@ -69,12 +67,6 @@ steps:
       - target: $page_title
         copy: The board shows every task as a card, grouped by status.
         arrow: right
-      - target: $view_tabs
-        copy: Switch between the board, the backlog and the full list.
-        arrow: bottom
-      - target: $col_progress
-        copy: Tasks an agent is working on right now sit in In progress.
-        arrow: bottom
   - id: palette-open
     action: press
     value: /
@@ -86,6 +78,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: palette-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: palette
     action: wait
     target: $palette_input
@@ -94,9 +90,6 @@ steps:
       - target: $palette_input
         copy: Press / or Cmd+K on any page to search or run a command.
         arrow: bottom
-      - target: $palette_list
-        copy: Results mix tasks, epics, people and commands.
-        arrow: top
   - id: palette-close
     action: press
     value: Escape
@@ -114,6 +107,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: ticket-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: ticket
     action: wait
     target: $ticket_title
@@ -122,12 +119,6 @@ steps:
       - target: $ticket_title
         copy: A task keeps its title, address and description in one place.
         arrow: right
-      - target: $ticket_status
-        copy: The status pill shows where the task stands.
-        arrow: bottom
-      - target: $ticket_gaps
-        copy: A gap is a question an agent raised. Answer it here to unblock the work.
-        arrow: top
   - id: waiting-open
     action: navigate
     value: /w/acme-demo?attention=waiting
@@ -140,6 +131,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: waiting-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: waiting
     action: wait
     target: $page_title
@@ -150,9 +145,6 @@ steps:
       - target: $page_title
         copy: Waiting on you lists the tasks blocked on your answer.
         arrow: right
-      - target: $first_gap_slot
-        copy: Answer an open gap on a row without leaving the list.
-        arrow: top
   - id: list-open
     action: navigate
     value: /w/acme-demo
@@ -165,6 +157,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: list-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: list
     action: wait
     target: $page_title
@@ -172,9 +168,6 @@ steps:
     annotations:
       - target: $filters
         copy: Filter the list, or add a filter on any field.
-        arrow: bottom
-      - target: $assignment_chip
-        copy: Narrow the list by who holds each task.
         arrow: bottom
       - target: $list_gap_btn
         copy: A gap count means an agent is waiting on you. Open it to answer.
@@ -191,6 +184,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: backlog-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: backlog
     action: wait
     target: $page_title
@@ -199,12 +196,6 @@ steps:
       - target: $group_toggle
         copy: Tasks group by epic. Collapse a group to skim the rest.
         arrow: bottom
-      - target: $list_gap_btn
-        copy: A gap count means an agent needs an answer before the task can move.
-        arrow: left
-      - target: $group_add
-        copy: Add a task straight into an epic.
-        arrow: left
   - id: epics-open
     action: navigate
     value: /w/acme-demo/epics
@@ -217,14 +208,15 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: epics-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: epics
     action: wait
     target: $page_title
     wait_for: element_stable
     annotations:
-      - target: $epics_display
-        copy: Change how epics are grouped and sorted.
-        arrow: bottom
       - target: $epic_progress_first
         copy: The bar counts tasks done and tasks in progress.
         arrow: top
@@ -243,6 +235,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: epic-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: epic
     action: wait
     target: $epic_status
@@ -266,6 +262,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: progress-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: progress
     action: wait
     target: $page_title
@@ -289,14 +289,15 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: documents-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: documents
     action: wait
     target: $docs_title
     wait_for: element_stable
     annotations:
-      - target: $docs_scopes
-        copy: "Filter documents by what owns them: the workspace, an epic, a team or a project."
-        arrow: bottom
       - target: $docs_table
         copy: Open a document to read it. Each one shows its version.
         arrow: top
@@ -312,6 +313,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: document-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: document
     action: wait
     target: $doc_title
@@ -320,9 +325,6 @@ steps:
       - target: $doc_belongs
         copy: A document belongs to the workspace, an epic, a team or a project.
         arrow: right
-      - target: $doc_outline
-        copy: Contents lists the headings. Tap one to jump to it.
-        arrow: top
       - target: $doc_title
         copy: Tap the title or body to edit. It saves when you stop typing.
         arrow: bottom
@@ -338,6 +340,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: mine-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: mine
     action: wait
     target: $page_title
@@ -361,6 +367,10 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: settings-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: settings
     action: wait
     target: $page_title
@@ -384,17 +394,25 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: agent-tokens-hide-url
+    action: hide
+    target: $tokens_config_text
+    timeout_ms: 5000
+  - id: agent-tokens-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: agent-tokens
     action: wait
     target: $page_title
     wait_for: element_stable
     annotations:
-      - target: $tokens_config
-        copy: Your agent needs this MCP configuration. Swap the placeholder for your own token.
-        arrow: left
       - target: $tokens_copy
         copy: Copy the whole block in one click.
         arrow: right
+  - id: agent-tokens-show-url
+    action: show
+    target: $tokens_config_text
   - id: agent-tokens-issued-open
     action: navigate
     value: /w/acme-demo/tokens
@@ -411,6 +429,14 @@ steps:
     action: hover
     target: $tokens_table_head
     wait_for: element_stable
+  - id: agent-tokens-issued-hide-url
+    action: hide
+    target: $tokens_config_text
+    timeout_ms: 5000
+  - id: agent-tokens-issued-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: agent-tokens-issued
     action: wait
     target: $tokens_table_head
@@ -419,6 +445,9 @@ steps:
       - target: $tokens_agent_cell
         copy: Each token belongs to one agent, so every write says which agent made it.
         arrow: top
+  - id: agent-tokens-issued-show-url
+    action: show
+    target: $tokens_config_text
   - id: connect-open
     action: navigate
     value: /w/acme-demo/connect
@@ -431,6 +460,14 @@ steps:
     action: wait
     success:
       hidden: $dev_badge
+  - id: connect-hide-url
+    action: hide
+    target: $connect_url_text
+    timeout_ms: 5000
+  - id: connect-no-loopback
+    action: wait
+    success:
+      hidden: $loopback_text
   - id: connect
     action: wait
     target: $page_title
@@ -444,6 +481,8 @@ steps:
       - target: $connect_card
         copy: Follow the steps for that app. An agent never needs to see your token.
         arrow: right
-      - target: $connect_url
-        copy: Copy the connector URL into the app when it asks for one.
-        arrow: top
+  - id: connect-show-url
+    action: show
+    target: $connect_url_text
+    success:
+      visible: $connect_url

@@ -43,7 +43,7 @@ describe("markHidden", () => {
     expect(b.attrs.has(HIDDEN_ATTR)).toBe(true);
     expect(root.adoptedStyleSheets).toHaveLength(1);
     expect(root.adoptedStyleSheets[0]!.cssRules[0]!.cssText).toBe(
-      `[${HIDDEN_ATTR}] { visibility: hidden !important; }`,
+      `[${HIDDEN_ATTR}] { visibility: hidden !important; } [${HIDDEN_ATTR}], [${HIDDEN_ATTR}] * { transition: none !important; }`,
     );
     unmarkHidden([a], HIDDEN_ATTR);
     expect(a.attrs.has(HIDDEN_ATTR)).toBe(false);

@@ -1,0 +1,18 @@
+{
+  "board": "Board with each task as a card, grouped by status, with an In progress column.",
+  "palette": "Command palette open over the board, with a search box and a list of results.",
+  "ticket": "Task WEB-8 with its title, status pill and the gaps an agent raised.",
+  "waiting": "List of tasks waiting on the reader, with an open gap on the first row.",
+  "list": "Task list with a filter bar and a gap count on tasks that wait for an answer.",
+  "backlog": "Backlog of open tasks that nobody has claimed, grouped by epic.",
+  "epics": "Epics list with a progress bar on each epic.",
+  "epic": "Checkout redesign epic with its status controls and an Add task button.",
+  "progress": "Progress view with a bar that splits tasks by phase and open tasks grouped by epic.",
+  "documents": "Documents index with scope filters and a table of documents and their versions.",
+  "document": "Checkout redesign brief open for reading, with its title, properties and contents list.",
+  "mine": "My work page on the Leading tab, listing the epics the reader leads.",
+  "settings": "Workspace settings with the workspace key field and project key rename controls.",
+  "agent-tokens": "Agent tokens page with the MCP configuration block, left blank in this image, and a button to copy it.",
+  "agent-tokens-issued": "Agent tokens page scrolled to the form that issues a token and the table of issued tokens.",
+  "connect": "Connect an agent page with a list of apps, the steps for the first app and a connector URL box left blank in this image."
+}

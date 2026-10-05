@@ -1,6 +1,9 @@
 #!/bin/sh
 # lint -> run (page by page) -> burn -> pack.
 # Needs the demo target up on 127.0.0.1:3100 and DOCSXAI=<docsxai checkout>.
+# Every page has a `<page>-no-loopback` step that halts the run when 127.0.0.1 or localhost is
+# visible in the page text, so the demo address never reaches a screenshot.
+# DOCSXAI_VIEWER=<path to viewer dist/index.js> burns with another viewer build.
 # Usage: scripts/pipeline.sh [out-dir]   (default out-dir: .screens)
 set -e
 W=$(cd "$(dirname "$0")/.." && pwd)
@@ -26,6 +29,12 @@ run_segment() { # flow first-step last-step
     if [ "$ok" = 1 ] && ! grep -q "obstacle scan skipped" "$LOG"; then
       return 0
     fi
+    # A loopback address on screen is a flow bug, not a flaky load: stop at once, no retries.
+    if grep -q -- "-no-loopback" "$LOG"; then
+      grep -- "-no-loopback" "$LOG" | head -3 >&2
+      echo "pipeline: $1 $2 shows a loopback address (127.0.0.1 or localhost); hide it in the flow" >&2
+      exit 1
+    fi
     grep -v "^run: .* annotation(s)" "$LOG" | head -3 >&2
     [ "$attempt" -ge 8 ] && { echo "pipeline: $1 $2 failed after $attempt attempts" >&2; exit 1; }
     echo "pipeline: retry $1 $2 (attempt $attempt failed)" >&2
@@ -46,6 +55,6 @@ for flowfile in "$W"/flows/*.flow.yaml; do
   echo "run: $flow done"
 done
 
-node "$D/packages/viewer/dist/index.js" burn "$W"
+node "${DOCSXAI_VIEWER:-$D/packages/viewer/dist/index.js}" burn "$W"
 node "$W/scripts/build-screens.mjs" "${1:-$W/.screens}"
 echo "pipeline: $RETRIES retried attempt(s)"

@@ -10,7 +10,10 @@
 // by a data attribute. Visibility keeps the element's box, so nothing around it reflows, and it
 // inherits into a shadow tree, so hiding a host hides its contents too. Constructable stylesheets
 // and attribute writes are not blocked by a page's Content-Security-Policy; a `<style>` element
-// would be. The attribute name is reserved (see the flow-file reference). The DOM lib isn't in this package's TypeScript config, so the shapes used are local.
+// would be. `transition: none` on the element and its descendants keeps the hide instant: a page
+// that gives every element a tiny `transition-duration` (the usual reduced-motion reset) would
+// otherwise hold `visibility: visible` for one more frame, long enough for a check that runs right
+// after the step to see the element. The attribute name is reserved (see the flow-file reference). The DOM lib isn't in this package's TypeScript config, so the shapes used are local.
 
 /** Attribute that marks an element hidden by a `hide` step. The stylesheet rule keys on it. */
 export const HIDDEN_ATTR = "data-docsxai-hidden";
@@ -49,7 +52,9 @@ export function markHidden(els: unknown[], attr: string): void {
     );
     if (present) continue;
     const sheet = new sheetCtor();
-    sheet.replaceSync(`[${attr}] { visibility: hidden !important; }`);
+    sheet.replaceSync(
+      `[${attr}] { visibility: hidden !important; } [${attr}], [${attr}] * { transition: none !important; }`,
+    );
     root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
   }
 }

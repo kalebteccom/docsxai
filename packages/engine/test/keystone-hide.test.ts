@@ -158,4 +158,17 @@ steps:
       expect(Date.now() - start).toBeLessThan(8_000);
     },
   );
+
+  it("hides at once on a page whose reset gives every element a tiny transition", async () => {
+    await session.page.setContent(
+      "<style>*{transition-duration:0.01ms !important}</style><pre id=t><code id=c>secret</code></pre>",
+    );
+    await session.driver.hideElements("#t", 2_000);
+    // Read right after the step. Without `transition: none` this still reads "visible".
+    const visibility = await session.page.evaluate(() => [
+      getComputedStyle(document.getElementById("t")).visibility,
+      getComputedStyle(document.getElementById("c")).visibility,
+    ]);
+    expect(visibility).toEqual(["hidden", "hidden"]);
+  });
 });
