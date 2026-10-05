@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.2.1-rc.1] - 2026-10-05
+
+Prerelease, published under the `next` dist-tag to prove the OIDC trusted-publishing path. `0.2.0` stays `latest`.
+
 ### Added
 
 - **Claude Code marketplace manifest.** `.claude-plugin/marketplace.json` at the repo root (marketplace `docsxai`, one plugin entry sourced from `./packages/plugin`) gives the plugin a real install: `/plugin marketplace add kalebteccom/docsxai`, then `/plugin install docsxai@docsxai`. Both manifests pass `claude plugin validate`, and a plugin test checks that the marketplace parses, lists the plugin and that its source path holds `plugin.json`. `--plugin-dir` stays the local-development path in the root and plugin READMEs.

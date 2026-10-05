@@ -73,9 +73,9 @@ gh workflow run release.yml --ref <branch>
 gh run watch
 ```
 
-It proves install, build, the package-contents audit, that all six tarballs pack with `workspace:*` rewritten, the version-agreement check, the publish order and the exists-on-npm skip logic. While the tree still says `0.2.0`, it reports all six as already published and skips them.
+It proves install, build, the package-contents audit, that all six tarballs pack with `workspace:*` rewritten, the version-agreement check, the publish order and the exists-on-npm skip logic. When the tree carries a version that is already on npm (for example `0.2.0`), it reports all six as already published and skips them; with an unpublished version such as `0.2.1-rc.1` it shows what would publish.
 
-It does not prove the trusted-publisher binding: `npm publish --dry-run` never exchanges an OIDC token. The only test of that is a real prerelease tag such as `v0.2.1-rc.1` (published under the `next` dist-tag), which is irreversible and an owner call.
+It does not prove the trusted-publisher binding: `npm publish --dry-run` never exchanges an OIDC token. The only test of that is a real prerelease tag such as `v0.2.1-rc.1` (published under the `next` dist-tag), which is irreversible and was approved by the owner on 2026-10-05 (the release environment gate still needs the owner's click).
 
 ## Release TODO
 
