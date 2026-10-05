@@ -44,18 +44,19 @@ breaks, the halt is the signal to recalibrate that one locator. See the
 
 Every step:
 
-| Field         | Required | What it is                                                                                                                                                                                                                                                                                                                                              |
-| ------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | yes      | Unique step id (unique across the whole `extends` merge). Names the screenshot, the write-up, and the halt artifacts.                                                                                                                                                                                                                                   |
-| `action`      | yes      | One of the [action types](#action-types).                                                                                                                                                                                                                                                                                                               |
-| `optional`    | no       | Best-effort step: if the action, `wait_for`, or `success` throws, skip and continue instead of halting. For conditionally-present UI - a confirm modal that sometimes appears, a first-run tooltip, a cookie banner. A skipped optional step emits no screenshot or annotation. Prefer this over a permissive comma-selector that no-ops on one branch. |
-| `target`      | no       | Locator ref (`$name`) or inline selector. Optional for actions like `navigate` (which uses `value`) or `wait`.                                                                                                                                                                                                                                          |
-| `value`       | no       | The action payload: text for `fill`, file path for `upload`, key for `press`, path or URL for `navigate`, option for `select`.                                                                                                                                                                                                                          |
-| `wait_for`    | no       | What to wait for after the action settles. See [wait forms](#wait_for-forms).                                                                                                                                                                                                                                                                           |
-| `success`     | no       | Post-step success criterion. Execution halts if it fails - no selector fallbacks; drift is a signal. See [success forms](#success-forms).                                                                                                                                                                                                               |
-| `annotation`  | no       | A single callout on this step's screenshot. Shorthand for a one-element `annotations` array.                                                                                                                                                                                                                                                            |
-| `annotations` | no       | Multiple callouts on the same screenshot, rendered as numbered badges (1, 2, ...). Mutually exclusive with `annotation`.                                                                                                                                                                                                                                |
-| `redactions`  | no       | Extra redactions for this step's screenshots, additive on top of the flow-level list.                                                                                                                                                                                                                                                                   |
+| Field         | Required | What it is                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | yes      | Unique step id (unique across the whole `extends` merge). Names the screenshot, the write-up, and the halt artifacts.                                                                                                                                                                                                                                                         |
+| `action`      | yes      | One of the [action types](#action-types).                                                                                                                                                                                                                                                                                                                                     |
+| `optional`    | no       | Best-effort step: if the action, `wait_for`, or `success` throws, skip and continue instead of halting. For conditionally-present UI - a confirm modal that sometimes appears, a first-run tooltip, a cookie banner. A skipped optional step emits no screenshot or annotation. Prefer this over a permissive comma-selector that no-ops on one branch.                       |
+| `timeout_ms`  | no       | How long, in ms, the step waits for its `target` (100 to 30000). Unset keeps Playwright's 30 s default, so flows without it run as before. Set it on an `optional` step so a missing target is skipped in seconds, e.g. `1500`. On a `wait` step it bounds `wait_for: { selector }` when that has no `timeout_ms` of its own. Rejected on steps where it would bound nothing. |
+| `target`      | no       | Locator ref (`$name`) or inline selector. Optional for actions like `navigate` (which uses `value`), `wait`, or `show`.                                                                                                                                                                                                                                                       |
+| `value`       | no       | The action payload: text for `fill`, file path for `upload`, key for `press`, path or URL for `navigate`, option for `select`.                                                                                                                                                                                                                                                |
+| `wait_for`    | no       | What to wait for after the action settles. See [wait forms](#wait_for-forms).                                                                                                                                                                                                                                                                                                 |
+| `success`     | no       | Post-step success criterion. Execution halts if it fails - no selector fallbacks; drift is a signal. See [success forms](#success-forms).                                                                                                                                                                                                                                     |
+| `annotation`  | no       | A single callout on this step's screenshot. Shorthand for a one-element `annotations` array.                                                                                                                                                                                                                                                                                  |
+| `annotations` | no       | Multiple callouts on the same screenshot, rendered as numbered badges (1, 2, ...). Mutually exclusive with `annotation`.                                                                                                                                                                                                                                                      |
+| `redactions`  | no       | Extra redactions for this step's screenshots, additive on top of the flow-level list.                                                                                                                                                                                                                                                                                         |
 
 :::caution[For agents]
 When UI appears only sometimes (a confirm modal, a first-run tooltip), the
@@ -70,15 +71,22 @@ on the step so real regressions are not swallowed (lint R008). See the
 ### Action types
 
 `navigate`, `click`, `fill`, `upload`, `press`, `hover`, `select`, `check`,
-`uncheck`, `wait`.
+`uncheck`, `wait`, `hide`, `show`.
 
 - `navigate` takes `value` (a path resolved against the workspace's
   `app_url`, or an absolute URL) - not `target`.
-- `click`, `hover`, `check`, `uncheck` take `target`.
+- `click`, `hover`, `check`, `uncheck`, `hide` take `target`.
 - `fill`, `select`, `upload` take `target` plus `value`.
 - `press` takes `value` (the key); `target` is optional (focused element when
   absent).
 - `wait` is a bare step that just runs its `wait_for`.
+- `hide` sets `visibility: hidden` on every element `target` matches, for the rest of the
+  flow or until a `show`. The element keeps its box, so the layout around it does not move,
+  and it stays out of every later screenshot. It waits for a match to exist and halts if none
+  does, unless the step is `optional`. Hiding a shadow host hides its content, so
+  `target: nextjs-portal` removes the Next.js dev overlay badge from the shots.
+- `show` undoes `hide`: with a `target`, the `hide` that used that same selector; with none,
+  every `hide`.
 
 One step of each shape:
 
@@ -93,6 +101,8 @@ steps:
   - { id: peek, action: hover, target: $member_row }
   - { id: notify, action: check, target: $notify_box }
   - { id: settle, action: wait, wait_for: network_idle }
+  - { id: badge, action: hide, target: nextjs-portal, optional: true, timeout_ms: 1500 }
+  - { id: badge-back, action: show }
 ```
 
 ### `wait_for` forms

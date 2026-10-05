@@ -4,6 +4,13 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **`hide` and `show` steps.** `action: hide` sets `visibility: hidden !important` on every element its `target` matches, for the rest of the flow or until a `show` (no target lifts every `hide`; a target lifts the `hide` that used the same selector). The element keeps its box, so nothing around it reflows, and it is absent from every later screenshot, halt shots included. The driver marks the elements with a data attribute and adopts a fixed engine-owned stylesheet keyed on it, on the element's own root, so it reaches shadow trees and is not blocked by a page's CSP; the selector is only data. The driver re-marks before each screenshot, so the hiding survives navigations and re-renders. `hide` waits for a match to exist and halts if none does, unless `optional: true`. That covers the Next.js dev overlay badge (`target: nextjs-portal`); there is no general CSS-injection step and no `display: none` option (it would reflow the page). `export playwright` emits both steps.
+- **Per-step `timeout_ms`.** Any step that waits on a `target` (and a `wait` step's `wait_for: { selector }`) accepts `timeout_ms`, 100 to 30000. Unset, nothing changes: the default stays Playwright's 30 s for optional and non-optional steps alike, so existing flows run as before. Set it on an optional step and a missing target is skipped in that budget instead of 30 s. Rejected on steps where it would bound nothing.
+- **Lint and diagnose.** R011 (info): `optional` step with no `timeout_ms`. R012 (error): `hide` without a `target`. R013 (warning): a step targets, anchors an annotation to, or waits on an element an earlier `hide` hid. `diagnose` adds hints for a halted `hide`, for a target hidden by an earlier step, and suggests `optional` + a short `timeout_ms` on `not-found`.
+- **Driver contract.** `BrowserDriver` gains required `hideElements(selector, timeoutMs?)` and `showElements(selector | null)`, and the seven target actions take an optional trailing `timeoutMs` (implemented by `PlaywrightDriver`; pre-1.0 that is a minor bump for third-party drivers).
+
 ## [0.2.1-rc.1] - 2026-10-05
 
 Prerelease, published under the `next` dist-tag to prove the OIDC trusted-publishing path. `0.2.0` stays `latest`.

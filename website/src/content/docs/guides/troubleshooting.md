@@ -131,6 +131,9 @@ launches; exit 1 on any warning or error. The rules:
 | R008 | warning  | An `optional: true` step with no `wait_for` or `success` guard - real regressions get silently swallowed.    |
 | R009 | warning  | `wait_for: element_stable` on a step with no `target` - it waits on nothing.                                 |
 | R010 | warning  | An annotation anchored to an element a redaction masks - the callout would point at a black box.             |
+| R011 | info     | An `optional: true` step with no `timeout_ms` - a missing target waits the full 30 s before it is skipped.   |
+| R012 | error    | A `hide` step with no `target`.                                                                              |
+| R013 | warning  | A step targets or anchors an element an earlier `hide` step hid - it can never be visible there.             |
 
 Plugins can contribute additional rules; see
 [Writing plugins](/guides/writing-plugins/). For the full calibration
