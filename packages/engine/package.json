@@ -55,6 +55,7 @@
     "@docsxai/backend": "workspace:*",
     "@types/node": "^20.19.43",
     "@types/pngjs": "^6.0.5",
+    "typescript": "^5.5.0",
     "vitest": "^2.0.0"
   },
   "author": "Kalebtec <security@kalebtec.com>",
