@@ -5,10 +5,11 @@
 // Library entry (re-exports `buildViewer`, `burnAnnotations`, `burnFlow`, `emitStarlightSite`,
 // `buildStarlightSite`) and bin entry `docsxai-viewer`:
 //   docsxai-viewer build <docs-dir> <out-dir> [--flow <name> ...]
-//   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>]
+//   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>] [--report <file>]
 //   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>]
 // The plugin's `render` command (and `docsxai render`) shell out to `build`.
 
+import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -30,16 +31,32 @@ export {
   buildBurnTree,
   burnAnnotations,
   burnFlow,
+  burnReport,
   pngDimensions,
+  renderBurn,
   type ArrowGeometry,
   type BurnFlowOptions,
   type BurnFlowResult,
   type BurnInput,
   type BurnNode,
   type BurnOptions,
+  type BurnRender,
   type BurnTreeInput,
 } from "./burn.js";
-export type { AnnotationRecord, AnnotationsFile, BoundingBox, NudgeOffset } from "./annotations.js";
+export {
+  BURN_REPORT_SCHEMA,
+  DEFAULT_UNPLACEABLE_RATIO,
+  type AnnotationReport,
+  type BurnReport,
+  type FlowBurnReport,
+} from "./burn-report.js";
+export type {
+  AnnotationPlacement,
+  AnnotationRecord,
+  AnnotationsFile,
+  BoundingBox,
+  NudgeOffset,
+} from "./annotations.js";
 export {
   ASTRO_VERSION,
   STARLIGHT_VERSION,
@@ -56,14 +73,15 @@ export {
 } from "./starlight.js";
 
 import { buildViewer, discoverFlows } from "./render.js";
-import { burnFlow } from "./burn.js";
+import { burnFlow, burnReport } from "./burn.js";
+import { DEFAULT_UNPLACEABLE_RATIO, type FlowBurnReport } from "./burn-report.js";
 import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
 
 const USAGE = `docsxai-viewer — static viewer generator
 
 Usage:
   docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...
-  docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>]
+  docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>]
   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...
 
   build — emit the interactive HTML viewer
@@ -74,6 +92,10 @@ Usage:
     <workspace>  a docsxai workspace (reads <workspace>/docs)
     --flow       restrict to these flows (default: all flows with annotations.json)
     --out        output root (default: docs/<flow>/burned/<step>.png)
+    --report     write a JSON placement report (callout and badge boxes, overlaps, unplaceable
+                 flags) to <file>; every callout is drawn either way
+    --max-overlap  share of its own area a callout may cover before the report flags it
+                 unplaceable (default ${DEFAULT_UNPLACEABLE_RATIO})
 
   site — emit a production Astro Starlight docs site (burned images preferred)
     <workspace>  a docsxai workspace (reads <workspace>/docs + <workspace>/flows)
@@ -90,6 +112,8 @@ interface ParsedArgs {
   out?: string;
   title?: string;
   accent?: string;
+  report?: string;
+  maxOverlap?: number;
   build: boolean;
 }
 
@@ -107,6 +131,12 @@ function parseArgs(argv: string[]): ParsedArgs {
       i++;
     } else if (argv[i] === "--accent" && argv[i + 1]) {
       parsed.accent = argv[i + 1]!;
+      i++;
+    } else if (argv[i] === "--report" && argv[i + 1]) {
+      parsed.report = argv[i + 1]!;
+      i++;
+    } else if (argv[i] === "--max-overlap" && argv[i + 1]) {
+      parsed.maxOverlap = Number(argv[i + 1]);
       i++;
     } else if (argv[i] === "--build") {
       parsed.build = true;
@@ -141,6 +171,11 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     process.stderr.write("burn: requires <workspace>\n\n" + USAGE + "\n");
     return 2;
   }
+  const ratio = args.maxOverlap;
+  if (ratio !== undefined && !(Number.isFinite(ratio) && ratio >= 0)) {
+    process.stderr.write("burn: --max-overlap needs a number >= 0\n");
+    return 2;
+  }
   const docsDir = path.join(workspace, "docs");
   try {
     const flows = args.flows.length ? args.flows : await discoverFlows(docsDir);
@@ -148,10 +183,25 @@ async function runBurn(args: ParsedArgs): Promise<number> {
       process.stderr.write(`burn: no flows with annotations.json under ${docsDir}\n`);
       return 1;
     }
+    const reports: FlowBurnReport[] = [];
     for (const flow of flows) {
       const outDir = args.out ? path.join(args.out, flow) : path.join(docsDir, flow, "burned");
-      const r = await burnFlow({ docsDir, flow, outDir });
+      const r = await burnFlow({
+        docsDir,
+        flow,
+        outDir,
+        ...(ratio !== undefined ? { unplaceableRatio: ratio } : {}),
+      });
+      reports.push(r.report);
       process.stdout.write(`burn: wrote ${r.written.length} image(s) to ${outDir}\n`);
+    }
+    if (args.report) {
+      const report = burnReport(reports, ratio);
+      await fs.mkdir(path.dirname(path.resolve(args.report)), { recursive: true });
+      await fs.writeFile(args.report, JSON.stringify(report, null, 2) + "\n");
+      process.stdout.write(
+        `burn: wrote report to ${args.report} (${report.unplaceable} unplaceable)\n`,
+      );
     }
     return 0;
   } catch (e) {

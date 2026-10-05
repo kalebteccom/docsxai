@@ -1,0 +1,1007 @@
+{
+  "single, no obstacles": {
+    "type": "div",
+    "props": {
+      "style": {
+        "position": "relative",
+        "display": "flex",
+        "width": 800,
+        "height": 600,
+        "fontFamily": "Inter"
+      },
+      "children": [
+        {
+          "type": "img",
+          "props": {
+            "src": "data:image/png;base64,AAAA",
+            "width": 800,
+            "height": 600,
+            "style": {
+              "position": "absolute",
+              "left": 0,
+              "top": 0
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 360,
+              "top": 280,
+              "width": 80,
+              "height": 40,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 393,
+              "top": 272,
+              "width": 14,
+              "height": 8,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(0% 0%, 100% 0%, 50% 100%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 268.5,
+              "top": 233,
+              "width": 263,
+              "height": 37,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "Click Play to open the recap sidebar"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "arrow styles and nudge, no obstacles": {
+    "type": "div",
+    "props": {
+      "style": {
+        "position": "relative",
+        "display": "flex",
+        "width": 800,
+        "height": 600,
+        "fontFamily": "Inter"
+      },
+      "children": [
+        {
+          "type": "img",
+          "props": {
+            "src": "data:image/png;base64,AAAA",
+            "width": 800,
+            "height": 600,
+            "style": {
+              "position": "absolute",
+              "left": 0,
+              "top": 0
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 360,
+              "top": 280,
+              "width": 80,
+              "height": 40,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 405,
+              "top": 314,
+              "width": 14,
+              "height": 8,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(50% 0%, 100% 100%, 0% 100%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 280.5,
+              "top": 324,
+              "width": 263,
+              "height": 37,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "Click Play to open the recap sidebar"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 20,
+              "top": 20,
+              "width": 100,
+              "height": 30,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 120,
+              "top": 28,
+              "width": 8,
+              "height": 14,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(100% 0%, 100% 100%, 0% 50%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 130,
+              "top": 16.5,
+              "width": 91,
+              "height": 37,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "2. Second"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 12,
+              "top": 12,
+              "width": 26,
+              "height": 26,
+              "display": "flex",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "backgroundColor": "#e8590c",
+              "border": "2px solid #fff",
+              "borderRadius": 13,
+              "color": "#fff",
+              "fontSize": 12
+            },
+            "children": "2"
+          }
+        }
+      ]
+    }
+  },
+  "narrow image, no obstacles, stays 280 wide": {
+    "type": "div",
+    "props": {
+      "style": {
+        "position": "relative",
+        "display": "flex",
+        "width": 390,
+        "height": 844,
+        "fontFamily": "Inter"
+      },
+      "children": [
+        {
+          "type": "img",
+          "props": {
+            "src": "data:image/png;base64,AAAA",
+            "width": 390,
+            "height": 844,
+            "style": {
+              "position": "absolute",
+              "left": 0,
+              "top": 0
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 16,
+              "top": 93,
+              "width": 46,
+              "height": 26,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 32,
+              "top": 85,
+              "width": 14,
+              "height": 8,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(0% 0%, 100% 0%, 50% 100%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 0,
+              "top": 8,
+              "width": 262,
+              "height": 75,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "1. The board shows every task as a"
+                }
+              },
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "card, grouped by status, so you see"
+                }
+              },
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "what is moving."
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 8,
+              "top": 85,
+              "width": 26,
+              "height": 26,
+              "display": "flex",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "backgroundColor": "#e8590c",
+              "border": "2px solid #fff",
+              "borderRadius": 13,
+              "color": "#fff",
+              "fontSize": 12
+            },
+            "children": "1"
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 16,
+              "top": 134,
+              "width": 358,
+              "height": 33,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 188,
+              "top": 126,
+              "width": 14,
+              "height": 8,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(0% 0%, 100% 0%, 50% 100%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 73,
+              "top": 68,
+              "width": 244,
+              "height": 56,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "2. Switch between the board, the"
+                }
+              },
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "backlog and the full list."
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 8,
+              "top": 126,
+              "width": 26,
+              "height": 26,
+              "display": "flex",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "backgroundColor": "#e8590c",
+              "border": "2px solid #fff",
+              "borderRadius": 13,
+              "color": "#fff",
+              "fontSize": 12
+            },
+            "children": "2"
+          }
+        }
+      ]
+    }
+  },
+  "obstacles on a wide image": {
+    "type": "div",
+    "props": {
+      "style": {
+        "position": "relative",
+        "display": "flex",
+        "width": 800,
+        "height": 600,
+        "fontFamily": "Inter"
+      },
+      "children": [
+        {
+          "type": "img",
+          "props": {
+            "src": "data:image/png;base64,AAAA",
+            "width": 800,
+            "height": 600,
+            "style": {
+              "position": "absolute",
+              "left": 0,
+              "top": 0
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 400,
+              "top": 300,
+              "width": 30,
+              "height": 20,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 414,
+              "top": 328,
+              "width": 2,
+              "height": 78,
+              "backgroundColor": "#1c1c1c"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 408,
+              "top": 320,
+              "width": 14,
+              "height": 8,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(50% 0%, 100% 100%, 0% 100%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 276.5,
+              "top": 406,
+              "width": 277,
+              "height": 37,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "1. Click Play to open the recap sidebar"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 392,
+              "top": 292,
+              "width": 26,
+              "height": 26,
+              "display": "flex",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "backgroundColor": "#e8590c",
+              "border": "2px solid #fff",
+              "borderRadius": 13,
+              "color": "#fff",
+              "fontSize": 12
+            },
+            "children": "1"
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 470,
+              "top": 120,
+              "width": 30,
+              "height": 20,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 487,
+              "top": 112,
+              "width": 14,
+              "height": 8,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(0% 0%, 100% 0%, 50% 100%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 471.5,
+              "top": 73,
+              "width": 91,
+              "height": 37,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "2. Second"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 444,
+              "top": 94,
+              "width": 26,
+              "height": 26,
+              "display": "flex",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "backgroundColor": "#e8590c",
+              "border": "2px solid #fff",
+              "borderRadius": 13,
+              "color": "#fff",
+              "fontSize": 12
+            },
+            "children": "2"
+          }
+        }
+      ]
+    }
+  },
+  "empty obstacles and capture-only placement keys": {
+    "type": "div",
+    "props": {
+      "style": {
+        "position": "relative",
+        "display": "flex",
+        "width": 800,
+        "height": 600,
+        "fontFamily": "Inter"
+      },
+      "children": [
+        {
+          "type": "img",
+          "props": {
+            "src": "data:image/png;base64,AAAA",
+            "width": 800,
+            "height": 600,
+            "style": {
+              "position": "absolute",
+              "left": 0,
+              "top": 0
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 360,
+              "top": 280,
+              "width": 80,
+              "height": 40,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 393,
+              "top": 272,
+              "width": 14,
+              "height": 8,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(0% 0%, 100% 0%, 50% 100%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 268.5,
+              "top": 233,
+              "width": 263,
+              "height": 37,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "Click Play to open the recap sidebar"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 100,
+              "top": 100,
+              "width": 120,
+              "height": 24,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 153,
+              "top": 92,
+              "width": 14,
+              "height": 8,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(0% 0%, 100% 0%, 50% 100%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 21.5,
+              "top": 53,
+              "width": 277,
+              "height": 37,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "1. Click Play to open the recap sidebar"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 92,
+              "top": 92,
+              "width": 26,
+              "height": 26,
+              "display": "flex",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "backgroundColor": "#e8590c",
+              "border": "2px solid #fff",
+              "borderRadius": 13,
+              "color": "#fff",
+              "fontSize": 12
+            },
+            "children": "1"
+          }
+        }
+      ]
+    }
+  },
+  "badge placement with obstacles": {
+    "type": "div",
+    "props": {
+      "style": {
+        "position": "relative",
+        "display": "flex",
+        "width": 800,
+        "height": 600,
+        "fontFamily": "Inter"
+      },
+      "children": [
+        {
+          "type": "img",
+          "props": {
+            "src": "data:image/png;base64,AAAA",
+            "width": 800,
+            "height": 600,
+            "style": {
+              "position": "absolute",
+              "left": 0,
+              "top": 0
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 100,
+              "top": 100,
+              "width": 120,
+              "height": 24,
+              "border": "2px solid #e8590c",
+              "borderRadius": 4,
+              "boxShadow": "0 0 0 3px rgba(232,89,12,0.35)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 153,
+              "top": 124,
+              "width": 14,
+              "height": 8,
+              "backgroundColor": "#1c1c1c",
+              "clipPath": "polygon(50% 0%, 100% 100%, 0% 100%)"
+            }
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 107.5,
+              "top": 134,
+              "width": 105,
+              "height": 37,
+              "display": "flex",
+              "flexDirection": "column",
+              "paddingTop": 8,
+              "paddingBottom": 8,
+              "paddingLeft": 11,
+              "paddingRight": 11,
+              "backgroundColor": "#fff",
+              "border": "1px solid #1c1c1c",
+              "borderRadius": 7,
+              "color": "#1c1c1c",
+              "fontSize": 14
+            },
+            "children": [
+              {
+                "type": "div",
+                "props": {
+                  "style": {
+                    "height": 19,
+                    "lineHeight": "19px",
+                    "whiteSpace": "nowrap"
+                  },
+                  "children": "1. Board title"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "div",
+          "props": {
+            "style": {
+              "position": "absolute",
+              "left": 220,
+              "top": 124,
+              "width": 26,
+              "height": 26,
+              "display": "flex",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "backgroundColor": "#e8590c",
+              "border": "2px solid #fff",
+              "borderRadius": 13,
+              "color": "#fff",
+              "fontSize": 12
+            },
+            "children": "1"
+          }
+        }
+      ]
+    }
+  }
+}

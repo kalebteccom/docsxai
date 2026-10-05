@@ -15,6 +15,27 @@ export interface NudgeOffset {
   y: number;
 }
 
+/**
+ * Optional per-annotation placement settings for the burner (the interactive viewer ignores them).
+ * Mirrors `AnnotationPlacement` in the engine's `doc-pack.ts`; every key is optional.
+ */
+export interface AnnotationPlacement {
+  /** Put the callout inside the target when the target can hold it (no arrow). */
+  inside?: boolean;
+  /** Only try this side of the target; falls back to the usual order when nothing fits there. */
+  side?: "top" | "bottom" | "left" | "right";
+  /** Where along the target's edge the callout sits: flush with its start, centred, or flush with its end. */
+  align?: "start" | "center" | "end";
+  /** `nudge` moves only the callout; the arrow stays on the target and a stem joins the two. */
+  pin_arrow?: boolean;
+  /** Widest outer callout box in px, 120 to 560 (default 280, narrower on small screenshots with obstacles). */
+  max_width?: number;
+  /** Capture-time obstacle scan radius in CSS px. Read by `docsxai run`, not by the burner. */
+  obstacle_radius?: number;
+  /** Capture-time cap on recorded obstacles. Read by `docsxai run`, not by the burner. */
+  obstacle_limit?: number;
+}
+
 export interface AnnotationRecord {
   step: string;
   selector: string;
@@ -30,6 +51,8 @@ export interface AnnotationRecord {
    * before. Used by the static burner; the interactive viewer ignores it.
    */
   obstacles?: BoundingBox[];
+  /** Burner placement settings (inside the target, side, alignment, pinned arrow, width). */
+  placement?: AnnotationPlacement;
   /** 1-based index within the step's screenshot — set only when the step has > 1 annotation. */
   index?: number;
 }
