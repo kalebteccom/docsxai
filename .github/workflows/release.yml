@@ -3,12 +3,16 @@ name: release
 # OIDC trusted publishing per universal-baseline §B + npm-package-defense §3.
 #
 # Hard constraints (do NOT loosen without a decisions-log entry):
-#   - Tag-triggered only. Never `pull_request*`-reachable; OIDC + secrets
-#     must never be exposed to PR-derived code.
+#   - Publishing is tag-triggered only. Never `pull_request*`-reachable; OIDC
+#     + secrets must never be exposed to PR-derived code. `workflow_dispatch`
+#     exists for the `dry-run` job alone: it has no environment, no
+#     `id-token`, `contents: read`, and publishes nothing. `publish` and
+#     `github-release` are gated on `github.event_name == 'push'`, so a
+#     dispatch can never reach them.
 #   - `permissions: {}` at workflow-level; per-job narrowing.
-#   - `id-token: write` lives ONLY on the publish job; build/sbom jobs are
-#     `contents: read` (sbom takes `contents: write` only to attach the
-#     release) and never see the OIDC token.
+#   - `id-token: write` lives ONLY on the publish job; build/dry-run jobs
+#     are `contents: read` (github-release takes `contents: write` only to
+#     attach the release) and never see the OIDC token.
 #   - `environment: release` gates the publish job behind manual approval
 #     (configured in the GitHub Environment settings — see RELEASING.md).
 #   - No NPM_TOKEN. Trusted publishing on the npm side binds this exact
@@ -28,7 +32,9 @@ name: release
 #   dependency (broken on the registry). `pnpm pack` rewrites `workspace:*`
 #   to the resolved real version inside the produced tarball, so we
 #   `pnpm --filter <pkg> pack` first, then hand that tarball to
-#   `npm publish <tarball> --provenance --access public`.
+#   `npm publish <tarball> --provenance --access public`. The pack, verify
+#   and publish logic lives in scripts/release-publish.sh so the `dry-run`
+#   job runs the same code the `publish` job does.
 #
 # Publish surface (6 packages on tag; the @docsxai npm org is registered):
 #   - `docsxai`                       — batteries-included CLI meta-package
@@ -51,11 +57,14 @@ on:
   push:
     tags:
       - "v*.*.*"
+  # Dry run only: the `dry-run` job below. Every other job is push-gated.
+  workflow_dispatch:
 
 permissions: {}
 
 jobs:
   build:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -78,11 +87,45 @@ jobs:
           node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -r typecheck
+      # Typecheck resolves cross-package imports (@docsxai/engine, @docsxai/viewer)
+      # through each package's built dist/, so build runs first.
       - run: pnpm -r build
+      - run: pnpm -r typecheck
       - run: pnpm -r test
 
+  # Manual rehearsal: `gh workflow run release.yml --ref <branch>`. Packs,
+  # audits and dry-runs the publish of all six packages. No environment, no
+  # `id-token`, read-only token: nothing can reach the registry, and the OIDC
+  # trusted-publisher binding is NOT exercised (see RELEASING.md).
+  dry-run:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.0.0
+        with:
+          version: 9.15.9
+      # No `cache` opt-in — see cache-poisoning note on build job above.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2 # zizmor: ignore[cache-poisoning]
+        with:
+          node-version: 26
+          registry-url: https://registry.npmjs.org
+      - name: Upgrade npm (same pin as the publish job)
+        run: npm install -g npm@11.5.1
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build all packages
+        run: pnpm -r build
+      - name: Audit package contents
+        run: node scripts/audit-package-contents.mjs
+      - name: Pack, verify and dry-run publish the 6 packages
+        run: bash scripts/release-publish.sh dry-run
+
   publish:
+    if: github.event_name == 'push'
     needs: [build]
     runs-on: ubuntu-latest
     environment: release
@@ -106,49 +149,24 @@ jobs:
           node-version: 26
           registry-url: https://registry.npmjs.org
       - name: Upgrade npm (need >= 11.5.1 for trusted publishing)
-        run: npm install -g npm@latest
+        run: npm install -g npm@11.5.1
       - run: pnpm install --frozen-lockfile --ignore-scripts
       # The tarballs ship built dist/; build before packing. (The build job
       # gates the release, but its artifacts are not carried into this OIDC
       # job — re-build from the checked-out tagged commit.)
       - name: Build all packages
         run: pnpm -r build
-      - name: Pack + publish the 6 packages with provenance
-        # For each publishable package: `pnpm --filter <pkg> pack` produces a
-        # tarball with workspace:* rewritten to real versions, then the
-        # upgraded `npm` CLI publishes that tarball over OIDC trusted
-        # publishing (npm >= 11.5.1) with Sigstore provenance — no token.
-        run: |
-          set -euo pipefail
-          out="$RUNNER_TEMP/tarballs"
-          mkdir -p "$out"
-          packages=(
-            docsxai
-            @docsxai/engine
-            @docsxai/viewer
-            @docsxai/plugin
-            @docsxai/skill
-            @docsxai/backend
-          )
-          for pkg in "${packages[@]}"; do
-            echo "::group::pack ${pkg}"
-            pnpm --filter "${pkg}" pack --pack-destination "$out"
-            echo "::endgroup::"
-          done
-          shopt -s nullglob
-          tarballs=("$out"/*.tgz)
-          if [ "${#tarballs[@]}" -ne "${#packages[@]}" ]; then
-            echo "expected ${#packages[@]} tarballs, found ${#tarballs[@]} in $out" >&2
-            printf '%s\n' "${tarballs[@]}" >&2
-            exit 1
-          fi
-          for tarball in "${tarballs[@]}"; do
-            echo "::group::publish ${tarball}"
-            npm publish "${tarball}" --provenance --access public
-            echo "::endgroup::"
-          done
+      - name: Pack, verify and publish the 6 packages with provenance
+        # scripts/release-publish.sh packs each package (`pnpm pack` rewrites
+        # workspace:* to real versions), checks that every tarball version
+        # equals the tag, then publishes dependencies before dependents with
+        # the upgraded `npm` CLI over OIDC trusted publishing (npm >= 11.5.1)
+        # and Sigstore provenance. Versions already on npm are skipped so a
+        # rerun after a partial publish completes the rest. No token.
+        run: bash scripts/release-publish.sh publish
 
   github-release:
+    if: github.event_name == 'push'
     needs: [publish]
     runs-on: ubuntu-latest
     permissions:
@@ -171,8 +189,12 @@ jobs:
       - name: Create GitHub Release with generated notes + SBOM
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME" sbom.cdx.json
-          --title "$GITHUB_REF_NAME"
-          --generate-notes
-          --verify-tag
+        run: |
+          flags=()
+          # vX.Y.Z-rc.1 and friends publish under the `next` dist-tag.
+          case "$GITHUB_REF_NAME" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" sbom.cdx.json \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag \
+            "${flags[@]}"
