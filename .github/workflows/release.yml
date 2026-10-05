@@ -76,13 +76,17 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.0.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: 9.15.9
       # No `cache: pnpm` on setup-node — tag-triggered release jobs avoid
       # the pnpm cache to stay immune to cache-poisoning (universal-
-      # baseline rule 26 / zizmor cache-poisoning).
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2 # zizmor: ignore[cache-poisoning]
+      # baseline rule 26). This pin (v4.4.0) only caches on an explicit
+      # `cache:` input and has no `package-manager-cache` input, so the
+      # zizmor cache-poisoning finding is a false positive and is ignored
+      # inline on every setup-node step. Revisit on a bump to >= v5, where
+      # `package-manager-cache: false` becomes available.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 # zizmor: ignore[cache-poisoning]
         with:
           node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org
@@ -106,11 +110,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.0.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: 9.15.9
-      # No `cache` opt-in — see cache-poisoning note on build job above.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2
+      # No `cache:` input — see cache-poisoning note on build job above.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 # zizmor: ignore[cache-poisoning]
         with:
           node-version: 26
           registry-url: https://registry.npmjs.org
@@ -136,11 +140,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.0.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: 9.15.9
-      # No `cache` opt-in — see cache-poisoning note on build job above.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2 # zizmor: ignore[cache-poisoning]
+      # No `cache:` input — see cache-poisoning note on build job above.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 # zizmor: ignore[cache-poisoning]
         with:
           # Node >= 22.14.0 is required for npm OIDC trusted publishing (in
           # addition to npm >= 11.5.1, installed below) — the OIDC token
@@ -175,11 +179,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.0.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: 9.15.9
-      # No `cache` opt-in — see cache-poisoning note on build job above.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.0.2 # zizmor: ignore[cache-poisoning]
+      # No `cache:` input — see cache-poisoning note on build job above.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0 # zizmor: ignore[cache-poisoning]
         with:
           node-version: 26
           registry-url: https://registry.npmjs.org
