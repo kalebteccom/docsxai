@@ -29,16 +29,16 @@ The token comes from the environment, never from config or the repo. The publish
 
 Passed as the publisher's `config`:
 
-| Key              | Required   | Meaning                                                                                             |
-| ---------------- | ---------- | --------------------------------------------------------------------------------------------------- |
-| `drive_id`       | one of two | Document library id (`drives/{id}`). Wins when both are set.                                        |
-| `site_id`        | one of two | Site id; the site's default document library (`sites/{id}/drive`) is used.                          |
-| `folder`         | no         | Folder inside the library, `docsxai` by default. Created by the first upload.                       |
-| `graph_base_url` | no         | Graph endpoint, `https://graph.microsoft.com/v1.0` by default. For sovereign clouds, and for tests. |
-| `title_prefix`   | no         | Prepended to every page title, e.g. `"[Docs] "`.                                                    |
-| `force`          | no         | `true` uploads every file even when the manifest says it is unchanged.                              |
+| Key              | Required   | Meaning                                                                                                                                                                                                         |
+| ---------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `drive_id`       | one of two | Document library id (`drives/{id}`). Wins when both are set.                                                                                                                                                    |
+| `site_id`        | one of two | Site id; the site's default document library (`sites/{id}/drive`) is used.                                                                                                                                      |
+| `folder`         | no         | Folder inside the library, `docsxai` by default. Created by the first upload.                                                                                                                                   |
+| `graph_base_url` | no         | Graph endpoint, `https://graph.microsoft.com/v1.0` by default. Must be `https` on a Microsoft Graph host (global, US, China and Germany clouds); plain http on loopback only under the publisher's test option. |
+| `title_prefix`   | no         | Prepended to every page title, e.g. `"[Docs] "`.                                                                                                                                                                |
+| `force`          | no         | `true` uploads every file even when the manifest says it is unchanged.                                                                                                                                          |
 
-`graph_base_url` is not checked against the capability. Capabilities gate which plugins load and are a review signal, not a network sandbox.
+`graph_base_url` is checked against an allowlist of Graph hosts before any request, so the bearer token is only sent to one of them. Capabilities still gate which plugins load and are a review signal.
 
 ## Layout
 
