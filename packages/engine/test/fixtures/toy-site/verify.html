@@ -4,8 +4,10 @@
     <meta charset="utf-8" />
     <title>Verify page</title>
     <style>
-      /* Served by the verify-determinism keystone, which fills in {{STAMP}}: the same digit on every
-         request for the stable page, a counter that moves on every request for the injected one. */
+      /* Served by the verify-determinism keystone, which fills in the stamp placeholder in the body
+         (never written out in this comment: the server replaces the first one it finds): the same
+         digit on every request for the stable page, a counter that moves on every request for the
+         injected one. */
       body {
         margin: 0;
         padding: 16px;
