@@ -205,6 +205,13 @@ describe("run argument checks that fail before a browser starts", () => {
     expect(err).toMatch(/--cdp .* cannot run the matrix of tour/);
   });
 
+  it("refuses two flows whose names differ only by case", async () => {
+    await writeFlow("first", PLAIN_FLOW.replace("name: clean", "name: Tour"));
+    await writeFlow("second", PLAIN_FLOW.replace("name: clean", "name: tour"));
+    expect(await main(["run", ws])).toBe(1);
+    expect(err).toContain('flow names "Tour" and "tour" differ only by case');
+  });
+
   it("rejects an unknown --variant, listing the ones that exist", async () => {
     await writeFlow("tour", MATRIX_FLOW);
     expect(await main(["run", ws, "--variant", "fr-FR.dark"])).toBe(1);

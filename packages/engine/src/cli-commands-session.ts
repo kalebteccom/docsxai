@@ -26,6 +26,7 @@ import {
   resolveFlowExtends,
 } from "./flow-file.js";
 import { type FlowVariant } from "./flow-matrix.js";
+import { assertNoCaseCollision } from "./flow-name-rules.js";
 import { recordRunHistory } from "./backend-client.js";
 import { runFlowsInSessions } from "./run-flows.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
@@ -143,6 +144,15 @@ export async function cmdRun(args: string[]): Promise<number> {
         ? `run: no flow named "${onlyFlow}"\n`
         : `run: no flow-files in ${projectDir}/flows\n`,
     );
+    return 1;
+  }
+  try {
+    assertNoCaseCollision(
+      flows.map((f) => f.name),
+      "flow names",
+    );
+  } catch (e) {
+    process.stderr.write(`run: ${(e as Error).message}\n`);
     return 1;
   }
   if (cdpEndpoint && matrixFlows.size > 0) {

@@ -8,7 +8,7 @@ import { promises as fs } from "node:fs";
 import { type StorageState } from "./auth.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowExecutionError } from "./flow-halt.js";
-import { expandFlow, type FlowVariant } from "./flow-matrix.js";
+import { expandFlows, type FlowVariant } from "./flow-matrix.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
@@ -44,7 +44,7 @@ export function unitLabel(unit: FlowVariant): string {
 
 /** The units `opts` selects: every flow expanded, narrowed to `opts.variant` when it is set. */
 function selectUnits(opts: Pick<RunFlowsOptions, "flows" | "variant">): FlowVariant[] {
-  const units = opts.flows.flatMap((flow) => expandFlow(flow));
+  const units = expandFlows(opts.flows);
   return opts.variant ? units.filter((u) => u.id === opts.variant) : units;
 }
 

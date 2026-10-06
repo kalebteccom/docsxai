@@ -15,6 +15,7 @@
 
 import { z } from "zod";
 import { EnvironmentSpec, LocaleTag } from "./environment-spec.js";
+import { hasTrailingDot, isWindowsDeviceName } from "./flow-name-rules.js";
 import { MatrixSpec, VariantInfo, VariantSelector } from "./matrix-spec.js";
 
 export {
@@ -306,7 +307,9 @@ export const MAX_FLOW_NAME_LENGTH = 64;
  * A flow's name is a path segment: it names `flows/<name>.flow.yaml` and `docs/<name>/`, and
  * `run` writes under both. It starts with a letter or digit, then letters, digits, `.`, `_` and `-`
  * (so `Board_1.v2` is fine), never contains `..`, and is at most {@link MAX_FLOW_NAME_LENGTH} long.
- * A slash, a backslash, a leading dot and an absolute path are all outside that set.
+ * A slash, a backslash, a leading dot and an absolute path are all outside that set. A trailing
+ * `.` and a Windows device name (`con`, `nul`, `com1`, `lpt1`, ..., with or without an extension
+ * part) are refused too, since Windows cannot create them.
  */
 export const FlowName = z
   .string()
@@ -316,7 +319,11 @@ export const FlowName = z
     /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
     "must start with a letter or digit and use only letters, digits, `.`, `_` and `-`",
   )
-  .refine((n) => !n.includes(".."), { message: "must not contain `..`" });
+  .refine((n) => !n.includes(".."), { message: "must not contain `..`" })
+  .refine((n) => !hasTrailingDot(n), { message: "must not end with `.`" })
+  .refine((n) => !isWindowsDeviceName(n), {
+    message: "must not be a Windows device name (con, prn, aux, nul, com1-9, lpt1-9)",
+  });
 export type FlowName = z.infer<typeof FlowName>;
 
 export const FlowFile = z
