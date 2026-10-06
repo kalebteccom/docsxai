@@ -24,6 +24,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **Burned badges keep off the target's text and its neighbours.** On annotation records with `obstacles`, `docsxai-viewer burn` now places the numbered badge at the corner of the halo, up to 26 px out, that covers the least of the obstacles, other halos and callouts, and of the target's own box. A flush-text target (a title, a tab, a list row) no longer loses its first letter under the badge. Callouts keep clear of the badge where it landed. Records without `obstacles` burn byte-identically to before; the same input still yields identical bytes.
 - **Burned arrows and stems stay visible on dark screenshots.** `docsxai-viewer burn` reads the screenshot's pixels and, where at least a third of those under an annotation's arrow and stem are dark (integer luma under 110), paints a 2 px white outline under the near-black connector. 72 of 144 remotxai images and every trackxai image have dark UIs where the ink arrow was close to invisible. On light screenshots nothing changes: the tree and the PNG bytes are those of before, and the frozen legacy fixtures still hold. The callout box, halo and badge are untouched, and the same input still yields identical bytes. `--no-connector-outline` (CLI) and `connector: "off"` (`BurnOptions`, `burnFlow`) keep plain ink everywhere; there is no new annotation or schema field.
 
+### Fixed
+
+- **`proxy-addr` 2.0.7 to 2.0.8 in the lockfile.** Clears the critical IPv4-mapped-address IP-spoofing advisory (GHSA-jqcg-44mw-7w3h) that `pnpm audit --prod --audit-level=high` reported through `@docsxai/mcp` > `@modelcontextprotocol/sdk` > `express`. `express` already allows `^2.0.7`, so only the lockfile moved; no package manifest or override changed.
+
 ## [0.2.1-rc.1] - 2026-10-05
 
 Prerelease, published under the `next` dist-tag to prove the OIDC trusted-publishing path. `0.2.0` stays `latest`.
