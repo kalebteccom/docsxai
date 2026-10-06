@@ -3,7 +3,29 @@
 import * as path from "node:path";
 import { zipDocPack, ZipError } from "@docsxai/engine";
 import { z } from "zod";
-import { defineTool, fail, ok, requireWorkspace } from "../shared.js";
+import {
+  defineTool,
+  fail,
+  ok,
+  requireWorkspace,
+  resolveToolPath,
+  type ToolContext,
+} from "../shared.js";
+
+/**
+ * Where the archive goes. The default is `<workspace>.zip` next to the workspace; when that sits
+ * outside the HTTP workspace root (the root itself is the workspace) it goes inside the workspace.
+ */
+async function resolveOutput(
+  out: string | undefined,
+  ws: string,
+  ctx: ToolContext,
+): Promise<string> {
+  if (out) return resolveToolPath(out, ctx);
+  const sibling = `${path.resolve(ws)}.zip`;
+  if (!ctx.workspaceRoot) return sibling;
+  return resolveToolPath(sibling, ctx).catch(() => path.join(ws, `${path.basename(ws)}.zip`));
+}
 
 export const zipPackTool = defineTool({
   name: "zip_pack",
@@ -24,7 +46,7 @@ export const zipPackTool = defineTool({
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);
-    const output = args.out ? path.resolve(args.out) : `${path.resolve(ws)}.zip`;
+    const output = await resolveOutput(args.out, ws, ctx);
     try {
       const r = await zipDocPack({
         workspace: ws,

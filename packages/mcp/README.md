@@ -1,6 +1,6 @@
 # @docsxai/mcp
 
-Standalone **stdio MCP server** over the docsxai engine. It lets _any_ MCP-speaking host agent
+Standalone **MCP server** (stdio, plus an opt-in Streamable HTTP transport) over the docsxai engine. It lets _any_ MCP-speaking host agent
 (Claude Code, Codex, Cursor, a scripted client, …) drive the calibration workflow and introspect a
 doc pack — without shelling out to the `docsxai` CLI. The tools wrap the same engine functions
 the CLI wraps; behaviour is identical by construction.
@@ -40,6 +40,71 @@ wire.
 (Or `"command": "node", "args": ["<repo>/packages/mcp/dist/bin.js", …]` when running from a
 checkout.)
 
+## Streamable HTTP (opt-in, experimental)
+
+stdio stays the default. For a host that connects over HTTP, start the server with `serve --http`:
+
+```sh
+export DOCSX_MCP_TOKEN="$(openssl rand -hex 32)"      # or: --token-file <path>
+node packages/mcp/dist/bin.js serve --http --workspace-root ~/docsxai --workspace ~/docsxai/my-app
+# docsxai-mcp: listening on http://127.0.0.1:8765/mcp (bearer token required)
+```
+
+Clients send `Authorization: Bearer <token>` on every request. The tool registry is the one stdio
+serves; nothing is added or removed.
+
+| Flag                     | Meaning                                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `--http`                 | Required. Serve at `/mcp` over HTTP instead of stdio.                                                |
+| `--workspace-root <dir>` | Required. Absolute path of an existing directory; every path a tool receives must resolve inside it. |
+| `--port <n>`             | Port, default `8765`. `0` picks a free one.                                                          |
+| `--host <host>`          | Interface to bind, default `127.0.0.1`.                                                              |
+| `--token-file <path>`    | File holding the token. Wins over `DOCSX_MCP_TOKEN` when both are set.                               |
+| `--allowed-host <h>`     | Extra hostname accepted in the `Host` and `Origin` headers. Exact names, repeatable.                 |
+| `--allowed-origin <o>`   | Extra exact `Origin` (`scheme://host[:port]`), for a browser UI or a TLS proxy. Repeatable.          |
+| `--allow-remote`         | Required to bind anything but loopback. Terminate TLS in front of the server when you use it.        |
+
+What the server enforces:
+
+- **Workspace root.** The server refuses to start without `--workspace-root`. Every path a tool
+  receives (`workspace`, `init_workspace`'s `dir`, `zip_pack`'s `out`) is resolved through symlinks
+  and has to land inside the root, or the call fails. Relative paths start at the root, and a call
+  that omits `workspace` uses `--workspace`, then the root itself. `..` and links that point out of
+  the root are refused. Paths inside a workspace that a flow or config names are not re-checked, so
+  keep the root free of workspaces you do not trust. stdio is unchanged.
+- **Token.** Required, at least 32 printable ASCII characters with at least 8 distinct ones. It is
+  read from `DOCSX_MCP_TOKEN` or `--token-file`, never from an argument (`--token ...` is refused
+  without echoing it), compared in constant time, and never logged. A token file that group or
+  other can access is refused on POSIX; `chmod 600` it. The variable is deleted from the server's
+  environment once read, so the processes tools spawn (the viewer build, a browser) do not inherit
+  it. The process's initial environment block can still be readable to the same user on some
+  systems, so prefer `--token-file`. The server refuses to start without a token.
+- **Bind.** Loopback only. A non-loopback `--host` is refused unless `--allow-remote` is passed. The
+  server speaks plain HTTP, so put a TLS-terminating proxy in front of any remote bind.
+- **DNS rebinding.** The `Host` header must be a plain `host[:port]` (IPv6 in brackets; userinfo,
+  paths and spaces are refused) naming a loopback host, the bound host or an `--allowed-host`. A
+  request with an `Origin` header must name one of the same hosts on the port the server is bound
+  to, or match an `--allowed-origin` entry exactly. A page on `http://localhost:5173` is therefore
+  refused unless you pass `--allowed-origin http://localhost:5173`. Both checks fail with 403 before
+  the token is checked.
+- **Limits.** 1 MiB per request body (413), 16 concurrent sessions (429), and a session closes after
+  30 minutes with no request. The limits are `startHttpServer` options, not flags.
+- **Errors.** 401, 403, 404, 405, 413 and 429 carry a fixed `{ "error": "<code>" }` body and nothing
+  else.
+
+A client config for a host that takes a URL and headers:
+
+```json
+{
+  "mcpServers": {
+    "docsxai": {
+      "url": "http://127.0.0.1:8765/mcp",
+      "headers": { "Authorization": "Bearer <token>" }
+    }
+  }
+}
+```
+
 ## Tools
 
 | Tool                | Kind          | What it does                                                                                                                                                                                                                                                      |
@@ -69,11 +134,13 @@ others.
 | ------------------ | ----------------------------- | -------------------------------------------------------------------- |
 | `DOCSX_VIEWER_BIN` | `render_viewer`               | Explicit path to the viewer bin (overrides package/PATH resolution). |
 | `DOCSX_TOKEN`      | `push_pack`, `pull_pack`      | Backend bearer token (when not using the OAuth token file).          |
+| `DOCSX_MCP_TOKEN`  | `serve --http`                | Bearer token clients must send, at least 32 characters. Required.    |
 | `DOCSX_*` creds    | `run_flows` (auth strategies) | Per-role credential env vars named in `auth/strategy.yaml`.          |
 
 ## Tests
 
-`pnpm -C packages/mcp test`. The scripted-client suite drives the whole surface through an
+`pnpm -C packages/mcp test`. The HTTP suite (`test/http-server.test.ts`) binds an ephemeral loopback
+port and drives it with raw requests and the SDK's `StreamableHTTPClientTransport`. The scripted-client suite drives the whole surface through an
 in-process linked client/server pair (the SDK's `InMemoryTransport`) — a non-Claude MCP client as
 the acceptance evidence. The `run_flows` rows run against the engine's toy-site fixture over real
 Chromium and are skipped when no Chromium binary is installed
@@ -84,5 +151,5 @@ Adding a tool? Follow the numbered checklist in
 
 ## Deferred
 
-Streamable-HTTP transport is deferred per the roadmap — stdio only for now. The package is
-`private: true` and not on npm; run it from a source checkout.
+The package is `private: true` and not on npm; run it from a source checkout. The HTTP transport has
+no rate limiting on failed tokens and no TLS of its own.
