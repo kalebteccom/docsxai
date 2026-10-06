@@ -260,6 +260,52 @@ describe("halt messages in the report", () => {
     expect(scrubHaltMessage(line)).toBe(line);
   });
 
+  it.each([
+    ["cannot write to /tmp", "cannot write to <path>"],
+    ["cannot write to /tmp.", "cannot write to <path>."],
+    ["cannot write to /var/tmp, retrying", "cannot write to <path>, retrying"],
+    ["open '/tmp' failed", "open '<path>' failed"],
+    ["failed at /Users/me/My Projects/app/shot.png: boom", "failed at <path>: boom"],
+    ["open '/Users/me/My Projects/app/a b.png' failed", "open '<path>' failed"],
+    ['open "/home/ci/work dir/a b.png" failed', 'open "<path>" failed'],
+    ["(halt screenshot: /Users/me/My Docs/f/halts/open.png)", "(halt screenshot: <path>)"],
+  ])("scrubs a path under a known root to the end of its token run: %j", (message, expected) => {
+    expect(scrubHaltMessage(message)).toBe(expected);
+  });
+
+  it("scrubs paths under the roots the caller names, spaces included", () => {
+    const roots = ["/srv/work space/", "/opt/ci home", "/var/folders/ab/cd/T"];
+    expect(scrubHaltMessage("open /srv/work space/docs/a.png now", roots)).toBe("open <path> now");
+    expect(scrubHaltMessage("log in /opt/ci home/.cache/x: nope", roots)).toBe(
+      "log in <path>: nope",
+    );
+    expect(scrubHaltMessage("wrote /var/folders/ab/cd/T/docsxai-1/out.png", roots)).toBe(
+      "wrote <path>",
+    );
+    expect(scrubHaltMessage("in /srv/work space", roots)).toBe("in <path>");
+  });
+
+  it("leaves lookalikes of a known root alone", () => {
+    const line = "/tmpfile and /homepage and http://tmp/x and https://host/home and a/tmp/b";
+    expect(scrubHaltMessage(line)).toBe(line);
+  });
+
+  it("scrubs the workspace root and the machine roots of a built report", () => {
+    const report = buildVerifyReport({
+      runs: 2,
+      flows: ["f"],
+      artefactsCompared: 0,
+      differences: [],
+      halts: [
+        { run: 1, flow: "f", step: "s", message: "wrote /srv/my ws/docs/f/halts/s.png and /tmp" },
+      ],
+      promoted: false,
+      scrubRoots: ["/srv/my ws"],
+    });
+    expect(report.halts[0]!.message).toBe("wrote <path> and <path>");
+    expect(JSON.stringify(report)).not.toContain("/srv");
+  });
+
   it("keeps the first line only", () => {
     expect(scrubHaltMessage("first\n  at /Users/me/ws/x/y.ts:1:2\nsecond")).toBe("first");
   });
