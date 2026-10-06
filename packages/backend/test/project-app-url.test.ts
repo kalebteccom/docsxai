@@ -2,7 +2,14 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { appUrlProblem, createBackendStub, MemoryStore, NotFoundError } from "../src/index.js";
+import {
+  appUrlProblem,
+  createBackendStub,
+  DENY_PRIVATE_APP_URL_ENV,
+  denyPrivateAppUrl,
+  MemoryStore,
+  NotFoundError,
+} from "../src/index.js";
 import { FsStore } from "../src/fs-store.js";
 import { SpawnRunner } from "../src/runner.js";
 import type { BackendStore } from "../src/store.js";
@@ -215,5 +222,227 @@ describe("SpawnRunner.materializeWorkspace app_url", () => {
     expect(JSON.parse(fs.readFileSync(path.join(dir, ".docsxai.json"), "utf8"))).not.toHaveProperty(
       "app_url",
     );
+  });
+});
+
+const ALWAYS_REFUSED = [
+  "http://169.254.169.254/latest/meta-data/",
+  "https://169.254.0.1",
+  "http://169.254.255.255:8080/x",
+  // The same address as a decimal, hex, octal and mixed-radix IPv4 host.
+  "http://2852039166/",
+  "http://0xA9FEA9FE/",
+  "http://0xa9.0xfe.0xa9.0xfe/",
+  "http://0251.0376.0251.0376/",
+  "http://169.254.43518/",
+  "http://169.254.169.254./",
+  // IPv4-mapped, NAT64 and IPv4-compatible IPv6 forms.
+  "http://[::ffff:169.254.169.254]/",
+  "http://[::ffff:a9fe:a9fe]/",
+  "http://[0:0:0:0:0:ffff:a9fe:a9fe]/",
+  "http://[64:ff9b::a9fe:a9fe]/",
+  "http://[::a9fe:a9fe]/",
+  // IPv6 link-local and the AWS IPv6 metadata address.
+  "http://[fe80::1]/",
+  "http://[febf::1]/",
+  "http://[FE80::abcd]:3000/",
+  "http://[fd00:ec2::254]/",
+  "http://[fd00:ec2:0:0:0:0:0:254]/",
+  // Other clouds.
+  "http://100.100.100.200/",
+  "http://metadata.google.internal/computeMetadata/v1/",
+  "http://metadata.google.internal./",
+  "http://METADATA.Google.Internal/",
+  "https://instance-data/latest",
+  "http://instance-data./",
+];
+
+const PRIVATE_REFUSED = [
+  "http://localhost:3000",
+  "http://localhost./",
+  "http://app.localhost/",
+  "http://127.0.0.1:8080",
+  "http://127.1/",
+  "http://2130706433/",
+  "http://0x7f.1/",
+  "http://0.0.0.0/",
+  "http://10.1.2.3/",
+  "http://172.16.0.1/",
+  "http://172.31.255.255/",
+  "http://192.168.0.1/",
+  "http://100.64.0.1/",
+  "http://[::1]:3000/",
+  "http://[::]/",
+  "http://[fc00::1]/",
+  "http://[fd12:3456::1]/",
+  "http://[::ffff:127.0.0.1]/",
+  "http://[::ffff:a00:1]/",
+];
+
+const ALWAYS_ALLOWED = [
+  "https://example.com/app",
+  "http://localhost:3000",
+  "http://127.0.0.1:8080",
+  "http://10.0.0.5/",
+  "http://192.168.1.2/",
+  "http://172.16.5.5/",
+  "http://[::1]:3000/",
+  "http://[fc00::1]/",
+  "http://169.253.1.1/",
+  "http://169.255.1.1/",
+  "http://100.100.100.201/",
+  "http://100.100.101.200/",
+  "http://[2001:db8::1]/",
+  "http://[::ffff:8.8.8.8]/",
+  "http://[fec0::1]/",
+  "http://[fd00:ec2::255]/",
+  "https://metadata.google.internal.example.com/",
+  "https://instance-data.example.com/",
+  "https://notmetadata.google.internal/",
+];
+
+const PUBLIC_ONLY = [
+  "https://example.com",
+  "http://8.8.8.8/",
+  "http://172.15.0.1/",
+  "http://172.32.0.1/",
+  "http://192.169.0.1/",
+  "http://100.63.0.1/",
+  "http://100.128.0.1/",
+  "http://[2001:db8::1]/",
+  "http://[::ffff:8.8.8.8]/",
+];
+
+describe("appUrlProblem: link-local and cloud-metadata hosts", () => {
+  it.each(ALWAYS_REFUSED)("refuses %s by default and under denyPrivate", (u) => {
+    expect(appUrlProblem(u)).toMatch(/link-local or cloud-metadata/);
+    expect(appUrlProblem(u, { denyPrivate: true })).toMatch(/must not point at a/);
+  });
+
+  it.each(ALWAYS_ALLOWED)("allows %s by default", (u) => {
+    expect(appUrlProblem(u)).toBeNull();
+  });
+});
+
+describe("appUrlProblem: denyPrivate", () => {
+  it.each(PRIVATE_REFUSED)("refuses %s under denyPrivate only", (u) => {
+    expect(appUrlProblem(u)).toBeNull();
+    expect(appUrlProblem(u, { denyPrivate: true })).toMatch(/loopback or private-network/);
+  });
+
+  it.each(PUBLIC_ONLY)("still allows %s under denyPrivate", (u) => {
+    expect(appUrlProblem(u, { denyPrivate: true })).toBeNull();
+  });
+
+  it("reads the switch from DOCSX_BACKEND_DENY_PRIVATE_APP_URL=1 only", () => {
+    expect(DENY_PRIVATE_APP_URL_ENV).toBe("DOCSX_BACKEND_DENY_PRIVATE_APP_URL");
+    expect(denyPrivateAppUrl({ [DENY_PRIVATE_APP_URL_ENV]: "1" })).toBe(true);
+    expect(denyPrivateAppUrl({ [DENY_PRIVATE_APP_URL_ENV]: "true" })).toBe(false);
+    expect(denyPrivateAppUrl({ [DENY_PRIVATE_APP_URL_ENV]: "0" })).toBe(false);
+    expect(denyPrivateAppUrl({})).toBe(false);
+  });
+});
+
+describe("project app_url host rules over HTTP", () => {
+  const TOKEN = "test-token";
+  const h = { authorization: `Bearer ${TOKEN}`, "content-type": "application/json" };
+
+  async function withStub(
+    env: NodeJS.ProcessEnv,
+    run: (
+      send: (method: string, url: string, body?: unknown) => Promise<Response>,
+    ) => Promise<void>,
+  ): Promise<void> {
+    const stub = createBackendStub({ token: TOKEN, env });
+    const base = await stub.listen(0);
+    try {
+      await run((method, url, body) =>
+        fetch(`${base}${url}`, { method, headers: h, body: JSON.stringify(body) }),
+      );
+    } finally {
+      await stub.close();
+    }
+  }
+
+  async function projectFor(send: (m: string, u: string, b?: unknown) => Promise<Response>) {
+    const ws = (await (await send("POST", "/v1/workspaces", { name: "ws" })).json()) as {
+      id: string;
+    };
+    const project = (await (
+      await send("POST", `/v1/workspaces/${ws.id}/projects`, { name: "p" })
+    ).json()) as { id: string };
+    return {
+      projects: `/v1/workspaces/${ws.id}/projects`,
+      one: `/v1/workspaces/${ws.id}/projects/${project.id}`,
+    };
+  }
+
+  it("refuses a metadata address on create and update with the default environment", async () => {
+    await withStub({}, async (send) => {
+      const { projects, one } = await projectFor(send);
+      for (const bad of [
+        "http://169.254.169.254/latest",
+        "http://2852039166/",
+        "http://[fe80::1]/",
+      ]) {
+        const create = await send("POST", projects, { name: "x", app_url: bad });
+        expect(create.status).toBe(400);
+        expect(((await create.json()) as { message: string }).message).toContain("app_url");
+        expect((await send("PUT", one, { app_url: bad })).status).toBe(400);
+      }
+      expect((await send("PUT", one, { app_url: "http://localhost:3000" })).status).toBe(200);
+    });
+  });
+
+  it("refuses loopback and private hosts too when the deployment asks for it", async () => {
+    await withStub({ [DENY_PRIVATE_APP_URL_ENV]: "1" }, async (send) => {
+      const { projects, one } = await projectFor(send);
+      for (const bad of ["http://localhost:3000", "http://10.0.0.5/", "http://[::1]/"]) {
+        expect((await send("POST", projects, { name: "x", app_url: bad })).status).toBe(400);
+        expect((await send("PUT", one, { app_url: bad })).status).toBe(400);
+      }
+      expect((await send("PUT", one, { app_url: "https://app.example.com" })).status).toBe(200);
+    });
+  });
+});
+
+describe("SpawnRunner.materializeWorkspace host rules", () => {
+  function setup(appUrl: string) {
+    const store = new MemoryStore();
+    const ws = store.createWorkspace("ws");
+    // Stored directly, as a record written before the check existed or by another store would be.
+    const project = store.createProject(ws.id, "site", appUrl);
+    const rev = store.createRevision(ws.id, project.id, "run", "ci");
+    const job = {
+      delivery_id: "d",
+      event: "push",
+      workspace_id: ws.id,
+      project_id: project.id,
+      repo: "o/r",
+      config: { workspace_rev: rev.id },
+      payload: {},
+    } as unknown as WebhookJob;
+    const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), "docsxai-app-url-root-"));
+    dirs.push(workRoot);
+    return { store, job, workRoot };
+  }
+
+  it("refuses a stored metadata address and leaves no workspace behind", () => {
+    const { store, job, workRoot } = setup("http://169.254.169.254/");
+    const runner = new SpawnRunner({ store, workRoot, env: {} });
+    expect(() => runner.materializeWorkspace(job)).toThrow(/link-local or cloud-metadata/);
+    expect(fs.readdirSync(workRoot)).toEqual([]);
+  });
+
+  it("refuses a stored private address only when the environment asks for it", () => {
+    const { store, job, workRoot } = setup("http://10.0.0.5/");
+    const lax = new SpawnRunner({ store, workRoot, env: {} }).materializeWorkspace(job);
+    dirs.push(lax);
+    const config = JSON.parse(fs.readFileSync(path.join(lax, ".docsxai.json"), "utf8")) as {
+      app_url: string;
+    };
+    expect(config.app_url).toBe("http://10.0.0.5/");
+    const strict = new SpawnRunner({ store, workRoot, env: { [DENY_PRIVATE_APP_URL_ENV]: "1" } });
+    expect(() => strict.materializeWorkspace(job)).toThrow(/loopback or private-network/);
   });
 });

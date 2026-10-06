@@ -10,6 +10,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { engineRunArgv } from "./engine-argv.js";
+import { denyPrivateAppUrl } from "./app-url.js";
 import { materializeDocPack } from "./materialize.js";
 import type { BackendStore } from "./store.js";
 import type { WebhookJob } from "./webhook.js";
@@ -103,7 +104,10 @@ export class SpawnRunner {
           revisionId: rev.id,
           artifacts: rev.artifacts,
         },
-        appUrl ? { appUrl } : {},
+        {
+          ...(appUrl ? { appUrl } : {}),
+          denyPrivateAppUrl: denyPrivateAppUrl(this.opts.env ?? process.env),
+        },
       );
       fs.writeFileSync(
         path.join(dir, "webhook-job.json"),

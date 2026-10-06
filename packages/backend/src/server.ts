@@ -11,10 +11,10 @@ import {
   API_VERSION,
   API_VERSION_HEADER,
   BLOB_BODY_LIMIT_BYTES,
-  appUrlProblem,
   isAuthCacheEnvelope,
   parseWebhookConfig,
 } from "./api.js";
+import { appUrlProblem, denyPrivateAppUrl } from "./app-url.js";
 import { FsStore } from "./fs-store.js";
 import {
   bearerToken,
@@ -181,7 +181,7 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
             const name = reqName(body);
             const appUrl = (body as { app_url?: unknown }).app_url;
             if (appUrl !== undefined) {
-              const problem = appUrlProblem(appUrl);
+              const problem = appUrlProblem(appUrl, { denyPrivate: denyPrivateAppUrl(env) });
               if (problem) return sendJson(res, 400, { error: "bad_request", message: problem });
             }
             return sendJson(res, 201, store.createProject(ws!, name, appUrl as string | undefined));
@@ -197,7 +197,7 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
             });
           }
           if (appUrl !== null) {
-            const problem = appUrlProblem(appUrl);
+            const problem = appUrlProblem(appUrl, { denyPrivate: denyPrivateAppUrl(env) });
             if (problem) return sendJson(res, 400, { error: "bad_request", message: problem });
           }
           return sendJson(res, 200, store.setProjectAppUrl(ws!, project!, appUrl as string | null));

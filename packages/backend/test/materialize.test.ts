@@ -174,6 +174,52 @@ describe("materializeDocPack", () => {
     expect(() => materializeDocPack(tmp, src)).toThrow(MaterializeError);
   });
 
+  it.each(["../../etc/passwd", "ABC", "a".repeat(63), "A".repeat(64), "g".repeat(64), ""])(
+    "refuses the screenshot sha256 %j before it reaches the blob store",
+    (sha256) => {
+      const { src } = seed({
+        screenshots: {
+          schema: "docsxai/screenshots@2",
+          files: { "tour/screenshots/open.png": { sha256, bytes: 1 } },
+        },
+      });
+      expect(() => materializeDocPack(tmp, src)).toThrow(/malformed sha256|has no sha256/);
+    },
+  );
+
+  it.each(["tour/screenshots/annotations.json", "tour/Screenshots/annotations.json"])(
+    "refuses the reserved variant directory in %s",
+    (name) => {
+      const { src } = seed({
+        annotations: { schema: "docsxai/annotations-bundle@1", files: { [name]: {} } },
+      });
+      expect(() => materializeDocPack(tmp, src)).toThrow(MaterializeError);
+    },
+  );
+
+  it("refuses a variant named annotations.json for screenshots", () => {
+    const { src } = seed({
+      screenshots: {
+        schema: "docsxai/screenshots@2",
+        files: {
+          "tour/annotations.json/screenshots/open.png": { sha256: "a".repeat(64), bytes: 1 },
+        },
+      },
+    });
+    expect(() => materializeDocPack(tmp, src)).toThrow(MaterializeError);
+  });
+
+  it("refuses a link-local app_url, and a private one only under denyPrivateAppUrl", () => {
+    const { src } = seed({});
+    expect(() => materializeDocPack(tmp, src, { appUrl: "http://169.254.169.254/" })).toThrow(
+      /link-local or cloud-metadata/,
+    );
+    expect(() =>
+      materializeDocPack(tmp, src, { appUrl: "http://localhost:3000", denyPrivateAppUrl: true }),
+    ).toThrow(/loopback or private-network/);
+    expect(() => materializeDocPack(tmp, src, { appUrl: "http://localhost:3000" })).not.toThrow();
+  });
+
   it("refuses an app_url that is not an absolute http(s) URL", () => {
     const { src } = seed({});
     expect(() => materializeDocPack(tmp, src, { appUrl: "ftp://example.com" })).toThrow(/app_url/);

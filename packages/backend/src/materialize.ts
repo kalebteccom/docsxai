@@ -7,7 +7,8 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { appUrlProblem, type RevisionArtifact } from "./api.js";
+import type { RevisionArtifact } from "./api.js";
+import { appUrlProblem } from "./app-url.js";
 import { sha256Hex, type BackendStore } from "./store.js";
 
 /** The workspace config file the engine reads (`WORKSPACE_CONFIG_FILE` in the engine). */
@@ -44,8 +45,14 @@ export function isFlowName(name: string): boolean {
   );
 }
 
+/** Names a variant directory cannot take: they are what the flow directory holds already. */
+const RESERVED_SEGMENTS = new Set(["annotations.json", "screenshots"]);
+
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+
 const isSafeSegment = (seg: string): boolean =>
   seg.length <= 128 &&
+  !RESERVED_SEGMENTS.has(seg.toLowerCase()) &&
   SAFE_SEGMENT.test(seg) &&
   !seg.includes("..") &&
   !seg.endsWith(".") &&
@@ -151,6 +158,8 @@ export interface MaterializeSource {
 export interface MaterializeOptions {
   /** Written to `.docsxai.json` as `app_url`, the default base URL for `docsxai run`. */
   appUrl?: string;
+  /** Also refuse a loopback or private-network `appUrl` (see `DENY_PRIVATE_APP_URL_ENV`). */
+  denyPrivateAppUrl?: boolean;
 }
 
 /** Write the revision's artifacts under `dir` in the layout `docsxai run <dir>` reads. */
@@ -169,7 +178,10 @@ export function materializeDocPack(
   fs.mkdirSync(path.join(root, "flows"), { recursive: true });
   fs.mkdirSync(path.join(root, "docs"), { recursive: true });
 
-  const appUrlIssue = opts.appUrl === undefined ? null : appUrlProblem(opts.appUrl);
+  const appUrlIssue =
+    opts.appUrl === undefined
+      ? null
+      : appUrlProblem(opts.appUrl, { denyPrivate: opts.denyPrivateAppUrl === true });
   if (appUrlIssue) throw new MaterializeError(appUrlIssue);
   const config = {
     schema: "docsxai/workspace@1",
@@ -211,6 +223,9 @@ export function materializeDocPack(
     const sha256 = (screenshotFiles[rel] as { sha256?: unknown } | null)?.sha256;
     if (typeof sha256 !== "string") {
       throw new MaterializeError(`screenshots entry ${describeName(rel)} has no sha256`);
+    }
+    if (!SHA256_HEX.test(sha256)) {
+      throw new MaterializeError(`screenshots entry ${describeName(rel)} has a malformed sha256`);
     }
     const bytes = store.getBlob(sha256);
     if (sha256Hex(bytes) !== sha256) {

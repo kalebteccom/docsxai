@@ -180,32 +180,6 @@ export interface Project {
   app_url?: string;
 }
 
-/** Longest accepted `app_url`. */
-export const MAX_APP_URL_LENGTH = 2048;
-
-/**
- * Why `value` cannot be a project's `app_url`, or null when it can: a string of at most
- * {@link MAX_APP_URL_LENGTH} characters that parses as an absolute `http:` or `https:` URL with a
- * host and no embedded credentials.
- */
-export function appUrlProblem(value: unknown): string | null {
-  if (typeof value !== "string" || value.length === 0) return "app_url must be a non-empty string";
-  if (value.length > MAX_APP_URL_LENGTH) {
-    return `app_url must be at most ${MAX_APP_URL_LENGTH} characters`;
-  }
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    return "app_url must be an absolute http(s) URL";
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    return "app_url must be an absolute http(s) URL";
-  }
-  if (url.username || url.password) return "app_url must not contain credentials";
-  return null;
-}
-
 export type RevisionKind = "calibrate" | "run" | "edit";
 
 export interface Revision {

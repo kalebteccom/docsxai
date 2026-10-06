@@ -9,6 +9,7 @@
 import { pathToFileURL } from "node:url";
 
 export * from "./api.js";
+export * from "./app-url.js";
 export * from "./store.js";
 export * from "./fs-store.js";
 export * from "./oauth.js";
