@@ -18,6 +18,7 @@ import {
   type EgressGuardOptions,
   type GuardableContext,
   type GuardRoute,
+  type GuardWebSocket,
   type HostLookup,
 } from "../src/egress-guard.js";
 
@@ -214,6 +215,7 @@ describe("requestProblem", () => {
 /** The slice of a browser the guard sees: one handler for every request, and a way to fire it. */
 function fakeContext() {
   let handler: ((route: GuardRoute) => Promise<void>) | undefined;
+  let socketHandler: ((ws: GuardWebSocket) => Promise<void>) | undefined;
   const patterns: RegExp[] = [];
   const context: GuardableContext = {
     route: (pattern, h) => {
@@ -221,6 +223,26 @@ function fakeContext() {
       handler = h;
       return Promise.resolve();
     },
+    routeWebSocket: (_pattern, h) => {
+      socketHandler = h;
+      return Promise.resolve();
+    },
+  };
+  /** Open one WebSocket; resolves to what the handler did with it. */
+  const socket = async (url: string): Promise<string> => {
+    if (!socketHandler) throw new Error("no WebSocket route installed");
+    let outcome = "unanswered";
+    await socketHandler({
+      url: () => url,
+      close: () => {
+        outcome = "close";
+        return Promise.resolve();
+      },
+      connectToServer: () => {
+        outcome = "connect";
+      },
+    });
+    return outcome;
   };
   /** Fire one request; resolves to what the handler did with it. */
   const request = async (url: string): Promise<string> => {
@@ -239,7 +261,7 @@ function fakeContext() {
     });
     return outcome;
   };
-  return { context, request, patterns, installed: () => handler !== undefined };
+  return { context, request, socket, patterns, installed: () => handler !== undefined };
 }
 
 describe("installEgressGuard", () => {
@@ -271,19 +293,54 @@ describe("installEgressGuard", () => {
     const blocked: string[] = [];
     await installEgressGuard(fake.context, {
       lookup,
-      onBlock: (_u, reason) => blocked.push(reason),
+      onBlock: (_u, reason, detail) => blocked.push(`${reason} | ${detail}`),
     });
     expect(await fake.request("http://unknown.test/")).toBe("abort:blockedbyclient");
     expect(blocked).toHaveLength(1);
-    expect(blocked[0]).toMatch(/did not resolve.*refused/);
+    expect(blocked[0]).toMatch(/^address not allowed \| .*did not resolve.*refused/);
   });
 
-  it("reports a refused URL without its query string or fragment", async () => {
+  it("reports a refused URL without its userinfo, query string or fragment", async () => {
     const fake = fakeContext();
     const blocked: string[] = [];
     await installEgressGuard(fake.context, { lookup, onBlock: (url) => blocked.push(url) });
-    await fake.request("http://metadata.test/latest?token=secret#frag");
+    await fake.request("http://user:pw@metadata.test/latest?token=secret#frag");
     expect(blocked).toEqual(["http://metadata.test/latest"]);
+  });
+
+  it("gives the generic reason, and keeps the host and address in the detail only", async () => {
+    const fake = fakeContext();
+    const seen: string[][] = [];
+    await installEgressGuard(fake.context, {
+      lookup,
+      onBlock: (url, reason, detail) => seen.push([url, reason, detail]),
+    });
+    await fake.request("http://metadata.test/latest");
+    expect(seen).toEqual([
+      [
+        "http://metadata.test/latest",
+        "address not allowed",
+        "metadata.test resolves to 169.254.169.254, a link-local or cloud-metadata address",
+      ],
+    ]);
+  });
+
+  describe("WebSockets", () => {
+    it("closes one to a refused address and connects one to an allowed host", async () => {
+      const fake = fakeContext();
+      await installEgressGuard(fake.context, { lookup, onBlock: () => {} });
+      expect(await fake.socket("wss://public.test/live")).toBe("connect");
+      expect(await fake.socket("ws://metadata.test/live")).toBe("close");
+      expect(await fake.socket("ws://169.254.169.254/live")).toBe("close");
+      expect(await fake.socket("ws://unknown.test/live")).toBe("close");
+    });
+
+    it("applies denyPrivate to them too", async () => {
+      const fake = fakeContext();
+      await installEgressGuard(fake.context, { lookup, denyPrivate: true, onBlock: () => {} });
+      expect(await fake.socket("ws://127.0.0.1:3000/")).toBe("close");
+      expect(await fake.socket("ws://app.test/")).toBe("close");
+    });
   });
 
   describe("on stderr", () => {
@@ -293,11 +350,13 @@ describe("installEgressGuard", () => {
       const write = vi.spyOn(process.stderr, "write").mockReturnValue(true);
       const fake = fakeContext();
       await installEgressGuard(fake.context, { lookup });
-      await fake.request("http://metadata.test/latest?token=secret");
+      await fake.request("http://user:pw@metadata.test/latest?token=secret");
       expect(write).toHaveBeenCalledTimes(1);
       const line = String(write.mock.calls[0]![0]);
-      expect(line).toMatch(/^egress-guard: blocked http:\/\/metadata\.test\/latest: /);
-      expect(line).not.toContain("secret");
+      expect(line).toBe("egress-guard: blocked http://metadata.test/latest: address not allowed\n");
+      for (const hidden of ["secret", "pw", "169.254", "resolves"]) {
+        expect(line).not.toContain(hidden);
+      }
     });
   });
 });
@@ -371,7 +430,7 @@ describe("a redirect hop to a refused address", () => {
     const blocked: string[] = [];
     const log = await navigate(`http://app.test:${port}/to-metadata`, {
       lookup,
-      onBlock: (url, reason) => blocked.push(`${url} ${reason}`),
+      onBlock: (url, reason, detail) => blocked.push(`${url} ${reason} | ${detail}`),
     });
     expect(log).toEqual([
       `302 http://app.test:${port}/to-metadata`,
@@ -379,7 +438,7 @@ describe("a redirect hop to a refused address", () => {
     ]);
     expect(hits).toEqual(["/to-metadata"]);
     expect(blocked).toEqual([
-      "http://metadata.test/latest/meta-data/ metadata.test resolves to 169.254.169.254, a link-local or cloud-metadata address",
+      "http://metadata.test/latest/meta-data/ address not allowed | metadata.test resolves to 169.254.169.254, a link-local or cloud-metadata address",
     ]);
   });
 
