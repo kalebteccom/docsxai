@@ -15,10 +15,10 @@ PNGs in the doc pack stay clean (no baked annotations) — re-stylable, re-local
 - **`docsxai-viewer`** bin:
   - `docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...` — the engine's `docsxai render` shells out to this.
   - `docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]` — writes `docs/<flow>/burned/<step>.png`.
-  - `docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]` and `docsxai-viewer drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]`: the screenshot pack and its drift check. The engine's `docsxai pack` and `docsxai drift` run these.
+  - `docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]` and `docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]`: the screenshot pack and its drift check. The engine's `docsxai pack` and `docsxai pack --check` run these.
   - `docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...` — emits (and with `--build` builds) the Starlight site.
 
-## Screenshot pack (`pack` and `drift`)
+## Screenshot pack (`pack` and `pack --check`)
 
 `pack` turns a workspace or a raw capture directory into the file set a docs site or README ships: each step's annotations burned into its clean screenshot (the same `renderBurn` as `burn`, so obstacles, `placement`, `nudge` and the dark-connector outline apply), the PNG optimised losslessly, named `<flow>/<step>.<hash8>.png` from its final bytes, and a `manifest.json`. `drift` rebuilds the pack in memory and compares it with a committed one. The code is `src/pack-*.ts`, one reason to change each:
 

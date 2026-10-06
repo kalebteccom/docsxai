@@ -19,7 +19,7 @@ Anything explicitly marked TODO or post-MVP in the README / package READMEs is *
 - A changed default for a documented flow-file field.
 - A removed / renamed `annotations.json` field, halt-context field, or `ROUTES` path.
 - A change to the `actionable()` predicate's documented behavior.
-- A change to the `BrowserDriver` interface's required methods or their signatures.
+- A change to the `BrowserDriver` interface's required methods or their signatures. A new method is optional (like `waitForSettled`); the runtime halts a step that needs a missing one, naming it.
 
 If you're not sure whether a change resets the clock, assume it does and discuss in the PR.
 

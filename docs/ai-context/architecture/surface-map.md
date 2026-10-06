@@ -10,7 +10,7 @@ The flow-file parser + deterministic runtime + the `docsxai` CLI. The biggest pa
 
 ### `packages/engine/src/cli.ts`
 
-The `docsxai` bin. Subcommands: `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `burn`, `pack`, `drift`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `export` (`adf`, `playwright`), `plugins`, `login`, `push`, `pull`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
+The `docsxai` bin. Subcommands: `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `burn`, `pack` (and `pack --check`), `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `export` (`adf`, `playwright`), `plugins`, `login`, `push`, `pull`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
 
 ### `packages/engine/src/flow-file.ts`
 
@@ -140,7 +140,7 @@ The rendering surface: interactive viewer, burn renderer, Starlight site emitter
 - `src/placement.ts` — `placeCallout(input)`. Pure Popper-like placement; coordinate-space-agnostic; tested independently.
 - `src/burn.ts` — browser-free baked-annotation renderer (Satori + resvg) for delivery surfaces that can't run the interactive viewer (Confluence, Notion). The workspace PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-inspectable; burning happens at export time.
 - `src/burn-callout.ts` + `src/inside-placement.ts` + `src/burn-report.ts` — callout sizing and layout for the burner (adaptive width ladder, `placement` options, inside-the-target placement) and the `burn --report` placement report. `obstacle-placement.ts` and `badge-placement.ts` hold the planners they build on.
-- `src/pack-*.ts` — the screenshot pack (`docsxai pack` / `docsxai drift`): `pack-schema.ts` + `pack-validate.ts` (`docsxai/screens-pack@2`), `pack-convert.ts` (from `screens-pack@1` and `screens-manifest@1`), `pack-guards.ts`, `pack-source.ts` + `pack-workspace.ts` + `pack-annotations.ts` (inputs), `pack-optimise.ts` (external `oxipng`), `pack-build.ts`, `pack-write.ts` (exact-path pruning), `pack-pixels.ts` + `pack-drift.ts`, `pack-cli.ts`. Reuses `renderBurn`; the engine runs it through the viewer bin. Rationale: `docs/ai-context/screens-pack-decision.md`.
+- `src/pack-*.ts` — the screenshot pack (`docsxai pack` / `docsxai pack --check`): `pack-schema.ts` + `pack-validate.ts` (`docsxai/screens-pack@2`), `pack-convert.ts` (from `screens-pack@1` and `screens-manifest@1`), `pack-guards.ts`, `pack-source.ts` + `pack-workspace.ts` + `pack-annotations.ts` (inputs), `pack-optimise.ts` (external `oxipng`), `pack-build.ts`, `pack-write.ts` (exact-path pruning), `pack-pixels.ts` + `pack-drift.ts`, `pack-cli.ts`. Reuses `renderBurn`; the engine runs it through the viewer bin. Rationale: `docs/ai-context/screens-pack-decision.md`.
 - `src/starlight.ts` — the Astro Starlight site emitter (production docs-site output from a doc pack).
 - `src/overlay-runtime.ts` — the interactive overlay (halo + numbered badges + callouts), bundled into `dist/generated/overlay.js` at build time.
 

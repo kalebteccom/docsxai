@@ -1,10 +1,10 @@
 # Pack adoption notes
 
-What each consumer of the old screenshot scripts does to switch to `docsxai pack` and `docsxai drift`. This repo does not edit either consumer. Design and schema: [`screens-pack-decision.md`](screens-pack-decision.md).
+What each consumer of the old screenshot scripts does to switch to `docsxai pack` and `docsxai pack --check`. This repo does not edit either consumer. Design and schema: [`screens-pack-decision.md`](screens-pack-decision.md).
 
 Both need, before anything else:
 
-- A docsxai build that has `pack` and `drift`. From a checkout: `pnpm -r build`, then run `node <checkout>/packages/engine/dist/cli.js pack ...` with `DOCSX_VIEWER_BIN=<checkout>/packages/viewer/dist/index.js` set (the engine does not find the viewer on its own in a checkout). From an install: the `docsxai` package, once released.
+- A docsxai build that has `pack` and `pack --check`. From a checkout: `pnpm -r build`, then run `node <checkout>/packages/engine/dist/cli.js pack ...` with `DOCSX_VIEWER_BIN=<checkout>/packages/viewer/dist/index.js` set (the engine does not find the viewer on its own in a checkout). From an install: the `docsxai` package, once released.
 - `oxipng` on PATH (`brew install oxipng`), or `DOCSX_OXIPNG_BIN` pointing at it. Both consumers already require it today (remotxai) or will now (trackxai).
 
 What changes in the output for both: `manifest.json` becomes `docsxai/screens-pack@2`. Callouts are objects (`{ index, copy, bbox? }`), alt is `{ <locale>: text }`, every variant has `bytes`, and `generated_for` is omitted unless `--generated-for` is passed. Any code that reads the old manifest must change; see each section.
@@ -27,7 +27,7 @@ Edit `website/package.json`:
 
 ```json
 "screens": "docsxai pack \"${DOCS_SCREENS_RAW:-../packages/e2e-tests/test-results/docs-screens-raw}\" --from-raw --out public/screens --generated-for \"${REMOTXAI_BUILD_SHA:-unknown}\"",
-"screens:drift": "docsxai drift \"${DOCS_SCREENS_RAW:-../packages/e2e-tests/test-results/docs-screens-raw}\" --from-raw --against public/screens"
+"screens:drift": "docsxai pack \"${DOCS_SCREENS_RAW:-../packages/e2e-tests/test-results/docs-screens-raw}\" --check --from-raw --against public/screens"
 ```
 
 The root `docs:screens` and `docs:screens:drift` scripts (`pnpm --filter @remotxai/website ...`) stay. `DOCSXAI_REPO` is no longer read.
@@ -37,7 +37,7 @@ Run once: `pnpm docs:screens`, then commit `website/public/screens/manifest.json
 Things to check:
 
 - Anything that reads `/screens/manifest.json`: `annotations` is now `callouts`, `schema` is `docsxai/screens-pack@2`, every variant has `bytes`. A grep of `website/src` on `origin/main` found no reader; check `docs` content and any component that imports the manifest. There is no v2 to v1 converter, so change the reader.
-- The old `build.mjs --check` (committed files only, no capture needed) has no equivalent. `docsxai drift` covers a committed file that does not match its name, but needs the raw capture. If CI ran `--check` without a capture, keep a small step that runs `validatePack` from `@docsxai/viewer` on `website/public/screens/manifest.json`, or ask for `docsxai pack --check`.
+- The old `build.mjs --check` (committed files only, no capture needed) has no equivalent. `docsxai pack --check` covers a committed file that does not match its name, but needs the raw capture. If CI ran the old `--check` without a capture, keep a small step that runs `validatePack` from `@docsxai/viewer` on `website/public/screens/manifest.json`.
 - `generated_for` was `REMOTXAI_BUILD_SHA || "unknown"`; the script above keeps `unknown` as the fallback.
 - Optional: the sidecar can now carry `placement` (`inside`, `side`, `align`, `pin_arrow`, `max_width`) next to `arrow_style`, `nudge` and `obstacles`.
 

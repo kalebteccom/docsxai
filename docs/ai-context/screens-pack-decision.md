@@ -1,6 +1,6 @@
 # Screenshot pack: decision note
 
-Two consumers each built their own copy of the same pipeline (burn, optimise, hash, manifest, drift check): `workspaces/trackxai-docs/scripts/build-screens.mjs` (`docsxai/screens-pack@1`) and remotxai's `website/scripts/screens/` (`docsxai/screens-manifest@1`). This note records what the product feature, `docsxai pack` and `docsxai drift`, takes from each and what it drops.
+Two consumers each built their own copy of the same pipeline (burn, optimise, hash, manifest, drift check): `workspaces/trackxai-docs/scripts/build-screens.mjs` (`docsxai/screens-pack@1`) and remotxai's `website/scripts/screens/` (`docsxai/screens-manifest@1`). This note records what the product feature, `docsxai pack` and `docsxai pack --check`, takes from each and what it drops.
 
 ## One schema: `docsxai/screens-pack@2`
 
@@ -20,7 +20,7 @@ Two consumers each built their own copy of the same pipeline (burn, optimise, ha
 
 ## Where the logic lives
 
-The viewer owns it (`packages/viewer/src/pack-*.ts`), next to `burnAnnotations`, which it reuses unchanged: obstacles, placement and the dark-connector outline all apply as they do for `burn`. The engine only routes `pack` and `drift` to the viewer bin through the existing `runViewerBin`, as it does for `burn`, and never imports the viewer. The `docsxai` meta package needs no change: its bin already points `DOCSX_VIEWER_BIN` at the viewer it depends on.
+The viewer owns it (`packages/viewer/src/pack-*.ts`), next to `burnAnnotations`, which it reuses unchanged: obstacles, placement and the dark-connector outline all apply as they do for `burn`. The engine only routes `pack` and `pack --check` to the viewer bin through the existing `runViewerBin`, as it does for `burn`, and never imports the viewer. The `docsxai` meta package needs no change: its bin already points `DOCSX_VIEWER_BIN` at the viewer it depends on.
 
 ## Inputs
 
@@ -41,7 +41,7 @@ Run on title, caption, alt and callout copy before anything is written: loopback
 
 ## Drift
 
-`docsxai drift <ws-or-raw> --against <pack dir> [--threshold pct]` rebuilds in memory without optimising and compares to the committed pack. Equal hash8 is unchanged. Otherwise both PNGs are decoded and compared pixel by pixel: changed pixels over the full area (4 decimals), bounding box of the changed region. A pixel-identical rebuild whose bytes differ (optimiser) passes. Fails on: a change over the threshold (default 0.5), a resize, a new variant, a missing variant, a committed file that does not match its hash. Exit 1 on any of those, 2 on bad arguments. The report has no timestamps and is sorted.
+`docsxai pack <ws-or-raw> --check --against <pack dir> [--threshold pct]` rebuilds in memory without optimising and compares to the committed pack. Equal hash8 is unchanged. Otherwise both PNGs are decoded and compared pixel by pixel: changed pixels over the full area (4 decimals), bounding box of the changed region. A pixel-identical rebuild whose bytes differ (optimiser) passes. Fails on: a change over the threshold (default 0.5), a resize, a new variant, a missing variant, a committed file that does not match its hash. Exit 1 on any of those, 2 on bad arguments. The report has no timestamps and is sorted.
 
 Pixels are decoded through resvg (already a viewer dependency, same path the burner uses for connector contrast), so the viewer gains no PNG library. Transparent pixels compare as white.
 

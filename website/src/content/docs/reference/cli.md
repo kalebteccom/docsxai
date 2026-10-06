@@ -14,7 +14,7 @@ docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--r
                                [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                [--persist tmp] [--force]
 docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
-docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
+docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
 docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
 docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
@@ -28,13 +28,13 @@ docsxai diff <workspace-dir> [--against <dir>] [--format json|md|text] [--fail-o
 docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
 docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]
 docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
-docsxai login --backend-url <url>
+docsxai login --backend-url <url> [--oauth <workspace-dir>]
 docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 docsxai pull <workspace-dir> [--rev <id>]
 docsxai render <workspace-dir>
 docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
 docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
-docsxai drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]
+docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
 docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
 docsxai --help
 ```
@@ -142,7 +142,9 @@ for you. On a slow SPA, settle before the snapshot with `--wait <ms>`
 (default 800) or `--wait-for '<css>'`. `--url <url>` inspects a sub-page;
 `--cdp <endpoint>` attaches to an already-running Chrome (the one from
 `capture-auth --cdp`, say) instead of launching; `--role <role>` picks which
-cached session to load.
+cached session to load. `--ignore-https-errors` accepts a self-signed or invalid
+TLS certificate (the same setting is read from `ignore_https_errors` in
+`.docsxai.json`).
 
 ```
 $ docsxai inspect ~/docsxai/my-app
@@ -350,19 +352,21 @@ $ docsxai pack ~/docsxai/my-app
 pack: 32 image(s), 3 written, 1 removed in ~/docsxai/my-app/.screens
 ```
 
-### `docsxai drift`
+### `docsxai pack --check`
 
 Rebuilds the pack in memory (nothing is written and `oxipng` is not needed) and
-compares it with a committed pack in `--against`. A variant whose file hash is
+compares it with the committed pack in `--against` (required). A variant whose file hash is
 unchanged is skipped. Otherwise both PNGs are compared pixel by pixel and the
 line shows the changed share of the image and the box around the change. A
 rebuild that differs only in bytes (the optimiser) passes. The command fails for
 a change over `--threshold` (percent, default 0.5), a resized variant, a new or
 missing variant, and a committed file that does not match its name. Exit 1 on any
-of those, 2 for a bad flag. The report has no timestamps.
+of those, 2 for a bad flag. The report has no timestamps. The `drift` command
+of earlier builds still works for now: it prints a deprecation warning and runs
+`pack --check` with the same arguments.
 
 ```
-$ docsxai drift ~/docsxai/my-app --against web/public/screens
+$ docsxai pack ~/docsxai/my-app --check --against web/public/screens
 docsxai drift: 32 compared, 1 over threshold (0.5%)
   changed  app/board/en.dark.1280  2.4113%  region 40,96 612x188  OVER
 ```
@@ -626,7 +630,8 @@ A fuller session, including `info` and `sync`, is in the
 Validates a bearer token against a backend URL - hits `/v1/health` and
 `/v1/workspaces`. Reads the token from the `DOCSX_TOKEN` env var; prints
 what the backend sees on success, or a clear error. Stateless: it stores
-nothing. With `--oauth <workspace-dir>` it instead drives the full OAuth 2.1
+nothing. With `--oauth <workspace-dir>` (the sign-in for a person, as opposed
+to the CI token) it instead drives the full OAuth 2.1
 authorization-code + PKCE handshake against the backend and stores the tokens
 at `<workspace>/.auth/backend-token.json` (mode 0600); `push`, `pull`, and
 `run` pick them up from there.

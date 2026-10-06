@@ -327,7 +327,7 @@ Two delivery shapes, both downstream of `run`:
 
 **Dark screenshots.** The burner reads the pixels under each arrow and stem and, when a third or more are dark, paints a 2 px white outline under the near-black connector so it shows on dark UIs. Light screenshots burn as before. Nothing to set in `annotations.json`; `docsxai burn --no-connector-outline` keeps plain ink everywhere.
 
-## Packing screenshots for a site or README (`pack`, `drift`)
+## Packing screenshots for a site or README (`pack`, `pack --check`)
 
 For a docs site, a README or any static host that wants finished images and a manifest, `docsxai pack` replaces a hand-written build script: it burns each step's annotations into its clean screenshot (same burner, same `obstacles` and `placement` as `burn`), optimises the PNG losslessly, names it `<flow>/<step>.<hash8>.png` from the final bytes, and writes `manifest.json` (`docsxai/screens-pack@2`).
 
@@ -336,7 +336,7 @@ brew install oxipng                          # once; --no-optimise skips it
 docsxai pack "$WORKSPACE"                    # → $WORKSPACE/.screens/{<flow>/<step>.<hash8>.png,manifest.json}
 docsxai pack "$WORKSPACE" --out web/public/screens --public-prefix /screens --generated-for "$(git rev-parse --short HEAD)"
 docsxai pack ./raw-capture --from-raw --out web/public/screens   # raw <flow>/<step>/<locale>.<theme>.<viewport>.png capture
-docsxai drift "$WORKSPACE" --against web/public/screens --threshold 0.5   # exit 1 past the threshold
+docsxai pack "$WORKSPACE" --check --against web/public/screens --threshold 0.5   # exit 1 past the threshold
 ```
 
 A workspace needs a `pack.json` next to `docs/`:
