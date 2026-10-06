@@ -46,7 +46,7 @@ describe("resolveToken", () => {
   it("refuses a token shorter than 32 characters and accepts exactly 32", () => {
     const short = "s".repeat(MIN_TOKEN_LENGTH - 1);
     expect(() => resolveToken({ env: { [TOKEN_ENV_VAR]: short } })).toThrow(/at least 32/);
-    const exact = "e".repeat(MIN_TOKEN_LENGTH);
+    const exact = "abcdefgh".repeat(MIN_TOKEN_LENGTH / 8);
     expect(resolveToken({ env: { [TOKEN_ENV_VAR]: exact } })).toBe(exact);
   });
 
@@ -59,6 +59,12 @@ describe("resolveToken", () => {
     }
   });
 
+  it("refuses a token with fewer than 8 distinct characters, however long", () => {
+    expect(() => assertTokenStrength("a".repeat(64))).toThrow(/too repetitive/);
+    expect(() => assertTokenStrength("abcdefg".repeat(10))).toThrow(/too repetitive/);
+    expect(() => assertTokenStrength("abcdefgh".repeat(4))).not.toThrow();
+  });
+
   it("refuses characters a header cannot carry", () => {
     expect(() => assertTokenStrength(`${TOKEN} tail`)).toThrow(/printable ASCII/);
     expect(() => assertTokenStrength(`${TOKEN}é`)).toThrow(/printable ASCII/);
@@ -68,6 +74,7 @@ describe("resolveToken", () => {
     const token = resolveToken({
       env: { [TOKEN_ENV_VAR]: "e".repeat(40) },
       tokenFile: "/run/secrets/mcp-token",
+      fileMode: () => 0o100600,
       readFile: (p) => (p === "/run/secrets/mcp-token" ? `${TOKEN}\n` : ""),
     });
     expect(token).toBe(TOKEN);
@@ -78,12 +85,85 @@ describe("resolveToken", () => {
       resolveToken({
         env: {},
         tokenFile: "/nope/token",
+        fileMode: () => 0o100600,
         readFile: () => {
           throw new Error(`ENOENT leaked ${TOKEN}`);
         },
       });
     expect(run).toThrow(/cannot read the token file at \/nope\/token/);
     expect(thrown(run).message).not.toContain(TOKEN);
+  });
+});
+
+describe("token file permissions", () => {
+  const read = (mode: number): string =>
+    resolveToken({ env: {}, tokenFile: "/run/t", fileMode: () => mode, readFile: () => TOKEN });
+
+  it.skipIf(process.platform === "win32")(
+    "refuses a file group or other can read, write or execute",
+    () => {
+      for (const mode of [0o100644, 0o100640, 0o100604, 0o100660, 0o100666, 0o100710]) {
+        expect(() => read(mode), mode.toString(8)).toThrow(/readable by group or other.*chmod 600/);
+      }
+    },
+  );
+
+  it("accepts an owner-only file", () => {
+    expect(read(0o100600)).toBe(TOKEN);
+    expect(read(0o100400)).toBe(TOKEN);
+  });
+
+  it("does not read the file once its mode is refused", () => {
+    let reads = 0;
+    const run = (): string =>
+      resolveToken({
+        env: {},
+        tokenFile: "/run/t",
+        fileMode: () => 0o100644,
+        readFile: () => {
+          reads++;
+          return TOKEN;
+        },
+      });
+    if (process.platform !== "win32") {
+      expect(run).toThrow();
+      expect(reads).toBe(0);
+    }
+  });
+
+  it("reports a file it cannot stat as unreadable", () => {
+    expect(() =>
+      resolveToken({
+        env: {},
+        tokenFile: "/missing",
+        fileMode: () => {
+          throw new Error("ENOENT");
+        },
+      }),
+    ).toThrow(/cannot read the token file at \/missing/);
+  });
+});
+
+describe("token environment variable", () => {
+  it("is removed from the environment once read, from the env or from a file", () => {
+    const fromEnv: NodeJS.ProcessEnv = { [TOKEN_ENV_VAR]: TOKEN, OTHER: "kept" };
+    expect(resolveToken({ env: fromEnv })).toBe(TOKEN);
+    expect(fromEnv).toEqual({ OTHER: "kept" });
+
+    const withFile: NodeJS.ProcessEnv = { [TOKEN_ENV_VAR]: "e".repeat(40) };
+    resolveToken({
+      env: withFile,
+      tokenFile: "/run/t",
+      fileMode: () => 0o100600,
+      readFile: () => TOKEN,
+    });
+    expect(TOKEN_ENV_VAR in withFile).toBe(false);
+  });
+
+  it("is removed even when the token is refused", () => {
+    const env: NodeJS.ProcessEnv = { [TOKEN_ENV_VAR]: "short" };
+    expect(() => resolveToken({ env })).toThrow(/at least 32/);
+    expect(TOKEN_ENV_VAR in env).toBe(false);
   });
 });
 

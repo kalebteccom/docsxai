@@ -141,7 +141,9 @@ with the launch-gate phase).
 
 **The MCP HTTP transport.** `docsxai-mcp serve --http` is opt-in; the default transport is stdio.
 It requires a bearer token of at least 32 characters, taken from the environment or a file and never
-from an argument, and compares it in constant time. It binds loopback unless `--allow-remote` is
+from an argument, and compares it in constant time. It refuses a token with fewer than 8 distinct
+characters and, on POSIX, a token file that group or other can access, and it clears the variable
+from its environment after reading so spawned tool processes do not inherit it. It binds loopback unless `--allow-remote` is
 passed, and then it speaks plain HTTP, so TLS must terminate in a proxy in front of it. It checks the
 `Host` and `Origin` headers against loopback names and an operator-supplied list to block DNS
 rebinding (the Host value is parsed strictly as `host[:port]`, and an Origin must use the bound port
