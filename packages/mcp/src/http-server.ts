@@ -14,6 +14,7 @@ import { assertTokenStrength, createBearerVerifier } from "./http-auth.js";
 import {
   assertBindPolicy,
   buildAllowedHosts,
+  buildAllowedOrigins,
   DEFAULT_HOST,
   hostHeaderAllowed,
   originAllowed,
@@ -38,6 +39,11 @@ export interface HttpServerOptions {
   allowRemote?: boolean;
   /** Extra hostnames accepted in the Host and Origin headers. Exact names, no wildcards. */
   allowedHosts?: string[];
+  /**
+   * Extra exact origins (`scheme://host[:port]`) accepted in the Origin header, for a browser UI
+   * or a TLS proxy. Without an entry, an Origin has to name an allowed host on the bound port.
+   */
+  allowedOrigins?: string[];
   maxBodyBytes?: number;
   maxSessions?: number;
   idleTimeoutMs?: number;
@@ -147,6 +153,8 @@ export async function startHttpServer(opts: HttpServerOptions): Promise<RunningH
     ? await resolveInsideRoot(workspaceRoot, opts.defaultWorkspace)
     : undefined;
   const allowedHosts = buildAllowedHosts(host, opts.allowedHosts ?? []);
+  const allowedOrigins = buildAllowedOrigins(opts.allowedOrigins ?? []);
+  let boundPort = 0;
   const verifyBearer = createBearerVerifier(opts.token);
   const maxBodyBytes = opts.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
   const log = opts.log ?? (() => undefined);
@@ -162,7 +170,8 @@ export async function startHttpServer(opts: HttpServerOptions): Promise<RunningH
 
   async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (!hostHeaderAllowed(req.headers.host, allowedHosts)) return reject(res, 403);
-    if (!originAllowed(headerValue(req, "origin"), allowedHosts)) return reject(res, 403);
+    if (!originAllowed(headerValue(req, "origin"), allowedHosts, boundPort, allowedOrigins))
+      return reject(res, 403);
     if (!verifyBearer(headerValue(req, "authorization"))) {
       return reject(res, 401, { "WWW-Authenticate": "Bearer" });
     }
@@ -218,6 +227,7 @@ export async function startHttpServer(opts: HttpServerOptions): Promise<RunningH
   });
 
   const port = (http.address() as AddressInfo).port;
+  boundPort = port;
   const shownHost = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
   return {
     host,

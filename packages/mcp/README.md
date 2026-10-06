@@ -61,6 +61,7 @@ serves; nothing is added or removed.
 | `--host <host>`          | Interface to bind, default `127.0.0.1`.                                                              |
 | `--token-file <path>`    | File holding the token. Wins over `DOCSX_MCP_TOKEN` when both are set.                               |
 | `--allowed-host <h>`     | Extra hostname accepted in the `Host` and `Origin` headers. Exact names, repeatable.                 |
+| `--allowed-origin <o>`   | Extra exact `Origin` (`scheme://host[:port]`), for a browser UI or a TLS proxy. Repeatable.          |
 | `--allow-remote`         | Required to bind anything but loopback. Terminate TLS in front of the server when you use it.        |
 
 What the server enforces:
@@ -76,9 +77,12 @@ What the server enforces:
   constant time, and never logged. The server refuses to start without one.
 - **Bind.** Loopback only. A non-loopback `--host` is refused unless `--allow-remote` is passed. The
   server speaks plain HTTP, so put a TLS-terminating proxy in front of any remote bind.
-- **DNS rebinding.** The `Host` header must name a loopback host, the bound host or an
-  `--allowed-host`. A request with an `Origin` header must name one of the same hosts. Both fail
-  with 403 before the token is checked.
+- **DNS rebinding.** The `Host` header must be a plain `host[:port]` (IPv6 in brackets; userinfo,
+  paths and spaces are refused) naming a loopback host, the bound host or an `--allowed-host`. A
+  request with an `Origin` header must name one of the same hosts on the port the server is bound
+  to, or match an `--allowed-origin` entry exactly. A page on `http://localhost:5173` is therefore
+  refused unless you pass `--allowed-origin http://localhost:5173`. Both checks fail with 403 before
+  the token is checked.
 - **Limits.** 1 MiB per request body (413), 16 concurrent sessions (429), and a session closes after
   30 minutes with no request. The limits are `startHttpServer` options, not flags.
 - **Errors.** 401, 403, 404, 405, 413 and 429 carry a fixed `{ "error": "<code>" }` body and nothing

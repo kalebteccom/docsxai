@@ -144,7 +144,8 @@ It requires a bearer token of at least 32 characters, taken from the environment
 from an argument, and compares it in constant time. It binds loopback unless `--allow-remote` is
 passed, and then it speaks plain HTTP, so TLS must terminate in a proxy in front of it. It checks the
 `Host` and `Origin` headers against loopback names and an operator-supplied list to block DNS
-rebinding, and it caps request bodies at 1 MiB, concurrent sessions at 16 and idle time at 30
+rebinding (the Host value is parsed strictly as `host[:port]`, and an Origin must use the bound port
+or match an operator-supplied origin), and it caps request bodies at 1 MiB, concurrent sessions at 16 and idle time at 30
 minutes. It refuses to start without `--workspace-root` and confines every path a tool receives to
 that directory, symlinks resolved. Refusals return a bare status code with no detail. It does not rate-limit failed tokens. A
 holder of the token can call every tool the server exposes, including `run_flows`, `push_pack` and

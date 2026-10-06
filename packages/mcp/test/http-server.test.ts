@@ -208,12 +208,30 @@ describe("Host and Origin", () => {
     expect(server.sessionCount()).toBe(0);
   });
 
+  it("rejects a malformed Host that only starts like a loopback name", async () => {
+    const server = await start();
+    for (const host of ["127.0.0.1:80@evil.example", "localhost@evil.example", "localhost:99999"]) {
+      const res = await initialize(server, { headers: { Host: host } });
+      expect(res.status, host).toBe(403);
+    }
+  });
+
   it("rejects a foreign Origin, including the opaque null origin", async () => {
     const server = await start();
     for (const origin of ["https://evil.example", "null", "http://localhost.evil.example"]) {
       const res = await initialize(server, { headers: { Origin: origin } });
       expect(res.status, origin).toBe(403);
     }
+  });
+
+  it("rejects a loopback Origin on another port unless it is an --allowed-origin", async () => {
+    const server = await start();
+    const other = await initialize(server, { headers: { Origin: "http://localhost:5173" } });
+    expect(other.status).toBe(403);
+    await running?.close();
+    const allowed = await start({ allowedOrigins: ["http://localhost:5173"] });
+    const ok = await initialize(allowed, { headers: { Origin: "http://localhost:5173" } });
+    expect(ok.status).toBe(200);
   });
 
   it("answers 403 before 401, so a rebinding page learns nothing about auth", async () => {
@@ -223,10 +241,15 @@ describe("Host and Origin", () => {
     expect(res.headers["www-authenticate"]).toBeUndefined();
   });
 
-  it("accepts a loopback Origin and a configured --allowed-host", async () => {
-    const server = await start({ allowedHosts: ["docs.internal.example"] });
-    const fromLoopback = await initialize(server, { headers: { Origin: "http://localhost:5173" } });
-    expect(fromLoopback.status).toBe(200);
+  it("accepts an Origin on the bound port and a configured --allowed-host", async () => {
+    const server = await start({
+      allowedHosts: ["docs.internal.example"],
+      allowedOrigins: ["https://docs.internal.example"],
+    });
+    const sameOrigin = await initialize(server, {
+      headers: { Origin: `http://localhost:${server.port}` },
+    });
+    expect(sameOrigin.status).toBe(200);
     const named = await initialize(server, {
       headers: {
         Host: "docs.internal.example:8443",

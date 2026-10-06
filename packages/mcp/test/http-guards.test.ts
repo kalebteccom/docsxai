@@ -15,10 +15,12 @@ import {
   assertBindPolicy,
   BindPolicyError,
   buildAllowedHosts,
+  buildAllowedOrigins,
   hostHeaderAllowed,
   isLoopbackHost,
   normalizeHostname,
   originAllowed,
+  parseHostPort,
 } from "../src/http-guard.js";
 import { parseServeArgs } from "../src/serve-args.js";
 
@@ -131,6 +133,31 @@ describe("Host and Origin allowlists", () => {
     expect(normalizeHostname("::1")).toBe("::1");
     expect(normalizeHostname("")).toBeUndefined();
     expect(normalizeHostname(":80")).toBeUndefined();
+    expect(normalizeHostname("127.0.0.1:80@evil.example")).toBeUndefined();
+  });
+
+  it("parses Host strictly as host[:port], with IPv6 in brackets", () => {
+    expect(parseHostPort("localhost")).toEqual({ hostname: "localhost" });
+    expect(parseHostPort("Example.COM:8080")).toEqual({ hostname: "example.com", port: 8080 });
+    expect(parseHostPort("[::1]:9")).toEqual({ hostname: "::1", port: 9 });
+    for (const bad of [
+      "",
+      " localhost",
+      "localhost ",
+      "127.0.0.1:80@evil.example",
+      "user@localhost",
+      "localhost/path",
+      "localhost:",
+      "localhost:99999",
+      "localhost:80:80",
+      "::1",
+      "[::1",
+      "[nothex]",
+      "-bad.example",
+      "evil.example#localhost",
+    ]) {
+      expect(parseHostPort(bad), JSON.stringify(bad)).toBeUndefined();
+    }
   });
 
   it("accepts loopback names and configured hosts in the Host header", () => {
@@ -140,19 +167,70 @@ describe("Host and Origin allowlists", () => {
   });
 
   it("rejects a missing or foreign Host header", () => {
-    for (const h of [undefined, "", "evil.example", "evil.example:8765", "localhost.evil.test"]) {
+    for (const h of [
+      undefined,
+      "",
+      "evil.example",
+      "evil.example:8765",
+      "localhost.evil.test",
+      "127.0.0.1:80@evil.example",
+      "localhost@evil.example",
+      "localhost:8765/x",
+      "localhost:99999",
+      "localhost evil.example",
+    ]) {
       expect(hostHeaderAllowed(h, allowed), String(h)).toBe(false);
     }
   });
 
-  it("lets a request with no Origin through and judges a present one by hostname", () => {
-    expect(originAllowed(undefined, allowed)).toBe(true);
-    expect(originAllowed("http://localhost:5173", allowed)).toBe(true);
-    expect(originAllowed("https://docs.internal.example", allowed)).toBe(true);
-    expect(originAllowed("http://[::1]:3000", allowed)).toBe(true);
-    expect(originAllowed("https://evil.example", allowed)).toBe(false);
-    expect(originAllowed("null", allowed)).toBe(false);
-    expect(originAllowed("", allowed)).toBe(false);
+  it("lets a request with no Origin through and judges a present one by host and port", () => {
+    const port = 8765;
+    expect(originAllowed(undefined, allowed, port)).toBe(true);
+    for (const o of [
+      "http://localhost:8765",
+      "http://127.0.0.1:8765",
+      "http://[::1]:8765",
+      "https://docs.internal.example:8765",
+    ]) {
+      expect(originAllowed(o, allowed, port), o).toBe(true);
+    }
+    for (const o of [
+      "http://localhost:5173",
+      "http://localhost",
+      "https://localhost",
+      "https://evil.example:8765",
+      "null",
+      "",
+      "http://localhost:8765@evil.example",
+      "http://127.0.0.1:80@evil.example",
+      "http://localhost:8765/",
+      "ftp://localhost:8765",
+      "localhost:8765",
+    ]) {
+      expect(originAllowed(o, allowed, port), JSON.stringify(o)).toBe(false);
+    }
+  });
+
+  it("accepts an exact --allowed-origin whatever its port, and nothing near it", () => {
+    const origins = buildAllowedOrigins(["http://localhost:5173", "https://Docs.Example.com"]);
+    expect(originAllowed("http://localhost:5173", allowed, 8765, origins)).toBe(true);
+    expect(originAllowed("https://docs.example.com", allowed, 8765, origins)).toBe(true);
+    expect(originAllowed("https://docs.example.com:443", allowed, 8765, origins)).toBe(true);
+    expect(originAllowed("https://docs.example.com:444", allowed, 8765, origins)).toBe(false);
+    expect(originAllowed("http://docs.example.com", allowed, 8765, origins)).toBe(false);
+    expect(originAllowed("http://localhost:5174", allowed, 8765, origins)).toBe(false);
+  });
+
+  it("refuses wildcard and malformed --allowed-origin entries", () => {
+    for (const bad of [
+      "*",
+      "https://*.example.com",
+      "localhost:5173",
+      "https://a.example/p",
+      "null",
+    ]) {
+      expect(() => buildAllowedOrigins([bad]), bad).toThrow(BindPolicyError);
+    }
   });
 
   it("adds a concrete bind host but not a wildcard one", () => {
@@ -181,6 +259,8 @@ describe("serve arguments", () => {
       "a.example",
       "--allowed-host",
       "b.example",
+      "--allowed-origin",
+      "https://ui.example",
       "--token-file",
       "/tmp/t",
       "--workspace",
@@ -196,6 +276,7 @@ describe("serve arguments", () => {
         host: "0.0.0.0",
         allowRemote: true,
         allowedHosts: ["a.example", "b.example"],
+        allowedOrigins: ["https://ui.example"],
         tokenFile: "/tmp/t",
         workspaceRoot: "/tmp",
       },
@@ -205,7 +286,12 @@ describe("serve arguments", () => {
   it("defaults to no remote, no extra hosts and leaves host and port to the server", () => {
     expect(parseServeArgs(["--http", "--workspace-root", "/srv/docs"])).toEqual({
       help: false,
-      serve: { allowRemote: false, allowedHosts: [], workspaceRoot: "/srv/docs" },
+      serve: {
+        allowRemote: false,
+        allowedHosts: [],
+        allowedOrigins: [],
+        workspaceRoot: "/srv/docs",
+      },
     });
   });
 
