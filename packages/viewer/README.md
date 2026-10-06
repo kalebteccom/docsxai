@@ -10,11 +10,40 @@ PNGs in the doc pack stay clean (no baked annotations) — re-stylable, re-local
 - **`placeCallout(input)`** in `src/placement.ts` — Popper-like placement logic. Pure, coordinate-space-agnostic; tested independently. The single placement implementation shared by the browser overlay and the burner.
 - **`burnAnnotations({ screenshotPath | screenshotBuffer, annotations, options? })`** — returns the burned PNG as a `Buffer`.
 - **`burnFlow({ docsDir, flow, outDir? })`** — batch helper: burns every screenshot of a flow into `docs/<flow>/burned/` (annotation-less steps are copied unchanged so the directory is the complete drop-in image set).
+- **`buildPack({ source, burn?, optimise?, publicPrefix?, generatedFor? })`**, **`writePack({ outDir, files, manifestText })`**, **`computeDrift({ fresh, against, thresholdPct? })`**, **`validatePack(value)`**, **`convertScreensPackV1`** and **`convertScreensManifestV1`**: the screenshot pack (`docsxai/screens-pack@2`); see [Screenshot pack](#screenshot-pack-pack-and-drift).
 - **`emitStarlightSite({ workspaceDir, outDir, config? })`** / **`buildStarlightSite({ siteDir })`** — the production docs-site renderer; see [Starlight site](#starlight-site).
 - **`docsxai-viewer`** bin:
   - `docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...` — the engine's `docsxai render` shells out to this.
   - `docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]` — writes `docs/<flow>/burned/<step>.png`.
+  - `docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]` and `docsxai-viewer drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]`: the screenshot pack and its drift check. The engine's `docsxai pack` and `docsxai drift` run these.
   - `docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...` — emits (and with `--build` builds) the Starlight site.
+
+## Screenshot pack (`pack` and `drift`)
+
+`pack` turns a workspace or a raw capture directory into the file set a docs site or README ships: each step's annotations burned into its clean screenshot (the same `renderBurn` as `burn`, so obstacles, `placement`, `nudge` and the dark-connector outline apply), the PNG optimised losslessly, named `<flow>/<step>.<hash8>.png` from its final bytes, and a `manifest.json`. `drift` rebuilds the pack in memory and compares it with a committed one. The code is `src/pack-*.ts`, one reason to change each:
+
+| File                                  | Holds                                                                                                                                                           |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pack-schema.ts`                      | The `docsxai/screens-pack@2` types, id and variant-key patterns, public-prefix and file-path helpers, canonical serialisation                                   |
+| `pack-validate.ts`                    | `validatePack` / `assertValidPack`: pure, every problem as a path-prefixed line, unknown keys are errors                                                        |
+| `pack-convert.ts`                     | `convertScreensPackV1` (returns the file moves it implies) and `convertScreensManifestV1` (takes `bytesOf(src)`); both validate their result                    |
+| `pack-guards.ts`                      | `guardPack`: loopback hosts and obvious secrets in title, caption, alt and callout copy; names the path and rule, never the matched text                        |
+| `pack-source.ts`, `pack-workspace.ts` | The raw-capture reader and the workspace reader (`pack.json`), both returning a `PackSource`; `pack-annotations.ts` turns annotations into records and callouts |
+| `pack-optimise.ts`                    | `createOxipngOptimiser`: `oxipng -o 4 --strip safe` through a temp file, or the identity optimiser for `--no-optimise`                                          |
+| `pack-build.ts`                       | `buildPack`: burn, optimise, check the size, hash the final bytes, assemble, validate, guard                                                                    |
+| `pack-write.ts`                       | `writePack`: writes changed files, then removes the files the previous manifest listed and the new one does not                                                 |
+| `pack-pixels.ts`, `pack-drift.ts`     | Exact RGBA comparison (decoded through resvg, transparent reads as white) and the drift report                                                                  |
+| `pack-cli.ts`                         | argv and exit codes for the two commands                                                                                                                        |
+
+**Manifest.** `docsxai/screens-pack@2`: `{ schema, generated_for?, flows: { <flow>: { title?, steps: { <step>: { caption?, alt, variants: { "<locale>.<theme>.<viewport>": { src, width, height, bytes, callouts: [{ index, copy, bbox? }] } } } } } } }`. `title`, `caption` and `alt` are `{ <locale>: text }`; `alt` must have every locale a variant of the step uses. A locale is a tag like `en` or `pt-BR`, a theme is `^[a-z][a-z0-9-]{0,23}$`, a viewport is 3 or 4 digits; nothing is limited to en/es, light/dark or 390/1280. Flow and step ids are lowercase words joined by `-` or `_`, at most 64 characters, no dots. `src` is `<public-prefix>/<flow>/<step>.<hash8>.png` (default prefix `/screens`). Keys are sorted at every depth, callouts are in index order, there are no timestamps, and the same input gives the same text and the same bytes.
+
+**Sources.** A raw capture is `<root>/<flow>/<step>/<locale>.<theme>.<viewport>.png` with a `.json` sidecar (`width` and `height` must match the PNG when present; `annotations` of `{ index, copy, bbox, arrow_style?, nudge?, obstacles?, placement? }`), `step.json` (`alt`, `caption?`) and `flow.json` (`title?`); a step's badge numbers are drawn when it has two or more annotations, as the engine does. A workspace reads `docs/<capture-flow>/screenshots/<step>.png` and `annotations.json` through `pack.json` (`docsxai/pack-config@1`): `sources` maps a capture flow to `{ flow, variant }`, `flows.<flow>.steps.<step>` holds `alt` and `caption?`. Every screenshot needs a `steps` entry and every entry needs a screenshot. Callouts in the manifest are the annotations the burner draws: a `bounding_box` and non-empty `copy`.
+
+**Optimising and hashing.** `oxipng` is external (`brew install oxipng`): `$DOCSX_OXIPNG_BIN` or PATH. The file name carries the first 8 hex digits of the sha256 of the optimised bytes, `bytes` is that file's size, and the output's dimensions are checked against the capture. Optimising is lossless, so two builds with the same `oxipng` give the same names.
+
+**Pruning.** `writePack` reads the `manifest.json` already in the output directory (this shape, `docsxai/screens-pack@1` or `docsxai/screens-manifest@1`) and removes exactly the `<flow>/<file>` paths it lists that the new pack does not. The directory is never scanned; a file nobody listed stays. A flow directory that ends up empty is removed with a non-recursive `rmdir`.
+
+**Drift.** For each variant id (`<flow>/<step>/<key>`): equal hash8 is unchanged; otherwise both PNGs are decoded and compared. `changed` shows the share of changed pixels (4 decimals) and the region box, and fails when the share is above the threshold (default 0.5); a pixel-identical rebuild is not listed. `resized`, `new`, `missing` and `broken` (the committed file is absent or does not match its name) always fail. Drift never optimises, so it needs no `oxipng`. Only a `docsxai/screens-pack@2` manifest can be the committed side.
 
 ## Starlight site
 

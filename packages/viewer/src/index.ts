@@ -7,6 +7,8 @@
 //   docsxai-viewer build <docs-dir> <out-dir> [--flow <name> ...]
 //   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>] [--report <file>]
 //   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>]
+//   docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise]
+//   docsxai-viewer drift <workspace-or-raw-dir> --against <pack-dir> [--threshold <pct>]
 // The plugin's `render` command (and `docsxai render`) shell out to `build`.
 
 import { promises as fs } from "node:fs";
@@ -72,10 +74,92 @@ export {
   type StarlightSiteConfig,
 } from "./starlight.js";
 
+export {
+  DEFAULT_PUBLIC_PREFIX,
+  PACK_MANIFEST_FILE,
+  SCREENS_PACK_SCHEMA,
+  fileOfSrc,
+  normalisePublicPrefix,
+  packFilePath,
+  parseVariantKey,
+  serialisePack,
+  type LocalizedText,
+  type PackCallout,
+  type PackFlow,
+  type PackStep,
+  type PackVariant,
+  type ScreensPack,
+  type VariantKeyParts,
+} from "./pack-schema.js";
+export {
+  assertValidPack,
+  validatePack,
+  type PackValidation,
+  type ValidatePackOptions,
+} from "./pack-validate.js";
+export {
+  SCREENS_MANIFEST_V1,
+  SCREENS_PACK_V1,
+  convertScreensManifestV1,
+  convertScreensPackV1,
+  type ConvertManifestV1Options,
+  type ConvertPackV1Options,
+  type ConvertPackV1Result,
+  type FileMove,
+} from "./pack-convert.js";
+export { assertGuarded, guardPack, scanText } from "./pack-guards.js";
+export {
+  MISSING_OXIPNG,
+  OXIPNG_ARGS,
+  OXIPNG_BIN_ENV,
+  createOxipngOptimiser,
+  identityOptimiser,
+  type Optimiser,
+} from "./pack-optimise.js";
+export {
+  PACK_CONFIG_FILE,
+  PACK_CONFIG_SCHEMA,
+  parsePackConfig,
+  readWorkspace,
+  type PackConfig,
+} from "./pack-workspace.js";
+export {
+  readRawCapture,
+  type PackSource,
+  type SourceFlow,
+  type SourceStep,
+  type SourceVariant,
+} from "./pack-source.js";
+export {
+  buildPack,
+  hash8,
+  viewerBurner,
+  type BuildPackOptions,
+  type BuiltPack,
+  type Burner,
+} from "./pack-build.js";
+export {
+  listedFiles,
+  writePack,
+  type WritePackOptions,
+  type WritePackResult,
+} from "./pack-write.js";
+export {
+  DEFAULT_THRESHOLD_PCT,
+  computeDrift,
+  readCommittedPack,
+  type ComputeDriftOptions,
+  type DriftEntry,
+  type DriftReport,
+  type DriftStatus,
+} from "./pack-drift.js";
+export { diffGrids, diffPngs, type PixelDiff } from "./pack-pixels.js";
+
 import { buildViewer, discoverFlows } from "./render.js";
 import { burnFlow, burnReport } from "./burn.js";
 import { DEFAULT_UNPLACEABLE_RATIO, type FlowBurnReport } from "./burn-report.js";
 import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
+import { PACK_DETAILS, PACK_SYNOPSIS, runDrift, runPack } from "./pack-cli.js";
 
 const USAGE = `docsxai-viewer — static viewer generator
 
@@ -83,6 +167,7 @@ Usage:
   docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...
   docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]
   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...
+${PACK_SYNOPSIS}
 
   build — emit the interactive HTML viewer
     <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md;
@@ -109,7 +194,8 @@ Usage:
     --title      site title (default: "Documentation")
     --accent     accent hex color (overrides the style artifact's visual keys)
     --flow       restrict to these flows (default: all flows with annotations.json)
-`;
+
+${PACK_DETAILS}`;
 
 interface ParsedArgs {
   positional: string[];
@@ -266,6 +352,8 @@ export async function runViewerCli(argv: string[]): Promise<number> {
   if (command === "build") return runBuild(parseArgs(rest));
   if (command === "burn") return runBurn(parseArgs(rest));
   if (command === "site") return runSite(parseArgs(rest));
+  if (command === "pack") return runPack(rest);
+  if (command === "drift") return runDrift(rest);
   process.stdout.write(USAGE + "\n");
   return argv.length === 0 ? 0 : 2;
 }

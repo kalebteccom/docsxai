@@ -33,6 +33,8 @@ docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 docsxai pull <workspace-dir> [--rev <id>]
 docsxai render <workspace-dir>
 docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
+docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
+docsxai drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]
 docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
 docsxai --help
 ```
@@ -286,6 +288,78 @@ directory or no flow to burn; exit 2 for a bad flag.
 $ docsxai burn ~/docsxai/my-app --report burn-report.json
 burn: wrote 6 image(s) to ~/docsxai/my-app/docs/publish-post/burned
 burn: wrote report to ~/docsxai/my-app/burn-report.json (0 unplaceable)
+```
+
+### `docsxai pack`
+
+Builds the screenshot pack a docs site or README ships: every step's annotations
+burned into its clean screenshot, the PNG optimised losslessly, named from its
+final bytes, and a `manifest.json` that lists them. It runs the viewer's `pack`
+through the same bin resolution as `render`.
+
+`<dir>` is a workspace (it has `docs/`) or a raw capture directory. A workspace
+needs a `pack.json` (`docsxai/pack-config@1`) that says which capture flow feeds
+which variant and holds the alt text:
+
+```json
+{
+  "schema": "docsxai/pack-config@1",
+  "sources": {
+    "desktop-1280": { "flow": "app", "variant": "en.dark.1280" },
+    "mobile-390": { "flow": "app", "variant": "en.dark.390" }
+  },
+  "flows": {
+    "app": {
+      "title": { "en": "Acme" },
+      "steps": { "board": { "alt": { "en": "Board with a card per task." } } }
+    }
+  }
+}
+```
+
+A raw capture directory holds `<flow>/<step>/<locale>.<theme>.<viewport>.png`
+with a `.json` sidecar (`width`, `height`, `annotations` as `{ index, copy, bbox }`
+plus optional `arrow_style`, `nudge`, `obstacles`, `placement`), a `step.json`
+(`alt`, optional `caption`) and an optional `flow.json` (`title`). `--from-raw`
+reads `<dir>` that way even when it has a `docs/` folder.
+
+Output goes to `--out` (default `<workspace>/.screens`; required for a raw
+directory): `<flow>/<step>.<hash8>.png` plus `manifest.json`
+(`docsxai/screens-pack@2`). Locales, themes and viewports are not a fixed list; a
+variant key is `<locale>.<theme>.<viewport>`, for example `pt-BR.dark.1280`.
+`--public-prefix` is the URL path the files are served under (default
+`/screens`). `--generated-for` records free text such as a commit sha; without it
+the key is left out, and the manifest never holds a timestamp.
+
+Optimising uses the external `oxipng` binary (`brew install oxipng`), found on
+PATH or at `$DOCSX_OXIPNG_BIN`. When it is missing the command fails with that
+one-line hint; `--no-optimise` skips it. The hash is taken from the optimised
+bytes. Files the old `manifest.json` listed and the new one does not are removed
+by exact path, and nothing else in `--out` is touched. Loopback addresses
+(`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`) and obvious secrets in a title,
+caption, alt text or callout stop the build, naming the manifest path and rule.
+Exit 1 for a failed build, 2 for a bad flag.
+
+```
+$ docsxai pack ~/docsxai/my-app
+pack: 32 image(s), 3 written, 1 removed in ~/docsxai/my-app/.screens
+```
+
+### `docsxai drift`
+
+Rebuilds the pack in memory (nothing is written and `oxipng` is not needed) and
+compares it with a committed pack in `--against`. A variant whose file hash is
+unchanged is skipped. Otherwise both PNGs are compared pixel by pixel and the
+line shows the changed share of the image and the box around the change. A
+rebuild that differs only in bytes (the optimiser) passes. The command fails for
+a change over `--threshold` (percent, default 0.5), a resized variant, a new or
+missing variant, and a committed file that does not match its name. Exit 1 on any
+of those, 2 for a bad flag. The report has no timestamps.
+
+```
+$ docsxai drift ~/docsxai/my-app --against web/public/screens
+docsxai drift: 32 compared, 1 over threshold (0.5%)
+  changed  app/board/en.dark.1280  2.4113%  region 40,96 612x188  OVER
 ```
 
 ## Calibration aids

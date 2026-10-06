@@ -8,7 +8,6 @@
 //   baseline  — snapshot the doc pack into .baseline/ as the "before" for diff
 //   diff      — drift report against a baseline (the after-vs-before)
 
-import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { FlowFileError } from "./flow-file.js";
@@ -21,34 +20,11 @@ import {
 } from "./diff.js";
 import { projectDocPackToAdf, type AdfExportMode } from "./export/adf.js";
 import { exportWorkspaceFlowsAsPlaywrightTests } from "./export/playwright-test.js";
-import { formatViewerBinFailure, resolveViewerBin } from "./viewer-bin.js";
+import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
 import { parseFlags } from "./cli-shared.js";
 import { USAGE } from "./cli-usage.js";
-
-/**
- * Run the viewer's CLI with `args` and resolve to its exit code. The viewer is its own package/bin;
- * spawning it keeps the engine from depending on it at build time. `label` prefixes the failure
- * line when the bin can't be launched.
- */
-async function runViewerBin(label: string, args: string[]): Promise<number> {
-  const viewerBin = await resolveViewerBin();
-  return new Promise<number>((resolve) => {
-    const child = spawn(viewerBin.command, [...viewerBin.prefixArgs, ...args], {
-      stdio: "inherit",
-    });
-    child.on("error", (e: NodeJS.ErrnoException) => {
-      if (e.code === "ENOENT") {
-        process.stderr.write(`${label}: ${formatViewerBinFailure(viewerBin)}\n`);
-      } else {
-        process.stderr.write(`${label}: ${e.message}\n`);
-      }
-      resolve(1);
-    });
-    child.on("exit", (code) => resolve(code ?? 1));
-  });
-}
 
 export async function cmdRender(args: string[]): Promise<number> {
   const { positionals } = parseFlags(args);
