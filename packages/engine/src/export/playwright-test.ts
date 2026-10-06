@@ -213,6 +213,11 @@ export function exportFlowAsPlaywrightTest(
       `flow "${flow.name}": resolve \`extends\` before exporting (resolveFlowExtends)`,
     );
   }
+  if (flow.matrix) {
+    throw new Error(
+      `flow "${flow.name}": a flow with a \`matrix\` has no single spec yet; export one variant (expandFlow) or drop the matrix`,
+    );
+  }
   const fileName = options.flowFileName ?? flow.name;
   const ids = locatorIdentifiers(flow);
 

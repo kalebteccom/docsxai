@@ -9,6 +9,8 @@ import * as path from "node:path";
 import type { BoundingBox, FlowFile, Step } from "./doc-pack.js";
 import { hiddenAtEachStep } from "./flow-hidden.js";
 import { locatorRefName } from "./flow-file.js";
+import { variantDocDir, type FlowVariant } from "./flow-matrix.js";
+import { resolveWorkspacePath } from "./workspace.js";
 import type { ActionableState, BrowserDriver } from "./flow-runtime.js";
 
 export type DiagnoseRecommendationKind =
@@ -35,6 +37,10 @@ export interface DiagnoseLiveProbe {
 export interface DiagnoseReport {
   workspace: string;
   flow: string;
+  /** The matrix variant diagnosed. Absent for a flow without a `matrix`. */
+  variant?: string;
+  /** Every variant id the flow's `matrix` expands to (present with `variant`). */
+  variants?: string[];
   step: {
     id: string;
     action: Step["action"];
@@ -190,6 +196,54 @@ export function recommendHiddenTarget(flow: FlowFile, step: Step): DiagnoseRecom
   ];
 }
 
+/** Pick the matrix variant to diagnose: the requested one, else the only one with a halt shot for the step. */
+export async function pickDiagnoseVariant(opts: {
+  workspace: string;
+  flow: string;
+  stepId: string;
+  variants: FlowVariant[];
+  requested: string | undefined;
+}): Promise<{ variant: FlowVariant; ids: string[] } | { error: string }> {
+  const ids = opts.variants.flatMap((v) => (v.id ? [v.id] : []));
+  if (ids.length === 0) {
+    return opts.requested
+      ? { error: `--variant "${opts.requested}": flow "${opts.flow}" has no matrix` }
+      : { variant: opts.variants[0]!, ids };
+  }
+  if (opts.requested) {
+    const hit = opts.variants.find((v) => v.id === opts.requested);
+    return hit
+      ? { variant: hit, ids }
+      : {
+          error: `no variant "${opts.requested}" in flow "${opts.flow}" (variants: ${ids.join(", ")})`,
+        };
+  }
+  const halted: FlowVariant[] = [];
+  for (const v of opts.variants) {
+    const shot = resolveWorkspacePath(
+      opts.workspace,
+      variantDocDir(opts.flow, v.id),
+      "halts",
+      `${opts.stepId}.png`,
+    );
+    if (
+      await fs.access(shot).then(
+        () => true,
+        () => false,
+      )
+    )
+      halted.push(v);
+  }
+  if (halted.length === 1) return { variant: halted[0]!, ids };
+  return {
+    error:
+      `flow "${opts.flow}" has a matrix: pass --variant <id> (variants: ${ids.join(", ")}; ` +
+      (halted.length > 0
+        ? `halt screenshots for step "${opts.stepId}" in: ${halted.map((v) => v.id).join(", ")})`
+        : `no halt screenshot found for step "${opts.stepId}")`),
+  };
+}
+
 /** Build the full report. `liveProbe` is invoked lazily (only if a driver is supplied). */
 export async function buildDiagnoseReport(opts: {
   workspace: string;
@@ -198,6 +252,8 @@ export async function buildDiagnoseReport(opts: {
   resolvedSelector?: string;
   haltScreenshotAbsPath?: string;
   liveProbe?: () => Promise<DiagnoseLiveProbe>;
+  /** The matrix variant `flow` was expanded for, and every variant of the matrix. */
+  variant?: { id: string; all: string[] };
 }): Promise<DiagnoseReport> {
   const haltExists = opts.haltScreenshotAbsPath
     ? await fs
@@ -219,6 +275,7 @@ export async function buildDiagnoseReport(opts: {
   return {
     workspace: opts.workspace,
     flow: opts.flow.name,
+    ...(opts.variant ? { variant: opts.variant.id, variants: opts.variant.all } : {}),
     step: {
       id: opts.step.id,
       action: opts.step.action,
@@ -249,7 +306,9 @@ export async function probeLive(
 }
 
 export function formatReportText(r: DiagnoseReport): string {
-  let out = `diagnose: flow=${r.flow} step=${r.step.id}\n\n`;
+  let out = `diagnose: flow=${r.flow}${r.variant ? ` variant=${r.variant}` : ""} step=${r.step.id}\n`;
+  if (r.variants) out += `variants: ${r.variants.join(", ")}\n`;
+  out += "\n";
   out += `Current step:\n`;
   out += `  action: ${r.step.action}\n`;
   if (r.step.target)
