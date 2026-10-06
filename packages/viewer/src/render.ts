@@ -59,8 +59,15 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
-/** Flow names under `docsDir` that carry an `annotations.json` (sorted). */
-export async function discoverFlows(docsDir: string): Promise<string[]> {
+/**
+ * Flow names under `docsDir` that carry an `annotations.json` (sorted). With `variants`, a flow
+ * that ran a matrix also contributes one `<flow>/<variant>` name per subdirectory holding an
+ * `annotations.json`; every consumer treats that name as a path under `docsDir`.
+ */
+export async function discoverFlows(
+  docsDir: string,
+  opts: { variants?: boolean } = {},
+): Promise<string[]> {
   let entries: import("node:fs").Dirent[];
   try {
     entries = await fs.readdir(docsDir, { withFileTypes: true });
@@ -69,8 +76,19 @@ export async function discoverFlows(docsDir: string): Promise<string[]> {
   }
   const flows: string[] = [];
   for (const e of entries) {
-    if (e.isDirectory() && (await exists(path.join(docsDir, e.name, "annotations.json"))))
-      flows.push(e.name);
+    if (!e.isDirectory()) continue;
+    if (await exists(path.join(docsDir, e.name, "annotations.json"))) flows.push(e.name);
+    if (!opts.variants) continue;
+    const subs = await fs
+      .readdir(path.join(docsDir, e.name), { withFileTypes: true })
+      .catch(() => [] as import("node:fs").Dirent[]);
+    for (const sub of subs) {
+      if (
+        sub.isDirectory() &&
+        (await exists(path.join(docsDir, e.name, sub.name, "annotations.json")))
+      )
+        flows.push(`${e.name}/${sub.name}`);
+    }
   }
   return flows.sort();
 }
@@ -185,7 +203,7 @@ function flowPageHtml(
     })
     .join("\n");
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_CSP}${HEAD_NOCACHE}<title>${esc(flow)}</title><style>${STYLE}</style></head>
-<body><p><a href="../index.html">← all flows</a></p><h1>${esc(flow)}</h1>${body}${renderedFooter(renderedAt)}<script>${overlayJs}</script></body></html>`;
+<body><p><a href="${"../".repeat(flow.split("/").length)}index.html">← all flows</a></p><h1>${esc(flow)}</h1>${body}${renderedFooter(renderedAt)}<script>${overlayJs}</script></body></html>`;
 }
 
 interface FlowSummary {
@@ -212,7 +230,7 @@ function indexHtml(meta: FlowSummary[], renderedAt: string): string {
 
 /** Build the static viewer. Returns the generated page paths (relative to `outDir`), index first. */
 export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewerResult> {
-  const flows = opts.flows ?? (await discoverFlows(opts.docsDir));
+  const flows = opts.flows ?? (await discoverFlows(opts.docsDir, { variants: true }));
   await fs.mkdir(opts.outDir, { recursive: true });
   const renderedAt = new Date().toISOString();
   const overlayJs = flows.length ? await loadOverlayJs() : "";
