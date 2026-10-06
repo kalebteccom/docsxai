@@ -15,7 +15,7 @@ locators:
   col_progress_head: section.column[aria-label="In progress"] h2.column__heading
   tab_backlog: nav.etabs a:has-text("Backlog")
   ticket_title: h2.tread__title
-  ticket_status: button.tpill[aria-label^="Status:"]
+  ticket_acts: div.tbar__acts
   ticket_gaps: section[aria-labelledby="gaps-heading"]
   first_gap_slot: button.rowgap__slot >> nth=0
   palette: div[role="dialog"][aria-label="Search and commands"]
@@ -78,7 +78,7 @@ steps:
   - id: board
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $page_title
         copy: The board shows every task as a card, grouped by status.
@@ -89,6 +89,7 @@ steps:
       - target: $col_progress_head
         copy: Tasks an agent is working on right now sit in In progress.
         arrow: top
+        placement: { side: top, align: end }
   - id: palette-open
     action: press
     value: /
@@ -107,7 +108,7 @@ steps:
   - id: palette
     action: wait
     target: $palette_input
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $palette_input
         copy: Press / or Cmd+K on any page to search or run a command.
@@ -139,14 +140,15 @@ steps:
   - id: ticket
     action: wait
     target: $ticket_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $ticket_title
         copy: A task keeps its title, address and description in one place.
         arrow: right
-      - target: $ticket_status
-        copy: The status pill shows where the task stands.
-        arrow: top
+      - target: $ticket_acts
+        copy: Claim or complete the task from this row.
+        arrow: right
+        placement: { side: right }
       - target: $ticket_gaps
         copy: A gap is a question an agent raised. Answer it here to unblock the work.
         arrow: top
@@ -169,7 +171,7 @@ steps:
   - id: waiting
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     success:
       visible: $first_gap_slot
     annotations:
@@ -198,7 +200,7 @@ steps:
   - id: list
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $filters
         copy: Filter the list, or add a filter on any field.
@@ -228,7 +230,7 @@ steps:
   - id: backlog
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $tab_backlog
         copy: The backlog holds open tasks that nobody has claimed yet.
@@ -255,7 +257,7 @@ steps:
   - id: epics
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $epics_display
         copy: Change how epics are grouped and sorted.
@@ -285,7 +287,7 @@ steps:
   - id: epic
     action: wait
     target: $epic_status
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $epic_add_task
         copy: Add a task to this epic from here.
@@ -315,7 +317,7 @@ steps:
   - id: progress
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $progress_bar
         copy: "The bar splits every task by phase: done, in progress, waiting, claimed or open."
@@ -345,7 +347,7 @@ steps:
   - id: documents
     action: wait
     target: $docs_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $docs_scopes
         copy: "Filter documents by what owns them: the workspace, an epic, a team or a project."
@@ -372,7 +374,7 @@ steps:
   - id: document
     action: wait
     target: $doc_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $doc_belongs
         copy: A document belongs to the workspace, an epic, a team or a project.
@@ -402,7 +404,7 @@ steps:
   - id: mine
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $mine_tabs
         copy: Claimed is what you hold, Reported what you filed, Leading the epics you lead.
@@ -429,7 +431,7 @@ steps:
   - id: settings
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $settings_key_input
         copy: The workspace key prefixes every task number, such as ACME-142.
@@ -463,11 +465,12 @@ steps:
   - id: agent-tokens
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $tokens_config
         copy: Your agent's MCP install snippet lives here.
         arrow: left
+        placement: { inside: true }
       - target: $tokens_copy
         copy: Copy the whole block in one click.
         arrow: right
@@ -501,7 +504,7 @@ steps:
   - id: agent-tokens-issued
     action: wait
     target: $tokens_table_head
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $tokens_form_input
         copy: Name a token for one agent session, then issue it.
@@ -509,6 +512,8 @@ steps:
       - target: $tokens_agent_cell
         copy: Each token belongs to one agent, so every write says which agent made it.
         arrow: top
+        nudge: { x: 0, y: 5 }
+        placement: { side: top, max_width: 560, pin_arrow: true }
   - id: agent-tokens-issued-show-url
     action: show
     target: $tokens_config_text
@@ -535,7 +540,7 @@ steps:
   - id: connect
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     success:
       visible: $connect_url
     annotations:

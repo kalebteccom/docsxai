@@ -55,6 +55,6 @@ for flowfile in "$W"/flows/*.flow.yaml; do
   echo "run: $flow done"
 done
 
-node "${DOCSXAI_VIEWER:-$D/packages/viewer/dist/index.js}" burn "$W"
+node "${DOCSXAI_VIEWER:-$D/packages/viewer/dist/index.js}" burn "$W" --report docs/burn-report.json
 node "$W/scripts/build-screens.mjs" "${1:-$W/.screens}"
 echo "pipeline: $RETRIES retried attempt(s)"

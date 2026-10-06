@@ -15,9 +15,11 @@ The demo serves `http://127.0.0.1:3100/mcp` in the MCP configuration block on `a
 
 Every page has a `<page>-no-loopback` step before its capture. It halts the run when `127.0.0.1` or `localhost` is visible in the page text (or in an input value or placeholder), after any `hide`. `pipeline.sh` stops on that halt at once, with no retries. `build-screens.mjs` checks the callouts and alt texts for the same strings.
 
-Both flows run English, dark, `en-US`, UTC, reduced motion, with the browser clock pinned to the demo clock (`2026-01-15T10:00:00Z`).
+Both flows run English, dark, `en-US`, UTC, reduced motion, with the browser clock pinned to the demo clock (`2026-01-15T10:00:00Z`). Each page capture waits with `wait_for: settled` (fonts loaded, images in view complete, layout still) after the `network_idle` step.
 
-Pages, per viewport: board, palette (command palette), ticket (WEB-8), waiting (waiting on you), list, backlog, epics, epic (checkout redesign), progress, documents, document (checkout redesign brief), mine (leading tab), settings, agent-tokens, agent-tokens-issued (the token table, scrolled into view) and connect. Each has 1 to 3 callouts. The mobile flow shows fewer callouts: a 280 px callout over a 390 px page has no free spot on most pages, so only the callouts that land clear of text are kept, and the target is also left out where it is hidden or off screen.
+Pages, per viewport: board, palette (command palette), ticket (WEB-8), waiting (waiting on you), list, backlog, epics, epic (checkout redesign), progress, documents, document (checkout redesign brief), mine (leading tab), settings, agent-tokens, agent-tokens-issued (the token table, scrolled into view) and connect. Each has 1 to 3 callouts. The mobile flow shows fewer: the burner narrows a callout to 242 px on a 390 px screenshot, but a dense page still has no free spot for some of them. A callout stays in the mobile flow when `docs/burn-report.json` lists it as placeable (not `unplaceable`, overlap ratio at most 0.05) and it does not cover body text on the image. Callouts the burner cannot place cleanly are left out, and so is a target that is hidden or off screen.
+
+Callouts that would land on text use `placement` in the flow: `side` and `max_width` for a one-line callout in a gap (`agent-tokens-issued`), `side` and `align` to move a callout to a free strip (`board`), `inside` for the blank block where the URL text is hidden (`agent-tokens`), and `pin_arrow` with `nudge` to move a callout by a few px while the arrow stays on its target. On the ticket page the second callout points at the Claim and Complete row, which has free space on its right. The burner only knows the 40 boxes of text nearest each target, so a callout placed far from its target can still cover text the report does not list. Look at the images, not only at the report.
 
 ## Start the demo target
 
@@ -48,7 +50,7 @@ Set `DOCSXAI_VIEWER=<path to a viewer dist/index.js>` to burn with another viewe
 
 1. `docsxai lint` and `docsxai capture-auth --headless` (writes `.auth/ana.json`, never committed).
 2. `docsxai run` once per page (`--start-from` and `--stop-after`, merged by step id). A page that halts on the dev badge, or whose obstacle scan timed out, is repeated up to 8 times. A full-flow retry would lose the pages already captured.
-3. `docsxai-viewer burn` bakes halos, badges and callouts into `docs/<flow>/burned/`.
+3. `docsxai-viewer burn --report docs/burn-report.json` bakes halos, badges and callouts into `docs/<flow>/burned/` and writes the placement report (`docsxai/burn-report@1`: callout and badge boxes, px² still on text or on other halos, overlap ratio, `unplaceable`). Arrows and stems get a white outline on these dark screenshots.
 4. `scripts/build-screens.mjs` writes `.screens/<flow>/<step>.<hash8>.png` and `.screens/manifest.json` (`docsxai/screens-pack@1`). It stops when a page has no entry in `alt.json`, when `alt.json` names a page that was not captured, or when an alt or callout holds a loopback address.
 5. Prints how many page attempts were retried.
 

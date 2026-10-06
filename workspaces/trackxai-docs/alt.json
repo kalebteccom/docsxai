@@ -1,7 +1,7 @@
 {
   "board": "Board with each task as a card, grouped by status, with an In progress column.",
   "palette": "Command palette open over the board, with a search box and a list of results.",
-  "ticket": "Task WEB-8 with its title, status pill and the gaps an agent raised.",
+  "ticket": "Task WEB-8 with its title, status and property pills, the Claim and Complete actions and the gaps an agent raised.",
   "waiting": "List of tasks waiting on the reader, with an open gap on the first row.",
   "list": "Task list with a filter bar and a gap count on tasks that wait for an answer.",
   "backlog": "Backlog of open tasks that nobody has claimed, grouped by epic.",
