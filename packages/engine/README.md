@@ -26,6 +26,8 @@ inspect        discover [data-testid] locators on the live page
 run            execute flows headless; emit annotations + screenshots
 render         build the static viewer (spawns the @docsxai/viewer bin)
 burn           bake annotations into PNG copies (spawns the same bin's `burn`)
+pack           build the screenshot pack: burn, optimise, hash-name, manifest (spawns the viewer bin's `pack`)
+drift          compare a rebuilt pack with a committed one (spawns the viewer bin's `drift`)
 lint           static checks across flow-files (R001-R014; `extraRules` injectable via `lintFlow`)
 flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt
@@ -54,6 +56,8 @@ pull           fetch a backend revision's artifacts into the workspace
 `render` and `burn` locate the viewer bin in order: `DOCSX_VIEWER_BIN` (path to the viewer's bin script or an executable), the `@docsxai/viewer` package installed next to the engine (its `bin` run with the current Node), then `docsxai-viewer` on PATH. A launch failure reports all three attempts.
 
 `burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]` bakes the annotations into PNG copies by running the viewer's `burn` through that same resolution (the engine does not depend on `@docsxai/viewer`). It checks the workspace has a `docs/` directory, passes the flags through, and returns the viewer's exit code; an unknown flag or a path-like `--flow` exits 2.
+
+`pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]` and `drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]` (`cli-commands-pack.ts`) are the screenshot-pack pair. Like `burn`, the engine validates the argv edge (an unknown flag, a flag with no value, a second positional, no `--against`, a `--threshold` that is not a number >= 0 all exit 2), then runs the viewer's `pack` or `drift` through the same bin resolution (`runViewerBin` in `viewer-bin.ts`) and returns its exit code. The viewer owns the logic (burn, `oxipng`, hashing, manifest, drift); the engine does not import it. See the [viewer README](../viewer/README.md#screenshot-pack-pack-and-drift).
 
 ## Auth strategies
 

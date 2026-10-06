@@ -301,6 +301,42 @@ Two delivery shapes, both downstream of `run`:
 
 **Dark screenshots.** The burner reads the pixels under each arrow and stem and, when a third or more are dark, paints a 2 px white outline under the near-black connector so it shows on dark UIs. Light screenshots burn as before. Nothing to set in `annotations.json`; `docsxai burn --no-connector-outline` keeps plain ink everywhere.
 
+## Packing screenshots for a site or README (`pack`, `drift`)
+
+For a docs site, a README or any static host that wants finished images and a manifest, `docsxai pack` replaces a hand-written build script: it burns each step's annotations into its clean screenshot (same burner, same `obstacles` and `placement` as `burn`), optimises the PNG losslessly, names it `<flow>/<step>.<hash8>.png` from the final bytes, and writes `manifest.json` (`docsxai/screens-pack@2`).
+
+```bash
+brew install oxipng                          # once; --no-optimise skips it
+docsxai pack "$WORKSPACE"                    # → $WORKSPACE/.screens/{<flow>/<step>.<hash8>.png,manifest.json}
+docsxai pack "$WORKSPACE" --out web/public/screens --public-prefix /screens --generated-for "$(git rev-parse --short HEAD)"
+docsxai pack ./raw-capture --from-raw --out web/public/screens   # raw <flow>/<step>/<locale>.<theme>.<viewport>.png capture
+docsxai drift "$WORKSPACE" --against web/public/screens --threshold 0.5   # exit 1 past the threshold
+```
+
+A workspace needs a `pack.json` next to `docs/`:
+
+```json
+{
+  "schema": "docsxai/pack-config@1",
+  "sources": {
+    "desktop-1280": { "flow": "app", "variant": "en.dark.1280" },
+    "mobile-390": { "flow": "app", "variant": "en.dark.390" }
+  },
+  "flows": {
+    "app": {
+      "title": { "en": "Acme" },
+      "steps": { "board": { "alt": { "en": "Board with a card per task." } } }
+    }
+  }
+}
+```
+
+`sources` maps each capture flow (`docs/<name>/`) to a logical flow and a variant key `<locale>.<theme>.<viewport>` (any locale tag, theme word and viewport width; not limited to en/es, light/dark, 390/1280). `flows.<flow>.steps.<step>` holds the alt text per locale (and an optional `caption`). The pack stops when a screenshot has no `steps` entry, when an entry has no screenshot, or when `alt` lacks a locale one of the step's variants uses. A raw capture directory carries the same text in `step.json` and `flow.json` and the annotations in each variant's `.json` sidecar.
+
+What stops a pack, before anything is written: a loopback address (`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`) or an obvious secret (private key block, JWT, bearer token, `sk-`, `ghp_`, AWS or Slack key shape, `password=` style assignment) in a title, caption, alt text or callout. The message names the manifest path and the rule, not the text. Keep alt text and callout copy free of internal URLs, and hide such text in the flow (`hide`) instead of captioning around it.
+
+Rebuilds are byte-stable with the same inputs and the same `oxipng`, so a changed hash means the app (or the optimiser) changed. Files that the previous `manifest.json` listed and the new one does not are deleted by exact path; nothing else in `--out` is touched. `drift` rebuilds in memory, never optimises and writes nothing; it lists a variant only when its pixels changed (share of the image and region box), was resized, is new or missing, or its committed file does not match its name. Run it in CI against the committed pack and rerun `pack` and commit when the change is wanted. `docsxai pack` exits 1 on a failed build, 2 on a bad flag; `docsxai drift` exits 1 on any failure, 2 on a bad flag.
+
 ## Step 6 — tear down, verify clean
 
 ```bash
