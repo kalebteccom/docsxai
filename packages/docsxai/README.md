@@ -7,7 +7,7 @@ pnpm add -g docsxai        # or: npm install -g docsxai
 docsxai --help
 ```
 
-One global install gives you the whole CLI surface. This package is a thin meta-package: its bin resolves [`@docsxai/engine`](https://www.npmjs.com/package/@docsxai/engine)'s CLI entry and runs it in-process, and it depends on [`@docsxai/viewer`](https://www.npmjs.com/package/@docsxai/viewer) so the `docsxai-viewer` bin lands on your path too — `docsxai render` works out of the box (the engine locates the viewer through its layered resolution: `DOCSX_VIEWER_BIN`, the installed `@docsxai/viewer` package, then PATH).
+One global install gives you the whole CLI surface. This package is a thin meta-package: its bin resolves [`@docsxai/engine`](https://www.npmjs.com/package/@docsxai/engine)'s CLI entry and runs it in-process, and it depends on [`@docsxai/viewer`](https://www.npmjs.com/package/@docsxai/viewer) so the `docsxai-viewer` bin lands on your path too — `docsxai render` and `docsxai burn` work out of the box. The bin points `DOCSX_VIEWER_BIN` at the viewer this package resolves when you haven't set it; with it set (or in the engine alone) the engine locates the viewer through its layered resolution: `DOCSX_VIEWER_BIN`, the installed `@docsxai/viewer` package, then PATH.
 
 Chromium is a one-shot explicit install — never an install-time lifecycle script:
 

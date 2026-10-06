@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hung image</title>
+  </head>
+  <body>
+    <p id="done">content</p>
+    <script>
+      // The keystone server never answers this image. Added after load, so the page itself finishes loading.
+      window.addEventListener("load", () => {
+        const img = new Image();
+        img.width = 120;
+        img.height = 80;
+        img.src = "never-answered.png";
+        document.body.append(img);
+      });
+    </script>
+  </body>
+</html>

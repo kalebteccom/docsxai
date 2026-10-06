@@ -2,6 +2,7 @@
 // They read the rendered artifacts (flows/docs/screenshots) and emit something derived; none of
 // them drive a live browser:
 //   render    — build the static viewer by spawning the docsxai-viewer bin
+//   burn      — bake the annotations into PNG copies by spawning the same bin
 //   zip       — deterministic single-archive hand-off bundle
 //   export    — project the doc pack to ADF (Confluence) or self-contained Playwright specs
 //   baseline  — snapshot the doc pack into .baseline/ as the "before" for diff
@@ -26,6 +27,29 @@ import { resolveWorkspacePath } from "./workspace.js";
 import { parseFlags } from "./cli-shared.js";
 import { USAGE } from "./cli-usage.js";
 
+/**
+ * Run the viewer's CLI with `args` and resolve to its exit code. The viewer is its own package/bin;
+ * spawning it keeps the engine from depending on it at build time. `label` prefixes the failure
+ * line when the bin can't be launched.
+ */
+async function runViewerBin(label: string, args: string[]): Promise<number> {
+  const viewerBin = await resolveViewerBin();
+  return new Promise<number>((resolve) => {
+    const child = spawn(viewerBin.command, [...viewerBin.prefixArgs, ...args], {
+      stdio: "inherit",
+    });
+    child.on("error", (e: NodeJS.ErrnoException) => {
+      if (e.code === "ENOENT") {
+        process.stderr.write(`${label}: ${formatViewerBinFailure(viewerBin)}\n`);
+      } else {
+        process.stderr.write(`${label}: ${e.message}\n`);
+      }
+      resolve(1);
+    });
+    child.on("exit", (code) => resolve(code ?? 1));
+  });
+}
+
 export async function cmdRender(args: string[]): Promise<number> {
   const { positionals } = parseFlags(args);
   const projectDir = positionals[0];
@@ -35,29 +59,84 @@ export async function cmdRender(args: string[]): Promise<number> {
   }
   const docsDir = resolveWorkspacePath(projectDir, "docs");
   const outDir = resolveWorkspacePath(projectDir, ".viewer");
-  // The viewer is its own package/bin; spawn it so the engine doesn't depend on it at build time.
-  const viewerBin = await resolveViewerBin();
-  return new Promise<number>((resolve) => {
-    const child = spawn(viewerBin.command, [...viewerBin.prefixArgs, "build", docsDir, outDir], {
-      stdio: "inherit",
-    });
-    child.on("error", (e: NodeJS.ErrnoException) => {
-      if (e.code === "ENOENT") {
-        process.stderr.write(`render: ${formatViewerBinFailure(viewerBin)}\n`);
-      } else {
-        process.stderr.write(`render: ${e.message}\n`);
-      }
-      resolve(1);
-    });
-    child.on("exit", (code) => {
-      if ((code ?? 1) === 0) {
-        process.stdout.write(
-          `render: open ${path.join(outDir, "index.html")}  (the index links the flows; each flow page shows the screenshots — hover a pulsing halo to read its callout)\n`,
-        );
-      }
-      resolve(code ?? 1);
-    });
-  });
+  const code = await runViewerBin("render", ["build", docsDir, outDir]);
+  if (code === 0) {
+    process.stdout.write(
+      `render: open ${path.join(outDir, "index.html")}  (the index links the flows; each flow page shows the screenshots — hover a pulsing halo to read its callout)\n`,
+    );
+  }
+  return code;
+}
+
+/** A flow name as `burn` passes it on: no separators, and no leading dot, so it can't name a parent or hidden path. */
+const FLOW_NAME = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
+
+interface BurnArgs {
+  workspace: string;
+  flows: string[];
+  out?: string;
+  report?: string;
+  plainConnectors: boolean;
+}
+
+/** Parse `burn`'s argv. Returns the usage-error message when the argv is malformed. */
+function parseBurnArgs(args: string[]): BurnArgs | string {
+  const parsed: BurnArgs = { workspace: "", flows: [], plainConnectors: false };
+  const positionals: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (a === "--no-connector-outline") {
+      parsed.plainConnectors = true;
+    } else if (a === "--flow" || a === "--out" || a === "--report") {
+      const value = args[++i];
+      if (value === undefined || value.startsWith("--")) return `${a} needs a value`;
+      if (a === "--flow") parsed.flows.push(value);
+      else if (a === "--out") parsed.out = value;
+      else parsed.report = value;
+    } else if (a.startsWith("--")) {
+      return `unknown flag ${a}`;
+    } else {
+      positionals.push(a);
+    }
+  }
+  if (positionals.length === 0) return "missing <workspace-dir>";
+  if (positionals.length > 1) return `unexpected argument "${positionals[1]}"`;
+  parsed.workspace = positionals[0]!;
+  const bad = parsed.flows.find((f) => !FLOW_NAME.test(f));
+  if (bad !== undefined) return `--flow "${bad}" is not a flow name`;
+  return parsed;
+}
+
+/**
+ * `burn` — bake each annotation into a copy of its screenshot, for surfaces that can't run the
+ * interactive viewer. The renderer lives in `@docsxai/viewer`; this runs its `burn` command.
+ */
+export async function cmdBurn(args: string[]): Promise<number> {
+  const parsed = parseBurnArgs(args);
+  if (typeof parsed === "string") {
+    process.stderr.write(`burn: ${parsed}\n\n${USAGE}\n`);
+    return 2;
+  }
+  const docsDir = resolveWorkspacePath(parsed.workspace, "docs");
+  if (
+    !(await fs.stat(docsDir).then(
+      (s) => s.isDirectory(),
+      () => false,
+    ))
+  ) {
+    process.stderr.write(
+      `burn: ${parsed.workspace} has no docs/ directory (expected ${docsDir}). Run \`docsxai run\` first.\n`,
+    );
+    return 1;
+  }
+  return runViewerBin("burn", [
+    "burn",
+    parsed.workspace,
+    ...parsed.flows.flatMap((f) => ["--flow", f]),
+    ...(parsed.out !== undefined ? ["--out", parsed.out] : []),
+    ...(parsed.report !== undefined ? ["--report", parsed.report] : []),
+    ...(parsed.plainConnectors ? ["--no-connector-outline"] : []),
+  ]);
 }
 
 export async function cmdZip(args: string[]): Promise<number> {

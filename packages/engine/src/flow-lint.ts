@@ -266,6 +266,24 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       });
     }
 
+    // R014 — a bare `wait` step that only sleeps (a guess at how long the page needs to settle)
+    if (
+      step.action === "wait" &&
+      typeof step.wait_for === "object" &&
+      "timeout_ms" in step.wait_for &&
+      !("selector" in step.wait_for)
+    ) {
+      issues.push({
+        code: "R014",
+        severity: "info",
+        flow: flow.name,
+        stepId: step.id,
+        message: `\`wait_for: { timeout_ms: ${step.wait_for.timeout_ms} }\` is a blind sleep: it waits that long whether or not the page needed it`,
+        suggestion:
+          "use `wait_for: settled` (fonts, visible images and layout), or wait on a concrete element with `wait_for: { selector: $x }`; keep the sleep only for an animation nothing else can detect",
+      });
+    }
+
     // R010 — annotation anchored to a redacted element (the call-out would point at a black box)
     const stepRedactionSelectors = new Set([
       ...flowRedactionSelectors,

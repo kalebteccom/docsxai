@@ -46,6 +46,7 @@ describe("recommendFromActionable", () => {
     const recs = recommendFromActionable("actionable");
     expect(recs[0]!.kind).toBe("investigate");
     expect(recs[0]!.suggestion).toMatch(/network_idle|element_stable|success/);
+    expect(recs[0]!.suggestion).toContain("`settled`");
   });
 });
 

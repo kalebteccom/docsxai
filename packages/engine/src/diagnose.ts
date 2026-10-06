@@ -60,7 +60,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
           kind: "investigate",
           rationale: "The current target is actionable on the live page right now.",
           suggestion:
-            "Drift may be intermittent (race condition) or in the `success` criterion. Consider adding `wait_for: network_idle` or `element_stable`; re-check the `success` clause against the live target state.",
+            "Drift may be intermittent (race condition) or in the `success` criterion. Consider adding `wait_for: network_idle`, `settled` (fonts, images and layout) or `element_stable`; re-check the `success` clause against the live target state.",
         },
       ];
     case "not-found":

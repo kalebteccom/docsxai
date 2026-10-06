@@ -30,6 +30,7 @@ describe("docsxai CLI — main()", () => {
     out = "";
     expect(await main(["help"])).toBe(0);
     expect(out).toMatch(/docsxai render/);
+    expect(out).toMatch(/docsxai burn <workspace-dir>/);
   });
 
   it("exits 2 on an unknown command", async () => {

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Settle page</title>
+    <style>
+      /* Served by the settle keystone, which delays /late-font.ttf and /late-image.png. */
+      @font-face {
+        font-family: Late;
+        src: url(late-font.ttf);
+        font-display: swap;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        font: 16px/20px monospace;
+      }
+      #title {
+        display: inline-block;
+        margin: 0;
+        font-size: 32px;
+        line-height: 40px;
+        background: #eee;
+      }
+      #title.late {
+        font-family: Late, monospace;
+      }
+      #slot img {
+        display: block;
+      }
+      #after {
+        height: 40px;
+        background: #0a0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="title">Late fonts swap in</h1>
+    <button id="swap" type="button">Swap</button>
+    <div id="slot"></div>
+    <div id="after">Below the image</div>
+    <script>
+      // The click starts both loads: the font is requested when the heading first lays out with it,
+      // the image as soon as it is inserted. Each lands late, and each moves the content below.
+      document.getElementById("swap").addEventListener("click", () => {
+        document.getElementById("title").className = "late";
+        const img = new Image();
+        img.id = "hero";
+        img.alt = "";
+        img.src = "late-image.png";
+        document.getElementById("slot").append(img);
+      });
+    </script>
+  </body>
+</html>

@@ -256,6 +256,21 @@ describe("parseFlowFile — hide / show / timeout_ms", () => {
     }
   });
 
+  it("accepts wait_for: settled and lets timeout_ms bound it on any action", () => {
+    for (const step of [
+      "action: wait, wait_for: settled",
+      "action: wait, wait_for: settled, timeout_ms: 3000",
+      "action: navigate, value: /x, wait_for: settled, timeout_ms: 3000",
+      "action: click, target: '#x', wait_for: settled, timeout_ms: 3000",
+    ]) {
+      expect(parseFlowFile(wrap(step)).steps[0]!.wait_for).toBe("settled");
+    }
+  });
+
+  it("still rejects an unknown wait_for kind", () => {
+    expect(() => parseFlowFile(wrap("action: wait, wait_for: settle"))).toThrow(FlowFileError);
+  });
+
   it("accepts a wait step whose wait_for selector takes the step timeout_ms", () => {
     const f = parseFlowFile(wrap("action: wait, wait_for: { selector: '#x' }, timeout_ms: 1500"));
     expect(f.steps[0]!.timeout_ms).toBe(1500);

@@ -65,6 +65,11 @@ class FakeDriver implements BrowserDriver {
   async waitForElementStable(s: string) {
     this.rec(`waitStable ${s}`);
   }
+  settledError?: Error;
+  async waitForSettled(t?: number) {
+    this.rec(`waitSettled${ms(t)}`);
+    if (this.settledError) throw this.settledError;
+  }
   async waitForSelector(s: string, t?: number) {
     this.rec(`waitSelector ${s}${t ? ` (${t}ms)` : ""}`);
   }
@@ -135,6 +140,74 @@ steps:
 `;
 
 describe("runFlow", () => {
+  describe("wait_for: settled", () => {
+    const flowWith = (step: string) =>
+      parseFlowFile(`name: s\nlocators: { b: '#b' }\nsteps:\n  - id: s1\n    ${step}\n`);
+
+    it("runs after the action and before success, with no timeout when the step sets none", async () => {
+      const d = new FakeDriver();
+      d.visible.add("#b");
+      await runFlow(
+        flowWith(
+          "action: click\n    target: $b\n    wait_for: settled\n    success: { visible: $b }",
+        ),
+        d,
+        { captureDocs: false },
+      );
+      expect(d.calls).toEqual(["click #b", "waitSettled"]);
+    });
+
+    it("hands the step's timeout_ms to the driver, on any action", async () => {
+      const d = new FakeDriver();
+      await runFlow(
+        flowWith("action: navigate\n    value: /x\n    wait_for: settled\n    timeout_ms: 2500"),
+        d,
+        {
+          captureDocs: false,
+        },
+      );
+      expect(d.calls).toEqual(["goto /x", "waitSettled [2500ms]"]);
+      const w = new FakeDriver();
+      await runFlow(flowWith("action: wait\n    wait_for: settled\n    timeout_ms: 900"), w, {
+        captureDocs: false,
+      });
+      expect(w.calls).toEqual(["waitSettled [900ms]"]);
+    });
+
+    it("halts with the settle message and a halt cause when the driver gives up", async () => {
+      const d = new FakeDriver();
+      d.settledError = new Error(
+        "settled: page did not settle within 500 ms after 7 poll(s): layout of the visible elements still changing",
+      );
+      await expect(
+        runFlow(flowWith("action: wait\n    wait_for: settled\n    timeout_ms: 500"), d, {
+          captureDocs: false,
+        }),
+      ).rejects.toThrow(
+        /\[page never settled: .*\] step "s1" \(wait\) failed at .*page did not settle within 500 ms/,
+      );
+    });
+
+    it("a driver without waitForSettled halts instead of skipping the wait", async () => {
+      const d = new FakeDriver();
+      (d as { waitForSettled?: unknown }).waitForSettled = undefined;
+      await expect(
+        runFlow(flowWith("action: wait\n    wait_for: settled"), d, { captureDocs: false }),
+      ).rejects.toThrow(/can't run wait_for: settled.*driver has no waitForSettled/);
+    });
+
+    it("an optional settled step that times out is skipped", async () => {
+      const d = new FakeDriver();
+      d.settledError = new Error("settled: page did not settle within 500 ms after 7 poll(s)");
+      const r = await runFlow(
+        flowWith("action: wait\n    wait_for: settled\n    optional: true"),
+        d,
+        { captureDocs: false },
+      );
+      expect(r.steps).toEqual([]);
+    });
+  });
+
   it("executes actions, applies waits, checks success, and emits annotations", async () => {
     const d = new FakeDriver();
     d.visible.add("#recap");

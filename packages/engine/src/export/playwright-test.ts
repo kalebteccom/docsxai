@@ -144,6 +144,13 @@ function showLines(target: string | null): string[] {
 function waitLines(wait: WaitSpec, step: Step, ids: Map<string, string>): string[] {
   if (wait === "network_idle") return [`await page.waitForLoadState("networkidle");`];
   if (wait === "load") return [`await page.waitForLoadState("load");`];
+  if (wait === "settled") {
+    // Fonts and network are what a generated spec can wait on without docsxai's in-page poll.
+    return [
+      `await page.waitForLoadState("networkidle"); // settled`,
+      `await page.evaluate(() => document.fonts.ready);`,
+    ];
+  }
   if (wait === "element_stable") {
     // Playwright actions auto-wait for element stability; approximate the standalone wait with a
     // visibility wait on the step target when there is one.
