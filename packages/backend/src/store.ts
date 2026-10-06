@@ -54,9 +54,12 @@ export interface BackendStore {
   listWorkspaces(): Workspace[];
   getWorkspace(id: string): Workspace;
 
-  createProject(wsId: string, name: string): Project;
+  /** `appUrl` is the caller's to validate (see `appUrlProblem`). */
+  createProject(wsId: string, name: string, appUrl?: string): Project;
   listProjects(wsId: string): Project[];
   getProject(wsId: string, projectId: string): Project;
+  /** Set the project's `app_url`, or clear it with null. The caller validates it (see `appUrlProblem`). */
+  setProjectAppUrl(wsId: string, projectId: string, appUrl: string | null): Project;
 
   createRevision(wsId: string, projectId: string, kind: RevisionKind, author: string): Revision;
   listRevisions(wsId: string, projectId: string): Revision[];
@@ -138,7 +141,7 @@ export class MemoryStore implements BackendStore {
   }
 
   // --- projects ---
-  createProject(wsId: string, name: string): Project {
+  createProject(wsId: string, name: string, appUrl?: string): Project {
     this.getWorkspace(wsId);
     const p: ProjectEntry = {
       id: randomUUID(),
@@ -146,6 +149,7 @@ export class MemoryStore implements BackendStore {
       name,
       created_at: now(),
       head_revision_id: null,
+      ...(appUrl !== undefined ? { app_url: appUrl } : {}),
       revisions: [],
       runs: [],
     };
@@ -160,6 +164,12 @@ export class MemoryStore implements BackendStore {
   }
   getProject(wsId: string, projectId: string): Project {
     return this.publicProject(this.projectEntry(wsId, projectId));
+  }
+  setProjectAppUrl(wsId: string, projectId: string, appUrl: string | null): Project {
+    const p = this.projectEntry(wsId, projectId);
+    if (appUrl === null) delete p.app_url;
+    else p.app_url = appUrl;
+    return this.publicProject(p);
   }
 
   // --- revisions ---

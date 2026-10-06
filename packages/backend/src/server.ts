@@ -11,6 +11,7 @@ import {
   API_VERSION,
   API_VERSION_HEADER,
   BLOB_BODY_LIMIT_BYTES,
+  appUrlProblem,
   isAuthCacheEnvelope,
   parseWebhookConfig,
 } from "./api.js";
@@ -175,9 +176,32 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
           return sendJson(res, 200, store.getWorkspace(ws!));
         case "/v1/workspaces/:ws/projects":
           if (method === "GET") return sendJson(res, 200, store.listProjects(ws!));
-          return sendJson(res, 201, store.createProject(ws!, reqName(await readJsonBody(req))));
-        case "/v1/workspaces/:ws/projects/:project":
-          return sendJson(res, 200, store.getProject(ws!, project!));
+          {
+            const body = await readJsonBody(req);
+            const name = reqName(body);
+            const appUrl = (body as { app_url?: unknown }).app_url;
+            if (appUrl !== undefined) {
+              const problem = appUrlProblem(appUrl);
+              if (problem) return sendJson(res, 400, { error: "bad_request", message: problem });
+            }
+            return sendJson(res, 201, store.createProject(ws!, name, appUrl as string | undefined));
+          }
+        case "/v1/workspaces/:ws/projects/:project": {
+          if (method === "GET") return sendJson(res, 200, store.getProject(ws!, project!));
+          const body = (await readJsonBody(req)) as { app_url?: unknown } | undefined;
+          const appUrl = body?.app_url;
+          if (appUrl === undefined) {
+            return sendJson(res, 400, {
+              error: "bad_request",
+              message: "body requires { app_url: string | null }",
+            });
+          }
+          if (appUrl !== null) {
+            const problem = appUrlProblem(appUrl);
+            if (problem) return sendJson(res, 400, { error: "bad_request", message: problem });
+          }
+          return sendJson(res, 200, store.setProjectAppUrl(ws!, project!, appUrl as string | null));
+        }
         case "/v1/workspaces/:ws/projects/:project/revisions":
           if (method === "GET") return sendJson(res, 200, store.listRevisions(ws!, project!));
           {

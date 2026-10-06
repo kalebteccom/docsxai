@@ -34,15 +34,16 @@ stores only sha256 hashes of issued tokens.
 
 ### Workspaces and projects
 
-| Method | Path                                   | What it does                           |
-| ------ | -------------------------------------- | -------------------------------------- |
-| GET    | `/v1/health`                           | Liveness probe (no auth).              |
-| GET    | `/v1/workspaces`                       | List workspaces visible to the caller. |
-| POST   | `/v1/workspaces`                       | Create a workspace (`{ name }`).       |
-| GET    | `/v1/workspaces/:ws`                   | Get a workspace.                       |
-| GET    | `/v1/workspaces/:ws/projects`          | List projects in a workspace.          |
-| POST   | `/v1/workspaces/:ws/projects`          | Create a project (`{ name }`).         |
-| GET    | `/v1/workspaces/:ws/projects/:project` | Get a project (incl. head revision).   |
+| Method | Path                                   | What it does                                              |
+| ------ | -------------------------------------- | --------------------------------------------------------- |
+| GET    | `/v1/health`                           | Liveness probe (no auth).                                 |
+| GET    | `/v1/workspaces`                       | List workspaces visible to the caller.                    |
+| POST   | `/v1/workspaces`                       | Create a workspace (`{ name }`).                          |
+| GET    | `/v1/workspaces/:ws`                   | Get a workspace.                                          |
+| GET    | `/v1/workspaces/:ws/projects`          | List projects in a workspace.                             |
+| POST   | `/v1/workspaces/:ws/projects`          | Create a project (`{ name, app_url? }`).                  |
+| GET    | `/v1/workspaces/:ws/projects/:project` | Get a project (incl. head revision).                      |
+| PUT    | `/v1/workspaces/:ws/projects/:project` | Set or clear the app URL (`{ app_url: string \| null }`). |
 
 ```sh
 export BASE=http://127.0.0.1:4477   # e.g. docsxai-backend --port=4477
@@ -60,6 +61,8 @@ curl -s -X POST $BASE/v1/workspaces/6f51…/projects -H "$AUTH" -H "$VER" \
   -H "Content-Type: application/json" -d '{"name":"web-app"}'
 # {"id":"a90c…","workspace_id":"6f51…","name":"web-app","created_at":"…","head_revision_id":null}
 ```
+
+`app_url` is the base URL of the running app the project documents: an absolute `http:` or `https:` URL, at most 2048 characters, no embedded credentials. It is optional. A webhook run writes it to the workspace's `.docsxai.json` as `app_url`, so `docsxai run` has a base URL for relative `navigate` values. An invalid value gets `400 bad_request` with a message naming `app_url`. `PUT` with `{ "app_url": null }` clears it.
 
 ### Revisions and artifacts
 

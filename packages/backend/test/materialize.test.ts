@@ -136,6 +136,11 @@ describe("materializeDocPack", () => {
     expect(() => materializeDocPack(tmp, src)).toThrow(MaterializeError);
   });
 
+  it("refuses an app_url that is not an absolute http(s) URL", () => {
+    const { src } = seed({});
+    expect(() => materializeDocPack(tmp, src, { appUrl: "ftp://example.com" })).toThrow(/app_url/);
+  });
+
   it("refuses a flows payload without a files map", () => {
     const { src } = seed({ flows: { flows: [{ id: "checkout" }] } });
     expect(() => materializeDocPack(tmp, src)).toThrow(/no files map/);

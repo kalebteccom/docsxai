@@ -7,7 +7,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { RevisionArtifact } from "./api.js";
+import { appUrlProblem, type RevisionArtifact } from "./api.js";
 import { sha256Hex, type BackendStore } from "./store.js";
 
 /** The workspace config file the engine reads (`WORKSPACE_CONFIG_FILE` in the engine). */
@@ -139,6 +139,8 @@ export function materializeDocPack(
   fs.mkdirSync(path.join(root, "flows"), { recursive: true });
   fs.mkdirSync(path.join(root, "docs"), { recursive: true });
 
+  const appUrlIssue = opts.appUrl === undefined ? null : appUrlProblem(opts.appUrl);
+  if (appUrlIssue) throw new MaterializeError(appUrlIssue);
   const config = {
     schema: "docsxai/workspace@1",
     ...(opts.appUrl ? { app_url: opts.appUrl } : {}),

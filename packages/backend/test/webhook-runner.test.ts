@@ -90,13 +90,13 @@ describe("SpawnRunner", () => {
     }
   });
 
-  it("writes the configured app url into .docsxai.json", async () => {
-    const { store, job } = seed();
+  it("writes the project's app url into .docsxai.json", async () => {
+    const { store, ws, project, job } = seed();
+    store.setProjectAppUrl(ws.id, project.id, "http://localhost:3000");
     const runner = new SpawnRunner({
       store,
       engineBin: FAKE_BIN,
       strategy: okStrategy([]),
-      appUrl: "http://localhost:3000",
       keepWorkspace: true,
     });
     const outcome = await runner.executeRun(job);

@@ -45,11 +45,20 @@ export const ROUTES: readonly RouteSpec[] = [
   { method: "POST", path: "/v1/workspaces", summary: "Create a workspace ({ name })." },
   { method: "GET", path: "/v1/workspaces/:ws", summary: "Get a workspace." },
   { method: "GET", path: "/v1/workspaces/:ws/projects", summary: "List projects in a workspace." },
-  { method: "POST", path: "/v1/workspaces/:ws/projects", summary: "Create a project ({ name })." },
+  {
+    method: "POST",
+    path: "/v1/workspaces/:ws/projects",
+    summary: "Create a project ({ name, app_url? }).",
+  },
   {
     method: "GET",
     path: "/v1/workspaces/:ws/projects/:project",
     summary: "Get a project (incl. head revision).",
+  },
+  {
+    method: "PUT",
+    path: "/v1/workspaces/:ws/projects/:project",
+    summary: "Set or clear the project's app URL ({ app_url: string | null }).",
   },
   {
     method: "GET",
@@ -167,6 +176,34 @@ export interface Project {
   created_at: string;
   /** id of the most recent revision, or null if none yet. */
   head_revision_id: string | null;
+  /** Base URL of the running app the project documents (absolute http(s) URL); webhook runs write it to `.docsxai.json` as `app_url`. */
+  app_url?: string;
+}
+
+/** Longest accepted `app_url`. */
+export const MAX_APP_URL_LENGTH = 2048;
+
+/**
+ * Why `value` cannot be a project's `app_url`, or null when it can: a string of at most
+ * {@link MAX_APP_URL_LENGTH} characters that parses as an absolute `http:` or `https:` URL with a
+ * host and no embedded credentials.
+ */
+export function appUrlProblem(value: unknown): string | null {
+  if (typeof value !== "string" || value.length === 0) return "app_url must be a non-empty string";
+  if (value.length > MAX_APP_URL_LENGTH) {
+    return `app_url must be at most ${MAX_APP_URL_LENGTH} characters`;
+  }
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return "app_url must be an absolute http(s) URL";
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return "app_url must be an absolute http(s) URL";
+  }
+  if (url.username || url.password) return "app_url must not contain credentials";
+  return null;
 }
 
 export type RevisionKind = "calibrate" | "run" | "edit";

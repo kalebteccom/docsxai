@@ -27,6 +27,7 @@
     "GET /v1/workspaces/:ws/projects",
     "POST /v1/workspaces/:ws/projects",
     "GET /v1/workspaces/:ws/projects/:project",
+    "PUT /v1/workspaces/:ws/projects/:project",
     "GET /v1/workspaces/:ws/projects/:project/revisions",
     "POST /v1/workspaces/:ws/projects/:project/revisions",
     "GET /v1/workspaces/:ws/projects/:project/revisions/:rev",
@@ -58,9 +59,10 @@
         "workspace_id": "workspace_id: string",
         "name": "name: string",
         "created_at": "created_at: string",
-        "head_revision_id": "head_revision_id: string | null"
+        "head_revision_id": "head_revision_id: string | null",
+        "app_url": "app_url?: string"
       },
-      "optional": []
+      "optional": ["app_url"]
     },
     "Revision": {
       "members": {

@@ -72,8 +72,6 @@ export interface SpawnRunnerOptions {
   strategy?: (job: WebhookJob, outcome: RunOutcome, deps: StrategyDeps) => Promise<StrategyResult>;
   /** Extra deps threaded into the default strategy executor (fetch, token provider, API base). */
   strategyDeps?: StrategyDeps;
-  /** Base URL of the documented app, written to the workspace's `.docsxai.json` as `app_url`. */
-  appUrl?: string;
   /** Keep the materialized workspace dir for inspection instead of deleting it. */
   keepWorkspace?: boolean;
 }
@@ -87,12 +85,13 @@ export class SpawnRunner {
 
   /**
    * Pull the configured revision's artifacts into a fresh temp workspace dir, laid out the way
-   * `docsxai run <dir>` reads one (see {@link materializeDocPack}). The dir is removed again when
-   * a payload cannot be laid out.
+   * `docsxai run <dir>` reads one (see {@link materializeDocPack}), with the project's `app_url` in
+   * `.docsxai.json`. The dir is removed again when a payload cannot be laid out.
    */
   materializeWorkspace(job: WebhookJob): string {
     const { store, workRoot } = this.opts;
     const rev = store.getRevision(job.workspace_id, job.project_id, job.config.workspace_rev);
+    const { app_url: appUrl } = store.getProject(job.workspace_id, job.project_id);
     const dir = fs.mkdtempSync(path.join(workRoot ?? os.tmpdir(), "docsxai-webhook-"));
     try {
       materializeDocPack(
@@ -104,7 +103,7 @@ export class SpawnRunner {
           revisionId: rev.id,
           artifacts: rev.artifacts,
         },
-        this.opts.appUrl ? { appUrl: this.opts.appUrl } : {},
+        appUrl ? { appUrl } : {},
       );
       fs.writeFileSync(
         path.join(dir, "webhook-job.json"),

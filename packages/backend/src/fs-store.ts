@@ -80,7 +80,7 @@ export class FsStore implements BackendStore {
   }
 
   // --- projects ---
-  createProject(wsId: string, name: string): Project {
+  createProject(wsId: string, name: string, appUrl?: string): Project {
     this.getWorkspace(wsId);
     const meta: ProjectMetaFile = {
       id: randomUUID(),
@@ -88,6 +88,7 @@ export class FsStore implements BackendStore {
       name,
       created_at: now(),
       head_revision_id: null,
+      ...(appUrl !== undefined ? { app_url: appUrl } : {}),
       revision_ids: [],
     };
     this.writeJson(this.resolve("projects", meta.id, "meta.json"), meta);
@@ -111,6 +112,13 @@ export class FsStore implements BackendStore {
   }
   getProject(wsId: string, projectId: string): Project {
     return publicProject(this.projectMeta(wsId, projectId));
+  }
+  setProjectAppUrl(wsId: string, projectId: string, appUrl: string | null): Project {
+    const meta = this.projectMeta(wsId, projectId);
+    if (appUrl === null) delete meta.app_url;
+    else meta.app_url = appUrl;
+    this.writeJson(this.resolve("projects", projectId, "meta.json"), meta);
+    return publicProject(meta);
   }
 
   // --- revisions ---
