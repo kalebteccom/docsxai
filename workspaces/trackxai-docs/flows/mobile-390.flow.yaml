@@ -19,7 +19,9 @@ locators:
   loopback_text: ':text-matches("127[.]0[.]0[.]1|localhost", "i"), input[placeholder*="127.0.0.1" i], input[placeholder*="localhost" i], input[value*="127.0.0.1" i], input[value*="localhost" i] >> visible=true >> nth=0'
   list_gap_btn: button.row__gapsbtn >> nth=0
   filters: div.filters[role="group"]
+  assignment_chip: div.qbar--assignment button.chip
   group_toggle: button.grp__toggle >> nth=0
+  epics_display: div.qbar[aria-label="Display"]
   epic_row_first: a.erow >> nth=0
   epic_progress_first: span.eprogress >> nth=0
   epic_status: button.pill[aria-label^="Status:"]
@@ -35,7 +37,6 @@ locators:
   settings_rename_key: button.lrow__act >> nth=0
   tokens_config: section[aria-labelledby="connect-heading"] pre
   tokens_config_text: section[aria-labelledby="connect-heading"] pre code
-  tokens_copy: section[aria-labelledby="connect-heading"] button.button--quiet
   tokens_table_head: table.table th >> nth=0
   tokens_agent_cell: table.table td >> nth=1
   connect_pick_first: span.connect__client >> nth=0
@@ -62,7 +63,7 @@ steps:
   - id: board
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $page_title
         copy: The board shows every task as a card, grouped by status.
@@ -85,7 +86,7 @@ steps:
   - id: palette
     action: wait
     target: $palette_input
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $palette_input
         copy: Press / or Cmd+K on any page to search or run a command.
@@ -114,7 +115,7 @@ steps:
   - id: ticket
     action: wait
     target: $ticket_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $ticket_title
         copy: A task keeps its title, address and description in one place.
@@ -138,13 +139,16 @@ steps:
   - id: waiting
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     success:
       visible: $first_gap_slot
     annotations:
       - target: $page_title
         copy: Waiting on you lists the tasks blocked on your answer.
         arrow: right
+      - target: $first_gap_slot
+        copy: Answer an open gap on a row without leaving the list.
+        arrow: top
   - id: list-open
     action: navigate
     value: /w/acme-demo
@@ -164,10 +168,13 @@ steps:
   - id: list
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $filters
         copy: Filter the list, or add a filter on any field.
+        arrow: bottom
+      - target: $assignment_chip
+        copy: Narrow the list by who holds each task.
         arrow: bottom
       - target: $list_gap_btn
         copy: A gap count means an agent is waiting on you. Open it to answer.
@@ -191,7 +198,7 @@ steps:
   - id: backlog
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $group_toggle
         copy: Tasks group by epic. Collapse a group to skim the rest.
@@ -215,8 +222,11 @@ steps:
   - id: epics
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
+      - target: $epics_display
+        copy: Change how epics are grouped and sorted.
+        arrow: bottom
       - target: $epic_progress_first
         copy: The bar counts tasks done and tasks in progress.
         arrow: top
@@ -242,7 +252,7 @@ steps:
   - id: epic
     action: wait
     target: $epic_status
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $epic_add_task
         copy: Add a task to this epic from here.
@@ -269,7 +279,7 @@ steps:
   - id: progress
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $progress_bar
         copy: "The bar splits every task by phase: done, in progress, waiting, claimed or open."
@@ -296,7 +306,7 @@ steps:
   - id: documents
     action: wait
     target: $docs_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $docs_table
         copy: Open a document to read it. Each one shows its version.
@@ -320,7 +330,7 @@ steps:
   - id: document
     action: wait
     target: $doc_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $doc_belongs
         copy: A document belongs to the workspace, an epic, a team or a project.
@@ -347,7 +357,7 @@ steps:
   - id: mine
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $mine_tabs
         copy: Claimed is what you hold, Reported what you filed, Leading the epics you lead.
@@ -374,7 +384,7 @@ steps:
   - id: settings
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $settings_key_input
         copy: The workspace key prefixes every task number, such as ACME-142.
@@ -405,11 +415,12 @@ steps:
   - id: agent-tokens
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     annotations:
-      - target: $tokens_copy
-        copy: Copy the whole block in one click.
-        arrow: right
+      - target: $tokens_config
+        copy: Your agent's MCP install snippet lives here. The button below copies it.
+        arrow: left
+        placement: { inside: true }
   - id: agent-tokens-show-url
     action: show
     target: $tokens_config_text
@@ -440,11 +451,12 @@ steps:
   - id: agent-tokens-issued
     action: wait
     target: $tokens_table_head
-    wait_for: element_stable
+    wait_for: settled
     annotations:
       - target: $tokens_agent_cell
-        copy: Each token belongs to one agent, so every write says which agent made it.
-        arrow: top
+        copy: Each token belongs to one agent.
+        arrow: bottom
+        placement: { side: bottom, max_width: 260 }
   - id: agent-tokens-issued-show-url
     action: show
     target: $tokens_config_text
@@ -471,7 +483,7 @@ steps:
   - id: connect
     action: wait
     target: $page_title
-    wait_for: element_stable
+    wait_for: settled
     success:
       visible: $connect_url
     annotations:
