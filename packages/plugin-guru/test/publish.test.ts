@@ -874,6 +874,28 @@ describe("guru publisher: manifest card", () => {
     );
   });
 
+  it("fails closed on a card read without its collection, and warns once per push", async () => {
+    const dir = await makeWorkspace();
+    const publisher = createGuruPublisher(LOOPBACK);
+    const projection = await projectDocPackToAdf({ workspaceDir: dir, options: PAGE_TREE });
+    const run1 = await publisher.publish(makeCtx(dir, projection, capture().log));
+    expect(run1.pages).toHaveLength(3);
+    const pageIds = run1.pages.map((p) => p.id);
+    for (const id of pageIds) delete (server.cards.get(id) as { collection?: unknown }).collection;
+
+    const { log, lines } = capture();
+    const run2 = await publisher.publish(makeCtx(dir, projection, log, { force: true }));
+    expect(run2.pages.map((p) => p.action)).toEqual(["created", "created", "created"]);
+    for (const page of run2.pages) expect(pageIds).not.toContain(page.id);
+    const warnings = lines.filter((l) => l.includes("without a collection"));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/cannot be verified as a page in collection coll-1/);
+    expect(warnings[0]).not.toContain(TOKEN);
+    expect(lines.filter((l) => l.includes("is not a page in collection"))).toHaveLength(0);
+    // The cards that were read without a collection are left as they were.
+    for (const id of pageIds) expect(server.cards.get(id)!.version).toBe(1);
+  });
+
   it("does not overwrite the manifest card when a page entry points at it", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
