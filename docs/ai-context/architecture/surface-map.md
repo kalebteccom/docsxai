@@ -152,6 +152,10 @@ Standalone stdio MCP server (`docsxai-mcp` bin) for any MCP-speaking host: calib
 
 First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins — the only sanctioned Confluence egress path (the engine emits ADF projections only). Repo-only (`private: true`).
 
+## `packages/plugin-sharepoint/` — `@docsxai/plugin-sharepoint`
+
+First-party publisher plugin (`sharepoint:push`): idempotent push of a doc pack as markdown files plus images into a SharePoint Online document library through Microsoft Graph, behind the `egress:graph.microsoft.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Repo-only (`private: true`).
+
 ## `packages/plugin-starlight/` — `@docsxai/plugin-starlight`
 
 First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter. Repo-only (`private: true`).

@@ -50,7 +50,7 @@ name: release
 #
 # Repo-only — `private: true`, never published by this workflow (excluded
 # below by the explicit allow-list AND by their private flags; both agree):
-#   - `@docsxai/mcp`, `@docsxai/plugin-confluence`,
+#   - `@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-sharepoint`,
 #     `@docsxai/plugin-starlight`, `@docsxai/website`
 
 on:
