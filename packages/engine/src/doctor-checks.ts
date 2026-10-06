@@ -371,6 +371,7 @@ export const KNOWN_DOCSX_ENV_VARS: ReadonlyArray<string> = [
   "DOCSX_OAUTH_AUTO_APPROVE",
   "DOCSX_WEBHOOK_SECRET",
   "DOCSX_OXIPNG_BIN",
+  "DOCSX_BACKEND_DENY_PRIVATE_APP_URL",
 ];
 
 export function checkEnv(env: NodeJS.ProcessEnv): DoctorCheck[] {

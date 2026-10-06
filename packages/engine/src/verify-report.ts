@@ -30,7 +30,9 @@ function escapeRegExp(text: string): string {
 /**
  * One pattern for a path under any of `roots`. Inside quotes or brackets the run goes to the
  * closing delimiter, spaces included. Outside them it goes to the next space, and across a space
- * only when the next word holds a separator (`/Users/me/My Projects/app`).
+ * when the next word holds a separator (`/Users/me/My Projects/app`) or starts with a capital or
+ * digit and does not follow sentence punctuation (`/Users/me/My Projects`, where nothing after the
+ * space tells the directory name from prose). A lowercase last word is left.
  */
 function rootedPathPattern(roots: string[]): RegExp {
   const alt = roots
@@ -38,7 +40,7 @@ function rootedPathPattern(roots: string[]): RegExp {
     .sort((a, b) => b.length - a.length || (a < b ? -1 : 1))
     .join("|");
   const inside = `(?<=["'\`(\\[<])(?:${alt})(?:[\\\\/][^"'\`<>()\\[\\]{}\\n]*|(?![\\w-]))`;
-  const outside = `(?<![\\w:/.~-])(?:${alt})(?:[\\\\/]${PATH_CHAR}*(?: +(?=${PATH_CHAR}*[\\\\/])${PATH_CHAR}+)*|(?![\\w-]))`;
+  const outside = `(?<![\\w:/.~-])(?:${alt})(?:[\\\\/]${PATH_CHAR}*(?: +(?:(?=${PATH_CHAR}*[\\\\/])|(?<![.,;:!?] )(?=[A-Z0-9]))${PATH_CHAR}+)*|(?![\\w-]))`;
   return new RegExp(`${inside}|${outside}`, "g");
 }
 

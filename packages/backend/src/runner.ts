@@ -10,6 +10,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { engineRunArgv } from "./engine-argv.js";
+import { denyPrivateAppUrl } from "./app-url.js";
+import { materializeDocPack } from "./materialize.js";
 import type { BackendStore } from "./store.js";
 import type { WebhookJob } from "./webhook.js";
 import {
@@ -82,23 +84,43 @@ export interface SpawnRunnerOptions {
 export class SpawnRunner {
   constructor(private readonly opts: SpawnRunnerOptions) {}
 
-  /** Pull the configured revision's artifacts into a fresh temp workspace dir. */
+  /**
+   * Pull the configured revision's artifacts into a fresh temp workspace dir, laid out the way
+   * `docsxai run <dir>` reads one (see {@link materializeDocPack}), with the project's `app_url` in
+   * `.docsxai.json`. The dir is removed again when a payload cannot be laid out.
+   */
   materializeWorkspace(job: WebhookJob): string {
     const { store, workRoot } = this.opts;
     const rev = store.getRevision(job.workspace_id, job.project_id, job.config.workspace_rev);
+    const { app_url: appUrl } = store.getProject(job.workspace_id, job.project_id);
     const dir = fs.mkdtempSync(path.join(workRoot ?? os.tmpdir(), "docsxai-webhook-"));
-    for (const slot of rev.artifacts) {
-      const payload = store.getArtifact(job.workspace_id, job.project_id, rev.id, slot);
-      fs.writeFileSync(path.join(dir, `${slot}.json`), JSON.stringify(payload, null, 2) + "\n");
+    try {
+      materializeDocPack(
+        dir,
+        {
+          store,
+          workspaceId: job.workspace_id,
+          projectId: job.project_id,
+          revisionId: rev.id,
+          artifacts: rev.artifacts,
+        },
+        {
+          ...(appUrl ? { appUrl } : {}),
+          denyPrivateAppUrl: denyPrivateAppUrl(this.opts.env ?? process.env),
+        },
+      );
+      fs.writeFileSync(
+        path.join(dir, "webhook-job.json"),
+        JSON.stringify(
+          { delivery_id: job.delivery_id, event: job.event, repo: job.repo, revision_id: rev.id },
+          null,
+          2,
+        ) + "\n",
+      );
+    } catch (e) {
+      fs.rmSync(dir, { recursive: true, force: true });
+      throw e;
     }
-    fs.writeFileSync(
-      path.join(dir, "webhook-job.json"),
-      JSON.stringify(
-        { delivery_id: job.delivery_id, event: job.event, repo: job.repo, revision_id: rev.id },
-        null,
-        2,
-      ) + "\n",
-    );
     return dir;
   }
 

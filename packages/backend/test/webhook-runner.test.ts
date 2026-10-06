@@ -11,7 +11,13 @@ import type { WebhookJob } from "../src/webhook.js";
 
 const FAKE_BIN = fileURLToPath(new URL("./fixtures/fake-engine.cjs", import.meta.url));
 
-const FLOWS = { flows: [{ id: "checkout", steps: 3 }] };
+const CHECKOUT_FLOW = `name: checkout
+steps:
+  - id: open
+    action: navigate
+    value: /checkout
+`;
+const FLOWS = { schema: "docsxai/flows@1", files: { "checkout.flow.yaml": CHECKOUT_FLOW } };
 
 function seed(config: Partial<WebhookConfig> = {}) {
   const store = new MemoryStore();
@@ -61,11 +67,16 @@ describe("SpawnRunner", () => {
       expect(outcome.ok).toBe(true);
       expect(outcome.exit_code).toBe(0);
       expect(outcome.summary).toContain("documented 3 flows");
-      // The fake engine saw the materialized workspace (flows.json present, marker written).
-      const flowsOnDisk = JSON.parse(
-        fs.readFileSync(path.join(outcome.workspace_dir, "flows.json"), "utf8"),
-      );
-      expect(flowsOnDisk).toEqual(FLOWS);
+      // The fake engine saw an engine-shaped workspace (flows/<name>.flow.yaml, .docsxai.json,
+      // docs/) and wrote its marker.
+      expect(
+        fs.readFileSync(path.join(outcome.workspace_dir, "flows", "checkout.flow.yaml"), "utf8"),
+      ).toBe(CHECKOUT_FLOW);
+      expect(fs.existsSync(path.join(outcome.workspace_dir, "flows.json"))).toBe(false);
+      expect(fs.statSync(path.join(outcome.workspace_dir, "docs")).isDirectory()).toBe(true);
+      expect(
+        JSON.parse(fs.readFileSync(path.join(outcome.workspace_dir, ".docsxai.json"), "utf8")),
+      ).toMatchObject({ schema: "docsxai/workspace@1" });
       expect(fs.existsSync(path.join(outcome.workspace_dir, "fake-run.json"))).toBe(true);
       expect(calls).toEqual([{ workspace_dir: outcome.workspace_dir, ok: true }]);
 
@@ -74,6 +85,25 @@ describe("SpawnRunner", () => {
       expect(runs[0]).toMatchObject({ ok: true, revision_id: rev.id });
       expect(runs[0]!.summary).toContain("[webhook push d-1]");
       expect(runs[0]!.summary).toContain("fake: noted");
+    } finally {
+      fs.rmSync(outcome.workspace_dir, { recursive: true, force: true });
+    }
+  });
+
+  it("writes the project's app url into .docsxai.json", async () => {
+    const { store, ws, project, job } = seed();
+    store.setProjectAppUrl(ws.id, project.id, "http://localhost:3000");
+    const runner = new SpawnRunner({
+      store,
+      engineBin: FAKE_BIN,
+      strategy: okStrategy([]),
+      keepWorkspace: true,
+    });
+    const outcome = await runner.executeRun(job);
+    try {
+      expect(
+        JSON.parse(fs.readFileSync(path.join(outcome.workspace_dir, ".docsxai.json"), "utf8")),
+      ).toMatchObject({ app_url: "http://localhost:3000" });
     } finally {
       fs.rmSync(outcome.workspace_dir, { recursive: true, force: true });
     }

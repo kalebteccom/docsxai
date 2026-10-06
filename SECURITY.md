@@ -91,6 +91,7 @@ Reports against the following are in scope:
 - **Loopback escape** — the backend defaults to loopback binding; any
   default configuration that exposes it on a non-loopback interface
   unintentionally is in scope.
+- **Backend `app_url` target filter** — a project's `app_url` is the address a webhook run points the engine at. The backend always refuses link-local and cloud-metadata hosts (`169.254.0.0/16`, `fe80::/10`, `fd00:ec2::254`, `100.100.100.200`, `metadata.google.internal`, `instance-data`), in any spelling the URL parser normalises (decimal, hex or octal IPv4, IPv4-mapped IPv6, trailing dot), and with `DOCSX_BACKEND_DENY_PRIVATE_APP_URL=1` also loopback, RFC 1918, CGNAT and unique-local hosts. The check is on the host as written; DNS names are not resolved. A way to set an `app_url` that reaches a refused address is in scope.
 - **Plugin manifest trust bypass** — any path through the Claude Code
   plugin that escalates beyond the declared plugin permissions.
 

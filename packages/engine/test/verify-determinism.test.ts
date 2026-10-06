@@ -269,6 +269,11 @@ describe("halt messages in the report", () => {
     ["open '/Users/me/My Projects/app/a b.png' failed", "open '<path>' failed"],
     ['open "/home/ci/work dir/a b.png" failed', 'open "<path>" failed'],
     ["(halt screenshot: /Users/me/My Docs/f/halts/open.png)", "(halt screenshot: <path>)"],
+    ["cannot open /Users/me/My Projects", "cannot open <path>"],
+    ["reading /Users/me/My Projects now", "reading <path> now"],
+    ["in /Users/me/My Projects: ENOENT", "in <path>: ENOENT"],
+    ["at /home/ci/Google Drive Backups", "at <path>"],
+    ["wrote /tmp/out. Retrying later", "wrote <path>. Retrying later"],
   ])("scrubs a path under a known root to the end of its token run: %j", (message, expected) => {
     expect(scrubHaltMessage(message)).toBe(expected);
   });
@@ -283,6 +288,14 @@ describe("halt messages in the report", () => {
       "wrote <path>",
     );
     expect(scrubHaltMessage("in /srv/work space", roots)).toBe("in <path>");
+  });
+
+  it("scrubs a capitalised directory with a space under a root the caller names", () => {
+    const roots = ["/Volumes/Work"];
+    expect(scrubHaltMessage("open /Volumes/Work/My Projects", roots)).toBe("open <path>");
+    expect(scrubHaltMessage("open /Volumes/Work/My Projects/a.png now", roots)).toBe(
+      "open <path> now",
+    );
   });
 
   it("leaves lookalikes of a known root alone", () => {

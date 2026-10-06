@@ -32,14 +32,18 @@ function sizeLabel(maxBytes: number): string {
  * the first check is refused too.
  */
 export async function readRegularFile(file: string, maxBytes: number): Promise<Buffer> {
-  if ((await fs.lstat(file)).isSymbolicLink()) {
-    throw new UnsafeFileError(file, "is a symlink");
-  }
+  const first = await fs.lstat(file);
+  if (first.isSymbolicLink()) throw new UnsafeFileError(file, "is a symlink");
+  // A FIFO would block the open below until a writer shows up, so it is refused here.
+  if (!first.isFile()) throw new UnsafeFileError(file, "is not a regular file");
   let handle: fs.FileHandle;
   try {
     handle = await fs.open(
       file,
-      constants.O_RDONLY | ((constants.O_NOFOLLOW as number | undefined) ?? 0),
+      constants.O_RDONLY |
+        ((constants.O_NOFOLLOW as number | undefined) ?? 0) |
+        // A FIFO swapped in after the lstat opens without waiting; the fstat below refuses it.
+        ((constants.O_NONBLOCK as number | undefined) ?? 0),
     );
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === "ELOOP")
@@ -52,7 +56,19 @@ export async function readRegularFile(file: string, maxBytes: number): Promise<B
     if (stat.size > maxBytes) {
       throw new UnsafeFileError(file, `is larger than ${sizeLabel(maxBytes)}`);
     }
-    return await handle.readFile();
+    // The file can grow after the fstat; the cap holds for the bytes actually read.
+    const chunks: Buffer[] = [];
+    let total = 0;
+    for (;;) {
+      const chunk = Buffer.allocUnsafe(Math.min(1024 * 1024, maxBytes + 1 - total));
+      const { bytesRead } = await handle.read(chunk, 0, chunk.length, null);
+      if (bytesRead === 0) break;
+      total += bytesRead;
+      if (total > maxBytes)
+        throw new UnsafeFileError(file, `is larger than ${sizeLabel(maxBytes)}`);
+      chunks.push(chunk.subarray(0, bytesRead));
+    }
+    return Buffer.concat(chunks, total);
   } finally {
     await handle.close();
   }

@@ -25,6 +25,8 @@ export interface Project {
   name: string;
   created_at: string;
   head_revision_id: string | null;
+  /** Base URL of the running app the project documents; webhook runs use it as the workspace `app_url`. */
+  app_url?: string;
 }
 
 export interface Revision {

@@ -45,11 +45,20 @@ export const ROUTES: readonly RouteSpec[] = [
   { method: "POST", path: "/v1/workspaces", summary: "Create a workspace ({ name })." },
   { method: "GET", path: "/v1/workspaces/:ws", summary: "Get a workspace." },
   { method: "GET", path: "/v1/workspaces/:ws/projects", summary: "List projects in a workspace." },
-  { method: "POST", path: "/v1/workspaces/:ws/projects", summary: "Create a project ({ name })." },
+  {
+    method: "POST",
+    path: "/v1/workspaces/:ws/projects",
+    summary: "Create a project ({ name, app_url? }).",
+  },
   {
     method: "GET",
     path: "/v1/workspaces/:ws/projects/:project",
     summary: "Get a project (incl. head revision).",
+  },
+  {
+    method: "PUT",
+    path: "/v1/workspaces/:ws/projects/:project",
+    summary: "Set or clear the project's app URL ({ app_url: string | null }).",
   },
   {
     method: "GET",
@@ -167,6 +176,8 @@ export interface Project {
   created_at: string;
   /** id of the most recent revision, or null if none yet. */
   head_revision_id: string | null;
+  /** Base URL of the running app the project documents (absolute http(s) URL); webhook runs write it to `.docsxai.json` as `app_url`. */
+  app_url?: string;
 }
 
 export type RevisionKind = "calibrate" | "run" | "edit";
