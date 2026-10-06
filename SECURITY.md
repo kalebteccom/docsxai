@@ -156,7 +156,7 @@ or match an operator-supplied origin), and it caps request bodies at 1 MiB, conc
 minutes. It refuses to start without `--workspace-root` and confines every path a tool receives to
 that directory, symlinks resolved. Refusals return a bare status code with no detail. It does not rate-limit failed tokens. A
 holder of the token can call every tool the server exposes, including `run_flows`, `push_pack` and
-`pull_pack`, inside the workspace root and with the server process's environment.
+`pull_pack`, inside the workspace root and with the server process's environment. Over HTTP, `run_flows` and `diagnose_halt` refuse `cdp`, `run_flows` refuses a `baseUrl` that is not an http(s) URL or whose host is or resolves to a refused address (the engine's address rules), and every browser the tools start runs with the engine request guard on; over stdio none of that applies.
 
 ## Plugin trust model
 

@@ -72,6 +72,7 @@ What the server enforces:
   that omits `workspace` uses `--workspace`, then the root itself. `..` and links that point out of
   the root are refused. Paths inside a workspace that a flow or config names are not re-checked, so
   keep the root free of workspaces you do not trust. stdio is unchanged.
+- **Browser tools.** Over HTTP, `run_flows` and `diagnose_halt` refuse `cdp`, `run_flows` refuses a `baseUrl` (or a workspace `app_url`) that is not an http(s) URL or whose host is, or resolves to, a link-local or cloud-metadata address (and, with `DOCSX_EGRESS_DENY_PRIVATE` on, a loopback or private one), and every browser a tool starts gets the engine's request guard (`DOCSX_EGRESS_GUARD=0` switches it off). The refusal message names no address. stdio is unchanged.
 - **Token.** Required, at least 32 printable ASCII characters with at least 8 distinct ones. It is
   read from `DOCSX_MCP_TOKEN` or `--token-file`, never from an argument (`--token ...` is refused
   without echoing it), compared in constant time, and never logged. A token file that group or

@@ -10,6 +10,7 @@ import {
   type DiagnoseReport,
 } from "@docsxai/engine";
 import { z } from "zod";
+import { rejectCdpOverHttp } from "../http-egress.js";
 import { defineTool, fail, loadMergedFlow, ok, requireWorkspace } from "../shared.js";
 
 export const diagnoseHaltTool = defineTool({
@@ -34,6 +35,7 @@ export const diagnoseHaltTool = defineTool({
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);
+    rejectCdpOverHttp(args.cdp, ctx);
     const flow = await loadMergedFlow(ws, args.flow);
     const step = flow.steps.find((s) => s.id === args.step);
     if (!step) {

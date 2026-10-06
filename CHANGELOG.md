@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Security
+
+- **MCP HTTP transport: `cdp` and `baseUrl` confined.** `run_flows` and `diagnose_halt` passed `cdp` straight to `connectOverCDP`, and `run_flows` took any `baseUrl`, so an HTTP client could attach to a browser on the server's host or point a run at a metadata address. With `serve --http`, `cdp` is refused, `baseUrl` (and a workspace `app_url`) must be an http(s) URL whose host passes the engine's address rules, resolved the way the request guard resolves it, and every browser a tool starts gets the request guard (`DOCSX_EGRESS_GUARD=0` switches it off; `DOCSX_EGRESS_DENY_PRIVATE` adds the private ranges). stdio is unchanged. `@docsxai/engine` now exports the `egress-guard` module (`requestProblem`, `envFlagOn`, `envFlagOff` and the rest).
+
 ## [0.3.0-rc.1] - 2026-10-06
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`.
