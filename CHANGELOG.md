@@ -12,6 +12,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`upload` paths: hidden and reserved files refused.** The upload confinement allowed `.auth/<role>.json` (a captured storage state), `.docsxai.json` and `webhook-job.json`, which are inside the workspace. A value with any segment that starts with a dot, or that names `webhook-job.json` (any case), is now refused by the driver and when the backend materialises a revision, and the driver applies the same rule to the real path of a symlink's target. The two copies of the rule stay in step through the parity test.
 - **MCP HTTP transport: `cdp` and `baseUrl` confined.** `run_flows` and `diagnose_halt` passed `cdp` straight to `connectOverCDP`, and `run_flows` took any `baseUrl`, so an HTTP client could attach to a browser on the server's host or point a run at a metadata address. With `serve --http`, `cdp` is refused, `baseUrl` (and a workspace `app_url`) must be an http(s) URL whose host passes the engine's address rules, resolved the way the request guard resolves it, and every browser a tool starts gets the request guard (`DOCSX_EGRESS_GUARD=0` switches it off; `DOCSX_EGRESS_DENY_PRIVATE` adds the private ranges). stdio is unchanged. `@docsxai/engine` now exports the `egress-guard` module (`requestProblem`, `envFlagOn`, `envFlagOff` and the rest).
 
+### Added
+
+- **Sample repo for the CI recipes.** `examples/ci/sample-repo/` is a minimal workspace (flow, committed doc pack, committed baseline, `pack.json`) built from existing engine and viewer fixtures, and a test runs each recipe's `run --verify-determinism` and `diff` lines against it, plus `pack` and `pack --check`. The diff and pack steps need no browser; the determinism step skips without Chromium.
+
 ## [0.3.0-rc.1] - 2026-10-06
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`.

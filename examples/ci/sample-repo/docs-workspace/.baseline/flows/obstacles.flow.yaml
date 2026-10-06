@@ -1,0 +1,18 @@
+# Fixture flow for the obstacles keystone (runs against test/fixtures/toy-site/obstacles.html).
+# One halo on a button that has text on its left and a link on its right.
+name: obstacles
+environment:
+  viewport: { width: 1000, height: 700 }
+locators:
+  share_button: "#share"
+steps:
+  - id: open-page
+    action: navigate
+    value: obstacles.html
+    wait_for: load
+  - id: share
+    action: hover
+    target: $share_button
+    annotation:
+      copy: "Share the page from here"
+      arrow: top-right
