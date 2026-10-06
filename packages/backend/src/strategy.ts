@@ -10,6 +10,7 @@ import type { ChildProcess } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { RENDER_OUT_DIR, engineRenderArgv } from "./engine-argv.js";
 import type { BackendStore } from "./store.js";
 import type { WebhookJob } from "./webhook.js";
 
@@ -176,13 +177,11 @@ async function viewerRefresh(
     return viewerRefresh(job, run, { ...deps, spawnImpl: spawn });
   }
   const bin = deps.engineBin ?? "docsxai";
-  const outDir = path.join(run.workspace_dir, "viewer");
-  const { code, output } = await spawnCapture(
-    spawnImpl,
-    bin,
-    ["render", "--workspace", run.workspace_dir, "--out", outDir],
-    { env: deps.env ?? process.env, cwd: run.workspace_dir },
-  );
+  const outDir = path.join(run.workspace_dir, RENDER_OUT_DIR);
+  const { code, output } = await spawnCapture(spawnImpl, bin, engineRenderArgv(run.workspace_dir), {
+    env: deps.env ?? process.env,
+    cwd: run.workspace_dir,
+  });
   if (code !== 0) {
     return {
       strategy: "viewer-refresh",

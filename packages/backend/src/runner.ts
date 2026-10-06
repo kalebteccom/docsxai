@@ -9,6 +9,7 @@ import { createRequire } from "node:module";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { engineRunArgv } from "./engine-argv.js";
 import type { BackendStore } from "./store.js";
 import type { WebhookJob } from "./webhook.js";
 import {
@@ -111,15 +112,10 @@ export class SpawnRunner {
     const started = Date.now();
     let outcome: RunOutcome;
     try {
-      const { code, output } = await spawnCapture(
-        spawnImpl,
-        bin,
-        ["run", "--workspace", workspaceDir],
-        {
-          env,
-          cwd: workspaceDir,
-        },
-      );
+      const { code, output } = await spawnCapture(spawnImpl, bin, engineRunArgv(workspaceDir), {
+        env,
+        cwd: workspaceDir,
+      });
       const lastLine = output.trim().split("\n").filter(Boolean).pop() ?? "";
       outcome = {
         ok: code === 0,
