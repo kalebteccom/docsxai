@@ -1,0 +1,62 @@
+{
+  "schema": "docsxai/verify-determinism@1",
+  "emptyReport": {
+    "schema": "docsxai/verify-determinism@1",
+    "runs": 2,
+    "flows": ["a", "b"],
+    "status": "identical",
+    "artefacts_compared": 0,
+    "first": null,
+    "differences": [],
+    "halts": [],
+    "promoted": true
+  },
+  "statuses": ["identical", "differing", "halted"],
+  "differenceKinds": ["missing", "extra", "json", "png", "text", "bytes"],
+  "runs": {
+    "min": 2,
+    "max": 5,
+    "default": 2
+  },
+  "scratchDir": ".docsxai-verify",
+  "types": {
+    "VerifyReport": {
+      "members": {
+        "schema": "schema: \"docsxai/verify-determinism@1\"",
+        "runs": "runs: number",
+        "flows": "flows: string[]",
+        "status": "status: VerifyStatus",
+        "artefacts_compared": "artefacts_compared: number",
+        "first": "first: ArtefactDifference | null",
+        "differences": "differences: ArtefactDifference[]",
+        "halts": "halts: VerifyHalt[]",
+        "promoted": "promoted: boolean"
+      },
+      "optional": []
+    },
+    "VerifyHalt": {
+      "members": {
+        "run": "run: number",
+        "flow": "flow: string",
+        "step": "step: string | null",
+        "message": "message: string"
+      },
+      "optional": []
+    },
+    "ArtefactDifference": {
+      "members": {
+        "path": "path: string",
+        "run": "run: number",
+        "kind": "kind: DifferenceKind",
+        "hint": "hint: string",
+        "size": "size?: { a: number; b: number }",
+        "json_path": "json_path?: string",
+        "region": "region?: DriftRegion",
+        "changed_pixel_count": "changed_pixel_count?: number",
+        "dimension_change": "dimension_change?: DimensionChange",
+        "line": "line?: number"
+      },
+      "optional": ["changed_pixel_count", "dimension_change", "json_path", "line", "region", "size"]
+    }
+  }
+}

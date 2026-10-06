@@ -31,11 +31,12 @@ import {
   BoundingBox,
   FlowFile,
   LocatorManifest,
+  MAX_MATRIX_VARIANTS,
   RevisionMeta,
   StyleArtifact,
   VIEWPORT_PRESETS,
 } from "../../src/doc-pack.js";
-import { parseFlowFile, serializeFlowFile } from "../../src/flow-file.js";
+import { expandFlowVariants, parseFlowFile, serializeFlowFile } from "../../src/flow-file.js";
 import { OBSTACLE_LIMIT, OBSTACLE_RADIUS } from "../../src/obstacles.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -57,6 +58,7 @@ describe("doc-pack schema contract", () => {
         viewportPresets: VIEWPORT_PRESETS,
         obstacleRadius: OBSTACLE_RADIUS,
         obstacleLimit: OBSTACLE_LIMIT,
+        maxMatrixVariants: MAX_MATRIX_VARIANTS,
       },
     });
   });
@@ -250,6 +252,88 @@ describe("flow-file behaviour contract", () => {
   });
 });
 
+// A matrix flow: 2 locales x 2 color schemes x 2 viewports. The `skip` drops `tap` from the wide
+// variants, and `copy_by_locale` gives Spanish variants their own call-out text.
+const MATRIX_FLOW = `
+name: matrix
+matrix:
+  locales: [en, es-ES]
+  color_schemes: [light, dark]
+  viewports:
+    - mobile
+    - { name: wide, width: 1600, height: 900 }
+locators:
+  btn: "#btn"
+steps:
+  - id: open
+    action: navigate
+    value: /start
+  - id: tap
+    action: click
+    target: $btn
+    skip: { viewport: [wide] }
+    annotation:
+      copy: Tap here
+      copy_by_locale: { es: Toca aquí }
+`;
+
+describe("flow matrix behaviour contract", () => {
+  const variants = () => expandFlowVariants(parseFlowFile(MATRIX_FLOW, "matrix"), "matrix");
+  const byId = (id: string) => variants().find((v) => v.id === id)!;
+
+  it("expands to one variant per combination, locales outermost, ids `<locale>.<scheme>.<viewport>`", () => {
+    expect(variants().map((v) => v.id)).toEqual([
+      "en.light.mobile",
+      "en.light.wide",
+      "en.dark.mobile",
+      "en.dark.wide",
+      "es-ES.light.mobile",
+      "es-ES.light.wide",
+      "es-ES.dark.mobile",
+      "es-ES.dark.wide",
+    ]);
+  });
+
+  it("overrides `environment` on the axes the matrix names and records the variant", () => {
+    const v = byId("es-ES.dark.mobile");
+    expect(v.flow.matrix).toBeUndefined();
+    expect(v.flow.environment).toEqual({
+      locale: "es-ES",
+      color_scheme: "dark",
+      viewport: { width: 390, height: 844 },
+    });
+    expect(v.info).toEqual({
+      id: "es-ES.dark.mobile",
+      locale: "es-ES",
+      color_scheme: "dark",
+      viewport: { name: "mobile", width: 390, height: 844 },
+    });
+  });
+
+  it("applies `skip` per variant and resolves `copy_by_locale` by tag, then language, then `copy`", () => {
+    expect(byId("en.light.wide").flow.steps.map((s) => s.id)).toEqual(["open"]);
+    expect(byId("es-ES.light.mobile").flow.steps[1]!.annotation?.copy).toBe("Toca aquí");
+    expect(byId("en.light.mobile").flow.steps[1]!.annotation?.copy).toBe("Tap here");
+  });
+
+  it("gives a flow without a matrix a single variant with no id", () => {
+    const [only, ...rest] = expandFlowVariants(parseFlowFile(MINIMAL_FLOW));
+    expect(rest).toEqual([]);
+    expect(only).toMatchObject({ id: null, info: null });
+  });
+
+  it("rejects `only` and `skip` without a matrix, and a matrix with no axis", () => {
+    expect(() =>
+      parseFlowFile(
+        "name: f\nsteps:\n  - id: s\n    action: wait\n    only: { viewport: [mobile] }\n",
+      ),
+    ).toThrow(/needs a `matrix`/);
+    expect(() =>
+      parseFlowFile("name: f\nmatrix: {}\nsteps:\n  - id: s\n    action: wait\n"),
+    ).toThrow(/at least one of/);
+  });
+});
+
 describe("annotations.json behaviour contract", () => {
   const record = {
     step: "submit",
@@ -266,6 +350,20 @@ describe("annotations.json behaviour contract", () => {
   it("accepts a record that sets every documented key", () => {
     const file = { schema: "docsxai/annotations@1", flow: "f", annotations: [record] };
     expect(AnnotationsFile.safeParse(file).success).toBe(true);
+  });
+
+  it("accepts the `variant` a matrix run records, and rejects an unknown key in it", () => {
+    const variant = {
+      id: "en.dark.mobile",
+      locale: "en",
+      color_scheme: "dark",
+      viewport: { name: "mobile", width: 390, height: 844 },
+    };
+    const file = { schema: "docsxai/annotations@1", flow: "f", variant, annotations: [] };
+    expect(AnnotationsFile.safeParse(file).success).toBe(true);
+    expect(
+      AnnotationsFile.safeParse({ ...file, variant: { ...variant, surprise: 1 } }).success,
+    ).toBe(false);
   });
 
   it("rejects another schema id and an unknown record key", () => {

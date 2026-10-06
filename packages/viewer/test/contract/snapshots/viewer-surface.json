@@ -2,7 +2,9 @@
   "usage": [
     "docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...",
     "docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]",
-    "docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]..."
+    "docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...",
+    "docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]",
+    "docsxai-viewer drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]"
   ],
   "burnReport": {
     "schema": "docsxai/burn-report@1",
@@ -101,8 +103,98 @@
       "optional": []
     },
     "NudgeOffset": {
-      "members": { "x": "x: number", "y": "y: number" },
+      "members": {
+        "x": "x: number",
+        "y": "y: number"
+      },
       "optional": []
     }
+  },
+  "pack": {
+    "schema": "docsxai/screens-pack@2",
+    "manifestFile": "manifest.json",
+    "configSchema": "docsxai/pack-config@1",
+    "configFile": "pack.json",
+    "convertsFrom": ["docsxai/screens-pack@1", "docsxai/screens-manifest@1"],
+    "defaults": {
+      "publicPrefix": "/screens",
+      "driftThresholdPct": 0.5
+    },
+    "oxipngBinEnv": "DOCSX_OXIPNG_BIN",
+    "grammar": {
+      "id": "^[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "idMax": 64,
+      "locale": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,2}$",
+      "theme": "^[a-z][a-z0-9-]{0,23}$",
+      "viewport": "^[1-9][0-9]{2,3}$",
+      "hash8": "^[0-9a-f]{8}$"
+    },
+    "types": {
+      "ScreensPack": {
+        "members": {
+          "schema": "schema: typeof SCREENS_PACK_SCHEMA",
+          "generated_for": "generated_for?: string",
+          "flows": "flows: Record<string, PackFlow>"
+        },
+        "optional": ["generated_for"]
+      },
+      "PackFlow": {
+        "members": {
+          "title": "title?: LocalizedText",
+          "steps": "steps: Record<string, PackStep>"
+        },
+        "optional": ["title"]
+      },
+      "PackStep": {
+        "members": {
+          "caption": "caption?: LocalizedText",
+          "alt": "alt: LocalizedText",
+          "variants": "variants: Record<string, PackVariant>"
+        },
+        "optional": ["caption"]
+      },
+      "PackVariant": {
+        "members": {
+          "src": "src: string",
+          "width": "width: number",
+          "height": "height: number",
+          "bytes": "bytes: number",
+          "callouts": "callouts: PackCallout[]"
+        },
+        "optional": []
+      },
+      "PackCallout": {
+        "members": {
+          "index": "index: number",
+          "copy": "copy: string",
+          "bbox": "bbox?: BoundingBox"
+        },
+        "optional": ["bbox"]
+      },
+      "DriftReport": {
+        "members": {
+          "compared": "compared: number",
+          "failing": "failing: number",
+          "thresholdPct": "thresholdPct: number",
+          "entries": "entries: DriftEntry[]",
+          "text": "text: string"
+        },
+        "optional": []
+      },
+      "DriftEntry": {
+        "members": {
+          "id": "id: string",
+          "status": "status: DriftStatus",
+          "failing": "failing: boolean",
+          "pct": "pct?: number",
+          "region": "region?: BoundingBox",
+          "from": "from?: Size",
+          "to": "to?: Size",
+          "detail": "detail?: string"
+        },
+        "optional": ["detail", "from", "pct", "region", "to"]
+      }
+    },
+    "driftStatuses": ["new", "missing", "resized", "changed", "broken"]
   }
 }

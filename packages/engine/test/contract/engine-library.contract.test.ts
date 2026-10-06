@@ -38,10 +38,11 @@ describe("engine library contract", () => {
   });
 
   it("matches the checked-in authoring-aids snapshot", () => {
+    // `lintFlow` runs the rules in flow-lint.ts and the matrix rules in flow-matrix-lint.ts.
     const lintCodes = [
       ...new Set(
-        [...readSource(path.join(src, "flow-lint.ts")).matchAll(/code: "(R\d{3})"/g)].map(
-          (m) => m[1]!,
+        ["flow-lint.ts", "flow-matrix-lint.ts"].flatMap((file) =>
+          [...readSource(path.join(src, file)).matchAll(/code: "(R\d{3})"/g)].map((m) => m[1]!),
         ),
       ),
     ].sort();

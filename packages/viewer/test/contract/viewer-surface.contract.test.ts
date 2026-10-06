@@ -1,10 +1,13 @@
-// Contract: the `docsxai-viewer` CLI (commands, flags, exit codes) and the shape of the burn
-// report (`docsxai/burn-report@1`).
+// Contract: the `docsxai-viewer` CLI (commands, flags, exit codes), the shape of the burn report
+// (`docsxai/burn-report@1`) and the screens pack (`docsxai/screens-pack@2`, `pack.json`, the drift
+// report).
 //
 // Snapshot: snapshots/viewer-surface.json. The usage lines come from the help text the bin prints,
 // the report shape from `burnReport` and the interfaces in `src/burn-report.ts` (read from source
-// text, syntax only). The viewer's structural mirror of the annotation records is pinned too; the
-// engine's contract tests check it against the engine's Zod schema.
+// text, syntax only). The pack section holds the schema ids, file names, id grammar and the
+// manifest and drift types from `src/pack-schema.ts` and `src/pack-drift.ts`. The viewer's
+// structural mirror of the annotation records is pinned too; the engine's contract tests check it
+// against the engine's Zod schema.
 //
 // Update procedure (never automatic):
 //   1. Run this file once with UPDATE_CONTRACT_SNAPSHOTS=1. It rewrites the snapshot and fails.
@@ -17,8 +20,27 @@
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { expectJsonSnapshot, typeMembers } from "../../../../scripts/contract-support.js";
+import {
+  expectJsonSnapshot,
+  stringUnion,
+  typeMembers,
+} from "../../../../scripts/contract-support.js";
 import { BURN_REPORT_SCHEMA, burnReport, runViewerCli } from "../../src/index.js";
+import { SCREENS_MANIFEST_V1, SCREENS_PACK_V1 } from "../../src/pack-convert.js";
+import { DEFAULT_THRESHOLD_PCT } from "../../src/pack-drift.js";
+import { OXIPNG_BIN_ENV } from "../../src/pack-optimise.js";
+import {
+  DEFAULT_PUBLIC_PREFIX,
+  HASH8_PATTERN,
+  ID_MAX,
+  ID_PATTERN,
+  LOCALE_PATTERN,
+  PACK_MANIFEST_FILE,
+  SCREENS_PACK_SCHEMA,
+  THEME_PATTERN,
+  VIEWPORT_PATTERN,
+} from "../../src/pack-schema.js";
+import { PACK_CONFIG_FILE, PACK_CONFIG_SCHEMA } from "../../src/pack-workspace.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.join(here, "..", "..", "src");
@@ -60,6 +82,36 @@ describe("viewer surface contract", () => {
           AnnotationReport: typeMembers(path.join(src, "burn-report.ts"), "AnnotationReport"),
         },
       },
+      pack: {
+        schema: SCREENS_PACK_SCHEMA,
+        manifestFile: PACK_MANIFEST_FILE,
+        configSchema: PACK_CONFIG_SCHEMA,
+        configFile: PACK_CONFIG_FILE,
+        convertsFrom: [SCREENS_PACK_V1, SCREENS_MANIFEST_V1],
+        defaults: {
+          publicPrefix: DEFAULT_PUBLIC_PREFIX,
+          driftThresholdPct: DEFAULT_THRESHOLD_PCT,
+        },
+        oxipngBinEnv: OXIPNG_BIN_ENV,
+        grammar: {
+          id: ID_PATTERN.source,
+          idMax: ID_MAX,
+          locale: LOCALE_PATTERN.source,
+          theme: THEME_PATTERN.source,
+          viewport: VIEWPORT_PATTERN.source,
+          hash8: HASH8_PATTERN.source,
+        },
+        types: {
+          ScreensPack: typeMembers(path.join(src, "pack-schema.ts"), "ScreensPack"),
+          PackFlow: typeMembers(path.join(src, "pack-schema.ts"), "PackFlow"),
+          PackStep: typeMembers(path.join(src, "pack-schema.ts"), "PackStep"),
+          PackVariant: typeMembers(path.join(src, "pack-schema.ts"), "PackVariant"),
+          PackCallout: typeMembers(path.join(src, "pack-schema.ts"), "PackCallout"),
+          DriftReport: typeMembers(path.join(src, "pack-drift.ts"), "DriftReport"),
+          DriftEntry: typeMembers(path.join(src, "pack-drift.ts"), "DriftEntry"),
+        },
+        driftStatuses: stringUnion(path.join(src, "pack-drift.ts"), "DriftStatus"),
+      },
       annotationsMirror: {
         AnnotationsFile: typeMembers(path.join(src, "annotations.ts"), "AnnotationsFile"),
         AnnotationRecord: typeMembers(path.join(src, "annotations.ts"), "AnnotationRecord"),
@@ -84,6 +136,22 @@ describe("viewer exit-code contract", () => {
       expect(err).toMatch(/requires/);
     },
   );
+
+  it("exits 2 on `pack` and `drift` without a directory, and on `drift` without --against", async () => {
+    expect(await runViewerCli(["pack"])).toBe(2);
+    expect(err).toMatch(/pack: missing <workspace-or-raw-dir>/);
+    err = "";
+    expect(await runViewerCli(["drift"])).toBe(2);
+    expect(err).toMatch(/drift: missing <workspace-or-raw-dir>/);
+    err = "";
+    expect(await runViewerCli(["drift", "some-dir"])).toBe(2);
+    expect(err).toMatch(/drift: --against <pack-dir> is required/);
+  });
+
+  it("exits 2 on an unknown `pack` flag", async () => {
+    expect(await runViewerCli(["pack", "some-dir", "--no-such-flag"])).toBe(2);
+    expect(err).toMatch(/pack: unknown flag --no-such-flag/);
+  });
 
   it("exits 2 when --max-overlap is not a number", async () => {
     expect(await runViewerCli(["burn", "some-workspace", "--max-overlap", "nope"])).toBe(2);
