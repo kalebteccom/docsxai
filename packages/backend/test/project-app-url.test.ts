@@ -248,7 +248,16 @@ const ALWAYS_REFUSED = [
   "http://[FE80::abcd]:3000/",
   "http://[fd00:ec2::254]/",
   "http://[fd00:ec2:0:0:0:0:0:254]/",
+  // IPv6 forms that embed an IPv4 address: 6to4, Teredo (server, and the inverted client) and the
+  // local-use NAT64 prefix.
+  "http://[2002:a9fe:a9fe::1]/",
+  "http://[2002:a9fe:a9fe:1:2:3:4:5]/",
+  "http://[2001:0:a9fe:a9fe::1]/",
+  "http://[2001:0:4136:e378:8000:63bf:5601:5601]/",
+  "http://[64:ff9b:1::a9fe:a9fe]/",
   // Other clouds.
+  "http://168.63.129.16/",
+  "http://168.63.129.16:80/machine?comp=goalstate",
   "http://100.100.100.200/",
   "http://metadata.google.internal/computeMetadata/v1/",
   "http://metadata.google.internal./",
@@ -260,6 +269,10 @@ const ALWAYS_REFUSED = [
 const PRIVATE_REFUSED = [
   "http://localhost:3000",
   "http://localhost./",
+  "http://localhost.localdomain/",
+  "http://LOCALHOST.LOCALDOMAIN./",
+  "http://ip6-localhost/",
+  "http://ip6-loopback/",
   "http://app.localhost/",
   "http://127.0.0.1:8080",
   "http://127.1/",
@@ -277,6 +290,13 @@ const PRIVATE_REFUSED = [
   "http://[fd12:3456::1]/",
   "http://[::ffff:127.0.0.1]/",
   "http://[::ffff:a00:1]/",
+  "http://[fec0::1]/",
+  "http://[feff::1]/",
+  "http://[2002:a00:1::1]/",
+  "http://[2002:7f00:1::1]/",
+  "http://[2001:0:a00:1::1]/",
+  "http://[64:ff9b:1::1]/",
+  "http://[64:ff9b:1:2:3:4:808:808]/",
 ];
 
 const ALWAYS_ALLOWED = [
@@ -296,6 +316,10 @@ const ALWAYS_ALLOWED = [
   "http://[::ffff:8.8.8.8]/",
   "http://[fec0::1]/",
   "http://[fd00:ec2::255]/",
+  "http://168.63.129.17/",
+  "http://168.63.128.16/",
+  "http://[2002:808:808::1]/",
+  "http://[2001:0:4136:e378:8000:63bf:f7f7:f7f7]/",
   "https://metadata.google.internal.example.com/",
   "https://instance-data.example.com/",
   "https://notmetadata.google.internal/",
@@ -311,6 +335,9 @@ const PUBLIC_ONLY = [
   "http://100.128.0.1/",
   "http://[2001:db8::1]/",
   "http://[::ffff:8.8.8.8]/",
+  "http://[2002:808:808::1]/",
+  "http://[2001:0:4136:e378:8000:63bf:f7f7:f7f7]/",
+  "http://168.63.129.17/",
 ];
 
 describe("appUrlProblem: link-local and cloud-metadata hosts", () => {
@@ -334,11 +361,14 @@ describe("appUrlProblem: denyPrivate", () => {
     expect(appUrlProblem(u, { denyPrivate: true })).toBeNull();
   });
 
-  it("reads the switch from DOCSX_BACKEND_DENY_PRIVATE_APP_URL=1 only", () => {
+  it("reads the switch from DOCSX_BACKEND_DENY_PRIVATE_APP_URL as 1, true or yes in any case", () => {
     expect(DENY_PRIVATE_APP_URL_ENV).toBe("DOCSX_BACKEND_DENY_PRIVATE_APP_URL");
-    expect(denyPrivateAppUrl({ [DENY_PRIVATE_APP_URL_ENV]: "1" })).toBe(true);
-    expect(denyPrivateAppUrl({ [DENY_PRIVATE_APP_URL_ENV]: "true" })).toBe(false);
-    expect(denyPrivateAppUrl({ [DENY_PRIVATE_APP_URL_ENV]: "0" })).toBe(false);
+    for (const on of ["1", "true", "TRUE", "True", "yes", "Yes", "YES", " 1 "]) {
+      expect(denyPrivateAppUrl({ [DENY_PRIVATE_APP_URL_ENV]: on })).toBe(true);
+    }
+    for (const off of ["0", "false", "no", "", "2", "on", "y", "tru", "1 1"]) {
+      expect(denyPrivateAppUrl({ [DENY_PRIVATE_APP_URL_ENV]: off })).toBe(false);
+    }
     expect(denyPrivateAppUrl({})).toBe(false);
   });
 });
