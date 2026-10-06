@@ -1,7 +1,7 @@
 [
   "docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>] [--ttl <dur>] [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors] [--persist tmp] [--force]",
   "docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]",
-  "docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]",
+  "docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]",
   "docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]",
   "docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]",
   "docsxai lint <workspace-dir> [--flow <name>] [--format text|json]",
@@ -15,13 +15,13 @@
   "docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]",
   "docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]",
   "docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]",
-  "docsxai login --backend-url <url>",
+  "docsxai login --backend-url <url> [--oauth <workspace-dir>]",
   "docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]",
   "docsxai pull <workspace-dir> [--rev <id>]",
   "docsxai render <workspace-dir>",
   "docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]",
   "docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]",
-  "docsxai drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]",
+  "docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]",
   "docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]",
   "docsxai --help"
 ]

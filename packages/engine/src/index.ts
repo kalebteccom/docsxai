@@ -33,5 +33,6 @@ export * from "./viewer-bin.js";
 export * from "./export/adf.js";
 export * from "./export/playwright-test.js";
 export * from "./diff.js";
+export * from "./deprecation.js";
 export * from "./verify-compare.js";
 export * from "./verify-report.js";

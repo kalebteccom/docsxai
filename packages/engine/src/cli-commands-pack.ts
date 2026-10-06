@@ -1,5 +1,5 @@
-// Screenshot-pack commands — `pack` builds the hash-named, optimised PNG set plus manifest.json a
-// docs site or README consumes, and `drift` rebuilds it in memory and compares it with the
+// Screenshot-pack command — `pack` builds the hash-named, optimised PNG set plus manifest.json a
+// docs site or README consumes, and `pack --check` rebuilds it in memory and compares it with the
 // committed pack. The logic lives in `@docsxai/viewer` (it owns the burner); like `burn`, these
 // validate the argv edge and run the viewer's command through the shared bin resolution, so the
 // engine still does not depend on the viewer.
@@ -42,8 +42,9 @@ function usageError(command: string, message: string): number {
   return 2;
 }
 
-/** `pack` — burn, optimise, hash-name and write the screenshot pack. */
+/** `pack` — burn, optimise, hash-name and write the screenshot pack; with `--check`, compare instead of write. */
 export async function cmdPack(args: string[]): Promise<number> {
+  if (args.includes("--check")) return cmdPackCheck(args.filter((a) => a !== "--check"));
   const parsed = checkArgs(args, {
     valued: ["--out", "--public-prefix", "--generated-for"],
     bare: ["--from-raw", "--no-optimise"],
@@ -52,18 +53,19 @@ export async function cmdPack(args: string[]): Promise<number> {
   return runViewerBin("pack", ["pack", parsed.dir, ...parsed.rest]);
 }
 
-/** `drift` — rebuild the pack in memory and compare it with the committed one. */
-export async function cmdDrift(args: string[]): Promise<number> {
+/** `pack --check` — rebuild the pack in memory and compare it with the committed one. `args` has no `--check`. */
+async function cmdPackCheck(args: string[]): Promise<number> {
+  const label = "pack --check";
   const parsed = checkArgs(args, { valued: ["--against", "--threshold"], bare: ["--from-raw"] });
-  if (typeof parsed === "string") return usageError("drift", parsed);
+  if (typeof parsed === "string") return usageError(label, parsed);
   const against = parsed.rest.indexOf("--against");
-  if (against === -1) return usageError("drift", "--against <pack-dir> is required");
+  if (against === -1) return usageError(label, "--against <pack-dir> is required");
   const pct = parsed.rest.indexOf("--threshold");
   if (pct !== -1) {
     const value = Number(parsed.rest[pct + 1]);
     if (!Number.isFinite(value) || value < 0) {
-      return usageError("drift", "--threshold needs a percentage >= 0");
+      return usageError(label, "--threshold needs a percentage >= 0");
     }
   }
-  return runViewerBin("drift", ["drift", parsed.dir, ...parsed.rest]);
+  return runViewerBin(label, ["pack", parsed.dir, "--check", ...parsed.rest]);
 }

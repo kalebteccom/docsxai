@@ -4,7 +4,7 @@
     "docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]",
     "docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...",
     "docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]",
-    "docsxai-viewer drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]"
+    "docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]"
   ],
   "burnReport": {
     "schema": "docsxai/burn-report@1",

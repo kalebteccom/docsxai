@@ -137,15 +137,20 @@ describe("viewer exit-code contract", () => {
     },
   );
 
-  it("exits 2 on `pack` and `drift` without a directory, and on `drift` without --against", async () => {
+  it("exits 2 on `pack` without a directory, and on `pack --check` without a directory or --against", async () => {
     expect(await runViewerCli(["pack"])).toBe(2);
     expect(err).toMatch(/pack: missing <workspace-or-raw-dir>/);
     err = "";
-    expect(await runViewerCli(["drift"])).toBe(2);
-    expect(err).toMatch(/drift: missing <workspace-or-raw-dir>/);
+    expect(await runViewerCli(["pack", "--check"])).toBe(2);
+    expect(err).toMatch(/pack --check: missing <workspace-or-raw-dir>/);
     err = "";
-    expect(await runViewerCli(["drift", "some-dir"])).toBe(2);
-    expect(err).toMatch(/drift: --against <pack-dir> is required/);
+    expect(await runViewerCli(["pack", "some-dir", "--check"])).toBe(2);
+    expect(err).toMatch(/pack --check: --against <pack-dir> is required/);
+  });
+
+  it("no longer has a `drift` command", async () => {
+    expect(await runViewerCli(["drift", "some-dir", "--against", "p"])).toBe(2);
+    expect(out).toMatch(/Usage:/);
   });
 
   it("exits 2 on an unknown `pack` flag", async () => {

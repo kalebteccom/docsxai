@@ -9,7 +9,7 @@ Usage:
                                  [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                  [--persist tmp] [--force]
   docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
-  docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
+  docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
   docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
   docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]
   docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
@@ -23,13 +23,13 @@ Usage:
   docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
   docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]
   docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
-  docsxai login --backend-url <url>
+  docsxai login --backend-url <url> [--oauth <workspace-dir>]
   docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
   docsxai pull <workspace-dir> [--rev <id>]
   docsxai render <workspace-dir>
   docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
   docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
-  docsxai drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]
+  docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
   docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   docsxai --help
 
@@ -93,6 +93,7 @@ Notes:
     because the auth cookie is usually httpOnly; inspect does the storageState→Playwright bridge for you). On a
     slow SPA, settle before the snapshot with --wait <ms> (default 800) or --wait-for '<css>'. --cdp <endpoint>
     attaches to an already-running Chrome (e.g. the one from capture-auth --cdp) instead of launching one.
+    --ignore-https-errors accepts a self-signed/invalid TLS certificate (also read from ignore_https_errors in .docsxai.json).
   • calibrate takes a *structured flow-guide* (a flow-file in YAML, or a .md with a yaml fenced block) and
     writes flows/<name>.flow.yaml + a default docs/style.yaml. Loose-prose descriptions / live element-picking
     need the host agent — that's the /docsxai:calibrate *skill* (see the plugin), which then refines/produces
@@ -163,16 +164,20 @@ Notes:
     with --from-raw or no docs/, a raw capture directory (<flow>/<step>/<locale>.<theme>.<viewport>.png with a
     .json sidecar, step.json and flow.json). --out defaults to <workspace>/.screens and is required for a raw
     directory. Files the previous manifest listed and the new one does not are deleted by exact path; nothing
-    else in --out is touched. Loopback addresses and obvious secrets in alt, caption, title or callout text
-    stop the build. Runs the viewer's \`pack\` through the same bin resolution as render.
-  • drift rebuilds the pack in memory (no oxipng, nothing written) and compares it with the committed pack
-    in --against: equal hash is unchanged, otherwise a pixel diff gives changed %, the changed region and
+    else in --out is touched. Loopback and private-network addresses, emails, non-Bearer Authorization headers,
+    URL-query tokens and obvious secrets in alt, caption, title or callout text stop the build. Runs the
+    viewer's \`pack\` through the same bin resolution as render.
+  • pack --check rebuilds the pack in memory (no oxipng, nothing written) and compares it with the committed pack
+    in --against (required): equal hash is unchanged, otherwise a pixel diff gives changed %, the changed region and
     a pass or fail against --threshold (default 0.5). A resized, new or missing variant, or a committed file
     that does not match its name, always fails. Exit 1 on any failure, 2 on a bad argument. The report has no
-    timestamps.
+    timestamps. The old \`docsxai drift\` still works for now: it prints a deprecation warning and runs pack --check.
   • login validates a bearer token against a backend URL — hits /v1/health, /v1/workspaces. Reads
     the token from DOCSX_TOKEN env var. Prints what the backend sees if the call succeeds,
     or a clear error if not. Stateless: doesn't store anything; configure the env var in your shell.
+    login --oauth <workspace-dir> instead signs in as a person: OAuth 2.1 authorization code + PKCE against
+    the backend. It prints a URL to open in a browser and stores the tokens at
+    <workspace-dir>/.auth/backend-token.json (mode 0600); push, pull and run read them from there.
   • push serialises the workspace's doc pack (flows + annotations + screenshots + style + locators)
     and POSTs it as a new revision against the backend named in .docsxai.json (backend_url +
     optionally backend_workspace_id / backend_project_id; created on first push if absent and

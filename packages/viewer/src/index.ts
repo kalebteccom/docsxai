@@ -8,7 +8,7 @@
 //   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>] [--report <file>]
 //   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>]
 //   docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise]
-//   docsxai-viewer drift <workspace-or-raw-dir> --against <pack-dir> [--threshold <pct>]
+//   docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--threshold <pct>]
 // The plugin's `render` command (and `docsxai render`) shell out to `build`.
 
 import { promises as fs } from "node:fs";
@@ -159,7 +159,7 @@ import { buildViewer, discoverFlows } from "./render.js";
 import { burnFlow, burnReport } from "./burn.js";
 import { DEFAULT_UNPLACEABLE_RATIO, type FlowBurnReport } from "./burn-report.js";
 import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
-import { PACK_DETAILS, PACK_SYNOPSIS, runDrift, runPack } from "./pack-cli.js";
+import { PACK_DETAILS, PACK_SYNOPSIS, runPack } from "./pack-cli.js";
 
 const USAGE = `docsxai-viewer — static viewer generator
 
@@ -353,7 +353,6 @@ export async function runViewerCli(argv: string[]): Promise<number> {
   if (command === "burn") return runBurn(parseArgs(rest));
   if (command === "site") return runSite(parseArgs(rest));
   if (command === "pack") return runPack(rest);
-  if (command === "drift") return runDrift(rest);
   process.stdout.write(USAGE + "\n");
   return argv.length === 0 ? 0 : 2;
 }

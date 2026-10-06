@@ -104,24 +104,27 @@ describe("argument handling", () => {
   });
 
   it.each<[string[], RegExp]>([
-    [[], /drift: missing <workspace-or-raw-dir>/],
-    [["d"], /drift: --against <pack-dir> is required/],
+    [[], /pack --check: missing <workspace-or-raw-dir>/],
+    [["d"], /pack --check: --against <pack-dir> is required/],
     [["d", "--against"], /--against needs a value/],
     [["d", "--against", "p", "--threshold", "-1"], /--threshold needs a percentage >= 0/],
     [["d", "--against", "p", "--threshold", "x"], /--threshold needs a percentage >= 0/],
-    [["d", "--against", "p", "--out", "o"], /drift: unknown flag --out/],
-  ])("drift %j exits 2 with the usage", async (argv, message) => {
+    [["d", "--against", "p", "--out", "o"], /pack --check: unknown flag --out/],
+  ])("pack --check %j exits 2 with the usage", async (argv, message) => {
     expect(await runDrift(argv)).toBe(2);
     expect(err).toMatch(message);
   });
 
-  it("the viewer bin routes pack and drift and lists them in its help", async () => {
+  it("the viewer bin routes pack and pack --check and lists them in its help", async () => {
     expect(await runViewerCli(["pack"])).toBe(2);
-    expect(await runViewerCli(["drift"])).toBe(2);
+    expect(await runViewerCli(["pack", "--check"])).toBe(2);
     out = "";
     expect(await runViewerCli(["--help"])).toBe(2);
-    expect(out).toContain("docsxai-viewer pack <workspace-or-raw-dir>");
-    expect(out).toContain("docsxai-viewer drift <workspace-or-raw-dir> --against <pack-dir>");
+    expect(out).toContain("docsxai-viewer pack <workspace-or-raw-dir> [--from-raw]");
+    expect(out).toContain(
+      "docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir>",
+    );
+    expect(out).not.toContain("docsxai-viewer drift");
   });
 
   it("a raw capture needs --out, and a path that is not a directory exits 1", async () => {
@@ -308,7 +311,7 @@ describe("pack from a workspace", () => {
   });
 });
 
-describe("drift", () => {
+describe("pack --check", () => {
   async function commit(): Promise<void> {
     await writeRawCapture(raw, capture());
     expect(await runPack([raw, "--no-optimise", "--out", dest])).toBe(0);
@@ -338,6 +341,15 @@ describe("drift", () => {
     expect(out).not.toContain("OVER");
   });
 
+  it("is what `pack <dir> --check` runs", async () => {
+    await commit();
+    expect(await runPack([raw, "--check", "--against", dest])).toBe(0);
+    expect(out).toBe("docsxai drift: 3 compared, 0 over threshold (0.5%)\n");
+    out = "";
+    expect(await runPack(["--check", raw, "--against", dest, "--threshold", "2"])).toBe(0);
+    expect(out).toContain("(2%)");
+  });
+
   it("exits 1 for a new variant and for a missing one", async () => {
     await commit();
     await fs.rm(path.join(raw, "tour", "done"), { recursive: true });
@@ -348,7 +360,7 @@ describe("drift", () => {
   it("exits 1 with a message when there is no committed pack", async () => {
     await writeRawCapture(raw, capture());
     expect(await runDrift([raw, "--against", path.join(root, "none")])).toBe(1);
-    expect(err).toMatch(/drift: no manifest\.json in /);
+    expect(err).toMatch(/pack --check: no manifest\.json in /);
   });
 
   it("does not need oxipng and writes nothing", async () => {

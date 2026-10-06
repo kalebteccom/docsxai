@@ -1,4 +1,4 @@
-// Dispatch + argument-contract tests for `docsxai pack` and `docsxai drift`: the argv edge, the
+// Dispatch + argument-contract tests for `docsxai pack`, `docsxai pack --check` and the retired `docsxai drift`: the argv edge, the
 // flags handed to the viewer bin (a fake script records its argv), exit codes, and the help text.
 // What the viewer does with them is tested in packages/viewer/test/pack-*.test.ts.
 
@@ -7,12 +7,14 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { main } from "../src/cli.js";
+import { resetDeprecationWarnings } from "../src/deprecation.js";
 
 let out = "";
 let err = "";
 let tmp = "";
 
 beforeEach(async () => {
+  resetDeprecationWarnings();
   out = "";
   err = "";
   tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-cli-pack-"));
@@ -45,14 +47,15 @@ async function fakeViewer(exitCode = 0): Promise<{ argvFile: string }> {
 const argvOf = async (file: string) => JSON.parse(await fs.readFile(file, "utf8")) as string[];
 
 describe("help", () => {
-  it("lists pack and drift with their flags", async () => {
+  it("lists pack and pack --check with their flags, and no drift command", async () => {
     expect(await main(["--help"])).toBe(0);
     expect(out).toContain(
       "docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]",
     );
     expect(out).toContain(
-      "docsxai drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]",
+      "docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]",
     );
+    expect(out).not.toContain("docsxai drift <workspace-or-raw-dir>");
     expect(out).toContain("brew install oxipng");
   });
 });
@@ -128,25 +131,25 @@ describe("pack dispatch", () => {
   });
 });
 
-describe("drift dispatch", () => {
+describe("pack --check dispatch", () => {
   it("without a directory exits 2 with the usage", async () => {
-    expect(await main(["drift"])).toBe(2);
-    expect(err).toMatch(/drift: missing <workspace-or-raw-dir>/);
+    expect(await main(["pack", "--check"])).toBe(2);
+    expect(err).toMatch(/pack --check: missing <workspace-or-raw-dir>/);
   });
 
   it("requires --against and a sane --threshold", async () => {
     const cases: Array<[string[], RegExp]> = [
-      [["drift", "ws"], /--against <pack-dir> is required/],
-      [["drift", "ws", "--against"], /--against needs a value/],
+      [["pack", "ws", "--check"], /--against <pack-dir> is required/],
+      [["pack", "ws", "--check", "--against"], /--against needs a value/],
       [
-        ["drift", "ws", "--against", "p", "--threshold", "-1"],
+        ["pack", "ws", "--check", "--against", "p", "--threshold", "-1"],
         /--threshold needs a percentage >= 0/,
       ],
       [
-        ["drift", "ws", "--against", "p", "--threshold", "lots"],
+        ["pack", "ws", "--check", "--against", "p", "--threshold", "lots"],
         /--threshold needs a percentage >= 0/,
       ],
-      [["drift", "ws", "--against", "p", "--out", "x"], /unknown flag --out/],
+      [["pack", "ws", "--check", "--against", "p", "--out", "x"], /unknown flag --out/],
     ];
     for (const [argv, message] of cases) {
       err = "";
@@ -155,14 +158,24 @@ describe("drift dispatch", () => {
     }
   });
 
-  it("runs the viewer's drift with the flags it was given", async () => {
+  it("runs the viewer's pack --check with the flags it was given, wherever --check sits", async () => {
     const { argvFile } = await fakeViewer();
     expect(
-      await main(["drift", "--from-raw", "raw", "--against", "pack", "--threshold", "1.5"]),
+      await main([
+        "pack",
+        "--check",
+        "--from-raw",
+        "raw",
+        "--against",
+        "pack",
+        "--threshold",
+        "1.5",
+      ]),
     ).toBe(0);
     expect(await argvOf(argvFile)).toEqual([
-      "drift",
+      "pack",
       "raw",
+      "--check",
       "--from-raw",
       "--against",
       "pack",
@@ -172,6 +185,39 @@ describe("drift dispatch", () => {
   });
 
   it("propagates a non-zero exit (drift over the threshold)", async () => {
+    await fakeViewer(1);
+    expect(await main(["pack", "ws", "--check", "--against", "pack"])).toBe(1);
+  });
+});
+
+describe("the retired drift command", () => {
+  it("warns once with the replacement and runs pack --check with the same arguments", async () => {
+    const { argvFile } = await fakeViewer();
+    expect(await main(["drift", "ws", "--against", "pack", "--threshold", "2"])).toBe(0);
+    expect(err).toBe(
+      "docsxai: the drift command is deprecated since 0.3.0, use `docsxai pack --check` (same flags, `--check` added)\n",
+    );
+    expect(await argvOf(argvFile)).toEqual([
+      "pack",
+      "ws",
+      "--check",
+      "--against",
+      "pack",
+      "--threshold",
+      "2",
+    ]);
+  });
+
+  it("warns once per invocation, not once per call", async () => {
+    await fakeViewer();
+    await main(["drift", "ws", "--against", "pack"]);
+    await main(["drift", "ws", "--against", "pack"]);
+    expect(err.match(/is deprecated since/g)).toHaveLength(1);
+  });
+
+  it("keeps the exit codes of pack --check: 2 for a bad argument, the viewer's code otherwise", async () => {
+    expect(await main(["drift"])).toBe(2);
+    expect(err).toMatch(/pack --check: missing <workspace-or-raw-dir>/);
     await fakeViewer(1);
     expect(await main(["drift", "ws", "--against", "pack"])).toBe(1);
   });

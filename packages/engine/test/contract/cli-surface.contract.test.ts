@@ -19,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectJsonSnapshot, readSource } from "../../../../scripts/contract-support.js";
 import { main } from "../../src/cli.js";
 import { USAGE } from "../../src/cli-usage.js";
+import { RETIRED_COMMANDS } from "../../src/cli-retired.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const snapshots = path.join(here, "snapshots");
@@ -76,6 +77,24 @@ describe("CLI usage contract", () => {
   });
 });
 
+describe("retired commands", () => {
+  it("are not listed in the help and have no dispatch case of their own", () => {
+    const labels = [...readSource(cliSource).matchAll(/^ {4}case "([^"]+)":/gm)].map((m) => m[1]!);
+    for (const name of Object.keys(RETIRED_COMMANDS)) {
+      expect(labels).not.toContain(name);
+      expect(usageLines().map((line) => line.split(" ")[1])).not.toContain(name);
+    }
+  });
+
+  it("each names the release that retired it and rewrites to a listed command", () => {
+    const listed = new Set(usageLines().map((line) => line.split(" ")[1]));
+    for (const entry of Object.values(RETIRED_COMMANDS)) {
+      expect(entry.since).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(listed.has(entry.rewrite(["x"])[0])).toBe(true);
+    }
+  });
+});
+
 describe("CLI exit-code contract", () => {
   it("prints the help and exits 0 with no command or with --help", async () => {
     expect(await main([])).toBe(0);
@@ -98,7 +117,6 @@ describe("CLI exit-code contract", () => {
     "render",
     "burn",
     "pack",
-    "drift",
     "capture-auth",
     "lint",
     "flow-tree",

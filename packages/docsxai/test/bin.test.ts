@@ -159,7 +159,7 @@ describe.skipIf(!engineBuilt || !viewerBuilt)("`docsxai burn` through the bare b
 });
 
 describe.skipIf(!engineBuilt || !viewerBuilt)(
-  "`docsxai pack` and `docsxai drift` through the bare bin",
+  "`docsxai pack` and `docsxai pack --check` through the bare bin",
   () => {
     const PACK_CONFIG = {
       schema: "docsxai/pack-config@1",
@@ -174,10 +174,12 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
       return ws;
     }
 
-    it("--help lists both commands", async () => {
+    it("--help lists both forms", async () => {
       const r = await docsxai("--help");
       expect(r.stdout).toContain("docsxai pack <workspace-or-raw-dir>");
-      expect(r.stdout).toContain("docsxai drift <workspace-or-raw-dir> --against <pack-dir>");
+      expect(r.stdout).toContain(
+        "docsxai pack <workspace-or-raw-dir> --check --against <pack-dir>",
+      );
     });
 
     it("packs a workspace into .screens, then finds no drift against it", async () => {
@@ -199,7 +201,7 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
       );
       expect([...png.subarray(0, 4)]).toEqual(pngSignature);
 
-      const drift = await docsxai("drift", ws, "--against", path.join(ws, ".screens"));
+      const drift = await docsxai("pack", ws, "--check", "--against", path.join(ws, ".screens"));
       expect(drift.code, drift.stderr).toBe(0);
       expect(drift.stdout).toContain("docsxai drift: 1 compared, 0 over threshold (0.5%)");
     });
@@ -217,8 +219,9 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
 
       // Threshold 0: any changed pixel fails, whatever share of the 1000x700 frame it is.
       const over = await docsxai(
-        "drift",
+        "pack",
         ws,
+        "--check",
         "--against",
         path.join(ws, ".screens"),
         "--threshold",
@@ -227,8 +230,9 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
       expect(over.code, over.stdout).toBe(1);
       expect(over.stdout).toContain("changed  app/share/en.light.1280");
       const lenient = await docsxai(
-        "drift",
+        "pack",
         ws,
+        "--check",
         "--against",
         path.join(ws, ".screens"),
         "--threshold",
@@ -237,9 +241,18 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
       expect(lenient.code, lenient.stdout).toBe(0);
     });
 
+    it("the retired `docsxai drift` still runs, with a deprecation warning", async () => {
+      const ws = await workspaceWithPackConfig();
+      expect((await docsxai("pack", ws, "--no-optimise")).code).toBe(0);
+      const r = await docsxai("drift", ws, "--against", path.join(ws, ".screens"));
+      expect(r.code, r.stderr).toBe(0);
+      expect(r.stderr).toContain("docsxai: the drift command is deprecated since 0.3.0");
+      expect(r.stdout).toContain("docsxai drift: 1 compared, 0 over threshold (0.5%)");
+    });
+
     it("exits 2 on a bad flag or a missing --against, and 1 on a workspace with no pack.json", async () => {
       expect((await docsxai("pack", tmp, "--nope")).code).toBe(2);
-      expect((await docsxai("drift", tmp)).code).toBe(2);
+      expect((await docsxai("pack", tmp, "--check")).code).toBe(2);
       const ws = path.join(tmp, "ws");
       await fs.cp(packFixture, path.join(ws, "docs"), { recursive: true });
       const r = await docsxai("pack", ws, "--no-optimise");

@@ -1,5 +1,5 @@
-// `docsxai-viewer pack` and `docsxai-viewer drift`: argv parsing and the two command bodies. The
-// logic is in pack-build.ts (burn, optimise, hash, manifest), pack-write.ts (files, pruning) and
+// `docsxai-viewer pack` and `docsxai-viewer pack --check`: argv parsing and the two command bodies.
+// The logic is in pack-build.ts (burn, optimise, hash, manifest), pack-write.ts (files, pruning) and
 // pack-drift.ts (comparison); this file wires them to a directory and an exit code.
 
 import { promises as fs } from "node:fs";
@@ -13,7 +13,7 @@ import { PACK_CONFIG_FILE, readWorkspace } from "./pack-workspace.js";
 import { writePack } from "./pack-write.js";
 
 export const PACK_SYNOPSIS = `  docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
-  docsxai-viewer drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]`;
+  docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]`;
 
 export const PACK_DETAILS = `  pack — build the screenshot pack: burn annotations, optimise losslessly, hash-name, write manifest.json
     <dir>            a workspace (has docs/ and pack.json) or a raw capture directory
@@ -24,7 +24,7 @@ export const PACK_DETAILS = `  pack — build the screenshot pack: burn annotati
     --no-optimise    skip oxipng; without this flag oxipng must be installed
     --generated-for  free text recorded as generated_for (a commit sha, a build id); omitted when unset
 
-  drift — rebuild in memory and compare with a committed pack
+  pack --check — rebuild in memory and compare with a committed pack
     --against        the committed pack directory (manifest.json and the PNGs)
     --threshold      percent of changed pixels a variant may differ by (default ${DEFAULT_THRESHOLD_PCT});
                      a resized, new or missing variant always fails
@@ -95,6 +95,7 @@ const warn = (message: string): void => {
 };
 
 export async function runPack(argv: string[]): Promise<number> {
+  if (argv.includes("--check")) return runDrift(argv.filter((a) => a !== "--check"));
   const parsed = parseArgs(
     argv,
     ["--out", "--public-prefix", "--generated-for"],
@@ -141,15 +142,16 @@ export async function runPack(argv: string[]): Promise<number> {
   }
 }
 
+/** The body of `pack --check`: `argv` is the `pack` argv without the `--check` flag. */
 export async function runDrift(argv: string[]): Promise<number> {
   const parsed = parseArgs(argv, ["--against", "--threshold"], ["--from-raw"]);
-  if (typeof parsed === "string") return usageError("drift", parsed);
+  if (typeof parsed === "string") return usageError("pack --check", parsed);
   const against = parsed.values.get("--against");
-  if (against === undefined) return usageError("drift", "--against <pack-dir> is required");
+  if (against === undefined) return usageError("pack --check", "--against <pack-dir> is required");
   const raw = parsed.values.get("--threshold");
   const threshold = raw === undefined ? DEFAULT_THRESHOLD_PCT : Number(raw);
   if (!Number.isFinite(threshold) || threshold < 0) {
-    return usageError("drift", "--threshold needs a percentage >= 0");
+    return usageError("pack --check", "--threshold needs a percentage >= 0");
   }
   try {
     const { source } = await loadSource(parsed.positional, parsed.flags.has("--from-raw"));
@@ -162,7 +164,7 @@ export async function runDrift(argv: string[]): Promise<number> {
     process.stdout.write(`${report.text}\n`);
     return report.failing > 0 ? 1 : 0;
   } catch (e) {
-    process.stderr.write(`drift: ${(e as Error).message}\n`);
+    process.stderr.write(`pack --check: ${(e as Error).message}\n`);
     return 1;
   }
 }
