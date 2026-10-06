@@ -114,6 +114,23 @@ describe("assertSafePackNames", () => {
     ).toThrow(UnsafePackNameError);
   });
 
+  it.each([
+    "tour/annotations.json/annotations.json",
+    "tour/screenshots/annotations.json",
+    "tour/Screenshots/annotations.json",
+    "tour/ANNOTATIONS.JSON/annotations.json",
+  ])("refuses the reserved variant directory in %j", (name) => {
+    expect(() => assertSafePackNames(annotations(name))).toThrow(UnsafePackNameError);
+  });
+
+  it.each([
+    "tour/screenshots/screenshots/s.png",
+    "tour/annotations.json/screenshots/s.png",
+    "tour/SCREENSHOTS/screenshots/s.png",
+  ])("refuses the reserved variant directory in the screenshot path %j", (name) => {
+    expect(() => assertSafePackNames(screenshots(name))).toThrow(UnsafePackNameError);
+  });
+
   it("keeps variants that only start like a device name", () => {
     expect(() =>
       assertSafePackNames(

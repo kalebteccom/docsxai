@@ -202,6 +202,9 @@ describe("backend name rules match the engine's", () => {
     "tour/com9.v2/annotations.json",
     "tour/console/annotations.json",
     "tour/x./annotations.json",
+    "tour/screenshots/annotations.json",
+    "tour/Screenshots/annotations.json",
+    "tour/annotations.json/annotations.json",
   ];
   const SCREENSHOTS = [
     "tour/screenshots/open.png",
@@ -216,6 +219,8 @@ describe("backend name rules match the engine's", () => {
     "tour/screenshots/console.png",
     "tour/screenshots/s..png",
     "tour/lpt1/screenshots/s.png",
+    "tour/screenshots/screenshots/s.png",
+    "tour/annotations.json/screenshots/s.png",
   ];
 
   const engineAccepts = (artifact: "flows" | "annotations" | "screenshots", name: string) => {

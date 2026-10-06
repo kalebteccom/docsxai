@@ -194,12 +194,16 @@ const SCREENSHOT_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:png|jpe?g|webp)$/i;
 
 const isFlowName = (name: string): boolean => FlowName.safeParse(name).success;
 
+/** Names a variant directory cannot take: they are what the flow directory holds already. */
+const RESERVED_SEGMENTS = new Set(["annotations.json", "screenshots"]);
+
 /**
  * A path segment or file name a workspace can hold on every disk: safe characters, no `..`, no
  * trailing dot and not a Windows device name (`con`, `nul`, `com1`, ..., with or without an extension).
  */
 const isSafeSegment = (seg: string): boolean =>
   seg.length <= 128 &&
+  !RESERVED_SEGMENTS.has(seg.toLowerCase()) &&
   SAFE_SEGMENT.test(seg) &&
   !seg.includes("..") &&
   !hasTrailingDot(seg) &&
