@@ -7,6 +7,7 @@ import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { parseFlags } from "../src/cli-shared.js";
 import type { RunFlowsOptions, RunFlowsResult } from "../src/run-flows.js";
 
 const stub = vi.hoisted(() => ({
@@ -39,37 +40,27 @@ async function write(root: string, rel: string, data: string): Promise<void> {
   await fs.writeFile(abs, data);
 }
 
-const flags = (...args: string[]) => {
-  const m = new Map<string, string | true>();
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i]!;
-    const next = args[i + 1];
-    if (next !== undefined && !next.startsWith("--")) {
-      m.set(a, next);
-      i++;
-    } else m.set(a, true);
-  }
-  return m;
-};
+/** The flag map the CLI builds from real argv (`--name value` and `--name`), through the same parser. */
+const flags = (...argv: string[]) => parseFlags(argv).flags;
 
 describe("parseVerifyArgs", () => {
   it("is off without --verify-determinism", () => {
-    expect(parseVerifyArgs(flags("flow", "f"))).toBeNull();
+    expect(parseVerifyArgs(flags("--flow", "f"))).toBeNull();
   });
 
   it("defaults to 2 runs and the text format", () => {
-    expect(parseVerifyArgs(flags("verify-determinism"))).toEqual({ runs: 2, format: "text" });
+    expect(parseVerifyArgs(flags("--verify-determinism"))).toEqual({ runs: 2, format: "text" });
   });
 
   it("takes --runs from 2 to 5 and the three formats", () => {
     for (const n of [2, 3, 4, 5]) {
-      expect(parseVerifyArgs(flags("verify-determinism", "runs", String(n)))).toEqual({
+      expect(parseVerifyArgs(flags("--verify-determinism", "--runs", String(n)))).toEqual({
         runs: n,
         format: "text",
       });
     }
     for (const format of ["json", "md", "text"]) {
-      expect(parseVerifyArgs(flags("verify-determinism", "format", format))).toMatchObject({
+      expect(parseVerifyArgs(flags("--verify-determinism", "--format", format))).toMatchObject({
         format,
       });
     }
@@ -83,32 +74,34 @@ describe("parseVerifyArgs", () => {
     ["2.5", /--runs must be/],
     ["-3", /--runs must be/],
   ])("rejects --runs %s", (value, message) => {
-    expect(parseVerifyArgs(flags("verify-determinism", "runs", value))).toMatch(message);
+    expect(parseVerifyArgs(flags("--verify-determinism", "--runs", value))).toMatch(message);
   });
 
   it("rejects --runs with no value", () => {
-    expect(parseVerifyArgs(flags("verify-determinism", "runs"))).toMatch(/--runs must be/);
+    expect(parseVerifyArgs(flags("--verify-determinism", "--runs"))).toMatch(/--runs must be/);
   });
 
   it("rejects an unknown --format", () => {
-    expect(parseVerifyArgs(flags("verify-determinism", "format", "xml"))).toMatch(
+    expect(parseVerifyArgs(flags("--verify-determinism", "--format", "xml"))).toMatch(
       /--format must be json \| md \| text/,
     );
   });
 
   it("rejects --runs and --format without --verify-determinism", () => {
-    expect(parseVerifyArgs(flags("runs", "3"))).toBe("--runs requires --verify-determinism");
-    expect(parseVerifyArgs(flags("format", "md"))).toBe("--format requires --verify-determinism");
+    expect(parseVerifyArgs(flags("--runs", "3"))).toBe("--runs requires --verify-determinism");
+    expect(parseVerifyArgs(flags("--format", "md"))).toBe("--format requires --verify-determinism");
   });
 
   it.each(["pause", "stop-after", "start-from", "cdp"])("rejects combining it with --%s", (f) => {
     const args =
-      f === "pause" ? flags("verify-determinism", f) : flags("verify-determinism", f, "x");
+      f === "pause"
+        ? flags("--verify-determinism", `--${f}`)
+        : flags("--verify-determinism", `--${f}`, "x");
     expect(parseVerifyArgs(args)).toBe(`--verify-determinism cannot be combined with --${f}`);
   });
 
   it("rejects a value after --verify-determinism (it swallowed the next word)", () => {
-    expect(parseVerifyArgs(flags("verify-determinism", "ws"))).toMatch(/takes no value/);
+    expect(parseVerifyArgs(flags("--verify-determinism", "ws"))).toMatch(/takes no value/);
   });
 });
 
