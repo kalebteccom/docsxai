@@ -12,7 +12,6 @@ locators:
   page_title: h1.page__title
   col_progress: section.column[aria-label="In progress"]
   ticket_title: h2.tread__title
-  ticket_gaps: section[aria-labelledby="gaps-heading"]
   first_gap_slot: button.rowgap__slot >> nth=0
   palette: div[role="dialog"][aria-label="Search and commands"]
   palette_input: input.palette__input
@@ -121,9 +120,6 @@ steps:
       - target: $ticket_title
         copy: A task keeps its title, address and description in one place.
         arrow: right
-      - target: $ticket_gaps
-        copy: A gap is a question an agent raised. Answer it here to unblock the work.
-        arrow: top
   - id: waiting-open
     action: navigate
     value: /w/acme-demo?attention=waiting
@@ -207,9 +203,6 @@ steps:
       - target: $group_toggle
         copy: Tasks group by epic. Collapse a group to skim the rest.
         arrow: bottom
-      - target: $list_gap_btn
-        copy: A gap count means an agent needs an answer before the task can move.
-        arrow: left
   - id: epics-open
     action: navigate
     value: /w/acme-demo/epics
