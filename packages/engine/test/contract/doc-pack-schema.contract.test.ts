@@ -221,6 +221,15 @@ describe("flow-file behaviour contract", () => {
     );
   });
 
+  it("rejects a flow name that is a path, and accepts letters, digits, `.`, `_` and `-`", () => {
+    const named = (name: string) =>
+      `name: ${JSON.stringify(name)}\nsteps:\n  - id: s\n    action: wait\n`;
+    for (const bad of ["../.docsxai.json", "/abs", "a/b", "..", "", "a".repeat(65)]) {
+      expect(() => parseFlowFile(named(bad))).toThrow(/name/);
+    }
+    expect(parseFlowFile(named("Trackxai_Board-1.v2")).name).toBe("Trackxai_Board-1.v2");
+  });
+
   it("rejects both annotation forms on one step", () => {
     const yaml = [
       "name: f",

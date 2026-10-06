@@ -176,14 +176,14 @@
           },
           "strict": true
         },
-        "extends?": "string[min:1]",
+        "extends?": "string[max:64,min:1,regex:^[A-Za-z0-9][A-Za-z0-9._-]*$]",
         "locators?": {
           "default": {},
           "of": {
             "record": "string"
           }
         },
-        "name": "string[min:1]",
+        "name": "string[max:64,min:1,regex:^[A-Za-z0-9][A-Za-z0-9._-]*$]",
         "prerequisites?": {
           "default": [],
           "of": {

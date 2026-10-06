@@ -299,9 +299,29 @@ export type Step = z.infer<typeof Step>;
 export const Prerequisite = z.record(z.string(), z.union([z.string(), z.boolean()]));
 export type Prerequisite = z.infer<typeof Prerequisite>;
 
+/** Longest flow name. The name is a directory and file name under the workspace. */
+export const MAX_FLOW_NAME_LENGTH = 64;
+
+/**
+ * A flow's name is a path segment: it names `flows/<name>.flow.yaml` and `docs/<name>/`, and
+ * `run` writes under both. It starts with a letter or digit, then letters, digits, `.`, `_` and `-`
+ * (so `Board_1.v2` is fine), never contains `..`, and is at most {@link MAX_FLOW_NAME_LENGTH} long.
+ * A slash, a backslash, a leading dot and an absolute path are all outside that set.
+ */
+export const FlowName = z
+  .string()
+  .min(1)
+  .max(MAX_FLOW_NAME_LENGTH)
+  .regex(
+    /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
+    "must start with a letter or digit and use only letters, digits, `.`, `_` and `-`",
+  )
+  .refine((n) => !n.includes(".."), { message: "must not contain `..`" });
+export type FlowName = z.infer<typeof FlowName>;
+
 export const FlowFile = z
   .object({
-    name: z.string().min(1),
+    name: FlowName,
     /**
      * Name of another flow whose steps run *first* (composition). The parent's `locators` + `prerequisites`
      * are merged in (this flow wins on collisions); step ids must be unique across the merge. Chains allowed
@@ -309,7 +329,7 @@ export const FlowFile = z
      * Typical use: factor out a shared preamble (Library → open a video → editor) so dependent flows don't
      * re-walk it every run. (`run --stop-after` operates on the merged step list.)
      */
-    extends: z.string().min(1).optional(),
+    extends: FlowName.optional(),
     /**
      * Deterministic execution environment (frozen clock, locale, timezone, viewport, color scheme,
      * reduced motion). With `extends`, merged per-key — this flow's keys win over the parent's.
