@@ -114,6 +114,14 @@ export const htmlPages = [
     replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
   },
   {
+    src: "packages/plugin-guru/README.md",
+    out: "packages/plugin-guru.md",
+    title: "@docsxai/plugin-guru",
+    description:
+      "Publisher plugin for Guru: pushes a doc pack as cards with attached images into a collection through the Guru public API, idempotently.",
+    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
+  },
+  {
     src: "packages/plugin-sharepoint/README.md",
     out: "packages/plugin-sharepoint.md",
     title: "@docsxai/plugin-sharepoint",

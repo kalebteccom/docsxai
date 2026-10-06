@@ -91,7 +91,11 @@ Reports against the following are in scope:
 - **Loopback escape** — the backend defaults to loopback binding; any
   default configuration that exposes it on a non-loopback interface
   unintentionally is in scope.
-- **Backend `app_url` target filter** — a project's `app_url` is the address a webhook run points the engine at. The backend always refuses link-local and cloud-metadata hosts (`169.254.0.0/16`, `fe80::/10`, `fd00:ec2::254`, `100.100.100.200`, `metadata.google.internal`, `instance-data`), in any spelling the URL parser normalises (decimal, hex or octal IPv4, IPv4-mapped IPv6, trailing dot), and with `DOCSX_BACKEND_DENY_PRIVATE_APP_URL=1` also loopback, RFC 1918, CGNAT and unique-local hosts. The check is on the host as written; DNS names are not resolved. A way to set an `app_url` that reaches a refused address is in scope.
+- **Backend `app_url` target filter and engine request guard** — a webhook run screenshots whatever a project's `app_url` and its flows' `navigate` steps name, so a few checks stand between a tenant and a cloud instance's credentials or the host's files. A way around one to reach a refused address, or to upload a file from outside the workspace, is in scope.
+  - _Backend, when a project is saved and when a run is materialised._ `app_url` must be an absolute `http(s)` URL without credentials whose host is not link-local or a cloud-metadata address: `169.254.0.0/16`, `fe80::/10`, `fd00:ec2::254`, `100.100.100.200`, `168.63.129.16`, `metadata.google.internal`, `instance-data`, in any spelling the URL parser normalises (decimal, hex or octal IPv4, trailing dot) and as an IPv6 address that embeds one (IPv4-mapped, NAT64 `64:ff9b::/96` and `64:ff9b:1::/48`, 6to4 `2002::/16`, Teredo `2001::/32` with the client address decoded). With `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` set to `1`, `true` or `yes` it also refuses loopback, RFC 1918, CGNAT, unique-local, `fec0::/10` and the names `localhost`, `localhost.localdomain`, `*.localhost`. Materialising a revision also reads every flow file and refuses a `navigate` value that resolves to an absolute URL those rules refuse, or to one outside the `app_url` origin when the project has an `app_url`. A relative value passes, and so does a public absolute URL when there is no `app_url`. This check is on the host as written: a DNS name is not resolved, so `169.254.169.254.nip.io` passes it.
+  - _Engine request guard, off by default._ With `DOCSX_EGRESS_GUARD` set to `1`, `true` or `yes`, `launchPlaywrightSession` routes every request of the browser context through a check: documents, subresources, fetches and each redirect hop (Chromium reports a redirect as a new request). The host is classified with the rules above and, when it is a name, resolved with `dns.lookup` for all its addresses; one refused address, a failed lookup or an empty answer aborts the request. `DOCSX_EGRESS_DENY_PRIVATE` set to `1`, `true` or `yes` adds the private ranges. WebSocket connections go through the same check (`context.routeWebSocket`), and a refused one is closed. Schemes other than `http`, `https`, `ws`, `wss`, `data`, `blob` and `about` are aborted, and service workers are blocked so their fetches cannot skip the route. What the run prints for a refusal is generic (`egress-guard: blocked <url without userinfo, query or fragment>: address not allowed`), because the runner's last output line is shown to the tenant; the host and resolved address go only to the `onBlock` callback. The backend runner turns the guard on for every webhook run unless `DOCSX_EGRESS_GUARD` is `0`, `false` or `no`, and turns the private ranges on when `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` is on. A local `docsxai run` has the guard off unless the variable is set.
+  - _Uploads._ An `upload` step's value must be a path relative to the workspace, with no `..` segment, naming a regular file whose real path is under the workspace root; the engine's driver refuses anything else when the step runs, and the backend refuses a flow file with such a value when it materialises the revision.
+  - _Not covered._ The guard resolves a name and Chromium resolves it again when it connects, so a DNS answer that changes between the two (DNS rebinding) gets through; that window remains. Redirect coverage relies on Chromium reporting each hop to the route handler. A hosted deployment needs an egress firewall or network policy on the host that runs the engine that drops traffic to link-local and private ranges, whatever these switches say.
 - **Plugin manifest trust bypass** — any path through the Claude Code
   plugin that escalates beyond the declared plugin permissions.
 
@@ -139,6 +143,20 @@ point the engine at.
 the package name and scope before install; verify provenance after
 install. See `docs/security-best-practices-for-adopters.md` (lands
 with the launch-gate phase).
+
+**The MCP HTTP transport.** `docsxai-mcp serve --http` is opt-in; the default transport is stdio.
+It requires a bearer token of at least 32 characters, taken from the environment or a file and never
+from an argument, and compares it in constant time. It refuses a token with fewer than 8 distinct
+characters and, on POSIX, a token file that group or other can access, and it clears the variable
+from its environment after reading so spawned tool processes do not inherit it. It binds loopback unless `--allow-remote` is
+passed, and then it speaks plain HTTP, so TLS must terminate in a proxy in front of it. It checks the
+`Host` and `Origin` headers against loopback names and an operator-supplied list to block DNS
+rebinding (the Host value is parsed strictly as `host[:port]`, and an Origin must use the bound port
+or match an operator-supplied origin), and it caps request bodies at 1 MiB, concurrent sessions at 16 and idle time at 30
+minutes. It refuses to start without `--workspace-root` and confines every path a tool receives to
+that directory, symlinks resolved. Refusals return a bare status code with no detail. It does not rate-limit failed tokens. A
+holder of the token can call every tool the server exposes, including `run_flows`, `push_pack` and
+`pull_pack`, inside the workspace root and with the server process's environment.
 
 ## Plugin trust model
 
