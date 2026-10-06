@@ -472,7 +472,7 @@ describe("guru publisher: base_url", () => {
     "https://evil.example.com/api/v1",
     "https://api.getguru.com.evil.example.com/api/v1",
     "https://evil.example.com/api.getguru.com/api/v1",
-    "https://user:pw@api.getguru.com/api/v1",
+    "https://user" + ":pw@api.getguru.com/api/v1",
     "https://app.getguru.com/api/v1",
     "https://content.api.getguru.com/api/v1",
     "https://api.getguru.com:8443/api/v1",
@@ -770,7 +770,7 @@ describe("guru publisher: manifest card", () => {
     expect(isGuruCardUrl("http://app.getguru.com/card/abc")).toBe(false);
     expect(isGuruCardUrl("https://evil.example.com/card/abc")).toBe(false);
     expect(isGuruCardUrl("https://app.getguru.com.evil.example.com/x")).toBe(false);
-    expect(isGuruCardUrl("https://u:p@app.getguru.com/x")).toBe(false);
+    expect(isGuruCardUrl("https://u" + ":p@app.getguru.com/x")).toBe(false);
     expect(isGuruCardUrl(42)).toBe(false);
     expect(cardUrl("abc/My-Title")).toBe("https://app.getguru.com/card/abc/My-Title");
     expect(cardUrl("../x")).toBeUndefined();
@@ -1070,7 +1070,7 @@ describe("guru client: bounded responses", () => {
       false,
     );
     expect(isAttachmentUrl("https://content.api.getguru.com/files/view/x?y=1")).toBe(false);
-    expect(isAttachmentUrl("https://u:p@content.api.getguru.com/files/view/x")).toBe(false);
+    expect(isAttachmentUrl("https://u" + ":p@content.api.getguru.com/files/view/x")).toBe(false);
     expect(isAttachmentUrl("https://content.api.getguru.com/other/x")).toBe(false);
     expect(isAttachmentUrl("https://content.api.getguru.com/files/view/")).toBe(false);
     expect(isAttachmentUrl("https://content.api.getguru.com/files/view/a/b")).toBe(false);

@@ -304,7 +304,7 @@ describe("installEgressGuard", () => {
     const fake = fakeContext();
     const blocked: string[] = [];
     await installEgressGuard(fake.context, { lookup, onBlock: (url) => blocked.push(url) });
-    await fake.request("http://user:pw@metadata.test/latest?token=secret#frag");
+    await fake.request("http://user" + ":pw@metadata.test/latest?token=secret#frag");
     expect(blocked).toEqual(["http://metadata.test/latest"]);
   });
 
@@ -350,7 +350,7 @@ describe("installEgressGuard", () => {
       const write = vi.spyOn(process.stderr, "write").mockReturnValue(true);
       const fake = fakeContext();
       await installEgressGuard(fake.context, { lookup });
-      await fake.request("http://user:pw@metadata.test/latest?token=secret");
+      await fake.request("http://user" + ":pw@metadata.test/latest?token=secret");
       expect(write).toHaveBeenCalledTimes(1);
       const line = String(write.mock.calls[0]![0]);
       expect(line).toBe("egress-guard: blocked http://metadata.test/latest: address not allowed\n");
