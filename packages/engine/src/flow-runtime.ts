@@ -17,9 +17,11 @@ import {
   type RedactionRegion,
   type RedactionStyle,
   type Step,
+  type VariantInfo,
 } from "./doc-pack.js";
 import { locatorRefName } from "./flow-file.js";
 import { FlowExecutionError, inferHaltCause } from "./flow-halt.js";
+import { pickCopy, variantDocDir } from "./flow-matrix.js";
 import { checkSuccess } from "./flow-success.js";
 import { applyWait } from "./flow-wait.js";
 import { OBSTACLE_RADIUS, selectObstacles, type NearbyBoxes } from "./obstacles.js";
@@ -150,8 +152,14 @@ export { FlowExecutionError, inferHaltCause } from "./flow-halt.js";
 export interface RunFlowOptions {
   /** Resolve a locator name → selector. Defaults to the flow-file's own `locators` map. */
   resolveLocator?: (name: string) => string | undefined;
-  /** Where screenshots are written, relative to the doc pack root. Default: `docs/<flow>/screenshots/<step>.png`. */
+  /** Where screenshots are written, relative to the doc pack root. Default: `docs/<flow>/screenshots/<step>.png`, or `docs/<flow>/<variant>/screenshots/<step>.png` with `variant`. */
   screenshotPath?: (flow: string, stepId: string) => string;
+  /**
+   * The matrix variant `flow` was expanded for (from `expandFlow`). Moves the default screenshot and
+   * halt-shot paths under `docs/<flow>/<variant>/`, names the variant in a halt message, and is recorded
+   * as `variant` in the returned annotations. Absent for a flow without a `matrix`: output is unchanged.
+   */
+  variant?: VariantInfo;
   /** If false, skip screenshot/annotation capture (pure flow validation). Default: true. */
   captureDocs?: boolean;
   /** If set, stop after executing the step with this id — run only a prefix of the flow (for calibration). */
@@ -187,8 +195,8 @@ export interface RunFlowResult {
   annotations: AnnotationsFile;
 }
 
-const defaultScreenshotPath = (flow: string, stepId: string) =>
-  `docs/${flow}/screenshots/${stepId}.png`;
+const defaultScreenshotPath = (flow: string, stepId: string, variant?: string) =>
+  `${variantDocDir(flow, variant)}/screenshots/${stepId}.png`;
 
 /** Resolve a `target` value (`$name` ref or inline selector) using the flow-file's locators (or a custom resolver). */
 export function resolveTarget(
@@ -287,8 +295,17 @@ export async function runFlow(
   driver: BrowserDriver,
   opts: RunFlowOptions = {},
 ): Promise<RunFlowResult> {
+  if (flow.matrix) {
+    throw new Error(
+      `runFlow: flow "${flow.name}" has a \`matrix\`; expand it (expandFlow) and run each variant`,
+    );
+  }
   const captureDocs = opts.captureDocs ?? true;
-  const screenshotPathOf = opts.screenshotPath ?? defaultScreenshotPath;
+  const variantId = opts.variant?.id;
+  const screenshotPathOf =
+    opts.screenshotPath ??
+    ((name: string, stepId: string) => defaultScreenshotPath(name, stepId, variantId));
+  const locale = flow.environment?.locale;
   const resolve = (v: string) => resolveTarget(v, flow, opts.resolveLocator);
 
   const executed: ExecutedStep[] = [];
@@ -343,20 +360,27 @@ export async function runFlow(
       // Halt: dump a screenshot for triage (best-effort), prepend a 1-line inferred cause
       // (parsed from Playwright's actionability log so the agent doesn't have to scan ~20 lines
       //  to know why), then surface step id + url + halt-shot path uniformly.
-      const haltShot = `docs/${flow.name}/halts/${step.id}.png`;
+      const haltShot = `${variantDocDir(flow.name, variantId)}/halts/${step.id}.png`;
       // Halt shots can capture the same sensitive UI as step shots — same redactions apply.
       if (captureDocs) await driver.screenshot(haltShot, redactions).catch(() => undefined);
       const suffix = captureDocs ? ` (halt screenshot: ${haltShot})` : "";
       const cause = inferHaltCause((e as Error).message ?? "");
       const causePrefix = cause ? `[${cause}] ` : "";
+      const variantTag = variantId ? `[variant ${variantId}] ` : "";
       if (e instanceof FlowExecutionError) {
-        throw new FlowExecutionError(`${causePrefix}${e.message}${suffix}`, e.stepId, e.cause);
+        throw new FlowExecutionError(
+          `${causePrefix}${variantTag}${e.message}${suffix}`,
+          e.stepId,
+          e.cause,
+          variantId,
+        );
       }
       const where = await driver.currentUrl().catch(() => "?");
       throw new FlowExecutionError(
-        `${causePrefix}step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`,
+        `${causePrefix}${variantTag}step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`,
         step.id,
         e,
+        variantId,
       );
     }
 
@@ -391,7 +415,7 @@ export async function runFlow(
             selector: annSelector ?? "",
             ...(bbox ? { bounding_box: bbox } : {}),
             ...(obstacles.length > 0 ? { obstacles } : {}),
-            copy: ann.copy,
+            copy: pickCopy(ann, locale),
             ...(ann.arrow ? { arrow_style: ann.arrow } : {}),
             ...(ann.nudge ? { nudge: ann.nudge } : {}),
             ...(ann.placement ? { placement: ann.placement } : {}),
@@ -411,6 +435,11 @@ export async function runFlow(
   return {
     flow: flow.name,
     steps: executed,
-    annotations: { schema: "docsxai/annotations@1", flow: flow.name, annotations },
+    annotations: {
+      schema: "docsxai/annotations@1",
+      flow: flow.name,
+      ...(opts.variant ? { variant: opts.variant } : {}),
+      annotations,
+    },
   };
 }

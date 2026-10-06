@@ -10,11 +10,11 @@ Usage:
                                  [--persist tmp] [--force]
   docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
-  docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+  docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
   docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]
   docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
   docsxai flow-tree <workspace-dir> [--format text|json]
-  docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
+  docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
   docsxai doctor [<workspace-dir>]
   docsxai style <workspace-dir> [--check] [--format text|json]
   docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
@@ -54,6 +54,11 @@ Notes:
     state (e.g. left over from a paused previous run) and iterate on the new tail step in seconds rather
     than re-walking the whole extends chain. New annotations MERGE into the existing annotations.json by
     step id; the prior steps' annotations and screenshots are preserved.
+  • A flow with a top-level \`matrix:\` (locales, color_schemes, viewports) expands into one variant per
+    combination. run gives each variant its own Chromium session and writes docs/<flow>/<variant>/
+    {screenshots/, annotations.json, halts/} (variant id: <locale>.<scheme>.<viewport>, axes the matrix
+    leaves out are dropped). run --variant <id> runs one variant. lint lists the variants (R015), flow-tree
+    prints them, diagnose --variant <id> picks one. --cdp cannot run a matrix flow.
   • run --cdp <endpoint> attaches to a running Chrome (start it with --remote-debugging-port=N) instead of
     launching one. docsxai won't close that Chrome. When --cdp is set, the cached storageState is NOT
     loaded into the context — the operator's Chrome owns its auth state. Useful with --start-from for the

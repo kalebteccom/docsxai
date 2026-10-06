@@ -1,12 +1,14 @@
-// The flow-execution loop behind `docsxai run`: one Playwright session per flow, a worker pool for
-// `--concurrency`, and the write of each flow's annotations.json under an output root. Split out of
-// the CLI handler so `run --verify-determinism` drives the identical code path against an isolated
-// output root instead of the workspace.
+// The flow-execution loop behind `docsxai run`: one Playwright session per unit (a flow, or one
+// matrix variant of a flow), a worker pool for `--concurrency`, and the write of each unit's
+// annotations.json under an output root (`docs/<flow>/`, or `docs/<flow>/<variant>/` for a matrix).
+// Split out of the CLI handler so `run --verify-determinism` drives the identical code path against
+// an isolated output root instead of the workspace.
 
 import { promises as fs } from "node:fs";
 import { type StorageState } from "./auth.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowExecutionError } from "./flow-halt.js";
+import { expandFlow, type FlowVariant } from "./flow-matrix.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
@@ -16,7 +18,10 @@ export interface RunFlowsOptions {
   projectDir: string;
   /** Where `docs/<flow>/…` is written. The workspace itself for a plain `run`. */
   outputRoot: string;
+  /** Flows to run. A flow with a `matrix` runs once per variant (see `expandFlow`). */
   flows: FlowFile[];
+  /** Run only the matrix variant with this id; other variants and flows without a matrix are skipped. */
+  variant?: string | undefined;
   storageState?: StorageState | undefined;
   baseURL?: string | undefined;
   headed: boolean;
@@ -32,7 +37,18 @@ export interface RunFlowsOptions {
   progress: (line: string) => void;
 }
 
-/** A flow that did not finish. `step` is set when the runtime halted on a step. */
+/** `<flow>` for a flow without a matrix, `<flow>/<variant>` for a variant (the name `render` and `burn` use). */
+export function unitLabel(unit: FlowVariant): string {
+  return unit.id ? `${unit.flow.name}/${unit.id}` : unit.flow.name;
+}
+
+/** The units `opts` selects: every flow expanded, narrowed to `opts.variant` when it is set. */
+function selectUnits(opts: Pick<RunFlowsOptions, "flows" | "variant">): FlowVariant[] {
+  const units = opts.flows.flatMap((flow) => expandFlow(flow));
+  return opts.variant ? units.filter((u) => u.id === opts.variant) : units;
+}
+
+/** A unit that did not finish. `flow` is the unit label; `step` is set when the runtime halted on a step. */
 export interface FlowFailure {
   flow: string;
   step: string | null;
@@ -70,8 +86,9 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
   const say = (line: string) => opts.progress(line);
   const failures: FlowFailure[] = [];
 
-  async function runOne(flow: FlowFile): Promise<boolean> {
-    const name = flow.name;
+  async function runOne(unit: FlowVariant): Promise<boolean> {
+    const { flow } = unit;
+    const name = unitLabel(unit);
     let session;
     try {
       // When attaching to an existing Chrome via --cdp, the operator owns its auth state — don't
@@ -99,16 +116,17 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
     try {
       const result = await runFlow(flow, session.driver, {
         resolveLocator: (n) => flow.locators[n],
+        ...(unit.info ? { variant: unit.info } : {}),
         ...(stopAfter ? { stopAfter } : {}),
         ...(startFrom ? { startFrom } : {}),
         ...(opts.obstacles ? { obstacles: true } : {}),
       });
-      await fs.mkdir(resolveWorkspacePath(outputRoot, "docs", flow.name), { recursive: true });
-      // Flow names come from the flow-files — resolve the write target symlink-aware.
+      const docSegments = ["docs", flow.name, ...(unit.id ? [unit.id] : [])];
+      await fs.mkdir(resolveWorkspacePath(outputRoot, ...docSegments), { recursive: true });
+      // Flow names and variant ids come from the flow-files — resolve the write target symlink-aware.
       const annotationsPath = await resolveWorkspacePathReal(
         outputRoot,
-        "docs",
-        flow.name,
+        ...docSegments,
         "annotations.json",
       );
       // With `startFrom`, only the post-startFrom steps emit annotations — merge them into the
@@ -140,17 +158,19 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
     }
   }
 
+  const units = selectUnits(opts);
   let idx = 0;
   let okCount = 0;
   async function worker(): Promise<void> {
-    while (idx < opts.flows.length) {
-      const flow = opts.flows[idx++]!;
-      if (await runOne(flow)) okCount++;
+    while (idx < units.length) {
+      const unit = units[idx++]!;
+      if (await runOne(unit)) okCount++;
     }
   }
-  const workers = Math.min(opts.concurrency, opts.flows.length);
+  const workers = Math.min(opts.concurrency, units.length);
+  const noun = units.some((u) => u.id) ? "flow variants" : "flows";
   if (workers > 1)
-    say(`run: running ${opts.flows.length} flows with ${workers} parallel worker(s)…\n`);
+    say(`run: running ${units.length} ${noun} with ${workers} parallel worker(s)…\n`);
   await Promise.all(Array.from({ length: workers }, () => worker()));
   // Workers finish in completion order; sort so the failure list is stable across runs.
   failures.sort((a, b) => (a.flow < b.flow ? -1 : a.flow > b.flow ? 1 : 0));

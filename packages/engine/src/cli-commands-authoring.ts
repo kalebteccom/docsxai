@@ -10,11 +10,18 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { LocalStorageStateCache, parseAuthStrategyFile } from "./auth.js";
 import { type FlowFile } from "./doc-pack.js";
-import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
+import {
+  expandFlowVariants,
+  FlowFileError,
+  parseFlowFile,
+  resolveFlowExtends,
+} from "./flow-file.js";
+import { variantDocDir, type FlowVariant } from "./flow-matrix.js";
 import {
   buildDiagnoseReport,
   type DiagnoseReport,
   formatReportText,
+  pickDiagnoseVariant,
   probeLive,
 } from "./diagnose.js";
 import { formatIssuesText, type LintIssue, type LintRule, lintFlow } from "./flow-lint.js";
@@ -311,6 +318,8 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
   const stepId = typeof flags.get("step") === "string" ? (flags.get("step") as string) : undefined;
   const cdpEndpoint =
     typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
+  const variantFlag =
+    typeof flags.get("variant") === "string" ? (flags.get("variant") as string) : undefined;
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
 
   if (!flowName) {
@@ -338,19 +347,36 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
     return parseFlowFile(text, fp);
   };
   let flow: FlowFile;
+  let variants: FlowVariant[];
   try {
     const parsed = await loadFlowFile(flowName);
     flow = parsed.extends ? await resolveFlowExtends(parsed, loadFlowFile) : parsed;
+    variants = expandFlowVariants(flow);
   } catch (e) {
     const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
     process.stderr.write(`diagnose: ${msg}\n`);
     return 1;
   }
 
+  // A flow with a `matrix` is diagnosed one variant at a time: its steps and halt shot are the variant's.
+  const picked = await pickDiagnoseVariant({
+    workspace: projectDir,
+    flow: flowName,
+    stepId,
+    variants,
+    requested: variantFlag,
+  });
+  if ("error" in picked) {
+    process.stderr.write(`diagnose: ${picked.error}\n`);
+    return 2;
+  }
+  const variantId = picked.variant.id;
+  flow = picked.variant.flow;
+
   const step = flow.steps.find((s) => s.id === stepId);
   if (!step) {
     process.stderr.write(
-      `diagnose: no step "${stepId}" in flow "${flowName}" (merged step list: ${flow.steps.map((s) => s.id).join(", ")})\n`,
+      `diagnose: no step "${stepId}" in flow "${flowName}"${variantId ? ` variant "${variantId}"` : ""} (${variantId ? "variant" : "merged"} step list: ${flow.steps.map((s) => s.id).join(", ")})\n`,
     );
     return 1;
   }
@@ -363,8 +389,7 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
 
   const haltScreenshotAbsPath = resolveWorkspacePath(
     projectDir,
-    "docs",
-    flowName,
+    variantDocDir(flowName, variantId),
     "halts",
     `${stepId}.png`,
   );
@@ -391,6 +416,7 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
       ...(resolvedSelector ? { resolvedSelector } : {}),
       haltScreenshotAbsPath,
       ...(liveProbe ? { liveProbe } : {}),
+      ...(variantId ? { variant: { id: variantId, all: picked.ids } } : {}),
     });
   } catch (e) {
     process.stderr.write(`diagnose: live probe failed: ${(e as Error).message}\n`);

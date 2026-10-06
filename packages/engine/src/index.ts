@@ -9,6 +9,7 @@ export * from "./doc-pack.js";
 export * from "./doc-pack-io.js";
 export * from "./flow-file.js";
 export * from "./flow-runtime.js";
+export * from "./flow-matrix.js";
 export * from "./obstacles.js";
 export * from "./flow-lint.js";
 export * from "./flow-tree.js";

@@ -19,7 +19,13 @@ import {
 } from "./auth.js";
 import { calibrate } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
-import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
+import {
+  expandFlowVariants,
+  FlowFileError,
+  parseFlowFile,
+  resolveFlowExtends,
+} from "./flow-file.js";
+import { type FlowVariant } from "./flow-matrix.js";
 import { recordRunHistory } from "./backend-client.js";
 import { runFlowsInSessions } from "./run-flows.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
@@ -65,6 +71,8 @@ export async function cmdRun(args: string[]): Promise<number> {
     typeof flags.get("start-from") === "string" ? (flags.get("start-from") as string) : undefined;
   const cdpEndpoint =
     typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
+  const onlyVariant =
+    typeof flags.get("variant") === "string" ? (flags.get("variant") as string) : undefined;
   const pause = flags.get("pause") === true;
   const headed = flags.get("headed") === true || pause; // --pause implies --headed
   if (startFrom && !onlyFlow) {
@@ -102,12 +110,19 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
     return parseFlowFile(text, fp);
   };
+  // `flows` goes to the run loop, which expands each matrix flow itself; `units` is the same
+  // expansion here, for the checks and messages that need the variant ids before anything launches.
   const flows: FlowFile[] = [];
+  const units: FlowVariant[] = [];
+  const matrixFlows = new Set<string>();
+  let flowCount = 0;
   for (const fp of flowPaths) {
     let flow: FlowFile;
+    let variants: FlowVariant[];
     try {
       const parsed = parseFlowFile(await fs.readFile(fp, "utf8"), fp);
       flow = parsed.extends ? await resolveFlowExtends(parsed, loadFlowFile) : parsed;
+      variants = expandFlowVariants(flow, fp);
     } catch (e) {
       if (e instanceof FlowFileError) {
         process.stderr.write(`run: ${e.message}\n`);
@@ -115,15 +130,53 @@ export async function cmdRun(args: string[]): Promise<number> {
       }
       throw e;
     }
-    if (!onlyFlow || flow.name === onlyFlow) flows.push(flow);
+    if (onlyFlow && flow.name !== onlyFlow) continue;
+    flowCount++;
+    flows.push(flow);
+    if (flow.matrix) matrixFlows.add(flow.name);
+    units.push(...variants);
   }
-  if (flows.length === 0) {
+  if (flowCount === 0) {
     process.stderr.write(
       onlyFlow
         ? `run: no flow named "${onlyFlow}"\n`
         : `run: no flow-files in ${projectDir}/flows\n`,
     );
     return 1;
+  }
+  if (cdpEndpoint && matrixFlows.size > 0) {
+    process.stderr.write(
+      `run: --cdp attaches to a browser that owns its viewport, color scheme and locale, so it cannot run the matrix of ${[...matrixFlows].join(", ")}\n`,
+    );
+    return 1;
+  }
+  if (onlyVariant) {
+    const wanted = units.filter((u) => u.id === onlyVariant);
+    if (wanted.length === 0) {
+      process.stderr.write(
+        `run: no variant "${onlyVariant}" (variants: ${
+          units
+            .map((u) => u.id)
+            .filter(Boolean)
+            .join(", ") || "none, no flow has a matrix"
+        })\n`,
+      );
+      return 1;
+    }
+    units.splice(0, units.length, ...wanted);
+  }
+  for (const name of matrixFlows) {
+    const stale = resolveWorkspacePath(projectDir, "docs", name, "annotations.json");
+    if (
+      await fs.access(stale).then(
+        () => true,
+        () => false,
+      )
+    ) {
+      process.stderr.write(
+        `run: warning — docs/${name}/annotations.json is from before ${name} had a matrix; its variants write to docs/${name}/<variant>/, so remove the old docs/${name}/ outputs\n`,
+      );
+    }
   }
 
   let storageState: StorageState | undefined;
@@ -147,9 +200,11 @@ export async function cmdRun(args: string[]): Promise<number> {
       `run: --pause / --stop-after / --start-from / --cdp force --concurrency 1 (ignoring --concurrency ${requestedConcurrency})\n`,
     );
   }
+  const noun = matrixFlows.size > 0 ? "flow variants" : "flows";
   const runOptions = {
     projectDir,
     flows,
+    variant: onlyVariant,
     storageState,
     baseURL,
     headed,
@@ -187,7 +242,7 @@ export async function cmdRun(args: string[]): Promise<number> {
     config: wsCfg ?? {},
     ok: !anyFailed,
     durationMs: Date.now() - startedAt,
-    summary: `${okCount}/${flows.length} flows ok`,
+    summary: `${okCount}/${units.length} ${noun} ok`,
   });
   if (history.warning) process.stderr.write(`run: warning — ${history.warning}\n`);
 

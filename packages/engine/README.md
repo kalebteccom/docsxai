@@ -26,7 +26,7 @@ inspect        discover [data-testid] locators on the live page
 run            execute flows headless; emit annotations + screenshots (`--verify-determinism` byte-compares N isolated runs)
 render         build the static viewer (spawns the @docsxai/viewer bin)
 burn           bake annotations into PNG copies (spawns the same bin's `burn`)
-lint           static checks across flow-files (R001-R014; `extraRules` injectable via `lintFlow`)
+lint           static checks across flow-files (R001-R016; `extraRules` injectable via `lintFlow`)
 flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt
 doctor         environment + workspace health-check (✓/✗ + one-line fixes; no plugin code runs)
@@ -40,6 +40,8 @@ login          validate a backend bearer token (`--oauth` runs the OAuth 2.1 + P
 push           upload the doc pack to the backend as a new revision
 pull           fetch a backend revision's artifacts into the workspace
 ```
+
+A flow with a top-level `matrix:` (`locales`, `color_schemes`, `viewports`; at most 64 variants) expands at parse time (`expandFlow` in `flow-matrix.ts`, schema in `matrix-spec.ts`) into one flow per variant, each under its own `environment`, with `only`/`skip` on steps and annotations and `copy_by_locale` on annotations. `run` starts one session per variant (`run-flows.ts`) and writes `docs/<flow>/<variant>/{screenshots/, annotations.json, halts/}`; `annotations.json` records the variant, and a halt message names it. Without a matrix the layout and every output byte are unchanged. `lint` (R015, R016), `flow-tree` and `diagnose --variant` read the matrix. Design note: `docs/ai-context/architecture/flow-matrix-decision.md`.
 
 `run` has a sub-3-second iteration mode for long-async flows: `--start-from <step-id> --cdp <endpoint>` skips every step before the target and attaches to an already-warm Chrome.
 

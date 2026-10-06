@@ -7,6 +7,8 @@ export class FlowExecutionError extends Error {
     message: string,
     readonly stepId: string,
     readonly cause?: unknown,
+    /** Id of the matrix variant that halted; absent for a flow without a `matrix`. */
+    readonly variant?: string,
   ) {
     super(message);
     this.name = "FlowExecutionError";

@@ -4,6 +4,7 @@
 import type { FlowFile } from "./doc-pack.js";
 import { locatorRefName, referencedLocatorNames } from "./flow-file.js";
 import { hiddenAtEachStep } from "./flow-hidden.js";
+import { lintMatrix } from "./flow-matrix-lint.js";
 
 export type LintSeverity = "error" | "warning" | "info";
 
@@ -101,6 +102,9 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       });
     }
   }
+
+  // R015 — the variants a `matrix` expands to; R016 — `copy_by_locale` keys no variant uses
+  issues.push(...lintMatrix(flow));
 
   // R007 — terminal step lacks `success` (with `extends`, this flow's steps run last, so its
   // final step IS the merged flow's terminal step)

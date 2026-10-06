@@ -85,12 +85,14 @@ Usage:
   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...
 
   build — emit the interactive HTML viewer
-    <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md)
+    <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md;
+                a flow that ran a matrix holds the same under <flow>/<variant>/, each variant a flow here)
     <out-dir>   where the generated viewer is written
 
   burn — bake annotations into the PNGs (for surfaces that can't run the viewer)
     <workspace>  a docsxai workspace (reads <workspace>/docs)
-    --flow       restrict to these flows (default: all flows with annotations.json)
+    --flow       restrict to these flows (default: all flows with annotations.json); a flow that ran a
+                 matrix also selects its <flow>/<variant> outputs
     --out        output root (default: docs/<flow>/burned/<step>.png)
     --report     write a JSON placement report (callout and badge boxes, overlaps, unplaceable
                  flags) to <file>, resolved under <workspace> when relative; every callout is drawn
@@ -184,7 +186,14 @@ async function runBurn(args: ParsedArgs): Promise<number> {
   }
   const docsDir = path.join(workspace, "docs");
   try {
-    const flows = args.flows.length ? args.flows : await discoverFlows(docsDir);
+    const found = await discoverFlows(docsDir, { variants: true });
+    // `--flow <name>` also selects the `<name>/<variant>` outputs of a flow that ran a matrix.
+    const flows = args.flows.length
+      ? args.flows.flatMap((want) => {
+          const variants = found.filter((f) => f.startsWith(`${want}/`));
+          return found.includes(want) ? [want, ...variants] : variants.length ? variants : [want];
+        })
+      : found;
     if (flows.length === 0) {
       process.stderr.write(`burn: no flows with annotations.json under ${docsDir}\n`);
       return 1;

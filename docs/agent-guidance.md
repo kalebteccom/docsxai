@@ -87,7 +87,7 @@ docsxai lint "$WORKSPACE" && docsxai run "$WORKSPACE" --flow <name>
 
 `lint` is pure-static and exits 1 on any warning: deep `extends` chains, annotations anchored
 to unmounting targets, missing `timeout_ms` on long-async steps, hidden-duplicate-prone bare
-`[data-*=…]` selectors, unguarded optional steps, and more (R001–R014). `docsxai flow-tree`
+`[data-*=…]` selectors, unguarded optional steps, and more (R001–R016). `docsxai flow-tree`
 does the same for the `extends` graph.
 
 ## The `--start-from --cdp` inner loop, not full re-walks

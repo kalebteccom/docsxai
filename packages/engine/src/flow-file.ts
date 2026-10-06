@@ -8,6 +8,7 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { z } from "zod";
 import { FlowFile, type Step } from "./doc-pack.js";
+import { expandFlow, FlowMatrixError, type FlowVariant } from "./flow-matrix.js";
 
 export class FlowFileError extends Error {
   constructor(
@@ -48,7 +49,23 @@ export function parseFlowFile(yamlText: string, source = "<flow-file>"): FlowFil
   // `resolveFlowExtends`, which runs it on the merged flow.
   if (!flow.extends) assertLocatorRefsResolve(flow, source);
   assertStepIdsUnique(flow, source);
+  // A flow with `extends` is checked once merged (a parent step may carry the `only`/`skip`).
+  if (!flow.extends) expandFlowVariants(flow, source);
   return flow;
+}
+
+/**
+ * Expand a flow into its matrix variants (see `flow-matrix.ts`), reporting a bad `only`/`skip`
+ * or a variant with no steps as a {@link FlowFileError}. A flow without a `matrix` yields one variant.
+ */
+export function expandFlowVariants(flow: FlowFile, source?: string): FlowVariant[] {
+  try {
+    return expandFlow(flow);
+  } catch (e) {
+    if (e instanceof FlowMatrixError)
+      throw new FlowFileError(source ? `${source}: ${e.message}` : e.message, e);
+    throw e;
+  }
 }
 
 /** Serialize a {@link FlowFile} back to canonical YAML. */
@@ -140,7 +157,7 @@ function assertStepIdsUnique(flow: FlowFile, source: string): void {
  * Resolve a flow's `extends` chain into a single flow: parent's steps first, then this flow's. `locators` and
  * `prerequisites` are merged (this flow wins on locator-name collisions); `environment` merges per-key with
  * this flow's keys winning; `redactions` concatenate (parent's first); step ids must be unique across the
- * merge. Chains are followed recursively; cycles throw. `loadFlowFile(name)` parses `flows/<name>.flow.yaml`
+ * merge. `matrix` is the child's own (never inherited). Chains are followed recursively; cycles throw. `loadFlowFile(name)` parses `flows/<name>.flow.yaml`
  * (a flow with its own `extends` un-resolved — this function recurses). The result has no `extends`.
  */
 export async function resolveFlowExtends(
@@ -184,6 +201,8 @@ export async function resolveFlowExtends(
   const merged: FlowFile = {
     name: flow.name,
     ...(Object.keys(environment).length ? { environment } : {}),
+    // `matrix` is not inherited: the merged flow expands by the child's own matrix, or not at all.
+    ...(flow.matrix ? { matrix: flow.matrix } : {}),
     ...(redactions.length ? { redactions } : {}),
     prerequisites: [...parent.prerequisites, ...flow.prerequisites],
     locators: { ...parent.locators, ...flow.locators },
