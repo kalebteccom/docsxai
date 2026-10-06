@@ -17,15 +17,15 @@
     "currentUrl": "currentUrl(): Promise<string>",
     "fill": "fill(selector: string, value: string, timeoutMs?: number): Promise<void>",
     "goto": "goto(url: string): Promise<void>",
-    "hideElements": "hideElements(selector: string, timeoutMs?: number): Promise<void>",
+    "hideElements": "hideElements?(selector: string, timeoutMs?: number): Promise<void>",
     "hover": "hover(selector: string, timeoutMs?: number): Promise<void>",
     "isVisible": "isVisible(selector: string): Promise<boolean>",
-    "nearbyBoxes": "nearbyBoxes(selector: string, radius: number, timeoutMs?: number): Promise<NearbyBoxes | null>",
+    "nearbyBoxes": "nearbyBoxes?(selector: string, radius: number, timeoutMs?: number): Promise<NearbyBoxes | null>",
     "press": "press(selector: string | null, key: string, timeoutMs?: number): Promise<void>",
     "screenshot": "screenshot(relPath: string, redactions?: ResolvedRedaction[]): Promise<void>",
     "selectOption": "selectOption(selector: string, value: string, timeoutMs?: number): Promise<void>",
     "setChecked": "setChecked(selector: string, checked: boolean, timeoutMs?: number): Promise<void>",
-    "showElements": "showElements(selector: string | null): Promise<void>",
+    "showElements": "showElements?(selector: string | null): Promise<void>",
     "textContains": "textContains(selector: string, text: string): Promise<boolean>",
     "textOf": "textOf(selector: string): Promise<string | null>",
     "upload": "upload(selector: string, filePath: string, timeoutMs?: number): Promise<void>",
@@ -37,5 +37,5 @@
     "waitForSettled": "waitForSettled?(timeoutMs?: number): Promise<void>",
     "waitForTimeout": "waitForTimeout(ms: number): Promise<void>"
   },
-  "optional": ["waitForSettled"]
+  "optional": ["hideElements", "nearbyBoxes", "showElements", "waitForSettled"]
 }

@@ -61,10 +61,16 @@ export interface BrowserDriver {
    * `timeoutMs` for a match to exist, throws if none does. The hiding is by selector and holds for
    * the rest of the session, across navigations and re-renders, until {@link showElements}.
    * Implementations apply a fixed engine-owned rule; the selector is data, never CSS or script.
+   *
+   * Optional, like {@link waitForSettled}: a driver written before `hide` existed still satisfies the
+   * interface. The runtime halts a `hide` step on a driver without it, with a message naming the method.
    */
-  hideElements(selector: string, timeoutMs?: number): Promise<void>;
-  /** Undo {@link hideElements} for the selector as it was given there, or for everything when `null`. Instant; matching nothing is fine. */
-  showElements(selector: string | null): Promise<void>;
+  hideElements?(selector: string, timeoutMs?: number): Promise<void>;
+  /**
+   * Undo {@link hideElements} for the selector as it was given there, or for everything when `null`. Instant; matching nothing is fine.
+   * Optional; the runtime halts a `show` step on a driver without it, with a message naming the method.
+   */
+  showElements?(selector: string | null): Promise<void>;
 
   waitForNetworkIdle(): Promise<void>;
   waitForLoad(): Promise<void>;
@@ -105,8 +111,11 @@ export interface BrowserDriver {
    * driver's; `selectObstacles` sorts, clips and caps. Returns `null` when the target isn't visible
    * within `timeoutMs`; rejects if the scan itself runs past `timeoutMs`. The scan happens after the
    * screenshot, so a continuously animating page can drift from the image. Only called when a workspace turns on `annotations.obstacles`.
+   *
+   * Optional. With `annotations.obstacles` on, the runtime halts an annotated step on a driver
+   * without it, with a message naming the method; with it off, the method is never called.
    */
-  nearbyBoxes(selector: string, radius: number, timeoutMs?: number): Promise<NearbyBoxes | null>;
+  nearbyBoxes?(selector: string, radius: number, timeoutMs?: number): Promise<NearbyBoxes | null>;
   /** Capture a clean screenshot (no baked annotations), applying any `redactions` before it hits disk. */
   screenshot(relPath: string, redactions?: ResolvedRedaction[]): Promise<void>;
 
@@ -221,6 +230,7 @@ async function obstaclesAround(
   stepId: string,
   placement?: AnnotationPlacement,
 ): Promise<BoundingBox[]> {
+  if (!driver.nearbyBoxes) return [];
   const radius = placement?.obstacle_radius ?? OBSTACLE_RADIUS;
   try {
     const scan = await driver.nearbyBoxes(selector, radius, 2000);
@@ -273,10 +283,17 @@ async function executeAction(
     case "wait":
       return; // a bare `wait` step just runs its `wait_for`
     case "hide":
+      if (!driver.hideElements) throw new Error(missingMethod("hide", "hideElements"));
       return driver.hideElements(needSelector(selector, step), step.timeout_ms);
     case "show":
+      if (!driver.showElements) throw new Error(missingMethod("show", "showElements"));
       return driver.showElements(selector); // no target = show everything hidden so far
   }
+}
+
+/** The halt message for a step whose optional driver method is missing. `halt-cause` keys on its shape. */
+function missingMethod(feature: string, method: string): string {
+  return `${feature}: driver has no ${method} (this browser driver doesn't implement it)`;
 }
 
 function needSelector(selector: string | null, step: Step): string {
@@ -397,6 +414,16 @@ export async function runFlow(
     // each becomes one record with a 1-based `index`; an `annotation` (singular) emits one record without
     // `index` (un-numbered, back-compat).
     const anns = step.annotations ?? (step.annotation ? [step.annotation] : []);
+    if (captureDocs && anns.length > 0 && opts.obstacles && !driver.nearbyBoxes) {
+      // Obstacle scanning was asked for and cannot run: halt rather than write annotations without it.
+      throw new FlowExecutionError(
+        missingMethod("obstacles", "nearbyBoxes") +
+          "; turn off `annotations.obstacles` in .docsxai.json or use a driver that has it",
+        step.id,
+        undefined,
+        variantId,
+      );
+    }
     if (captureDocs && anns.length > 0) {
       try {
         const shot = screenshotPathOf(flow.name, step.id);

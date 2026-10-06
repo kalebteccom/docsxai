@@ -267,6 +267,21 @@ describe("runFlow", () => {
       expect(r.annotations.annotations[0]).not.toHaveProperty("obstacles");
     });
 
+    it("a driver without nearbyBoxes halts an annotated step when obstacles are on, naming the method", async () => {
+      const d = driver();
+      (d as { nearbyBoxes?: unknown }).nearbyBoxes = undefined;
+      await expect(runFlow(parseFlowFile(FLOW), d, { obstacles: true })).rejects.toThrow(
+        /obstacles: driver has no nearbyBoxes.*turn off `annotations.obstacles`/,
+      );
+    });
+
+    it("a driver without nearbyBoxes runs as before when obstacles are off", async () => {
+      const d = driver();
+      (d as { nearbyBoxes?: unknown }).nearbyBoxes = undefined;
+      const r = await runFlow(parseFlowFile(FLOW), d);
+      expect(r.annotations.annotations[0]).not.toHaveProperty("obstacles");
+    });
+
     it("writes selected, sorted obstacles on each annotation when on", async () => {
       const d = driver();
       const r = await runFlow(parseFlowFile(FLOW), d, { obstacles: true });
@@ -824,6 +839,34 @@ steps:
 `);
     await runFlow(flow, d);
     expect(d.calls).toEqual(["hide #banner", "show #banner"]);
+  });
+
+  it("a driver without hideElements halts a hide step and names the method", async () => {
+    const d = new FakeDriver();
+    (d as { hideElements?: unknown }).hideElements = undefined;
+    const flow = parseFlowFile("name: f\nsteps:\n  - { id: h, action: hide, target: '#x' }\n");
+    await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(
+      /can't run hide or show steps.*step "h" \(hide\).*hide: driver has no hideElements/,
+    );
+  });
+
+  it("a driver without showElements halts a show step and names the method", async () => {
+    const d = new FakeDriver();
+    (d as { showElements?: unknown }).showElements = undefined;
+    const flow = parseFlowFile("name: f\nsteps:\n  - { id: s, action: show }\n");
+    await expect(runFlow(flow, d, { captureDocs: false })).rejects.toThrow(
+      /step "s" \(show\).*show: driver has no showElements/,
+    );
+  });
+
+  it("an optional hide on a driver without hideElements is skipped like any other failure", async () => {
+    const d = new FakeDriver();
+    (d as { hideElements?: unknown }).hideElements = undefined;
+    const flow = parseFlowFile(
+      "name: f\nsteps:\n  - { id: h, action: hide, target: '#x', optional: true }\n  - { id: n, action: click, target: '#go' }\n",
+    );
+    const r = await runFlow(flow, d, { captureDocs: false });
+    expect(r.steps.map((x) => x.id)).toEqual(["n"]);
   });
 
   it("hide requires a target and halts without one", async () => {
