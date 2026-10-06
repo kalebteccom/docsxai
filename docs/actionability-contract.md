@@ -49,7 +49,7 @@ Avoid using `actionable()` in tight loops; intended pattern is "one call per can
 
 ## Coordinates with the existing halt-cause prefix
 
-The runtime's halt-cause prefix (see `flow-runtime.ts: inferHaltCause`) parses Playwright actionability _errors_ into the same vocabulary at halt-time. Pre- and post-action signals should match:
+The runtime's halt-cause prefix (see `flow-halt.ts: inferHaltCause`) parses Playwright actionability _errors_ into the same vocabulary at halt-time. Pre- and post-action signals should match:
 
 | halt-cause prefix (run-time)               | `actionable()` state (write-time) |
 | ------------------------------------------ | --------------------------------- |
