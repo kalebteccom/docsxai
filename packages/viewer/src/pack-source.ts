@@ -14,6 +14,7 @@ import type { AnnotationRecord } from "./annotations.js";
 import { pngDimensions } from "./burn.js";
 import { calloutsOf, recordsFromSidecar } from "./pack-annotations.js";
 import { isValidId, parseVariantKey, type LocalizedText, type PackCallout } from "./pack-schema.js";
+import { MAX_JSON_BYTES, MAX_PNG_BYTES, readRegularFile } from "./safe-read.js";
 
 export interface SourceVariant {
   key: string;
@@ -44,7 +45,7 @@ type Obj = Record<string, unknown>;
 export async function readJsonObject(file: string, optional = false): Promise<Obj> {
   let text: string;
   try {
-    text = await fs.readFile(file, "utf8");
+    text = (await readRegularFile(file, MAX_JSON_BYTES)).toString("utf8");
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
     if (optional) return {};
@@ -53,8 +54,9 @@ export async function readJsonObject(file: string, optional = false): Promise<Ob
   let value: unknown;
   try {
     value = JSON.parse(text);
-  } catch (e) {
-    throw new Error(`invalid JSON in ${file}: ${(e as Error).message}`);
+  } catch {
+    // The parser's message quotes the offending text; the capture is not trusted, so it is dropped.
+    throw new Error(`invalid JSON in ${file}`);
   }
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`${file}: expected a JSON object`);
@@ -97,7 +99,7 @@ async function readVariant(stepDir: string, step: string, file: string): Promise
       `${path.join(stepDir, file)}: variant file must be <locale>.<theme>.<viewport>.png`,
     );
   }
-  const png = await fs.readFile(path.join(stepDir, file));
+  const png = await readRegularFile(path.join(stepDir, file), MAX_PNG_BYTES);
   const size = pngDimensions(png);
   const sidecarFile = path.join(stepDir, `${key}.json`);
   const sidecar = await readJsonObject(sidecarFile, true);
