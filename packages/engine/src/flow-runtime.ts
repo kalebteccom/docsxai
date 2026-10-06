@@ -17,10 +17,11 @@ import {
   type RedactionRegion,
   type RedactionStyle,
   type Step,
-  type SuccessSpec,
-  type WaitSpec,
 } from "./doc-pack.js";
 import { locatorRefName } from "./flow-file.js";
+import { FlowExecutionError, inferHaltCause } from "./flow-halt.js";
+import { checkSuccess } from "./flow-success.js";
+import { applyWait } from "./flow-wait.js";
 import { OBSTACLE_RADIUS, selectObstacles, type NearbyBoxes } from "./obstacles.js";
 
 // ---------------------------------------------------------------------------
@@ -140,66 +141,7 @@ export type ActionableState =
 // Errors
 // ---------------------------------------------------------------------------
 
-export class FlowExecutionError extends Error {
-  constructor(
-    message: string,
-    readonly stepId: string,
-    readonly cause?: unknown,
-  ) {
-    super(message);
-    this.name = "FlowExecutionError";
-  }
-}
-
-/**
- * Best-effort 1-line cause extracted from a Playwright actionability log (or similar driver
- * error). Returns undefined when nothing matches — keeps the halt message short rather than
- * guessing. Surfaced as a `[cause]` prefix on the halt message so the agent doesn't have to
- * scan the multi-line actionability log.
- */
-export function inferHaltCause(rawError: string): string | undefined {
-  const hints: Array<[RegExp, string]> = [
-    [
-      /docsxai: cannot hide/i,
-      "the browser can't apply the hide rule (no constructable stylesheets), so the element would stay visible",
-    ],
-    [/element is disabled\b/i, "target is disabled"],
-    [/element is not enabled\b/i, "target is not enabled"],
-    [
-      /element is not visible\b/i,
-      "target is not visible (display:none / visibility:hidden / zero-sized)",
-    ],
-    [
-      /element is not attached\b/i,
-      "target was detached from the DOM (likely unmounted by an earlier action)",
-    ],
-    [/element is outside of the viewport\b/i, "target is outside the visible viewport"],
-    [/element is not stable\b/i, "target is animating / not yet stable"],
-    [
-      /settled: page did not settle/i,
-      "page never settled: fonts, images or layout kept changing (raise timeout_ms, hide the animated element, or wait on a concrete element)",
-    ],
-    [
-      /settled: driver has no waitForSettled/i,
-      "this browser driver can't run wait_for: settled (use network_idle plus a short wait)",
-    ],
-    [/intercepts? pointer events\b/i, "target is covered by another element"],
-    [
-      /strict mode violation\b/i,
-      "selector matched multiple elements (strict-mode violation) — scope with :visible / :nth-match",
-    ],
-    [
-      /timeout .* exceeded.*waiting for/is,
-      "timeout waiting for selector — element didn't appear in time (consider raising timeout_ms or revisiting the locator)",
-    ],
-  ];
-  for (const [re, msg] of hints) {
-    if (re.test(rawError)) return msg;
-  }
-  const resolved = rawError.match(/locator resolved to (<[^>\n]*>)/);
-  if (resolved) return `target resolved to ${resolved[1]}`;
-  return undefined;
-}
+export { FlowExecutionError, inferHaltCause } from "./flow-halt.js";
 
 // ---------------------------------------------------------------------------
 // runFlow
@@ -285,83 +227,6 @@ async function obstaclesAround(
       `runFlow: step "${stepId}" — obstacle scan skipped (${(e as Error).message})\n`,
     );
     return [];
-  }
-}
-
-async function applyWait(
-  driver: BrowserDriver,
-  wait: WaitSpec,
-  resolve: (v: string) => string,
-  stepTimeoutMs?: number,
-): Promise<void> {
-  if (typeof wait === "string") {
-    if (wait === "network_idle") return driver.waitForNetworkIdle();
-    if (wait === "load") return driver.waitForLoad();
-    if (wait === "settled") {
-      if (!driver.waitForSettled) {
-        throw new Error(
-          "settled: driver has no waitForSettled (this browser driver doesn't implement it)",
-        );
-      }
-      return driver.waitForSettled(stepTimeoutMs);
-    }
-    // element_stable without a selector is a no-op signal in this prototype; a real driver may track layout.
-    return;
-  }
-  if ("selector" in wait)
-    return driver.waitForSelector(resolve(wait.selector), wait.timeout_ms ?? stepTimeoutMs);
-  if ("timeout_ms" in wait) return driver.waitForTimeout(wait.timeout_ms);
-}
-
-async function checkSuccess(
-  driver: BrowserDriver,
-  success: SuccessSpec,
-  resolve: (v: string) => string,
-  stepId: string,
-): Promise<void> {
-  const at = async () => `at ${await driver.currentUrl().catch(() => "?")}`;
-  if ("visible" in success) {
-    const sel = resolve(success.visible);
-    if (!(await driver.isVisible(sel))) {
-      throw new FlowExecutionError(
-        `expected ${success.visible} to be visible — ${await at()}; ${await driver.count(sel).catch(() => "?")} element(s) match the selector`,
-        stepId,
-      );
-    }
-    return;
-  }
-  if ("hidden" in success) {
-    const sel = resolve(success.hidden);
-    if (await driver.isVisible(sel)) {
-      throw new FlowExecutionError(
-        `expected ${success.hidden} to be hidden but a match is visible — ${await at()}; ${await driver.count(sel).catch(() => "?")} element(s) match`,
-        stepId,
-      );
-    }
-    return;
-  }
-  if ("url_matches" in success) {
-    if (!(await driver.urlMatches(success.url_matches))) {
-      throw new FlowExecutionError(
-        `expected URL to match /${success.url_matches}/ — actual: ${await driver.currentUrl().catch(() => "?")}`,
-        stepId,
-      );
-    }
-    return;
-  }
-  if ("text_contains" in success) {
-    const { selector, text } = success.text_contains;
-    const sel = resolve(selector);
-    if (!(await driver.textContains(sel, text))) {
-      const actual = ((await driver.textOf(sel).catch(() => null)) ?? "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 200);
-      throw new FlowExecutionError(
-        `expected ${selector} to contain ${JSON.stringify(text)} — ${await at()}; actual text: ${JSON.stringify(actual)}`,
-        stepId,
-      );
-    }
   }
 }
 
