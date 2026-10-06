@@ -29,6 +29,9 @@ export class MaterializeError extends Error {
   }
 }
 
+const isWindowsDeviceName = (name: string): boolean =>
+  WINDOWS_DEVICE_STEM.test(name.split(".", 1)[0] ?? "");
+
 /** Same answer as the engine's `FlowName` schema. */
 export function isFlowName(name: string): boolean {
   return (
@@ -37,12 +40,19 @@ export function isFlowName(name: string): boolean {
     SAFE_SEGMENT.test(name) &&
     !name.includes("..") &&
     !name.endsWith(".") &&
-    !WINDOWS_DEVICE_STEM.test(name.split(".", 1)[0] ?? "")
+    !isWindowsDeviceName(name)
   );
 }
 
 const isSafeSegment = (seg: string): boolean =>
-  seg.length <= 128 && SAFE_SEGMENT.test(seg) && !seg.includes("..") && !seg.endsWith(".");
+  seg.length <= 128 &&
+  SAFE_SEGMENT.test(seg) &&
+  !seg.includes("..") &&
+  !seg.endsWith(".") &&
+  !isWindowsDeviceName(seg);
+
+const isScreenshotFile = (file: string): boolean =>
+  SCREENSHOT_FILE.test(file) && isSafeSegment(file) && isSafeSegment(file.replace(/\.[^.]+$/, ""));
 
 /** `<flow>[/<variant>]`, every segment safe, the flow segment a valid flow name. */
 function isOutputDir(segments: string[]): boolean {
@@ -67,7 +77,18 @@ export function isAnnotationsPath(rel: string): boolean {
 export function isScreenshotPath(rel: string): boolean {
   const segments = rel.split("/");
   const file = segments.pop() ?? "";
-  return SCREENSHOT_FILE.test(file) && segments.pop() === "screenshots" && isOutputDir(segments);
+  return isScreenshotFile(file) && segments.pop() === "screenshots" && isOutputDir(segments);
+}
+
+/** The first two names that differ only by case, or null; exact duplicates are not a clash. */
+function caseClash(names: Iterable<string>): [string, string] | null {
+  const seen = new Map<string, string>();
+  for (const name of names) {
+    const earlier = seen.get(name.toLowerCase());
+    if (earlier !== undefined && earlier !== name) return [earlier, name];
+    if (earlier === undefined) seen.set(name.toLowerCase(), name);
+  }
+  return null;
 }
 
 function describeName(name: string): string {
@@ -99,6 +120,15 @@ function checkedNames(
     );
   }
   return names;
+}
+
+function assertNoCaseClash(what: string, names: string[]): void {
+  const clash = caseClash(names);
+  if (clash) {
+    throw new MaterializeError(
+      `${what} ${describeName(clash[0])} and ${describeName(clash[1])} differ only by case`,
+    );
+  }
 }
 
 function write(root: string, rel: string, data: string | Uint8Array): void {
@@ -151,15 +181,8 @@ export function materializeDocPack(
   if (has("flows")) {
     const files = filesOf(payload("flows"), "flows");
     const names = checkedNames("flows", files, isFlowFileName);
-    const lower = new Map<string, string>();
+    assertNoCaseClash("flows", names);
     for (const name of names) {
-      const earlier = lower.get(name.toLowerCase());
-      if (earlier !== undefined) {
-        throw new MaterializeError(
-          `flows ${describeName(earlier)} and ${describeName(name)} differ only by case`,
-        );
-      }
-      lower.set(name.toLowerCase(), name);
       const text = files[name];
       if (typeof text !== "string") {
         throw new MaterializeError(`flows file ${describeName(name)} is not text`);
@@ -168,26 +191,32 @@ export function materializeDocPack(
     }
   }
 
-  if (has("annotations")) {
-    const files = filesOf(payload("annotations"), "annotations");
-    for (const rel of checkedNames("annotations", files, isAnnotationsPath)) {
-      write(root, `docs/${rel}`, JSON.stringify(files[rel], null, 2) + "\n");
-    }
+  const annotationFiles = has("annotations") ? filesOf(payload("annotations"), "annotations") : {};
+  const screenshotFiles = has("screenshots") ? filesOf(payload("screenshots"), "screenshots") : {};
+  const annotationRels = checkedNames("annotations", annotationFiles, isAnnotationsPath);
+  const screenshotRels = checkedNames("screenshots", screenshotFiles, isScreenshotPath);
+  assertNoCaseClash("annotations", annotationRels);
+  assertNoCaseClash("screenshots", screenshotRels);
+  // `Tour/` and `tour/` are one directory on a case-insensitive disk, whichever artifact names it.
+  assertNoCaseClash("output directories", [
+    ...annotationRels.map((n) => n.split("/").slice(0, -1).join("/")),
+    ...screenshotRels.map((n) => n.split("/").slice(0, -2).join("/")),
+  ]);
+
+  for (const rel of annotationRels) {
+    write(root, `docs/${rel}`, JSON.stringify(annotationFiles[rel], null, 2) + "\n");
   }
 
-  if (has("screenshots")) {
-    const files = filesOf(payload("screenshots"), "screenshots");
-    for (const rel of checkedNames("screenshots", files, isScreenshotPath)) {
-      const sha256 = (files[rel] as { sha256?: unknown } | null)?.sha256;
-      if (typeof sha256 !== "string") {
-        throw new MaterializeError(`screenshots entry ${describeName(rel)} has no sha256`);
-      }
-      const bytes = store.getBlob(sha256);
-      if (sha256Hex(bytes) !== sha256) {
-        throw new MaterializeError(`blob for ${describeName(rel)} failed its sha256 check`);
-      }
-      write(root, `docs/${rel}`, bytes);
+  for (const rel of screenshotRels) {
+    const sha256 = (screenshotFiles[rel] as { sha256?: unknown } | null)?.sha256;
+    if (typeof sha256 !== "string") {
+      throw new MaterializeError(`screenshots entry ${describeName(rel)} has no sha256`);
     }
+    const bytes = store.getBlob(sha256);
+    if (sha256Hex(bytes) !== sha256) {
+      throw new MaterializeError(`blob for ${describeName(rel)} failed its sha256 check`);
+    }
+    write(root, `docs/${rel}`, bytes);
   }
 
   if (has("style")) {

@@ -126,6 +126,44 @@ describe("materializeDocPack", () => {
     expect(() => materializeDocPack(tmp, src)).toThrow(/differ only by case/);
   });
 
+  it("refuses annotation paths and screenshot paths that differ only by case", () => {
+    const store = new MemoryStore();
+    const ws = store.createWorkspace("ws");
+    const project = store.createProject(ws.id, "site");
+    const rev = store.createRevision(ws.id, project.id, "run", "ci");
+    const ref = store.putBlob(PNG);
+    const put = (slot: "annotations" | "screenshots", files: Record<string, unknown>) =>
+      store.putArtifact(ws.id, project.id, rev.id, slot, { files });
+    put("annotations", { "Tour/annotations.json": {}, "tour/annotations.json": {} });
+    const src = () => ({
+      store,
+      workspaceId: ws.id,
+      projectId: project.id,
+      revisionId: rev.id,
+      artifacts: store.getRevision(ws.id, project.id, rev.id).artifacts,
+    });
+    expect(() => materializeDocPack(tmp, src())).toThrow(/annotations .* differ only by case/);
+    put("annotations", {});
+    put("screenshots", { "tour/screenshots/A.png": ref, "tour/screenshots/a.png": ref });
+    expect(() => materializeDocPack(tmp, src())).toThrow(/screenshots .* differ only by case/);
+    put("annotations", { "Tour/annotations.json": {} });
+    put("screenshots", { "tour/screenshots/a.png": ref });
+    expect(() => materializeDocPack(tmp, src())).toThrow(
+      /output directories .* differ only by case/,
+    );
+  });
+
+  it.each([
+    "tour/con/annotations.json",
+    "tour/NUL.dark/annotations.json",
+    "tour/x./annotations.json",
+  ])("refuses the Windows-hostile annotations path %s", (name) => {
+    const { src } = seed({
+      annotations: { schema: "docsxai/annotations-bundle@1", files: { [name]: {} } },
+    });
+    expect(() => materializeDocPack(tmp, src)).toThrow(MaterializeError);
+  });
+
   it("refuses an annotations path that leaves docs/<flow>[/<variant>]/", () => {
     const { src } = seed({
       annotations: {

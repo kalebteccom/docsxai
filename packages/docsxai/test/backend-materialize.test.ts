@@ -6,7 +6,8 @@
 // No browser starts: the bin runs stop at a flow or variant selection before one launches.
 
 import { execFile } from "node:child_process";
-import { existsSync, promises as fs } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, promises as fs, rmSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -196,6 +197,11 @@ describe("backend name rules match the engine's", () => {
     "con/annotations.json",
     "tour/.x/annotations.json",
     "tour/annotations.JSON",
+    "tour/con/annotations.json",
+    "tour/NUL.dark/annotations.json",
+    "tour/com9.v2/annotations.json",
+    "tour/console/annotations.json",
+    "tour/x./annotations.json",
   ];
   const SCREENSHOTS = [
     "tour/screenshots/open.png",
@@ -205,6 +211,11 @@ describe("backend name rules match the engine's", () => {
     "tour/shots/open.png",
     "screenshots/open.png",
     "tour/screenshots/.hidden.png",
+    "tour/screenshots/con.png",
+    "tour/screenshots/aux.v2.png",
+    "tour/screenshots/console.png",
+    "tour/screenshots/s..png",
+    "tour/lpt1/screenshots/s.png",
   ];
 
   const engineAccepts = (artifact: "flows" | "annotations" | "screenshots", name: string) => {
@@ -241,5 +252,80 @@ describe("backend name rules match the engine's", () => {
   });
   it.each(SCREENSHOTS)("screenshot path %j", (name) => {
     expect(isScreenshotPath(name)).toBe(engineAccepts("screenshots", name));
+  });
+});
+
+describe("backend case-collision checks match the engine's", () => {
+  const ref = { sha256: createHash("sha256").update(PNG).digest("hex"), bytes: PNG.byteLength };
+
+  /** Whether the engine's pull validator and the backend's materialiser each refuse the pack. */
+  function verdicts(annotations: string[], screenshots: string[]): [boolean, boolean] {
+    const store = new MemoryStore();
+    const ws = store.createWorkspace("ws");
+    const project = store.createProject(ws.id, "site");
+    const rev = store.createRevision(ws.id, project.id, "run", "ci");
+    store.putBlob(PNG);
+    if (annotations.length > 0) {
+      store.putArtifact(ws.id, project.id, rev.id, "annotations", {
+        schema: "docsxai/annotations-bundle@1",
+        files: Object.fromEntries(annotations.map((n) => [n, {}])),
+      });
+    }
+    if (screenshots.length > 0) {
+      store.putArtifact(ws.id, project.id, rev.id, "screenshots", {
+        schema: "docsxai/screenshots@2",
+        files: Object.fromEntries(screenshots.map((n) => [n, ref])),
+      });
+    }
+    const dir = mkdtempSync(path.join(os.tmpdir(), "docsxai-backend-case-"));
+    try {
+      let backend = false;
+      try {
+        materializeDocPack(dir, {
+          store,
+          workspaceId: ws.id,
+          projectId: project.id,
+          revisionId: rev.id,
+          artifacts: store.getRevision(ws.id, project.id, rev.id).artifacts,
+        });
+      } catch {
+        backend = true;
+      }
+      let engine = false;
+      try {
+        assertSafePackNames({
+          annotations: {
+            schema: "docsxai/annotations-bundle@1",
+            files: Object.fromEntries(annotations.map((n) => [n, {}])),
+          },
+          screenshots: {
+            schema: "docsxai/screenshots@2",
+            files: Object.fromEntries(screenshots.map((n) => [n, ref])),
+          },
+        });
+      } catch {
+        engine = true;
+      }
+      return [engine, backend];
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it.each([
+    [["tour/annotations.json"], ["tour/screenshots/a.png"], false],
+    [["Tour/annotations.json", "tour/annotations.json"], [], true],
+    [["tour/En.dark/annotations.json", "tour/en.dark/annotations.json"], [], true],
+    [[], ["tour/screenshots/A.png", "tour/screenshots/a.png"], true],
+    [["Tour/annotations.json"], ["tour/screenshots/a.png"], true],
+    [
+      ["tour/annotations.json", "tour/en.dark/annotations.json"],
+      ["tour/en.dark/screenshots/a.png"],
+      false,
+    ],
+  ] as const)("annotations %j, screenshots %j: refused %s", (annotations, screenshots, refused) => {
+    const [engine, backend] = verdicts([...annotations], [...screenshots]);
+    expect(engine).toBe(refused);
+    expect(backend).toBe(refused);
   });
 });
