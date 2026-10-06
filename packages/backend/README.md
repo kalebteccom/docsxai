@@ -110,7 +110,7 @@ GitHub push/PR ──▶ POST /v1/github/webhook          (no bearer auth; HMAC-
                QueuedDispatcher                      (serial per project)
                      ▼
                SpawnRunner: materialize revision artifacts → temp workspace
-                     ├─ spawn engine CLI (`docsxai run --workspace <dir>`)
+                     ├─ spawn engine CLI (`docsxai run <dir>`)
                      ├─ append run-history row
                      ▼
                output strategy: pr-comment │ viewer-refresh │ wiki-push

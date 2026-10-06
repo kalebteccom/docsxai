@@ -47,6 +47,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Fixed
 
+- **Backend webhook runner passes the workspace as an argument.** `SpawnRunner` ran `docsxai run --workspace <dir>` and the `viewer-refresh` strategy ran `docsxai render --workspace <dir> --out <dir>`, but the engine reads the workspace as its first positional argument and has no such flags, so both exited 2 with `missing <project-dir>`. They now run `docsxai run <dir>` and `docsxai render <dir>`, and `viewer-refresh` reads the result from `<workspace>/.viewer/index.html`, where `render` writes it. The webhook tests used a fake engine that accepted the old flags; it now takes the positional like the real one, and a test checks the argv against the engine's own parser and bin.
 - **`docsxai doctor` knows `DOCSX_OXIPNG_BIN`.** The variable `docsxai pack` reads to find `oxipng` was missing from the doctor's list of `DOCSX_*` names, so setting it was flagged as a likely typo.
 - **`proxy-addr` 2.0.7 to 2.0.8 in the lockfile.** Clears the critical IPv4-mapped-address IP-spoofing advisory (GHSA-jqcg-44mw-7w3h) that `pnpm audit --prod --audit-level=high` reported through `@docsxai/mcp` > `@modelcontextprotocol/sdk` > `express`. `express` already allows `^2.0.7`, so only the lockfile moved; no package manifest or override changed.
 

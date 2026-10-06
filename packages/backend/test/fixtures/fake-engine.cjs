@@ -7,11 +7,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const cmd = process.argv[2];
-const flag = (name) => {
-  const i = process.argv.indexOf(name);
-  return i === -1 ? undefined : process.argv[i + 1];
-};
-const workspace = flag("--workspace");
+// Like the real engine: the workspace is the first positional argument after the command.
+const workspace = process.argv[3];
+if (!workspace || workspace.startsWith("--")) {
+  console.error(`fake engine: ${cmd}: missing <project-dir>`);
+  process.exit(2);
+}
 
 if (process.env.FAKE_ENGINE_EXIT) {
   process.stdout.write(`fake engine forced exit ${process.env.FAKE_ENGINE_EXIT}` + "\n");
@@ -28,7 +29,8 @@ if (cmd === "run") {
 }
 
 if (cmd === "render") {
-  const out = flag("--out");
+  // The real `render` writes to <workspace>/.viewer and takes no --out.
+  const out = path.join(workspace, ".viewer");
   fs.mkdirSync(out, { recursive: true });
   fs.writeFileSync(path.join(out, "index.html"), "<html>fake viewer</html>");
   process.stdout.write("viewer rendered" + "\n");
