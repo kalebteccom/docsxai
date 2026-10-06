@@ -280,6 +280,21 @@ docsxai diff "$WORKSPACE" --fail-on warn  # CI gate: exit 1 at/above the thresho
 
 The report is deterministic (no timestamps) and per flow: step field deltas (id-keyed), annotation moves beyond a pixel tolerance, screenshot pixel diffs (changed-pixel count / % / changed-region bbox; ≥1% = warn, ≥5% = fail by default; dimension changes flagged distinctly), prose line-change counts, and locator changes. The engine only **detects** — when drift is real, follow the `diagnose` playbook and propose the flow-file patch yourself; programmatic policy (custom thresholds, `ignore_regions` for clocks/ads) is `diffDocPacks` on the library surface.
 
+## Verifying determinism, and the nightly drift job
+
+`docsxai run` is meant to write the same bytes for the same flows and target state. Check it before you trust a baseline:
+
+```bash
+docsxai run "$WORKSPACE" --verify-determinism                 # 2 runs into isolated roots, byte-compare every artefact
+docsxai run "$WORKSPACE" --verify-determinism --runs 4 --format md > determinism-report.md
+```
+
+Each run writes under `$WORKSPACE/.docsxai-verify/run-<k>/` and is compared file by file: `annotations.json`, screenshots, step markdown, locators, halt context. The workspace output is written only when every run agrees (run 1's files are copied in, byte for byte what a plain `run` writes); on any difference or halt it is left as it was, and the run roots are removed at the end (by listed paths, no recursive delete). The report goes to stdout (`--format text|md|json`, default `text`), progress to stderr. Exit 0 identical, 1 differing or a flow halted, 2 bad flags (`--runs` outside 2 to 5; combined with `--pause`, `--stop-after`, `--start-from` or `--cdp`).
+
+The report names the **first differing artefact** by path and a cause: the JSON key path (`annotations[0].bounding_box.x`), the changed-pixel count and bounding box of a PNG, the first differing line of a text file, or the sizes. The bounding box tells you what to pin: a clock (`environment.clock`), timing (`wait_for: settled`, `environment.reduced_motion`), or per-visit content (`hide`, `redactions`). Fix the flow and verify again; retrying the same flow, widening the `diff` thresholds or adding `ignore_regions` hides the variation without removing it.
+
+Run determinism first, then drift: `docsxai diff "$WORKSPACE" --against "$WORKSPACE/.baseline" --format md --fail-on fail`. `docs/ci-recipes.md` has copy-paste nightly jobs for GitHub Actions, GitLab CI and Woodpecker (runnable copies in `examples/ci/`). Browser capture does not belong in per-PR pipelines on shared runners: schedule it.
+
 ## Exporting flows as tests
 
 ```bash

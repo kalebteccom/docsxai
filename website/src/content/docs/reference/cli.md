@@ -16,6 +16,7 @@ docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--r
 docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
 docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
 docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
 docsxai flow-tree <workspace-dir> [--format text|json]
 docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
@@ -185,6 +186,9 @@ Chromium; if no browser binary is present, install one with
   `--cdp` is set. The target app must tolerate multiple sessions from one
   user.
 
+- `--verify-determinism` runs the selected flows more than once and compares
+  the bytes; see [Verifying determinism](#verifying-determinism) below.
+
 A clean run prints one line per flow and exits 0:
 
 ```
@@ -209,6 +213,42 @@ The productive loop is `diagnose` → edit the flow-file →
 instead of re-walking the flow. See the
 [agent guidance](/guides/agent-guidance/#diagnose-after-a-halt-never-blind-retries).
 :::
+
+#### Verifying determinism
+
+`docsxai run <workspace-dir> --verify-determinism` checks that the same flows
+against the same target produce the same doc pack. It runs the selected flows
+`--runs <N>` times (2 to 5, default 2), each into its own root under
+`<workspace>/.docsxai-verify/run-<k>/`, then compares every file byte by byte:
+`annotations.json`, the screenshots, step markdown, locators and halt context.
+
+- The workspace output is written only when every run agrees. Run 1's files
+  are then copied in, the same bytes a plain `run` writes. When the runs
+  differ, or a flow halts, the workspace is left as it was.
+- The run roots are removed when the command ends, file by file from the
+  listing of each root; nothing outside them is touched.
+- The report goes to stdout, progress to stderr. `--format text|md|json`
+  picks the rendering (default `text`). The report has no timestamps and no
+  paths, so the same runs print the same bytes.
+- It names the first differing artefact by path, then every other one, each
+  with a cause: the JSON key path (`annotations[0].bounding_box.x`), the
+  changed-pixel count and bounding box of a PNG, the first differing line of
+  a text file, or the sizes.
+- Exit 0: identical. Exit 1: differing, or a flow halted. Exit 2: bad flags,
+  including `--runs` outside 2 to 5 and any combination with `--pause`,
+  `--stop-after`, `--start-from` or `--cdp`.
+
+```
+$ docsxai run ~/docsxai/my-app --verify-determinism
+verify-determinism: 2 runs of 1 flow (publish-post), 5 artefacts per run
+result: DIFFERING
+first differing artefact: docs/publish-post/screenshots/publish.png (run 2 vs run 1)
+  cause: 31 pixels differ (0.0034%) inside x=412 y=88 52x12
+The workspace output was not touched
+```
+
+The [determinism and drift guide](/guides/determinism-and-drift/) covers
+fixing a differing artefact and the nightly CI recipes.
 
 ### `docsxai render`
 
