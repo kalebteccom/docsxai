@@ -334,10 +334,15 @@ the key is left out, and the manifest never holds a timestamp.
 Optimising uses the external `oxipng` binary (`brew install oxipng`), found on
 PATH or at `$DOCSX_OXIPNG_BIN`. When it is missing the command fails with that
 one-line hint; `--no-optimise` skips it. The hash is taken from the optimised
-bytes. Files the old `manifest.json` listed and the new one does not are removed
+bytes, and the optimiser's output is checked first: it has to be a complete PNG with
+the same pixels as its input, or the build stops. A different `oxipng` version can
+produce different bytes, so upgrading it changes the hashes (pin it in CI). Files the old `manifest.json` listed and the new one does not are removed
 by exact path, and nothing else in `--out` is touched. Loopback addresses
-(`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`) and obvious secrets in a title,
-caption, alt text or callout stop the build, naming the manifest path and rule.
+(`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`), private-network addresses (10/8,
+172.16/12, 192.168/16, 169.254/16), email addresses (not on `example.com`, `.org`,
+`.net`, `.test`, `.invalid` or `.example`), `Authorization:` headers other than
+`Bearer`, tokens in a URL query and obvious secrets in a title, caption, alt text
+or callout stop the build, naming the manifest path and rule.
 Exit 1 for a failed build, 2 for a bad flag.
 
 ```

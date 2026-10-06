@@ -29,7 +29,7 @@ The viewer owns it (`packages/viewer/src/pack-*.ts`), next to `burnAnnotations`,
 
 ## Optimise and hash
 
-Burn, then `oxipng -o 4 --strip safe` (lossless) if the binary is found (`DOCSX_OXIPNG_BIN`, else `oxipng` on PATH). Missing binary fails with a one-line `brew install oxipng` hint unless `--no-optimise`. The hash is taken from the bytes that get written, so a committed file name proves its content. Output dimensions are checked against the capture.
+Burn, then `oxipng -o 4 --strip safe` (lossless) if the binary is found (`DOCSX_OXIPNG_BIN`, else `oxipng` on PATH). Missing binary fails with a one-line `brew install oxipng` hint unless `--no-optimise`. The optimiser's output is verified (complete PNG, same pixels as the input) before it is trusted, so a shim or a broken binary fails the build instead of being hashed. A new `oxipng` version can change every hash. The hash is taken from the bytes that get written, so a committed file name proves its content. Output dimensions are checked against the capture.
 
 ## Writing and pruning
 
@@ -37,7 +37,7 @@ Files are written only when the bytes differ. Stale files are removed by exact p
 
 ## Guards
 
-Run on title, caption, alt and callout copy before anything is written: loopback hosts (`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`) and obvious secrets (private key blocks, JWTs, bearer tokens, `sk-`, `ghp_`, AWS and Slack key shapes, `password=` style assignments). A failure names the manifest path and the rule, never the matched text.
+Run on title, caption, alt and callout copy before anything is written: loopback hosts (`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`), private-network addresses (10/8, 172.16/12, 192.168/16, 169.254/16), email addresses outside the reserved example domains, `Authorization:` headers that are not `Bearer`, tokens in URL queries and obvious secrets (private key blocks, JWTs, bearer tokens, `sk-`, `ghp_`, AWS and Slack key shapes, `password=` style assignments). A failure names the manifest path and the rule, never the matched text.
 
 ## Drift
 
