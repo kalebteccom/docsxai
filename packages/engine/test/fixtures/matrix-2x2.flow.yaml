@@ -1,0 +1,29 @@
+# Fixture flow for the matrix keystone (runs against test/fixtures/toy-site/matrix.html): two locales
+# and two color schemes at one viewport, so four variants. The page prints its language and paints its
+# background by color scheme, so every variant's screenshot differs from the others.
+name: matrix-2x2
+locators:
+  lang_line: "#lang"
+  note: "#note"
+matrix:
+  locales: [en-US, es-ES]
+  color_schemes: [light, dark]
+  viewports:
+    - { name: compact, width: 480, height: 360 }
+steps:
+  - id: open
+    action: navigate
+    value: matrix.html
+    wait_for: load
+  - id: shot
+    action: wait
+    target: $lang_line
+    success: { visible: $lang_line }
+    annotation:
+      copy: "Language line"
+      copy_by_locale: { es: "Linea de idioma" }
+  - id: dark-note
+    action: wait
+    target: $note
+    only: { color_scheme: [dark] }
+    annotation: { copy: "The note box" }
