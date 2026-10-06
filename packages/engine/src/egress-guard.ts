@@ -28,6 +28,8 @@ export interface EgressGuardOptions {
   denyPrivate?: boolean;
   /** Hostname resolver; tests inject one. Default: `dns.lookup` returning all addresses. */
   lookup?: HostLookup;
+  /** Longest a lookup may take before the request is refused. Default {@link LOOKUP_TIMEOUT_MS}. */
+  lookupTimeoutMs?: number;
   /**
    * Told about each refused request: the URL without userinfo, query or fragment, the generic
    * reason, and the detail (host and resolved address) that must not reach a tenant.
@@ -59,6 +61,18 @@ export function resolveEgressGuard(
   return explicit ?? egressGuardFromEnv(env);
 }
 
+/** Default longest wait for a hostname lookup. */
+export const LOOKUP_TIMEOUT_MS = 5000;
+
+/** `work`, or a rejection once `ms` have passed. */
+function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms);
+  });
+  return Promise.race([work, deadline]).finally(() => clearTimeout(timer));
+}
+
 const defaultLookup: HostLookup = async (hostname) =>
   (await dnsLookup(hostname, { all: true, verbatim: true })).map((a) => a.address);
 
@@ -86,7 +100,8 @@ export async function requestProblem(
   if (parseIpv4(host) || parseIpv6(host)) return null;
   let addresses: string[];
   try {
-    addresses = await (opts.lookup ?? defaultLookup)(host);
+    const pending = Promise.resolve().then(() => (opts.lookup ?? defaultLookup)(host));
+    addresses = await withDeadline(pending, opts.lookupTimeoutMs ?? LOOKUP_TIMEOUT_MS);
   } catch (e) {
     return `${host} did not resolve (${(e as Error).message}), refused`;
   }

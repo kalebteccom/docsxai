@@ -168,6 +168,7 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
         });
 
         let dirty = false;
+        let unverifiableWarned = false;
         const pages: PublishResult["pages"] = [];
         let failure: { error: unknown } | null = null;
         try {
@@ -216,9 +217,20 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
               known &&
               (existing.collection?.id !== config.collection_id || existing.id === manifestCardId)
             ) {
-              log.warn(
-                `section "${doc.section}": card ${known.cardId} is not a page in collection ${config.collection_id}, creating a new card`,
-              );
+              if (existing.collection === undefined && existing.id !== manifestCardId) {
+                // Fail closed all the same: without the collection the card cannot be verified, so a
+                // new card is created on every push until Guru returns the field. Say so once.
+                if (!unverifiableWarned) {
+                  log.warn(
+                    `Guru returned card ${known.cardId} without a collection, so it cannot be verified as a page in collection ${config.collection_id}: new cards are created instead of updating (this repeats for every section and on every push until the card read includes its collection)`,
+                  );
+                  unverifiableWarned = true;
+                }
+              } else {
+                log.warn(
+                  `section "${doc.section}": card ${known.cardId} is not a page in collection ${config.collection_id}, creating a new card`,
+                );
+              }
               existing = null;
             }
             const body = cardBody(title, html);

@@ -18,6 +18,7 @@ export * from "./backend-client.js";
 export * from "./calibrate.js";
 export * from "./diagnose.js";
 export * from "./doctor.js";
+export * from "./egress-guard.js";
 export * from "./playwright-driver.js";
 export * from "./playwright-instrumented-browser.js";
 export * from "./style.js";

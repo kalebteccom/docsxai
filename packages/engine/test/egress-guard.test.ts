@@ -170,6 +170,21 @@ describe("requestProblem", () => {
     );
   });
 
+  it("refuses when the lookup stalls past its deadline, and does not wait for it", async () => {
+    const stalled: HostLookup = () => new Promise<string[]>(() => {});
+    const started = Date.now();
+    expect(
+      await requestProblem("http://public.test/", { lookup: stalled, lookupTimeoutMs: 20 }),
+    ).toMatch(/public\.test did not resolve \(timed out after 20 ms\), refused/);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it("answers from a lookup that beats its deadline", async () => {
+    expect(
+      await requestProblem("http://public.test/", { lookup, lookupTimeoutMs: 1000 }),
+    ).toBeNull();
+  });
+
   it("refuses a URL that does not parse and a scheme that is neither network nor inert", async () => {
     expect(await requestProblem("not a url", { lookup })).toMatch(/does not parse/);
     for (const url of ["file:///etc/passwd", "ftp://public.test/", "chrome://version"]) {

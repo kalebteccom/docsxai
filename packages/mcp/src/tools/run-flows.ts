@@ -26,6 +26,7 @@ import {
   ok,
   requireWorkspace,
 } from "../shared.js";
+import { assertBaseUrlAllowed, httpEgressGuard, rejectCdpOverHttp } from "../http-egress.js";
 
 interface PerFlowResult {
   flow: string;
@@ -102,8 +103,11 @@ export const runFlowsTool = defineTool({
         "pass `flow` naming the flow to resume",
       );
     }
+    rejectCdpOverHttp(args.cdp, ctx);
     const wsCfg = await loadWorkspaceConfig(ws);
     const baseURL = args.baseUrl ?? wsCfg?.app_url;
+    await assertBaseUrlAllowed(baseURL, ctx);
+    const egressGuard = httpEgressGuard(ctx);
     const ignoreHTTPSErrors = args.ignoreHttpsErrors ?? !!wsCfg?.ignore_https_errors;
 
     const flowPaths = await listFlowFiles(ws);
@@ -141,6 +145,7 @@ export const runFlowsTool = defineTool({
           ...(args.cdp ? { connectOverCdp: args.cdp } : storageState ? { storageState } : {}),
           docPackRoot: ws,
           ...(flow.environment ? { environment: flow.environment } : {}),
+          ...(egressGuard ? { egressGuard } : {}),
         });
       } catch (e) {
         const msg = (e as Error).message;

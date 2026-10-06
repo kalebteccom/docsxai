@@ -72,13 +72,14 @@ What the server enforces:
   that omits `workspace` uses `--workspace`, then the root itself. `..` and links that point out of
   the root are refused. Paths inside a workspace that a flow or config names are not re-checked, so
   keep the root free of workspaces you do not trust. stdio is unchanged.
+- **Browser tools.** Over HTTP, `run_flows` and `diagnose_halt` refuse `cdp`, `run_flows` refuses a `baseUrl` (or a workspace `app_url`) that is not an http(s) URL or whose host is, or resolves to, a link-local or cloud-metadata address (and, with `DOCSX_EGRESS_DENY_PRIVATE` on, a loopback or private one), and every browser a tool starts gets the engine's request guard (`DOCSX_EGRESS_GUARD=0` switches it off). The refusal message names no address. stdio is unchanged.
 - **Token.** Required, at least 32 printable ASCII characters with at least 8 distinct ones. It is
   read from `DOCSX_MCP_TOKEN` or `--token-file`, never from an argument (`--token ...` is refused
   without echoing it), compared in constant time, and never logged. A token file that group or
   other can access is refused on POSIX; `chmod 600` it. The variable is deleted from the server's
   environment once read, so the processes tools spawn (the viewer build, a browser) do not inherit
   it. The process's initial environment block can still be readable to the same user on some
-  systems, so prefer `--token-file`. The server refuses to start without a token.
+  systems, so prefer `--token-file`: the variable is a fallback, and the initial environment stays readable to other processes of the same user. On Windows the file's permissions cannot be checked, and the server prints one warning to stderr. The server refuses to start without a token.
 - **Bind.** Loopback only. A non-loopback `--host` is refused unless `--allow-remote` is passed. The
   server speaks plain HTTP, so put a TLS-terminating proxy in front of any remote bind.
 - **DNS rebinding.** The `Host` header must be a plain `host[:port]` (IPv6 in brackets; userinfo,

@@ -4,6 +4,14 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Security
+
+- **Guru publisher: card read without `collection`.** A page card whose read carried no `collection` failed the target-collection check as intended and was recreated on every push with a warning per section that blamed the wrong cause. The check is unchanged and still fails closed; the plugin now logs one masked warning per push that says Guru returned the card without a collection and that new cards are created until it does, and the README says the same. The manifest card still fails the push in that case.
+- **Request guard: lookup deadline.** `requestProblem` gave a hostname lookup no time limit, so a stalled resolver left the request pending. A lookup now has 5 seconds (`lookupTimeoutMs` on the guard options) and a request whose lookup times out is refused like any other failed lookup. `SECURITY.md` also says that on a CDP-attached context the guard cannot block service workers.
+- **MCP token file on Windows.** `serve --http` prints one stderr warning when it reads a `--token-file` on Windows, where the permission check cannot run. The README and `SECURITY.md` now say `--token-file` is the preferred source, because the initial environment block stays readable to other processes of the same user even after the variable is cleared.
+- **`upload` paths: hidden and reserved files refused.** The upload confinement allowed `.auth/<role>.json` (a captured storage state), `.docsxai.json` and `webhook-job.json`, which are inside the workspace. A value with any segment that starts with a dot, or that names `webhook-job.json` (any case), is now refused by the driver and when the backend materialises a revision, and the driver applies the same rule to the real path of a symlink's target. The two copies of the rule stay in step through the parity test.
+- **MCP HTTP transport: `cdp` and `baseUrl` confined.** `run_flows` and `diagnose_halt` passed `cdp` straight to `connectOverCDP`, and `run_flows` took any `baseUrl`, so an HTTP client could attach to a browser on the server's host or point a run at a metadata address. With `serve --http`, `cdp` is refused, `baseUrl` (and a workspace `app_url`) must be an http(s) URL whose host passes the engine's address rules, resolved the way the request guard resolves it, and every browser a tool starts gets the request guard (`DOCSX_EGRESS_GUARD=0` switches it off; `DOCSX_EGRESS_DENY_PRIVATE` adds the private ranges). stdio is unchanged. `@docsxai/engine` now exports the `egress-guard` module (`requestProblem`, `envFlagOn`, `envFlagOff` and the rest).
+
 ## [0.3.0-rc.1] - 2026-10-06
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`.
