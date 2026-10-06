@@ -64,7 +64,8 @@ For `single` mode: one card with all flows and the images. For `page-tree` mode:
 - JSON responses are capped at 8 MiB and error bodies at 64 KiB, whether or not Guru sends a `Content-Length`. Search follows at most 5 pages, and only links on the validated origin and API path.
 - Attachment paths must resolve inside the workspace. The read refuses a symlink in the last component, a FIFO or any non-regular file, caps the bytes actually read at 64 MiB, and hashes the bytes it read, not the `sha256` the projection claims.
 - File names are reduced to `[A-Za-z0-9._-]`, and an all-dot name (`.`, `..`) is an error.
-- Everything read from the manifest card is validated: ids, hashes, sizes, and URLs (card URLs must be https on `app.getguru.com`, image URLs on `content.api.getguru.com`). A `__proto__` key lands in a prototype-less map.
+- A card is updated only when Guru reports it in `collection_id` and it is not the manifest card. A manifest entry that points anywhere else (the manifest is editable by anyone with edit rights on that card) is logged, ignored, and a new card is created. The foreign card is never written.
+- Everything read from the manifest card is validated: ids, hashes, sizes, and URLs (card URLs must be https on `app.getguru.com`, image URLs exactly `https://content.api.getguru.com/files/view/<id>` with one id segment of `[A-Za-z0-9_-]`, no query, port or userinfo). A `__proto__` key lands in a prototype-less map.
 
 ## API uncertainty
 
