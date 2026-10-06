@@ -13,8 +13,10 @@ import {
   denyPrivateAppUrl,
   DENY_PRIVATE_APP_URL_ENV,
 } from "../../backend/src/app-url.js";
+import { uploadPathProblem as backendUploadProblem } from "../../backend/src/flow-step-checks.js";
 import * as engineClass from "../../engine/src/address-class.js";
 import { envFlagOn, requestProblem } from "../../engine/src/egress-guard.js";
+import { uploadPathProblem as engineUploadProblem } from "../../engine/src/upload-path.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const copy = (pkg: string): string =>
@@ -125,5 +127,29 @@ describe("the on/off switches in the backend and the engine", () => {
     "tru",
   ])("read %j alike", (value) => {
     expect(denyPrivateAppUrl({ [DENY_PRIVATE_APP_URL_ENV]: value })).toBe(envFlagOn(value));
+  });
+});
+
+describe("the upload path rule in the backend and the engine", () => {
+  it.each([
+    "a.png",
+    "uploads/a.png",
+    "./a.png",
+    "a..b",
+    "..a",
+    "/etc/passwd",
+    "\\\\server\\share",
+    "\\windows",
+    "C:\\x",
+    "c:/x",
+    "../x",
+    "a/../b",
+    "a\\..\\b",
+    "a//..//b",
+    "..",
+    "",
+    "a\0b",
+  ])("answers alike on %j", (value) => {
+    expect(engineUploadProblem(value)).toBe(backendUploadProblem(value));
   });
 });

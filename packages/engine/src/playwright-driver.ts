@@ -41,6 +41,7 @@ import { HIDDEN_ATTR, markHidden, unmarkHidden } from "./page-hide.js";
 import { collectNearbyBoxes } from "./page-nearby-boxes.js";
 import { awaitSettled, runSettle } from "./page-settle.js";
 import { applyRedactions, type RedactionBox } from "./redact.js";
+import { resolveUploadPath } from "./upload-path.js";
 import { resolveWorkspacePathReal } from "./workspace.js";
 
 /**
@@ -228,12 +229,9 @@ export class PlaywrightDriver implements BrowserDriver {
   fill(selector: string, value: string, timeoutMs?: number): Promise<void> {
     return this.page.fill(selector, value, budget(timeoutMs));
   }
-  upload(selector: string, filePath: string, timeoutMs?: number): Promise<void> {
-    return this.page.setInputFiles(
-      selector,
-      path.resolve(this.docPackRoot, filePath),
-      budget(timeoutMs),
-    );
+  async upload(selector: string, filePath: string, timeoutMs?: number): Promise<void> {
+    const file = await resolveUploadPath(this.docPackRoot, filePath);
+    return this.page.setInputFiles(selector, file, budget(timeoutMs));
   }
   press(selector: string | null, key: string, timeoutMs?: number): Promise<void> {
     return selector
