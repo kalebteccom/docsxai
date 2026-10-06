@@ -44,9 +44,38 @@ export async function listTree(root: string): Promise<TreeListing> {
   return { files: files.sort(byOrdinal), dirs: dirs.sort(byOrdinal) };
 }
 
-/** Copy every file of `fromRoot` to the same relative path under `toRoot`. Returns the paths copied. */
+/** A run root holds something the verifier will not copy into the workspace. */
+export class VerifyTreeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "VerifyTreeError";
+  }
+}
+
+/** Throws {@link VerifyTreeError} naming the first listed entry that is not a regular file (a symlink, say). */
+async function assertRegularFiles(root: string, files: string[]): Promise<void> {
+  for (const rel of files) {
+    const stat = await fs.lstat(resolveWorkspacePath(root, ...rel.split("/")));
+    if (!stat.isFile()) {
+      throw new VerifyTreeError(
+        `refusing to copy ${rel}: it is ${stat.isSymbolicLink() ? "a symlink" : "not a regular file"}, and a run only writes regular files. Nothing was copied into the workspace.`,
+      );
+    }
+  }
+}
+
+/** {@link assertRegularFiles} over everything listed under `root`. */
+export async function assertRegularTree(root: string): Promise<void> {
+  await assertRegularFiles(root, (await listTree(root)).files);
+}
+
+/**
+ * Copy every file of `fromRoot` to the same relative path under `toRoot`. Returns the paths copied.
+ * Every entry is checked with `lstat` first, so a symlink in the root stops the copy before any file moves.
+ */
 export async function copyTree(fromRoot: string, toRoot: string): Promise<string[]> {
   const { files } = await listTree(fromRoot);
+  await assertRegularFiles(fromRoot, files);
   for (const rel of files) {
     const segments = rel.split("/");
     const dest = await resolveWorkspacePathReal(toRoot, ...segments);

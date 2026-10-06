@@ -12,8 +12,15 @@ import {
   compareRunRoots,
   compareRuns,
   firstJsonDifference,
+  MAX_COMPARE_BYTES,
 } from "../src/verify-compare.js";
-import { copyTree, listTree, removeListedTree } from "../src/verify-tree.js";
+import {
+  assertRegularTree,
+  copyTree,
+  listTree,
+  removeListedTree,
+  VerifyTreeError,
+} from "../src/verify-tree.js";
 
 function solidPng(width: number, height: number, rgba: [number, number, number, number]): Buffer {
   const png = new PNG({ width, height });
@@ -263,6 +270,60 @@ describe("tree comparison", () => {
     expect(await compareRuns([a, b])).toEqual(await compareRuns([a, b]));
   });
 
+  describe("artefacts above the size cap", () => {
+    const LIMIT = 16;
+    const big = (c: string) => c.repeat(40);
+
+    it("reports a bytes-level difference, even for a .json or .png name, without decoding", async () => {
+      const a = await put("a", { "d/x.json": big("1"), "d/y.png": big("p") });
+      const b = await put("b", { "d/x.json": big("2"), "d/y.png": big("q") });
+      const { differences } = await compareRunRoots(a, b, 2, LIMIT);
+      expect(differences.map((d) => [d.path, d.kind, d.size])).toEqual([
+        ["d/x.json", "bytes", { a: 40, b: 40 }],
+        ["d/y.png", "bytes", { a: 40, b: 40 }],
+      ]);
+      expect(differences[0]!.hint).toBe(
+        "larger than 16 bytes, compared as raw bytes: same size (40 bytes), content differs",
+      );
+    });
+
+    it("reports differing sizes without reading either file", async () => {
+      const a = await put("a", { "d/x.bin": big("1") });
+      const b = await put("b", { "d/x.bin": big("1") + "extra" });
+      const { differences } = await compareRunRoots(a, b, 3, LIMIT);
+      expect(differences).toEqual([
+        {
+          path: "d/x.bin",
+          run: 3,
+          kind: "bytes",
+          hint: "larger than 16 bytes, compared as raw bytes: 40 vs 45 bytes",
+          size: { a: 40, b: 45 },
+        },
+      ]);
+    });
+
+    it("finds nothing when two large files hold the same bytes", async () => {
+      const a = await put("a", { "d/x.bin": big("1") });
+      const b = await put("b", { "d/x.bin": big("1") });
+      expect(await compareRunRoots(a, b, 2, LIMIT)).toEqual({ compared: 1, differences: [] });
+    });
+
+    it("applies the default cap of 64 MiB to a sparse file one byte over it", async () => {
+      expect(MAX_COMPARE_BYTES).toBe(64 * 1024 * 1024);
+      const a = await put("a", { "d/huge.bin": "" });
+      const b = await put("b", { "d/huge.bin": "" });
+      await fs.truncate(path.join(a, "d/huge.bin"), MAX_COMPARE_BYTES + 1);
+      await fs.truncate(path.join(b, "d/huge.bin"), MAX_COMPARE_BYTES + 1);
+      expect(await compareRunRoots(a, b, 2)).toEqual({ compared: 1, differences: [] });
+      const handle = await fs.open(path.join(b, "d/huge.bin"), "r+");
+      await handle.write(Buffer.from([1]), 0, 1, MAX_COMPARE_BYTES);
+      await handle.close();
+      const { differences } = await compareRunRoots(a, b, 2);
+      expect(differences[0]).toMatchObject({ path: "d/huge.bin", kind: "bytes" });
+      expect(differences[0]!.hint).toContain("larger than 64 MiB");
+    });
+  });
+
   it("copyTree copies every file to the same relative path", async () => {
     const from = await put("from", {
       "docs/f/a.json": '{"a":1}',
@@ -273,6 +334,26 @@ describe("tree comparison", () => {
     expect(await copyTree(from, to)).toEqual(["docs/f/a.json", "docs/f/screenshots/s.png"]);
     expect(await fs.readFile(path.join(to, "docs/f/a.json"), "utf8")).toBe('{"a":1}');
     expect(await fs.readFile(path.join(to, "docs/f/screenshots/s.png"), "utf8")).toBe("png");
+  });
+
+  it("copyTree refuses a symlink and copies nothing", async () => {
+    const outside = await put("outside", { "secret.txt": "secret" });
+    const from = await put("from", { "docs/a.json": "{}" });
+    await fs.symlink(path.join(outside, "secret.txt"), path.join(from, "docs/link.json"));
+    const to = path.join(tmp, "to");
+    await fs.mkdir(to);
+    await expect(copyTree(from, to)).rejects.toThrow(VerifyTreeError);
+    await expect(copyTree(from, to)).rejects.toThrow(
+      /refusing to copy docs\/link\.json: it is a symlink/,
+    );
+    expect(await fs.readdir(to)).toEqual([]);
+  });
+
+  it("assertRegularTree passes for regular files and names the first symlink otherwise", async () => {
+    const root = await put("r", { "a.txt": "x", "z/b.txt": "y" });
+    await expect(assertRegularTree(root)).resolves.toBeUndefined();
+    await fs.symlink(path.join(root, "a.txt"), path.join(root, "z/ln"));
+    await expect(assertRegularTree(root)).rejects.toThrow(/z\/ln: it is a symlink/);
   });
 
   it("removeListedTree removes the root and everything listed under it", async () => {

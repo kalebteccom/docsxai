@@ -19,7 +19,8 @@ vi.mock("../src/run-flows.js", () => ({
 }));
 
 const { verifyDeterminism, VERIFY_DIR } = await import("../src/verify-determinism.js");
-const { formatVerifyReportText, verifyExitCode } = await import("../src/verify-report.js");
+const { buildVerifyReport, formatVerifyReportText, scrubHaltMessage, verifyExitCode } =
+  await import("../src/verify-report.js");
 
 const flow = (name: string) => ({ name, steps: [], locators: {} }) as unknown as FlowFile;
 const runNumber = (opts: RunFlowsOptions) => Number(path.basename(opts.outputRoot).slice(4));
@@ -89,6 +90,24 @@ describe("verifyDeterminism", () => {
     );
     expect(await exists(path.join(ws, VERIFY_DIR))).toBe(false);
     expect(lines).toEqual(["verify-determinism: run 1 of 2\n", "verify-determinism: run 2 of 2\n"]);
+  });
+
+  it("fails with a clear error when a run root holds a symlink, and leaves the workspace and run roots clean", async () => {
+    stub.run = async (opts) => {
+      await steady(opts);
+      if (runNumber(opts) === 1) {
+        await fs.symlink(
+          path.join(ws, "elsewhere.txt"),
+          path.join(opts.outputRoot, "docs/f/link.json"),
+        );
+      }
+      return { okCount: 1, failures: [] };
+    };
+    await expect(verifyDeterminism(base())).rejects.toThrow(
+      /refusing to copy docs\/f\/link\.json: it is a symlink/,
+    );
+    expect(await exists(path.join(ws, "docs"))).toBe(false);
+    expect(await exists(path.join(ws, VERIFY_DIR))).toBe(false);
   });
 
   it("runs the flows once per requested run, each into its own root", async () => {
@@ -216,5 +235,52 @@ describe("verifyDeterminism", () => {
     expect(report.flows).toEqual(["bad", "ok"]);
     expect(report.halts.map((h) => h.flow)).toEqual(["bad", "bad"]);
     expect(report.artefacts_compared).toBe(3);
+  });
+});
+
+describe("halt messages in the report", () => {
+  it.each([
+    [
+      '[target is disabled] step "open" (click) failed at http://localhost:3000/a/b: boom (halt screenshot: /Users/me/ws/docs/f/halts/open.png)',
+      '[target is disabled] step "open" (click) failed at http://localhost:3000/a/b: boom (halt screenshot: <path>)',
+    ],
+    [
+      "Executable doesn't exist at /home/ci/.cache/ms-playwright/chromium-1/chrome. Install it",
+      "Executable doesn't exist at <path>. Install it",
+    ],
+    ["C:\\Users\\me\\ws\\open.png: not found", "<path>: not found"],
+    ["cannot read \\\\server\\share\\a.png.", "cannot read <path>."],
+    ["opened file:///Users/me/ws/a.html", "opened <path>"],
+  ])("replaces an absolute path in %j", (message, expected) => {
+    expect(scrubHaltMessage(message)).toBe(expected);
+  });
+
+  it("keeps relative paths, URLs and bare URL paths", () => {
+    const line = "waited for /done, then docs/f/halts/s.png at https://example.com/a/b/c, a/b";
+    expect(scrubHaltMessage(line)).toBe(line);
+  });
+
+  it("keeps the first line only", () => {
+    expect(scrubHaltMessage("first\n  at /Users/me/ws/x/y.ts:1:2\nsecond")).toBe("first");
+  });
+
+  it("scrubs every halt of a built report, in all three renderings", () => {
+    const halt = {
+      run: 1,
+      flow: "f",
+      step: "open",
+      message: "failed (halt screenshot: /Users/me/ws/docs/f/halts/open.png)\n/Users/me/ws/stack",
+    };
+    const report = buildVerifyReport({
+      runs: 2,
+      flows: ["f"],
+      artefactsCompared: 0,
+      differences: [],
+      halts: [halt],
+      promoted: false,
+    });
+    expect(report.halts[0]!.message).toBe("failed (halt screenshot: <path>)");
+    expect(JSON.stringify(report)).not.toContain("/Users/me");
+    expect(formatVerifyReportText(report)).not.toContain("/Users/me");
   });
 });

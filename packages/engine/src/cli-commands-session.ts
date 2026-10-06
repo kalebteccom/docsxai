@@ -33,6 +33,7 @@ import { initWorkspace, loadWorkspaceConfig, resolveWorkspacePath } from "./work
 import { listFlowFiles, parseFlags } from "./cli-shared.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
+import { VerifyTreeError } from "./verify-tree.js";
 import { USAGE } from "./cli-usage.js";
 
 async function loadAuthStorageState(projectDir: string): Promise<StorageState | undefined> {
@@ -219,12 +220,20 @@ export async function cmdRun(args: string[]): Promise<number> {
   // Verification runs the same loop N times into isolated roots and prints the report on stdout, so
   // its progress lines go to stderr.
   if (verify) {
-    const report = await verifyDeterminism({
-      ...runOptions,
-      runs: verify.runs,
-      progress: (line) => process.stderr.write(line),
-    });
-    return emitVerifyReport(report, verify.format);
+    try {
+      const report = await verifyDeterminism({
+        ...runOptions,
+        runs: verify.runs,
+        progress: (line) => process.stderr.write(line),
+      });
+      return emitVerifyReport(report, verify.format);
+    } catch (e) {
+      if (e instanceof VerifyTreeError) {
+        process.stderr.write(`run: --verify-determinism: ${e.message}\n`);
+        return 1;
+      }
+      throw e;
+    }
   }
 
   const startedAt = Date.now();

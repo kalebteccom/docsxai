@@ -11,7 +11,7 @@ import * as path from "node:path";
 import { runFlowsInSessions, type FlowFailure, type RunFlowsOptions } from "./run-flows.js";
 import { compareRuns } from "./verify-compare.js";
 import { buildVerifyReport, type VerifyHalt, type VerifyReport } from "./verify-report.js";
-import { copyTree, removeListedTree } from "./verify-tree.js";
+import { assertRegularTree, copyTree, removeListedTree } from "./verify-tree.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 
 export const VERIFY_DIR = ".docsxai-verify";
@@ -74,6 +74,8 @@ export async function verifyDeterminism(opts: VerifyRunOptions): Promise<VerifyR
       }
       roots.push(outputRoot);
     }
+    // A symlink in a run root would be read through by the comparison and refused by the copy.
+    for (const root of roots) await assertRegularTree(root);
     const compared = await compareRuns(roots);
     const identical = compared.differences.length === 0 && halts.length === 0;
     if (identical) await copyTree(roots[0]!, path.resolve(projectDir));

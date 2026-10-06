@@ -1,10 +1,34 @@
 // The `run --verify-determinism` report: the shape, its three renderings (json, md, text) and the
 // exit code it maps to. No timestamps, no absolute paths, no durations: the same runs always
-// render the same bytes, so the report can be diffed, cached and attached to a pipeline.
+// render the same bytes, so the report can be diffed, cached and attached to a pipeline. Halt
+// messages are cut to their first line and scrubbed of absolute paths (`scrubHaltMessage`); every
+// other path in the report is relative to a run root.
 
 import type { ArtefactDifference } from "./verify-compare.js";
 
 export type VerifyStatus = "identical" | "differing" | "halted";
+
+// Each pattern finds one kind of absolute path. A POSIX path needs two segments and must not follow a
+// word character, `:`, `/` or `.`, so URLs (`http://host/a/b`), `a/b` and a lone `/done` stay.
+const ABSOLUTE_PATH_PATTERNS: RegExp[] = [
+  /file:\/\/[^\s"'`<>()[\]{}]*/g,
+  /(?<![\w:/.~-])(?:\/[^\s"'`<>()[\]{}/]+){2,}/g,
+  /(?<!\w)[A-Za-z]:[\\/][^\s"'`<>()[\]{}]*/g,
+  /\\\\[^\s\\"'`<>]+\\[^\s"'`<>()[\]{}]*/g,
+];
+
+/**
+ * What a halt message becomes in the report: its first line, with every absolute path (POSIX,
+ * Windows drive, UNC, `file://`) replaced by `<path>`. A run on one machine and a run on another
+ * then print the same report, and a CI log does not carry a home directory.
+ */
+export function scrubHaltMessage(message: string): string {
+  let line = message.split("\n")[0] ?? "";
+  for (const pattern of ABSOLUTE_PATH_PATTERNS) {
+    line = line.replace(pattern, (match) => `<path>${/[.,;:!?]+$/.exec(match)?.[0] ?? ""}`);
+  }
+  return line;
+}
 
 /** A flow that did not finish in one of the runs. */
 export interface VerifyHalt {
@@ -59,7 +83,7 @@ export function buildVerifyReport(input: {
     artefacts_compared: input.artefactsCompared,
     first: input.differences[0] ?? null,
     differences: input.differences,
-    halts: input.halts,
+    halts: input.halts.map((h) => ({ ...h, message: scrubHaltMessage(h.message) })),
     promoted: input.promoted,
   };
 }

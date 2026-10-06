@@ -167,6 +167,51 @@ export function compareArtefactBytes(
   return bytesDifference(a, b);
 }
 
+/** Artefacts above this size are compared as raw bytes in chunks and never decoded or held whole. */
+export const MAX_COMPARE_BYTES = 64 * 1024 * 1024;
+
+const CHUNK_BYTES = 1024 * 1024;
+
+function limitLabel(maxBytes: number): string {
+  return maxBytes >= 1024 * 1024 ? `${maxBytes / (1024 * 1024)} MiB` : `${maxBytes} bytes`;
+}
+
+async function sameBytesChunked(aPath: string, bPath: string): Promise<boolean> {
+  const [fa, fb] = [await fs.open(aPath, "r"), await fs.open(bPath, "r")];
+  try {
+    const [ba, bb] = [Buffer.allocUnsafe(CHUNK_BYTES), Buffer.allocUnsafe(CHUNK_BYTES)];
+    for (;;) {
+      const [ra, rb] = await Promise.all([
+        fa.read(ba, 0, CHUNK_BYTES, null),
+        fb.read(bb, 0, CHUNK_BYTES, null),
+      ]);
+      if (ra.bytesRead !== rb.bytesRead) return false;
+      if (ra.bytesRead === 0) return true;
+      if (!ba.subarray(0, ra.bytesRead).equals(bb.subarray(0, rb.bytesRead))) return false;
+    }
+  } finally {
+    await Promise.all([fa.close(), fb.close()]);
+  }
+}
+
+/**
+ * Compare two artefacts too large to decode: sizes first, then the bytes in 1 MiB chunks. The
+ * difference is always `bytes`-level: a PNG is not decoded and a JSON file is not parsed.
+ */
+async function compareLarge(
+  aPath: string,
+  bPath: string,
+  size: { a: number; b: number },
+  maxBytes: number,
+): Promise<ContentDifference | null> {
+  const over = `larger than ${limitLabel(maxBytes)}, compared as raw bytes`;
+  if (size.a !== size.b) {
+    return { kind: "bytes", hint: `${over}: ${size.a} vs ${size.b} bytes`, size };
+  }
+  if (await sameBytesChunked(aPath, bPath)) return null;
+  return { kind: "bytes", hint: `${over}: same size (${size.a} bytes), content differs`, size };
+}
+
 export interface TreeComparison {
   /** Artefacts in run 1, the side every other run is compared against. */
   compared: number;
@@ -178,6 +223,7 @@ export async function compareRunRoots(
   aRoot: string,
   bRoot: string,
   run: number,
+  maxBytes: number = MAX_COMPARE_BYTES,
 ): Promise<TreeComparison> {
   const [la, lb] = await Promise.all([listTree(aRoot), listTree(bRoot)]);
   const inA = new Set(la.files);
@@ -204,10 +250,16 @@ export async function compareRunRoots(
       continue;
     }
     const segments = rel.split("/");
-    const [a, b] = await Promise.all([
-      fs.readFile(resolveWorkspacePath(aRoot, ...segments)),
-      fs.readFile(resolveWorkspacePath(bRoot, ...segments)),
-    ]);
+    const aPath = resolveWorkspacePath(aRoot, ...segments);
+    const bPath = resolveWorkspacePath(bRoot, ...segments);
+    // Size first: a huge artefact is never read whole.
+    const [sa, sb] = await Promise.all([fs.stat(aPath), fs.stat(bPath)]);
+    if (sa.size > maxBytes || sb.size > maxBytes) {
+      const large = await compareLarge(aPath, bPath, { a: sa.size, b: sb.size }, maxBytes);
+      if (large) differences.push({ path: rel, run, ...large });
+      continue;
+    }
+    const [a, b] = await Promise.all([fs.readFile(aPath), fs.readFile(bPath)]);
     const d = compareArtefactBytes(rel, a, b);
     if (d) differences.push({ path: rel, run, ...d });
   }
