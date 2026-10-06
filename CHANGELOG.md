@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.3.0-rc.1] - 2026-10-06
+
+Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`.
+
 ### Added
 
 - **`@docsxai/plugin-sharepoint`.** A publisher plugin, `sharepoint:push`, that pushes a doc pack to a SharePoint Online document library through Microsoft Graph. It takes the same ADF projection as the Confluence plugin, renders each document to markdown and uploads it with its screenshots (`PUT /drives/{id}/root:/{path}:/content`, images linked by relative path), so it is plain library files and not modern site pages. Idempotent: a `docsxai-manifest.json` next to the pages records the sha256 of every file written, and a second push of unchanged content performs zero writes. The bearer token is read from the environment variable named in `secretsEnv.token` (default `SHAREPOINT_TOKEN`) and masked in every log line and error. Config keys are `drive_id` or `site_id`, `folder`, `graph_base_url`, `title_prefix` and `force`. The only declared capability is `egress:graph.microsoft.com`. The package is `"private": true` for now: publishing it needs an npm trusted-publisher binding that is not set up, and it is not in `scripts/release-publish.sh`. Tests run against an in-process fake Graph server. `docs/public-surface.md` row PLUG-13, experimental.
