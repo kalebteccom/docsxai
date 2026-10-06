@@ -24,6 +24,10 @@ export interface ResolveTokenOptions {
   readFile?: (path: string) => string;
   /** Test seam for the file's permission bits. */
   fileMode?: (path: string) => number;
+  /** Test seam for the platform check. Default: `process.platform`. */
+  platform?: NodeJS.Platform;
+  /** Where the one-time Windows warning goes. Default: stderr. */
+  warn?: (message: string) => void;
 }
 
 /**
@@ -70,6 +74,13 @@ export function resolveToken(opts: ResolveTokenOptions): string {
       mode = fileMode(opts.tokenFile);
     } catch {
       throw unreadable;
+    }
+    if ((opts.platform ?? process.platform) === "win32") {
+      const warn = opts.warn ?? ((m: string) => process.stderr.write(m));
+      warn(
+        "docsxai-mcp: the token file's permissions cannot be checked on Windows; " +
+          "keep it readable only by the account that runs the server\n",
+      );
     }
     if (isGroupOrOtherAccessible(mode)) {
       throw new TokenError(
