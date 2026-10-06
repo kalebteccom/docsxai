@@ -15,10 +15,12 @@ import {
   assertBindPolicy,
   BindPolicyError,
   buildAllowedHosts,
+  buildAllowedOrigins,
   hostHeaderAllowed,
   isLoopbackHost,
   normalizeHostname,
   originAllowed,
+  parseHostPort,
 } from "../src/http-guard.js";
 import { parseServeArgs } from "../src/serve-args.js";
 
@@ -44,7 +46,7 @@ describe("resolveToken", () => {
   it("refuses a token shorter than 32 characters and accepts exactly 32", () => {
     const short = "s".repeat(MIN_TOKEN_LENGTH - 1);
     expect(() => resolveToken({ env: { [TOKEN_ENV_VAR]: short } })).toThrow(/at least 32/);
-    const exact = "e".repeat(MIN_TOKEN_LENGTH);
+    const exact = "abcdefgh".repeat(MIN_TOKEN_LENGTH / 8);
     expect(resolveToken({ env: { [TOKEN_ENV_VAR]: exact } })).toBe(exact);
   });
 
@@ -57,6 +59,12 @@ describe("resolveToken", () => {
     }
   });
 
+  it("refuses a token with fewer than 8 distinct characters, however long", () => {
+    expect(() => assertTokenStrength("a".repeat(64))).toThrow(/too repetitive/);
+    expect(() => assertTokenStrength("abcdefg".repeat(10))).toThrow(/too repetitive/);
+    expect(() => assertTokenStrength("abcdefgh".repeat(4))).not.toThrow();
+  });
+
   it("refuses characters a header cannot carry", () => {
     expect(() => assertTokenStrength(`${TOKEN} tail`)).toThrow(/printable ASCII/);
     expect(() => assertTokenStrength(`${TOKEN}é`)).toThrow(/printable ASCII/);
@@ -66,6 +74,7 @@ describe("resolveToken", () => {
     const token = resolveToken({
       env: { [TOKEN_ENV_VAR]: "e".repeat(40) },
       tokenFile: "/run/secrets/mcp-token",
+      fileMode: () => 0o100600,
       readFile: (p) => (p === "/run/secrets/mcp-token" ? `${TOKEN}\n` : ""),
     });
     expect(token).toBe(TOKEN);
@@ -76,12 +85,85 @@ describe("resolveToken", () => {
       resolveToken({
         env: {},
         tokenFile: "/nope/token",
+        fileMode: () => 0o100600,
         readFile: () => {
           throw new Error(`ENOENT leaked ${TOKEN}`);
         },
       });
     expect(run).toThrow(/cannot read the token file at \/nope\/token/);
     expect(thrown(run).message).not.toContain(TOKEN);
+  });
+});
+
+describe("token file permissions", () => {
+  const read = (mode: number): string =>
+    resolveToken({ env: {}, tokenFile: "/run/t", fileMode: () => mode, readFile: () => TOKEN });
+
+  it.skipIf(process.platform === "win32")(
+    "refuses a file group or other can read, write or execute",
+    () => {
+      for (const mode of [0o100644, 0o100640, 0o100604, 0o100660, 0o100666, 0o100710]) {
+        expect(() => read(mode), mode.toString(8)).toThrow(/readable by group or other.*chmod 600/);
+      }
+    },
+  );
+
+  it("accepts an owner-only file", () => {
+    expect(read(0o100600)).toBe(TOKEN);
+    expect(read(0o100400)).toBe(TOKEN);
+  });
+
+  it("does not read the file once its mode is refused", () => {
+    let reads = 0;
+    const run = (): string =>
+      resolveToken({
+        env: {},
+        tokenFile: "/run/t",
+        fileMode: () => 0o100644,
+        readFile: () => {
+          reads++;
+          return TOKEN;
+        },
+      });
+    if (process.platform !== "win32") {
+      expect(run).toThrow();
+      expect(reads).toBe(0);
+    }
+  });
+
+  it("reports a file it cannot stat as unreadable", () => {
+    expect(() =>
+      resolveToken({
+        env: {},
+        tokenFile: "/missing",
+        fileMode: () => {
+          throw new Error("ENOENT");
+        },
+      }),
+    ).toThrow(/cannot read the token file at \/missing/);
+  });
+});
+
+describe("token environment variable", () => {
+  it("is removed from the environment once read, from the env or from a file", () => {
+    const fromEnv: NodeJS.ProcessEnv = { [TOKEN_ENV_VAR]: TOKEN, OTHER: "kept" };
+    expect(resolveToken({ env: fromEnv })).toBe(TOKEN);
+    expect(fromEnv).toEqual({ OTHER: "kept" });
+
+    const withFile: NodeJS.ProcessEnv = { [TOKEN_ENV_VAR]: "e".repeat(40) };
+    resolveToken({
+      env: withFile,
+      tokenFile: "/run/t",
+      fileMode: () => 0o100600,
+      readFile: () => TOKEN,
+    });
+    expect(TOKEN_ENV_VAR in withFile).toBe(false);
+  });
+
+  it("is removed even when the token is refused", () => {
+    const env: NodeJS.ProcessEnv = { [TOKEN_ENV_VAR]: "short" };
+    expect(() => resolveToken({ env })).toThrow(/at least 32/);
+    expect(TOKEN_ENV_VAR in env).toBe(false);
   });
 });
 
@@ -131,6 +213,31 @@ describe("Host and Origin allowlists", () => {
     expect(normalizeHostname("::1")).toBe("::1");
     expect(normalizeHostname("")).toBeUndefined();
     expect(normalizeHostname(":80")).toBeUndefined();
+    expect(normalizeHostname("127.0.0.1:80@evil.example")).toBeUndefined();
+  });
+
+  it("parses Host strictly as host[:port], with IPv6 in brackets", () => {
+    expect(parseHostPort("localhost")).toEqual({ hostname: "localhost" });
+    expect(parseHostPort("Example.COM:8080")).toEqual({ hostname: "example.com", port: 8080 });
+    expect(parseHostPort("[::1]:9")).toEqual({ hostname: "::1", port: 9 });
+    for (const bad of [
+      "",
+      " localhost",
+      "localhost ",
+      "127.0.0.1:80@evil.example",
+      "user@localhost",
+      "localhost/path",
+      "localhost:",
+      "localhost:99999",
+      "localhost:80:80",
+      "::1",
+      "[::1",
+      "[nothex]",
+      "-bad.example",
+      "evil.example#localhost",
+    ]) {
+      expect(parseHostPort(bad), JSON.stringify(bad)).toBeUndefined();
+    }
   });
 
   it("accepts loopback names and configured hosts in the Host header", () => {
@@ -140,19 +247,70 @@ describe("Host and Origin allowlists", () => {
   });
 
   it("rejects a missing or foreign Host header", () => {
-    for (const h of [undefined, "", "evil.example", "evil.example:8765", "localhost.evil.test"]) {
+    for (const h of [
+      undefined,
+      "",
+      "evil.example",
+      "evil.example:8765",
+      "localhost.evil.test",
+      "127.0.0.1:80@evil.example",
+      "localhost@evil.example",
+      "localhost:8765/x",
+      "localhost:99999",
+      "localhost evil.example",
+    ]) {
       expect(hostHeaderAllowed(h, allowed), String(h)).toBe(false);
     }
   });
 
-  it("lets a request with no Origin through and judges a present one by hostname", () => {
-    expect(originAllowed(undefined, allowed)).toBe(true);
-    expect(originAllowed("http://localhost:5173", allowed)).toBe(true);
-    expect(originAllowed("https://docs.internal.example", allowed)).toBe(true);
-    expect(originAllowed("http://[::1]:3000", allowed)).toBe(true);
-    expect(originAllowed("https://evil.example", allowed)).toBe(false);
-    expect(originAllowed("null", allowed)).toBe(false);
-    expect(originAllowed("", allowed)).toBe(false);
+  it("lets a request with no Origin through and judges a present one by host and port", () => {
+    const port = 8765;
+    expect(originAllowed(undefined, allowed, port)).toBe(true);
+    for (const o of [
+      "http://localhost:8765",
+      "http://127.0.0.1:8765",
+      "http://[::1]:8765",
+      "https://docs.internal.example:8765",
+    ]) {
+      expect(originAllowed(o, allowed, port), o).toBe(true);
+    }
+    for (const o of [
+      "http://localhost:5173",
+      "http://localhost",
+      "https://localhost",
+      "https://evil.example:8765",
+      "null",
+      "",
+      "http://localhost:8765@evil.example",
+      "http://127.0.0.1:80@evil.example",
+      "http://localhost:8765/",
+      "ftp://localhost:8765",
+      "localhost:8765",
+    ]) {
+      expect(originAllowed(o, allowed, port), JSON.stringify(o)).toBe(false);
+    }
+  });
+
+  it("accepts an exact --allowed-origin whatever its port, and nothing near it", () => {
+    const origins = buildAllowedOrigins(["http://localhost:5173", "https://Docs.Example.com"]);
+    expect(originAllowed("http://localhost:5173", allowed, 8765, origins)).toBe(true);
+    expect(originAllowed("https://docs.example.com", allowed, 8765, origins)).toBe(true);
+    expect(originAllowed("https://docs.example.com:443", allowed, 8765, origins)).toBe(true);
+    expect(originAllowed("https://docs.example.com:444", allowed, 8765, origins)).toBe(false);
+    expect(originAllowed("http://docs.example.com", allowed, 8765, origins)).toBe(false);
+    expect(originAllowed("http://localhost:5174", allowed, 8765, origins)).toBe(false);
+  });
+
+  it("refuses wildcard and malformed --allowed-origin entries", () => {
+    for (const bad of [
+      "*",
+      "https://*.example.com",
+      "localhost:5173",
+      "https://a.example/p",
+      "null",
+    ]) {
+      expect(() => buildAllowedOrigins([bad]), bad).toThrow(BindPolicyError);
+    }
   });
 
   it("adds a concrete bind host but not a wildcard one", () => {
@@ -181,10 +339,14 @@ describe("serve arguments", () => {
       "a.example",
       "--allowed-host",
       "b.example",
+      "--allowed-origin",
+      "https://ui.example",
       "--token-file",
       "/tmp/t",
       "--workspace",
       "/tmp/ws",
+      "--workspace-root",
+      "/tmp",
     ]);
     expect(parsed).toEqual({
       workspace: "/tmp/ws",
@@ -194,16 +356,28 @@ describe("serve arguments", () => {
         host: "0.0.0.0",
         allowRemote: true,
         allowedHosts: ["a.example", "b.example"],
+        allowedOrigins: ["https://ui.example"],
         tokenFile: "/tmp/t",
+        workspaceRoot: "/tmp",
       },
     });
   });
 
   it("defaults to no remote, no extra hosts and leaves host and port to the server", () => {
-    expect(parseServeArgs(["--http"])).toEqual({
+    expect(parseServeArgs(["--http", "--workspace-root", "/srv/docs"])).toEqual({
       help: false,
-      serve: { allowRemote: false, allowedHosts: [] },
+      serve: {
+        allowRemote: false,
+        allowedHosts: [],
+        allowedOrigins: [],
+        workspaceRoot: "/srv/docs",
+      },
     });
+  });
+
+  it("refuses --http without --workspace-root", () => {
+    expect(() => parseServeArgs(["--http"])).toThrow(/--http requires --workspace-root/);
+    expect(() => parseServeArgs(["--http", "--workspace-root"])).toThrow(/requires a <dir> value/);
   });
 
   it("needs --http, and still answers --help without it", () => {
@@ -215,7 +389,7 @@ describe("serve arguments", () => {
     for (const bad of ["abc", "-1", "65536", "1.5", "", "123456"]) {
       expect(() => parseServeArgs(["--http", "--port", bad]), bad).toThrow(/--port|requires/);
     }
-    expect(parseServeArgs(["--http", "--port", "0"]).serve.port).toBe(0);
+    expect(parseServeArgs(["--http", "--workspace-root", "/r", "--port", "0"]).serve.port).toBe(0);
     expect(() => parseServeArgs(["--http", "--port"])).toThrow(/requires a <port> value/);
   });
 

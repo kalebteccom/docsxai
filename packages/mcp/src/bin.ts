@@ -11,8 +11,10 @@ const USAGE = `docsxai-mcp — stdio MCP server over the docsxai engine
 
 Usage:
   docsxai-mcp [--workspace <dir>]
-  docsxai-mcp serve --http [--port <n>] [--host <host>] [--token-file <path>]
-                           [--allowed-host <host>]... [--allow-remote] [--workspace <dir>]
+  docsxai-mcp serve --http --workspace-root <dir> [--port <n>] [--host <host>]
+                           [--token-file <path>] [--allowed-host <host>]... [--allowed-origin <origin>]...
+                           [--allow-remote]
+                           [--workspace <dir>]
 
 Options:
   --workspace <dir>   Default docsxai workspace for tool calls that omit \`workspace\`.
@@ -20,11 +22,16 @@ Options:
 
 Streamable HTTP (opt-in, loopback by default):
   --http              Serve MCP over HTTP at /mcp instead of stdio.
+  --workspace-root <dir>
+                      Required. Absolute directory every tool path must stay inside.
   --port <n>          Port to listen on (default 8765).
   --host <host>       Interface to bind (default 127.0.0.1).
   --token-file <path> File holding the bearer token. Otherwise DOCSX_MCP_TOKEN is read.
                       The token is required and must be at least 32 characters.
   --allowed-host <h>  Extra hostname accepted in Host and Origin headers. Repeatable.
+  --allowed-origin <o>
+                      Extra exact Origin (scheme://host[:port]). Without one, an Origin must name
+                      an allowed host on the bound port. Repeatable.
   --allow-remote      Required to bind a non-loopback host. Terminate TLS in front of the server.
 `;
 
@@ -65,6 +72,8 @@ async function serveHttp(serve: ServeOptions, workspace: string | undefined): Pr
     token,
     allowRemote: serve.allowRemote,
     allowedHosts: serve.allowedHosts,
+    allowedOrigins: serve.allowedOrigins,
+    workspaceRoot: serve.workspaceRoot ?? "",
     ...(serve.host ? { host: serve.host } : {}),
     ...(serve.port !== undefined ? { port: serve.port } : {}),
     ...(workspace ? { defaultWorkspace: workspace } : {}),

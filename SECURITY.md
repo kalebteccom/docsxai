@@ -146,13 +146,17 @@ with the launch-gate phase).
 
 **The MCP HTTP transport.** `docsxai-mcp serve --http` is opt-in; the default transport is stdio.
 It requires a bearer token of at least 32 characters, taken from the environment or a file and never
-from an argument, and compares it in constant time. It binds loopback unless `--allow-remote` is
+from an argument, and compares it in constant time. It refuses a token with fewer than 8 distinct
+characters and, on POSIX, a token file that group or other can access, and it clears the variable
+from its environment after reading so spawned tool processes do not inherit it. It binds loopback unless `--allow-remote` is
 passed, and then it speaks plain HTTP, so TLS must terminate in a proxy in front of it. It checks the
 `Host` and `Origin` headers against loopback names and an operator-supplied list to block DNS
-rebinding, and it caps request bodies at 1 MiB, concurrent sessions at 16 and idle time at 30
-minutes. Refusals return a bare status code with no detail. It does not rate-limit failed tokens. A
+rebinding (the Host value is parsed strictly as `host[:port]`, and an Origin must use the bound port
+or match an operator-supplied origin), and it caps request bodies at 1 MiB, concurrent sessions at 16 and idle time at 30
+minutes. It refuses to start without `--workspace-root` and confines every path a tool receives to
+that directory, symlinks resolved. Refusals return a bare status code with no detail. It does not rate-limit failed tokens. A
 holder of the token can call every tool the server exposes, including `run_flows`, `push_pack` and
-`pull_pack`, with the server process's file access and environment.
+`pull_pack`, inside the workspace root and with the server process's environment.
 
 ## Plugin trust model
 

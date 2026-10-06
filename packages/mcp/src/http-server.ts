@@ -14,12 +14,14 @@ import { assertTokenStrength, createBearerVerifier } from "./http-auth.js";
 import {
   assertBindPolicy,
   buildAllowedHosts,
+  buildAllowedOrigins,
   DEFAULT_HOST,
   hostHeaderAllowed,
   originAllowed,
 } from "./http-guard.js";
 import { SessionRegistry } from "./http-sessions.js";
 import { createDocsxaiMcpServer } from "./server.js";
+import { resolveInsideRoot, resolveWorkspaceRoot } from "./workspace-root.js";
 
 export const DEFAULT_PORT = 8765;
 export const MCP_PATH = "/mcp";
@@ -37,10 +39,21 @@ export interface HttpServerOptions {
   allowRemote?: boolean;
   /** Extra hostnames accepted in the Host and Origin headers. Exact names, no wildcards. */
   allowedHosts?: string[];
+  /**
+   * Extra exact origins (`scheme://host[:port]`) accepted in the Origin header, for a browser UI
+   * or a TLS proxy. Without an entry, an Origin has to name an allowed host on the bound port.
+   */
+  allowedOrigins?: string[];
   maxBodyBytes?: number;
   maxSessions?: number;
   idleTimeoutMs?: number;
-  /** Default workspace for tool calls that omit `workspace`, as on the stdio entry point. */
+  /**
+   * Required. Absolute path of an existing directory; every path a tool receives has to resolve
+   * inside it (symlinks followed). A call that omits `workspace` falls back to the default
+   * workspace, then to this root.
+   */
+  workspaceRoot: string;
+  /** Default workspace for tool calls that omit `workspace`. Must sit inside the root. */
   defaultWorkspace?: string;
   /** Operator log sink. Never receives headers, bodies or the token. */
   log?: (line: string) => void;
@@ -135,7 +148,13 @@ export async function startHttpServer(opts: HttpServerOptions): Promise<RunningH
   const host = opts.host ?? DEFAULT_HOST;
   assertTokenStrength(opts.token);
   assertBindPolicy(host, opts.allowRemote ?? false);
+  const workspaceRoot = await resolveWorkspaceRoot(opts.workspaceRoot);
+  const defaultWorkspace = opts.defaultWorkspace
+    ? await resolveInsideRoot(workspaceRoot, opts.defaultWorkspace)
+    : undefined;
   const allowedHosts = buildAllowedHosts(host, opts.allowedHosts ?? []);
+  const allowedOrigins = buildAllowedOrigins(opts.allowedOrigins ?? []);
+  let boundPort = 0;
   const verifyBearer = createBearerVerifier(opts.token);
   const maxBodyBytes = opts.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
   const log = opts.log ?? (() => undefined);
@@ -143,14 +162,16 @@ export async function startHttpServer(opts: HttpServerOptions): Promise<RunningH
     maxSessions: opts.maxSessions ?? DEFAULT_MAX_SESSIONS,
     idleTimeoutMs: opts.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS,
     createServer: () =>
-      createDocsxaiMcpServer(
-        opts.defaultWorkspace ? { defaultWorkspace: opts.defaultWorkspace } : {},
-      ),
+      createDocsxaiMcpServer({
+        workspaceRoot,
+        ...(defaultWorkspace ? { defaultWorkspace } : {}),
+      }),
   });
 
   async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (!hostHeaderAllowed(req.headers.host, allowedHosts)) return reject(res, 403);
-    if (!originAllowed(headerValue(req, "origin"), allowedHosts)) return reject(res, 403);
+    if (!originAllowed(headerValue(req, "origin"), allowedHosts, boundPort, allowedOrigins))
+      return reject(res, 403);
     if (!verifyBearer(headerValue(req, "authorization"))) {
       return reject(res, 401, { "WWW-Authenticate": "Bearer" });
     }
@@ -206,6 +227,7 @@ export async function startHttpServer(opts: HttpServerOptions): Promise<RunningH
   });
 
   const port = (http.address() as AddressInfo).port;
+  boundPort = port;
   const shownHost = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
   return {
     host,

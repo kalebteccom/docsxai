@@ -2,7 +2,7 @@
 
 import { initWorkspace } from "@docsxai/engine";
 import { z } from "zod";
-import { defineTool, fail, ok } from "../shared.js";
+import { defineTool, fail, ok, resolveToolPath } from "../shared.js";
 
 export const initWorkspaceTool = defineTool({
   name: "init_workspace",
@@ -24,10 +24,11 @@ export const initWorkspaceTool = defineTool({
     ignoreHttpsErrors: z.boolean().optional(),
     force: z.boolean().optional().describe("Allow scaffolding into a non-empty directory"),
   },
-  async handler(args) {
+  async handler(args, ctx) {
+    const dir = ctx.workspaceRoot ? await resolveToolPath(args.dir, ctx) : args.dir;
     try {
       const r = await initWorkspace({
-        dir: args.dir,
+        dir,
         ...(args.appUrl ? { appUrl: args.appUrl } : {}),
         ...(args.auth ? { auth: args.auth } : {}),
         ...(args.role ? { role: args.role } : {}),

@@ -13,6 +13,7 @@ import {
   type FlowFile,
 } from "@docsxai/engine";
 import { z } from "zod";
+import { resolveInsideRoot, WorkspaceRootError } from "./workspace-root.js";
 
 // ---------------------------------------------------------------------------
 // Result convention
@@ -38,6 +39,11 @@ export function fail(error: string, hint?: string): ToolFail {
 export interface ToolContext {
   /** Default workspace dir from the bin's `--workspace` flag; used when a call omits `workspace`. */
   defaultWorkspace?: string;
+  /**
+   * Set by the HTTP transport: the real path every caller-supplied path must stay inside. It is
+   * also the workspace for calls that omit `workspace` when no default is set. Unset on stdio.
+   */
+  workspaceRoot?: string;
 }
 
 /**
@@ -82,16 +88,33 @@ export const NO_WORKSPACE_HINT =
   "pass `workspace` in the tool arguments, or start docsxai-mcp with --workspace <dir>";
 
 /**
- * Resolve the workspace dir (explicit arg wins over the server default) and verify it is a
- * docsxai workspace (a `.docsxai.json` marker exists). Returns the absolute path.
+ * Resolve a caller-supplied path. Without a workspace root (stdio) it is `path.resolve`; with one
+ * (HTTP) it must land inside the root, symlinks resolved, and relative paths start at the root.
+ */
+export async function resolveToolPath(dir: string, ctx: ToolContext): Promise<string> {
+  if (!ctx.workspaceRoot) return path.resolve(dir);
+  try {
+    return await resolveInsideRoot(ctx.workspaceRoot, dir);
+  } catch (e) {
+    if (e instanceof WorkspaceRootError) {
+      throw new ToolInputError(e.message, "use a path inside the server's workspace root");
+    }
+    throw e;
+  }
+}
+
+/**
+ * Resolve the workspace dir (explicit arg wins over the server default, which wins over the
+ * workspace root) and verify it is a docsxai workspace (a `.docsxai.json` marker exists).
+ * Returns the absolute path.
  */
 export async function requireWorkspace(
   explicit: string | undefined,
   ctx: ToolContext,
 ): Promise<string> {
-  const dir = explicit ?? ctx.defaultWorkspace;
+  const dir = explicit ?? ctx.defaultWorkspace ?? ctx.workspaceRoot;
   if (!dir) throw new ToolInputError("no workspace directory given", NO_WORKSPACE_HINT);
-  const abs = path.resolve(dir);
+  const abs = await resolveToolPath(dir, ctx);
   try {
     await fs.access(path.join(abs, WORKSPACE_CONFIG_FILE));
   } catch {
