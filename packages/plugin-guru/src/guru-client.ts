@@ -63,7 +63,10 @@ export function assertGuruBaseUrl(raw: string, options: GuruUrlOptions = {}): st
   return `${url.origin}${path}`;
 }
 
-/** True for a file URL on Guru's content host, with no credentials, port or query. */
+/** `/files/view/<id>`: one id segment, no dots, slashes or escapes, so no traversal. */
+const ATTACHMENT_PATH = /^\/files\/view\/[A-Za-z0-9_-]{1,128}$/;
+
+/** True for a file URL on Guru's content host in that exact path shape, with no credentials, port or query. */
 export function isAttachmentUrl(value: unknown): value is string {
   if (
     typeof value !== "string" ||
@@ -77,6 +80,7 @@ export function isAttachmentUrl(value: unknown): value is string {
     return (
       url.protocol === "https:" &&
       url.hostname === "content.api.getguru.com" &&
+      ATTACHMENT_PATH.test(url.pathname) &&
       !url.username &&
       !url.password &&
       url.port === "" &&

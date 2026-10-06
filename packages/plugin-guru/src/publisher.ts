@@ -202,7 +202,19 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
               continue;
             }
 
-            const existing = known ? await client.getCard(known.cardId) : null;
+            let existing = known ? await client.getCard(known.cardId) : null;
+            // The card id comes from a manifest anyone with edit rights on that card can change, so a
+            // card is only updated when it is in the target collection and is not the manifest itself.
+            if (
+              existing &&
+              known &&
+              (existing.collection?.id !== config.collection_id || existing.id === manifestCardId)
+            ) {
+              log.warn(
+                `section "${doc.section}": card ${known.cardId} is not a page in collection ${config.collection_id}, creating a new card`,
+              );
+              existing = null;
+            }
             const body = cardBody(title, html);
             const card = existing
               ? await client.updateCard(existing.id, {

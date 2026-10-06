@@ -763,6 +763,83 @@ describe("guru publisher: manifest card", () => {
     expect(manifestCard().content).not.toContain("evil.example.com");
   });
 
+  it("drops a manifest image link outside the exact attachment path shape", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    await createGuruPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
+    const good = parseManifestHtml(manifestCard().content, () => {}, "t");
+    const damaged = emptyManifest();
+    damaged.pages["index"] = good.pages["index"]!;
+    for (const [name, link] of [
+      ["login--step-1.png", "https://content.api.getguru.com/files/view/../x"],
+      ["checkout--step-1.png", "https://content.api.getguru.com/files/view/a/b"],
+    ] as const) {
+      damaged.images[name] = { ...good.images[name]!, link };
+    }
+    manifestCard().content = manifestToHtml(damaged);
+    const { log, lines } = capture();
+    const writes = server.writes;
+    await createGuruPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(lines.filter((l) => l.includes("is not valid, redoing it"))).toHaveLength(2);
+    expect(server.writes - writes).toBe(4); // 2 images, the card, the manifest card
+  });
+
+  it("does not update a card outside the collection that the manifest points at", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const run1 = await createGuruPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log),
+    );
+    seedManifestCard("<p>not ours</p>", "other-collection", "victim");
+    server.cards.get("victim")!.preferredPhrase = "Somebody else's card";
+
+    const good = parseManifestHtml(manifestCard().content, () => {}, "t");
+    const tampered = {
+      ...good,
+      pages: { index: { ...good.pages["index"]!, cardId: "victim", sha256: "0".repeat(64) } },
+    } as unknown as Manifest;
+    manifestCard().content = manifestToHtml(tampered);
+
+    const { log, lines } = capture();
+    const writes = server.writes;
+    const run2 = await createGuruPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(run2.pages.map((p) => p.action)).toEqual(["created"]);
+    expect(run2.pages[0]!.id).not.toBe("victim");
+    expect(run2.pages[0]!.id).not.toBe(run1.pages[0]!.id);
+    expect(server.writes - writes).toBe(2); // the new card, the manifest card
+    const victim = server.cards.get("victim")!;
+    expect(victim.content).toBe("<p>not ours</p>");
+    expect(victim.collection.id).toBe("other-collection");
+    expect(victim.preferredPhrase).toBe("Somebody else's card");
+    expect(victim.version).toBe(1);
+    expect(lines.filter((l) => l.includes("is not a page in collection"))).toHaveLength(1);
+    expect(parseManifestHtml(manifestCard().content, () => {}, "t").pages["index"]!.cardId).toBe(
+      run2.pages[0]!.id,
+    );
+  });
+
+  it("does not overwrite the manifest card when a page entry points at it", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    await createGuruPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
+    const manifestId = manifestCard().id;
+    const good = parseManifestHtml(manifestCard().content, () => {}, "t");
+    const tampered = {
+      ...good,
+      pages: { index: { ...good.pages["index"]!, cardId: manifestId, sha256: "0".repeat(64) } },
+    } as unknown as Manifest;
+    manifestCard().content = manifestToHtml(tampered);
+
+    const run2 = await createGuruPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log),
+    );
+    expect(run2.pages.map((p) => p.action)).toEqual(["created"]);
+    expect(run2.pages[0]!.id).not.toBe(manifestId);
+    expect(parseManifestHtml(manifestCard().content, () => {}, "t").pages["index"]!.cardId).toBe(
+      run2.pages[0]!.id,
+    );
+  });
+
   it("names at most 20 invalid manifest entries, then counts the rest in one line", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
@@ -939,6 +1016,11 @@ describe("guru client: bounded responses", () => {
     expect(isAttachmentUrl("https://content.api.getguru.com/files/view/x?y=1")).toBe(false);
     expect(isAttachmentUrl("https://u:p@content.api.getguru.com/files/view/x")).toBe(false);
     expect(isAttachmentUrl("https://content.api.getguru.com/other/x")).toBe(false);
+    expect(isAttachmentUrl("https://content.api.getguru.com/files/view/")).toBe(false);
+    expect(isAttachmentUrl("https://content.api.getguru.com/files/view/a/b")).toBe(false);
+    expect(isAttachmentUrl("https://content.api.getguru.com/files/view/../x")).toBe(false);
+    expect(isAttachmentUrl("https://content.api.getguru.com/files/view/%2e%2e")).toBe(false);
+    expect(isAttachmentUrl("https://content.api.getguru.com:444/files/view/x")).toBe(false);
     expect(isAttachmentUrl(7)).toBe(false);
   });
 });
