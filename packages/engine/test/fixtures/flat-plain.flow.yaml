@@ -1,0 +1,17 @@
+# Fixture flow for the matrix keystone's flat-layout check (runs against test/fixtures/toy-site/matrix.html):
+# the same page and steps as matrix-2x2 minus the matrix, with no click, so the screenshot bytes are the
+# same on every run. recap-open clicks a native button, whose hover painting is not byte-stable.
+name: flat-plain
+locators:
+  lang_line: "#lang"
+steps:
+  - id: open
+    action: navigate
+    value: matrix.html
+    wait_for: load
+  - id: shot
+    action: wait
+    target: $lang_line
+    success: { visible: $lang_line }
+    annotation:
+      copy: "Language line"

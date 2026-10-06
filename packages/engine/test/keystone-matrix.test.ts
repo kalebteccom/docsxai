@@ -145,11 +145,11 @@ describe.skipIf(!chromiumAvailable)("keystone: flow matrix", () => {
     async () => {
       const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-flat-"));
       try {
-        const ws1 = await runWorkspace(path.join(tmp, "run1"), "recap-open.flow.yaml");
-        const ws2 = await runWorkspace(path.join(tmp, "run2"), "recap-open.flow.yaml");
-        const flowDir = path.join(ws1, "docs", "recap-open");
+        const ws1 = await runWorkspace(path.join(tmp, "run1"), "flat-plain.flow.yaml");
+        const ws2 = await runWorkspace(path.join(tmp, "run2"), "flat-plain.flow.yaml");
+        const flowDir = path.join(ws1, "docs", "flat-plain");
         expect((await fs.readdir(flowDir)).sort()).toEqual(["annotations.json", "screenshots"]);
-        expect(await fs.readdir(path.join(flowDir, "screenshots"))).toEqual(["open-sidebar.png"]);
+        expect(await fs.readdir(path.join(flowDir, "screenshots"))).toEqual(["shot.png"]);
         const ann = await readJson(path.join(flowDir, "annotations.json"));
         expect(Object.keys(ann)).toEqual(["schema", "flow", "annotations"]);
         expect(await digest(path.join(ws2, "docs"))).toEqual(await digest(path.join(ws1, "docs")));
