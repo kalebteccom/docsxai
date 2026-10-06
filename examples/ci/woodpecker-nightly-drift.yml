@@ -1,0 +1,50 @@
+# Nightly drift check for a docsxai doc pack. Copy this file to .woodpecker/docsxai-nightly-drift.yml
+# in the repository that holds the workspace, then add a cron named docsxai-nightly-drift under the
+# repository's Settings, Crons (for example "0 3 * * *"). Needs Woodpecker 3 for from_secret.
+# Add the secrets app_url, app_editor_user, app_editor_pass and, for the upload step, s3_access_key
+# and s3_secret_key.
+#
+# The workflow runs for that cron only. Do not add push or pull_request events: browser capture is
+# slow and heavy, and per-PR pipelines on shared runners compete for the same CPU and memory.
+when:
+  - event: cron
+    cron: docsxai-nightly-drift
+
+steps:
+  - name: drift-check
+    image: node:26
+    environment:
+      APP_URL:
+        from_secret: app_url
+      APP_EDITOR_USER:
+        from_secret: app_editor_user
+      APP_EDITOR_PASS:
+        from_secret: app_editor_pass
+    commands:
+      - npm install --global docsxai
+      - npx playwright-core install --with-deps chromium
+      - docsxai run ./docs-workspace --base-url "$APP_URL" --verify-determinism --format md > determinism-report.md
+      - docsxai diff ./docs-workspace --against ./docs-workspace/.baseline --format md --fail-on fail > drift-report.md
+
+  - name: show-reports
+    image: alpine:3
+    when:
+      - status: [success, failure]
+    commands:
+      - cat determinism-report.md drift-report.md || true
+
+  # Woodpecker has no artifact store of its own; this pushes the reports to an S3-compatible bucket.
+  - name: upload-reports
+    image: woodpeckerci/plugin-s3
+    when:
+      - status: [success, failure]
+    settings:
+      bucket: docsxai-reports
+      endpoint: https://s3.example.com
+      path_style: true
+      source: "*-report.md"
+      target: nightly/${CI_PIPELINE_NUMBER}/
+      access_key:
+        from_secret: s3_access_key
+      secret_key:
+        from_secret: s3_secret_key

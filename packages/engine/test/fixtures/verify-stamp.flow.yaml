@@ -1,0 +1,17 @@
+# Fixture flow for the verify-determinism keystone (runs against test/fixtures/toy-site/verify.html,
+# served with a stamp that is either constant or moves on every request).
+name: verify
+environment:
+  viewport: { width: 800, height: 600 }
+locators:
+  stamp: "#stamp"
+steps:
+  - id: open
+    action: navigate
+    value: verify.html
+    wait_for: load
+  - id: stamp
+    action: wait
+    target: $stamp
+    annotation:
+      copy: "The build stamp"
