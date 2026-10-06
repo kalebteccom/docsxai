@@ -1,0 +1,5 @@
+{
+  "commands": ["doctor", "export", "login", "plugins", "pull", "push", "render", "run"],
+  "skills": ["calibrate", "diagnose"],
+  "manifestKeys": ["author", "description", "homepage", "name", "version"]
+}

@@ -1,0 +1,123 @@
+{
+  "apiVersion": "1",
+  "apiVersionHeader": "docsxai-api-version",
+  "oauthClientId": "docsxai-cli",
+  "limits": { "jsonBodyBytes": 10485760, "blobBodyBytes": 26214400 },
+  "revisionArtifacts": ["flows", "annotations", "screenshots", "style", "locators"],
+  "revisionKinds": ["calibrate", "run", "edit"],
+  "webhookEvents": ["push", "pull_request"],
+  "webhookStrategies": ["pr-comment", "viewer-refresh", "wiki-push"],
+  "webhookSecretEnv": "DOCSX_WEBHOOK_SECRET",
+  "errorCodes": [
+    "bad_request",
+    "consent_required",
+    "internal",
+    "invalid_request",
+    "method_not_allowed",
+    "not_found",
+    "payload_too_large",
+    "revision-finalized",
+    "unauthorized"
+  ],
+  "routes": [
+    "GET /v1/health",
+    "GET /v1/workspaces",
+    "POST /v1/workspaces",
+    "GET /v1/workspaces/:ws",
+    "GET /v1/workspaces/:ws/projects",
+    "POST /v1/workspaces/:ws/projects",
+    "GET /v1/workspaces/:ws/projects/:project",
+    "GET /v1/workspaces/:ws/projects/:project/revisions",
+    "POST /v1/workspaces/:ws/projects/:project/revisions",
+    "GET /v1/workspaces/:ws/projects/:project/revisions/:rev",
+    "POST /v1/workspaces/:ws/projects/:project/revisions/:rev/finalize",
+    "GET /v1/workspaces/:ws/projects/:project/revisions/:rev/:artifact",
+    "PUT /v1/workspaces/:ws/projects/:project/revisions/:rev/:artifact",
+    "GET /v1/workspaces/:ws/projects/:project/run-history",
+    "POST /v1/workspaces/:ws/projects/:project/run-history",
+    "POST /v1/blobs",
+    "HEAD /v1/blobs/:sha256",
+    "GET /v1/blobs/:sha256",
+    "PUT /v1/workspaces/:ws/auth-cache/:role",
+    "GET /v1/workspaces/:ws/auth-cache/:role",
+    "DELETE /v1/workspaces/:ws/auth-cache/:role",
+    "GET /v1/workspaces/:ws/projects/:project/webhook-config",
+    "PUT /v1/workspaces/:ws/projects/:project/webhook-config",
+    "POST /v1/github/webhook",
+    "GET /v1/oauth/authorize",
+    "POST /v1/oauth/token"
+  ],
+  "types": {
+    "Workspace": {
+      "members": { "id": "id: string", "name": "name: string", "created_at": "created_at: string" },
+      "optional": []
+    },
+    "Project": {
+      "members": {
+        "id": "id: string",
+        "workspace_id": "workspace_id: string",
+        "name": "name: string",
+        "created_at": "created_at: string",
+        "head_revision_id": "head_revision_id: string | null"
+      },
+      "optional": []
+    },
+    "Revision": {
+      "members": {
+        "id": "id: string",
+        "project_id": "project_id: string",
+        "parent_revision_id": "parent_revision_id: string | null",
+        "kind": "kind: RevisionKind",
+        "author": "author: string",
+        "created_at": "created_at: string",
+        "artifacts": "artifacts: RevisionArtifact[]",
+        "finalized": "finalized: boolean"
+      },
+      "optional": []
+    },
+    "RunRecord": {
+      "members": {
+        "id": "id: string",
+        "project_id": "project_id: string",
+        "revision_id": "revision_id: string",
+        "ok": "ok: boolean",
+        "duration_ms": "duration_ms: number",
+        "summary": "summary: string",
+        "created_at": "created_at: string"
+      },
+      "optional": []
+    },
+    "ApiError": {
+      "members": { "error": "error: string", "message": "message: string" },
+      "optional": []
+    },
+    "BlobRef": {
+      "members": { "sha256": "sha256: string", "bytes": "bytes: number" },
+      "optional": []
+    },
+    "AuthCacheEnvelope": {
+      "members": {
+        "schema": "schema: \"docsxai/auth-cache@1\"",
+        "alg": "alg: \"aes-256-gcm\"",
+        "iv": "iv: string",
+        "ciphertext": "ciphertext: string",
+        "tag": "tag: string",
+        "expires_at": "expires_at?: number"
+      },
+      "optional": ["expires_at"]
+    },
+    "WebhookConfig": {
+      "members": {
+        "repo": "repo: string",
+        "events": "events: WebhookEvent[]",
+        "strategy": "strategy: WebhookStrategy",
+        "workspace_rev": "workspace_rev: string",
+        "secret_env": "secret_env: string",
+        "enabled": "enabled: boolean",
+        "plugin": "plugin?: string",
+        "plugin_config": "plugin_config?: Record<string, unknown>"
+      },
+      "optional": ["plugin", "plugin_config"]
+    }
+  }
+}
