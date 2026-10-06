@@ -168,6 +168,9 @@ describe("burn dispatch", () => {
       [["burn", "ws", "--report", "--no-connector-outline"], /--report needs a value/],
       [["burn", "ws", "other"], /unexpected argument "other"/],
       [["burn", "ws", "--flow", "../x"], /not a flow name/],
+      [["burn", "ws", "--flow", "..foo"], /--flow "\.\.foo" is not a flow name/],
+      [["burn", "ws", "--flow", ".hidden"], /--flow "\.hidden" is not a flow name/],
+      [["burn", "ws", "--flow", "a b"], /not a flow name/],
     ];
     for (const [argv, message] of cases) {
       err = "";
@@ -190,6 +193,13 @@ describe("burn dispatch", () => {
     const { argvFile } = await fakeViewer();
     expect(await main(["burn", ws])).toBe(0);
     expect(await argvOf(argvFile)).toEqual(["burn", ws]);
+  });
+
+  it("accepts flow names with dots, dashes and underscores after the first character", async () => {
+    const ws = await makeWorkspace();
+    const { argvFile } = await fakeViewer();
+    expect(await main(["burn", ws, "--flow", "a.b-c_d", "--flow", "7-up"])).toBe(0);
+    expect(await argvOf(argvFile)).toEqual(["burn", ws, "--flow", "a.b-c_d", "--flow", "7-up"]);
   });
 
   it("passes --flow (repeated), --out, --report and --no-connector-outline through", async () => {

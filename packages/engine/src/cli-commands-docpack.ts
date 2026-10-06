@@ -68,6 +68,9 @@ export async function cmdRender(args: string[]): Promise<number> {
   return code;
 }
 
+/** A flow name as `burn` passes it on: no separators, and no leading dot, so it can't name a parent or hidden path. */
+const FLOW_NAME = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
+
 interface BurnArgs {
   workspace: string;
   flows: string[];
@@ -99,7 +102,7 @@ function parseBurnArgs(args: string[]): BurnArgs | string {
   if (positionals.length === 0) return "missing <workspace-dir>";
   if (positionals.length > 1) return `unexpected argument "${positionals[1]}"`;
   parsed.workspace = positionals[0]!;
-  const bad = parsed.flows.find((f) => f === "." || f === ".." || /[\\/]/.test(f));
+  const bad = parsed.flows.find((f) => !FLOW_NAME.test(f));
   if (bad !== undefined) return `--flow "${bad}" is not a flow name`;
   return parsed;
 }

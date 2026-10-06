@@ -63,7 +63,12 @@ interface DomGlobals {
   requestAnimationFrame(cb: () => void): number;
 }
 
-/** Resolves with the page's state once it settles or the budget is spent. */
+/**
+ * Resolves with the page's state once it settles or the budget is spent. Every clock and promise
+ * in here (`Date.now`, `setTimeout`, `document.fonts.ready`) belongs to the page and a page can
+ * stall or override them, so the deadline in this function is a courtesy. The bound that holds is
+ * the Node-side `budgetMs + 2000` guard in `runSettle`.
+ */
 export async function awaitSettled(a: SettleArgs): Promise<SettleOutcome> {
   const g = globalThis as unknown as DomGlobals;
   const deadline = Date.now() + a.timeoutMs;
