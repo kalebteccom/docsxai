@@ -3,10 +3,12 @@
 // line and error, the exact capability declaration, and the load through the real plugin runtime.
 
 import { createHash } from "node:crypto";
+import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   type AdfProjection,
@@ -23,6 +25,7 @@ import {
   assertGraphBaseUrl,
   readBoundedText,
 } from "../src/graph-client.js";
+import { MAX_IMAGE_BYTES } from "../src/read-file.js";
 import {
   MANIFEST_FILE,
   createSharePointPublisher,
@@ -358,6 +361,19 @@ describe("sharepoint publisher: graph_base_url", () => {
     expect(() => assertGraphBaseUrl(url)).toThrow(/graph_base_url/);
   });
 
+  it("refuses a port other than the default, and takes an explicit :443", () => {
+    for (const url of [
+      "https://graph.microsoft.com:8443/v1.0",
+      "https://graph.microsoft.us:444/v1.0",
+      "https://graph.microsoft.com:80/v1.0",
+    ]) {
+      expect(() => assertGraphBaseUrl(url)).toThrow(/default https port/);
+    }
+    expect(assertGraphBaseUrl("https://graph.microsoft.com:443/v1.0")).toBe(
+      "https://graph.microsoft.com:443/v1.0",
+    );
+  });
+
   it("takes loopback http only under the explicit test option", () => {
     expect(assertGraphBaseUrl("http://127.0.0.1:4000/v1.0", LOOPBACK)).toBe(
       "http://127.0.0.1:4000/v1.0",
@@ -451,6 +467,73 @@ describe("sharepoint publisher: attachments", () => {
   });
 });
 
+describe("sharepoint publisher: attachment reads", () => {
+  async function publishWith(
+    dir: string,
+    edit: (att: { sourcePath: string; sha256: string }) => void,
+  ): Promise<unknown> {
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    edit(projection.documents[0]!.attachments[0]!);
+    return createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
+  }
+
+  it.skipIf(process.platform === "win32")(
+    "refuses a FIFO without waiting for a writer",
+    async () => {
+      const dir = await makeWorkspace();
+      const fifo = path.join(dir, "docs", "checkout", "burned", "pipe.png");
+      await promisify(execFile)("mkfifo", [fifo]);
+      const outcome = await Promise.race([
+        publishWith(dir, (att) => {
+          att.sourcePath = fifo;
+        }).then(
+          () => "published",
+          (e: unknown) => (e as Error).message,
+        ),
+        new Promise<string>((resolve) => setTimeout(() => resolve("hung"), 5000)),
+      ]);
+      expect(outcome).toContain("is not a regular file");
+      expect(server.writes).toBe(0);
+    },
+    10_000,
+  );
+
+  it("refuses a symlink to a file inside the workspace", async () => {
+    const dir = await makeWorkspace();
+    const link = path.join(dir, "docs", "checkout", "burned", "link.png");
+    await fs.symlink(path.join(dir, "docs", "login", "burned", "step-1.png"), link);
+    await expect(
+      publishWith(dir, (att) => {
+        att.sourcePath = link;
+      }),
+    ).rejects.toThrow(/is a symlink/);
+    expect(server.writes).toBe(0);
+  });
+
+  it("refuses a file over the size cap before reading it", async () => {
+    const dir = await makeWorkspace();
+    const big = path.join(dir, "docs", "checkout", "burned", "big.png");
+    await fs.writeFile(big, "");
+    await fs.truncate(big, MAX_IMAGE_BYTES + 1); // sparse, costs no disk
+    await expect(
+      publishWith(dir, (att) => {
+        att.sourcePath = big;
+      }),
+    ).rejects.toThrow(/is larger than/);
+    expect(server.writes).toBe(0);
+  });
+
+  it("reads a file bigger than one read chunk byte for byte", async () => {
+    const dir = await makeWorkspace();
+    const data = Buffer.alloc(2 * 1024 * 1024 + 5, 3);
+    const file = path.join(dir, "docs", "checkout", "burned", "step-1.png");
+    await fs.writeFile(file, data);
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
+    expect(server.files.get("docsxai/images/checkout--step-1.png")!.data.equals(data)).toBe(true);
+  });
+});
+
 describe("sharepoint publisher: redirects", () => {
   it("does not follow a redirect on a write, so the token stays on the first host", async () => {
     const other = await startFakeGraph(TOKEN);
@@ -535,6 +618,19 @@ describe("sharepoint publisher: remote manifest", () => {
     expect(run.pages[0]!.url).toContain("sharepoint.com");
     expect(JSON.stringify(run)).not.toContain("evil.example.com");
     expect(text(`docsxai/${MANIFEST_FILE}`)).not.toContain("evil.example.com");
+  });
+
+  it("names at most 20 invalid manifest entries, then counts the rest in one line", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const bad = Object.fromEntries(
+      Array.from({ length: 25 }, (_, i) => [`images/x-${i}.png`, { sha256: "nope", size: 1 }]),
+    );
+    await seedManifest(bad);
+    const { log, lines } = capture();
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(lines.filter((l) => l.includes("is not valid, uploading it again")).length).toBe(20);
+    expect(lines.filter((l) => l.includes("5 more manifest entries are not valid")).length).toBe(1);
   });
 
   it("refuses a manifest whose files is not an object", async () => {

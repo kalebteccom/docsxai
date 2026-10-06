@@ -25,6 +25,7 @@ import {
   resolveWorkspacePathReal,
 } from "@docsxai/engine";
 import { adfToMarkdown, IMAGES_DIR, safeName } from "./adf-markdown.js";
+import { readRegularFile } from "./read-file.js";
 import {
   assertGraphBaseUrl,
   DEFAULT_GRAPH_URL,
@@ -84,6 +85,9 @@ export function isSharePointUrl(value: unknown): value is string {
 }
 
 const SHA256_HEX = /^[0-9a-f]{64}$/;
+
+/** Invalid manifest entries named in the log; the rest are counted in one line. */
+const MAX_MANIFEST_WARNINGS = 20;
 
 /** A manifest entry as the publisher wrote it, or null when anything about it is off. */
 function validEntry(value: unknown): ManifestEntry | null {
@@ -187,13 +191,24 @@ async function readManifest(
   ) {
     throw new Error(`sharepoint: ${folder}/${MANIFEST_FILE} is not a docsxai manifest`);
   }
+  let dropped = 0;
   for (const [rel, value] of Object.entries(parsed.files)) {
     const entry = validEntry(value);
-    if (entry) files[rel] = entry;
-    else
+    if (entry) {
+      files[rel] = entry;
+      continue;
+    }
+    dropped++;
+    if (dropped <= MAX_MANIFEST_WARNINGS) {
       log.warn(
         `manifest entry ${JSON.stringify(rel.slice(0, 80))} is not valid, uploading it again`,
       );
+    }
+  }
+  if (dropped > MAX_MANIFEST_WARNINGS) {
+    log.warn(
+      `${dropped - MAX_MANIFEST_WARNINGS} more manifest entries are not valid, uploading them again`,
+    );
   }
   return { schema: MANIFEST_SCHEMA, files };
 }
@@ -224,7 +239,9 @@ async function uploadsFor(
   for (const att of doc.attachments) {
     // The projection can come from a caller, so the path is held inside the workspace and the
     // hash is taken from the bytes read, not from `att.sha256`.
-    const data = await fs.readFile(await resolveWorkspacePathReal(workspaceDir, att.sourcePath));
+    const data = await readRegularFile(
+      await resolveWorkspacePathReal(workspaceDir, att.sourcePath),
+    );
     images.push({
       rel: `${IMAGES_DIR}/${safeName(att.fileName)}`,
       data,

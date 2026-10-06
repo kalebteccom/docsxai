@@ -32,7 +32,8 @@ export interface GraphUrlOptions {
 /**
  * Validate a `graph_base_url` and return it without trailing slashes. It must be `https:` on one
  * of {@link GRAPH_HOSTS} with no credentials; `http:` on a loopback host passes only under
- * `allowLoopbackHttp`. The bearer token is sent to whatever this accepts.
+ * `allowLoopbackHttp`. A Graph host takes no port other than the default one. The bearer token is
+ * sent to whatever this accepts.
  */
 export function assertGraphBaseUrl(raw: string, options: GraphUrlOptions = {}): string {
   let url: URL;
@@ -52,6 +53,10 @@ export function assertGraphBaseUrl(raw: string, options: GraphUrlOptions = {}): 
     throw new Error(
       `sharepoint: config.graph_base_url must be https on one of ${GRAPH_HOSTS.join(", ")}`,
     );
+  }
+  // `URL.port` is empty for the scheme's default port, so `:443` passes and any other port does not.
+  if (!loopback && url.port !== "") {
+    throw new Error("sharepoint: config.graph_base_url must use the default https port");
   }
   return raw.replace(/\/+$/, "");
 }
