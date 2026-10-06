@@ -108,7 +108,7 @@ docsxai is `0.x`. A minor version (`0.2` to `0.3`) may include breaking changes 
 
 The **stable surface** at 1.0 — `docsxai` subcommand names + documented flags, flow-file schema, doc-pack output shape, the actionability-contract predicate, the `BrowserDriver` interface, the backend's REST surface — does not change in a `patch`; an additive change is a `minor`; a breaking change requires a `major` bump plus a changelog entry and a deprecation note. In `0.x` the same surface already moves only in a minor, never in a patch.
 
-[`docs/public-surface.md`](docs/public-surface.md) lists every item of that surface with its stability mark (`stable candidate`, `experimental`, `internal`), the compatibility and deprecation policy, and the 1.0 checklist. The contract tests under `packages/*/test/contract/` fail when a pinned surface changes; the update procedure is in the header of each test file. A diff that changes a pinned surface updates the snapshot, that page and the CHANGELOG together.
+[`docs/public-surface.md`](docs/public-surface.md) lists every item of that surface with its stability mark (`stable candidate`, `experimental`, `deprecated`, `internal`), the compatibility and deprecation policy, and the 1.0 checklist. The contract tests under `packages/*/test/contract/` fail when a pinned surface changes; the update procedure is in the header of each test file. A diff that changes a pinned surface updates the snapshot, that page and the CHANGELOG together.
 
 What 1.0 gates, as the project docs already state it: the semver guarantee on that surface, the supported-version windows in [`SECURITY.md`](SECURITY.md) (`1.(latest).x` patched, `1.(latest-1).x` critical only), and the maintainer track in [`MAINTAINERS.md`](MAINTAINERS.md).
 
