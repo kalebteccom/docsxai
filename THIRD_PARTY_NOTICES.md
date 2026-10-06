@@ -40,7 +40,7 @@ The SDK's transitive production dependencies are predominantly MIT
 `@hono/node-server`, `jose`, `pkce-challenge`, `raw-body`), plus
 `zod-to-json-schema` — ISC and `json-schema-typed` — BSD-2-Clause.
 
-## `@docsxai/plugin-confluence`, `@docsxai/plugin-sharepoint`, `@docsxai/plugin-starlight` (repo-only; not published at v1.0)
+## `@docsxai/plugin-confluence`, `@docsxai/plugin-guru`, `@docsxai/plugin-sharepoint`, `@docsxai/plugin-starlight` (repo-only; not published at v1.0)
 
 No third-party production dependencies (workspace packages only:
 the engine, and for the Starlight plugin also the viewer).

@@ -152,6 +152,19 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.43)(lightningcss@1.33.0)
 
+  packages/plugin-guru:
+    dependencies:
+      '@docsxai/engine':
+        specifier: workspace:*
+        version: link:../engine
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.43
+        version: 20.19.43
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.43)(lightningcss@1.33.0)
+
   packages/plugin-sharepoint:
     dependencies:
       '@docsxai/engine':
