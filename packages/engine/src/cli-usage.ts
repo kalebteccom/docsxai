@@ -27,6 +27,8 @@ Usage:
   docsxai pull <workspace-dir> [--rev <id>]
   docsxai render <workspace-dir>
   docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
+  docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
+  docsxai drift <workspace-or-raw-dir> --against <pack-dir> [--from-raw] [--threshold <pct>]
   docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   docsxai --help
 
@@ -138,6 +140,22 @@ Notes:
     --report <file> writes a JSON placement report (callout and badge boxes, overlaps, callouts flagged
     unplaceable), resolved under the workspace when relative. --no-connector-outline keeps every arrow and
     stem plain ink; by default one over a dark part of the screenshot gets a white outline.
+  • pack builds the screenshot pack a docs site or README ships: it burns each step's annotations into its
+    clean screenshot, optimises the PNG losslessly with the external \`oxipng\` binary (on PATH, or
+    $DOCSX_OXIPNG_BIN; \`brew install oxipng\`; --no-optimise skips it), names it
+    <flow>/<step>.<hash8>.png from the final bytes, and writes manifest.json (docsxai/screens-pack@2: flows,
+    steps, localised alt, variants keyed <locale>.<theme>.<viewport> with src, size and callouts). <dir> is a
+    workspace (docs/ plus a pack.json naming which capture flow feeds which variant, and the alt text) or,
+    with --from-raw or no docs/, a raw capture directory (<flow>/<step>/<locale>.<theme>.<viewport>.png with a
+    .json sidecar, step.json and flow.json). --out defaults to <workspace>/.screens and is required for a raw
+    directory. Files the previous manifest listed and the new one does not are deleted by exact path; nothing
+    else in --out is touched. Loopback addresses and obvious secrets in alt, caption, title or callout text
+    stop the build. Runs the viewer's \`pack\` through the same bin resolution as render.
+  • drift rebuilds the pack in memory (no oxipng, nothing written) and compares it with the committed pack
+    in --against: equal hash is unchanged, otherwise a pixel diff gives changed %, the changed region and
+    a pass or fail against --threshold (default 0.5). A resized, new or missing variant, or a committed file
+    that does not match its name, always fails. Exit 1 on any failure, 2 on a bad argument. The report has no
+    timestamps.
   • login validates a bearer token against a backend URL — hits /v1/health, /v1/workspaces. Reads
     the token from DOCSX_TOKEN env var. Prints what the backend sees if the call succeeds,
     or a clear error if not. Stateless: doesn't store anything; configure the env var in your shell.
