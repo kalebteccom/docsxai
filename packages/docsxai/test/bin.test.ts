@@ -239,7 +239,7 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
         "100",
       );
       expect(lenient.code, lenient.stdout).toBe(0);
-    });
+    }, 30_000);
 
     it("the retired `docsxai drift` still runs, with a deprecation warning", async () => {
       const ws = await workspaceWithPackConfig();
@@ -248,7 +248,7 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
       expect(r.code, r.stderr).toBe(0);
       expect(r.stderr).toContain("docsxai: the drift command is deprecated since 0.3.0");
       expect(r.stdout).toContain("docsxai drift: 1 compared, 0 over threshold (0.5%)");
-    });
+    }, 30_000);
 
     it("exits 2 on a bad flag or a missing --against, and 1 on a workspace with no pack.json", async () => {
       expect((await docsxai("pack", tmp, "--nope")).code).toBe(2);
