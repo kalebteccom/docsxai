@@ -28,6 +28,7 @@ import {
   installEgressGuard,
   resolveEgressGuard,
   type EgressGuardOptions,
+  type GuardableContext,
 } from "./egress-guard.js";
 import {
   type ActionableState,
@@ -150,7 +151,7 @@ export async function launchPlaywrightSession(
   if (opts.connectOverCdp) {
     const browser = await chromium.connectOverCDP(opts.connectOverCdp);
     const context = browser.contexts()[0] ?? (await browser.newContext());
-    await installEgressGuard(context, guard);
+    await installEgressGuard(context as unknown as GuardableContext, guard);
     const pages = context.pages();
     const page =
       pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await context.newPage());
@@ -192,7 +193,7 @@ export async function launchPlaywrightSession(
     ...((opts.contextOptions ?? {}) as BrowserContextOptions),
     ...egressContextOptions(guard),
   });
-  await installEgressGuard(context, guard);
+  await installEgressGuard(context as unknown as GuardableContext, guard);
   const page = await context.newPage();
   await installClock(page, opts.environment);
   const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".", opts.outputRoot);
