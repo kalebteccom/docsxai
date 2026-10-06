@@ -11,6 +11,7 @@ Usage:
   docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
   docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+  docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]
   docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
   docsxai flow-tree <workspace-dir> [--format text|json]
   docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
@@ -57,6 +58,14 @@ Notes:
     launching one. docsxai won't close that Chrome. When --cdp is set, the cached storageState is NOT
     loaded into the context — the operator's Chrome owns its auth state. Useful with --start-from for the
     sub-3-sec iteration loop on long-async flows.
+  • run --verify-determinism runs the selected flows N times (--runs, 2 to 5, default 2), each into its own
+    root under <ws>/.docsxai-verify/run-<k>/, then byte-compares every artefact: annotations.json, screenshots,
+    step markdown, locators, halt context. The workspace output is written only when every run agrees (run 1's
+    files are copied in, the bytes a plain run writes); on any difference or halt it is left untouched. The run
+    roots are removed at the end. The report goes to stdout (--format text|md|json, default text; progress goes to
+    stderr) and names the first differing artefact by path with a cause: the JSON key path, the changed-pixel
+    region of a PNG, the first differing line of text, or the sizes. Exit 0 identical, 1 differing or a flow
+    halted, 2 bad flags. Not combinable with --pause / --stop-after / --start-from / --cdp.
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
     engineer logs into; window.__docsxai.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you

@@ -73,6 +73,11 @@ export interface PlaywrightSessionOptions {
   chromiumArgs?: string[];
   /** Doc-pack root that screenshot paths are resolved against. */
   docPackRoot?: string;
+  /**
+   * Where screenshots are written, when that differs from `docPackRoot` (which keeps resolving
+   * `upload` sources). `run --verify-determinism` points it at an isolated per-run root. Default: `docPackRoot`.
+   */
+  outputRoot?: string;
   /** If set, attach to a running Chrome at this CDP endpoint (e.g. `http://localhost:9222`) instead of launching one. `close()` won't close it. */
   connectOverCdp?: string;
   /**
@@ -151,7 +156,7 @@ export async function launchPlaywrightSession(
       );
     }
     await installClock(page, opts.environment);
-    const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".");
+    const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".", opts.outputRoot);
     return {
       browser,
       context,
@@ -176,7 +181,7 @@ export async function launchPlaywrightSession(
   });
   const page = await context.newPage();
   await installClock(page, opts.environment);
-  const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".");
+  const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".", opts.outputRoot);
   return {
     browser,
     context,
@@ -206,10 +211,15 @@ function budget(timeoutMs: number | undefined): { timeout?: number } {
 }
 
 export class PlaywrightDriver implements BrowserDriver {
+  private readonly outputRoot: string;
+
   constructor(
     private readonly page: Page,
     private readonly docPackRoot = ".",
-  ) {}
+    outputRoot?: string,
+  ) {
+    this.outputRoot = outputRoot ?? docPackRoot;
+  }
 
   goto(url: string): Promise<void> {
     return this.page.goto(url).then(() => undefined);
@@ -440,7 +450,7 @@ export class PlaywrightDriver implements BrowserDriver {
   async screenshot(relPath: string, redactions: ResolvedRedaction[] = []): Promise<void> {
     // relPath segments carry flow names + step ids from the flow-file — containment-checked
     // (symlink-aware) against the doc-pack root before writing.
-    const abs = await resolveWorkspacePathReal(this.docPackRoot, relPath);
+    const abs = await resolveWorkspacePathReal(this.outputRoot, relPath);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     // `animations: "disabled"` fast-forwards finite CSS animations/transitions to their end state
     // and cancels infinite ones, so an element transitioning in (opacity/transform) is captured
