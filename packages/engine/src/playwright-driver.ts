@@ -24,11 +24,18 @@ import {
   type ViewportSize,
 } from "./doc-pack.js";
 import {
+  egressContextOptions,
+  installEgressGuard,
+  resolveEgressGuard,
+  type EgressGuardOptions,
+} from "./egress-guard.js";
+import {
   type ActionableState,
   type BrowserDriver,
   type ResolvedRedaction,
 } from "./flow-runtime.js";
 import { type StorageState } from "./auth.js";
+import { budget, withTimeout } from "./driver-budget.js";
 import { type NearbyBoxes } from "./obstacles.js";
 import { HIDDEN_ATTR, markHidden, unmarkHidden } from "./page-hide.js";
 import { collectNearbyBoxes } from "./page-nearby-boxes.js";
@@ -89,6 +96,8 @@ export interface PlaywrightSessionOptions {
   environment?: EnvironmentSpec;
   /** Extra `browser.newContext` options — see {@link SessionContextOptions}. Ignored with `connectOverCdp`. */
   contextOptions?: SessionContextOptions;
+  /** Refuse requests to link-local and metadata addresses (see `egress-guard.ts`). Default: `DOCSX_EGRESS_GUARD` in the environment decides. */
+  egressGuard?: EgressGuardOptions;
 }
 
 /** Map an {@link EnvironmentSpec} to the Playwright context options it pins (clock excluded — that's a page-level install). */
@@ -136,9 +145,11 @@ export interface PlaywrightSession {
 export async function launchPlaywrightSession(
   opts: PlaywrightSessionOptions = {},
 ): Promise<PlaywrightSession> {
+  const guard = resolveEgressGuard(opts.egressGuard);
   if (opts.connectOverCdp) {
     const browser = await chromium.connectOverCDP(opts.connectOverCdp);
     const context = browser.contexts()[0] ?? (await browser.newContext());
+    await installEgressGuard(context, guard);
     const pages = context.pages();
     const page =
       pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await context.newPage());
@@ -178,7 +189,9 @@ export async function launchPlaywrightSession(
     ...(opts.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
     ...(opts.environment ? environmentContextOptions(opts.environment) : {}),
     ...((opts.contextOptions ?? {}) as BrowserContextOptions),
+    ...egressContextOptions(guard),
   });
+  await installEgressGuard(context, guard);
   const page = await context.newPage();
   await installClock(page, opts.environment);
   const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".", opts.outputRoot);
@@ -193,21 +206,6 @@ export async function launchPlaywrightSession(
       await browser.close().catch(() => {});
     },
   };
-}
-
-/** Rejects with a timeout error if `work` takes longer than `ms` (no limit when `ms` is undefined). */
-function withTimeout<T>(work: Promise<T>, ms: number | undefined): Promise<T> {
-  if (ms === undefined) return work;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
-  });
-  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
-}
-
-/** Playwright per-call options for a step's `timeout_ms`; empty when unset so the default is untouched. */
-function budget(timeoutMs: number | undefined): { timeout?: number } {
-  return timeoutMs === undefined ? {} : { timeout: timeoutMs };
 }
 
 export class PlaywrightDriver implements BrowserDriver {

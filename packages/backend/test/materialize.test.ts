@@ -231,6 +231,98 @@ describe("materializeDocPack", () => {
   });
 });
 
+/** A flow whose one step has `action` and `value`; the value goes in as a JSON string, which is valid YAML. */
+const flowStepping = (value: string, action = "navigate"): string =>
+  `name: tour\nsteps:\n  - id: open\n    action: ${action}\n    value: ${JSON.stringify(value)}\n`;
+
+const APP = "https://app.example.com/base";
+
+describe("materializeDocPack: flow navigate targets", () => {
+  const run = (flow: string, opts: Parameters<typeof materializeDocPack>[2] = {}) => {
+    const { src } = seed({
+      flows: { schema: "docsxai/flows@1", files: { "tour.flow.yaml": flow } },
+    });
+    materializeDocPack(tmp, src, opts);
+  };
+
+  it.each([
+    "http://169.254.169.254/latest/meta-data/",
+    "https://169.254.169.254",
+    "http://[fd00:ec2::254]/",
+    "http://2852039166/",
+    "http://168.63.129.16/machine",
+    "http://metadata.google.internal/computeMetadata/v1/",
+    "//169.254.169.254/latest",
+    "/\\169.254.169.254/latest",
+    "\\\\169.254.169.254\\latest",
+    "  http://169.254.169.254/  ",
+    "http:\t//169.254.169.254/",
+  ])("refuses a navigate to %j with no app_url and with one", (value) => {
+    expect(() => run(flowStepping(value))).toThrow(
+      /flows file "tour.flow.yaml" has a navigate step whose value must not point at a link-local/,
+    );
+    expect(() => run(flowStepping(value), { appUrl: APP })).toThrow(MaterializeError);
+  });
+
+  it("refuses a navigate that is not an http(s) URL", () => {
+    expect(() => run(flowStepping("javascript:alert(1)"))).toThrow(/absolute http\(s\) URL/);
+    expect(() => run(flowStepping("file:///etc/passwd"), { appUrl: APP })).toThrow(
+      /absolute http\(s\) URL/,
+    );
+  });
+
+  it("refuses a navigate outside the app_url origin, whatever the host", () => {
+    for (const value of [
+      "https://other.example.com/",
+      "http://app.example.com/",
+      "//other.test/",
+    ]) {
+      expect(() => run(flowStepping(value), { appUrl: APP })).toThrow(
+        /value is outside the app_url origin/,
+      );
+    }
+  });
+
+  it("finds a navigate written in YAML flow style and refuses text that is not YAML", () => {
+    const flowStyle =
+      'name: tour\nsteps: [{ id: a, action: navigate, value: "http://169.254.169.254/" }]\n';
+    expect(() => run(flowStyle)).toThrow(/link-local/);
+    expect(() => run("steps: [\n  - {")).toThrow(/is not valid YAML/);
+  });
+
+  it("refuses a loopback navigate only under denyPrivateAppUrl", () => {
+    expect(() => run(flowStepping("http://localhost:3000/"))).not.toThrow();
+    expect(() => run(flowStepping("http://localhost:3000/"), { denyPrivateAppUrl: true })).toThrow(
+      /loopback or private-network/,
+    );
+  });
+
+  it.each([
+    "/checkout",
+    "checkout",
+    "../up",
+    "?tab=1",
+    "#top",
+    "/a//b",
+    "https://app.example.com/x",
+  ])("allows a navigate to %j under an app_url", (value) => {
+    expect(() => run(flowStepping(value), { appUrl: APP })).not.toThrow();
+  });
+
+  it.each(["/checkout", "?tab=1", "https://example.com/docs", "http://localhost:3000/"])(
+    "allows a navigate to %j with no app_url",
+    (value) => {
+      expect(() => run(flowStepping(value))).not.toThrow();
+    },
+  );
+
+  it("does not read the value of any other action as a navigation", () => {
+    expect(() =>
+      run(flowStepping("http://169.254.169.254/", "fill"), { appUrl: APP }),
+    ).not.toThrow();
+  });
+});
+
 describe("SpawnRunner.materializeWorkspace", () => {
   it("removes the temp dir when a payload is refused", () => {
     const { store, src } = seed({

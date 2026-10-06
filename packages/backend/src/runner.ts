@@ -10,7 +10,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { engineRunArgv } from "./engine-argv.js";
-import { denyPrivateAppUrl } from "./app-url.js";
+import { denyPrivateAppUrl, isEnvFlagOff } from "./app-url.js";
 import { materializeDocPack } from "./materialize.js";
 import type { BackendStore } from "./store.js";
 import type { WebhookJob } from "./webhook.js";
@@ -25,6 +25,23 @@ import {
 export const ENGINE_BIN_ENV = "DOCSX_ENGINE_BIN";
 export const ENGINE_PACKAGE = "@docsxai/engine";
 export const ENGINE_BIN_NAME = "docsxai";
+export const EGRESS_GUARD_ENV = "DOCSX_EGRESS_GUARD";
+export const EGRESS_DENY_PRIVATE_ENV = "DOCSX_EGRESS_DENY_PRIVATE";
+
+/**
+ * The environment a webhook run's engine gets: its request guard is on unless the operator set
+ * `DOCSX_EGRESS_GUARD` to an off value (`0`, `false`, `no`), and it refuses private-network
+ * addresses too when the backend refuses them in an `app_url` and `DOCSX_EGRESS_DENY_PRIVATE`
+ * is not set. A value that is neither on nor off leaves the guard on.
+ */
+export function webhookEngineEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const denyPrivate = env[EGRESS_DENY_PRIVATE_ENV] === undefined && denyPrivateAppUrl(env);
+  return {
+    ...env,
+    ...(isEnvFlagOff(env[EGRESS_GUARD_ENV]) ? {} : { [EGRESS_GUARD_ENV]: "1" }),
+    ...(denyPrivate ? { [EGRESS_DENY_PRIVATE_ENV]: "1" } : {}),
+  };
+}
 
 /**
  * Resolve the engine CLI like the engine resolves its viewer bin:
@@ -135,7 +152,7 @@ export class SpawnRunner {
     let outcome: RunOutcome;
     try {
       const { code, output } = await spawnCapture(spawnImpl, bin, engineRunArgv(workspaceDir), {
-        env,
+        env: webhookEngineEnv(env),
         cwd: workspaceDir,
       });
       const lastLine = output.trim().split("\n").filter(Boolean).pop() ?? "";

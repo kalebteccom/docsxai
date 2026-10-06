@@ -151,7 +151,15 @@ The materialized workspace has the layout `pull` writes: `flows/<name>.flow.yaml
 
 ### Project `app_url` host rules
 
-`app_url` is validated when it is set (`POST`/`PUT` on a project: `400 bad_request` naming `app_url`) and again when a webhook run writes it to `.docsxai.json`, which fails the job. The host is checked as written, after the URL parser has normalised decimal, hex and octal IPv4 forms, IPv4-mapped IPv6 and a trailing dot. A link-local or cloud-metadata host is always refused (`169.254.0.0/16`, `fe80::/10`, `fd00:ec2::254`, `100.100.100.200`, `metadata.google.internal`, `instance-data`), because a run screenshots whatever `app_url` names. Loopback and private-network hosts are allowed by default; set `DOCSX_BACKEND_DENY_PRIVATE_APP_URL=1` on the backend to refuse those too (loopback, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `fc00::/7`, `localhost`). A DNS name is not resolved, so a name that points at a refused address is not caught by this check; restrict the egress of the host that runs the engine as well.
+`app_url` is validated when it is set (`POST`/`PUT` on a project: `400 bad_request` naming `app_url`) and again when a webhook run writes it to `.docsxai.json`, which fails the job. The host is checked as written, after the URL parser has normalised decimal, hex and octal IPv4 forms, IPv4-mapped IPv6 and a trailing dot. A link-local or cloud-metadata host is always refused (`169.254.0.0/16`, `fe80::/10`, `fd00:ec2::254`, `100.100.100.200`, `168.63.129.16`, `metadata.google.internal`, `instance-data`, and an IPv6 address that embeds one through IPv4-mapping, NAT64, 6to4 or Teredo), because a run screenshots whatever `app_url` names. Loopback and private-network hosts are allowed by default; set `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` to `1`, `true` or `yes` (any case) on the backend to refuse those too (loopback, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `fc00::/7`, `fec0::/10`, `localhost`, `localhost.localdomain`, `*.localhost`). Any other non-empty value leaves the switch off, and `docsxai doctor` warns about it. A DNS name is not resolved by this check, so a name that points at a refused address is not caught here; the engine's request guard (below) resolves names.
+
+### Flow `navigate` targets
+
+Materialising a revision parses every `flows/*.flow.yaml` and refuses one whose `navigate` step value resolves to an absolute URL that fails the `app_url` host rules, or, when the project has an `app_url`, to one outside its origin. Relative values (`/checkout`, `?tab=1`) stay inside the base URL and pass; `//host/x` and `/\host` do not, because the URL parser reads them as another host. A flow file that is not valid YAML fails too. The job fails before the engine starts.
+
+### Engine request guard
+
+The runner starts every webhook run's engine with `DOCSX_EGRESS_GUARD=1`, which makes `@docsxai/engine` check each browser request, redirect hops included, against the same address rules: a host that is, or resolves to, a link-local or metadata address is aborted, and so is a request whose lookup fails. It adds `DOCSX_EGRESS_DENY_PRIVATE=1` when the backend's `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` is on. Set `DOCSX_EGRESS_GUARD=0` on the backend to start runs without the guard, and set `DOCSX_EGRESS_DENY_PRIVATE` yourself to override the private-range default. The guard resolves a name before the request and the browser resolves it again, so DNS rebinding still gets through: run the engine behind an egress firewall in a hosted deployment. See `SECURITY.md`.
 
 The engine CLI is resolved like the engine resolves its viewer bin: `DOCSX_ENGINE_BIN` env override → the installed `@docsxai/engine` package's `docsxai` bin → `docsxai` on `PATH`.
 
@@ -167,16 +175,19 @@ Everything below requires owner credentials / a public URL and is **deliberately
 
 ## Environment variables
 
-| Variable                   | Effect                                                                                                       |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `DOCSX_DATA_DIR`           | persist to this directory via `FsStore` (the `--data-dir=` flag / `dataDir` option take precedence)          |
-| `DOCSX_TOKEN`              | the pre-issued CI bearer token; also the credential that auto-approves OAuth authorize requests              |
-| `DOCSX_OAUTH_AUTO_APPROVE` | `1` auto-approves OAuth authorize requests without a bearer (local dev / tests)                              |
-| `DOCSX_CACHE_KEY`          | client-side only — the base64 32-byte AES-256-GCM key for the auth-cache relay (the server never reads this) |
-| `DOCSX_WEBHOOK_SECRET`     | default GitHub webhook HMAC secret (per-project override via the config's `secret_env`)                      |
-| `DOCSX_ENGINE_BIN`         | explicit path to the engine CLI the webhook runner spawns                                                    |
-| `GITHUB_APP_TOKEN`         | GitHub token for the `pr-comment` strategy when no `tokenProvider` is injected                               |
-| `PORT`                     | bin default port (flag `--port=` wins)                                                                       |
+| Variable                             | Effect                                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `DOCSX_DATA_DIR`                     | persist to this directory via `FsStore` (the `--data-dir=` flag / `dataDir` option take precedence)                |
+| `DOCSX_TOKEN`                        | the pre-issued CI bearer token; also the credential that auto-approves OAuth authorize requests                    |
+| `DOCSX_OAUTH_AUTO_APPROVE`           | `1` auto-approves OAuth authorize requests without a bearer (local dev / tests)                                    |
+| `DOCSX_CACHE_KEY`                    | client-side only — the base64 32-byte AES-256-GCM key for the auth-cache relay (the server never reads this)       |
+| `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` | `1`, `true` or `yes` also refuses loopback and private-network `app_url` hosts and flow `navigate` targets         |
+| `DOCSX_EGRESS_GUARD`                 | passed to webhook runs as `1` unless set to `0`, `false` or `no`: the engine aborts requests to metadata addresses |
+| `DOCSX_EGRESS_DENY_PRIVATE`          | passed to webhook runs as `1` when `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` is on and this is unset                    |
+| `DOCSX_WEBHOOK_SECRET`               | default GitHub webhook HMAC secret (per-project override via the config's `secret_env`)                            |
+| `DOCSX_ENGINE_BIN`                   | explicit path to the engine CLI the webhook runner spawns                                                          |
+| `GITHUB_APP_TOKEN`                   | GitHub token for the `pr-comment` strategy when no `tokenProvider` is injected                                     |
+| `PORT`                               | bin default port (flag `--port=` wins)                                                                             |
 
 ## License
 

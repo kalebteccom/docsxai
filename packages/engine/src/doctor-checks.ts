@@ -9,6 +9,12 @@
 import { existsSync, promises as fs } from "node:fs";
 import * as path from "node:path";
 import { parseAuthStrategyFile } from "./auth.js";
+import {
+  EGRESS_DENY_PRIVATE_ENV,
+  EGRESS_GUARD_ENV,
+  envFlagOff,
+  envFlagOn,
+} from "./egress-guard.js";
 import { FlowFileError, parseFlowFile } from "./flow-file.js";
 import { chromiumExecutablePath } from "./playwright-driver.js";
 import { resolveViewerBin, VIEWER_BIN_ENV, VIEWER_BIN_NAME, VIEWER_PACKAGE } from "./viewer-bin.js";
@@ -372,7 +378,28 @@ export const KNOWN_DOCSX_ENV_VARS: ReadonlyArray<string> = [
   "DOCSX_WEBHOOK_SECRET",
   "DOCSX_OXIPNG_BIN",
   "DOCSX_BACKEND_DENY_PRIVATE_APP_URL",
+  "DOCSX_EGRESS_GUARD",
+  "DOCSX_EGRESS_DENY_PRIVATE",
 ];
+
+/** On/off switches: `1`, `true` or `yes` turns one on; anything else non-empty, `0`/`false`/`no` aside, is read as off. */
+const FLAG_ENV_VARS: ReadonlyArray<string> = [
+  "DOCSX_BACKEND_DENY_PRIVATE_APP_URL",
+  EGRESS_GUARD_ENV,
+  EGRESS_DENY_PRIVATE_ENV,
+];
+
+function misspelledFlags(env: NodeJS.ProcessEnv): DoctorCheck[] {
+  return FLAG_ENV_VARS.filter((k) => {
+    const v = env[k];
+    return v !== undefined && v.trim() !== "" && !envFlagOn(v) && !envFlagOff(v);
+  }).map((k) => ({
+    name: "env",
+    ok: false,
+    detail: `${k}=${JSON.stringify(env[k])} is not an on/off value, so the switch is off`,
+    fix: "use 1, true or yes to turn it on, or unset it",
+  }));
+}
 
 export function checkEnv(env: NodeJS.ProcessEnv): DoctorCheck[] {
   const set = Object.keys(env)
@@ -388,6 +415,7 @@ export function checkEnv(env: NodeJS.ProcessEnv): DoctorCheck[] {
   if (known.length > 0) {
     checks.push({ name: "env", ok: true, detail: `set: ${known.join(", ")}` });
   }
+  checks.push(...misspelledFlags(env));
   const cacheKey = env.DOCSX_CACHE_KEY;
   if (cacheKey) {
     const decoded = Buffer.from(cacheKey, "base64");

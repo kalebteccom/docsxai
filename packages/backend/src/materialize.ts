@@ -3,12 +3,14 @@
 // locators.yaml}` and `.docsxai.json`. The artifact payloads are the shapes `docsxai push`
 // writes (`docsxai/flows@1` and the rest); the backend does not depend on the engine, so the
 // name rules the engine's `FlowName` and pull validator apply are repeated here, and a test in
-// `packages/docsxai/test` holds the two copies to the same answers.
+// `packages/docsxai/test` holds the two copies to the same answers. Flow files are read for their
+// `navigate` targets, which must pass the same host rules as the project's `app_url`.
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { RevisionArtifact } from "./api.js";
 import { appUrlProblem } from "./app-url.js";
+import { flowNavigationProblem } from "./flow-navigation.js";
 import { sha256Hex, type BackendStore } from "./store.js";
 
 /** The workspace config file the engine reads (`WORKSPACE_CONFIG_FILE` in the engine). */
@@ -199,6 +201,11 @@ export function materializeDocPack(
       if (typeof text !== "string") {
         throw new MaterializeError(`flows file ${describeName(name)} is not text`);
       }
+      const navigation = flowNavigationProblem(text, {
+        appUrl: opts.appUrl,
+        denyPrivate: opts.denyPrivateAppUrl === true,
+      });
+      if (navigation) throw new MaterializeError(`flows file ${describeName(name)} ${navigation}`);
       write(root, `flows/${name}`, text);
     }
   }
