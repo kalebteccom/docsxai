@@ -44,6 +44,8 @@ export interface FakeGuru {
   failEchoingSecrets: boolean;
   /** When set, every POST and PUT answers 307 with this `Location` and stores nothing. */
   redirectWritesTo: string | null;
+  /** `METHOD /path` entries that never get an answer, to exercise client timeouts. */
+  stall: string[];
   /** When set, the upload response carries this `link` instead of a Guru file URL. */
   uploadLink: string | null;
   close(): Promise<void>;
@@ -89,6 +91,7 @@ export async function startFakeGuru(email: string, token: string): Promise<FakeG
     failEchoingSecrets: false,
     redirectWritesTo: null,
     uploadLink: null,
+    stall: [],
     close: async () => {},
   };
 
@@ -109,6 +112,10 @@ export async function startFakeGuru(email: string, token: string): Promise<FakeG
       }
       if (auth !== expectedAuth) {
         sendJson(401, { message: "unauthorized" });
+        return;
+      }
+      if (state.stall.includes(`${req.method} ${url.pathname}`)) {
+        req.resume();
         return;
       }
       if ((req.method === "POST" || req.method === "PUT") && state.redirectWritesTo) {
