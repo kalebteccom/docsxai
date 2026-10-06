@@ -1,0 +1,108 @@
+{
+  "usage": [
+    "docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...",
+    "docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]",
+    "docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]..."
+  ],
+  "burnReport": {
+    "schema": "docsxai/burn-report@1",
+    "emptyReport": {
+      "schema": "docsxai/burn-report@1",
+      "threshold": 0.1,
+      "flows": [],
+      "unplaceable": 0
+    },
+    "types": {
+      "BurnReport": {
+        "members": {
+          "schema": "schema: typeof BURN_REPORT_SCHEMA",
+          "threshold": "threshold: number",
+          "flows": "flows: FlowBurnReport[]",
+          "unplaceable": "unplaceable: number"
+        },
+        "optional": []
+      },
+      "FlowBurnReport": {
+        "members": {
+          "flow": "flow: string",
+          "annotations": "annotations: AnnotationReport[]"
+        },
+        "optional": []
+      },
+      "AnnotationReport": {
+        "members": {
+          "step": "step: string",
+          "index": "index: number | null",
+          "selector": "selector: string",
+          "mode": "mode: \"outside\" | \"inside\" | \"none\"",
+          "side": "side: Side | null",
+          "callout": "callout: Rect | null",
+          "badge": "badge: Rect | null",
+          "obstacle_overlap": "obstacle_overlap: number",
+          "other_overlap": "other_overlap: number",
+          "overlap_ratio": "overlap_ratio: number",
+          "unplaceable": "unplaceable: boolean",
+          "skipped": "skipped?: string"
+        },
+        "optional": ["skipped"]
+      }
+    }
+  },
+  "annotationsMirror": {
+    "AnnotationsFile": {
+      "members": {
+        "schema": "schema: string",
+        "flow": "flow: string",
+        "annotations": "annotations: AnnotationRecord[]"
+      },
+      "optional": []
+    },
+    "AnnotationRecord": {
+      "members": {
+        "step": "step: string",
+        "selector": "selector: string",
+        "bounding_box": "bounding_box?: BoundingBox",
+        "copy": "copy: string",
+        "arrow_style": "arrow_style?: string",
+        "nudge": "nudge?: NudgeOffset",
+        "obstacles": "obstacles?: BoundingBox[]",
+        "placement": "placement?: AnnotationPlacement",
+        "index": "index?: number"
+      },
+      "optional": ["arrow_style", "bounding_box", "index", "nudge", "obstacles", "placement"]
+    },
+    "AnnotationPlacement": {
+      "members": {
+        "inside": "inside?: boolean",
+        "side": "side?: \"top\" | \"bottom\" | \"left\" | \"right\"",
+        "align": "align?: \"start\" | \"center\" | \"end\"",
+        "pin_arrow": "pin_arrow?: boolean",
+        "max_width": "max_width?: number",
+        "obstacle_radius": "obstacle_radius?: number",
+        "obstacle_limit": "obstacle_limit?: number"
+      },
+      "optional": [
+        "align",
+        "inside",
+        "max_width",
+        "obstacle_limit",
+        "obstacle_radius",
+        "pin_arrow",
+        "side"
+      ]
+    },
+    "BoundingBox": {
+      "members": {
+        "x": "x: number",
+        "y": "y: number",
+        "width": "width: number",
+        "height": "height: number"
+      },
+      "optional": []
+    },
+    "NudgeOffset": {
+      "members": { "x": "x: number", "y": "y: number" },
+      "optional": []
+    }
+  }
+}

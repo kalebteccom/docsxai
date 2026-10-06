@@ -1,0 +1,157 @@
+{
+  "runtimeApiVersion": "1.0.0",
+  "reservedNamespaces": ["docsxai", "site-docs", "core", "plugins"],
+  "kinds": ["publisher", "renderer", "lint-rules", "auth-strategy"],
+  "trust": ["kalebtec", "community", "local"],
+  "statuses": [
+    "loaded",
+    "disabled-by-capability-mismatch",
+    "disabled-by-cycle",
+    "disabled-by-dep-missing",
+    "disabled-by-namespace-conflict",
+    "load-error"
+  ],
+  "manifest": {
+    "required": ["apiVersion", "kinds", "namespace", "register"],
+    "optional": ["capabilities", "dependsOn", "trust"],
+    "defaults": { "capabilities": [], "dependsOn": [], "trust": "local" }
+  },
+  "lock": { "file": "plugins-lock.json", "schema": "docsxai/plugins-lock@1" },
+  "configKeys": ["plugins", "plugin_capabilities"],
+  "lintSeverities": ["error", "warning", "info"],
+  "types": {
+    "PluginLogger": {
+      "members": {
+        "info": "info(message: string): void",
+        "warn": "warn(message: string): void",
+        "error": "error(message: string): void"
+      },
+      "optional": []
+    },
+    "PublisherContext": {
+      "members": {
+        "workspaceDir": "workspaceDir: string",
+        "projection": "projection: unknown",
+        "artifactsDir": "artifactsDir: string",
+        "config": "config: Record<string, unknown>",
+        "secretsEnv": "secretsEnv: Record<string, string>",
+        "log": "log: PluginLogger"
+      },
+      "optional": []
+    },
+    "PublishResult": {
+      "members": {
+        "ok": "ok: boolean",
+        "target": "target: string",
+        "pages": "pages: Array<{ id: string; url?: string; action: \"created\" | \"updated\" | \"unchanged\"; section?: string; }>",
+        "warnings": "warnings: string[]"
+      },
+      "optional": []
+    },
+    "PublisherPlugin": {
+      "members": { "publish": "publish(ctx: PublisherContext): Promise<PublishResult>" },
+      "optional": []
+    },
+    "RendererContext": {
+      "members": {
+        "workspaceDir": "workspaceDir: string",
+        "outDir": "outDir: string",
+        "flows": "flows: string[]",
+        "config": "config: Record<string, unknown>",
+        "log": "log: PluginLogger"
+      },
+      "optional": []
+    },
+    "RendererResult": {
+      "members": {
+        "ok": "ok: boolean",
+        "outputs": "outputs: string[]",
+        "warnings": "warnings: string[]"
+      },
+      "optional": []
+    },
+    "RendererPlugin": {
+      "members": { "render": "render(ctx: RendererContext): Promise<RendererResult>" },
+      "optional": []
+    },
+    "AuthStrategyPlugin": {
+      "members": {
+        "authenticate": "authenticate(ctx: { creds: Record<string, string>; options: Record<string, unknown>; baseURL: string; workspaceDir: string; }): Promise<{ storageState: unknown; expiresAt?: string; contextOptions?: Record<string, unknown>; }>"
+      },
+      "optional": []
+    },
+    "PluginRegisterApi": {
+      "members": {
+        "namespace": "readonly namespace: string",
+        "declaredKinds": "readonly declaredKinds: ReadonlyArray<PluginKind>",
+        "declaredCapabilities": "readonly declaredCapabilities: ReadonlyArray<string>",
+        "registerPublisher": "registerPublisher(name: string, impl: PublisherPlugin): void",
+        "registerRenderer": "registerRenderer(name: string, impl: RendererPlugin): void",
+        "registerLintRules": "registerLintRules(name: string, rules: PluginLintRule[]): void",
+        "registerAuthStrategy": "registerAuthStrategy(name: string, impl: AuthStrategyPlugin): void",
+        "log": "readonly log: PluginLogger",
+        "workspacePath": "workspacePath(...segments: string[]): string"
+      },
+      "optional": []
+    },
+    "PluginRecord": {
+      "members": {
+        "name": "name: string",
+        "version": "version: string",
+        "namespace": "namespace: string",
+        "source": "source: string",
+        "trust": "trust: PluginTrust",
+        "status": "status: PluginStatus",
+        "statusReason": "statusReason?: string",
+        "manifest": "manifest?: PluginManifest",
+        "registerPath": "registerPath?: string",
+        "artifacts": "artifacts: PluginArtifact[]"
+      },
+      "optional": ["manifest", "registerPath", "statusReason"]
+    },
+    "PluginArtifact": {
+      "members": { "kind": "kind: PluginKind", "name": "name: string" },
+      "optional": []
+    },
+    "PluginsLockFile": {
+      "members": {
+        "schema": "schema: typeof PLUGINS_LOCK_SCHEMA",
+        "plugins": "plugins: Record<string, PluginsLockEntry>"
+      },
+      "optional": []
+    },
+    "PluginsLockEntry": {
+      "members": {
+        "source": "source: string",
+        "version": "version: string",
+        "sha256": "sha256: string"
+      },
+      "optional": []
+    },
+    "LintRule": {
+      "members": {
+        "code": "code: string",
+        "run": "run: (flow: FlowFile, opts: LintOptions) => Promise<LintIssue[]> | LintIssue[]"
+      },
+      "optional": []
+    },
+    "LintIssue": {
+      "members": {
+        "code": "code: string",
+        "severity": "severity: LintSeverity",
+        "flow": "flow: string",
+        "stepId": "stepId?: string",
+        "message": "message: string",
+        "suggestion": "suggestion?: string"
+      },
+      "optional": ["stepId", "suggestion"]
+    },
+    "LintOptions": {
+      "members": {
+        "loadFlow": "loadFlow?: (name: string) => Promise<FlowFile> | FlowFile",
+        "extraRules": "extraRules?: LintRule[]"
+      },
+      "optional": ["extraRules", "loadFlow"]
+    }
+  }
+}

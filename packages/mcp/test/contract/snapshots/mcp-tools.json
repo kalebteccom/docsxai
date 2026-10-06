@@ -1,0 +1,133 @@
+{
+  "serverName": "docsxai-mcp",
+  "toolNames": [
+    "diagnose_halt",
+    "flow_tree",
+    "get_annotations",
+    "get_run_artifacts",
+    "init_workspace",
+    "lint_flows",
+    "list_flows",
+    "plugins_list",
+    "pull_pack",
+    "push_pack",
+    "render_viewer",
+    "run_flows",
+    "style_check",
+    "zip_pack"
+  ],
+  "tools": {
+    "diagnose_halt": {
+      "fields": {
+        "cdp?": "string",
+        "flow": "string[min:1]",
+        "step": "string[min:1]",
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "flow_tree": {
+      "fields": {
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "get_annotations": {
+      "fields": {
+        "flow": "string[min:1]",
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "get_run_artifacts": {
+      "fields": {
+        "flow?": "string",
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "init_workspace": {
+      "fields": {
+        "appUrl?": "string",
+        "auth?": "enum:manual-capture|none",
+        "authCookie?": "string",
+        "captureTrigger?": "enum:console|button",
+        "dir": "string[min:1]",
+        "force?": "boolean",
+        "ignoreHttpsErrors?": "boolean",
+        "role?": "string",
+        "ttl?": "string"
+      },
+      "strict": false
+    },
+    "lint_flows": {
+      "fields": {
+        "flow?": "string",
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "list_flows": {
+      "fields": {
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "plugins_list": {
+      "fields": {
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "pull_pack": {
+      "fields": {
+        "rev?": "string",
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "push_pack": {
+      "fields": {
+        "author?": "string",
+        "kind?": "enum:calibrate|run|edit",
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "render_viewer": {
+      "fields": {
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "run_flows": {
+      "fields": {
+        "baseUrl?": "string",
+        "cdp?": "string",
+        "concurrency?": "number[int,max:16,min:1]",
+        "flow?": "string",
+        "headed?": "boolean",
+        "ignoreHttpsErrors?": "boolean",
+        "startFrom?": "string",
+        "stopAfter?": "string",
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "style_check": {
+      "fields": {
+        "check?": "boolean",
+        "workspace?": "string"
+      },
+      "strict": false
+    },
+    "zip_pack": {
+      "fields": {
+        "includeViewer?": "boolean",
+        "out?": "string",
+        "workspace?": "string"
+      },
+      "strict": false
+    }
+  }
+}

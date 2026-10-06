@@ -1,0 +1,336 @@
+# Public surface and compatibility policy
+
+docsxai is `0.x` (`0.2.0` is the last release on `latest`, `0.2.1-rc.1` is on `next`). This page does three things:
+
+1. It lists every surface an adopter, a plugin author or a host agent can depend on, marks each one `stable candidate`, `experimental` or `internal`, and says why.
+2. It states what a release may change before 1.0, what is frozen after it, and how a deprecation is announced.
+3. It holds the 1.0 criteria as a checklist.
+
+The versioning text in [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`SECURITY.md`](../SECURITY.md) and [`docs/ai-context/release-process/semver-clock.md`](ai-context/release-process/semver-clock.md) stays authoritative for the release mechanics. This page is the inventory those documents point at. No date is set for 1.0.
+
+## Stability marks
+
+| Mark               | Meaning                                                                                                                                                              |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stable candidate` | Intended to be frozen at 1.0. Until then a break needs a CHANGELOG entry and goes through the deprecation path below. After 1.0 a break needs a major release.       |
+| `experimental`     | Shipped or about to ship, but the shape can still move. Outside the semver promise at 1.0. A change is listed in the CHANGELOG and does not need a deprecation step. |
+| `internal`         | Not part of the surface. Can change in any release without notice.                                                                                                   |
+| `planned`          | Not in the tree on `main` yet. Listed so nobody builds on a guess.                                                                                                   |
+
+An item keeps the `experimental` mark until it has shipped in a release and one later minor has gone by without changing it. A new feature starts `experimental`.
+
+A contract test pins every `stable candidate` item and most `experimental` ones (see [Contract tests](#contract-tests)). The mark says whether a change that trips the test counts as a break. The test only says that the change happened.
+
+## Compatibility policy
+
+### Before 1.0
+
+- A patch release carries fixes only. It changes no surface.
+- A minor release may add surface and may change or remove `experimental` items. Each such change gets a CHANGELOG line.
+- A minor release may break a `stable candidate` item only with a CHANGELOG entry that names the item, says what to do instead, and starts with `Breaking:`. Unless the break fixes a security problem, the old form first spends one minor release as deprecated (see below).
+- The pull request that changes a pinned surface updates the snapshot, this page and the CHANGELOG together. The contract test fails until it does.
+
+### After 1.0
+
+- A patch release changes no surface.
+- A minor release is additive: a new command, flag, optional flow-file field, optional annotation field, optional driver method, new route, new schema id next to the old one, new `experimental` item.
+- A major release is the only one that removes or renames a `stable candidate` item, tightens a bound, adds a required field or a required `BrowserDriver` method, or changes what an existing field means.
+- Security fixes may break a `stable candidate` item in a patch or minor release. The CHANGELOG entry and the advisory say so.
+- `experimental` items are outside this list. A minor release may change them. The CHANGELOG lists the change under the item's name.
+
+What counts as a break for each kind of surface, in the terms of the decision matrix in [`semver-clock.md`](ai-context/release-process/semver-clock.md):
+
+| Surface                           | Break                                                                                                                             | Not a break                                                                           |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| CLI                               | Removing or renaming a command or flag, changing a default, changing an exit code, removing a key from `--format json`.           | A new command, a new flag, a new key in `--format json`, reworded text output.        |
+| Flow-file                         | Removing or renaming a key or an enum value, tightening a bound, making an optional key required, changing a default.             | A new optional key, a looser bound.                                                   |
+| Persisted files (`@N` schema ids) | Removing or renaming a field, changing what a field means. Bumps the schema id.                                                   | A new optional field.                                                                 |
+| `BrowserDriver`                   | A new required method, a removed method, a changed parameter, a new required parameter.                                           | A new optional method, a new optional trailing parameter.                             |
+| Plugin API                        | Changing a member of an extension-point type, removing a manifest key, requiring a new manifest key. Bumps `RUNTIME_API_VERSION`. | A new optional manifest key, a new optional context member. Raises the runtime minor. |
+| Backend REST                      | Removing or renaming a route, removing a response field, changing an error code. Needs a new `Docsxai-Api-Version`.               | A new route, a new response field.                                                    |
+| MCP tools                         | Removing a tool, removing or renaming an argument, making an argument required.                                                   | A new tool, a new optional argument.                                                  |
+
+### How a deprecation is announced
+
+1. The CHANGELOG gets a `### Deprecated` entry that names the item, its replacement and the release that removes it.
+2. The item keeps working and prints one warning to stderr per invocation: `docsxai: <item> is deprecated since <version>, use <replacement>`. For a flow-file field, a CLI flag, a config key and an environment variable, the warning comes from the retired-registry pattern in [`retired-registry-pattern.md`](ai-context/release-process/retired-registry-pattern.md). An unknown name still fails loudly.
+3. This page marks the item `deprecated` in its row.
+4. The item stays for at least one minor release. After 1.0 it is removed only in a major release, with a `### Removed` entry.
+
+The warning machinery is not in the tree yet (see the audit findings). Until it lands, a pre-1.0 deprecation is a CHANGELOG entry alone.
+
+### Schema ids
+
+Every persisted file carries `docsxai/<thing>@N`. A change that breaks a reader of `@N` introduces `@N+1`. The engine reads `@N` for the deprecation window and writes `@N+1`. Adding an optional field changes nothing. `docsxai/screenshots@2` is the precedent: a payload that needed a new shape got a new id.
+
+### Drivers and plugins
+
+- A method added to `BrowserDriver` after 1.0 is optional, like `waitForSettled`. The runtime halts a step that needs a missing optional method and names the method.
+- `RUNTIME_API_VERSION` follows the compatibility rule in the manifest reference: a plugin runs when its `apiVersion` has the runtime's major and a minor at or below the runtime's. A plugin built for a newer minor fails to load with both versions named.
+
+## Surface inventory
+
+Each row has an ID, the item, its mark, the contract test that pins it (see the [test map](#contract-tests)) and the reason for the mark. Where a reference page exists it is linked in the section heading.
+
+### CLI ([reference](../website/src/content/docs/reference/cli.md))
+
+| ID     | Item                                                                                                                                                                                                                                 | Mark             | Test               | Why                                                                                                          |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- | ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| CLI-01 | Command names `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `zip`, `lint`, `flow-tree`, `diagnose`, `style`, `doctor`, `push`, `pull`, `login`, `plugins` (16)                                                    | stable candidate | engine/cli-surface | Named in the stable list in CONTRIBUTING. Every workflow and the plugin commands call them.                  |
+| CLI-02 | Flags of the CLI-01 commands as printed by `docsxai --help`                                                                                                                                                                          | stable candidate | engine/cli-surface | Same list. The snapshot holds the full usage line of each command.                                           |
+| CLI-03 | `baseline`, `diff` and their flags (`--out`, `--against`, `--format`, `--fail-on`)                                                                                                                                                   | experimental     | engine/cli-surface | Drift reports are new (`docsxai/drift@1`) and the planned pack work may fold them into one command.          |
+| CLI-04 | `export adf`, `export playwright` and their flags                                                                                                                                                                                    | experimental     | engine/cli-surface | The ADF projection and the generated spec change with their consumers.                                       |
+| CLI-05 | `burn` and its flags                                                                                                                                                                                                                 | experimental     | engine/cli-surface | Added after `0.2.1-rc.1`. Placement and the report are still being tuned.                                    |
+| CLI-06 | `login --oauth <dir>` and `inspect --ignore-https-errors`                                                                                                                                                                            | experimental     | -                  | Implemented, missing from `--help`, so not in the snapshot. Audit finding 1.                                 |
+| CLI-07 | Exit codes: `0` success, `1` runtime failure, `2` usage error                                                                                                                                                                        | stable candidate | engine/cli-surface | Scripts and CI branch on them. No command returns another value.                                             |
+| CLI-08 | Which condition gives exit `1`: `run` with a halted flow, `lint` with a warning or error, `flow-tree` with issues, `doctor` with a failed check, `plugins list` with a plugin not loaded, `diff --fail-on` at or above the threshold | stable candidate | -                  | Documented in `--help`. Exercised by the command tests, not pinned by a snapshot.                            |
+| CLI-09 | `lint --format json`: one `LintIssue` per finding                                                                                                                                                                                    | stable candidate | engine/plugin-api  | The `LintIssue` shape is also the contract of lint-rule plugins.                                             |
+| CLI-10 | `--format json` of `flow-tree`, `diagnose`, `style`, `diff`, `plugins`                                                                                                                                                               | experimental     | -                  | Shapes are TypeScript types without a schema id. `plugins list` prints `PluginRecord`, pinned under PLUG-06. |
+| CLI-11 | Text output, the `Notes:` prose in `--help`, halt message wording (`[<cause>] step "<id>" (<action>) failed at <url>: ...`)                                                                                                          | experimental     | -                  | Meant for people. Tools should read `--format json` and the exit code.                                       |
+| CLI-12 | `docsxai` meta-package bin: runs the engine CLI in-process, points `DOCSX_VIEWER_BIN` at its own viewer when unset                                                                                                                   | stable candidate | -                  | One global install is the documented path. Covered by `packages/docsxai/test/bin.test.ts`.                   |
+| CLI-13 | `docsxai` library re-exports (`import { parseFlowFile } from "docsxai"`)                                                                                                                                                             | experimental     | -                  | Follows LIB-02.                                                                                              |
+
+### Flow-file ([reference](../website/src/content/docs/reference/flow-file.md))
+
+Schema source: `packages/engine/src/doc-pack.ts`. A flow-file is strict: an unknown key is a load error.
+
+| ID      | Item                                                                                                                                                           | Mark             | Test                   | Why                                                                                     |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ---------------------- | --------------------------------------------------------------------------------------- |
+| FLOW-01 | Top-level keys `name`, `extends`, `environment`, `redactions`, `prerequisites`, `locators`, `steps`; `prerequisites` and `locators` default empty              | stable candidate | engine/doc-pack-schema | Committed by adopters; the schema is on the stable list.                                |
+| FLOW-02 | `extends` semantics: parent steps first, locators and prerequisites merged, child wins, `environment` merged per key, redactions concatenated, cycles rejected | stable candidate | engine/doc-pack-schema | Flows rely on the merge order.                                                          |
+| FLOW-03 | Locator references `$name` against `locators`, inline selectors, one selector per name, unresolved reference is a load error                                   | stable candidate | engine/doc-pack-schema | Core of the "no fallback selectors" rule.                                               |
+| FLOW-04 | Step keys `id`, `action`, `optional`, `target`, `value`, `wait_for`, `success`, `annotation`, `annotations`, `redactions`; duplicate ids rejected              | stable candidate | engine/doc-pack-schema | Same list. `annotation` and `annotations` are mutually exclusive.                       |
+| FLOW-05 | Actions `navigate`, `click`, `fill`, `upload`, `press`, `hover`, `select`, `check`, `uncheck`, `wait`                                                          | stable candidate | engine/doc-pack-schema | The curated vocabulary. Nothing in a flow is evaluated.                                 |
+| FLOW-06 | Actions `hide`, `show`                                                                                                                                         | experimental     | engine/doc-pack-schema | Added after `0.2.1-rc.1`. They needed two new required driver methods.                  |
+| FLOW-07 | `wait_for` kinds `network_idle`, `element_stable`, `load`, `{ timeout_ms }`, `{ selector, timeout_ms? }`                                                       | stable candidate | engine/doc-pack-schema | Documented in the runbooks.                                                             |
+| FLOW-08 | `wait_for: settled`                                                                                                                                            | experimental     | engine/doc-pack-schema | Added after `0.2.1-rc.1`. The settle heuristics may change.                             |
+| FLOW-09 | Step `timeout_ms` (100 to 30000) and where it is legal                                                                                                         | experimental     | engine/doc-pack-schema | Added after `0.2.1-rc.1`. The legality rule is a refinement, pinned by behaviour tests. |
+| FLOW-10 | `success` kinds `visible`, `hidden`, `url_matches`, `text_contains`                                                                                            | stable candidate | engine/doc-pack-schema | A failed criterion halts the run. Changing the set changes what halts.                  |
+| FLOW-11 | Annotation keys `copy`, `arrow` (eight values), `nudge`, `target`                                                                                              | stable candidate | engine/doc-pack-schema | Rendered by the viewer and the burner.                                                  |
+| FLOW-12 | Annotation `placement` (`inside`, `side`, `align`, `pin_arrow`, `max_width`, `obstacle_radius`, `obstacle_limit`)                                              | experimental     | engine/doc-pack-schema | Added after `0.2.1-rc.1`, read by the burner only.                                      |
+| FLOW-13 | `environment` keys `clock`, `locale`, `timezone`, `viewport` (preset or `{ width, height }`), `color_scheme`, `reduced_motion`                                 | stable candidate | engine/doc-pack-schema | Part of the determinism contract.                                                       |
+| FLOW-14 | Viewport presets `desktop` 1440x900, `tablet` 834x1112, `mobile` 390x844                                                                                       | stable candidate | engine/doc-pack-schema | A documented default. Changing a number changes every screenshot.                       |
+| FLOW-15 | `redactions` (flow-level and per step): `selector` or `region`, style `box` or `pixelate`; a selector that matches nothing is skipped with a warning           | stable candidate | engine/doc-pack-schema | Security-relevant behaviour adopters rely on.                                           |
+| FLOW-16 | Lint rule codes `R001` to `R010`                                                                                                                               | stable candidate | engine/engine-library  | Codes appear in `--format json` output. Messages stay free text.                        |
+| FLOW-17 | Lint rule codes `R011` to `R014`                                                                                                                               | experimental     | engine/engine-library  | Added with the unreleased flow-file features.                                           |
+| FLOW-18 | `diagnose` recommendation kinds `selector`, `wait_for`, `success`, `annotation_target`, `split_step`, `investigate`                                            | stable candidate | engine/engine-library  | Calibration agents branch on them.                                                      |
+
+### Doc pack and schema ids
+
+Layout of a workspace on disk. The `Test` column covers the shape of each file where one exists.
+
+| ID      | Item                                                                                                                                                                                                                       | Mark             | Test                    | Why                                                                                       |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------- | ----------------------------------------------------------------------------------------- |
+| PACK-01 | `flows/<flow>.flow.yaml`, `docs/<flow>/<step>.md`, `docs/<flow>/screenshots/<step>.png`, `docs/<flow>/annotations.json`, `docs/style.yaml`, `docs/style.json`, `docs/locators.yaml`, `auth/strategy.yaml`, `.docsxai.json` | stable candidate | engine/workspace-config | The doc pack. Adopters commit it and tools read it.                                       |
+| PACK-02 | `docs/<flow>/halts/<step>.png`, `docs/<flow>/burned/<step>.png`, `.baseline/`, `.export/`, `README.md` in the scaffold                                                                                                     | experimental     | -                       | Debug output and newer commands. `halts/` is excluded from `zip` on purpose.              |
+| PACK-03 | `.auth/`, `.viewer/` (gitignored, operator-local or regenerated)                                                                                                                                                           | internal         | engine/workspace-config | Contents are not a contract. `render` prints the `index.html` path.                       |
+| PACK-04 | Scaffold written by `init`: `flows/`, `docs/`, `auth/`, `.auth/`, `.viewer/`, `.gitignore`, `.docsxai.json`, `auth/strategy.yaml`, `README.md`                                                                             | stable candidate | engine/workspace-config | Adopters script around it.                                                                |
+| PACK-05 | `docsxai/annotations@1`: record keys `step`, `selector`, `bounding_box`, `copy`, `arrow_style`, `nudge`, `index`                                                                                                           | stable candidate | engine/doc-pack-schema  | Read by the viewer, the burner and third-party pipelines.                                 |
+| PACK-06 | `docsxai/annotations@1` optional keys `obstacles` (at most 40 boxes), `placement`                                                                                                                                          | experimental     | engine/doc-pack-schema  | Opt-in (`annotations.obstacles`) or added after `0.2.1-rc.1`. Absent keys keep old bytes. |
+| PACK-07 | `docsxai/style@1`, `docsxai/locators@1`, `docsxai/auth-strategy@1` (11 strategy names, role cache keys), `docsxai/workspace@1`                                                                                             | stable candidate | engine/doc-pack-schema  | Part of the persisted doc pack.                                                           |
+| PACK-08 | Revision metadata (`rev_id`, `parent_rev_id`, `kind`, `author`, `timestamp`)                                                                                                                                               | stable candidate | engine/doc-pack-schema  | Mirrors the backend `Revision` resource.                                                  |
+| PACK-09 | Backend payload bundles `docsxai/flows@1`, `docsxai/annotations-bundle@1`, `docsxai/screenshots@2`, `docsxai/style-bundle@1`                                                                                               | experimental     | -                       | Push and pull transport, opaque to the backend. `screenshots` already moved once.         |
+| PACK-10 | `docsxai/auth-cache@1` envelope (AES-256-GCM, client-side key)                                                                                                                                                             | experimental     | backend/api-surface     | The relay belongs to the hosted deployment, which is owner-gated.                         |
+| PACK-11 | `docsxai/drift@1` report, `docsxai/adf-projection@1`                                                                                                                                                                       | experimental     | -                       | Follow CLI-03 and CLI-04.                                                                 |
+| PACK-12 | `docsxai/burn-report@1`: `schema`, `threshold`, `flows[].annotations[]` with box, overlap and `unplaceable` fields                                                                                                         | experimental     | viewer/viewer-surface   | Added after `0.2.1-rc.1`.                                                                 |
+| PACK-13 | `docsxai/plugins-lock@1`                                                                                                                                                                                                   | stable candidate | engine/plugin-api       | See PLUG-05.                                                                              |
+| PACK-14 | Same flow-file and target state give a byte-identical doc pack                                                                                                                                                             | stable candidate | engine keystone (CI)    | The load-bearing guarantee of the execution mode. Needs Chromium, so only CI proves it.   |
+| PACK-15 | Screens pack: manifest schema, `docsxai pack` (burn, optimise, content-hash names, alt text, guards) and `docsxai drift`                                                                                                   | planned          | -                       | In flight on another branch. Not in the tree, not frozen by anything here.                |
+
+### Plugin API ([reference](../website/src/content/docs/reference/plugins.md), [lifecycle](ai-context/plugin-runtime/lifecycle-and-namespacing.md))
+
+| ID      | Item                                                                                                                                                                                | Mark             | Test              | Why                                                                                        |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- | ------------------------------------------------------------------------------------------ |
+| PLUG-01 | Manifest (`docsxai` key of `package.json`): required `apiVersion`, `namespace`, `register`, `kinds`; optional `capabilities`, `dependsOn`, `trust`; strict                          | stable candidate | engine/plugin-api | Third parties ship it. A lying or malformed manifest never reaches `register()`.           |
+| PLUG-02 | `RUNTIME_API_VERSION` `1.0.0` and its rule: same major, plugin minor at or below the runtime                                                                                        | stable candidate | engine/plugin-api | The compatibility handshake itself.                                                        |
+| PLUG-03 | Namespace grammar `/^[a-z][a-z0-9-]*$/`, reserved `docsxai`, `site-docs`, `core`, `plugins`, artifacts exposed as `<namespace>:<name>`                                              | stable candidate | engine/plugin-api | Stops one plugin shadowing another or the engine.                                          |
+| PLUG-04 | `register(api)`: `namespace`, `declaredKinds`, `declaredCapabilities`, `registerPublisher`, `registerRenderer`, `registerLintRules`, `registerAuthStrategy`, `log`, `workspacePath` | stable candidate | engine/plugin-api | The only entry point a plugin has.                                                         |
+| PLUG-05 | `plugins-lock.json`: `schema`, `plugins{ source, version, sha256 }`, sorted names, two-space indent, trailing newline; checked before import                                        | stable candidate | engine/plugin-api | The supply-chain control. A changed format would silently weaken it.                       |
+| PLUG-06 | Status vocabulary of `plugins list` (`loaded` and five disabled or error values) and the `PluginRecord` JSON                                                                        | stable candidate | engine/plugin-api | Operators and CI parse it.                                                                 |
+| PLUG-07 | Publisher, renderer and lint-rule extension points (`PublisherPlugin`, `RendererPlugin`, `LintRule` with `LintIssue`)                                                               | stable candidate | engine/plugin-api | Used by the two first-party plugins and by any third party.                                |
+| PLUG-08 | Auth-strategy extension point (`AuthStrategyPlugin.authenticate`)                                                                                                                   | experimental     | engine/plugin-api | Plugins can register strategies, but no engine command consumes them yet. Audit finding 4. |
+| PLUG-09 | Capability strings `egress:<host-glob>` (the only family), subset-checked against `plugin_capabilities`                                                                             | stable candidate | engine/plugin-api | The egress boundary rests on it. A new family is an additive minor.                        |
+| PLUG-10 | `.docsxai.json` keys `plugins` (`{ package }` or `{ path }`) and `plugin_capabilities`                                                                                              | stable candidate | engine/plugin-api | Same list as the manifest.                                                                 |
+| PLUG-11 | First-party plugins `confluence:push` and `starlight:site`                                                                                                                          | experimental     | -                 | Repo-only packages. A live Confluence run has not happened.                                |
+| PLUG-12 | `trust` field values (`kalebtec`, `community`, `local`)                                                                                                                             | stable candidate | engine/plugin-api | A review signal. Plugins are in-process and not sandboxed.                                 |
+
+### BrowserDriver ([actionability contract](actionability-contract.md))
+
+Interface source: `packages/engine/src/flow-runtime.ts`. The snapshot holds every signature.
+
+| ID     | Item                                                                                                                                                                                                                                                                                                                             | Mark             | Test                  | Why                                                                                                                                                              |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DRV-01 | Required methods `goto`, `click`, `fill`, `upload`, `press`, `hover`, `selectOption`, `setChecked`, `waitForNetworkIdle`, `waitForLoad`, `waitForElementStable`, `waitForSelector`, `waitForTimeout`, `isVisible`, `urlMatches`, `textContains`, `currentUrl`, `count`, `textOf`, `boundingBox`, `screenshot`, `actionable` (22) | stable candidate | engine/browser-driver | A second implementation exists (browxai). The interface is on the stable list.                                                                                   |
+| DRV-02 | Trailing optional `timeoutMs` on `click`, `fill`, `upload`, `press`, `hover`, `selectOption`, `setChecked`, `waitForSelector`, `boundingBox`, `actionable`                                                                                                                                                                       | stable candidate | engine/browser-driver | Optional trailing parameters are additive.                                                                                                                       |
+| DRV-03 | Required methods `hideElements`, `showElements`, `nearbyBoxes`                                                                                                                                                                                                                                                                   | experimental     | engine/browser-driver | `nearbyBoxes` arrived in `0.2.1-rc.1` and the other two after it, all as required methods, which already broke third-party drivers once. Owner decision pending. |
+| DRV-04 | Optional method `waitForSettled`                                                                                                                                                                                                                                                                                                 | experimental     | engine/browser-driver | Added after `0.2.1-rc.1`. The model for how later methods arrive.                                                                                                |
+| DRV-05 | `ActionableState` values `actionable`, `not-found`, `multiple-matches`, `detached`, `not-visible`, `off-screen`, `covered`, `disabled`, and the semantics in the actionability contract                                                                                                                                          | stable candidate | engine/browser-driver | Browser bridges code against the predicate.                                                                                                                      |
+| DRV-06 | `PlaywrightDriver` class and `launchPlaywrightSession` options                                                                                                                                                                                                                                                                   | experimental     | engine/browser-driver | The driver implements the contract (checked by the test). Its constructor and session options still move.                                                        |
+
+### Engine library
+
+| ID     | Item                                                                                                                                                                                                                                                                 | Mark             | Test                  | Why                                                                                        |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| LIB-01 | The 51 names in `snapshots/engine-library.json` (flow-file parse and serialize, the schemas, `runFlow`, plugin runtime, workspace helpers, `lintFlow`, `buildFlowTree`, `zipDocPack`, `diffDocPacks`, ADF and Playwright export, `selectObstacles`, `BackendClient`) | stable candidate | engine/engine-library | The programmatic counterpart of the CLI. Removing one fails the test; adding one does not. |
+| LIB-02 | Every other export of `@docsxai/engine`                                                                                                                                                                                                                              | experimental     | -                     | `src/index.ts` re-exports whole modules. Only the names in LIB-01 are promised.            |
+| LIB-03 | Module layout under `packages/engine/src/` (`cli-*.ts`, `flow-*.ts`, `page-*.ts`), deep imports                                                                                                                                                                      | internal         | -                     | Only the package entry points (`.` and `./cli`) are exported.                              |
+
+### MCP tools ([reference](../website/src/content/docs/reference/mcp-tools.md))
+
+`@docsxai/mcp` is `private` and repo-only today.
+
+| ID     | Item                                                                                                                                                                                                                                     | Mark             | Test              | Why                                                                                      |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- | ---------------------------------------------------------------------------------------- |
+| MCP-01 | The 14 tool names: `init_workspace`, `run_flows`, `render_viewer`, `lint_flows`, `flow_tree`, `diagnose_halt`, `style_check`, `zip_pack`, `push_pack`, `pull_pack`, `list_flows`, `get_annotations`, `get_run_artifacts`, `plugins_list` | experimental     | mcp/tool-registry | A host agent calls them by name, but the package is unpublished. Owner decision pending. |
+| MCP-02 | Input schemas of those tools (camelCase arguments, optional `workspace` on every tool but `init_workspace`)                                                                                                                              | experimental     | mcp/tool-registry | Same reason. The snapshot holds every argument, its type and its bounds.                 |
+| MCP-03 | Result convention `{ ok: true, ... }` or `{ ok: false, error, hint? }`, never a thrown error over the wire                                                                                                                               | experimental     | mcp/tool-registry | Same reason.                                                                             |
+| MCP-04 | Boundary: tools run engine commands or read the doc pack, and none drives a live page                                                                                                                                                    | stable candidate | mcp/tool-registry | The load-bearing scope rule. The test refuses a tool named like a browser primitive.     |
+| MCP-05 | `docsxai-mcp [--workspace <dir>] [--help]`                                                                                                                                                                                               | experimental     | mcp/tool-registry | Follows MCP-01.                                                                          |
+| MCP-06 | Server name `docsxai-mcp` and version string                                                                                                                                                                                             | internal         | mcp/tool-registry | Reported to clients. The name is pinned, the version moves.                              |
+
+### Backend REST and OAuth ([reference](../website/src/content/docs/reference/backend-api.md))
+
+| ID     | Item                                                                                                                                                                                                                                                               | Mark             | Test                | Why                                                                                        |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| API-01 | Routes for health, workspaces, projects, revisions (including `finalize` and `head`), artifacts (`flows`, `annotations`, `screenshots`, `style`, `locators`) and blobs (16 routes)                                                                                 | stable candidate | backend/api-surface | The REST surface is on the stable list. Revisions are linear and immutable once finalized. |
+| API-02 | `Docsxai-Api-Version: 1` request header, echoed on every response; a different value gets a `Warning` header and is still served                                                                                                                                   | stable candidate | backend/api-surface | The versioning handshake. A break ships as a new value.                                    |
+| API-03 | Error body `{ error, message }` and the codes `bad_request`, `consent_required`, `internal`, `invalid_request`, `method_not_allowed`, `not_found`, `payload_too_large`, `revision-finalized`, `unauthorized`; `401` carries a `WWW-Authenticate: Bearer` challenge | stable candidate | backend/api-surface | Clients branch on `error`.                                                                 |
+| API-04 | Resource shapes `Workspace`, `Project`, `Revision`, `RunRecord`, `BlobRef` and the revision kinds `calibrate`, `run`, `edit`                                                                                                                                       | stable candidate | backend/api-surface | Persisted data and client code depend on them.                                             |
+| API-05 | OAuth 2.1 endpoints `GET /v1/oauth/authorize` and `POST /v1/oauth/token`: client id `docsxai-cli`, PKCE `S256` only, loopback redirect URIs only, rotating refresh tokens                                                                                          | stable candidate | backend/api-surface | Standard wire format. `docsxai login --oauth` is the client.                               |
+| API-06 | Consent step of `authorize`: the stub approves on a valid CI bearer token or `DOCSX_OAUTH_AUTO_APPROVE=1`                                                                                                                                                          | experimental     | -                   | A real consent page belongs to the hosted deployment, which is owner-gated.                |
+| API-07 | CI bearer token path (`Authorization: Bearer <DOCSX_TOKEN>`)                                                                                                                                                                                                       | stable candidate | -                   | The documented CI route. Exercised by the backend server tests.                            |
+| API-08 | Run history, auth-cache and webhook routes (`run-history`, `auth-cache/:role`, `webhook-config`, `POST /v1/github/webhook`, 8 routes), `WebhookConfig`, events and strategies                                                                                      | experimental     | backend/api-surface | GitHub App registration and the hosted relay are owner-gated and have not run live.        |
+| API-09 | Body limits: 10 MiB JSON, 25 MiB per blob                                                                                                                                                                                                                          | experimental     | backend/api-surface | Operational numbers that may be tuned.                                                     |
+| API-10 | `docsxai-backend` bin (`--port`, `--data-dir`, `PORT`), `createBackendStub`, store classes                                                                                                                                                                         | experimental     | -                   | A loopback stub. Hosted deployment is owner-gated.                                         |
+
+### Environment variables
+
+| ID     | Item                                                                       | Mark             | Test                    | Why                                                                                  |
+| ------ | -------------------------------------------------------------------------- | ---------------- | ----------------------- | ------------------------------------------------------------------------------------ |
+| ENV-01 | `DOCSX_TOKEN` (CI bearer token for the CLI and the backend)                | stable candidate | engine/workspace-config | Documented in every CI recipe.                                                       |
+| ENV-02 | `DOCSX_CACHE_KEY` (base64, 32 bytes, encrypts the backend auth cache)      | stable candidate | engine/workspace-config | Part of the client-side-encryption promise. `doctor` validates its length.           |
+| ENV-03 | `DOCSX_VIEWER_BIN` (path to the viewer bin, first layer of the resolution) | stable candidate | engine/workspace-config | The viewer bin resolution order (variable, installed package, `PATH`) is documented. |
+| ENV-04 | `DOCSX_ENGINE_BIN` (backend runner override)                               | experimental     | engine/workspace-config | Backend internals.                                                                   |
+| ENV-05 | `DOCSX_DATA_DIR` (backend data directory)                                  | experimental     | engine/workspace-config | Follows API-10.                                                                      |
+| ENV-06 | `DOCSX_OAUTH_AUTO_APPROVE` (stub consent bypass)                           | experimental     | engine/workspace-config | Should disappear when a consent page exists.                                         |
+| ENV-07 | `DOCSX_WEBHOOK_SECRET` (default name of the webhook HMAC secret variable)  | experimental     | engine/workspace-config | The name is configurable per project (`secret_env`). Follows API-08.                 |
+| ENV-08 | `DOCSX_STARLIGHT_BUILD` (opt-in test switch)                               | internal         | -                       | Read by one test only.                                                               |
+
+`docsxai doctor` flags any other `DOCSX_*` variable as a likely typo. The list it checks against is the snapshot.
+
+### Workspace config (`.docsxai.json`)
+
+| ID     | Item                                                                                                                                               | Mark             | Test                    | Why                                                                   |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------- | --------------------------------------------------------------------- |
+| CFG-01 | Keys `schema` (`docsxai/workspace@1`), `app_url`, `ignore_https_errors`, `backend_url`, `backend_workspace_id`, `backend_project_id`, `created_at` | stable candidate | engine/workspace-config | Every command reads them. A config with another schema id is ignored. |
+| CFG-02 | Keys `plugins` and `plugin_capabilities`                                                                                                           | stable candidate | engine/plugin-api       | See PLUG-10.                                                          |
+| CFG-03 | Key `annotations.obstacles`                                                                                                                        | experimental     | engine/workspace-config | Opt-in, added in `0.2.1-rc.1`.                                        |
+
+### Viewer
+
+| ID      | Item                                                                                                            | Mark             | Test                                          | Why                                                                                         |
+| ------- | --------------------------------------------------------------------------------------------------------------- | ---------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| VIEW-01 | `docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...`; output has `index.html` and `<flow>/index.html` | stable candidate | viewer/viewer-surface                         | `docsxai render` calls it. Its argument shape is the contract of `DOCSX_VIEWER_BIN`.        |
+| VIEW-02 | `docsxai-viewer burn` and its flags (`--out`, `--report`, `--max-overlap`, `--no-connector-outline`)            | experimental     | viewer/viewer-surface                         | Follows CLI-05.                                                                             |
+| VIEW-03 | `docsxai-viewer site` and its flags, the Astro Starlight project it emits                                       | experimental     | viewer/viewer-surface                         | Follows PLUG-11. Pins Astro and Starlight versions.                                         |
+| VIEW-04 | Exit codes of the viewer bin: `0`, `1` failure, `2` usage                                                       | stable candidate | viewer/viewer-surface                         | Same convention as CLI-07.                                                                  |
+| VIEW-05 | Viewer library exports (`buildViewer`, `burnFlow`, `renderBurn`, `placeCallout`, `emitStarlightSite`, ...)      | experimental     | -                                             | Not promised separately from the bin.                                                       |
+| VIEW-06 | Generated HTML, CSS, overlay script, and burned PNG bytes                                                       | internal         | -                                             | Output, not interface. Identical input still gives identical bytes within one release.      |
+| VIEW-07 | The viewer's structural mirror of the annotation records                                                        | stable candidate | engine/doc-pack-schema, viewer/viewer-surface | The viewer must not depend on the engine, so the two copies are checked against each other. |
+
+### Claude Code plugin and skill bundle
+
+| ID    | Item                                                                                            | Mark             | Test                  | Why                                                                |
+| ----- | ----------------------------------------------------------------------------------------------- | ---------------- | --------------------- | ------------------------------------------------------------------ |
+| CC-01 | Slash commands `/docsxai:doctor`, `export`, `login`, `plugins`, `pull`, `push`, `render`, `run` | stable candidate | plugin/plugin-surface | Users type them. Each wraps a stable CLI command.                  |
+| CC-02 | Skill names `calibrate`, `diagnose`                                                             | stable candidate | plugin/plugin-surface | Agents load skills by name.                                        |
+| CC-03 | Skill and command prose                                                                         | experimental     | -                     | Instructions to a model. They change as calibration practice does. |
+| CC-04 | `.claude-plugin/plugin.json` keys, marketplace manifest                                         | experimental     | plugin/plugin-surface | The marketplace manifest is new in `0.2.1-rc.1`.                   |
+| CC-05 | `@docsxai/skill` vendorable bundle (`.claude/skills/docsxai/`)                                  | experimental     | -                     | A thin fallback that delegates to the plugin.                      |
+
+## Audit findings
+
+Found while reading the code for this page. None is fixed here.
+
+1. `docsxai login --oauth <dir>` and `docsxai inspect --ignore-https-errors` work but are missing from `docsxai --help`, so no snapshot or doc pins them (CLI-06).
+2. The retired-registry pattern is documented and used nowhere in the code. No warning helper exists, so the deprecation step above has no machinery yet.
+3. `WorkspaceConfig` in `workspace.ts` does not declare `plugins` and `plugin_capabilities`. They are parsed separately in `plugins/lock.ts`. A reader of the interface alone misses two stable keys.
+4. `PluginRegistry.getAuthStrategies()` is exercised by a test only. No command passes plugin strategies to `capture-auth` or `run`, so PLUG-08 stays experimental.
+5. The three newest required `BrowserDriver` methods (DRV-03) broke the interface in a minor release once already. The optional `waitForSettled` is the pattern the policy asks for.
+6. The plugin reference on the docs site lists the reserved namespaces as `docsxai`, `docsxai`, `core`, `plugins`. The code reserves `docsxai`, `site-docs`, `core`, `plugins`.
+7. The `Notes:` block of `docsxai --help` is the only description of several behaviours (`--start-from`, `--cdp`, deterministic `zip`). The reference page and the help text can drift because nothing compares them. The contract test pins the `Usage:` lines only.
+
+## Contract tests
+
+The tests live in `packages/<package>/test/contract/` with their snapshots in `snapshots/`. They need no browser and no network. They run with each package's `vitest run` in CI. Shared helpers are in [`scripts/contract-support.ts`](../scripts/contract-support.ts).
+
+A snapshot is plain JSON checked into the repo. A normal run never creates or rewrites one. A missing or different snapshot fails the test, and the message prints a line diff and the update procedure.
+
+To update a snapshot after an intended change:
+
+1. Run the test file once with `UPDATE_CONTRACT_SNAPSHOTS=1`. It rewrites the snapshot and fails on purpose.
+2. Review the diff in git. Decide with the table above whether it is a break.
+3. Update this page and the CHANGELOG in the same pull request.
+4. Run the file again without the variable. CI never sets it.
+
+| Test file                                                | Pins                                                                                                                                      | Rows                                               |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `engine/test/contract/cli-surface.contract.test.ts`      | Usage line of every command, dispatch table equals the help, exit codes 0 and 2                                                           | CLI-01 to CLI-07                                   |
+| `engine/test/contract/doc-pack-schema.contract.test.ts`  | JSON dump of the flow-file, annotations, style, locators, auth-strategy and revision schemas; behaviour of the refinements; viewer mirror | FLOW-01 to FLOW-15, PACK-05 to PACK-08, VIEW-07    |
+| `engine/test/contract/browser-driver.contract.test.ts`   | Every `BrowserDriver` signature, the optional list, `ActionableState`, `PlaywrightDriver` implements them                                 | DRV-01 to DRV-06                                   |
+| `engine/test/contract/plugin-api.contract.test.ts`       | Extension-point types, manifest roles and defaults, statuses, lock format, config keys, version rules                                     | PLUG-01 to PLUG-12, CFG-02, PACK-13                |
+| `engine/test/contract/workspace-config.contract.test.ts` | `.docsxai.json` keys, `init` scaffold, `DOCSX_*` list                                                                                     | PACK-01, PACK-04, CFG-01, CFG-03, ENV-01 to ENV-07 |
+| `engine/test/contract/engine-library.contract.test.ts`   | The stable export names, lint rule codes, diagnose kinds                                                                                  | LIB-01, FLOW-16 to FLOW-18                         |
+| `backend/test/contract/api-surface.contract.test.ts`     | Route table, version header, constants, resource shapes, error codes, wire behaviour on a loopback server                                 | API-01 to API-05, API-08, API-09, PACK-10          |
+| `viewer/test/contract/viewer-surface.contract.test.ts`   | Viewer usage lines, exit codes, burn report shape, annotation mirror                                                                      | VIEW-01 to VIEW-04, PACK-12                        |
+| `mcp/test/contract/tool-registry.contract.test.ts`       | Tool names and input schemas, result convention, bin arguments                                                                            | MCP-01 to MCP-06                                   |
+| `plugin/test/contract/plugin-surface.contract.test.ts`   | Slash command names, skill names, `plugin.json` keys                                                                                      | CC-01, CC-02, CC-04                                |
+
+What the tests do not cover: wording of messages and help prose, the bytes of generated files (the keystone test covers determinism), anything that needs a browser, and the rows with `-` in the Test column.
+
+Exact snapshots fail on an addition as well as a removal. That is deliberate: a new command, flag, field or route has to show up in this page. The one exception is `engine-library.json`, which only fails when a listed name disappears.
+
+## 1.0 criteria
+
+1.0 is the point where the semver promise above starts for every `stable candidate` row. It is not tied to a date. All of these hold first:
+
+- [ ] Surface documented. Every row above has a reference page or a runbook section, and every `stable candidate` row has a contract test or a named reason it has none.
+- [ ] Contract tests green in CI on `main`, with the snapshots matching this page.
+- [ ] One minor release, not the freeze release, ships with no change to a `stable candidate` row (the CHANGELOG for that release has no `Breaking:` line).
+- [ ] Every `experimental` row is listed in the register below with an owner, and the owner has either promoted it, kept it experimental on purpose, or scheduled its removal.
+- [ ] Security review of the surface done: the CLI file writes and workspace containment, the auth artifacts and `DOCSX_*` secrets, plugin loading and the lock check, the backend authentication and the OAuth endpoints, the webhook HMAC check, and the MCP tools. Findings fixed or recorded in `SECURITY.md`.
+- [ ] The deprecation warning helper exists and one real use of it ships, so the policy is something the code can do.
+- [ ] The audit findings above are closed or accepted in writing.
+- [ ] The open owner decisions below are answered, or their defaults accepted.
+- [ ] The CHANGELOG has the `1.0.0` entry, `SECURITY.md` support windows start, and the 1.0 tag criteria in this list are agreed by the maintainer.
+
+### Experimental register
+
+Every row marked `experimental` above, grouped by what has to happen before it can be promoted. The owner is the maintainer in [`MAINTAINERS.md`](../MAINTAINERS.md).
+
+| Group                                   | Rows                                                                                                   | Owner     | To promote                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------- | -------------------------------------------------------------------------------------------- |
+| Features added in or after `0.2.1-rc.1` | FLOW-06, FLOW-08, FLOW-09, FLOW-12, FLOW-17, CLI-05, VIEW-02, PACK-12, DRV-03, DRV-04, PACK-06, CFG-03 | @rowinbot | Ship in a release, then one minor with no change. Decide DRV-03 first.                       |
+| Drift and export                        | CLI-03, CLI-04, PACK-02, PACK-11                                                                       | @rowinbot | Settle the relation to the planned pack and drift commands.                                  |
+| Text and JSON output                    | CLI-10, CLI-11, CLI-13                                                                                 | @rowinbot | Give each JSON output a schema id, or keep them outside the promise.                         |
+| Undocumented flags                      | CLI-06                                                                                                 | @rowinbot | Add them to `--help`, then re-mark.                                                          |
+| Backend beyond the core                 | API-06, API-08, API-09, API-10, PACK-09, PACK-10, ENV-04 to ENV-07                                     | @rowinbot | Hosted deployment, a consent page and a live GitHub App run.                                 |
+| MCP server                              | MCP-01 to MCP-03, MCP-05                                                                               | @rowinbot | Publish `@docsxai/mcp`, or leave it repo-only and experimental.                              |
+| Plugins and site output                 | PLUG-08, PLUG-11, VIEW-03                                                                              | @rowinbot | A live Confluence run, a command that consumes auth-strategy plugins, a pinned Astro matrix. |
+| Library and driver implementation       | LIB-02, DRV-06, VIEW-05                                                                                | @rowinbot | Move names into LIB-01 as they settle.                                                       |
+| Plugin and skill prose                  | CC-03, CC-04, CC-05                                                                                    | @rowinbot | No promotion planned. Prose and manifests move with practice.                                |
+
+## Open owner decisions
+
+Each is filed as a question with options and a default. Work continues on the default until answered.
+
+1. Does `@docsxai/mcp` ship to npm before 1.0, and are its tool names frozen with it? Default: stay private and experimental.
+2. Should `hideElements`, `showElements` and `nearbyBoxes` become optional `BrowserDriver` methods before the freeze? Default: make them optional, halting with a named message like `waitForSettled`.
+3. What happens to `baseline` and `diff` next to the planned `pack` and `drift` commands? Default: keep both experimental until the pack work lands.
+4. When does a feature added after `0.2.1-rc.1` become `stable candidate`? Default: after it ships in a release and one later minor leaves it unchanged.
+5. Document `login --oauth` and `inspect --ignore-https-errors` in `--help` or remove them? Default: document them in a follow-up.
+6. How much of the backend is frozen at 1.0 while the consent page is a stub? Default: freeze API-01 to API-05 and API-07, keep the rest experimental.
+7. Who reviews the surface for security, and when? Default: the security-reviewer agent over this page's rows, then maintainer sign-off, before the freeze release.
+8. Is the engine library API promised at 1.0? Default: the 51 names in LIB-01, nothing else.
+9. Build the deprecation warning helper before 1.0? Default: yes, one shared helper and one real use.
+10. Does the planned screens-pack manifest join the 1.0 freeze? Default: only if it lands and soaks one minor before the freeze release.
