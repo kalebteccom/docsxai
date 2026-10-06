@@ -49,14 +49,18 @@ export function navigateProblem(value: string, opts: FlowNavigationOptions = {})
 
 /**
  * Why `value` cannot be a flow's upload path, or null: empty, with a NUL byte, absolute (a leading
- * slash or backslash, or a drive letter) or with a `..` segment. Same rule as `uploadPathProblem` in
+ * slash or backslash, or a drive letter), with a `..` segment, with a segment that starts with a dot
+ * (`.auth/` holds captured sessions, `.docsxai.json` the workspace config) or naming `webhook-job.json`. Same rule as `uploadPathProblem` in
  * the engine, and a test in `packages/docsxai/test` holds the two to the same answers.
  */
 export function uploadPathProblem(value: string): string | null {
   if (value === "") return "is empty";
   if (value.includes("\0")) return "contains a NUL byte";
   if (/^(?:[\\/]|[A-Za-z]:)/.test(value)) return "is an absolute path";
-  if (value.split(/[\\/]+/).includes("..")) return "has a .. segment";
+  const segments = value.split(/[\\/]+/);
+  if (segments.includes("..")) return "has a .. segment";
+  if (segments.some((s) => s.startsWith(".") && s !== ".")) return "has a hidden segment";
+  if (segments.some((s) => s.toLowerCase() === "webhook-job.json")) return "is a reserved file";
   return null;
 }
 

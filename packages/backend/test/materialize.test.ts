@@ -324,6 +324,11 @@ describe("materializeDocPack: flow navigate targets", () => {
     "../secret.txt",
     "fixtures/../../secret.txt",
     "fixtures\\..\\..\\secret.txt",
+    ".auth/default.json",
+    ".docsxai.json",
+    "fixtures/.env",
+    "webhook-job.json",
+    "./Webhook-Job.json",
     "",
   ])("refuses an upload of %j", (value) => {
     expect(() => run(flowStepping(value, "upload"))).toThrow(

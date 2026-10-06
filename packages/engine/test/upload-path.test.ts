@@ -14,8 +14,8 @@ describe("uploadPathProblem", () => {
     "./a.png",
     "a/b/c.txt",
     "a..b",
-    "..a",
-    "a/..b/c",
+    "a/b..c/d",
+    "webhook-job.json.bak",
     "file name.png",
   ])("accepts %j", (v) => {
     expect(uploadPathProblem(v)).toBeNull();
@@ -34,6 +34,15 @@ describe("uploadPathProblem", () => {
     ["a\\..\\b", /\.\. segment/],
     ["a//..//b", /\.\. segment/],
     ["..", /\.\. segment/],
+    [".auth/default.json", /hidden segment/],
+    [".docsxai.json", /hidden segment/],
+    ["fixtures/.env", /hidden segment/],
+    ["a/.hidden/b.png", /hidden segment/],
+    ["./.auth/x.json", /hidden segment/],
+    [".\\.auth\\x.json", /hidden segment/],
+    ["webhook-job.json", /reserved file/],
+    ["./Webhook-Job.JSON", /reserved file/],
+    ["sub/webhook-job.json", /reserved file/],
     ["", /empty/],
     ["a\0b", /NUL/],
   ])("refuses %j", (v, why) => {
@@ -92,6 +101,18 @@ describe("resolveUploadPath", () => {
     await fs.symlink(outside, path.join(root, "linked"));
     await expect(resolveUploadPath(root, "linked/secret.txt")).rejects.toThrow(
       /is outside the workspace/,
+    );
+  });
+
+  it("refuses a hidden file that exists, by spelling and through a symlink", async () => {
+    await fs.mkdir(path.join(root, ".auth"));
+    await fs.writeFile(path.join(root, ".auth", "default.json"), "{}");
+    await fs.writeFile(path.join(root, "webhook-job.json"), "{}");
+    await expect(resolveUploadPath(root, ".auth/default.json")).rejects.toThrow(/hidden segment/);
+    await expect(resolveUploadPath(root, "webhook-job.json")).rejects.toThrow(/reserved file/);
+    await fs.symlink(path.join(root, ".auth", "default.json"), path.join(root, "innocent.json"));
+    await expect(resolveUploadPath(root, "innocent.json")).rejects.toThrow(
+      /leads to a path that has a hidden segment/,
     );
   });
 
