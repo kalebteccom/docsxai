@@ -149,6 +149,10 @@ GitHub push/PR ──▶ POST /v1/github/webhook          (no bearer auth; HMAC-
 
 The materialized workspace has the layout `pull` writes: `flows/<name>.flow.yaml`, `docs/<flow>[/<variant>]/{annotations.json, screenshots/}`, `docs/{style.yaml, style.json, locators.yaml}` and `.docsxai.json` (with `app_url` from the project record when it has one), plus `webhook-job.json`. A file name outside what a workspace produces fails the job before the engine starts.
 
+### Project `app_url` host rules
+
+`app_url` is validated when it is set (`POST`/`PUT` on a project: `400 bad_request` naming `app_url`) and again when a webhook run writes it to `.docsxai.json`, which fails the job. The host is checked as written, after the URL parser has normalised decimal, hex and octal IPv4 forms, IPv4-mapped IPv6 and a trailing dot. A link-local or cloud-metadata host is always refused (`169.254.0.0/16`, `fe80::/10`, `fd00:ec2::254`, `100.100.100.200`, `metadata.google.internal`, `instance-data`), because a run screenshots whatever `app_url` names. Loopback and private-network hosts are allowed by default; set `DOCSX_BACKEND_DENY_PRIVATE_APP_URL=1` on the backend to refuse those too (loopback, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `fc00::/7`, `localhost`). A DNS name is not resolved, so a name that points at a refused address is not caught by this check; restrict the egress of the host that runs the engine as well.
+
 The engine CLI is resolved like the engine resolves its viewer bin: `DOCSX_ENGINE_BIN` env override → the installed `@docsxai/engine` package's `docsxai` bin → `docsxai` on `PATH`.
 
 ### Owner-gated checklist (App registration)
