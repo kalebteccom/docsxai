@@ -367,7 +367,7 @@ export async function checkViewer(
   };
 }
 
-/** DOCSX_* env vars the docsxai packages read (engine, viewer + backend). */
+/** DOCSX_* env vars the docsxai packages read (engine, viewer, backend + mcp). */
 export const KNOWN_DOCSX_ENV_VARS: ReadonlyArray<string> = [
   "DOCSX_TOKEN",
   "DOCSX_CACHE_KEY",
@@ -380,6 +380,7 @@ export const KNOWN_DOCSX_ENV_VARS: ReadonlyArray<string> = [
   "DOCSX_BACKEND_DENY_PRIVATE_APP_URL",
   "DOCSX_EGRESS_GUARD",
   "DOCSX_EGRESS_DENY_PRIVATE",
+  "DOCSX_MCP_TOKEN",
 ];
 
 /** On/off switches: `1`, `true` or `yes` turns one on; anything else non-empty, `0`/`false`/`no` aside, is read as off. */
