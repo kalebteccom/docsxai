@@ -31,6 +31,7 @@ docsxai login --backend-url <url>
 docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 docsxai pull <workspace-dir> [--rev <id>]
 docsxai render <workspace-dir>
+docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
 docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
 docsxai --help
 ```
@@ -222,6 +223,27 @@ render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; ea
 shows the screenshots — hover a pulsing halo to read its callout)
 ```
 
+### `docsxai burn`
+
+Bakes each annotation (halo, numbered badge, callout) into a copy of its clean
+screenshot, for surfaces that cannot run the interactive viewer. It runs the
+viewer's `burn` through the same bin resolution as `render`. Reads
+`<workspace>/docs/<flow>/annotations.json` and writes
+`docs/<flow>/burned/<step>.png`, or `<out>/<flow>/<step>.png` with `--out`.
+`--flow` limits it to named flows and can be repeated; the default is every
+flow with an `annotations.json`. `--report <file>` writes a JSON placement
+report (callout and badge boxes, overlaps, callouts flagged unplaceable),
+resolved under the workspace when relative. `--no-connector-outline` keeps
+every arrow and stem plain ink; by default one over a dark part of the
+screenshot gets a white outline. Exit 1 when the workspace has no `docs/`
+directory or no flow to burn; exit 2 for a bad flag.
+
+```
+$ docsxai burn ~/docsxai/my-app --report burn-report.json
+burn: wrote 6 image(s) to ~/docsxai/my-app/docs/publish-post/burned
+burn: wrote report to ~/docsxai/my-app/burn-report.json (0 unplaceable)
+```
+
 ## Calibration aids
 
 ### `docsxai lint`
@@ -230,7 +252,7 @@ Pure-static checks across the workspace's flow-files - no Playwright, no
 live page. The core rules cover deep `extends` chains, annotations anchored
 to likely-unmounting click/navigate targets, selector waits with no
 `timeout_ms` on long-async-looking steps, bare `[data-*=...]` selectors
-prone to hidden duplicates, and more - the full R001-R013 table is in
+prone to hidden duplicates, and more - the full R001-R014 table is in
 [Troubleshooting](/guides/troubleshooting/). Workspace plugins can add
 rules. Exit 1 if any warning or error; `--format json` emits
 machine-readable output for tooling.

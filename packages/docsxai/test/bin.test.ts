@@ -17,6 +17,10 @@ const pkgDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const binPath = path.join(pkgDir, "bin.mjs");
 const engineDistCli = path.join(pkgDir, "node_modules", "@docsxai", "engine", "dist", "cli.js");
 const engineBuilt = existsSync(engineDistCli);
+const viewerDistBin = path.join(pkgDir, "node_modules", "@docsxai", "viewer", "dist", "index.js");
+const viewerBuilt = existsSync(viewerDistBin);
+/** A doc pack the engine wrote (annotations.json + screenshot), checked in with the viewer's tests. */
+const packFixture = path.resolve(pkgDir, "..", "viewer", "test", "fixtures", "engine-obstacles");
 
 interface BinResult {
   code: number;
@@ -89,9 +93,77 @@ describe.skipIf(!engineBuilt)("bare `docsxai` bin (meta-package wrapper)", () =>
   });
 });
 
+describe.skipIf(!engineBuilt || !viewerBuilt)("`docsxai burn` through the bare bin", () => {
+  const pngSignature = [0x89, 0x50, 0x4e, 0x47];
+
+  async function workspaceWithPack(): Promise<string> {
+    const ws = path.join(tmp, "ws");
+    await fs.cp(packFixture, path.join(ws, "docs"), { recursive: true });
+    return ws;
+  }
+
+  it("--help lists burn with its flags", async () => {
+    const r = await docsxai("--help");
+    expect(r.stdout).toContain(
+      "docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]",
+    );
+  });
+
+  it("burns a checked-in pack into docs/<flow>/burned and writes the report", async () => {
+    const ws = await workspaceWithPack();
+    const r = await docsxai("burn", ws, "--report", "burn-report.json");
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.stdout).toContain("burn: wrote 1 image(s)");
+    expect(r.stdout).toContain("burn: wrote report to");
+
+    const burned = await fs.readFile(path.join(ws, "docs", "obstacles", "burned", "share.png"));
+    expect([...burned.subarray(0, 4)]).toEqual(pngSignature);
+    const clean = await fs.readFile(path.join(ws, "docs", "obstacles", "screenshots", "share.png"));
+    expect(burned.equals(clean)).toBe(false);
+
+    const report = JSON.parse(await fs.readFile(path.join(ws, "burn-report.json"), "utf8")) as {
+      unplaceable: number;
+    };
+    expect(typeof report.unplaceable).toBe("number");
+  });
+
+  it("--flow and --out write under <out>/<flow> and leave docs/ alone", async () => {
+    const ws = await workspaceWithPack();
+    const out = path.join(tmp, "burned-out");
+    const r = await docsxai(
+      "burn",
+      ws,
+      "--flow",
+      "obstacles",
+      "--out",
+      out,
+      "--no-connector-outline",
+    );
+    expect(r.code, r.stderr).toBe(0);
+    expect(existsSync(path.join(out, "obstacles", "share.png"))).toBe(true);
+    expect(existsSync(path.join(ws, "docs", "obstacles", "burned"))).toBe(false);
+  });
+
+  it("a flow with no annotations makes the viewer fail, and the exit code carries through", async () => {
+    const ws = await workspaceWithPack();
+    const r = await docsxai("burn", ws, "--flow", "no-such-flow");
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("burn:");
+  });
+
+  it("a workspace without docs/ exits 1 and a bad flag exits 2", async () => {
+    await fs.mkdir(path.join(tmp, "empty"));
+    expect((await docsxai("burn", path.join(tmp, "empty"))).code).toBe(1);
+    expect((await docsxai("burn", path.join(tmp, "empty"), "--nope")).code).toBe(2);
+  });
+});
+
 it("suite ran against a built engine (or skipped loudly)", () => {
   if (!engineBuilt) {
     console.warn(`bare-bin suite SKIPPED — build the engine first: pnpm -r build`);
+  }
+  if (!viewerBuilt) {
+    console.warn(`burn suite SKIPPED — build the viewer first: pnpm -r build`);
   }
   expect(typeof engineBuilt).toBe("boolean");
 });

@@ -141,6 +141,106 @@ describe("render dispatch", () => {
   });
 });
 
+describe("burn dispatch", () => {
+  async function fakeViewer(): Promise<{ argvFile: string }> {
+    const argvFile = path.join(tmp, "burn-argv.json");
+    const script = path.join(tmp, "fake-viewer.js");
+    await fs.writeFile(
+      script,
+      `require("node:fs").writeFileSync(${JSON.stringify(argvFile)}, JSON.stringify(process.argv.slice(2)));\n`,
+      "utf8",
+    );
+    vi.stubEnv("DOCSX_VIEWER_BIN", script);
+    return { argvFile };
+  }
+  const argvOf = async (file: string) => JSON.parse(await fs.readFile(file, "utf8")) as string[];
+
+  it("without a workspace dir exits 2 with the usage", async () => {
+    expect(await main(["burn"])).toBe(2);
+    expect(err).toMatch(/burn: missing <workspace-dir>/);
+    expect(err).toMatch(/docsxai burn <workspace-dir>/);
+  });
+
+  it("rejects unknown flags, flags without a value, a second positional and path-like flow names", async () => {
+    const cases: Array<[string[], RegExp]> = [
+      [["burn", "ws", "--frobnicate"], /unknown flag --frobnicate/],
+      [["burn", "ws", "--out"], /--out needs a value/],
+      [["burn", "ws", "--report", "--no-connector-outline"], /--report needs a value/],
+      [["burn", "ws", "other"], /unexpected argument "other"/],
+      [["burn", "ws", "--flow", "../x"], /not a flow name/],
+    ];
+    for (const [argv, message] of cases) {
+      err = "";
+      expect(await main(argv)).toBe(2);
+      expect(err).toMatch(message);
+    }
+  });
+
+  it("exits 1 when the workspace has no docs/ directory, without launching the viewer", async () => {
+    const { argvFile } = await fakeViewer();
+    const bare = path.join(tmp, "bare");
+    await fs.mkdir(bare);
+    expect(await main(["burn", bare])).toBe(1);
+    expect(err).toMatch(/has no docs\/ directory/);
+    await expect(fs.access(argvFile)).rejects.toThrow();
+  });
+
+  it("runs the viewer's burn with only the flags it was given", async () => {
+    const ws = await makeWorkspace();
+    const { argvFile } = await fakeViewer();
+    expect(await main(["burn", ws])).toBe(0);
+    expect(await argvOf(argvFile)).toEqual(["burn", ws]);
+  });
+
+  it("passes --flow (repeated), --out, --report and --no-connector-outline through", async () => {
+    const ws = await makeWorkspace();
+    const { argvFile } = await fakeViewer();
+    const argv = [
+      "burn",
+      "--no-connector-outline",
+      ws,
+      "--flow",
+      "a",
+      "--flow",
+      "b",
+      "--out",
+      path.join(tmp, "out"),
+      "--report",
+      "report.json",
+    ];
+    expect(await main(argv)).toBe(0);
+    expect(await argvOf(argvFile)).toEqual([
+      "burn",
+      ws,
+      "--flow",
+      "a",
+      "--flow",
+      "b",
+      "--out",
+      path.join(tmp, "out"),
+      "--report",
+      "report.json",
+      "--no-connector-outline",
+    ]);
+  });
+
+  it("propagates the viewer's exit code", async () => {
+    const ws = await makeWorkspace();
+    const script = path.join(tmp, "failing-viewer.js");
+    await fs.writeFile(script, "process.exit(4);\n", "utf8");
+    vi.stubEnv("DOCSX_VIEWER_BIN", script);
+    expect(await main(["burn", ws])).toBe(4);
+  });
+
+  it("lists the viewer resolution attempts when no viewer is found", async () => {
+    const ws = await makeWorkspace();
+    vi.stubEnv("DOCSX_VIEWER_BIN", path.join(tmp, "no-such-viewer.js"));
+    vi.stubEnv("PATH", "");
+    expect(await main(["burn", ws])).toBe(1);
+    expect(err).toMatch(/burn: .*could not be launched/s);
+  });
+});
+
 describe("push / pull / login argument contracts", () => {
   it("push without a workspace dir exits 2", async () => {
     expect(await main(["push"])).toBe(2);

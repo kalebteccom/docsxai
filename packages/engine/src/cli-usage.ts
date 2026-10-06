@@ -26,6 +26,7 @@ Usage:
   docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
   docsxai pull <workspace-dir> [--rev <id>]
   docsxai render <workspace-dir>
+  docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
   docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   docsxai --help
 
@@ -41,6 +42,9 @@ Notes:
     (headed) browser open at the last step run — so you can inspect the live state mid-flow when calibrating
     (pair with --flow <name>). For waiting on a slow backend op, give a step a wait_for of the form
     { selector: $x, timeout_ms: 180000 } — a per-step override of the default ~30s selector-wait timeout.
+    For a page that settles late (web fonts swapping, images arriving), use wait_for: settled: it waits for
+    fonts, the images in view and the layout of what's on screen to stop changing, within the step's
+    timeout_ms (default 10s), and halts with the cause if the page never settles.
   • run --concurrency <N> runs up to N flows in parallel (each its own Chromium session, isolated; default 1).
     Useful when several flows share a long preamble — total wall time = max(per-flow), not sum. Force-clamped
     to 1 when --pause / --stop-after / --start-from / --cdp is set. The target app must tolerate multiple sessions from one user.
@@ -127,6 +131,13 @@ Notes:
   • render builds the static viewer by spawning the docsxai-viewer bin, resolved in order: the
     DOCSX_VIEWER_BIN env var (path to the viewer's bin script), the @docsxai/viewer
     package installed next to the engine, then \`docsxai-viewer\` on PATH.
+  • burn bakes each flow's annotations (halo, badge, callout) into copies of its clean screenshots, for
+    surfaces that can't run the interactive viewer, via the same viewer bin as render. Reads
+    <ws>/docs/<flow>/annotations.json and writes docs/<flow>/burned/<step>.png (or <out>/<flow>/<step>.png
+    with --out). --flow limits it to named flows (repeatable); the default is every flow with annotations.
+    --report <file> writes a JSON placement report (callout and badge boxes, overlaps, callouts flagged
+    unplaceable), resolved under the workspace when relative. --no-connector-outline keeps every arrow and
+    stem plain ink; by default one over a dark part of the screenshot gets a white outline.
   • login validates a bearer token against a backend URL — hits /v1/health, /v1/workspaces. Reads
     the token from DOCSX_TOKEN env var. Prints what the backend sees if the call succeeds,
     or a clear error if not. Stateless: doesn't store anything; configure the env var in your shell.

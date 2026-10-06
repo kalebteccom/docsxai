@@ -71,12 +71,13 @@ const TARGET_WAIT_ACTIONS: ReadonlySet<ActionType> = new Set([
   "hide",
 ]);
 
-/** True when a step's `timeout_ms` bounds something: its target wait, or a `wait` step's own `wait_for` selector. */
+/** True when a step's `timeout_ms` bounds something: its target wait, a `wait_for: settled`, or a `wait` step's own `wait_for` selector. */
 function stepTimeoutHasEffect(s: {
   action: ActionType;
   target?: string | undefined;
   wait_for?: WaitSpec | undefined;
 }): boolean {
+  if (s.wait_for === "settled") return true;
   if (TARGET_WAIT_ACTIONS.has(s.action)) return s.target !== undefined;
   const w = s.wait_for;
   return (
@@ -89,13 +90,14 @@ function stepTimeoutHasEffect(s: {
 }
 
 /**
- * What to wait for after a step's action settles. `network_idle` / `element_stable` / `load` are named
- * primitives; `{ selector }` waits for an element to appear (Playwright's default timeout, ~30s) — give it
+ * What to wait for after a step's action settles. `network_idle` / `element_stable` / `load` / `settled` are
+ * named primitives (`settled` = fonts loaded, visible images loaded, viewport layout still, bounded by the
+ * step's `timeout_ms`); `{ selector }` waits for an element to appear (Playwright's default timeout, ~30s) — give it
  * `timeout_ms` to override that (e.g. waiting on a multi-minute backend op that mounts a "done" element);
  * `{ timeout_ms }` alone is a blind sleep (last resort — for animations, not state).
  */
 export const WaitSpec = z.union([
-  z.enum(["network_idle", "element_stable", "load"]),
+  z.enum(["network_idle", "element_stable", "load", "settled"]),
   z.object({ timeout_ms: z.number().int().positive() }).strict(),
   z.object({ selector: LocatorRef, timeout_ms: z.number().int().positive().optional() }).strict(),
 ]);
@@ -265,7 +267,8 @@ export const Step = z
      * driver default (Playwright's 30 s), so existing flows run exactly as before. The reason to set it
      * is an `optional: true` step whose target is usually absent: a short value (e.g. 1500) skips it fast
      * instead of holding the run for the full default. On a `wait` step it bounds the `wait_for`
-     * `{ selector }` wait when that has no `timeout_ms` of its own. Rejected where it would bound nothing.
+     * `{ selector }` wait when that has no `timeout_ms` of its own. With `wait_for: settled` it is that wait's
+     * whole budget (default 10 s), on any action. Rejected where it would bound nothing.
      */
     timeout_ms: z.number().int().min(STEP_TIMEOUT_MIN_MS).max(STEP_TIMEOUT_MAX_MS).optional(),
     /** Locator ref (`$name`) or inline selector. Optional for actions like `navigate` (uses `value`), `wait`, and `show` (no target = show everything hidden). */
@@ -294,7 +297,7 @@ export const Step = z
   })
   .refine((s) => s.timeout_ms === undefined || stepTimeoutHasEffect(s), {
     message:
-      "`timeout_ms` has no effect on this step: it bounds the wait for a `target` (click, fill, upload, press, hover, select, check, uncheck, hide), or a `wait` step's `wait_for: { selector }` that has no `timeout_ms` of its own",
+      "`timeout_ms` has no effect on this step: it bounds the wait for a `target` (click, fill, upload, press, hover, select, check, uncheck, hide), a `wait_for: settled`, or a `wait` step's `wait_for: { selector }` that has no `timeout_ms` of its own",
     path: ["timeout_ms"],
   });
 export type Step = z.infer<typeof Step>;

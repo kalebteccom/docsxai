@@ -10,7 +10,7 @@ The flow-file parser + deterministic runtime + the `docsxai` CLI. The biggest pa
 
 ### `packages/engine/src/cli.ts`
 
-The `docsxai` bin. Subcommands: `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `export` (`adf`, `playwright`), `plugins`, `login`, `push`, `pull`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
+The `docsxai` bin. Subcommands: `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `burn`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `export` (`adf`, `playwright`), `plugins`, `login`, `push`, `pull`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
 
 ### `packages/engine/src/flow-file.ts`
 
@@ -27,6 +27,10 @@ The one `BrowserDriver` implementation. Includes the `actionable()` predicate (t
 ### `packages/engine/src/obstacles.ts` + `page-nearby-boxes.ts`
 
 The opt-in `annotations.obstacles` path (`.docsxai.json`, default off). `page-nearby-boxes.ts` is the in-page scan behind `BrowserDriver.nearbyBoxes` (self-contained, serialized by Playwright, no `playwright-core` import); `obstacles.ts` is the pure selection (round outward, clip to the screenshot, drop duplicates and covered boxes, nearest 40, sorted by y, x, width, height). Boxes only, never page text, so nothing sensitive reaches `annotations.json`. Keystone: `keystone-obstacles.test.ts`.
+
+### `packages/engine/src/page-settle.ts`
+
+The in-page poll behind the optional `BrowserDriver.waitForSettled` (`wait_for: settled`): fonts loaded, visible images complete, viewport box geometry unchanged on two consecutive polls, bounded by the step's `timeout_ms`. Self-contained like `page-nearby-boxes.ts`: it takes four numbers, no selector, and nothing from the flow reaches the page. `settleFailure` builds the halt message. Keystone: `keystone-settled.test.ts` (loopback server answering a font and an image late, and a page that never settles).
 
 ### `packages/engine/src/playwright-instrumented-browser.ts`
 
@@ -160,7 +164,7 @@ First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight e
 
 ## `packages/docsxai/` — `docsxai` (meta-package)
 
-The unscoped batteries-included CLI install: `bin.mjs` resolves `@docsxai/engine`'s CLI entry (`@docsxai/engine/cli`) and runs it in-process; `index.mjs`/`index.d.mts` re-export the engine's library surface; dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (the viewer dep is deliberate — one global install puts `docsxai-viewer` on the path so `docsxai render` works out of the box). No build step; gated by `packages/docsxai/test/bin.test.ts` (real subprocess: init + lint against a fixture workspace).
+The unscoped batteries-included CLI install: `bin.mjs` resolves `@docsxai/engine`'s CLI entry (`@docsxai/engine/cli`) and runs it in-process; `index.mjs`/`index.d.mts` re-export the engine's library surface; dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (the viewer dep is deliberate — one global install puts `docsxai-viewer` on the path so `docsxai render` and `docsxai burn` work out of the box; the bin sets `DOCSX_VIEWER_BIN` to the viewer it resolves when unset, since the engine's own lookup can't see a sibling dependency in a nested layout). No build step; gated by `packages/docsxai/test/bin.test.ts` (real subprocess: init + lint against a fixture workspace, `burn` on a checked-in pack).
 
 ## `docs/`, `scripts/`
 

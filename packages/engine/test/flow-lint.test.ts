@@ -394,6 +394,30 @@ steps:
   });
 });
 
+describe("lintFlow — R014 (blind sleep)", () => {
+  const wait = (waitFor: string) =>
+    parseFlowFile(`
+name: f
+steps:
+  - id: nap
+    action: wait
+    wait_for: ${waitFor}
+`);
+
+  it("notes a wait step that only sleeps, and points at settled", async () => {
+    const issue = (await lintFlow(wait("{ timeout_ms: 800 }"))).find((i) => i.code === "R014");
+    expect(issue).toMatchObject({ severity: "info", stepId: "nap" });
+    expect(issue!.message).toContain("timeout_ms: 800");
+    expect(issue!.suggestion).toContain("wait_for: settled");
+  });
+
+  it("stays quiet for settled, network_idle and selector waits", async () => {
+    for (const w of ["settled", "network_idle", "{ selector: '#x', timeout_ms: 800 }"]) {
+      expect((await lintFlow(wait(w))).find((i) => i.code === "R014")).toBeUndefined();
+    }
+  });
+});
+
 describe("lintFlow — R010 (annotation anchored to a redacted element)", () => {
   it("warns when the annotation anchor matches a step-level redaction selector (via $ref)", async () => {
     const flow = parseFlowFile(`

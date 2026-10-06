@@ -188,6 +188,20 @@ test("shortcuts", async ({ page }) => {
 `);
   });
 
+  it("exports wait_for: settled as a network-idle and fonts wait", () => {
+    const spec = generate(
+      `name: late
+steps:
+  - id: ready
+    action: wait
+    wait_for: settled
+`,
+      "late",
+    );
+    expect(spec).toContain(`await page.waitForLoadState("networkidle"); // settled`);
+    expect(spec).toContain(`await page.evaluate(() => document.fonts.ready);`);
+  });
+
   it("sanitizes locator names that collide with JS identifiers", () => {
     const spec = generate(
       `name: tricky

@@ -66,6 +66,17 @@ export interface BrowserDriver {
   waitForNetworkIdle(): Promise<void>;
   waitForLoad(): Promise<void>;
   waitForElementStable(selector: string): Promise<void>;
+  /**
+   * Wait until the page has settled: web fonts loaded, the images inside the viewport finished
+   * loading, and the layout of the viewport-visible elements unchanged across consecutive frames.
+   * Bounded by `timeoutMs` (default 10 s); rejects with a message starting `settled: page did not
+   * settle` and naming what was still moving when the budget ran out. Selector-free: an
+   * implementation runs a fixed engine-owned check, and no flow value reaches the page.
+   *
+   * Optional so a driver written before `settled` existed still satisfies the interface. The
+   * runtime halts a `wait_for: settled` step on a driver without it, with a message that says so.
+   */
+  waitForSettled?(timeoutMs?: number): Promise<void>;
   /** Wait for `selector` to appear. `timeoutMs` overrides the driver's default (use for slow backend ops). */
   waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
   waitForTimeout(ms: number): Promise<void>;
@@ -164,6 +175,14 @@ export function inferHaltCause(rawError: string): string | undefined {
     ],
     [/element is outside of the viewport\b/i, "target is outside the visible viewport"],
     [/element is not stable\b/i, "target is animating / not yet stable"],
+    [
+      /settled: page did not settle/i,
+      "page never settled: fonts, images or layout kept changing (raise timeout_ms, hide the animated element, or wait on a concrete element)",
+    ],
+    [
+      /settled: driver has no waitForSettled/i,
+      "this browser driver can't run wait_for: settled (use network_idle plus a short wait)",
+    ],
     [/intercepts? pointer events\b/i, "target is covered by another element"],
     [
       /strict mode violation\b/i,
@@ -278,6 +297,14 @@ async function applyWait(
   if (typeof wait === "string") {
     if (wait === "network_idle") return driver.waitForNetworkIdle();
     if (wait === "load") return driver.waitForLoad();
+    if (wait === "settled") {
+      if (!driver.waitForSettled) {
+        throw new Error(
+          "settled: driver has no waitForSettled (this browser driver doesn't implement it)",
+        );
+      }
+      return driver.waitForSettled(stepTimeoutMs);
+    }
     // element_stable without a selector is a no-op signal in this prototype; a real driver may track layout.
     return;
   }
@@ -435,7 +462,7 @@ export async function runFlow(
             driver,
             step.wait_for,
             resolve,
-            step.action === "wait" ? step.timeout_ms : undefined,
+            step.action === "wait" || step.wait_for === "settled" ? step.timeout_ms : undefined,
           );
       }
       if (step.success) await checkSuccess(driver, step.success, resolve, step.id);

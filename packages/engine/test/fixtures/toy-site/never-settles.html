@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Never settles</title>
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+      }
+      #bar {
+        height: 40px;
+        width: 100px;
+        background: #00f;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bar"></div>
+    <div id="done">content</div>
+    <script>
+      // The bar grows a few pixels every frame and wraps, so no two frames have the same layout.
+      let w = 100;
+      const tick = () => {
+        w = 100 + ((w - 100 + 7) % 400);
+        document.getElementById("bar").style.width = w + "px";
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>

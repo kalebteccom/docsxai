@@ -32,6 +32,7 @@ import { type StorageState } from "./auth.js";
 import { type NearbyBoxes } from "./obstacles.js";
 import { HIDDEN_ATTR, markHidden, unmarkHidden } from "./page-hide.js";
 import { collectNearbyBoxes } from "./page-nearby-boxes.js";
+import { awaitSettled, runSettle } from "./page-settle.js";
 import { applyRedactions, type RedactionBox } from "./redact.js";
 import { resolveWorkspacePathReal } from "./workspace.js";
 
@@ -303,6 +304,9 @@ export class PlaywrightDriver implements BrowserDriver {
       prev = box;
       await this.page.waitForTimeout(100);
     }
+  }
+  async waitForSettled(timeoutMs?: number): Promise<void> {
+    await runSettle((args) => this.page.evaluate(awaitSettled, args), timeoutMs);
   }
   waitForSelector(selector: string, timeoutMs?: number): Promise<void> {
     return this.page

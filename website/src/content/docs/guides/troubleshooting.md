@@ -111,8 +111,16 @@ scripted strategy from the [auth catalogue](/reference/auth-strategies/).
   pixel), with a 10-second best-effort budget - a perpetually animating
   element proceeds after the budget rather than wedging the run. Without a
   `target` it waits on nothing; lint flags that.
+- **`settled`.** For a page that finishes late (a web font swapping in, an
+  image that lands after the click, the layout shift that follows),
+  `wait_for: settled` waits until no font is loading, the images in view have
+  loaded and the visible elements stopped moving across consecutive frames. The
+  budget is the step's `timeout_ms` (default 10 seconds). When it runs out the
+  step halts with `[page never settled: ...]` and a line naming what was still
+  moving. A page that animates forever never settles: `hide` the animated
+  element, or wait on a concrete element instead.
 - **Blind sleeps.** `wait_for: { timeout_ms: N }` alone is a last resort for
-  animations, not state. Prefer a selector wait or `network_idle`.
+  animations, not state. Prefer `settled`, a selector wait or `network_idle`.
 
 ## Lint as prevention
 
@@ -134,6 +142,7 @@ launches; exit 1 on any warning or error. The rules:
 | R011 | info     | An `optional: true` step with no `timeout_ms` - a missing target waits the full 30 s before it is skipped.   |
 | R012 | error    | A `hide` step with no `target`.                                                                              |
 | R013 | warning  | A step targets or anchors an element an earlier `hide` step hid - it can never be visible there.             |
+| R014 | info     | A `wait` step that only sleeps (`wait_for: { timeout_ms: N }`) - use `wait_for: settled`.                    |
 
 Plugins can contribute additional rules; see
 [Writing plugins](/guides/writing-plugins/). For the full calibration

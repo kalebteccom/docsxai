@@ -24,7 +24,14 @@ import {
   cmdLint,
   cmdStyle,
 } from "./cli-commands-authoring.js";
-import { cmdBaseline, cmdDiff, cmdExport, cmdRender, cmdZip } from "./cli-commands-docpack.js";
+import {
+  cmdBaseline,
+  cmdBurn,
+  cmdDiff,
+  cmdExport,
+  cmdRender,
+  cmdZip,
+} from "./cli-commands-docpack.js";
 import { cmdLogin, cmdPlugins, cmdPull, cmdPush } from "./cli-commands-backend.js";
 
 export async function main(argv: string[]): Promise<number> {
@@ -46,6 +53,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdRun(rest);
     case "render":
       return cmdRender(rest);
+    case "burn":
+      return cmdBurn(rest);
     case "capture-auth":
       return cmdCaptureAuth(rest);
     case "lint":
