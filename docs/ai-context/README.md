@@ -15,7 +15,7 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 - Adding any gated/acting surface (MCP tool, plugin kind, auth strategy, webhook, output strategy) → read [`architecture/capability-posture-map.md`](architecture/capability-posture-map.md) and [`secrets-and-egress/auth-catalogue-and-masking.md`](secrets-and-egress/auth-catalogue-and-masking.md).
 - Touching the engine runtime, the `BrowserDriver` interface, or auth strategies → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`testing/qa-patterns.md`](testing/qa-patterns.md) — the keystone test is the regression gate.
 - Touching any code path that writes artifacts (screenshots, annotations, halt context, doc-pack zip) → read [`secrets-and-egress/README.md`](secrets-and-egress/README.md).
-- Releasing or changing the surface → read [`release-process/semver-clock.md`](release-process/semver-clock.md).
+- Releasing or changing the surface → read [`release-process/semver-clock.md`](release-process/semver-clock.md) and [`../public-surface.md`](../public-surface.md). A change to a pinned surface trips a contract test (`packages/*/test/contract/`); the update procedure is in each test file's header.
 - Editing a commit message or pushing without local verify → read [`agent-process/commit-discipline.md`](agent-process/commit-discipline.md) and [`agent-process/dist-rebuild-discipline.md`](agent-process/dist-rebuild-discipline.md).
 
 ## Information architecture

@@ -9,7 +9,9 @@ Start with [`agent-runbook.md`](agent-runbook.md) (the hand-to-an-agent calibrat
 workflow), [`agent-guidance.md`](agent-guidance.md) (the reach-for-this-not-that
 footgun map), and [`running-against-an-app-repo.md`](running-against-an-app-repo.md);
 the cross-repo contracts are [`actionability-contract.md`](actionability-contract.md)
-and [`browxai-asks.md`](browxai-asks.md).
+and [`browxai-asks.md`](browxai-asks.md). What counts as public surface, how
+stable each item is, and the deprecation policy are in
+[`public-surface.md`](public-surface.md).
 
 ## How these reach the docs site
 

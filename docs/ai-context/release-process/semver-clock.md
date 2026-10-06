@@ -58,6 +58,7 @@ The clock gates 1.0. Until then the surface can move in minor versions, with a c
 
 ## Related
 
+- [`../../public-surface.md`](../../public-surface.md) - the inventory of every public surface with its stability mark, the deprecation policy and the 1.0 checklist. The contract tests pin it.
 - [`branch-protection.md`](branch-protection.md)
 - [`../../../CHANGELOG.md`](../../../CHANGELOG.md)
 - [`../../../RELEASING.md`](../../../RELEASING.md)
