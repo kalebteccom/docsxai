@@ -316,6 +316,34 @@ describe("materializeDocPack: flow navigate targets", () => {
     },
   );
 
+  it.each([
+    "/etc/passwd",
+    "/proc/self/environ",
+    "\\\\server\\share\\x",
+    "C:\\Users\\x\\id_rsa",
+    "../secret.txt",
+    "fixtures/../../secret.txt",
+    "fixtures\\..\\..\\secret.txt",
+    "",
+  ])("refuses an upload of %j", (value) => {
+    expect(() => run(flowStepping(value, "upload"))).toThrow(
+      /flows file "tour.flow.yaml" has an upload step whose value /,
+    );
+  });
+
+  it.each(["fixtures/a.png", "a.png", "./a.png", "dir/with space.txt"])(
+    "allows an upload of %j",
+    (value) => {
+      expect(() => run(flowStepping(value, "upload"))).not.toThrow();
+    },
+  );
+
+  it("does not take a navigate-style value of an upload step for a URL", () => {
+    expect(() =>
+      run(flowStepping("https://example.com/a.png", "upload"), { appUrl: APP }),
+    ).not.toThrow();
+  });
+
   it("does not read the value of any other action as a navigation", () => {
     expect(() =>
       run(flowStepping("http://169.254.169.254/", "fill"), { appUrl: APP }),

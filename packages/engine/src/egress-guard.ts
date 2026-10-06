@@ -6,9 +6,13 @@
 // and unique-local addresses are aborted too. A lookup that fails or returns nothing aborts the
 // request.
 //
+// WebSocket connections go through the same check (`routeWebSocket`). What the run's output says is
+// generic ("address not allowed"): the resolved address stays in the `detail` argument of
+// `onBlock`, which nothing writes to stderr.
+//
 // Not covered: the name is resolved here and again by the browser, so a DNS answer that changes
-// between the two (DNS rebinding) gets through; WebSockets are not routed. Put an egress firewall
-// under a hosted deployment. This module has no Playwright import: the driver hands it a context.
+// between the two (DNS rebinding) gets through. Put an egress firewall under a hosted
+// deployment. This module has no Playwright import: the driver hands it a context.
 
 import { lookup as dnsLookup } from "node:dns/promises";
 import { hostProblem, parseIpv4, parseIpv6 } from "./address-class.js";
@@ -24,8 +28,11 @@ export interface EgressGuardOptions {
   denyPrivate?: boolean;
   /** Hostname resolver; tests inject one. Default: `dns.lookup` returning all addresses. */
   lookup?: HostLookup;
-  /** Told about each refused request, with a URL that carries no query string. */
-  onBlock?: (url: string, reason: string) => void;
+  /**
+   * Told about each refused request: the URL without userinfo, query or fragment, the generic
+   * reason, and the detail (host and resolved address) that must not reach a tenant.
+   */
+  onBlock?: (url: string, reason: string, detail: string) => void;
 }
 
 /** True for `1`, `true` and `yes` in any case. */
@@ -98,9 +105,17 @@ export interface GuardRoute {
   continue(): Promise<void>;
 }
 
+/** The part of a Playwright `WebSocketRoute` the guard uses. */
+export interface GuardWebSocket {
+  url(): string;
+  close(): Promise<void>;
+  connectToServer(): unknown;
+}
+
 /** The part of a Playwright `BrowserContext` the guard uses. */
 export interface GuardableContext {
   route(url: RegExp, handler: (route: GuardRoute) => Promise<void>): Promise<void>;
+  routeWebSocket(url: RegExp, handler: (ws: GuardWebSocket) => Promise<void>): Promise<void>;
 }
 
 /** Context options a guarded context needs: a service worker's own fetches are not routed. */
@@ -110,23 +125,46 @@ export function egressContextOptions(guard: EgressGuardOptions | undefined): {
   return guard ? { serviceWorkers: "block" } : {};
 }
 
-const withoutQuery = (rawUrl: string): string => rawUrl.replace(/[?#].*$/s, "");
+/** What the run's output says about a refused request. */
+export const BLOCKED_REASON = "address not allowed";
 
-/** Route every request of `context` through {@link requestProblem}; a no-op without a guard. */
+/** `rawUrl` without userinfo, query and fragment, safe to print. */
+export function printableUrl(rawUrl: string): string {
+  try {
+    const url = new URL(rawUrl);
+    url.username = "";
+    url.password = "";
+    url.search = "";
+    url.hash = "";
+    return url.href;
+  } catch {
+    return "<unparseable URL>";
+  }
+}
+
+/** Route every request and WebSocket of `context` through {@link requestProblem}; a no-op without a guard. */
 export async function installEgressGuard(
   context: GuardableContext,
   guard: EgressGuardOptions | undefined,
 ): Promise<void> {
   if (!guard) return;
-  await context.route(/.*/, async (route) => {
-    const url = route.request().url();
-    const problem = await requestProblem(url, guard).catch(
+  /** The detail of why `rawUrl` is refused, or null; reports a refusal. A failed check refuses. */
+  const refusal = async (rawUrl: string): Promise<string | null> => {
+    const detail = await requestProblem(rawUrl, guard).catch(
       (e: unknown) => `the check failed (${(e as Error).message}), refused`,
     );
-    if (problem === null) return route.continue();
-    const shown = withoutQuery(url);
-    if (guard.onBlock) guard.onBlock(shown, problem);
-    else process.stderr.write(`egress-guard: blocked ${shown}: ${problem}\n`);
+    if (detail === null) return null;
+    const shown = printableUrl(rawUrl);
+    if (guard.onBlock) guard.onBlock(shown, BLOCKED_REASON, detail);
+    else process.stderr.write(`egress-guard: blocked ${shown}: ${BLOCKED_REASON}\n`);
+    return detail;
+  };
+  await context.route(/.*/, async (route) => {
+    if ((await refusal(route.request().url())) === null) return route.continue();
     return route.abort("blockedbyclient");
+  });
+  await context.routeWebSocket(/.*/, async (ws) => {
+    if ((await refusal(ws.url())) === null) ws.connectToServer();
+    else await ws.close();
   });
 }
