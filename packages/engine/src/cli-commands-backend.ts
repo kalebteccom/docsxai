@@ -18,6 +18,7 @@ import {
   type DocPackPayloads,
   fetchScreenshotBlobs,
   readDocPack,
+  UnsafePackNameError,
   uploadScreenshotBlobs,
   writeDocPack,
 } from "./doc-pack-io.js";
@@ -262,7 +263,7 @@ export async function cmdPull(args: string[]): Promise<number> {
     );
     return 0;
   } catch (e) {
-    if (e instanceof BackendClientError) {
+    if (e instanceof BackendClientError || e instanceof UnsafePackNameError) {
       process.stderr.write(`pull: ${e.message}\n`);
       return 1;
     }

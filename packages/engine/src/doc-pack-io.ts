@@ -16,6 +16,8 @@ import type {
   ScreenshotsPayload,
   StylePayload,
 } from "./backend-client.js";
+import { FlowName } from "./doc-pack.js";
+import { findCaseCollision } from "./flow-name-rules.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 
 export interface DocPackPayloads {
@@ -178,6 +180,82 @@ async function readLocators(workspace: string): Promise<LocatorsPayload | null> 
 
 // --- write back (pull) ------------------------------------------------------
 
+/** A pulled payload named a file the workspace would not have produced; nothing was written. */
+export class UnsafePackNameError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnsafePackNameError";
+  }
+}
+
+const FLOW_FILE_SUFFIX = ".flow.yaml";
+const SAFE_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const SCREENSHOT_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:png|jpe?g|webp)$/i;
+
+const isFlowName = (name: string): boolean => FlowName.safeParse(name).success;
+const isSafeSegment = (seg: string): boolean =>
+  seg.length <= 128 && SAFE_SEGMENT.test(seg) && !seg.includes("..") && !seg.endsWith(".");
+
+/** `<flow>[/<variant>]`, every segment safe, the flow segment a valid flow name. */
+function isOutputDir(segments: string[]): boolean {
+  const [flow, ...variants] = segments;
+  return (
+    flow !== undefined && isFlowName(flow) && variants.length <= 1 && variants.every(isSafeSegment)
+  );
+}
+
+/** `flows/<name>.flow.yaml`: the file name is `<valid flow name>.flow.yaml`. */
+function isFlowFileName(file: string): boolean {
+  return file.endsWith(FLOW_FILE_SUFFIX) && isFlowName(file.slice(0, -FLOW_FILE_SUFFIX.length));
+}
+
+/** `docs/<flow>[/<variant>]/annotations.json`, relative to `docs/`. */
+function isAnnotationsPath(rel: string): boolean {
+  const segments = rel.split("/");
+  return segments.pop() === "annotations.json" && isOutputDir(segments);
+}
+
+/** `docs/<flow>[/<variant>]/screenshots/<file>`, relative to `docs/`. */
+function isScreenshotPath(rel: string): boolean {
+  const segments = rel.split("/");
+  const file = segments.pop() ?? "";
+  return SCREENSHOT_FILE.test(file) && segments.pop() === "screenshots" && isOutputDir(segments);
+}
+
+function describeName(name: string): string {
+  const shown = name.length > 80 ? `${name.slice(0, 80)}...` : name;
+  return JSON.stringify(shown);
+}
+
+/**
+ * Throws {@link UnsafePackNameError} on the first file name in `payloads` that is not one a
+ * workspace produces: a flow file that is not `<flow name>.flow.yaml`, an annotations file that is
+ * not `<flow>[/<variant>]/annotations.json`, a screenshot that is not under a `screenshots/`
+ * directory of such a path, or two flow files that differ only by case. The backend is not trusted
+ * with names, and a name like `../.docsxai.json` would otherwise land on workspace config.
+ */
+export function assertSafePackNames(payloads: Partial<DocPackPayloads>): void {
+  const checks: Array<[string, string[], (name: string) => boolean]> = [
+    ["flows", Object.keys(payloads.flows?.files ?? {}), isFlowFileName],
+    ["annotations", Object.keys(payloads.annotations?.files ?? {}), isAnnotationsPath],
+    ["screenshots", Object.keys(payloads.screenshots?.files ?? {}), isScreenshotPath],
+  ];
+  for (const [artifact, names, ok] of checks) {
+    const bad = names.find((n) => !ok(n));
+    if (bad !== undefined) {
+      throw new UnsafePackNameError(
+        `refusing the pulled doc pack, nothing written: ${artifact} file name ${describeName(bad)} is not a valid ${artifact} path`,
+      );
+    }
+  }
+  const clash = findCaseCollision(Object.keys(payloads.flows?.files ?? {}));
+  if (clash) {
+    throw new UnsafePackNameError(
+      `refusing the pulled doc pack, nothing written: flows ${describeName(clash[0])} and ${describeName(clash[1])} differ only by case`,
+    );
+  }
+}
+
 export async function writeDocPack(
   workspace: string,
   payloads: Partial<DocPackPayloads>,
@@ -187,8 +265,9 @@ export async function writeDocPack(
   } = {},
 ): Promise<{ filesWritten: number }> {
   let n = 0;
-  // Pulled payload file names come from the backend — treat as untrusted and resolve with the
-  // symlink-aware variant before writing.
+  // Pulled payload file names come from the backend: check every one before the first write, then
+  // resolve with the symlink-aware variant.
+  assertSafePackNames(payloads);
   if (payloads.flows) {
     await fs.mkdir(resolveWorkspacePath(workspace, "flows"), { recursive: true });
     for (const [f, text] of Object.entries(payloads.flows.files)) {
