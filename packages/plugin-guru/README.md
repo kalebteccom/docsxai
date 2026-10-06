@@ -61,6 +61,7 @@ For `single` mode: one card with all flows and the images. For `page-tree` mode:
 ## Hardening
 
 - Redirects are an error on every request, so credentials never follow a `Location` header.
+- Every request has a timeout that also covers reading the response body: 30 s for API calls, 120 s for an attachment upload. The manifest write after the card loop is bounded the same way, and when it fails after another error, that first error is the one the push reports and the manifest failure is logged. A push that hit no other error fails on a manifest write that times out.
 - JSON responses are capped at 8 MiB and error bodies at 64 KiB, whether or not Guru sends a `Content-Length`. Search follows at most 5 pages, and only links on the validated origin and API path.
 - Attachment paths must resolve inside the workspace. The read refuses a symlink in the last component, a FIFO or any non-regular file, caps the bytes actually read at 64 MiB, and hashes the bytes it read, not the `sha256` the projection claims.
 - File names are reduced to `[A-Za-z0-9._-]`, and an all-dot name (`.`, `..`) is an error.
@@ -78,7 +79,7 @@ Checked against the Guru developer docs, not against a live Guru account. A firs
 - The `Link` header's `rel` for the next search page is not documented. The reader accepts any `rel` containing `next`.
 - The web URL shape `https://app.getguru.com/card/<slug>`. The field `slug` is documented, the URL built from it is not.
 - Passing `collection: { id }` on update. The docs mark only `content` and `preferredPhrase` as required there.
-- Rate limits are not documented. There is no retry: a throttled push fails with the masked response and can be re-run, and the manifest keeps what was already written.
+- Rate limits are not documented, and 30 s and 120 s are the plugin's own limits. There is no retry: a throttled push fails with the masked response and can be re-run, and the manifest keeps what was already written.
 
 ## Tests
 

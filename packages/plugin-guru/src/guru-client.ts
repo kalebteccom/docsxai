@@ -24,6 +24,18 @@ export const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 
+/** Longest an API call (request and response body) may take. */
+export const API_TIMEOUT_MS = 30_000;
+/** Longest an attachment upload may take. */
+export const UPLOAD_TIMEOUT_MS = 120_000;
+
+export interface GuruClientOptions {
+  /** Timeout of an API call, in ms. Default {@link API_TIMEOUT_MS}. Set by tests; config cannot reach it. */
+  apiTimeoutMs?: number;
+  /** Timeout of an attachment upload, in ms. Default {@link UPLOAD_TIMEOUT_MS}. */
+  uploadTimeoutMs?: number;
+}
+
 export interface GuruUrlOptions {
   /** Accept `http:` on a loopback host. For tests that run a fake Guru server; never set in production. */
   allowLoopbackHttp?: boolean;
@@ -145,6 +157,11 @@ export interface CardBody {
   tags?: unknown[];
 }
 
+function isTimeout(e: unknown): boolean {
+  const name = (e as { name?: unknown } | null)?.name;
+  return name === "TimeoutError" || name === "AbortError";
+}
+
 function asCard(value: unknown, what: string): GuruCard {
   const v = value as Record<string, unknown> | null;
   if (
@@ -182,16 +199,20 @@ function nextLink(header: string | null): string | null {
 export class GuruClient {
   private readonly baseUrl: string;
   private readonly authHeader: string;
+  private readonly apiTimeoutMs: number;
+  private readonly uploadTimeoutMs: number;
 
   constructor(
     baseUrl: string,
     email: string,
     token: string,
     private readonly mask: (s: string) => string,
-    urlOptions: GuruUrlOptions = {},
+    options: GuruUrlOptions & GuruClientOptions = {},
   ) {
     // Checked again here so no caller can hand the credentials to another host.
-    this.baseUrl = assertGuruBaseUrl(baseUrl, urlOptions);
+    this.baseUrl = assertGuruBaseUrl(baseUrl, options);
+    this.apiTimeoutMs = options.apiTimeoutMs ?? API_TIMEOUT_MS;
+    this.uploadTimeoutMs = options.uploadTimeoutMs ?? UPLOAD_TIMEOUT_MS;
     this.authHeader = `Basic ${Buffer.from(`${email}:${token}`).toString("base64")}`;
   }
 
@@ -200,11 +221,14 @@ export class GuruClient {
     url: string,
     label: string,
     body?: { data: string | FormData; contentType?: string },
+    timeoutMs = this.apiTimeoutMs,
   ): Promise<Response> {
     try {
       return await fetch(url, {
         method,
         redirect: "error",
+        // Covers the response body too, so a server that stalls mid-body ends the call as well.
+        signal: AbortSignal.timeout(timeoutMs),
         headers: {
           authorization: this.authHeader,
           accept: "application/json",
@@ -213,19 +237,36 @@ export class GuruClient {
         ...(body ? { body: body.data } : {}),
       });
     } catch (e) {
+      if (isTimeout(e)) throw new Error(`guru: ${method} ${label} timed out after ${timeoutMs} ms`);
       throw new Error(this.mask(`guru: ${method} ${label} failed: ${(e as Error).message}`));
     }
   }
 
+  /** A bounded body read that names a timeout the same way {@link send} does. */
+  private async read(
+    method: string,
+    label: string,
+    res: Response,
+    maxBytes: number,
+    truncate = false,
+  ): Promise<string> {
+    try {
+      return await readBoundedText(res, maxBytes, truncate);
+    } catch (e) {
+      if (isTimeout(e)) throw new Error(`guru: ${method} ${label} timed out reading the response`);
+      throw e;
+    }
+  }
+
   private async fail(method: string, label: string, res: Response): Promise<never> {
-    const text = await readBoundedText(res, MAX_ERROR_BYTES, true);
+    const text = await this.read(method, label, res, MAX_ERROR_BYTES, true);
     throw new Error(
       this.mask(`guru: ${method} ${label} returned HTTP ${res.status}: ${text.slice(0, 500)}`),
     );
   }
 
   private async parse(method: string, label: string, res: Response): Promise<unknown> {
-    const text = await readBoundedText(res, MAX_RESPONSE_BYTES);
+    const text = await this.read(method, label, res, MAX_RESPONSE_BYTES);
     try {
       return JSON.parse(text);
     } catch {
@@ -306,7 +347,13 @@ export class GuruClient {
     const label = "/attachments/upload";
     const form = new FormData();
     form.append("file", new Blob([data], { type: contentType }), fileName);
-    const res = await this.send("POST", `${this.baseUrl}${label}`, label, { data: form });
+    const res = await this.send(
+      "POST",
+      `${this.baseUrl}${label}`,
+      label,
+      { data: form },
+      this.uploadTimeoutMs,
+    );
     if (!res.ok) return this.fail("POST", label, res);
     const body = (await this.parse("POST", label, res)) as { link?: unknown } | null;
     const link = body?.link;

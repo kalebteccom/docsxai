@@ -28,7 +28,12 @@ import {
 } from "@docsxai/engine";
 import { adfToHtml, safeName } from "./adf-html.js";
 import { type GuruPublishConfig, maskSecrets, parseConfig } from "./config.js";
-import { type CardBody, GuruClient, type GuruUrlOptions } from "./guru-client.js";
+import {
+  type CardBody,
+  GuruClient,
+  type GuruClientOptions,
+  type GuruUrlOptions,
+} from "./guru-client.js";
 import {
   cardUrl,
   emptyManifest,
@@ -40,7 +45,7 @@ import {
 import { readRegularFile } from "./read-file.js";
 
 /** Options of the publisher itself, not of a publish call. */
-export type GuruPublisherOptions = GuruUrlOptions;
+export type GuruPublisherOptions = GuruUrlOptions & GuruClientOptions;
 
 function sha256Hex(input: string | Uint8Array): string {
   return createHash("sha256").update(input).digest("hex");
@@ -164,6 +169,7 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
 
         let dirty = false;
         const pages: PublishResult["pages"] = [];
+        let failure: { error: unknown } | null = null;
         try {
           for (const doc of projection.documents) {
             const title = `${config.title_prefix ?? ""}${doc.title}`;
@@ -235,8 +241,13 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
               section: doc.section,
             });
           }
-        } finally {
-          if (dirty) {
+        } catch (e) {
+          failure = { error: e };
+        }
+        // The manifest still records what was written before a failure. Each call is bounded by the
+        // client timeout, and a failed manifest write never hides the error that stopped the push.
+        if (dirty) {
+          try {
             const body = cardBody(MANIFEST_TITLE, manifestToHtml(manifest));
             if (manifestCardId) {
               await client.updateCard(manifestCardId, body);
@@ -246,8 +257,12 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
                 `manifest card ${created.id} created, set config.manifest_card_id to skip the search for it`,
               );
             }
+          } catch (e) {
+            if (!failure) throw e;
+            log.error(`manifest write failed: ${(e as Error).message}`);
           }
         }
+        if (failure) throw failure.error;
 
         return {
           ok: true,

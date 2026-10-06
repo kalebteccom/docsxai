@@ -568,6 +568,62 @@ describe("guru publisher: redirects", () => {
   });
 });
 
+describe("guru publisher: timeouts", () => {
+  const FAST = { ...LOOPBACK, apiTimeoutMs: 300, uploadTimeoutMs: 300 };
+
+  it("ends a stalled API call with a timeout error", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = ["GET /api/v1/search/query"];
+    const started = Date.now();
+    await expect(
+      createGuruPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/GET \/search\/query timed out after 300 ms/);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(server.writes).toBe(0);
+  });
+
+  it("ends a stalled upload with a timeout error and writes no card", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = ["POST /api/v1/attachments/upload"];
+    await expect(
+      createGuruPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/POST \/attachments\/upload timed out/);
+    expect(server.cards.size).toBe(0);
+  });
+
+  it("a manifest write that hangs ends in a timeout and keeps the first error", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    // Every card create stalls: the page card times out, then the manifest write does too.
+    server.stall = ["POST /api/v1/cards/extended"];
+    const { log, lines } = capture();
+    const started = Date.now();
+    await expect(createGuruPublisher(FAST).publish(makeCtx(dir, projection, log))).rejects.toThrow(
+      /POST \/cards\/extended timed out after 300 ms/,
+    );
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(lines.some((l) => l.includes("manifest write failed"))).toBe(true);
+    expect(server.cards.size).toBe(0);
+  });
+
+  it("a manifest write that times out fails a push that had no other error", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const publisher = createGuruPublisher(FAST);
+    await publisher.publish(makeCtx(dir, projection, capture().log));
+    const manifestId = manifestCard().id;
+
+    await fs.writeFile(path.join(dir, "docs", "checkout", "step-1.md"), "New copy.\n", "utf8");
+    const changed = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = [`PUT /api/v1/cards/${manifestId}/extended`];
+    await expect(publisher.publish(makeCtx(dir, changed, capture().log))).rejects.toThrow(
+      /PUT \/cards\/\{id\}\/extended timed out after 300 ms/,
+    );
+  });
+});
+
 describe("guru publisher: attachments", () => {
   it("refuses a source path outside the workspace and writes nothing", async () => {
     const dir = await makeWorkspace();
