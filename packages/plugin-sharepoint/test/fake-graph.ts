@@ -23,6 +23,8 @@ export interface FakeGraph {
   authHeaders: string[];
   /** When true, every request answers 500 with a body that echoes the bearer token. */
   failEchoingToken: boolean;
+  /** When set, every PUT answers 307 with this `Location` instead of storing the file. */
+  redirectWritesTo: string | null;
   close(): Promise<void>;
 }
 
@@ -47,6 +49,7 @@ export async function startFakeGraph(expectedToken: string): Promise<FakeGraph> 
     reads: 0,
     authHeaders: [],
     failEchoingToken: false,
+    redirectWritesTo: null,
     close: async () => {},
   };
 
@@ -85,6 +88,13 @@ export async function startFakeGraph(expectedToken: string): Promise<FakeGraph> 
         }
         res.writeHead(200, { "content-type": file.contentType });
         res.end(file.data);
+        return;
+      }
+
+      if (req.method === "PUT" && state.redirectWritesTo) {
+        req.resume();
+        res.writeHead(307, { location: state.redirectWritesTo });
+        res.end();
         return;
       }
 

@@ -13,6 +13,7 @@ export {
   maskToken,
   MANIFEST_FILE,
   parseConfig,
+  type SharePointPublisherOptions,
   type SharePointPublishConfig,
 } from "./publisher.js";
 export { adfToMarkdown } from "./adf-markdown.js";

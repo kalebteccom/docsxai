@@ -22,9 +22,15 @@ import {
   type PublisherPlugin,
   type PublishResult,
   resolveWorkspacePath,
+  resolveWorkspacePathReal,
 } from "@docsxai/engine";
 import { adfToMarkdown, IMAGES_DIR, safeName } from "./adf-markdown.js";
-import { DEFAULT_GRAPH_URL, GraphClient } from "./graph-client.js";
+import {
+  assertGraphBaseUrl,
+  DEFAULT_GRAPH_URL,
+  GraphClient,
+  type GraphUrlOptions,
+} from "./graph-client.js";
 
 export const MANIFEST_FILE = "docsxai-manifest.json";
 const MANIFEST_SCHEMA = "docsxai/sharepoint-manifest@1";
@@ -36,7 +42,10 @@ export interface SharePointPublishConfig {
   site_id?: string;
   /** Folder inside the library, no leading slash. Default `docsxai`. */
   folder: string;
-  /** Graph endpoint. Default `https://graph.microsoft.com/v1.0`; override for sovereign clouds. */
+  /**
+   * Graph endpoint. Default `https://graph.microsoft.com/v1.0`. Must be `https` on
+   * `graph.microsoft.com`, `graph.microsoft.us`, `microsoftgraph.chinacloudapi.cn` or `graph.microsoft.de`.
+   */
   graph_base_url: string;
   /** Prefixed onto every page title. */
   title_prefix?: string;
@@ -49,6 +58,49 @@ interface ManifestEntry {
   size: number;
   id?: string;
   webUrl?: string;
+}
+
+/** Options of the publisher itself, not of a publish call. */
+export type SharePointPublisherOptions = GraphUrlOptions;
+
+/** Hosts a SharePoint `webUrl` can be on: the public cloud and the national clouds. */
+const SHAREPOINT_DOMAINS = ["sharepoint.com", "sharepoint.us", "sharepoint.cn", "sharepoint.de"];
+
+/** True for an `https:` URL on a SharePoint domain, with no credentials. */
+export function isSharePointUrl(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > 2048) return false;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return (
+    url.protocol === "https:" &&
+    !url.username &&
+    !url.password &&
+    SHAREPOINT_DOMAINS.some((d) => url.hostname === d || url.hostname.endsWith(`.${d}`))
+  );
+}
+
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+
+/** A manifest entry as the publisher wrote it, or null when anything about it is off. */
+function validEntry(value: unknown): ManifestEntry | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const e = value as Record<string, unknown>;
+  if (typeof e["sha256"] !== "string" || !SHA256_HEX.test(e["sha256"])) return null;
+  if (typeof e["size"] !== "number" || !Number.isSafeInteger(e["size"]) || e["size"] < 0) {
+    return null;
+  }
+  if (e["id"] !== undefined && (typeof e["id"] !== "string" || e["id"].length > 256)) return null;
+  if (e["webUrl"] !== undefined && !isSharePointUrl(e["webUrl"])) return null;
+  return {
+    sha256: e["sha256"],
+    size: e["size"],
+    ...(e["id"] !== undefined ? { id: e["id"] } : {}),
+    ...(e["webUrl"] !== undefined ? { webUrl: e["webUrl"] } : {}),
+  };
 }
 
 interface Manifest {
@@ -70,22 +122,29 @@ function optionalString(raw: Record<string, unknown>, key: string): string | und
   return typeof v === "string" && v.length > 0 ? v : undefined;
 }
 
-export function parseConfig(raw: Record<string, unknown>): SharePointPublishConfig {
+export function parseConfig(
+  raw: Record<string, unknown>,
+  options: GraphUrlOptions = {},
+): SharePointPublishConfig {
   const driveId = optionalString(raw, "drive_id");
   const siteId = optionalString(raw, "site_id");
   if (!driveId && !siteId) {
     throw new Error("sharepoint: config.drive_id or config.site_id is required");
   }
   const parts = (optionalString(raw, "folder") ?? "").split("/").filter(Boolean);
+  const dotted = parts.find((p) => /^\.+$/.test(p));
+  if (dotted !== undefined) {
+    throw new Error(`sharepoint: config.folder must not contain a "${dotted}" segment`);
+  }
   const folder = parts.length > 0 ? parts : ["docsxai"];
   const prefix = optionalString(raw, "title_prefix");
   return {
     ...(driveId ? { drive_id: driveId } : {}),
     ...(siteId ? { site_id: siteId } : {}),
     folder: folder.map(safeName).join("/"),
-    graph_base_url: (optionalString(raw, "graph_base_url") ?? DEFAULT_GRAPH_URL).replace(
-      /\/+$/,
-      "",
+    graph_base_url: assertGraphBaseUrl(
+      optionalString(raw, "graph_base_url") ?? DEFAULT_GRAPH_URL,
+      options,
     ),
     ...(prefix ? { title_prefix: prefix } : {}),
     ...(raw["force"] === true ? { force: true } : {}),
@@ -110,14 +169,33 @@ async function loadProjection(ctx: PublisherContext): Promise<AdfProjection> {
   return parsed;
 }
 
-async function readManifest(client: GraphClient, folder: string): Promise<Manifest> {
+async function readManifest(
+  client: GraphClient,
+  folder: string,
+  log: PluginLogger,
+): Promise<Manifest> {
+  const files: Record<string, ManifestEntry> = Object.create(null) as Record<string, ManifestEntry>;
   const text = await client.readText(`${folder}/${MANIFEST_FILE}`);
-  if (text === null) return { schema: MANIFEST_SCHEMA, files: {} };
-  const parsed = JSON.parse(text) as Partial<Manifest>;
-  if (parsed.schema !== MANIFEST_SCHEMA || typeof parsed.files !== "object" || !parsed.files) {
+  if (text === null) return { schema: MANIFEST_SCHEMA, files };
+  const parsed = JSON.parse(text) as Partial<Manifest> | null;
+  if (
+    parsed === null ||
+    parsed.schema !== MANIFEST_SCHEMA ||
+    typeof parsed.files !== "object" ||
+    parsed.files === null ||
+    Array.isArray(parsed.files)
+  ) {
     throw new Error(`sharepoint: ${folder}/${MANIFEST_FILE} is not a docsxai manifest`);
   }
-  return { schema: MANIFEST_SCHEMA, files: parsed.files };
+  for (const [rel, value] of Object.entries(parsed.files)) {
+    const entry = validEntry(value);
+    if (entry) files[rel] = entry;
+    else
+      log.warn(
+        `manifest entry ${JSON.stringify(rel.slice(0, 80))} is not valid, uploading it again`,
+      );
+  }
+  return { schema: MANIFEST_SCHEMA, files };
 }
 
 function manifestJson(manifest: Manifest): string {
@@ -136,6 +214,7 @@ interface Upload {
 
 /** Everything one document publishes: the page file and its screenshots, keyed by library-relative path. */
 async function uploadsFor(
+  workspaceDir: string,
   doc: AdfDocument,
   title: string,
 ): Promise<{ page: Upload; images: Upload[] }> {
@@ -143,10 +222,13 @@ async function uploadsFor(
   const name = doc.section === "project" ? "index" : safeName(doc.section);
   const images: Upload[] = [];
   for (const att of doc.attachments) {
+    // The projection can come from a caller, so the path is held inside the workspace and the
+    // hash is taken from the bytes read, not from `att.sha256`.
+    const data = await fs.readFile(await resolveWorkspacePathReal(workspaceDir, att.sourcePath));
     images.push({
       rel: `${IMAGES_DIR}/${safeName(att.fileName)}`,
-      data: await fs.readFile(att.sourcePath),
-      sha256: att.sha256,
+      data,
+      sha256: sha256Hex(data),
       contentType: "image/png",
     });
   }
@@ -159,7 +241,9 @@ async function uploadsFor(
   return { page, images };
 }
 
-export function createSharePointPublisher(): PublisherPlugin {
+export function createSharePointPublisher(
+  options: SharePointPublisherOptions = {},
+): PublisherPlugin {
   return {
     async publish(ctx: PublisherContext): Promise<PublishResult> {
       const tokenVar = ctx.secretsEnv["token"] ?? "SHAREPOINT_TOKEN";
@@ -174,13 +258,13 @@ export function createSharePointPublisher(): PublisherPlugin {
       };
 
       try {
-        const config = parseConfig(ctx.config);
+        const config = parseConfig(ctx.config, options);
         const projection = await loadProjection(ctx);
         const root = config.drive_id
           ? `drives/${encodeURIComponent(config.drive_id)}`
           : `sites/${encodeURIComponent(config.site_id!)}/drive`;
-        const client = new GraphClient(config.graph_base_url, { root }, token, mask);
-        const manifest = await readManifest(client, config.folder);
+        const client = new GraphClient(config.graph_base_url, { root }, token, mask, options);
+        const manifest = await readManifest(client, config.folder, log);
 
         const sent = new Set<string>();
         const push = async (u: Upload): Promise<boolean> => {
@@ -192,8 +276,8 @@ export function createSharePointPublisher(): PublisherPlugin {
           manifest.files[u.rel] = {
             sha256: u.sha256,
             size: u.data.byteLength,
-            ...(item.id ? { id: item.id } : {}),
-            ...(item.webUrl ? { webUrl: item.webUrl } : {}),
+            ...(typeof item.id === "string" && item.id.length <= 256 ? { id: item.id } : {}),
+            ...(isSharePointUrl(item.webUrl) ? { webUrl: item.webUrl } : {}),
           };
           return true;
         };
@@ -202,7 +286,7 @@ export function createSharePointPublisher(): PublisherPlugin {
         try {
           for (const doc of projection.documents) {
             const title = `${config.title_prefix ?? ""}${doc.title}`;
-            const { page, images } = await uploadsFor(doc, title);
+            const { page, images } = await uploadsFor(ctx.workspaceDir, doc, title);
             const existed = manifest.files[page.rel] !== undefined;
             let wrote = false;
             for (const image of images) wrote = (await push(image)) || wrote;

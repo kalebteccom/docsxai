@@ -11,7 +11,10 @@ export const IMAGES_DIR = "images";
 
 /** SharePoint rejects `" * : < > ? / \ |`; keep to a conservative portable set. */
 export function safeName(raw: string): string {
-  return raw.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "item";
+  const name = raw.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "item";
+  if (/^\.+$/.test(name))
+    throw new Error(`sharepoint: ${JSON.stringify(raw)} is not a usable file name`);
+  return name;
 }
 
 function escapeText(value: string): string {

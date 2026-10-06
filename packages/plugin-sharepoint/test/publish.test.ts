@@ -2,6 +2,7 @@
 // targeted update on a prose change, images attached, the bearer token absent from every log
 // line and error, the exact capability declaration, and the load through the real plugin runtime.
 
+import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,9 +16,23 @@ import {
   projectDocPackToAdf,
   resolvePlugins,
 } from "@docsxai/engine";
-import { adfToMarkdown } from "../src/adf-markdown.js";
-import { MANIFEST_FILE, createSharePointPublisher } from "../src/publisher.js";
+import { adfToMarkdown, safeName } from "../src/adf-markdown.js";
+import {
+  GRAPH_HOSTS,
+  GraphClient,
+  assertGraphBaseUrl,
+  readBoundedText,
+} from "../src/graph-client.js";
+import {
+  MANIFEST_FILE,
+  createSharePointPublisher,
+  isSharePointUrl,
+  parseConfig,
+} from "../src/publisher.js";
 import { type FakeGraph, startFakeGraph } from "./fake-graph.js";
+
+/** The fake Graph server is plain http on loopback, which the publisher refuses unless told otherwise. */
+const LOOPBACK = { allowLoopbackHttp: true } as const;
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TOKEN = "eyJ0eXAi.fake-graph-bearer-token.sig123";
@@ -98,7 +113,7 @@ describe("sharepoint publisher: idempotency (fake Graph)", () => {
   it("pushes a single-mode pack twice: the second push performs zero writes", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
-    const publisher = createSharePointPublisher();
+    const publisher = createSharePointPublisher(LOOPBACK);
     const { log } = capture();
 
     const run1 = await publisher.publish(makeCtx(dir, projection, log));
@@ -123,7 +138,7 @@ describe("sharepoint publisher: idempotency (fake Graph)", () => {
 
   it("a prose change in one flow rewrites that page and the manifest only", async () => {
     const dir = await makeWorkspace();
-    const publisher = createSharePointPublisher();
+    const publisher = createSharePointPublisher(LOOPBACK);
     const options = { mode: "page-tree" as const, title: "Shop docs" };
     const { log } = capture();
 
@@ -161,7 +176,7 @@ describe("sharepoint publisher: idempotency (fake Graph)", () => {
 
   it("a changed screenshot re-uploads that image and its page only", async () => {
     const dir = await makeWorkspace();
-    const publisher = createSharePointPublisher();
+    const publisher = createSharePointPublisher(LOOPBACK);
     const { log } = capture();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
     await publisher.publish(makeCtx(dir, projection, log));
@@ -182,7 +197,7 @@ describe("sharepoint publisher: images", () => {
   it("uploads each screenshot byte for byte and links it from the page", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
-    await createSharePointPublisher().publish(makeCtx(dir, projection, capture().log));
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
 
     expect(server.files.get("docsxai/images/checkout--step-1.png")!.data.equals(PNG_A)).toBe(true);
     expect(server.files.get("docsxai/images/login--step-1.png")!.data.equals(PNG_B)).toBe(true);
@@ -201,7 +216,7 @@ describe("sharepoint publisher: images", () => {
       site_id: "contoso.sharepoint.com,1,2",
       folder: "Docs/App",
     };
-    const result = await createSharePointPublisher().publish(
+    const result = await createSharePointPublisher(LOOPBACK).publish(
       makeCtx(dir, projection, capture().log, config),
     );
     expect(result.target).toContain("sites/");
@@ -215,7 +230,7 @@ describe("sharepoint publisher: token handling", () => {
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
     const { log, lines } = capture();
 
-    const result = await createSharePointPublisher().publish(makeCtx(dir, projection, log));
+    const result = await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
     expect(server.authHeaders.length).toBeGreaterThan(0);
     expect(server.authHeaders.every((h) => h === `Bearer ${TOKEN}`)).toBe(true);
     expect(lines.length).toBeGreaterThan(0);
@@ -233,7 +248,7 @@ describe("sharepoint publisher: token handling", () => {
 
     let message = "";
     try {
-      await createSharePointPublisher().publish(makeCtx(dir, projection, log));
+      await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
     } catch (e) {
       message = (e as Error).message;
     }
@@ -249,7 +264,7 @@ describe("sharepoint publisher: token handling", () => {
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
     const ctx = makeCtx(dir, projection, capture().log);
     ctx.secretsEnv = { token: "SHAREPOINT_ABSENT_TOKEN" };
-    await expect(createSharePointPublisher().publish(ctx)).rejects.toThrow(
+    await expect(createSharePointPublisher(LOOPBACK).publish(ctx)).rejects.toThrow(
       "set SHAREPOINT_ABSENT_TOKEN",
     );
     expect(server.writes).toBe(0);
@@ -260,7 +275,7 @@ describe("sharepoint publisher: token handling", () => {
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
     const ctx = makeCtx(dir, projection, capture().log);
     ctx.config = { graph_base_url: server.baseUrl };
-    await expect(createSharePointPublisher().publish(ctx)).rejects.toThrow(
+    await expect(createSharePointPublisher(LOOPBACK).publish(ctx)).rejects.toThrow(
       "drive_id or config.site_id",
     );
   });
@@ -291,7 +306,7 @@ describe("sharepoint plugin: manifest and runtime", () => {
     expect(pkg.private).toBe(true);
   });
 
-  it("resolvePlugins loads sharepoint:push from the built package and it publishes", async () => {
+  it("resolvePlugins loads sharepoint:push from the built package and it refuses a non-Graph endpoint", async () => {
     await fs.access(path.join(PKG_ROOT, "dist", "register.js")); // run `pnpm -r build` first
 
     const dir = await makeWorkspace();
@@ -304,12 +319,12 @@ describe("sharepoint plugin: manifest and runtime", () => {
     expect(record?.status).toBe("loaded");
     expect(record?.artifacts).toEqual([{ kind: "publisher", name: "sharepoint:push" }]);
 
+    // The loaded publisher takes no test option, so it refuses the plain-http fake server.
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
-    const result = await registry
-      .getPublisher("sharepoint:push")
-      .publish(makeCtx(dir, projection, capture().log));
-    expect(result.ok).toBe(true);
-    expect(result.pages[0]!.action).toBe("created");
+    await expect(
+      registry.getPublisher("sharepoint:push").publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow("graph_base_url must be https");
+    expect(server.authHeaders).toEqual([]);
   });
 
   it("is disabled when the egress capability is not operator-enabled", async () => {
@@ -320,5 +335,269 @@ describe("sharepoint plugin: manifest and runtime", () => {
       enabledCapabilities: [],
     });
     expect(registry.pluginsInfo("sharepoint")?.status).toBe("disabled-by-capability-mismatch");
+  });
+});
+
+describe("sharepoint publisher: graph_base_url", () => {
+  it.each(GRAPH_HOSTS)("accepts https on %s and trims trailing slashes", (host) => {
+    expect(assertGraphBaseUrl(`https://${host}/v1.0//`)).toBe(`https://${host}/v1.0`);
+  });
+
+  it.each([
+    "http://graph.microsoft.com/v1.0",
+    "https://evil.example.com/v1.0",
+    "https://graph.microsoft.com.evil.example.com/v1.0",
+    "https://evil.example.com/graph.microsoft.com",
+    "https://user:pw@graph.microsoft.com/v1.0",
+    "https://login.microsoftonline.com/v1.0",
+    "ftp://graph.microsoft.com/v1.0",
+    "graph.microsoft.com/v1.0",
+    "http://127.0.0.1:4000/v1.0",
+    "http://localhost/v1.0",
+  ])("refuses %s", (url) => {
+    expect(() => assertGraphBaseUrl(url)).toThrow(/graph_base_url/);
+  });
+
+  it("takes loopback http only under the explicit test option", () => {
+    expect(assertGraphBaseUrl("http://127.0.0.1:4000/v1.0", LOOPBACK)).toBe(
+      "http://127.0.0.1:4000/v1.0",
+    );
+    expect(() => assertGraphBaseUrl("http://evil.example.com/v1.0", LOOPBACK)).toThrow(
+      /graph_base_url/,
+    );
+    expect(() => assertGraphBaseUrl("https://127.0.0.1/v1.0", LOOPBACK)).toThrow(/graph_base_url/);
+  });
+
+  it("parseConfig applies the same rule, and the default is the public Graph", () => {
+    expect(parseConfig({ drive_id: "d" }).graph_base_url).toBe("https://graph.microsoft.com/v1.0");
+    expect(() => parseConfig({ drive_id: "d", graph_base_url: "http://x.test/v1.0" })).toThrow(
+      /graph_base_url/,
+    );
+  });
+
+  it("the client refuses a host outside the allowlist before any request", () => {
+    expect(
+      () => new GraphClient("https://evil.example.com/v1.0", { root: "drives/d" }, "t", (s) => s),
+    ).toThrow(/graph_base_url/);
+  });
+
+  it("publish with an off-list endpoint fails and sends nothing", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const ctx = makeCtx(dir, projection, capture().log, {
+      graph_base_url: "https://graph.microsoft.com.evil.example.com/v1.0",
+    });
+    await expect(createSharePointPublisher(LOOPBACK).publish(ctx)).rejects.toThrow(
+      /graph_base_url/,
+    );
+    expect(server.authHeaders).toEqual([]);
+  });
+});
+
+describe("sharepoint publisher: attachments", () => {
+  it("refuses a source path outside the workspace and uploads nothing", async () => {
+    const dir = await makeWorkspace();
+    const outside = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    projection.documents[0]!.attachments[0]!.sourcePath = path.join(
+      outside,
+      "docs",
+      "checkout",
+      "burned",
+      "step-1.png",
+    );
+    await expect(
+      createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/escapes workspace root/);
+    expect(server.writes).toBe(0);
+  });
+
+  it("refuses a source path that climbs out with ..", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    projection.documents[0]!.attachments[0]!.sourcePath = path.join(dir, "..", "etc-passwd");
+    await expect(
+      createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/escapes workspace root/);
+  });
+
+  it("refuses a symlink inside the workspace that points outside", async () => {
+    const dir = await makeWorkspace();
+    const outside = await makeWorkspace();
+    const link = path.join(dir, "docs", "checkout", "burned", "link.png");
+    await fs.symlink(path.join(outside, "docs", "login", "burned", "step-1.png"), link);
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    projection.documents[0]!.attachments[0]!.sourcePath = link;
+    await expect(
+      createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/escapes workspace root/);
+  });
+
+  it("hashes the bytes it read, not the sha256 the projection claims", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    for (const att of projection.documents[0]!.attachments) att.sha256 = "0".repeat(64);
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
+    const manifest = JSON.parse(text(`docsxai/${MANIFEST_FILE}`)) as {
+      files: Record<string, { sha256: string }>;
+    };
+    expect(manifest.files["images/login--step-1.png"]!.sha256).toBe(
+      createHash("sha256").update(PNG_B).digest("hex"),
+    );
+    // A second push with the same wrong claim still sees the images as unchanged.
+    const before = server.writes;
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
+    expect(server.writes).toBe(before);
+  });
+});
+
+describe("sharepoint publisher: redirects", () => {
+  it("does not follow a redirect on a write, so the token stays on the first host", async () => {
+    const other = await startFakeGraph(TOKEN);
+    try {
+      server.redirectWritesTo = `${other.baseUrl}/drives/d/root:/docsxai/index.md:/content`;
+      const dir = await makeWorkspace();
+      const projection = await projectDocPackToAdf({ workspaceDir: dir });
+      await expect(
+        createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+      ).rejects.toThrow(/PUT .* failed/);
+      expect(other.authHeaders).toEqual([]);
+      expect(other.files.size).toBe(0);
+    } finally {
+      await other.close();
+    }
+  });
+});
+
+describe("sharepoint publisher: file names and folder", () => {
+  it.each([".", "..", "...", "-.-", " .. "])("safeName refuses the all-dot name %j", (raw) => {
+    expect(() => safeName(raw)).toThrow(/not a usable file name/);
+  });
+
+  it("safeName keeps ordinary names, dots inside included", () => {
+    expect(safeName("a..b")).toBe("a..b");
+    expect(safeName("checkout--step-1.png")).toBe("checkout--step-1.png");
+    expect(safeName("")).toBe("item");
+  });
+
+  it.each(["..", "../x", "a/../b", "./a", "a/./b", "..."])("refuses folder %j", (folder) => {
+    expect(() => parseConfig({ drive_id: "d", folder })).toThrow(/config\.folder/);
+  });
+
+  it("keeps a nested folder and drops empty segments", () => {
+    expect(parseConfig({ drive_id: "d", folder: "/Docs//App/" }).folder).toBe("Docs/App");
+  });
+});
+
+describe("sharepoint publisher: remote manifest", () => {
+  const goodEntry = (sha: string) => ({ sha256: sha, size: 1 });
+
+  it("isSharePointUrl wants https on a SharePoint domain", () => {
+    expect(isSharePointUrl("https://contoso.sharepoint.com/sites/a/b.md")).toBe(true);
+    expect(isSharePointUrl("https://contoso.sharepoint.us/x")).toBe(true);
+    expect(isSharePointUrl("http://contoso.sharepoint.com/x")).toBe(false);
+    expect(isSharePointUrl("https://evil.example.com/x")).toBe(false);
+    expect(isSharePointUrl("https://sharepoint.com.evil.example.com/x")).toBe(false);
+    expect(isSharePointUrl("https://u:p@contoso.sharepoint.com/x")).toBe(false);
+    expect(isSharePointUrl("javascript:alert(1)")).toBe(false);
+    expect(isSharePointUrl(42)).toBe(false);
+  });
+
+  async function seedManifest(files: Record<string, unknown>) {
+    server.files.set(`docsxai/${MANIFEST_FILE}`, {
+      data: Buffer.from(JSON.stringify({ schema: "docsxai/sharepoint-manifest@1", files })),
+      contentType: "application/json",
+      id: "manifest",
+    });
+  }
+
+  it("drops entries with a bad sha256, size, id or webUrl and uploads those files again", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const { log, lines } = capture();
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    const good = JSON.parse(text(`docsxai/${MANIFEST_FILE}`)) as {
+      files: Record<string, { sha256: string; size: number; webUrl?: string }>;
+    };
+    const index = good.files["index.md"]!;
+    const writes = server.writes;
+
+    await seedManifest({
+      ...good.files,
+      "index.md": { ...index, webUrl: "https://evil.example.com/phish" },
+      "images/login--step-1.png": { ...good.files["images/login--step-1.png"], sha256: "XYZ" },
+      "images/checkout--step-1.png": { ...good.files["images/checkout--step-1.png"], size: -1 },
+    });
+    lines.length = 0;
+    const run = await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(server.writes - writes).toBe(4); // 3 re-uploads + manifest
+    expect(lines.filter((l) => l.includes("is not valid")).length).toBe(3);
+    expect(run.pages[0]!.url).toContain("sharepoint.com");
+    expect(JSON.stringify(run)).not.toContain("evil.example.com");
+    expect(text(`docsxai/${MANIFEST_FILE}`)).not.toContain("evil.example.com");
+  });
+
+  it("refuses a manifest whose files is not an object", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.files.set(`docsxai/${MANIFEST_FILE}`, {
+      data: Buffer.from(JSON.stringify({ schema: "docsxai/sharepoint-manifest@1", files: [1] })),
+      contentType: "application/json",
+      id: "m",
+    });
+    await expect(
+      createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow("is not a docsxai manifest");
+  });
+
+  it("keeps a __proto__ key in the manifest from touching prototypes", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.files.set(`docsxai/${MANIFEST_FILE}`, {
+      data: Buffer.from(
+        `{"schema":"docsxai/sharepoint-manifest@1","files":{"__proto__":${JSON.stringify(goodEntry("a".repeat(64)))}}}`,
+      ),
+      contentType: "application/json",
+      id: "m",
+    });
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
+    expect(({} as Record<string, unknown>)["sha256"]).toBeUndefined();
+  });
+
+  it("refuses a manifest over 8 MiB", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.files.set(`docsxai/${MANIFEST_FILE}`, {
+      data: Buffer.alloc(8 * 1024 * 1024 + 1, 0x20),
+      contentType: "application/json",
+      id: "m",
+    });
+    await expect(
+      createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/over 8388608 bytes/);
+    expect(server.writes).toBe(0);
+  });
+});
+
+describe("sharepoint client: bounded reads", () => {
+  it("refuses a body over the limit, with or without a content-length", async () => {
+    await expect(readBoundedText(new Response("x".repeat(100)), 10)).rejects.toThrow(
+      /over 10 bytes/,
+    );
+    const streamed = new Response(
+      new ReadableStream({
+        start(c) {
+          c.enqueue(new TextEncoder().encode("x".repeat(6)));
+          c.enqueue(new TextEncoder().encode("x".repeat(6)));
+          c.close();
+        },
+      }),
+    );
+    await expect(readBoundedText(streamed, 10)).rejects.toThrow(/over 10 bytes/);
+  });
+
+  it("reads a body at the limit and truncates an error body instead of refusing it", async () => {
+    expect(await readBoundedText(new Response("x".repeat(10)), 10)).toBe("x".repeat(10));
+    expect(await readBoundedText(new Response("y".repeat(100)), 10, true)).toBe("y".repeat(10));
   });
 });
