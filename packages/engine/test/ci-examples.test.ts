@@ -1,0 +1,296 @@
+// The nightly drift recipes under examples/ci/ are sample files adopters copy. This suite keeps them
+// honest without running any pipeline: each file parses as YAML and has the shape its CI system
+// needs (schedule only, report upload on failure), every `docsxai` command line in it names a command
+// and flags that `docsxai --help` prints, the copies of the recipes in docs/ci-recipes.md are
+// identical to the files, and none of them is wired into this repository's own CI.
+
+import { readdirSync, readFileSync } from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { parse } from "yaml";
+import { main } from "../src/cli.js";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const repo = path.resolve(here, "../../..");
+const read = (...p: string[]) => readFileSync(path.join(repo, ...p), "utf8");
+
+const EXAMPLES = {
+  github: "examples/ci/github-actions-nightly-drift.yml",
+  gitlab: "examples/ci/gitlab-ci-nightly-drift.yml",
+  woodpecker: "examples/ci/woodpecker-nightly-drift.yml",
+} as const;
+
+const VERIFY = /^docsxai run \S+ .*--verify-determinism\b/;
+const DIFF = /^docsxai diff \S+ .*--against \S+ .*--fail-on fail\b/;
+
+// ---------------------------------------------------------------------------
+// Help text and command extraction
+// ---------------------------------------------------------------------------
+
+let helpText = "";
+
+beforeEach(async () => {
+  let out = "";
+  vi.spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
+    out += String(chunk);
+    return true;
+  });
+  expect(await main(["--help"])).toBe(0);
+  helpText = out;
+  vi.restoreAllMocks();
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+/** The `docsxai <command> …` lines of the help's Usage block, keyed by command (`export adf`, `run`, …). */
+function usageEntries(help: string): Map<string, string> {
+  const block = help.slice(help.indexOf("Usage:"), help.indexOf("Notes:"));
+  const entries = new Map<string, string>();
+  let key: string | null = null;
+  for (const line of block.split("\n").slice(1)) {
+    const head = /^ {2}docsxai (\S+)(?: (adf|playwright)\b)?/.exec(line);
+    if (head) {
+      key = head[1] === "export" && head[2] ? `export ${head[2]}` : head[1]!;
+      entries.set(key, (entries.get(key) ?? "") + line + "\n");
+    } else if (key && /^ {3,}\S/.test(line)) {
+      entries.set(key, (entries.get(key) ?? "") + line + "\n");
+    } else {
+      key = null;
+    }
+  }
+  return entries;
+}
+
+/** Shell lines of a script value, with `\` continuations joined and comments and blanks dropped. */
+function shellLines(script: string): string[] {
+  const out: string[] = [];
+  let pending = "";
+  for (const raw of script.split("\n")) {
+    const line = raw.trim();
+    if (pending === "" && (line === "" || line.startsWith("#"))) continue;
+    if (line.endsWith("\\")) {
+      pending += line.slice(0, -1).trim() + " ";
+      continue;
+    }
+    out.push((pending + line).trim());
+    pending = "";
+  }
+  return out;
+}
+
+const SCRIPT_KEYS = new Set(["run", "script", "before_script", "after_script", "commands"]);
+
+/** Every shell line found under a run / script / commands key anywhere in a parsed YAML document. */
+function scriptsIn(node: unknown, inScript = false): string[] {
+  if (typeof node === "string") return inScript ? shellLines(node) : [];
+  if (Array.isArray(node)) return node.flatMap((n) => scriptsIn(n, inScript));
+  if (node !== null && typeof node === "object") {
+    return Object.entries(node).flatMap(([k, v]) => scriptsIn(v, SCRIPT_KEYS.has(k)));
+  }
+  return [];
+}
+
+/** The `docsxai` commands among shell lines, cut at the first pipe, redirect or `;`. */
+function docsxaiCommands(lines: string[]): string[] {
+  return lines
+    .map((l) => l.replace(/^\$\s+/, ""))
+    .filter((l) => /^docsxai\s/.test(l))
+    .map((l) => l.split(/\s*(?:\|\||\||>|;|&&)\s*/)[0]!.trim());
+}
+
+function fencedBlocks(markdown: string): { lang: string; body: string; before: string }[] {
+  const blocks: { lang: string; body: string; before: string }[] = [];
+  const re = /```(\w+)\n([\s\S]*?)\n```/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(markdown))) {
+    blocks.push({
+      lang: m[1]!,
+      body: m[2]!,
+      before: markdown.slice(Math.max(0, m.index - 200), m.index),
+    });
+  }
+  return blocks;
+}
+
+function expectKnownToHelp(commands: string[], where: string): void {
+  const entries = usageEntries(helpText);
+  expect(commands.length, `${where}: no docsxai command found`).toBeGreaterThan(0);
+  for (const cmd of commands) {
+    const tokens = cmd.split(/\s+/);
+    const key = tokens[1] === "export" ? `export ${tokens[2]}` : tokens[1]!;
+    const entry = entries.get(key);
+    expect(
+      entry,
+      `${where}: \`${cmd}\` uses "${key}", which \`docsxai --help\` does not list`,
+    ).toBeDefined();
+    for (const flag of tokens.filter((t) => t.startsWith("--"))) {
+      const name = flag.split("=")[0]!;
+      expect(
+        entry!.includes(name),
+        `${where}: \`${cmd}\` uses ${name}, which the help does not list for "${key}"`,
+      ).toBe(true);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The helpers themselves
+// ---------------------------------------------------------------------------
+
+describe("help parsing helpers", () => {
+  it("lists the commands the recipes rely on, with their flags", () => {
+    const entries = usageEntries(helpText);
+    expect(entries.get("run")).toContain("--verify-determinism");
+    expect(entries.get("run")).toContain("--runs");
+    expect(entries.get("diff")).toContain("--against");
+    expect(entries.get("diff")).toContain("--fail-on");
+    expect(entries.has("export adf")).toBe(true);
+    expect(entries.has("baseline")).toBe(true);
+  });
+
+  it("joins continuations and cuts a command at a pipe or redirect", () => {
+    const lines = shellLines(
+      "# note\ndocsxai run ws \\\n  --flow a | tee out.md\n\ndocsxai diff ws > d.md",
+    );
+    expect(docsxaiCommands(lines)).toEqual(["docsxai run ws --flow a", "docsxai diff ws"]);
+  });
+
+  it("rejects a command or flag the help does not know", () => {
+    expect(() => expectKnownToHelp(["docsxai frobnicate ws"], "x")).toThrow(/does not list/);
+    expect(() => expectKnownToHelp(["docsxai run ws --verify-everything"], "x")).toThrow(
+      /does not list for "run"/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The example files
+// ---------------------------------------------------------------------------
+
+describe("examples/ci recipes", () => {
+  for (const [name, file] of Object.entries(EXAMPLES)) {
+    describe(name, () => {
+      const text = read(file);
+      const doc: unknown = parse(text);
+
+      it("parses as YAML", () => {
+        expect(doc).toBeTypeOf("object");
+      });
+
+      it("runs verify-determinism, then diff against a baseline failing on fail", () => {
+        const commands = docsxaiCommands(scriptsIn(doc));
+        const verify = commands.findIndex((c) => VERIFY.test(c));
+        const diff = commands.findIndex((c) => DIFF.test(c));
+        expect(verify, "no `docsxai run … --verify-determinism`").toBeGreaterThanOrEqual(0);
+        expect(diff, "no `docsxai diff … --against … --fail-on fail`").toBeGreaterThan(verify);
+        expect(commands[verify]).toContain("--format md");
+        expect(commands[diff]).toContain("--format md");
+      });
+
+      it("uses only commands and flags that `docsxai --help` lists", () => {
+        expectKnownToHelp(docsxaiCommands(scriptsIn(doc)), file);
+      });
+
+      it("produces and uploads both markdown reports", () => {
+        expect(text).toContain("determinism-report.md");
+        expect(text).toContain("drift-report.md");
+        expect(text).toMatch(/upload|artifacts/);
+      });
+
+      it("warns against running browser capture in per-PR pipelines", () => {
+        expect(text).toMatch(/per-PR pipelines on shared runners/);
+      });
+    });
+  }
+
+  it("github: schedule and workflow_dispatch only, reports uploaded even on failure", () => {
+    const wf = parse(read(EXAMPLES.github)) as {
+      on: Record<string, unknown>;
+      jobs: Record<
+        string,
+        { steps: { uses?: string; if?: string; with?: Record<string, string> }[] }
+      >;
+    };
+    expect(Object.keys(wf.on).sort()).toEqual(["schedule", "workflow_dispatch"]);
+    expect(wf.on.schedule).toEqual([{ cron: expect.stringMatching(/^\S+ \S+ \S+ \S+ \S+$/) }]);
+    const upload = Object.values(wf.jobs)
+      .flatMap((j) => j.steps)
+      .find((s) => s.uses?.startsWith("actions/upload-artifact@"));
+    expect(upload?.if).toBe("always()");
+    expect(upload?.with?.path).toContain("determinism-report.md");
+    expect(upload?.with?.path).toContain("drift-report.md");
+  });
+
+  it("gitlab: scheduled pipelines only, artifacts kept even on failure", () => {
+    const ci = parse(read(EXAMPLES.gitlab)) as Record<
+      string,
+      { rules: { if: string }[]; artifacts: { when: string; paths: string[] } }
+    >;
+    const job = Object.values(ci)[0]!;
+    expect(job.rules).toEqual([{ if: '$CI_PIPELINE_SOURCE == "schedule"' }]);
+    expect(job.artifacts.when).toBe("always");
+    expect(job.artifacts.paths).toEqual(["determinism-report.md", "drift-report.md"]);
+  });
+
+  it("woodpecker: cron only, reports shown and uploaded even on failure", () => {
+    const wp = parse(read(EXAMPLES.woodpecker)) as {
+      when: { event: string; cron?: string }[];
+      steps: { name: string; when?: { status?: string[] }[] }[];
+    };
+    expect(wp.when).toEqual([{ event: "cron", cron: "docsxai-nightly-drift" }]);
+    const after = wp.steps.filter((s) => s.name !== "drift-check");
+    expect(after.length).toBeGreaterThanOrEqual(2);
+    for (const step of after) {
+      expect(step.when).toEqual([{ status: ["success", "failure"] }]);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// docs/ci-recipes.md
+// ---------------------------------------------------------------------------
+
+describe("docs/ci-recipes.md", () => {
+  const md = read("docs", "ci-recipes.md");
+  const blocks = fencedBlocks(md);
+
+  it("embeds each example file verbatim under its marker", () => {
+    for (const file of Object.values(EXAMPLES)) {
+      const block = blocks.find((b) => b.before.includes(`<!-- example: ${file} -->`));
+      expect(block, `no block marked for ${file}`).toBeDefined();
+      expect(block!.lang).toBe("yaml");
+      expect(block!.body.trim()).toBe(read(file).trim());
+    }
+  });
+
+  it("only uses commands and flags that `docsxai --help` lists, in every yaml and shell block", () => {
+    const commands: string[] = [];
+    for (const b of blocks) {
+      if (b.lang === "yaml") commands.push(...docsxaiCommands(scriptsIn(parse(b.body))));
+      else if (b.lang === "bash" || b.lang === "sh")
+        commands.push(...docsxaiCommands(shellLines(b.body)));
+    }
+    expectKnownToHelp(commands, "docs/ci-recipes.md");
+  });
+
+  it("says browser capture does not belong in per-PR pipelines on shared runners", () => {
+    expect(md).toMatch(/Do not run browser capture in per-PR pipelines on shared runners/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// This repository's own CI stays untouched
+// ---------------------------------------------------------------------------
+
+describe("this repository's own CI", () => {
+  it("does not run the nightly drift recipes", () => {
+    const workflows = readdirSync(path.join(repo, ".github", "workflows"));
+    for (const f of workflows) {
+      const text = read(".github", "workflows", f);
+      expect(text, `.github/workflows/${f}`).not.toMatch(/verify-determinism|nightly-drift/);
+    }
+    expect(read(".woodpecker.yml")).not.toMatch(/verify-determinism|nightly-drift/);
+  });
+});

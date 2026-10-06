@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Verify page</title>
+    <style>
+      /* Served by the verify-determinism keystone, which fills in the stamp placeholder in the body
+         (never written out in this comment: the server replaces the first one it finds): the same
+         digit on every request for the stable page, a counter that moves on every request for the
+         injected one. */
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #fff;
+        font: 16px/20px monospace;
+      }
+      #stamp {
+        display: inline-block;
+        box-sizing: border-box;
+        width: 80px;
+        height: 40px;
+        background: #eee;
+        font: 32px/40px monospace;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Build stamp</p>
+    <div id="stamp">{{STAMP}}</div>
+  </body>
+</html>

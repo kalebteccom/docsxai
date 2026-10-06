@@ -143,6 +143,8 @@ launches; exit 1 on any warning or error. The rules:
 | R012 | error    | A `hide` step with no `target`.                                                                              |
 | R013 | warning  | A step targets or anchors an element an earlier `hide` step hid - it can never be visible there.             |
 | R014 | info     | A `wait` step that only sleeps (`wait_for: { timeout_ms: N }`) - use `wait_for: settled`.                    |
+| R015 | info     | The variants a flow's `matrix` expands to, in run order.                                                     |
+| R016 | warning  | A `copy_by_locale` key that no variant locale can use, so it never applies.                                  |
 
 Plugins can contribute additional rules; see
 [Writing plugins](/guides/writing-plugins/). For the full calibration

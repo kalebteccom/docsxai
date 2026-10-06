@@ -276,3 +276,42 @@ describe("parseFlowFile — hide / show / timeout_ms", () => {
     expect(f.steps[0]!.timeout_ms).toBe(1500);
   });
 });
+
+describe("flow name rule", () => {
+  const withName = (name: string) =>
+    `name: ${JSON.stringify(name)}\nsteps:\n  - id: s\n    action: wait\n`;
+
+  it.each([
+    "../x",
+    "../.docsxai.json",
+    "/abs",
+    "/etc/passwd",
+    "a/b",
+    "a\\b",
+    "..",
+    ".",
+    "a..b",
+    ".hidden",
+    "-lead",
+    "_lead",
+    "has space",
+    "tab\there",
+    "",
+    "a".repeat(65),
+  ])("rejects the name %j", (name) => {
+    expect(() => parseFlowFile(withName(name), "bad.flow.yaml")).toThrow(FlowFileError);
+  });
+
+  it.each(["Trackxai_Board-1.v2", "a", "9lives", "UPPER_case", "v1.2.3", "a".repeat(64)])(
+    "accepts the name %j",
+    (name) => {
+      expect(parseFlowFile(withName(name)).name).toBe(name);
+    },
+  );
+
+  it("applies the same rule to `extends`", () => {
+    const flow = (ext: string) => `${withName("child")}extends: ${JSON.stringify(ext)}\n`;
+    expect(() => parseFlowFile(flow("../parent"))).toThrow(FlowFileError);
+    expect(parseFlowFile(flow("Parent_1")).extends).toBe("Parent_1");
+  });
+});

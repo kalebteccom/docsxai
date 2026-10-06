@@ -11,6 +11,7 @@
 //   • cli-commands-session.ts  — init / capture-auth / calibrate / run (live-browser + scaffolding)
 //   • cli-commands-authoring.ts — inspect / lint / flow-tree / diagnose / style (calibration aids)
 //   • cli-commands-docpack.ts  — render / zip / export / baseline / diff (doc-pack ops)
+//   • cli-commands-pack.ts     — pack / pack --check (screenshot pack + drift check, run by the viewer bin)
 //   • cli-commands-backend.ts  — login / push / pull / plugins (backend + sync)
 
 import { pathToFileURL } from "node:url";
@@ -33,9 +34,17 @@ import {
   cmdZip,
 } from "./cli-commands-docpack.js";
 import { cmdLogin, cmdPlugins, cmdPull, cmdPush } from "./cli-commands-backend.js";
+import { cmdPack } from "./cli-commands-pack.js";
+import { RETIRED_COMMANDS } from "./cli-retired.js";
+import { findRetired, warnDeprecated } from "./deprecation.js";
 
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
+  const retired = cmd === undefined ? undefined : findRetired(RETIRED_COMMANDS, cmd);
+  if (retired) {
+    warnDeprecated(`the ${cmd} command`, retired);
+    return main(retired.rewrite(rest));
+  }
   switch (cmd) {
     case undefined:
     case "--help":
@@ -55,6 +64,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdRender(rest);
     case "burn":
       return cmdBurn(rest);
+    case "pack":
+      return cmdPack(rest);
     case "capture-auth":
       return cmdCaptureAuth(rest);
     case "lint":

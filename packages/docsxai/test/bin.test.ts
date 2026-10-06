@@ -93,9 +93,9 @@ describe.skipIf(!engineBuilt)("bare `docsxai` bin (meta-package wrapper)", () =>
   });
 });
 
-describe.skipIf(!engineBuilt || !viewerBuilt)("`docsxai burn` through the bare bin", () => {
-  const pngSignature = [0x89, 0x50, 0x4e, 0x47];
+const pngSignature = [0x89, 0x50, 0x4e, 0x47];
 
+describe.skipIf(!engineBuilt || !viewerBuilt)("`docsxai burn` through the bare bin", () => {
   async function workspaceWithPack(): Promise<string> {
     const ws = path.join(tmp, "ws");
     await fs.cp(packFixture, path.join(ws, "docs"), { recursive: true });
@@ -157,6 +157,110 @@ describe.skipIf(!engineBuilt || !viewerBuilt)("`docsxai burn` through the bare b
     expect((await docsxai("burn", path.join(tmp, "empty"), "--nope")).code).toBe(2);
   });
 });
+
+describe.skipIf(!engineBuilt || !viewerBuilt)(
+  "`docsxai pack` and `docsxai pack --check` through the bare bin",
+  () => {
+    const PACK_CONFIG = {
+      schema: "docsxai/pack-config@1",
+      sources: { obstacles: { flow: "app", variant: "en.light.1280" } },
+      flows: { app: { steps: { share: { alt: { en: "Share dialog over a page" } } } } },
+    };
+
+    async function workspaceWithPackConfig(): Promise<string> {
+      const ws = path.join(tmp, "ws");
+      await fs.cp(packFixture, path.join(ws, "docs"), { recursive: true });
+      await fs.writeFile(path.join(ws, "pack.json"), JSON.stringify(PACK_CONFIG), "utf8");
+      return ws;
+    }
+
+    it("--help lists both forms", async () => {
+      const r = await docsxai("--help");
+      expect(r.stdout).toContain("docsxai pack <workspace-or-raw-dir>");
+      expect(r.stdout).toContain(
+        "docsxai pack <workspace-or-raw-dir> --check --against <pack-dir>",
+      );
+    });
+
+    it("packs a workspace into .screens, then finds no drift against it", async () => {
+      const ws = await workspaceWithPackConfig();
+      const packed = await docsxai("pack", ws, "--no-optimise");
+      expect(packed.code, packed.stderr).toBe(0);
+      expect(packed.stdout).toContain("pack: 1 image(s), 2 written, 0 removed");
+
+      const manifestPath = path.join(ws, ".screens", "manifest.json");
+      const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as {
+        schema: string;
+        flows: { app: { steps: { share: { variants: Record<string, { src: string }> } } } };
+      };
+      expect(manifest.schema).toBe("docsxai/screens-pack@2");
+      const variant = manifest.flows.app.steps.share.variants["en.light.1280"]!;
+      expect(variant.src).toMatch(/^\/screens\/app\/share\.[0-9a-f]{8}\.png$/);
+      const png = await fs.readFile(
+        path.join(ws, ".screens", variant.src.slice("/screens/".length)),
+      );
+      expect([...png.subarray(0, 4)]).toEqual(pngSignature);
+
+      const drift = await docsxai("pack", ws, "--check", "--against", path.join(ws, ".screens"));
+      expect(drift.code, drift.stderr).toBe(0);
+      expect(drift.stdout).toContain("docsxai drift: 1 compared, 0 over threshold (0.5%)");
+    });
+
+    it("exits 1 when a change is over the threshold and 0 when the threshold allows it", async () => {
+      const ws = await workspaceWithPackConfig();
+      expect((await docsxai("pack", ws, "--no-optimise")).code).toBe(0);
+      // Move the callout's target: the burned pixels change.
+      const annotationsPath = path.join(ws, "docs", "obstacles", "annotations.json");
+      const file = JSON.parse(await fs.readFile(annotationsPath, "utf8")) as {
+        annotations: Array<{ bounding_box: { x: number } }>;
+      };
+      file.annotations[0]!.bounding_box.x += 120;
+      await fs.writeFile(annotationsPath, JSON.stringify(file), "utf8");
+
+      // Threshold 0: any changed pixel fails, whatever share of the 1000x700 frame it is.
+      const over = await docsxai(
+        "pack",
+        ws,
+        "--check",
+        "--against",
+        path.join(ws, ".screens"),
+        "--threshold",
+        "0",
+      );
+      expect(over.code, over.stdout).toBe(1);
+      expect(over.stdout).toContain("changed  app/share/en.light.1280");
+      const lenient = await docsxai(
+        "pack",
+        ws,
+        "--check",
+        "--against",
+        path.join(ws, ".screens"),
+        "--threshold",
+        "100",
+      );
+      expect(lenient.code, lenient.stdout).toBe(0);
+    });
+
+    it("the retired `docsxai drift` still runs, with a deprecation warning", async () => {
+      const ws = await workspaceWithPackConfig();
+      expect((await docsxai("pack", ws, "--no-optimise")).code).toBe(0);
+      const r = await docsxai("drift", ws, "--against", path.join(ws, ".screens"));
+      expect(r.code, r.stderr).toBe(0);
+      expect(r.stderr).toContain("docsxai: the drift command is deprecated since 0.3.0");
+      expect(r.stdout).toContain("docsxai drift: 1 compared, 0 over threshold (0.5%)");
+    });
+
+    it("exits 2 on a bad flag or a missing --against, and 1 on a workspace with no pack.json", async () => {
+      expect((await docsxai("pack", tmp, "--nope")).code).toBe(2);
+      expect((await docsxai("pack", tmp, "--check")).code).toBe(2);
+      const ws = path.join(tmp, "ws");
+      await fs.cp(packFixture, path.join(ws, "docs"), { recursive: true });
+      const r = await docsxai("pack", ws, "--no-optimise");
+      expect(r.code).toBe(1);
+      expect(r.stderr).toContain("no pack.json");
+    });
+  },
+);
 
 it("suite ran against a built engine (or skipped loudly)", () => {
   if (!engineBuilt) {

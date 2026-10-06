@@ -1,0 +1,54 @@
+# Nightly drift check for a docsxai doc pack. Copy this file to
+# .github/workflows/docsxai-nightly-drift.yml in the repository that holds the workspace.
+#
+# Schedule and manual runs only. Do not add pull_request or push triggers: browser capture is
+# slow and heavy, and per-PR pipelines on shared runners compete for the same CPU and memory.
+# The job replays the flows twice into isolated roots (--verify-determinism), then compares the
+# result with the committed baseline. Both reports are uploaded as one artifact, also on failure.
+name: docsxai-nightly-drift
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docsxai-nightly-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - name: install docsxai and Chromium
+        run: |
+          npm install --global docsxai
+          npx playwright-core install --with-deps chromium
+      - name: verify determinism
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          APP_EDITOR_USER: ${{ secrets.APP_EDITOR_USER }}
+          APP_EDITOR_PASS: ${{ secrets.APP_EDITOR_PASS }}
+        run: docsxai run ./docs-workspace --base-url "$APP_URL" --verify-determinism --format md | tee determinism-report.md
+      - name: diff against the baseline
+        run: docsxai diff ./docs-workspace --against ./docs-workspace/.baseline --format md --fail-on fail | tee drift-report.md
+      - name: upload the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docsxai-nightly-reports
+          path: |
+            determinism-report.md
+            drift-report.md
+          if-no-files-found: ignore
+          retention-days: 30

@@ -1,0 +1,62 @@
+{
+  "configFile": ".docsxai.json",
+  "workspaceConfig": {
+    "members": {
+      "schema": "schema: \"docsxai/workspace@1\"",
+      "app_url": "app_url?: string",
+      "ignore_https_errors": "ignore_https_errors?: boolean",
+      "backend_url": "backend_url?: string",
+      "annotations": "annotations?: { obstacles?: boolean; }",
+      "backend_workspace_id": "backend_workspace_id?: string",
+      "backend_project_id": "backend_project_id?: string",
+      "created_at": "created_at: string"
+    },
+    "optional": [
+      "annotations",
+      "app_url",
+      "backend_project_id",
+      "backend_url",
+      "backend_workspace_id",
+      "ignore_https_errors"
+    ]
+  },
+  "scaffold": {
+    "manualCapture": {
+      "created": [
+        "flows/",
+        "docs/",
+        "auth/",
+        ".auth/",
+        ".viewer/",
+        ".gitignore",
+        ".docsxai.json",
+        "auth/strategy.yaml",
+        "README.md"
+      ],
+      "configKeys": ["app_url", "created_at", "schema"]
+    },
+    "none": {
+      "created": [
+        "flows/",
+        "docs/",
+        "auth/",
+        ".auth/",
+        ".viewer/",
+        ".gitignore",
+        ".docsxai.json",
+        "README.md"
+      ],
+      "configKeys": ["created_at", "schema"]
+    }
+  },
+  "env": [
+    "DOCSX_TOKEN",
+    "DOCSX_CACHE_KEY",
+    "DOCSX_VIEWER_BIN",
+    "DOCSX_ENGINE_BIN",
+    "DOCSX_DATA_DIR",
+    "DOCSX_OAUTH_AUTO_APPROVE",
+    "DOCSX_WEBHOOK_SECRET",
+    "DOCSX_OXIPNG_BIN"
+  ]
+}

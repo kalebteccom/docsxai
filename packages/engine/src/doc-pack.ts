@@ -5,6 +5,7 @@
 //   <project>/docs/<flow>/<step>.md           — step write-ups (user-facing prose)
 //   <project>/docs/<flow>/screenshots/<step>.png
 //   <project>/docs/<flow>/annotations.json    — per-step annotation records (this module's AnnotationsFile)
+//   A flow with a `matrix` writes the two lines above under docs/<flow>/<variant>/ instead.
 //   <project>/docs/style.yaml + style.json    — style artifact (canonical + derived)
 //   <project>/docs/locators.yaml              — locator manifest (one canonical locator per step)
 //   <project>/auth/strategy.yaml              — target-site auth-strategy descriptor
@@ -13,6 +14,24 @@
 // so the two never drift.
 
 import { z } from "zod";
+import { EnvironmentSpec, LocaleTag } from "./environment-spec.js";
+import { MatrixSpec, VariantInfo, VariantSelector } from "./matrix-spec.js";
+
+export {
+  ColorScheme,
+  EnvironmentSpec,
+  LocaleTag,
+  VIEWPORT_PRESETS,
+  ViewportPreset,
+  ViewportSize,
+} from "./environment-spec.js";
+export {
+  MAX_MATRIX_VARIANTS,
+  MatrixSpec,
+  MatrixViewport,
+  VariantInfo,
+  VariantSelector,
+} from "./matrix-spec.js";
 
 // ---------------------------------------------------------------------------
 // Shared
@@ -118,49 +137,6 @@ export const NudgeOffset = z.object({ x: z.number(), y: z.number() }).strict();
 export type NudgeOffset = z.infer<typeof NudgeOffset>;
 
 // ---------------------------------------------------------------------------
-// Execution environment (`environment:` block)
-// ---------------------------------------------------------------------------
-
-export const ViewportSize = z
-  .object({ width: z.number().int().positive(), height: z.number().int().positive() })
-  .strict();
-export type ViewportSize = z.infer<typeof ViewportSize>;
-
-export const ViewportPreset = z.enum(["desktop", "tablet", "mobile"]);
-export type ViewportPreset = z.infer<typeof ViewportPreset>;
-
-/** Named viewport presets — `desktop` 1440×900, `tablet` 834×1112, `mobile` 390×844. */
-export const VIEWPORT_PRESETS: Record<ViewportPreset, ViewportSize> = {
-  desktop: { width: 1440, height: 900 },
-  tablet: { width: 834, height: 1112 },
-  mobile: { width: 390, height: 844 },
-};
-
-/**
- * Deterministic execution environment for a flow. All fields optional; applied at browser-context
- * creation (so the whole flow runs under them). With `extends`, the child flow's `environment`
- * wins per-key over the parent's (a child can pin just `viewport` and inherit the parent's clock).
- */
-export const EnvironmentSpec = z
-  .object({
-    /** ISO-8601 instant the page clock is frozen at — `new Date()` etc. return this for the whole run. */
-    clock: z.string().datetime({ offset: true, local: true }).optional(),
-    /** BCP-47 language tag (e.g. `en-GB`). */
-    locale: z
-      .string()
-      .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]+)*$/, "must be a BCP-47 language tag (e.g. en-GB)")
-      .optional(),
-    /** IANA timezone (e.g. `Europe/Amsterdam`). */
-    timezone: z.string().min(1).optional(),
-    /** `{ width, height }` in CSS pixels, or a named preset — see {@link VIEWPORT_PRESETS}. */
-    viewport: z.union([ViewportPreset, ViewportSize]).optional(),
-    color_scheme: z.enum(["light", "dark"]).optional(),
-    reduced_motion: z.boolean().optional(),
-  })
-  .strict();
-export type EnvironmentSpec = z.infer<typeof EnvironmentSpec>;
-
-// ---------------------------------------------------------------------------
 // Redactions (`redactions:` — flow-level and per-step)
 // ---------------------------------------------------------------------------
 
@@ -246,6 +222,19 @@ export const StepAnnotation = z
      * surviving / appearing element.
      */
     target: LocatorRef.optional(),
+    /**
+     * Call-out text per locale, keyed by BCP-47 tag (`es`, `fr-CA`). `copy` stays required and is the
+     * fallback. A variant takes its locale's entry (exact tag, then the language subtag), else `copy`.
+     * The variant locale is the matrix locale, or `environment.locale` when the flow has no matrix locales.
+     */
+    copy_by_locale: z
+      .record(LocaleTag, z.string().min(1))
+      .refine((m) => Object.keys(m).length > 0, { message: "needs at least one locale" })
+      .optional(),
+    /** Variants this call-out is kept for. Needs a `matrix`; see {@link VariantSelector}. */
+    only: VariantSelector.optional(),
+    /** Variants this call-out is dropped from. Needs a `matrix`; see {@link VariantSelector}. */
+    skip: VariantSelector.optional(),
   })
   .strict();
 export type StepAnnotation = z.infer<typeof StepAnnotation>;
@@ -288,6 +277,10 @@ export const Step = z
     annotations: z.array(StepAnnotation).min(1).optional(),
     /** Extra redactions for this step's screenshots, additive on top of the flow-level list. */
     redactions: z.array(RedactionSpec).min(1).optional(),
+    /** Variants this step runs for (the others skip it). Needs a `matrix`; see {@link VariantSelector}. */
+    only: VariantSelector.optional(),
+    /** Variants this step is dropped from. Needs a `matrix`; see {@link VariantSelector}. */
+    skip: VariantSelector.optional(),
   })
   .strict()
   .refine((s) => !(s.annotation && s.annotations), {
@@ -306,9 +299,29 @@ export type Step = z.infer<typeof Step>;
 export const Prerequisite = z.record(z.string(), z.union([z.string(), z.boolean()]));
 export type Prerequisite = z.infer<typeof Prerequisite>;
 
+/** Longest flow name. The name is a directory and file name under the workspace. */
+export const MAX_FLOW_NAME_LENGTH = 64;
+
+/**
+ * A flow's name is a path segment: it names `flows/<name>.flow.yaml` and `docs/<name>/`, and
+ * `run` writes under both. It starts with a letter or digit, then letters, digits, `.`, `_` and `-`
+ * (so `Board_1.v2` is fine), never contains `..`, and is at most {@link MAX_FLOW_NAME_LENGTH} long.
+ * A slash, a backslash, a leading dot and an absolute path are all outside that set.
+ */
+export const FlowName = z
+  .string()
+  .min(1)
+  .max(MAX_FLOW_NAME_LENGTH)
+  .regex(
+    /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
+    "must start with a letter or digit and use only letters, digits, `.`, `_` and `-`",
+  )
+  .refine((n) => !n.includes(".."), { message: "must not contain `..`" });
+export type FlowName = z.infer<typeof FlowName>;
+
 export const FlowFile = z
   .object({
-    name: z.string().min(1),
+    name: FlowName,
     /**
      * Name of another flow whose steps run *first* (composition). The parent's `locators` + `prerequisites`
      * are merged in (this flow wins on collisions); step ids must be unique across the merge. Chains allowed
@@ -316,12 +329,18 @@ export const FlowFile = z
      * Typical use: factor out a shared preamble (Library → open a video → editor) so dependent flows don't
      * re-walk it every run. (`run --stop-after` operates on the merged step list.)
      */
-    extends: z.string().min(1).optional(),
+    extends: FlowName.optional(),
     /**
      * Deterministic execution environment (frozen clock, locale, timezone, viewport, color scheme,
      * reduced motion). With `extends`, merged per-key — this flow's keys win over the parent's.
      */
     environment: EnvironmentSpec.optional(),
+    /**
+     * Expands the flow into variants: the product of the listed locales, color schemes and viewports.
+     * Each variant runs under its own `environment` override and writes to `docs/<flow>/<variant>/`.
+     * Not inherited through `extends`. See `flow-matrix.ts`.
+     */
+    matrix: MatrixSpec.optional(),
     /** Areas masked on every screenshot this flow produces (incl. halt shots). See {@link RedactionSpec}. */
     redactions: z.array(RedactionSpec).min(1).optional(),
     prerequisites: z.array(Prerequisite).default([]),
@@ -378,6 +397,8 @@ export const AnnotationsFile = z
   .object({
     schema: z.literal("docsxai/annotations@1"),
     flow: z.string().min(1),
+    /** The matrix variant these annotations belong to. Absent for a flow without a `matrix`. */
+    variant: VariantInfo.optional(),
     annotations: z.array(AnnotationRecord),
   })
   .strict();

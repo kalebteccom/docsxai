@@ -149,6 +149,10 @@ environment: # optional — deterministic execution environment, applied at brow
   viewport: desktop # desktop (1440×900) | tablet (834×1112) | mobile (390×844) | { width: W, height: H }
   color_scheme: dark # light | dark
   reduced_motion: true
+matrix: # optional — expands this ONE flow into a variant per combination (at most 64); each variant overrides `environment` on the axes named here and writes to docs/<flow>/<variant>/. Not inherited through `extends`.
+  locales: [en-US, es-ES]
+  color_schemes: [light, dark]
+  viewports: [{ name: desktop-1280, width: 1280, height: 800 }, mobile] # a preset name, or { width, height } with an optional lowercase `name` (default `<width>x<height>`)
 redactions: # optional — masked on EVERY screenshot this flow produces, halt shots included. With `extends`, parent's + this flow's concatenate.
   - { selector: $api_key_field } # element's bounding box at capture time; an absent element is skipped with a stderr warning (vacuously redacted — never a halt)
   - { region: { x: 10, y: 80, width: 220, height: 40 }, style: pixelate } # fixed CSS-px rect. style: box (default — solid #000) | pixelate (16-px mosaic)
@@ -164,7 +168,12 @@ steps:
     target: $play_button # $name (from `locators`) or an inline selector
     wait_for: { selector: $recap_panel }
     success: { visible: $recap_panel } # visible | hidden | { url_matches: '...' } | { text_contains: { selector: $x, text: '...' } } — halts on failure
-    annotation: { copy: "Click Play to open the recap sidebar", arrow: top-right } # one call-out; OR — for several on the same screenshot — use `annotations:` (plural), which renders them as numbered badges so the reader sees up front there's more than one thing to look at:
+    only: { viewport: [mobile] } # optional — keep this step for these variants only (axes: viewport name, color_scheme, locale; a clause matches when every axis it names matches). `skip:` drops the matching variants instead. Both need a `matrix`, and a value no matrix entry can match is a parse error. Also allowed on an `annotation`/`annotations[]` entry.
+    annotation: {
+        copy: "Click Play to open the recap sidebar",
+        arrow: top-right,
+        copy_by_locale: { es: "Pulsa Play para abrir el panel" },
+      } # one call-out; `copy_by_locale` is the text per locale (exact tag, then language, else `copy`); OR, for several on the same screenshot — use `annotations:` (plural), which renders them as numbered badges so the reader sees up front there's more than one thing to look at:
     # annotations:
     #   - { copy: "the play button", target: $play_button, arrow: top, nudge: { x: -30, y: 0 } }   # nudge: optional pixel offset on the callout+arrow only (halo stays). Use when two callouts overlap. Also optional: placement: { inside, side, align, pin_arrow, max_width, obstacle_radius, obstacle_limit } (see "Keeping burned callouts off page content" below)
     #   - { copy: "the panel that opened", target: $recap_panel, arrow: left }
@@ -191,6 +200,8 @@ steps:
     action: show # no `target` = lift every `hide`; with a `target` = lift the `hide` that used that same selector
 ```
 
+**Matrix (one flow, many variants).** Do not keep `desktop.flow.yaml` + `mobile.flow.yaml` as near-copies, and do not vary locale or theme from a harness: put the axes in `matrix:` and the differences in `only:`/`skip:` and `copy_by_locale`. Variant ids are `<locale>.<color_scheme>.<viewport name>` with the axes the matrix has (`es-ES.dark.mobile`); expansion order is locales, color schemes, viewports, each as written, so it is deterministic. A flow without a `matrix` writes exactly the flat layout it always did; with one, output is `docs/<flow>/<variant>/{screenshots/<step>.png, annotations.json, halts/<step>.png}` and each `annotations.json` carries a `variant` object. Differences beyond steps and copy (an arrow side, `placement`) are two annotations with `only:` on each. `run` starts one browser per variant (`--variant <id>` runs one; `--cdp` cannot run a matrix flow); a halt reads `[variant es-ES.dark.mobile] step "x" (click) failed at ...`; `lint` lists the variants (R015) and flags dead `copy_by_locale` keys (R016); `flow-tree` prints them; `diagnose --variant <id>` diagnoses one. `render` and `burn` treat `<flow>/<variant>` as a flow. Not covered yet: `baseline`/`diff`, `export playwright` (refuses a matrix flow) and the MCP `run_flows` / `diagnose_halt` tools. Design: [`docs/ai-context/architecture/flow-matrix-decision.md`](ai-context/architecture/flow-matrix-decision.md).
+
 **`wait_for` kinds.**
 
 | Kind                | Waits for                                                                                                       | Bound                           | Halts?                                            |
@@ -204,7 +215,7 @@ steps:
 
 **Determinism (environment + redactions + element_stable + settled).**
 
-- The `environment` block is what makes runs reproducible across machines and days: a frozen `clock`, pinned `locale`/`timezone`/`viewport`/`color_scheme`/`reduced_motion` → the same flow against the same target state produces **byte-identical screenshots** (keystone-enforced). It also unlocks locale replay (`extends` a base flow, override just `locale`) and responsive variants (override just `viewport`). With `--cdp` the attached Chrome owns its context, so only the clock applies — the engine logs one stderr warning listing the skipped fields.
+- The `environment` block is what makes runs reproducible across machines and days: a frozen `clock`, pinned `locale`/`timezone`/`viewport`/`color_scheme`/`reduced_motion` → the same flow against the same target state produces **byte-identical screenshots** (keystone-enforced). It also unlocks locale replay and responsive variants: list the locales, color schemes and viewports in a `matrix` (see Matrix above) and one flow runs once per combination. With `--cdp` the attached Chrome owns its context, so only the clock applies — the engine logs one stderr warning listing the skipped fields.
 - `redactions` mask sensitive UI (API keys, customer PII) **before the PNG hits disk** — deterministic pixel fills, so they don't break reproducibility; halt screenshots get them too. An annotation anchored to a redacted element would point at a black box — `lint` flags that.
 - `wait_for: element_stable` on a step with a `target` polls that element's bounding box every 100 ms until two consecutive reads agree (±0.5 px), with a 10 s budget — best-effort: a perpetually-animating element proceeds after the budget rather than wedging the run. Without a `target` it waits on nothing (`lint` flags that too).
 - `wait_for: settled` is a bounded, selector-free page settle for the late-swapping font, the image that arrives after the click and the layout shift that follows. It polls inside the page (a fixed engine-owned function; nothing from the flow reaches the page) every 50 ms, after an animation frame, and returns once two consecutive polls see all three: no web font loading (it first awaits `document.fonts.ready`), every `<img>` in the viewport complete (an image that has no size yet counts from where it sits; one that is `display: none` does not), and the boxes of the viewport-visible elements (light DOM and open shadow roots, up to 4000 elements) unchanged within 0.5 px. CSS background images and iframe content aren't watched. The budget is the step's `timeout_ms` (default 10 s, on any action: with a `target` action it bounds the settle as well as the target wait). When it runs out the step halts, like any other, with `[page never settled: ...]` and a message naming what was still moving (`web fonts still loading`, `N visible image(s) still loading`, `layout of the visible elements still changing`); an `optional` step skips instead. A page that animates forever (a looping hero, a ticker) never settles: `hide` the element or use a different wait. A `BrowserDriver` without `waitForSettled` halts the step saying so. Prefer it to a chain of blind `wait` steps.
@@ -216,10 +227,10 @@ steps:
 - **Factor out shared preambles:** put the multi-step "get to the right place" walk in its own flow-file — e.g. `flows/preamble.flow.yaml`, _no `annotation`s_ — and have each dependent flow start with `extends: preamble`; the engine runs the parent's steps first, so iterating on the _child_'s steps is cheap and the un-annotated parent adds zero doc noise.
 - **Pause mid-flow:** to iterate without even re-running the parent each time, `docsxai run "$WORKSPACE" --flow <name> --stop-after <step-id> --pause` runs only up to that step (on the merged step list — so `--stop-after` can target a parent step too) and leaves the (headed) browser open there — inspect the live state, fix/add the next step, repeat.
 - **Shrink total wall time when you have many flows:** `--concurrency <N>` runs up to N flows in parallel (each its own Chromium session); the target app needs to tolerate concurrent sessions from one user, but most do. Force-clamped to 1 with `--pause` / `--stop-after`.
-- **Catch authoring mistakes at write-time:** `docsxai lint "$WORKSPACE"` runs pure-static checks across your flow-files (deep `extends` chains, annotations anchored to likely-unmounting click targets, `wait_for` without `timeout_ms` on long-async-looking steps, bare `[data-*=…]` selectors prone to hidden duplicates, `extends` targets that don't exist, locators defined but never referenced, terminal steps without `success`, `optional` steps with no `wait_for`/`success` guard, selector-less `element_stable`, annotations anchored to redacted elements, `optional` steps with no short `timeout_ms` (R011, info), `hide` without a target (R012), steps that reach an element an earlier `hide` hid (R013), a bare `wait` step that only sleeps (R014, info: use `wait_for: settled`)).
+- **Catch authoring mistakes at write-time:** `docsxai lint "$WORKSPACE"` runs pure-static checks across your flow-files (deep `extends` chains, annotations anchored to likely-unmounting click targets, `wait_for` without `timeout_ms` on long-async-looking steps, bare `[data-*=…]` selectors prone to hidden duplicates, `extends` targets that don't exist, locators defined but never referenced, terminal steps without `success`, `optional` steps with no `wait_for`/`success` guard, selector-less `element_stable`, annotations anchored to redacted elements, `optional` steps with no short `timeout_ms` (R011, info), `hide` without a target (R012), steps that reach an element an earlier `hide` hid (R013), a bare `wait` step that only sleeps (R014, info: use `wait_for: settled`), the variants a `matrix` expands to (R015, info), a `copy_by_locale` key no variant locale uses (R016)).
 - **Visualise inheritance:** `docsxai flow-tree "$WORKSPACE"` prints the workspace's `extends` graph + checks step-id uniqueness across each chain.
 - **When a step halts**, the error message starts with a `[cause: …]` prefix inferred from Playwright's actionability log (e.g. `[target is disabled]`, `[target was detached from the DOM]`, `[selector matched multiple elements …]`) — read that first; the screenshot in `docs/<flow>/halts/<step>.png` is for confirming.
-- **Diagnose the halt + propose a fix:** `docsxai diagnose "$WORKSPACE" --flow <name> --step <step-id> [--cdp http://localhost:9222] [--format json]` packages the step's selector / wait_for / success / halt-screenshot path / (with `--cdp`) a live `actionable()` probe of the target on the running page, plus typed recommendations (`selector` / `wait_for` / `success` / `annotation_target` / `split_step` / `investigate`). Pair with `--start-from <step-id> --cdp <endpoint>` on the follow-up `run` to validate the fix in seconds. The engine never auto-patches the flow-file — diagnosis is gathered context for an agent decision. See [`packages/plugin/skills/diagnose/SKILL.md`](../packages/plugin/skills/diagnose/SKILL.md) for the full loop.
+- **Diagnose the halt + propose a fix:** `docsxai diagnose "$WORKSPACE" --flow <name> --step <step-id> [--variant <id>] [--cdp http://localhost:9222] [--format json]` packages the step's selector / wait_for / success / halt-screenshot path / (with `--cdp`) a live `actionable()` probe of the target on the running page, plus typed recommendations (`selector` / `wait_for` / `success` / `annotation_target` / `split_step` / `investigate`). Pair with `--start-from <step-id> --cdp <endpoint>` on the follow-up `run` to validate the fix in seconds. The engine never auto-patches the flow-file — diagnosis is gathered context for an agent decision. See [`packages/plugin/skills/diagnose/SKILL.md`](../packages/plugin/skills/diagnose/SKILL.md) for the full loop.
 - **Discovery-time actionability probing:** the engine exposes a `BrowserDriver.actionable(selector)` predicate that returns the same vocabulary at write-time, without acting — `actionable` / `not-found` / `multiple-matches` / `detached` / `not-visible` / `off-screen` / `covered` / `disabled`. Designed for consumers like browxai (and future MCP browser bridges) to surface on `find()` results so a calibration agent can know _before_ the step is written into a flow-file whether the selector is fillable / clickable / scopable. Full contract + per-state semantics + the coordination-with-halt-cause mapping: [`docs/actionability-contract.md`](actionability-contract.md).
 
 **Discovery driver (locator finding against the authed live page).** The canonical, model-agnostic driver is **[browxai](https://github.com/kalebteccom/browxai)** — an MCP-native browser bridge. The host agent gets `find(query)` (ranked candidate locators with `selectorHint` + `stability: high|medium|low` + visible-rect bbox + evidence), `snapshot()` (compact a11y tree **augmented with a DOM walk on every snapshot** — interactive elements via `[role], button, a[href], input, select, textarea, [onclick], [tabindex], [contenteditable]` plus any test-attr bearer, merged under the same root with `[from-dom]` / `[from-both]` source markers so heavy-SPA targets aren't sparse), persistent refs within a session, action primitives that return what changed, `await_human({kind:"acknowledge", prompt})` checkpoints, plus screenshots / console / network reads.
@@ -280,6 +291,21 @@ docsxai diff "$WORKSPACE" --fail-on warn  # CI gate: exit 1 at/above the thresho
 
 The report is deterministic (no timestamps) and per flow: step field deltas (id-keyed), annotation moves beyond a pixel tolerance, screenshot pixel diffs (changed-pixel count / % / changed-region bbox; ≥1% = warn, ≥5% = fail by default; dimension changes flagged distinctly), prose line-change counts, and locator changes. The engine only **detects** — when drift is real, follow the `diagnose` playbook and propose the flow-file patch yourself; programmatic policy (custom thresholds, `ignore_regions` for clocks/ads) is `diffDocPacks` on the library surface.
 
+## Verifying determinism, and the nightly drift job
+
+`docsxai run` is meant to write the same bytes for the same flows and target state. Check it before you trust a baseline:
+
+```bash
+docsxai run "$WORKSPACE" --verify-determinism                 # 2 runs into isolated roots, byte-compare every artefact
+docsxai run "$WORKSPACE" --verify-determinism --runs 4 --format md > determinism-report.md
+```
+
+Each run writes under `$WORKSPACE/.docsxai-verify/run-<k>/` and is compared file by file: `annotations.json`, screenshots, step markdown, locators, halt context. The workspace output is written only when every run agrees (run 1's files are copied in, byte for byte what a plain `run` writes); on any difference or halt it is left as it was, and the run roots are removed at the end (by listed paths, no recursive delete). The report goes to stdout (`--format text|md|json`, default `text`), progress to stderr. Exit 0 identical, 1 differing or a flow halted, 2 bad flags (`--runs` outside 2 to 5; combined with `--pause`, `--stop-after`, `--start-from` or `--cdp`).
+
+The report names the **first differing artefact** by path and a cause: the JSON key path (`annotations[0].bounding_box.x`), the changed-pixel count and bounding box of a PNG, the first differing line of a text file, or the sizes. The bounding box tells you what to pin: a clock (`environment.clock`), timing (`wait_for: settled`, `environment.reduced_motion`), or per-visit content (`hide`, `redactions`). Fix the flow and verify again; retrying the same flow, widening the `diff` thresholds or adding `ignore_regions` hides the variation without removing it.
+
+Run determinism first, then drift: `docsxai diff "$WORKSPACE" --against "$WORKSPACE/.baseline" --format md --fail-on fail`. `docs/ci-recipes.md` has copy-paste nightly jobs for GitHub Actions, GitLab CI and Woodpecker (runnable copies in `examples/ci/`). Browser capture does not belong in per-PR pipelines on shared runners: schedule it.
+
 ## Exporting flows as tests
 
 ```bash
@@ -300,6 +326,42 @@ Two delivery shapes, both downstream of `run`:
 **Narrow screenshots, large targets and unplaceable callouts.** On a record with `obstacles` the callout is at most `min(280, 0.62 x image width)` wide (242 px at 390 px, never under 168 px), and a narrower box is tried when the full one has no clear spot. Wide screenshots and records without `obstacles` keep 280 px. A step annotation (and the record it becomes) also takes an optional `placement` object: `inside: true` (callout inside a target big enough to hold it, no arrow; list content inside the target in `obstacles` by hand, the scan skips it), `side` (`top`, `bottom`, `left`, `right`: only that side, unlike the soft `arrow` hint, whose corner half is ignored), `align` (`start`, `center`, `end` along the edge), `pin_arrow: true` (`nudge` moves only the callout, the arrow stays on the target), `max_width` (120 to 560), and `obstacle_radius` (CSS px, 0 to 2000, default 320) with `obstacle_limit` (1 to 40, default 40) for the capture-time scan. The burner never drops an annotation. `docsxai burn "$WORKSPACE" --report burn-report.json` (relative paths land under the workspace root) also writes, per annotation, the callout and badge boxes, the px² still covering `obstacles` and other halos, badges and callouts, and `unplaceable: true` when the best layout still covers more than 10% of its own area (`--max-overlap <ratio>` changes the threshold). Read the report and decide: shorten the copy, add `placement`, or delete the annotation from `annotations.json` and burn again. Without `obstacles` and `placement` the output is byte-identical to before.
 
 **Dark screenshots.** The burner reads the pixels under each arrow and stem and, when a third or more are dark, paints a 2 px white outline under the near-black connector so it shows on dark UIs. Light screenshots burn as before. Nothing to set in `annotations.json`; `docsxai burn --no-connector-outline` keeps plain ink everywhere.
+
+## Packing screenshots for a site or README (`pack`, `pack --check`)
+
+For a docs site, a README or any static host that wants finished images and a manifest, `docsxai pack` replaces a hand-written build script: it burns each step's annotations into its clean screenshot (same burner, same `obstacles` and `placement` as `burn`), optimises the PNG losslessly, names it `<flow>/<step>.<hash8>.png` from the final bytes, and writes `manifest.json` (`docsxai/screens-pack@2`).
+
+```bash
+brew install oxipng                          # once; --no-optimise skips it
+docsxai pack "$WORKSPACE"                    # → $WORKSPACE/.screens/{<flow>/<step>.<hash8>.png,manifest.json}
+docsxai pack "$WORKSPACE" --out web/public/screens --public-prefix /screens --generated-for "$(git rev-parse --short HEAD)"
+docsxai pack ./raw-capture --from-raw --out web/public/screens   # raw <flow>/<step>/<locale>.<theme>.<viewport>.png capture
+docsxai pack "$WORKSPACE" --check --against web/public/screens --threshold 0.5   # exit 1 past the threshold
+```
+
+A workspace needs a `pack.json` next to `docs/`:
+
+```json
+{
+  "schema": "docsxai/pack-config@1",
+  "sources": {
+    "desktop-1280": { "flow": "app", "variant": "en.dark.1280" },
+    "mobile-390": { "flow": "app", "variant": "en.dark.390" }
+  },
+  "flows": {
+    "app": {
+      "title": { "en": "Acme" },
+      "steps": { "board": { "alt": { "en": "Board with a card per task." } } }
+    }
+  }
+}
+```
+
+`sources` maps each capture flow (`docs/<name>/`) to a logical flow and a variant key `<locale>.<theme>.<viewport>` (any locale tag, theme word and viewport width; not limited to en/es, light/dark, 390/1280). `flows.<flow>.steps.<step>` holds the alt text per locale (and an optional `caption`). The pack stops when a screenshot has no `steps` entry, when an entry has no screenshot, or when `alt` lacks a locale one of the step's variants uses. A raw capture directory carries the same text in `step.json` and `flow.json` and the annotations in each variant's `.json` sidecar.
+
+What stops a pack, before anything is written, in a title, caption, alt text or callout: a loopback address (`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`), a private-network address (10/8, 172.16/12, 192.168/16, link-local 169.254/16), an email address, an `Authorization:` header with a scheme other than `Bearer` (or a bare credential), a token in a URL query (`?token=`, `key=`, `sig=`, `signature=`, `access_token=`, `api_key=` with a value of 6 or more characters), or an obvious secret (private key block, JWT, bearer token, `sk-`, `ghp_`, AWS or Slack key shape, `password=` style assignment). The message names the manifest path and the rule, not the text. Email addresses on the reserved example domains (`example.com`, `.org`, `.net` and their subdomains, and the `.test`, `.invalid` and `.example` TLDs) pass, so copy can show `you@example.com`. A four-part version number that falls in a private range (`version 10.1.2.3`) reads as an address and stops the build; write it as `v10.1.2.3`. Keep alt text and callout copy free of internal URLs, and hide such text in the flow (`hide`) instead of captioning around it.
+
+Rebuilds are byte-stable with the same inputs and the same `oxipng`, so a changed hash means the app (or the optimiser) changed. Upgrading or swapping `oxipng` (a new version, a different build, another `DOCSX_OXIPNG_BIN`) can change every optimised file and so every hash: pin the version in CI and expect a full `pack` rewrite and a `drift` of the committed names when it moves. `pack` checks what the binary writes: the output has to be a complete PNG with the same pixels as its input, so a binary that exits non-zero, writes garbage or is lossy stops the build instead of being hashed. Files that the previous `manifest.json` listed and the new one does not are deleted by exact path; nothing else in `--out` is touched. `drift` rebuilds in memory, never optimises and writes nothing; it lists a variant only when its pixels changed (share of the image and region box), was resized, is new or missing, or its committed file does not match its name. Run it in CI against the committed pack and rerun `pack` and commit when the change is wanted. `docsxai pack` exits 1 on a failed build, 2 on a bad flag; `docsxai drift` exits 1 on any failure, 2 on a bad flag.
 
 ## Step 6 — tear down, verify clean
 

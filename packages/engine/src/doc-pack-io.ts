@@ -50,17 +50,33 @@ async function readFlows(workspace: string): Promise<FlowsPayload | null> {
   return { schema: "docsxai/flows@1", files };
 }
 
-async function readAnnotations(workspace: string): Promise<AnnotationsPayload | null> {
+/**
+ * Directories under `docs/` that can hold a flow's outputs, relative to it: `<flow>`, then each
+ * `<flow>/<variant>` (a flow with a `matrix` writes there). A directory without outputs is harmless.
+ */
+async function outputDirs(workspace: string): Promise<string[]> {
   const docsDir = resolveWorkspacePath(workspace, "docs");
   const flows = await fs.readdir(docsDir, { withFileTypes: true }).catch(() => []);
-  const files: Record<string, unknown> = {};
+  const dirs: string[] = [];
   for (const ent of flows) {
     if (!ent.isDirectory()) continue;
-    const annPath = resolveWorkspacePath(workspace, "docs", ent.name, "annotations.json");
+    dirs.push(ent.name);
+    const subs = await fs
+      .readdir(resolveWorkspacePath(workspace, "docs", ent.name), { withFileTypes: true })
+      .catch(() => []);
+    for (const sub of subs) if (sub.isDirectory()) dirs.push(`${ent.name}/${sub.name}`);
+  }
+  return dirs;
+}
+
+async function readAnnotations(workspace: string): Promise<AnnotationsPayload | null> {
+  const files: Record<string, unknown> = {};
+  for (const dir of await outputDirs(workspace)) {
+    const annPath = resolveWorkspacePath(workspace, "docs", dir, "annotations.json");
     const text = await fs.readFile(annPath, "utf8").catch(() => null);
     if (text === null) continue;
     try {
-      files[`${ent.name}/annotations.json`] = JSON.parse(text);
+      files[`${dir}/annotations.json`] = JSON.parse(text);
     } catch {
       // skip unparseable files (push surfaces them in lint output, not here)
     }
@@ -70,20 +86,15 @@ async function readAnnotations(workspace: string): Promise<AnnotationsPayload | 
 }
 
 async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | null> {
-  const docsDir = resolveWorkspacePath(workspace, "docs");
-  const flows = await fs.readdir(docsDir, { withFileTypes: true }).catch(() => []);
   const files: Record<string, BlobRef> = {};
-  for (const ent of flows) {
-    if (!ent.isDirectory()) continue;
-    const screenDir = resolveWorkspacePath(workspace, "docs", ent.name, "screenshots");
+  for (const dir of await outputDirs(workspace)) {
+    const screenDir = resolveWorkspacePath(workspace, "docs", dir, "screenshots");
     const shots = await fs.readdir(screenDir).catch(() => null);
     if (!shots) continue;
     for (const f of shots) {
       if (!/\.(png|jpg|jpeg|webp)$/i.test(f)) continue;
-      const buf = await fs.readFile(
-        resolveWorkspacePath(workspace, "docs", ent.name, "screenshots", f),
-      );
-      files[`${ent.name}/screenshots/${f}`] = {
+      const buf = await fs.readFile(resolveWorkspacePath(workspace, "docs", dir, "screenshots", f));
+      files[`${dir}/screenshots/${f}`] = {
         sha256: createHash("sha256").update(buf).digest("hex"),
         bytes: buf.byteLength,
       };

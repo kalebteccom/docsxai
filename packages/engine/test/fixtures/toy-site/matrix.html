@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Matrix toy</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: sans-serif;
+        background: #ffffff;
+        color: #111111;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #101820;
+          color: #f0f0f0;
+        }
+      }
+      #note {
+        display: inline-block;
+        margin-top: 16px;
+        padding: 8px;
+        border: 1px solid currentColor;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Matrix toy</h1>
+    <p id="lang"></p>
+    <p id="scheme"></p>
+    <p id="size"></p>
+    <div id="note">note</div>
+    <script>
+      document.getElementById("lang").textContent = "language: " + navigator.language;
+      document.getElementById("scheme").textContent =
+        "scheme: " + (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.getElementById("size").textContent = "viewport: " + innerWidth + "x" + innerHeight;
+    </script>
+  </body>
+</html>

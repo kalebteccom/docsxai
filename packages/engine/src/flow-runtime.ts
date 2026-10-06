@@ -17,9 +17,11 @@ import {
   type RedactionRegion,
   type RedactionStyle,
   type Step,
+  type VariantInfo,
 } from "./doc-pack.js";
 import { locatorRefName } from "./flow-file.js";
 import { FlowExecutionError, inferHaltCause } from "./flow-halt.js";
+import { pickCopy, variantDocDir } from "./flow-matrix.js";
 import { checkSuccess } from "./flow-success.js";
 import { applyWait } from "./flow-wait.js";
 import { OBSTACLE_RADIUS, selectObstacles, type NearbyBoxes } from "./obstacles.js";
@@ -59,10 +61,16 @@ export interface BrowserDriver {
    * `timeoutMs` for a match to exist, throws if none does. The hiding is by selector and holds for
    * the rest of the session, across navigations and re-renders, until {@link showElements}.
    * Implementations apply a fixed engine-owned rule; the selector is data, never CSS or script.
+   *
+   * Optional, like {@link waitForSettled}: a driver written before `hide` existed still satisfies the
+   * interface. The runtime halts a `hide` step on a driver without it, with a message naming the method.
    */
-  hideElements(selector: string, timeoutMs?: number): Promise<void>;
-  /** Undo {@link hideElements} for the selector as it was given there, or for everything when `null`. Instant; matching nothing is fine. */
-  showElements(selector: string | null): Promise<void>;
+  hideElements?(selector: string, timeoutMs?: number): Promise<void>;
+  /**
+   * Undo {@link hideElements} for the selector as it was given there, or for everything when `null`. Instant; matching nothing is fine.
+   * Optional; the runtime halts a `show` step on a driver without it, with a message naming the method.
+   */
+  showElements?(selector: string | null): Promise<void>;
 
   waitForNetworkIdle(): Promise<void>;
   waitForLoad(): Promise<void>;
@@ -103,8 +111,11 @@ export interface BrowserDriver {
    * driver's; `selectObstacles` sorts, clips and caps. Returns `null` when the target isn't visible
    * within `timeoutMs`; rejects if the scan itself runs past `timeoutMs`. The scan happens after the
    * screenshot, so a continuously animating page can drift from the image. Only called when a workspace turns on `annotations.obstacles`.
+   *
+   * Optional. With `annotations.obstacles` on, the runtime halts an annotated step on a driver
+   * without it, with a message naming the method; with it off, the method is never called.
    */
-  nearbyBoxes(selector: string, radius: number, timeoutMs?: number): Promise<NearbyBoxes | null>;
+  nearbyBoxes?(selector: string, radius: number, timeoutMs?: number): Promise<NearbyBoxes | null>;
   /** Capture a clean screenshot (no baked annotations), applying any `redactions` before it hits disk. */
   screenshot(relPath: string, redactions?: ResolvedRedaction[]): Promise<void>;
 
@@ -150,8 +161,14 @@ export { FlowExecutionError, inferHaltCause } from "./flow-halt.js";
 export interface RunFlowOptions {
   /** Resolve a locator name → selector. Defaults to the flow-file's own `locators` map. */
   resolveLocator?: (name: string) => string | undefined;
-  /** Where screenshots are written, relative to the doc pack root. Default: `docs/<flow>/screenshots/<step>.png`. */
+  /** Where screenshots are written, relative to the doc pack root. Default: `docs/<flow>/screenshots/<step>.png`, or `docs/<flow>/<variant>/screenshots/<step>.png` with `variant`. */
   screenshotPath?: (flow: string, stepId: string) => string;
+  /**
+   * The matrix variant `flow` was expanded for (from `expandFlow`). Moves the default screenshot and
+   * halt-shot paths under `docs/<flow>/<variant>/`, names the variant in a halt message, and is recorded
+   * as `variant` in the returned annotations. Absent for a flow without a `matrix`: output is unchanged.
+   */
+  variant?: VariantInfo;
   /** If false, skip screenshot/annotation capture (pure flow validation). Default: true. */
   captureDocs?: boolean;
   /** If set, stop after executing the step with this id — run only a prefix of the flow (for calibration). */
@@ -187,8 +204,8 @@ export interface RunFlowResult {
   annotations: AnnotationsFile;
 }
 
-const defaultScreenshotPath = (flow: string, stepId: string) =>
-  `docs/${flow}/screenshots/${stepId}.png`;
+const defaultScreenshotPath = (flow: string, stepId: string, variant?: string) =>
+  `${variantDocDir(flow, variant)}/screenshots/${stepId}.png`;
 
 /** Resolve a `target` value (`$name` ref or inline selector) using the flow-file's locators (or a custom resolver). */
 export function resolveTarget(
@@ -213,6 +230,7 @@ async function obstaclesAround(
   stepId: string,
   placement?: AnnotationPlacement,
 ): Promise<BoundingBox[]> {
+  if (!driver.nearbyBoxes) return [];
   const radius = placement?.obstacle_radius ?? OBSTACLE_RADIUS;
   try {
     const scan = await driver.nearbyBoxes(selector, radius, 2000);
@@ -265,10 +283,17 @@ async function executeAction(
     case "wait":
       return; // a bare `wait` step just runs its `wait_for`
     case "hide":
+      if (!driver.hideElements) throw new Error(missingMethod("hide", "hideElements"));
       return driver.hideElements(needSelector(selector, step), step.timeout_ms);
     case "show":
+      if (!driver.showElements) throw new Error(missingMethod("show", "showElements"));
       return driver.showElements(selector); // no target = show everything hidden so far
   }
+}
+
+/** The halt message for a step whose optional driver method is missing. `halt-cause` keys on its shape. */
+function missingMethod(feature: string, method: string): string {
+  return `${feature}: driver has no ${method} (this browser driver doesn't implement it)`;
 }
 
 function needSelector(selector: string | null, step: Step): string {
@@ -287,8 +312,17 @@ export async function runFlow(
   driver: BrowserDriver,
   opts: RunFlowOptions = {},
 ): Promise<RunFlowResult> {
+  if (flow.matrix) {
+    throw new Error(
+      `runFlow: flow "${flow.name}" has a \`matrix\`; expand it (expandFlow) and run each variant`,
+    );
+  }
   const captureDocs = opts.captureDocs ?? true;
-  const screenshotPathOf = opts.screenshotPath ?? defaultScreenshotPath;
+  const variantId = opts.variant?.id;
+  const screenshotPathOf =
+    opts.screenshotPath ??
+    ((name: string, stepId: string) => defaultScreenshotPath(name, stepId, variantId));
+  const locale = flow.environment?.locale;
   const resolve = (v: string) => resolveTarget(v, flow, opts.resolveLocator);
 
   const executed: ExecutedStep[] = [];
@@ -343,20 +377,27 @@ export async function runFlow(
       // Halt: dump a screenshot for triage (best-effort), prepend a 1-line inferred cause
       // (parsed from Playwright's actionability log so the agent doesn't have to scan ~20 lines
       //  to know why), then surface step id + url + halt-shot path uniformly.
-      const haltShot = `docs/${flow.name}/halts/${step.id}.png`;
+      const haltShot = `${variantDocDir(flow.name, variantId)}/halts/${step.id}.png`;
       // Halt shots can capture the same sensitive UI as step shots — same redactions apply.
       if (captureDocs) await driver.screenshot(haltShot, redactions).catch(() => undefined);
       const suffix = captureDocs ? ` (halt screenshot: ${haltShot})` : "";
       const cause = inferHaltCause((e as Error).message ?? "");
       const causePrefix = cause ? `[${cause}] ` : "";
+      const variantTag = variantId ? `[variant ${variantId}] ` : "";
       if (e instanceof FlowExecutionError) {
-        throw new FlowExecutionError(`${causePrefix}${e.message}${suffix}`, e.stepId, e.cause);
+        throw new FlowExecutionError(
+          `${causePrefix}${variantTag}${e.message}${suffix}`,
+          e.stepId,
+          e.cause,
+          variantId,
+        );
       }
       const where = await driver.currentUrl().catch(() => "?");
       throw new FlowExecutionError(
-        `${causePrefix}step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`,
+        `${causePrefix}${variantTag}step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`,
         step.id,
         e,
+        variantId,
       );
     }
 
@@ -373,6 +414,16 @@ export async function runFlow(
     // each becomes one record with a 1-based `index`; an `annotation` (singular) emits one record without
     // `index` (un-numbered, back-compat).
     const anns = step.annotations ?? (step.annotation ? [step.annotation] : []);
+    if (captureDocs && anns.length > 0 && opts.obstacles && !driver.nearbyBoxes) {
+      // Obstacle scanning was asked for and cannot run: halt rather than write annotations without it.
+      throw new FlowExecutionError(
+        missingMethod("obstacles", "nearbyBoxes") +
+          "; turn off `annotations.obstacles` in .docsxai.json or use a driver that has it",
+        step.id,
+        undefined,
+        variantId,
+      );
+    }
     if (captureDocs && anns.length > 0) {
       try {
         const shot = screenshotPathOf(flow.name, step.id);
@@ -391,7 +442,7 @@ export async function runFlow(
             selector: annSelector ?? "",
             ...(bbox ? { bounding_box: bbox } : {}),
             ...(obstacles.length > 0 ? { obstacles } : {}),
-            copy: ann.copy,
+            copy: pickCopy(ann, locale),
             ...(ann.arrow ? { arrow_style: ann.arrow } : {}),
             ...(ann.nudge ? { nudge: ann.nudge } : {}),
             ...(ann.placement ? { placement: ann.placement } : {}),
@@ -411,6 +462,11 @@ export async function runFlow(
   return {
     flow: flow.name,
     steps: executed,
-    annotations: { schema: "docsxai/annotations@1", flow: flow.name, annotations },
+    annotations: {
+      schema: "docsxai/annotations@1",
+      flow: flow.name,
+      ...(opts.variant ? { variant: opts.variant } : {}),
+      annotations,
+    },
   };
 }

@@ -11,6 +11,7 @@
 //      `require.resolve.paths()`, which test runners extend with extra lookup dirs.)
 //   3. `docsxai-viewer` on PATH (the npm bin shim) — the legacy behavior, kept as the fallback.
 
+import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -124,4 +125,27 @@ export function formatViewerBinFailure(resolution: ViewerBinResolution): string 
     ...lines,
     `Install ${VIEWER_PACKAGE} next to the engine (or globally), or point ${VIEWER_BIN_ENV} at its bin script.`,
   ].join("\n");
+}
+
+/**
+ * Run the viewer's CLI with `args` and resolve to its exit code. The viewer is its own package/bin;
+ * spawning it keeps the engine from depending on it at build time. `label` prefixes the failure
+ * line when the bin can't be launched.
+ */
+export async function runViewerBin(label: string, args: string[]): Promise<number> {
+  const viewerBin = await resolveViewerBin();
+  return new Promise<number>((resolve) => {
+    const child = spawn(viewerBin.command, [...viewerBin.prefixArgs, ...args], {
+      stdio: "inherit",
+    });
+    child.on("error", (e: NodeJS.ErrnoException) => {
+      if (e.code === "ENOENT") {
+        process.stderr.write(`${label}: ${formatViewerBinFailure(viewerBin)}\n`);
+      } else {
+        process.stderr.write(`${label}: ${e.message}\n`);
+      }
+      resolve(1);
+    });
+    child.on("exit", (code) => resolve(code ?? 1));
+  });
 }

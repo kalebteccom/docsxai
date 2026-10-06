@@ -14,11 +14,12 @@ docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--r
                                [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                [--persist tmp] [--force]
 docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
-docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
-docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
+docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
 docsxai flow-tree <workspace-dir> [--format text|json]
-docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
+docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
 docsxai doctor [<workspace-dir>]
 docsxai style <workspace-dir> [--check] [--format text|json]
 docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
@@ -27,11 +28,13 @@ docsxai diff <workspace-dir> [--against <dir>] [--format json|md|text] [--fail-o
 docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
 docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]
 docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
-docsxai login --backend-url <url>
+docsxai login --backend-url <url> [--oauth <workspace-dir>]
 docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 docsxai pull <workspace-dir> [--rev <id>]
 docsxai render <workspace-dir>
 docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
+docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
+docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
 docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
 docsxai --help
 ```
@@ -139,7 +142,9 @@ for you. On a slow SPA, settle before the snapshot with `--wait <ms>`
 (default 800) or `--wait-for '<css>'`. `--url <url>` inspects a sub-page;
 `--cdp <endpoint>` attaches to an already-running Chrome (the one from
 `capture-auth --cdp`, say) instead of launching; `--role <role>` picks which
-cached session to load.
+cached session to load. `--ignore-https-errors` accepts a self-signed or invalid
+TLS certificate (the same setting is read from `ignore_https_errors` in
+`.docsxai.json`).
 
 ```
 $ docsxai inspect ~/docsxai/my-app
@@ -174,6 +179,10 @@ Chromium; if no browser binary is present, install one with
   tail step in seconds rather than re-walking the whole `extends` chain. New
   annotations MERGE into the existing `annotations.json` by step id; prior
   steps' annotations and screenshots are preserved.
+- `--variant <id>` runs one variant of a flow with a [matrix](/reference/flow-file/#matrix),
+  for example `es-ES.dark.mobile`. Every variant gets its own browser session and
+  writes to `docs/<flow>/<variant>/`; without `--variant` they all run.
+  `--cdp` cannot run a matrix flow.
 - `--cdp <endpoint>` attaches to a running Chrome (start it with
   `--remote-debugging-port=N`) instead of launching one; docsxai will not
   close that Chrome. When `--cdp` is set, the cached storageState is NOT
@@ -184,6 +193,9 @@ Chromium; if no browser binary is present, install one with
   Force-clamped to 1 when `--pause`, `--stop-after`, `--start-from`, or
   `--cdp` is set. The target app must tolerate multiple sessions from one
   user.
+
+- `--verify-determinism` runs the selected flows more than once and compares
+  the bytes; see [Verifying determinism](#verifying-determinism) below.
 
 A clean run prints one line per flow and exits 0:
 
@@ -209,6 +221,42 @@ The productive loop is `diagnose` → edit the flow-file →
 instead of re-walking the flow. See the
 [agent guidance](/guides/agent-guidance/#diagnose-after-a-halt-never-blind-retries).
 :::
+
+#### Verifying determinism
+
+`docsxai run <workspace-dir> --verify-determinism` checks that the same flows
+against the same target produce the same doc pack. It runs the selected flows
+`--runs <N>` times (2 to 5, default 2), each into its own root under
+`<workspace>/.docsxai-verify/run-<k>/`, then compares every file byte by byte:
+`annotations.json`, the screenshots, step markdown, locators and halt context.
+
+- The workspace output is written only when every run agrees. Run 1's files
+  are then copied in, the same bytes a plain `run` writes. When the runs
+  differ, or a flow halts, the workspace is left as it was.
+- The run roots are removed when the command ends, file by file from the
+  listing of each root; nothing outside them is touched.
+- The report goes to stdout, progress to stderr. `--format text|md|json`
+  picks the rendering (default `text`). The report has no timestamps and no
+  paths, so the same runs print the same bytes.
+- It names the first differing artefact by path, then every other one, each
+  with a cause: the JSON key path (`annotations[0].bounding_box.x`), the
+  changed-pixel count and bounding box of a PNG, the first differing line of
+  a text file, or the sizes.
+- Exit 0: identical. Exit 1: differing, or a flow halted. Exit 2: bad flags,
+  including `--runs` outside 2 to 5 and any combination with `--pause`,
+  `--stop-after`, `--start-from` or `--cdp`.
+
+```
+$ docsxai run ~/docsxai/my-app --verify-determinism
+verify-determinism: 2 runs of 1 flow (publish-post), 5 artefacts per run
+result: DIFFERING
+first differing artefact: docs/publish-post/screenshots/publish.png (run 2 vs run 1)
+  cause: 31 pixels differ (0.0034%) inside x=412 y=88 52x12
+The workspace output was not touched
+```
+
+The [determinism and drift guide](/guides/determinism-and-drift/) covers
+fixing a differing artefact and the nightly CI recipes.
 
 ### `docsxai render`
 
@@ -244,6 +292,85 @@ burn: wrote 6 image(s) to ~/docsxai/my-app/docs/publish-post/burned
 burn: wrote report to ~/docsxai/my-app/burn-report.json (0 unplaceable)
 ```
 
+### `docsxai pack`
+
+Builds the screenshot pack a docs site or README ships: every step's annotations
+burned into its clean screenshot, the PNG optimised losslessly, named from its
+final bytes, and a `manifest.json` that lists them. It runs the viewer's `pack`
+through the same bin resolution as `render`.
+
+`<dir>` is a workspace (it has `docs/`) or a raw capture directory. A workspace
+needs a `pack.json` (`docsxai/pack-config@1`) that says which capture flow feeds
+which variant and holds the alt text:
+
+```json
+{
+  "schema": "docsxai/pack-config@1",
+  "sources": {
+    "desktop-1280": { "flow": "app", "variant": "en.dark.1280" },
+    "mobile-390": { "flow": "app", "variant": "en.dark.390" }
+  },
+  "flows": {
+    "app": {
+      "title": { "en": "Acme" },
+      "steps": { "board": { "alt": { "en": "Board with a card per task." } } }
+    }
+  }
+}
+```
+
+A raw capture directory holds `<flow>/<step>/<locale>.<theme>.<viewport>.png`
+with a `.json` sidecar (`width`, `height`, `annotations` as `{ index, copy, bbox }`
+plus optional `arrow_style`, `nudge`, `obstacles`, `placement`), a `step.json`
+(`alt`, optional `caption`) and an optional `flow.json` (`title`). `--from-raw`
+reads `<dir>` that way even when it has a `docs/` folder.
+
+Output goes to `--out` (default `<workspace>/.screens`; required for a raw
+directory): `<flow>/<step>.<hash8>.png` plus `manifest.json`
+(`docsxai/screens-pack@2`). Locales, themes and viewports are not a fixed list; a
+variant key is `<locale>.<theme>.<viewport>`, for example `pt-BR.dark.1280`.
+`--public-prefix` is the URL path the files are served under (default
+`/screens`). `--generated-for` records free text such as a commit sha; without it
+the key is left out, and the manifest never holds a timestamp.
+
+Optimising uses the external `oxipng` binary (`brew install oxipng`), found on
+PATH or at `$DOCSX_OXIPNG_BIN`. When it is missing the command fails with that
+one-line hint; `--no-optimise` skips it. The hash is taken from the optimised
+bytes, and the optimiser's output is checked first: it has to be a complete PNG with
+the same pixels as its input, or the build stops. A different `oxipng` version can
+produce different bytes, so upgrading it changes the hashes (pin it in CI). Files the old `manifest.json` listed and the new one does not are removed
+by exact path, and nothing else in `--out` is touched. Loopback addresses
+(`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`), private-network addresses (10/8,
+172.16/12, 192.168/16, 169.254/16), email addresses (not on `example.com`, `.org`,
+`.net`, `.test`, `.invalid` or `.example`), `Authorization:` headers other than
+`Bearer`, tokens in a URL query and obvious secrets in a title, caption, alt text
+or callout stop the build, naming the manifest path and rule.
+Exit 1 for a failed build, 2 for a bad flag.
+
+```
+$ docsxai pack ~/docsxai/my-app
+pack: 32 image(s), 3 written, 1 removed in ~/docsxai/my-app/.screens
+```
+
+### `docsxai pack --check`
+
+Rebuilds the pack in memory (nothing is written and `oxipng` is not needed) and
+compares it with the committed pack in `--against` (required). A variant whose file hash is
+unchanged is skipped. Otherwise both PNGs are compared pixel by pixel and the
+line shows the changed share of the image and the box around the change. A
+rebuild that differs only in bytes (the optimiser) passes. The command fails for
+a change over `--threshold` (percent, default 0.5), a resized variant, a new or
+missing variant, and a committed file that does not match its name. Exit 1 on any
+of those, 2 for a bad flag. The report has no timestamps. The `drift` command
+of earlier builds still works for now: it prints a deprecation warning and runs
+`pack --check` with the same arguments.
+
+```
+$ docsxai pack ~/docsxai/my-app --check --against web/public/screens
+docsxai drift: 32 compared, 1 over threshold (0.5%)
+  changed  app/board/en.dark.1280  2.4113%  region 40,96 612x188  OVER
+```
+
 ## Calibration aids
 
 ### `docsxai lint`
@@ -252,7 +379,7 @@ Pure-static checks across the workspace's flow-files - no Playwright, no
 live page. The core rules cover deep `extends` chains, annotations anchored
 to likely-unmounting click/navigate targets, selector waits with no
 `timeout_ms` on long-async-looking steps, bare `[data-*=...]` selectors
-prone to hidden duplicates, and more - the full R001-R014 table is in
+prone to hidden duplicates, and more - the full R001-R016 table is in
 [Troubleshooting](/guides/troubleshooting/). Workspace plugins can add
 rules. Exit 1 if any warning or error; `--format json` emits
 machine-readable output for tooling.
@@ -285,6 +412,9 @@ preamble    [3 steps]
 3 flows, max chain depth 1
 ```
 
+A flow with a [matrix](/reference/flow-file/#matrix) lists its variants after the
+step count: `tour    [4 steps]    {4 variants: en-US.light, en-US.dark, es-ES.light, es-ES.dark}`.
+
 ### `docsxai diagnose`
 
 Gathers halt context for a specific step: the step's selector, `wait_for`,
@@ -294,7 +424,11 @@ recommendations (`selector` / `wait_for` / `success` / `annotation_target` /
 `split_step` / `investigate`). The engine never patches the flow-file itself;
 that is the agent's explicit opt-in action. `--format json` emits
 machine-readable output for an agent to act on. Pair with
-`run --start-from <step-id> --cdp` to validate the fix in seconds.
+`run --start-from <step-id> --cdp` to validate the fix in seconds. On a flow
+with a [matrix](/reference/flow-file/#matrix), `--variant <id>` picks the
+variant (its steps and its `halts/` screenshot). Without it, `diagnose` takes
+the one variant that holds a halt screenshot for the step, and otherwise lists
+the variants and exits 2.
 
 ```
 $ docsxai diagnose ~/docsxai/my-app --flow publish-post --step publish --cdp http://localhost:9222
@@ -496,7 +630,8 @@ A fuller session, including `info` and `sync`, is in the
 Validates a bearer token against a backend URL - hits `/v1/health` and
 `/v1/workspaces`. Reads the token from the `DOCSX_TOKEN` env var; prints
 what the backend sees on success, or a clear error. Stateless: it stores
-nothing. With `--oauth <workspace-dir>` it instead drives the full OAuth 2.1
+nothing. With `--oauth <workspace-dir>` (the sign-in for a person, as opposed
+to the CI token) it instead drives the full OAuth 2.1
 authorization-code + PKCE handshake against the backend and stores the tokens
 at `<workspace>/.auth/backend-token.json` (mode 0600); `push`, `pull`, and
 `run` pick them up from there.

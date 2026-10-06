@@ -11,7 +11,7 @@
 // signalling lives at the MCP/skill layer. This module covers only the part that's deterministic.
 
 import { promises as fs } from "node:fs";
-import { type FlowFile } from "./doc-pack.js";
+import { FlowName, type FlowFile } from "./doc-pack.js";
 import { FlowFileError, parseFlowFile, serializeFlowFile } from "./flow-file.js";
 import { initStyleIfAbsent } from "./style.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
@@ -90,6 +90,12 @@ export interface CalibrateResult {
 export async function calibrate(opts: CalibrateOptions): Promise<CalibrateResult> {
   const flow = extractFlowFile(opts.fromText, opts.fromSource ?? "<flow-guide>");
   const name = opts.flowName ?? flow.name;
+  const checked = FlowName.safeParse(name);
+  if (!checked.success) {
+    throw new CalibrateError(
+      `flow name "${name}" is not usable: ${checked.error.issues.map((i) => i.message).join("; ")}`,
+    );
+  }
 
   await fs.mkdir(resolveWorkspacePath(opts.workspaceDir, "flows"), { recursive: true });
   // The flow name is guide-supplied — resolve with the symlink-aware variant before writing.

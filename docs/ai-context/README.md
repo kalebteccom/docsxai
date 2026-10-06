@@ -8,6 +8,7 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 - Figuring out where new code goes, or what to call it → read [`architecture/hexagonal-and-ddd.md`](architecture/hexagonal-and-ddd.md) (the layer map, ubiquitous language, the where-does-it-go rule).
 - Creating or splitting a file/module → read [`architecture/module-and-file-size.md`](architecture/module-and-file-size.md) (the one-reason-to-change size budget and its ratchet).
 - Adding an architectural guarantee, or before relying on one → read [`architecture/fitness-functions.md`](architecture/fitness-functions.md) (what is mechanically enforced vs. still an aspiration).
+- Touching flow expansion (`matrix:`, `only`/`skip`, `copy_by_locale`), the per-variant output layout under `docs/<flow>/<variant>/`, or the `run` unit loop → read [`architecture/flow-matrix-decision.md`](architecture/flow-matrix-decision.md); [`matrix-adoption-notes.md`](matrix-adoption-notes.md) shows the trackxai and remotxai flows on it.
 - Adding a CLI subcommand or plugin command → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`architecture/documentation-contracts.md`](architecture/documentation-contracts.md).
 - Adding a tool to the standalone MCP server (`packages/mcp/`) → read [`tool-registration/mcp-tool-registry.md`](tool-registration/mcp-tool-registry.md).
 - Writing a test → read [`testing/tdd-and-test-strategy.md`](testing/tdd-and-test-strategy.md) (test-first workflow + the layers), [`testing/qa-patterns.md`](testing/qa-patterns.md), and [`testing/unit-vs-keystone.md`](testing/unit-vs-keystone.md).
@@ -15,7 +16,7 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 - Adding any gated/acting surface (MCP tool, plugin kind, auth strategy, webhook, output strategy) → read [`architecture/capability-posture-map.md`](architecture/capability-posture-map.md) and [`secrets-and-egress/auth-catalogue-and-masking.md`](secrets-and-egress/auth-catalogue-and-masking.md).
 - Touching the engine runtime, the `BrowserDriver` interface, or auth strategies → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`testing/qa-patterns.md`](testing/qa-patterns.md) — the keystone test is the regression gate.
 - Touching any code path that writes artifacts (screenshots, annotations, halt context, doc-pack zip) → read [`secrets-and-egress/README.md`](secrets-and-egress/README.md).
-- Releasing or changing the surface → read [`release-process/semver-clock.md`](release-process/semver-clock.md).
+- Releasing or changing the surface → read [`release-process/semver-clock.md`](release-process/semver-clock.md) and [`../public-surface.md`](../public-surface.md). A change to a pinned surface trips a contract test (`packages/*/test/contract/`); the update procedure is in each test file's header.
 - Editing a commit message or pushing without local verify → read [`agent-process/commit-discipline.md`](agent-process/commit-discipline.md) and [`agent-process/dist-rebuild-discipline.md`](agent-process/dist-rebuild-discipline.md).
 
 ## Information architecture

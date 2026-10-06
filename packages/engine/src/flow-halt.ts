@@ -7,6 +7,8 @@ export class FlowExecutionError extends Error {
     message: string,
     readonly stepId: string,
     readonly cause?: unknown,
+    /** Id of the matrix variant that halted; absent for a flow without a `matrix`. */
+    readonly variant?: string,
   ) {
     super(message);
     this.name = "FlowExecutionError";
@@ -44,6 +46,14 @@ export function inferHaltCause(rawError: string): string | undefined {
     [
       /settled: driver has no waitForSettled/i,
       "this browser driver can't run wait_for: settled (use network_idle plus a short wait)",
+    ],
+    [
+      /(hide|show): driver has no (hideElements|showElements)/i,
+      "this browser driver can't run hide or show steps (it has no hideElements / showElements)",
+    ],
+    [
+      /obstacles: driver has no nearbyBoxes/i,
+      "this browser driver can't scan for obstacles (it has no nearbyBoxes)",
     ],
     [/intercepts? pointer events\b/i, "target is covered by another element"],
     [

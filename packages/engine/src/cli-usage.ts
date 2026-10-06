@@ -9,11 +9,12 @@ Usage:
                                  [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                  [--persist tmp] [--force]
   docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
-  docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
-  docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+  docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
+  docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+  docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]
   docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
   docsxai flow-tree <workspace-dir> [--format text|json]
-  docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
+  docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
   docsxai doctor [<workspace-dir>]
   docsxai style <workspace-dir> [--check] [--format text|json]
   docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
@@ -22,11 +23,13 @@ Usage:
   docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
   docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]
   docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
-  docsxai login --backend-url <url>
+  docsxai login --backend-url <url> [--oauth <workspace-dir>]
   docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
   docsxai pull <workspace-dir> [--rev <id>]
   docsxai render <workspace-dir>
   docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
+  docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
+  docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
   docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   docsxai --help
 
@@ -53,10 +56,23 @@ Notes:
     state (e.g. left over from a paused previous run) and iterate on the new tail step in seconds rather
     than re-walking the whole extends chain. New annotations MERGE into the existing annotations.json by
     step id; the prior steps' annotations and screenshots are preserved.
+  • A flow with a top-level \`matrix:\` (locales, color_schemes, viewports) expands into one variant per
+    combination. run gives each variant its own Chromium session and writes docs/<flow>/<variant>/
+    {screenshots/, annotations.json, halts/} (variant id: <locale>.<scheme>.<viewport>, axes the matrix
+    leaves out are dropped). run --variant <id> runs one variant. lint lists the variants (R015), flow-tree
+    prints them, diagnose --variant <id> picks one. --cdp cannot run a matrix flow.
   • run --cdp <endpoint> attaches to a running Chrome (start it with --remote-debugging-port=N) instead of
     launching one. docsxai won't close that Chrome. When --cdp is set, the cached storageState is NOT
     loaded into the context — the operator's Chrome owns its auth state. Useful with --start-from for the
     sub-3-sec iteration loop on long-async flows.
+  • run --verify-determinism runs the selected flows N times (--runs, 2 to 5, default 2), each into its own
+    root under <ws>/.docsxai-verify/run-<k>/, then byte-compares every artefact: annotations.json, screenshots,
+    step markdown, locators, halt context. The workspace output is written only when every run agrees (run 1's
+    files are copied in, the bytes a plain run writes); on any difference or halt it is left untouched. The run
+    roots are removed at the end. The report goes to stdout (--format text|md|json, default text; progress goes to
+    stderr) and names the first differing artefact by path with a cause: the JSON key path, the changed-pixel
+    region of a PNG, the first differing line of text, or the sizes. Exit 0 identical, 1 differing or a flow
+    halted, 2 bad flags. Not combinable with --pause / --stop-after / --start-from / --cdp.
   • capture-auth runs the role's auth strategy (MVP: manual-capture — a headed, instrumented browser the
     engineer logs into; window.__docsxai.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you
@@ -77,6 +93,7 @@ Notes:
     because the auth cookie is usually httpOnly; inspect does the storageState→Playwright bridge for you). On a
     slow SPA, settle before the snapshot with --wait <ms> (default 800) or --wait-for '<css>'. --cdp <endpoint>
     attaches to an already-running Chrome (e.g. the one from capture-auth --cdp) instead of launching one.
+    --ignore-https-errors accepts a self-signed/invalid TLS certificate (also read from ignore_https_errors in .docsxai.json).
   • calibrate takes a *structured flow-guide* (a flow-file in YAML, or a .md with a yaml fenced block) and
     writes flows/<name>.flow.yaml + a default docs/style.yaml. Loose-prose descriptions / live element-picking
     need the host agent — that's the /docsxai:calibrate *skill* (see the plugin), which then refines/produces
@@ -138,9 +155,29 @@ Notes:
     --report <file> writes a JSON placement report (callout and badge boxes, overlaps, callouts flagged
     unplaceable), resolved under the workspace when relative. --no-connector-outline keeps every arrow and
     stem plain ink; by default one over a dark part of the screenshot gets a white outline.
+  • pack builds the screenshot pack a docs site or README ships: it burns each step's annotations into its
+    clean screenshot, optimises the PNG losslessly with the external \`oxipng\` binary (on PATH, or
+    $DOCSX_OXIPNG_BIN; \`brew install oxipng\`; --no-optimise skips it), names it
+    <flow>/<step>.<hash8>.png from the final bytes, and writes manifest.json (docsxai/screens-pack@2: flows,
+    steps, localised alt, variants keyed <locale>.<theme>.<viewport> with src, size and callouts). <dir> is a
+    workspace (docs/ plus a pack.json naming which capture flow feeds which variant, and the alt text) or,
+    with --from-raw or no docs/, a raw capture directory (<flow>/<step>/<locale>.<theme>.<viewport>.png with a
+    .json sidecar, step.json and flow.json). --out defaults to <workspace>/.screens and is required for a raw
+    directory. Files the previous manifest listed and the new one does not are deleted by exact path; nothing
+    else in --out is touched. Loopback and private-network addresses, emails, non-Bearer Authorization headers,
+    URL-query tokens and obvious secrets in alt, caption, title or callout text stop the build. Runs the
+    viewer's \`pack\` through the same bin resolution as render.
+  • pack --check rebuilds the pack in memory (no oxipng, nothing written) and compares it with the committed pack
+    in --against (required): equal hash is unchanged, otherwise a pixel diff gives changed %, the changed region and
+    a pass or fail against --threshold (default 0.5). A resized, new or missing variant, or a committed file
+    that does not match its name, always fails. Exit 1 on any failure, 2 on a bad argument. The report has no
+    timestamps. The old \`docsxai drift\` still works for now: it prints a deprecation warning and runs pack --check.
   • login validates a bearer token against a backend URL — hits /v1/health, /v1/workspaces. Reads
     the token from DOCSX_TOKEN env var. Prints what the backend sees if the call succeeds,
     or a clear error if not. Stateless: doesn't store anything; configure the env var in your shell.
+    login --oauth <workspace-dir> instead signs in as a person: OAuth 2.1 authorization code + PKCE against
+    the backend. It prints a URL to open in a browser and stores the tokens at
+    <workspace-dir>/.auth/backend-token.json (mode 0600); push, pull and run read them from there.
   • push serialises the workspace's doc pack (flows + annotations + screenshots + style + locators)
     and POSTs it as a new revision against the backend named in .docsxai.json (backend_url +
     optionally backend_workspace_id / backend_project_id; created on first push if absent and

@@ -1,0 +1,25 @@
+# Nightly drift check for a docsxai doc pack. Merge this job into the .gitlab-ci.yml of the
+# repository that holds the workspace, then create a pipeline schedule (CI/CD, Schedules) that
+# runs it every night. Set APP_URL, APP_EDITOR_USER and APP_EDITOR_PASS as masked CI/CD variables.
+#
+# The rule below runs the job for scheduled pipelines only. Do not widen it to merge request or
+# push pipelines: browser capture is slow and heavy, and per-PR pipelines on shared runners
+# compete for the same CPU and memory.
+docsxai-nightly-drift:
+  image: node:26
+  timeout: 1h
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - npm install --global docsxai
+    - npx playwright-core install --with-deps chromium
+    - docsxai run ./docs-workspace --base-url "$APP_URL" --verify-determinism --format md > determinism-report.md
+    - docsxai diff ./docs-workspace --against ./docs-workspace/.baseline --format md --fail-on fail > drift-report.md
+  after_script:
+    - cat determinism-report.md drift-report.md || true
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - determinism-report.md
+      - drift-report.md

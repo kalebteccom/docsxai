@@ -163,7 +163,7 @@ steps:
     await session.page.setContent(
       "<style>*{transition-duration:0.01ms !important}</style><pre id=t><code id=c>secret</code></pre>",
     );
-    await session.driver.hideElements("#t", 2_000);
+    await session.driver.hideElements!("#t", 2_000);
     // Read right after the step. Without `transition: none` this still reads "visible".
     const visibility = await session.page.evaluate(() => [
       getComputedStyle(document.getElementById("t")).visibility,

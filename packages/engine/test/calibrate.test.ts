@@ -82,6 +82,15 @@ describe("calibrate", () => {
     const r = await calibrate({ workspaceDir: ws, fromText: FLOW_YAML, flowName: "renamed" });
     expect(r.flowFilePath).toBe(path.join(ws, "flows", "renamed.flow.yaml"));
   });
+  it("refuses a --name that is not a plain flow name, and writes nothing", async () => {
+    const ws = path.join(tmp, "ws-bad-name");
+    for (const flowName of ["../x", "/abs", "a/b", ".."]) {
+      await expect(calibrate({ workspaceDir: ws, fromText: FLOW_YAML, flowName })).rejects.toThrow(
+        /is not usable/,
+      );
+    }
+    await expect(fs.stat(path.join(ws, "flows"))).rejects.toThrow();
+  });
   it("leaves an existing docs/style.yaml alone", async () => {
     const ws = path.join(tmp, "ws3");
     await fs.mkdir(path.join(ws, "docs"), { recursive: true });

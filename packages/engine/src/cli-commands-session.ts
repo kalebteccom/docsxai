@@ -19,18 +19,21 @@ import {
 } from "./auth.js";
 import { calibrate } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
-import { FlowFileError, parseFlowFile, resolveFlowExtends } from "./flow-file.js";
-import { recordRunHistory } from "./backend-client.js";
-import { runFlow } from "./flow-runtime.js";
-import { launchPlaywrightSession } from "./playwright-driver.js";
-import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
 import {
-  initWorkspace,
-  loadWorkspaceConfig,
-  resolveWorkspacePath,
-  resolveWorkspacePathReal,
-} from "./workspace.js";
+  expandFlowVariants,
+  FlowFileError,
+  parseFlowFile,
+  resolveFlowExtends,
+} from "./flow-file.js";
+import { type FlowVariant } from "./flow-matrix.js";
+import { recordRunHistory } from "./backend-client.js";
+import { runFlowsInSessions } from "./run-flows.js";
+import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
+import { initWorkspace, loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import { listFlowFiles, parseFlags } from "./cli-shared.js";
+import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
+import { verifyDeterminism } from "./verify-determinism.js";
+import { VerifyTreeError } from "./verify-tree.js";
 import { USAGE } from "./cli-usage.js";
 
 async function loadAuthStorageState(projectDir: string): Promise<StorageState | undefined> {
@@ -69,12 +72,19 @@ export async function cmdRun(args: string[]): Promise<number> {
     typeof flags.get("start-from") === "string" ? (flags.get("start-from") as string) : undefined;
   const cdpEndpoint =
     typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
+  const onlyVariant =
+    typeof flags.get("variant") === "string" ? (flags.get("variant") as string) : undefined;
   const pause = flags.get("pause") === true;
   const headed = flags.get("headed") === true || pause; // --pause implies --headed
   if (startFrom && !onlyFlow) {
     process.stderr.write(
       `run: --start-from requires --flow <name> (single-flow calibration aid)\n`,
     );
+    return 2;
+  }
+  const verify = parseVerifyArgs(flags);
+  if (typeof verify === "string") {
+    process.stderr.write(`run: ${verify}\n\n${USAGE}\n`);
     return 2;
   }
   const wsCfg = await loadWorkspaceConfig(projectDir);
@@ -101,12 +111,19 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
     return parseFlowFile(text, fp);
   };
+  // `flows` goes to the run loop, which expands each matrix flow itself; `units` is the same
+  // expansion here, for the checks and messages that need the variant ids before anything launches.
   const flows: FlowFile[] = [];
+  const units: FlowVariant[] = [];
+  const matrixFlows = new Set<string>();
+  let flowCount = 0;
   for (const fp of flowPaths) {
     let flow: FlowFile;
+    let variants: FlowVariant[];
     try {
       const parsed = parseFlowFile(await fs.readFile(fp, "utf8"), fp);
       flow = parsed.extends ? await resolveFlowExtends(parsed, loadFlowFile) : parsed;
+      variants = expandFlowVariants(flow, fp);
     } catch (e) {
       if (e instanceof FlowFileError) {
         process.stderr.write(`run: ${e.message}\n`);
@@ -114,15 +131,53 @@ export async function cmdRun(args: string[]): Promise<number> {
       }
       throw e;
     }
-    if (!onlyFlow || flow.name === onlyFlow) flows.push(flow);
+    if (onlyFlow && flow.name !== onlyFlow) continue;
+    flowCount++;
+    flows.push(flow);
+    if (flow.matrix) matrixFlows.add(flow.name);
+    units.push(...variants);
   }
-  if (flows.length === 0) {
+  if (flowCount === 0) {
     process.stderr.write(
       onlyFlow
         ? `run: no flow named "${onlyFlow}"\n`
         : `run: no flow-files in ${projectDir}/flows\n`,
     );
     return 1;
+  }
+  if (cdpEndpoint && matrixFlows.size > 0) {
+    process.stderr.write(
+      `run: --cdp attaches to a browser that owns its viewport, color scheme and locale, so it cannot run the matrix of ${[...matrixFlows].join(", ")}\n`,
+    );
+    return 1;
+  }
+  if (onlyVariant) {
+    const wanted = units.filter((u) => u.id === onlyVariant);
+    if (wanted.length === 0) {
+      process.stderr.write(
+        `run: no variant "${onlyVariant}" (variants: ${
+          units
+            .map((u) => u.id)
+            .filter(Boolean)
+            .join(", ") || "none, no flow has a matrix"
+        })\n`,
+      );
+      return 1;
+    }
+    units.splice(0, units.length, ...wanted);
+  }
+  for (const name of matrixFlows) {
+    const stale = resolveWorkspacePath(projectDir, "docs", name, "annotations.json");
+    if (
+      await fs.access(stale).then(
+        () => true,
+        () => false,
+      )
+    ) {
+      process.stderr.write(
+        `run: warning — docs/${name}/annotations.json is from before ${name} had a matrix; its variants write to docs/${name}/<variant>/, so remove the old docs/${name}/ outputs\n`,
+      );
+    }
   }
 
   let storageState: StorageState | undefined;
@@ -146,102 +201,49 @@ export async function cmdRun(args: string[]): Promise<number> {
       `run: --pause / --stop-after / --start-from / --cdp force --concurrency 1 (ignoring --concurrency ${requestedConcurrency})\n`,
     );
   }
-  const tag = concurrency > 1 ? (name: string) => `run [${name}]: ` : () => "run: ";
+  const noun = matrixFlows.size > 0 ? "flow variants" : "flows";
+  const runOptions = {
+    projectDir,
+    flows,
+    variant: onlyVariant,
+    storageState,
+    baseURL,
+    headed,
+    ignoreHTTPSErrors,
+    cdpEndpoint,
+    stopAfter,
+    startFrom,
+    obstacles: wsCfg?.annotations?.obstacles === true,
+    concurrency,
+  };
 
-  async function runOne(flow: FlowFile): Promise<boolean> {
-    const name = flow.name;
-    let session;
+  // Verification runs the same loop N times into isolated roots and prints the report on stdout, so
+  // its progress lines go to stderr.
+  if (verify) {
     try {
-      // When attaching to an existing Chrome via --cdp, the operator owns its auth state — don't
-      // load cached `storageState` over it (would replace cookies). When launching fresh, do.
-      session = await launchPlaywrightSession({
-        baseURL,
-        headed,
-        ignoreHTTPSErrors,
-        ...(cdpEndpoint ? { connectOverCdp: cdpEndpoint } : { storageState }),
-        ...(flow.environment ? { environment: flow.environment } : {}),
-        docPackRoot: projectDir,
+      const report = await verifyDeterminism({
+        ...runOptions,
+        runs: verify.runs,
+        progress: (line) => process.stderr.write(line),
       });
+      return emitVerifyReport(report, verify.format);
     } catch (e) {
-      const msg = (e as Error).message;
-      if (/Executable doesn't exist|browserType\.launch|playwright install/i.test(msg)) {
-        process.stderr.write(
-          `${tag(name)}no Chromium binary found.  Install one:  npx playwright-core install chromium  (source checkout: pnpm -C packages/engine exec playwright-core install chromium)\n`,
-        );
-      } else {
-        process.stderr.write(`${tag(name)}failed to launch browser: ${msg}\n`);
+      if (e instanceof VerifyTreeError) {
+        process.stderr.write(`run: --verify-determinism: ${e.message}\n`);
+        return 1;
       }
-      return false;
-    }
-    try {
-      const result = await runFlow(flow, session.driver, {
-        resolveLocator: (n) => flow.locators[n],
-        ...(stopAfter ? { stopAfter } : {}),
-        ...(startFrom ? { startFrom } : {}),
-        ...(wsCfg?.annotations?.obstacles === true ? { obstacles: true } : {}),
-      });
-      await fs.mkdir(resolveWorkspacePath(projectDir, "docs", flow.name), { recursive: true });
-      // Flow names come from the flow-files — resolve the write target symlink-aware.
-      const annotationsPath = await resolveWorkspacePathReal(
-        projectDir,
-        "docs",
-        flow.name,
-        "annotations.json",
-      );
-      // With `startFrom`, only the post-startFrom steps emit annotations — merge them into the
-      // existing file (if any) by step id so the prior steps' annotations stay in place. Same
-      // story for screenshots (they live as separate PNGs and are simply not re-captured).
-      let toWrite = result.annotations;
-      if (startFrom) {
-        try {
-          const existingText = await fs.readFile(annotationsPath, "utf8");
-          const existing = JSON.parse(existingText) as typeof result.annotations;
-          const newStepIds = new Set(result.annotations.annotations.map((a) => a.step));
-          const merged = [
-            ...existing.annotations.filter((a) => !newStepIds.has(a.step)),
-            ...result.annotations.annotations,
-          ];
-          toWrite = { ...result.annotations, annotations: merged };
-        } catch {
-          // No existing file (or unreadable) — just write what we have.
-        }
-      }
-      await fs.writeFile(annotationsPath, JSON.stringify(toWrite, null, 2) + "\n", "utf8");
-      process.stdout.write(
-        `${tag(name)}${name} — ${result.steps.length} step(s) executed, ${result.annotations.annotations.length} annotation(s) ${startFrom ? "merged" : "written"}\n`,
-      );
-      return true;
-    } catch (e) {
-      process.stderr.write(`${tag(name)}${(e as Error).message}\n`);
-      return false;
-    } finally {
-      if (pause) {
-        process.stdout.write(
-          "run: --pause — browser is open at the last step run; close it to exit.\n",
-        );
-        await new Promise<void>((resolve) => session.browser.on("disconnected", () => resolve()));
-      }
-      await session.close();
+      throw e;
     }
   }
 
-  let idx = 0;
-  let anyFailed = false;
-  let okCount = 0;
   const startedAt = Date.now();
-  async function worker(): Promise<void> {
-    while (idx < flows.length) {
-      const flow = flows[idx++]!;
-      if (await runOne(flow)) okCount++;
-      else anyFailed = true;
-    }
-  }
-  const workers = Math.min(concurrency, flows.length);
-  if (workers > 1)
-    process.stdout.write(
-      `run: running ${flows.length} flows with ${workers} parallel worker(s)…\n`,
-    );
-  await Promise.all(Array.from({ length: workers }, () => worker()));
+  const { okCount, failures } = await runFlowsInSessions({
+    ...runOptions,
+    outputRoot: projectDir,
+    pause,
+    progress: (line) => process.stdout.write(line),
+  });
+  const anyFailed = failures.length > 0;
 
   // Backend-bound workspaces get a run record appended; offline-tolerant (warn, never fail the run).
   const history = await recordRunHistory({
@@ -249,7 +251,7 @@ export async function cmdRun(args: string[]): Promise<number> {
     config: wsCfg ?? {},
     ok: !anyFailed,
     durationMs: Date.now() - startedAt,
-    summary: `${okCount}/${flows.length} flows ok`,
+    summary: `${okCount}/${units.length} ${noun} ok`,
   });
   if (history.warning) process.stderr.write(`run: warning — ${history.warning}\n`);
 

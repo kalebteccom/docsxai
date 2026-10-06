@@ -2,11 +2,14 @@
 // across the merged step list. Pure-static — no Playwright, no live page. Run via `docsxai flow-tree`.
 
 import type { FlowFile } from "./doc-pack.js";
-import { resolveFlowExtends } from "./flow-file.js";
+import { expandFlowVariants, resolveFlowExtends } from "./flow-file.js";
+import { matrixVariantIds } from "./flow-matrix.js";
 
 export type FlowTreeNode = {
   name: string;
   steps: number;
+  /** Variant ids the flow's `matrix` expands to, in run order. Absent for a flow without a `matrix`. */
+  variants?: string[];
   children: FlowTreeNode[];
 };
 
@@ -43,7 +46,12 @@ export async function buildFlowTree(flowsByName: Map<string, FlowFile>): Promise
   const build = (name: string): FlowTreeNode => {
     const flow = flowsByName.get(name)!;
     const kids = (childrenOf.get(name) ?? []).slice().sort().map(build);
-    return { name, steps: flow.steps.length, children: kids };
+    return {
+      name,
+      steps: flow.steps.length,
+      ...(flow.matrix ? { variants: matrixVariantIds(flow.matrix) } : {}),
+      children: kids,
+    };
   };
 
   const issues: FlowTreeIssue[] = [];
@@ -55,7 +63,8 @@ export async function buildFlowTree(flowsByName: Map<string, FlowFile>): Promise
   for (const [name, flow] of flowsByName) {
     if (!flow.extends || orphanNames.includes(name)) continue;
     try {
-      await resolveFlowExtends(flow, loadFlow);
+      // The merged flow is what runs, so its `only`/`skip` are checked against its own matrix here.
+      expandFlowVariants(await resolveFlowExtends(flow, loadFlow));
     } catch (e) {
       issues.push({ flow: name, message: (e as Error).message });
     }
@@ -91,8 +100,14 @@ export function formatTreeText(result: FlowTreeResult): string {
   return out;
 }
 
+/** `    {4 variants: a, b, c, d}` for a flow with a matrix, else nothing. */
+function variantNote(node: FlowTreeNode): string {
+  const v = node.variants;
+  return v ? `    {${v.length} variant${v.length !== 1 ? "s" : ""}: ${v.join(", ")}}` : "";
+}
+
 function renderRoot(node: FlowTreeNode): string {
-  let out = `${node.name}    [${node.steps} step${node.steps !== 1 ? "s" : ""}]\n`;
+  let out = `${node.name}    [${node.steps} step${node.steps !== 1 ? "s" : ""}]${variantNote(node)}\n`;
   for (let i = 0; i < node.children.length; i++) {
     out += renderChild(node.children[i]!, "", i === node.children.length - 1);
   }
@@ -101,7 +116,7 @@ function renderRoot(node: FlowTreeNode): string {
 
 function renderChild(node: FlowTreeNode, parentPrefix: string, isLast: boolean): string {
   const connector = isLast ? "└── " : "├── ";
-  let out = `${parentPrefix}${connector}${node.name}    [+${node.steps} step${node.steps !== 1 ? "s" : ""}]\n`;
+  let out = `${parentPrefix}${connector}${node.name}    [+${node.steps} step${node.steps !== 1 ? "s" : ""}]${variantNote(node)}\n`;
   const childPrefix = parentPrefix + (isLast ? "    " : "│   ");
   for (let i = 0; i < node.children.length; i++) {
     out += renderChild(node.children[i]!, childPrefix, i === node.children.length - 1);
