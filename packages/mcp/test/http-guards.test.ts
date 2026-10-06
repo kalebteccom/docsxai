@@ -185,6 +185,8 @@ describe("serve arguments", () => {
       "/tmp/t",
       "--workspace",
       "/tmp/ws",
+      "--workspace-root",
+      "/tmp",
     ]);
     expect(parsed).toEqual({
       workspace: "/tmp/ws",
@@ -195,15 +197,21 @@ describe("serve arguments", () => {
         allowRemote: true,
         allowedHosts: ["a.example", "b.example"],
         tokenFile: "/tmp/t",
+        workspaceRoot: "/tmp",
       },
     });
   });
 
   it("defaults to no remote, no extra hosts and leaves host and port to the server", () => {
-    expect(parseServeArgs(["--http"])).toEqual({
+    expect(parseServeArgs(["--http", "--workspace-root", "/srv/docs"])).toEqual({
       help: false,
-      serve: { allowRemote: false, allowedHosts: [] },
+      serve: { allowRemote: false, allowedHosts: [], workspaceRoot: "/srv/docs" },
     });
+  });
+
+  it("refuses --http without --workspace-root", () => {
+    expect(() => parseServeArgs(["--http"])).toThrow(/--http requires --workspace-root/);
+    expect(() => parseServeArgs(["--http", "--workspace-root"])).toThrow(/requires a <dir> value/);
   });
 
   it("needs --http, and still answers --help without it", () => {
@@ -215,7 +223,7 @@ describe("serve arguments", () => {
     for (const bad of ["abc", "-1", "65536", "1.5", "", "123456"]) {
       expect(() => parseServeArgs(["--http", "--port", bad]), bad).toThrow(/--port|requires/);
     }
-    expect(parseServeArgs(["--http", "--port", "0"]).serve.port).toBe(0);
+    expect(parseServeArgs(["--http", "--workspace-root", "/r", "--port", "0"]).serve.port).toBe(0);
     expect(() => parseServeArgs(["--http", "--port"])).toThrow(/requires a <port> value/);
   });
 

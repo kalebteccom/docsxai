@@ -145,9 +145,10 @@ from an argument, and compares it in constant time. It binds loopback unless `--
 passed, and then it speaks plain HTTP, so TLS must terminate in a proxy in front of it. It checks the
 `Host` and `Origin` headers against loopback names and an operator-supplied list to block DNS
 rebinding, and it caps request bodies at 1 MiB, concurrent sessions at 16 and idle time at 30
-minutes. Refusals return a bare status code with no detail. It does not rate-limit failed tokens. A
+minutes. It refuses to start without `--workspace-root` and confines every path a tool receives to
+that directory, symlinks resolved. Refusals return a bare status code with no detail. It does not rate-limit failed tokens. A
 holder of the token can call every tool the server exposes, including `run_flows`, `push_pack` and
-`pull_pack`, with the server process's file access and environment.
+`pull_pack`, inside the workspace root and with the server process's environment.
 
 ## Plugin trust model
 

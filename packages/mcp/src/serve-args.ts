@@ -8,6 +8,8 @@ export interface ServeOptions {
   allowRemote: boolean;
   allowedHosts: string[];
   tokenFile?: string;
+  /** Required with --http: every tool path is confined to this directory. */
+  workspaceRoot?: string;
 }
 
 export interface ParsedServeArgs {
@@ -47,11 +49,13 @@ export function parseServeArgs(argv: string[]): ParsedServeArgs {
     else if (a === "--host") serve.host = takeValue(argv, i++, a, "<host>");
     else if (a === "--port") serve.port = parsePort(takeValue(argv, i++, a, "<port>"));
     else if (a === "--allowed-host") serve.allowedHosts.push(takeValue(argv, i++, a, "<host>"));
+    else if (a === "--workspace-root") serve.workspaceRoot = takeValue(argv, i++, a, "<dir>");
     else if (a === "--token-file") serve.tokenFile = takeValue(argv, i++, a, "<path>");
     else if (a.startsWith("--token")) throw new Error(TOKEN_HINT);
     else if (a.startsWith("--")) throw new Error(`unknown argument: ${a.split("=")[0]}`);
     else throw new Error("unexpected positional argument");
   }
   if (!help && !http) throw new Error("serve needs a transport: pass --http");
+  if (!help && !serve.workspaceRoot) throw new Error("--http requires --workspace-root <dir>");
   return { ...(workspace ? { workspace } : {}), help, serve };
 }

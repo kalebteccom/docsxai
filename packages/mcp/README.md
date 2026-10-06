@@ -46,24 +46,31 @@ stdio stays the default. For a host that connects over HTTP, start the server wi
 
 ```sh
 export DOCSX_MCP_TOKEN="$(openssl rand -hex 32)"      # or: --token-file <path>
-node packages/mcp/dist/bin.js serve --http --workspace ~/docsxai/my-app
+node packages/mcp/dist/bin.js serve --http --workspace-root ~/docsxai --workspace ~/docsxai/my-app
 # docsxai-mcp: listening on http://127.0.0.1:8765/mcp (bearer token required)
 ```
 
 Clients send `Authorization: Bearer <token>` on every request. The tool registry is the one stdio
 serves; nothing is added or removed.
 
-| Flag                  | Meaning                                                                                       |
-| --------------------- | --------------------------------------------------------------------------------------------- |
-| `--http`              | Required. Serve at `/mcp` over HTTP instead of stdio.                                         |
-| `--port <n>`          | Port, default `8765`. `0` picks a free one.                                                   |
-| `--host <host>`       | Interface to bind, default `127.0.0.1`.                                                       |
-| `--token-file <path>` | File holding the token. Wins over `DOCSX_MCP_TOKEN` when both are set.                        |
-| `--allowed-host <h>`  | Extra hostname accepted in the `Host` and `Origin` headers. Exact names, repeatable.          |
-| `--allow-remote`      | Required to bind anything but loopback. Terminate TLS in front of the server when you use it. |
+| Flag                     | Meaning                                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `--http`                 | Required. Serve at `/mcp` over HTTP instead of stdio.                                                |
+| `--workspace-root <dir>` | Required. Absolute path of an existing directory; every path a tool receives must resolve inside it. |
+| `--port <n>`             | Port, default `8765`. `0` picks a free one.                                                          |
+| `--host <host>`          | Interface to bind, default `127.0.0.1`.                                                              |
+| `--token-file <path>`    | File holding the token. Wins over `DOCSX_MCP_TOKEN` when both are set.                               |
+| `--allowed-host <h>`     | Extra hostname accepted in the `Host` and `Origin` headers. Exact names, repeatable.                 |
+| `--allow-remote`         | Required to bind anything but loopback. Terminate TLS in front of the server when you use it.        |
 
 What the server enforces:
 
+- **Workspace root.** The server refuses to start without `--workspace-root`. Every path a tool
+  receives (`workspace`, `init_workspace`'s `dir`, `zip_pack`'s `out`) is resolved through symlinks
+  and has to land inside the root, or the call fails. Relative paths start at the root, and a call
+  that omits `workspace` uses `--workspace`, then the root itself. `..` and links that point out of
+  the root are refused. Paths inside a workspace that a flow or config names are not re-checked, so
+  keep the root free of workspaces you do not trust. stdio is unchanged.
 - **Token.** Required, at least 32 printable ASCII characters. It is read from `DOCSX_MCP_TOKEN` or
   `--token-file`, never from an argument (`--token ...` is refused without echoing it), compared in
   constant time, and never logged. The server refuses to start without one.

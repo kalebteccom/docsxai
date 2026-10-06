@@ -2,10 +2,13 @@
 // rejection, size and session limits, idle expiry, and an SDK client listing the same tools the
 // stdio registry registers. Raw requests go through node:http so the Host header can be set.
 
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { request, type IncomingHttpHeaders } from "node:http";
+import { tmpdir } from "node:os";
+import * as path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { TOOL_DEFINITIONS } from "../src/index.js";
 import {
   startHttpServer,
@@ -44,6 +47,11 @@ interface Send {
 }
 
 let running: RunningHttpServer | undefined;
+const ROOT = realpathSync(mkdtempSync(path.join(tmpdir(), "docsxai-mcp-http-")));
+
+afterAll(() => {
+  rmSync(ROOT, { recursive: true, force: true });
+});
 
 afterEach(async () => {
   await running?.close();
@@ -51,7 +59,13 @@ afterEach(async () => {
 });
 
 async function start(opts: Partial<HttpServerOptions> = {}): Promise<RunningHttpServer> {
-  running = await startHttpServer({ token: TOKEN, host: "127.0.0.1", port: 0, ...opts });
+  running = await startHttpServer({
+    token: TOKEN,
+    host: "127.0.0.1",
+    port: 0,
+    workspaceRoot: ROOT,
+    ...opts,
+  });
   return running;
 }
 
@@ -137,19 +151,45 @@ describe("bearer token", () => {
 
 describe("startup refusals", () => {
   it("refuses a token shorter than 32 characters", async () => {
-    await expect(startHttpServer({ token: "short", port: 0 })).rejects.toThrow(/at least 32/);
+    await expect(startHttpServer({ token: "short", port: 0, workspaceRoot: ROOT })).rejects.toThrow(
+      /at least 32/,
+    );
   });
 
   it("refuses a non-loopback host without --allow-remote", async () => {
-    await expect(startHttpServer({ token: TOKEN, host: "0.0.0.0", port: 0 })).rejects.toThrow(
-      /--allow-remote/,
-    );
+    await expect(
+      startHttpServer({ token: TOKEN, host: "0.0.0.0", port: 0, workspaceRoot: ROOT }),
+    ).rejects.toThrow(/--allow-remote/);
   });
 
   it("refuses a wildcard allowed host", async () => {
     await expect(
-      startHttpServer({ token: TOKEN, port: 0, allowedHosts: ["*.example.com"] }),
+      startHttpServer({
+        token: TOKEN,
+        port: 0,
+        workspaceRoot: ROOT,
+        allowedHosts: ["*.example.com"],
+      }),
     ).rejects.toThrow(/no wildcards/);
+  });
+
+  it("refuses to start without a workspace root, a relative one or a missing one", async () => {
+    const base = { token: TOKEN, port: 0 };
+    await expect(startHttpServer({ ...base, workspaceRoot: "" })).rejects.toThrow(
+      /--workspace-root/,
+    );
+    await expect(startHttpServer({ ...base, workspaceRoot: "relative/dir" })).rejects.toThrow(
+      /absolute/,
+    );
+    await expect(
+      startHttpServer({ ...base, workspaceRoot: path.join(ROOT, "does-not-exist") }),
+    ).rejects.toThrow(/existing directory/);
+  });
+
+  it("refuses a default workspace outside the root", async () => {
+    await expect(
+      startHttpServer({ token: TOKEN, port: 0, workspaceRoot: ROOT, defaultWorkspace: tmpdir() }),
+    ).rejects.toThrow(/outside/);
   });
 
   it("binds the loopback interface by default", async () => {
@@ -301,5 +341,61 @@ describe("SDK client", () => {
     await expect(client.connect(transport)).rejects.toThrow();
     expect(server.sessionCount()).toBe(0);
     await client.close().catch(() => undefined);
+  });
+});
+
+describe("workspace confinement over the wire", () => {
+  async function connected(server: RunningHttpServer): Promise<Client> {
+    const client = new Client({ name: "http-confine-test", version: "0.0.1" });
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(server.url), {
+        requestInit: { headers: { Authorization: `Bearer ${TOKEN}` } },
+      }),
+    );
+    return client;
+  }
+
+  async function call(client: Client, name: string, args: Record<string, unknown>) {
+    const res = await client.callTool({ name, arguments: args });
+    const content = res.content as Array<{ type: string; text: string }>;
+    return JSON.parse(content[0]!.text) as { ok: boolean; error?: string; [k: string]: unknown };
+  }
+
+  it("refuses a workspace argument outside the root, by absolute path and by ..", async () => {
+    const server = await start();
+    const client = await connected(server);
+    try {
+      for (const workspace of [tmpdir(), "/", "..", path.join(ROOT, "..")]) {
+        const r = await call(client, "list_flows", { workspace });
+        expect(r.ok, workspace).toBe(false);
+        expect(r.error, workspace).toMatch(/outside the server's workspace root/);
+        expect(r.error, workspace).not.toContain(tmpdir());
+      }
+    } finally {
+      await client.close();
+    }
+  });
+
+  it("scaffolds inside the root, and refuses init_workspace and zip_pack paths outside it", async () => {
+    const server = await start();
+    const client = await connected(server);
+    try {
+      const made = await call(client, "init_workspace", { dir: "confined-ws" });
+      expect(made.ok).toBe(true);
+      expect(made["dir"]).toBe(path.join(ROOT, "confined-ws"));
+
+      const escaped = await call(client, "init_workspace", { dir: path.join(tmpdir(), "escape") });
+      expect(escaped.ok).toBe(false);
+      expect(escaped.error).toMatch(/outside/);
+
+      const zipped = await call(client, "zip_pack", {
+        workspace: "confined-ws",
+        out: path.join(tmpdir(), "escape.zip"),
+      });
+      expect(zipped.ok).toBe(false);
+      expect(zipped.error).toMatch(/outside/);
+    } finally {
+      await client.close();
+    }
   });
 });

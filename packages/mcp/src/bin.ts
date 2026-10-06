@@ -11,8 +11,9 @@ const USAGE = `docsxai-mcp — stdio MCP server over the docsxai engine
 
 Usage:
   docsxai-mcp [--workspace <dir>]
-  docsxai-mcp serve --http [--port <n>] [--host <host>] [--token-file <path>]
-                           [--allowed-host <host>]... [--allow-remote] [--workspace <dir>]
+  docsxai-mcp serve --http --workspace-root <dir> [--port <n>] [--host <host>]
+                           [--token-file <path>] [--allowed-host <host>]... [--allow-remote]
+                           [--workspace <dir>]
 
 Options:
   --workspace <dir>   Default docsxai workspace for tool calls that omit \`workspace\`.
@@ -20,6 +21,8 @@ Options:
 
 Streamable HTTP (opt-in, loopback by default):
   --http              Serve MCP over HTTP at /mcp instead of stdio.
+  --workspace-root <dir>
+                      Required. Absolute directory every tool path must stay inside.
   --port <n>          Port to listen on (default 8765).
   --host <host>       Interface to bind (default 127.0.0.1).
   --token-file <path> File holding the bearer token. Otherwise DOCSX_MCP_TOKEN is read.
@@ -65,6 +68,7 @@ async function serveHttp(serve: ServeOptions, workspace: string | undefined): Pr
     token,
     allowRemote: serve.allowRemote,
     allowedHosts: serve.allowedHosts,
+    workspaceRoot: serve.workspaceRoot ?? "",
     ...(serve.host ? { host: serve.host } : {}),
     ...(serve.port !== undefined ? { port: serve.port } : {}),
     ...(workspace ? { defaultWorkspace: workspace } : {}),
