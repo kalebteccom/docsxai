@@ -45,9 +45,9 @@ const flags = (...args: string[]) => {
     const a = args[i]!;
     const next = args[i + 1];
     if (next !== undefined && !next.startsWith("--")) {
-      m.set(a.slice(2), next);
+      m.set(a, next);
       i++;
-    } else m.set(a.slice(2), true);
+    } else m.set(a, true);
   }
   return m;
 };
