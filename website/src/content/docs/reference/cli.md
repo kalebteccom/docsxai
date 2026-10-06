@@ -15,10 +15,10 @@ docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--r
                                [--persist tmp] [--force]
 docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
 docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--role <role>]
-docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
 docsxai flow-tree <workspace-dir> [--format text|json]
-docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--cdp <endpoint>] [--format text|json]
+docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
 docsxai doctor [<workspace-dir>]
 docsxai style <workspace-dir> [--check] [--format text|json]
 docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
@@ -174,6 +174,10 @@ Chromium; if no browser binary is present, install one with
   tail step in seconds rather than re-walking the whole `extends` chain. New
   annotations MERGE into the existing `annotations.json` by step id; prior
   steps' annotations and screenshots are preserved.
+- `--variant <id>` runs one variant of a flow with a [matrix](/reference/flow-file/#matrix),
+  for example `es-ES.dark.mobile`. Every variant gets its own browser session and
+  writes to `docs/<flow>/<variant>/`; without `--variant` they all run.
+  `--cdp` cannot run a matrix flow.
 - `--cdp <endpoint>` attaches to a running Chrome (start it with
   `--remote-debugging-port=N`) instead of launching one; docsxai will not
   close that Chrome. When `--cdp` is set, the cached storageState is NOT
@@ -252,7 +256,7 @@ Pure-static checks across the workspace's flow-files - no Playwright, no
 live page. The core rules cover deep `extends` chains, annotations anchored
 to likely-unmounting click/navigate targets, selector waits with no
 `timeout_ms` on long-async-looking steps, bare `[data-*=...]` selectors
-prone to hidden duplicates, and more - the full R001-R014 table is in
+prone to hidden duplicates, and more - the full R001-R016 table is in
 [Troubleshooting](/guides/troubleshooting/). Workspace plugins can add
 rules. Exit 1 if any warning or error; `--format json` emits
 machine-readable output for tooling.
@@ -285,6 +289,9 @@ preamble    [3 steps]
 3 flows, max chain depth 1
 ```
 
+A flow with a [matrix](/reference/flow-file/#matrix) lists its variants after the
+step count: `tour    [4 steps]    {4 variants: en-US.light, en-US.dark, es-ES.light, es-ES.dark}`.
+
 ### `docsxai diagnose`
 
 Gathers halt context for a specific step: the step's selector, `wait_for`,
@@ -294,7 +301,11 @@ recommendations (`selector` / `wait_for` / `success` / `annotation_target` /
 `split_step` / `investigate`). The engine never patches the flow-file itself;
 that is the agent's explicit opt-in action. `--format json` emits
 machine-readable output for an agent to act on. Pair with
-`run --start-from <step-id> --cdp` to validate the fix in seconds.
+`run --start-from <step-id> --cdp` to validate the fix in seconds. On a flow
+with a [matrix](/reference/flow-file/#matrix), `--variant <id>` picks the
+variant (its steps and its `halts/` screenshot). Without it, `diagnose` takes
+the one variant that holds a halt screenshot for the step, and otherwise lists
+the variants and exits 2.
 
 ```
 $ docsxai diagnose ~/docsxai/my-app --flow publish-post --step publish --cdp http://localhost:9222

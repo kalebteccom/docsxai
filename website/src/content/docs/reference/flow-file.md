@@ -1,6 +1,6 @@
 ---
 title: Flow-file format
-description: The complete field-by-field reference for flows/<name>.flow.yaml - top-level keys, every step field, the action vocabulary, wait and success forms, annotations, environment, redactions, and extends merge semantics.
+description: The complete field-by-field reference for flows/<name>.flow.yaml - top-level keys, every step field, the action vocabulary, wait and success forms, annotations, environment, matrix, redactions, and extends merge semantics.
 ---
 
 A flow-file (`flows/<name>.flow.yaml`) is the YAML description of one user
@@ -15,6 +15,7 @@ ignored. This page covers every field.
 | `name`          | yes      | The flow's name. Output lands under `docs/<name>/`.                                                                                                                                                                                 |
 | `extends`       | no       | Name of another flow whose steps run _first_. See [merge semantics](#extends-merge-semantics).                                                                                                                                      |
 | `environment`   | no       | Deterministic execution environment. See [environment](#environment).                                                                                                                                                               |
+| `matrix`        | no       | Expands the flow into one variant per locale, color scheme and viewport. See [matrix](#matrix).                                                                                                                                     |
 | `redactions`    | no       | Areas masked on every screenshot this flow produces, halt shots included.                                                                                                                                                           |
 | `prerequisites` | no       | Preconditions the flow assumes, as a list of `{ key: value }` records (string or boolean values), e.g. `{ logged_in_as: editor }` or `{ feature_flag: "recap.enabled" }`. Documentation for the reader and the agent; not executed. |
 | `locators`      | no       | Named canonical locators, referenced from steps as `$name`. One selector per name; no fallback lists.                                                                                                                               |
@@ -57,6 +58,8 @@ Every step:
 | `annotation`  | no       | A single callout on this step's screenshot. Shorthand for a one-element `annotations` array.                                                                                                                                                                                                                                                                                                                                         |
 | `annotations` | no       | Multiple callouts on the same screenshot, rendered as numbered badges (1, 2, ...). Mutually exclusive with `annotation`.                                                                                                                                                                                                                                                                                                             |
 | `redactions`  | no       | Extra redactions for this step's screenshots, additive on top of the flow-level list.                                                                                                                                                                                                                                                                                                                                                |
+| `only`        | no       | Variants this step runs for; the others skip it. Needs a [matrix](#matrix).                                                                                                                                                                                                                                                                                                                                                          |
+| `skip`        | no       | Variants this step is dropped from. Needs a [matrix](#matrix).                                                                                                                                                                                                                                                                                                                                                                       |
 
 :::caution[For agents]
 When UI appears only sometimes (a confirm modal, a first-run tooltip), the
@@ -146,13 +149,15 @@ structural selectors that may match stale or hidden poppers.
 
 `StepAnnotation`, used by both `annotation` and `annotations[]`:
 
-| Field       | Required | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ----------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `copy`      | yes      | The callout text the reader sees.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `arrow`     | no       | Arrow placement: `top-left`, `top-right`, `bottom-left`, `bottom-right`, `top`, `bottom`, `left`, `right`.                                                                                                                                                                                                                                                                                                                                                        |
-| `nudge`     | no       | `{ x, y }` pixel offset applied to the callout and arrow after placement; the halo stays on the target. Use it when two callouts on one screenshot would overlap - small values (5 to 40 px) typically suffice.                                                                                                                                                                                                                                                   |
-| `target`    | no       | Override: the locator to anchor the halo and arrow to. Default is the step's `target`. Use this when the step's action _transitions the UI_ - the action target unmounts, and you want to highlight an element that exists in the resulting state.                                                                                                                                                                                                                |
-| `placement` | no       | Burner placement settings, all optional: `inside` (callout inside a target big enough to hold it), `side` (`top`, `bottom`, `left`, `right`: try only that side), `align` (`start`, `center`, `end` along the edge), `pin_arrow` (`nudge` moves only the callout), `max_width` (120 to 560 px), `obstacle_radius` (CSS px, 0 to 2000) and `obstacle_limit` (1 to 40) for the obstacle scan. Copied onto the annotation record; the interactive viewer ignores it. |
+| Field            | Required | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `copy`           | yes      | The callout text the reader sees.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `arrow`          | no       | Arrow placement: `top-left`, `top-right`, `bottom-left`, `bottom-right`, `top`, `bottom`, `left`, `right`.                                                                                                                                                                                                                                                                                                                                                        |
+| `nudge`          | no       | `{ x, y }` pixel offset applied to the callout and arrow after placement; the halo stays on the target. Use it when two callouts on one screenshot would overlap - small values (5 to 40 px) typically suffice.                                                                                                                                                                                                                                                   |
+| `target`         | no       | Override: the locator to anchor the halo and arrow to. Default is the step's `target`. Use this when the step's action _transitions the UI_ - the action target unmounts, and you want to highlight an element that exists in the resulting state.                                                                                                                                                                                                                |
+| `placement`      | no       | Burner placement settings, all optional: `inside` (callout inside a target big enough to hold it), `side` (`top`, `bottom`, `left`, `right`: try only that side), `align` (`start`, `center`, `end` along the edge), `pin_arrow` (`nudge` moves only the callout), `max_width` (120 to 560 px), `obstacle_radius` (CSS px, 0 to 2000) and `obstacle_limit` (1 to 40) for the obstacle scan. Copied onto the annotation record; the interactive viewer ignores it. |
+| `copy_by_locale` | no       | Callout text per locale, keyed by BCP-47 tag, e.g. `{ es: "Haz clic aqui" }`. `copy` stays required and is the fallback. See [matrix](#matrix).                                                                                                                                                                                                                                                                                                                   |
+| `only`, `skip`   | no       | Variants this callout is kept for or dropped from. Same selector as on a step.                                                                                                                                                                                                                                                                                                                                                                                    |
 
 With `annotations:` (plural), each entry gets a 1-based numbered badge so the
 reader sees up front that there is more than one thing to look at.
@@ -192,6 +197,97 @@ the parent's clock, or override just `locale` for a locale replay. On
 CDP-attached runs the attached Chrome owns its context, so only the clock
 applies; the engine logs one stderr warning listing the skipped fields.
 
+## Matrix
+
+A `matrix` expands one flow file into a set of variants, so a desktop and a mobile
+walk, a light and a dark theme, or an English and a Spanish pass need one file
+instead of one copy each. Each axis is optional, at least one is required:
+
+```yaml
+matrix:
+  locales: [en-US, es-ES]
+  color_schemes: [light, dark]
+  viewports:
+    - { name: desktop-1280, width: 1280, height: 800 }
+    - mobile # a preset: desktop, tablet or mobile
+```
+
+The flow runs once per combination: 2 x 2 x 2 = 8 variants here. Each list holds
+1 to 64 unique entries and the product may not pass 64; a bigger matrix is a
+parse error that names the sizes. A viewport is a preset name or
+`{ width, height }`, optionally with a `name` (lowercase letters, digits and
+dashes). Without a name a size is called `<width>x<height>`.
+
+Each variant overrides the flow's `environment` on the axes the matrix names and
+keeps the rest, so `clock`, `timezone` and `reduced_motion` apply to every
+variant. The variant id joins the axes that are present, in this order:
+`<locale>.<color_scheme>.<viewport>`, for example `es-ES.dark.mobile`.
+Expansion order is locales, then color schemes, then viewports, each in the
+order you wrote them, so two runs of one file produce the same variants in the
+same order.
+
+### Steps and callouts per variant
+
+`only` and `skip` take a map from axis (`viewport`, `color_scheme`, `locale`) to a
+list of values. A clause matches a variant when every axis it names matches;
+within one list any value matches. `only` keeps the matching variants, `skip`
+drops them. A locale value matches a variant exactly or by language, so `es`
+matches `es-ES`. A value that no matrix entry can match is a parse error.
+
+```yaml
+steps:
+  - id: board
+    action: wait
+    target: $title
+    annotations:
+      - target: $title
+        copy: The board shows every task as a card.
+        copy_by_locale: { es: El tablero muestra cada tarea como una tarjeta. }
+      - target: $view_tabs
+        copy: Switch between the board, the backlog and the full list.
+        skip: { viewport: [mobile] } # the tab bar is hidden on mobile
+      - target: $chip
+        copy: Narrow the list by who holds each task.
+        only: { viewport: [mobile] }
+  - id: open-menu
+    action: click
+    target: $menu_button
+    only: { viewport: [mobile] } # the menu button exists on mobile only
+```
+
+`copy_by_locale` picks the callout text for the variant's locale: the exact tag
+first, then its language, then `copy`. The locale is the matrix locale, or
+`environment.locale` when the flow has no matrix locales. Anything else that
+differs by variant, such as an arrow side, is written as two callouts with `only`
+on each. A variant that ends up with no steps is an error.
+
+### Output layout
+
+Without a matrix nothing changes: `docs/<flow>/screenshots/<step>.png`,
+`docs/<flow>/annotations.json` and `docs/<flow>/halts/`. With a matrix every
+variant has its own directory:
+
+```text
+docs/<flow>/<variant>/screenshots/<step>.png
+docs/<flow>/<variant>/annotations.json
+docs/<flow>/<variant>/halts/<step>.png
+```
+
+The variant's `annotations.json` carries a `variant` object after `flow`:
+`{ id, locale, color_scheme, viewport: { name, width, height } }`, with the keys
+of the axes the matrix has. `docsxai render` and `docsxai burn` treat each
+`<flow>/<variant>` as a flow. `docsxai run` starts one browser session per
+variant; `--variant <id>` runs a single one, and `--cdp` cannot run a matrix flow
+because the attached browser owns its viewport, scheme and locale. A halt names
+the variant: `[variant es-ES.dark.mobile] step "tap" (click) failed at ...`.
+
+`docsxai lint` lists the variants (R015) and warns about a `copy_by_locale` key no
+variant locale uses (R016). `docsxai flow-tree` prints them next to the flow, and
+`docsxai diagnose --variant <id>` diagnoses one. `matrix` is not inherited
+through `extends`: the merged flow expands by the child's own matrix, and a
+parent step's `only` or `skip` is checked against it. `export playwright` does not
+support a matrix flow yet.
+
 ## Redactions
 
 Flow-level `redactions` apply to every screenshot the flow produces - halt
@@ -222,7 +318,8 @@ time against `flows/<name>.flow.yaml`). The merge rules:
 - Step ids must be unique across the merge; collisions are a resolution
   error.
 - `environment` merges per-key, child wins. `redactions` concatenate
-  (parent's plus this flow's).
+  (parent's plus this flow's). `matrix` is the child's own; a parent's matrix is
+  not inherited.
 - Chains are allowed (A extends B extends C); cycles are rejected.
 - `run --stop-after` operates on the merged step list, so it can target a
   parent step too.
