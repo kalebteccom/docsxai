@@ -3,13 +3,13 @@
 // an optimiser difference (same pixels, other bytes: passes). The report has no timestamps and is
 // sorted, so the same two packs print the same text.
 
-import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { BoundingBox } from "./annotations.js";
 import { hash8, type BuiltPack } from "./pack-build.js";
 import { diffPngs, type Size } from "./pack-pixels.js";
 import { PACK_MANIFEST_FILE, fileOfSrc, type ScreensPack } from "./pack-schema.js";
 import { validatePack } from "./pack-validate.js";
+import { MAX_JSON_BYTES, MAX_PNG_BYTES, UnsafeFileError, readRegularFile } from "./safe-read.js";
 
 export const DEFAULT_THRESHOLD_PCT = 0.5;
 
@@ -52,14 +52,21 @@ function variantsOf(pack: ScreensPack): Map<string, string> {
 /** Reads and validates `<dir>/manifest.json`. */
 export async function readCommittedPack(dir: string): Promise<ScreensPack> {
   const file = path.join(dir, PACK_MANIFEST_FILE);
+  let text: string;
+  try {
+    text = (await readRegularFile(file, MAX_JSON_BYTES)).toString("utf8");
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`no ${PACK_MANIFEST_FILE} in ${dir}`);
+    }
+    throw new Error(e instanceof UnsafeFileError ? e.message : `${file}: cannot be read`);
+  }
   let value: unknown;
   try {
-    value = JSON.parse(await fs.readFile(file, "utf8"));
-  } catch (e) {
-    const missing = (e as NodeJS.ErrnoException).code === "ENOENT";
-    throw new Error(
-      missing ? `no ${PACK_MANIFEST_FILE} in ${dir}` : `${file}: ${(e as Error).message}`,
-    );
+    value = JSON.parse(text);
+  } catch {
+    // The parser's message quotes the offending text; the manifest is not trusted, so it is dropped.
+    throw new Error(`${file}: not valid JSON`);
   }
   const { ok, errors } = validatePack(value);
   if (!ok) {
@@ -91,6 +98,16 @@ function describe(e: DriftEntry): string {
   }
 }
 
+/** The PNG's bytes, or what is wrong with it as a string that completes "<file> ...". */
+async function readCommittedPng(file: string): Promise<Buffer | string> {
+  try {
+    return await readRegularFile(file, MAX_PNG_BYTES);
+  } catch (e) {
+    if (e instanceof UnsafeFileError) return e.reason;
+    return (e as NodeJS.ErrnoException).code === "ENOENT" ? "is not on disk" : "cannot be read";
+  }
+}
+
 async function compareVariant(
   id: string,
   committedFile: string,
@@ -99,9 +116,9 @@ async function compareVariant(
   against: string,
   thresholdPct: number,
 ): Promise<DriftEntry | null> {
-  const stored = await fs.readFile(path.join(against, committedFile)).catch(() => null);
-  if (stored === null) {
-    return { id, status: "broken", failing: true, detail: `${committedFile} is not on disk` };
+  const stored = await readCommittedPng(path.join(against, committedFile));
+  if (typeof stored === "string") {
+    return { id, status: "broken", failing: true, detail: `${committedFile} ${stored}` };
   }
   const committedHash = committedFile.split(".").at(-2);
   if (hash8(stored) !== committedHash) {

@@ -6,6 +6,7 @@ import { buildPack, type BuiltPack } from "../src/pack-build.js";
 import { computeDrift, readCommittedPack } from "../src/pack-drift.js";
 import { createOxipngOptimiser, identityOptimiser, type Optimiser } from "../src/pack-optimise.js";
 import { readRawCapture } from "../src/pack-source.js";
+import { MAX_PNG_BYTES } from "../src/safe-read.js";
 import { writePack } from "../src/pack-write.js";
 import { writeOxipngShim, writeRawCapture, type RawFlowSpec } from "./helpers/pack-fixtures.js";
 import { layeredPng, solidPng } from "./helpers/png.js";
@@ -209,6 +210,38 @@ describe("computeDrift", () => {
     expect(report.failing).toBe(1);
   });
 
+  it("fails a committed PNG that is a symlink, even when it points at the right bytes", async () => {
+    const built = await commit({});
+    const [relative] = [...built.files.keys()];
+    const file = path.join(committed, relative!);
+    const elsewhere = path.join(root, "elsewhere.png");
+    await fs.rename(file, elsewhere);
+    await fs.symlink(elsewhere, file);
+    const report = await drift({});
+    expect(report.failing).toBe(1);
+    expect(report.entries).toEqual([
+      {
+        id: "tour/home/en.light.390",
+        status: "broken",
+        failing: true,
+        detail: `${relative} is a symlink`,
+      },
+    ]);
+  });
+
+  it("fails a committed PNG above the 64 MiB cap without reading it", async () => {
+    expect(MAX_PNG_BYTES).toBe(64 * 1024 * 1024);
+    const built = await commit({});
+    const [relative] = [...built.files.keys()];
+    await fs.truncate(path.join(committed, relative!), MAX_PNG_BYTES + 1);
+    const report = await drift({});
+    expect(report.entries[0]).toMatchObject({
+      status: "broken",
+      failing: true,
+      detail: `${relative} is larger than 64 MiB`,
+    });
+  });
+
   it("prints the same report for the same two packs", async () => {
     await commit({});
     const a = await drift({ home: block(5, 6, 4, 4) });
@@ -238,6 +271,23 @@ describe("readCommittedPack", () => {
     const error = await readCommittedPack(committed).catch((e: Error) => e);
     expect((error as Error).message).toMatch(/is not a valid pack:\n {2}- .*width/);
     expect((error as Error).message).not.toContain("Only docsxai/screens-pack@2");
+  });
+
+  it("does not quote the file when the manifest is not JSON", async () => {
+    await fs.mkdir(committed, { recursive: true });
+    await fs.writeFile(path.join(committed, "manifest.json"), '{"token": "sk-live-hunter2" oops');
+    const error = await readCommittedPack(committed).catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/manifest\.json: not valid JSON$/);
+    expect((error as Error).message).not.toContain("hunter2");
+  });
+
+  it("refuses a manifest that is a symlink", async () => {
+    await commit({});
+    const manifest = path.join(committed, "manifest.json");
+    const elsewhere = path.join(root, "elsewhere.json");
+    await fs.rename(manifest, elsewhere);
+    await fs.symlink(elsewhere, manifest);
+    await expect(readCommittedPack(committed)).rejects.toThrow(/manifest\.json is a symlink/);
   });
 
   it("says only v2 can be compared when the committed manifest is an older shape", async () => {

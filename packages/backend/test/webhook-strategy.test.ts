@@ -164,7 +164,7 @@ describe("viewer-refresh strategy", () => {
     const job = makeJob("viewer-refresh", {});
     const result = await runStrategy(job, run, { engineBin: FAKE_BIN, store });
     expect(result.ok).toBe(true);
-    const rendered = fs.readFileSync(path.join(workspaceDir, "viewer", "index.html"));
+    const rendered = fs.readFileSync(path.join(workspaceDir, ".viewer", "index.html"));
     expect(rendered.toString()).toBe("<html>fake viewer</html>");
     const sha = createHash("sha256").update(rendered).digest("hex");
     expect(store.hasBlob(sha)).toEqual({ sha256: sha, bytes: rendered.byteLength });

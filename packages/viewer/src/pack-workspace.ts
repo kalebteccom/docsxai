@@ -25,6 +25,7 @@ import {
   type SourceStep,
 } from "./pack-source.js";
 import { isValidId, parseVariantKey, type LocalizedText } from "./pack-schema.js";
+import { MAX_PNG_BYTES, readRegularFile } from "./safe-read.js";
 
 export const PACK_CONFIG_SCHEMA = "docsxai/pack-config@1";
 export const PACK_CONFIG_FILE = "pack.json";
@@ -59,7 +60,16 @@ export function parsePackConfig(raw: Obj): PackConfig {
     throw new Error(`${PACK_CONFIG_FILE}: schema must be "${PACK_CONFIG_SCHEMA}"`);
   }
   const sources: PackConfig["sources"] = {};
+  const seen = new Map<string, string>();
   for (const [name, entry] of Object.entries(objectAt(raw.sources, "sources"))) {
+    // Two names that differ only by case are one `docs/<name>/` directory on a case-insensitive disk.
+    const clash = seen.get(name.toLowerCase());
+    if (clash !== undefined) {
+      throw new Error(
+        `${PACK_CONFIG_FILE}: sources["${clash}"] and sources["${name}"] differ only by case`,
+      );
+    }
+    seen.set(name.toLowerCase(), name);
     const e = objectAt(entry, `sources["${name}"]`);
     if (!CAPTURE_FLOW.test(name))
       throw new Error(`${PACK_CONFIG_FILE}: sources["${name}"] is not a flow name`);
@@ -137,7 +147,7 @@ async function addSource(
     const annotations = records.filter((r) => r.step === id);
     step.variants.push({
       key: variant,
-      png: await fs.readFile(path.join(flowDir, "screenshots", file)),
+      png: await readRegularFile(path.join(flowDir, "screenshots", file), MAX_PNG_BYTES),
       annotations,
       callouts: calloutsOf(annotations),
     });

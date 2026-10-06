@@ -17,16 +17,50 @@ const ABSOLUTE_PATH_PATTERNS: RegExp[] = [
   /\\\\[^\s\\"'`<>]+\\[^\s"'`<>()[\]{}]*/g,
 ];
 
+// Roots that identify a machine or a user. A path under one is scrubbed whole, even a single
+// segment (`/tmp`) and even one with a space in a directory name.
+const FIXED_ROOTS = ["/tmp", "/var/tmp", "/private/tmp", "/Users", "/home"];
+const PATH_CHAR = "[^\\s\"'`<>()[\\]{}]";
+const TRAIL_PUNCTUATION = /[.,;:!?]+$/;
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+}
+
+/**
+ * One pattern for a path under any of `roots`. Inside quotes or brackets the run goes to the
+ * closing delimiter, spaces included. Outside them it goes to the next space, and across a space
+ * only when the next word holds a separator (`/Users/me/My Projects/app`).
+ */
+function rootedPathPattern(roots: string[]): RegExp {
+  const alt = roots
+    .map(escapeRegExp)
+    .sort((a, b) => b.length - a.length || (a < b ? -1 : 1))
+    .join("|");
+  const inside = `(?<=["'\`(\\[<])(?:${alt})(?:[\\\\/][^"'\`<>()\\[\\]{}\\n]*|(?![\\w-]))`;
+  const outside = `(?<![\\w:/.~-])(?:${alt})(?:[\\\\/]${PATH_CHAR}*(?: +(?=${PATH_CHAR}*[\\\\/])${PATH_CHAR}+)*|(?![\\w-]))`;
+  return new RegExp(`${inside}|${outside}`, "g");
+}
+
+function replacePath(match: string): string {
+  return `<path>${TRAIL_PUNCTUATION.exec(match)?.[0] ?? ""}`;
+}
+
 /**
  * What a halt message becomes in the report: its first line, with every absolute path (POSIX,
- * Windows drive, UNC, `file://`) replaced by `<path>`. A run on one machine and a run on another
- * then print the same report, and a CI log does not carry a home directory.
+ * Windows drive, UNC, `file://`) replaced by `<path>`. A path under `/tmp`, `/Users`, `/home` or one
+ * of `roots` (the workspace root, the home and temp directories of the machine) is scrubbed to the
+ * end of its token run first. A run on one machine and a run on another then print the same
+ * report, and a CI log does not carry a home directory.
  */
-export function scrubHaltMessage(message: string): string {
-  let line = message.split("\n")[0] ?? "";
-  for (const pattern of ABSOLUTE_PATH_PATTERNS) {
-    line = line.replace(pattern, (match) => `<path>${/[.,;:!?]+$/.exec(match)?.[0] ?? ""}`);
+export function scrubHaltMessage(message: string, roots: readonly string[] = []): string {
+  const known = new Set(FIXED_ROOTS);
+  for (const root of roots) {
+    const trimmed = root.replace(/[\\/]+$/, "");
+    if (trimmed.length > 1) known.add(trimmed);
   }
+  let line = (message.split("\n")[0] ?? "").replace(rootedPathPattern([...known]), replacePath);
+  for (const pattern of ABSOLUTE_PATH_PATTERNS) line = line.replace(pattern, replacePath);
   return line;
 }
 
@@ -72,6 +106,8 @@ export function buildVerifyReport(input: {
   differences: ArtefactDifference[];
   halts: VerifyHalt[];
   promoted: boolean;
+  /** Directories whose paths are scrubbed from halt messages: the workspace root, home, temp. */
+  scrubRoots?: readonly string[];
 }): VerifyReport {
   const status: VerifyStatus =
     input.halts.length > 0 ? "halted" : input.differences.length > 0 ? "differing" : "identical";
@@ -83,7 +119,10 @@ export function buildVerifyReport(input: {
     artefacts_compared: input.artefactsCompared,
     first: input.differences[0] ?? null,
     differences: input.differences,
-    halts: input.halts.map((h) => ({ ...h, message: scrubHaltMessage(h.message) })),
+    halts: input.halts.map((h) => ({
+      ...h,
+      message: scrubHaltMessage(h.message, input.scrubRoots),
+    })),
     promoted: input.promoted,
   };
 }

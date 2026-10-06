@@ -9,6 +9,7 @@
 
 import type { FlowFile, Step, StepAnnotation } from "./doc-pack.js";
 import type { ColorScheme } from "./environment-spec.js";
+import { findCaseCollision } from "./flow-name-rules.js";
 import {
   resolveMatrixViewport,
   type MatrixSpec,
@@ -277,4 +278,18 @@ export function expandFlow(flow: FlowFile): FlowVariant[] {
       flow: { ...withoutEnv, ...(environment ? { environment } : {}), steps },
     };
   });
+}
+
+/**
+ * Expand a set of flows into their variants, in the order given. Throws {@link FlowMatrixError}
+ * when two flow names differ only by case: both would write `docs/<name>/` on a case-insensitive disk.
+ */
+export function expandFlows(flows: readonly FlowFile[]): FlowVariant[] {
+  const clash = findCaseCollision(flows.map((f) => f.name));
+  if (clash) {
+    throw new FlowMatrixError(
+      `flows "${clash[0]}" and "${clash[1]}" differ only by case and would share one directory on a case-insensitive disk; rename one`,
+    );
+  }
+  return flows.flatMap((flow) => expandFlow(flow));
 }

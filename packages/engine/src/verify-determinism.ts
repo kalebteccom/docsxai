@@ -7,6 +7,7 @@
 // listed in them (see verify-tree.ts); there is no recursive delete.
 
 import { promises as fs } from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { runFlowsInSessions, type FlowFailure, type RunFlowsOptions } from "./run-flows.js";
 import { compareRuns } from "./verify-compare.js";
@@ -86,6 +87,7 @@ export async function verifyDeterminism(opts: VerifyRunOptions): Promise<VerifyR
       differences: compared.differences,
       halts,
       promoted: identical,
+      scrubRoots: [path.resolve(projectDir), os.homedir(), os.tmpdir()],
     });
   } finally {
     await cleanUp(projectDir, MAX_RUNS);

@@ -14,6 +14,7 @@ import {
   writeWorkspace,
   type RawFlowSpec,
 } from "./helpers/pack-fixtures.js";
+import { MAX_PNG_BYTES } from "../src/safe-read.js";
 import { solidPng } from "./helpers/png.js";
 
 let root = "";
@@ -251,6 +252,16 @@ describe("parsePackConfig", () => {
       (c) => (c.sources["desktop-1280"].variant = "dark"),
       /\.variant must be <locale>\.<theme>\.<viewport>/,
     ],
+    [
+      "two sources that differ only by case",
+      (c) => {
+        c.sources = {
+          "Desktop-1280": { flow: "app", variant: "en.dark.1280" },
+          "desktop-1280": { flow: "app", variant: "en.light.1280" },
+        };
+      },
+      /sources\["Desktop-1280"\] and sources\["desktop-1280"\] differ only by case/,
+    ],
     ["flows missing", (c) => delete c.flows, /flows must be an object/],
     ["steps missing", (c) => delete c.flows.app.steps, /flows\["app"\]\.steps must be an object/],
     [
@@ -400,5 +411,55 @@ describe("readWorkspace", () => {
     });
     const variant = (await readWorkspace(ws()))[0]!.steps[0]!.variants[0]!;
     expect(variant.png.equals(solidPng(7, 5))).toBe(true);
+  });
+});
+
+describe("inputs the pack commands do not trust", () => {
+  const ws = () => path.join(root, "ws");
+
+  it("refuses a symlinked PNG in a raw capture", async () => {
+    await writeRawCapture(raw(), sampleRaw());
+    const png = path.join(raw(), "onboarding", "done", "en.light.390.png");
+    const elsewhere = path.join(root, "elsewhere.png");
+    await fs.rename(png, elsewhere);
+    await fs.symlink(elsewhere, png);
+    await expect(readRawCapture(raw())).rejects.toThrow(/en\.light\.390\.png is a symlink/);
+  });
+
+  it("refuses a symlinked sidecar in a raw capture", async () => {
+    await writeRawCapture(raw(), sampleRaw());
+    const sidecar = path.join(raw(), "onboarding", "pair", "en.light.390.json");
+    const elsewhere = path.join(root, "elsewhere.json");
+    await fs.rename(sidecar, elsewhere);
+    await fs.symlink(elsewhere, sidecar);
+    await expect(readRawCapture(raw())).rejects.toThrow(/en\.light\.390\.json is a symlink/);
+  });
+
+  it("refuses a PNG over the size cap before reading it", async () => {
+    await writeRawCapture(raw(), sampleRaw());
+    const png = path.join(raw(), "onboarding", "done", "en.light.390.png");
+    await fs.truncate(png, MAX_PNG_BYTES + 1);
+    await expect(readRawCapture(raw())).rejects.toThrow(/is larger than 64 MiB/);
+  });
+
+  it("does not echo file contents when a sidecar is not JSON", async () => {
+    await writeRawCapture(raw(), sampleRaw());
+    const sidecar = path.join(raw(), "onboarding", "pair", "en.light.390.json");
+    await fs.writeFile(sidecar, '{"token": "sk-live-hunter2" oops');
+    const error = await readRawCapture(raw()).catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/invalid JSON in .*en\.light\.390\.json$/);
+    expect((error as Error).message).not.toContain("hunter2");
+  });
+
+  it("refuses a symlinked screenshot in a workspace source", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),
+      shots: { "desktop-1280": { board: solidPng(7, 5) } },
+    });
+    const shot = path.join(ws(), "docs", "desktop-1280", "screenshots", "board.png");
+    const elsewhere = path.join(root, "elsewhere.png");
+    await fs.rename(shot, elsewhere);
+    await fs.symlink(elsewhere, shot);
+    await expect(readWorkspace(ws())).rejects.toThrow(/board\.png is a symlink/);
   });
 });
