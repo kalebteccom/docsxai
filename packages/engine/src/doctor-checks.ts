@@ -361,7 +361,7 @@ export async function checkViewer(
   };
 }
 
-/** DOCSX_* env vars the docsxai packages read (engine, viewer + backend). */
+/** DOCSX_* env vars the docsxai packages read (engine, viewer, backend + mcp). */
 export const KNOWN_DOCSX_ENV_VARS: ReadonlyArray<string> = [
   "DOCSX_TOKEN",
   "DOCSX_CACHE_KEY",
@@ -371,6 +371,7 @@ export const KNOWN_DOCSX_ENV_VARS: ReadonlyArray<string> = [
   "DOCSX_OAUTH_AUTO_APPROVE",
   "DOCSX_WEBHOOK_SECRET",
   "DOCSX_OXIPNG_BIN",
+  "DOCSX_MCP_TOKEN",
 ];
 
 export function checkEnv(env: NodeJS.ProcessEnv): DoctorCheck[] {
