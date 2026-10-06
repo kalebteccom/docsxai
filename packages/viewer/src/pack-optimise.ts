@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rmdir, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
+import { diffPngs } from "./pack-pixels.js";
 
 export type Optimiser = (png: Buffer) => Promise<Buffer>;
 
@@ -26,6 +27,36 @@ function run(command: string, args: string[]): Promise<void> {
       code === 0 ? resolve() : reject(new Error(stderr.trim() || `exit ${code}`)),
     );
   });
+}
+
+/** The last 12 bytes of every complete PNG: an empty IEND chunk with its CRC. */
+const IEND_CHUNK = Buffer.from([0, 0, 0, 0, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
+
+/**
+ * The pack hashes whatever the optimiser wrote, so the output is checked before it is trusted: it has
+ * to be a PNG the viewer can decode, and its pixels have to equal the input's. A binary that is not
+ * oxipng, or one that is lossy or broken, stops the build here and is never hashed.
+ */
+function assertLossless(command: string, input: Buffer, output: Buffer): void {
+  if (output.length < 12 || !output.subarray(output.length - 12).equals(IEND_CHUNK)) {
+    throw new Error(`${command} wrote output that is not a readable PNG: no IEND chunk at the end`);
+  }
+  let diff: ReturnType<typeof diffPngs>;
+  try {
+    diff = diffPngs(input, output);
+  } catch (e) {
+    throw new Error(`${command} wrote output that is not a readable PNG: ${(e as Error).message}`);
+  }
+  if (diff.kind === "resized") {
+    throw new Error(
+      `${command} changed the image size (${diff.from.width}x${diff.from.height} to ${diff.to.width}x${diff.to.height}); only lossless optimisation is allowed`,
+    );
+  }
+  if (diff.changed > 0) {
+    throw new Error(
+      `${command} changed ${diff.changed} pixels; only lossless optimisation is allowed`,
+    );
+  }
 }
 
 /** The command to run: `$DOCSX_OXIPNG_BIN` when set, else `oxipng` from PATH. */
@@ -53,11 +84,17 @@ export async function createOxipngOptimiser(command = "oxipng"): Promise<Optimis
     const output = path.join(dir, "out.png");
     try {
       await writeFile(input, png);
-      await run(command, [...OXIPNG_ARGS, "--out", output, input]);
-      return await readFile(output).catch((e: NodeJS.ErrnoException) => {
+      try {
+        await run(command, [...OXIPNG_ARGS, "--out", output, input]);
+      } catch (e) {
+        throw new Error(`${command} failed on a PNG: ${(e as Error).message}`);
+      }
+      const optimised = await readFile(output).catch((e: NodeJS.ErrnoException) => {
         if (e.code === "ENOENT") return png;
         throw e;
       });
+      if (optimised !== png) assertLossless(command, png, optimised);
+      return optimised;
     } finally {
       await unlink(input).catch(() => {});
       await unlink(output).catch(() => {});

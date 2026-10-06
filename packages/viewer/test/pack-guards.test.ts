@@ -63,6 +63,22 @@ describe("scanText", () => {
     ["AKIAIOSFODNN7EXAMPLE", "AWS access key id"],
     [`AIza${"x".repeat(35)}`, "Google API key"],
     ["xoxb-1234567890-abcdefghij", "Slack token"],
+    ["Write to jane.doe@company.com", "email address"],
+    ["user+tag@mail.company.co.uk.", "email address"],
+    ["you@example.com.evil.io", "email address"],
+    ["Authorization: Basic dXNlcjpwYXNzd29yZA==", "Authorization header"],
+    ["authorization: Token abcdefgh12345678", "Authorization header"],
+    ["Authorization: abcdef0123456789abcdef", "Authorization header"],
+    ["Server at 10.0.0.1", "private network address (10.x.x.x)"],
+    ["Open 10.255.3.40.", "private network address (10.x.x.x)"],
+    ["172.16.5.4", "private network address (172.16-31.x.x)"],
+    ["host 172.31.255.255:8080", "private network address (172.16-31.x.x)"],
+    ["http://192.168.1.20/admin", "private network address (192.168.x.x)"],
+    ["169.254.169.254", "link-local address (169.254.x.x)"],
+    ["https://api.company.io/v1/items?token=abcdef123456", "token in URL query"],
+    ["https://x.io/a?page=2&key=ABCDEF-123456", "token in URL query"],
+    ["https://x.io/a?sig=Zm9vYmFy", "token in URL query"],
+    ["https://x.io/a?signature=Zm9vYmFyYmF6", "token in URL query"],
     ["password: hunter2hunter2", "credential assignment"],
     ["API_KEY=abcd1234efgh", "credential assignment"],
     ['secret = "s3cr3t-value-here"', "credential assignment"],
@@ -76,13 +92,42 @@ describe("scanText", () => {
     "Password: secret",
     "task-management-overview-page-with-a-long-name",
     "https://trackxai.kalebtec.com/mcp",
-    "10.0.0.1 is a private address",
+    "you@example.com",
+    "Mail you@mail.example.org or ops@host.test or a@b.invalid.",
+    "Install from the @docsxai scope",
+    "Authorization: required for this call",
+    "Authorization: Bearer",
+    "Authorization: <your token>",
+    "Authorization: Basic",
+    "172.15.0.1 and 172.32.0.1",
+    "192.169.1.1",
+    "169.253.1.1",
+    "8.8.8.8",
+    "10.0.0",
+    "v10.1.2.3",
+    "Windows 10.0.19045.1",
+    "110.0.0.1",
+    "https://x.io/a?token=<your-token>",
+    "https://x.io/a?key=abc",
+    "https://x.io/a?page=2&sort=name",
+    "monkey=abcdefghij",
     "1127.0.0.12",
     "Ratio 1::1",
     "mylocalhost",
     "Bearer",
   ])("lets %j through", (text) => {
     expect(scanText(text)).toEqual([]);
+  });
+
+  it("flags a four-part version number inside a private range, as an address", () => {
+    expect(scanText("version 10.1.2.3")).toEqual(["private network address (10.x.x.x)"]);
+  });
+
+  it("flags an access_token query parameter by both the query and the credential rule", () => {
+    expect(scanText("https://x.io/?access_token=abcdef123456")).toEqual([
+      "token in URL query",
+      "credential assignment",
+    ]);
   });
 
   it("reports each rule once, loopback first", () => {

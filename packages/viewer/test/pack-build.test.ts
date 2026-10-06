@@ -344,6 +344,75 @@ describe("createOxipngOptimiser", () => {
     expect((await optimise(png)).equals(png)).toBe(true);
   });
 
+  describe("a binary that is not oxipng", () => {
+    const png = solidPng(8, 8, [10, 20, 30, 255]);
+    const shim = async (name: string, body: string): Promise<string> => {
+      const script = path.join(root, name);
+      const version = 'if [ "$1" = "--version" ]; then echo "oxipng 9.0.0"; exit 0; fi\n';
+      await fs.writeFile(script, `#!/bin/sh\n${version}${body}\n`);
+      await fs.chmod(script, 0o755);
+      return script;
+    };
+    // Arguments are `-o 4 --strip safe --out <output> <input>`: $6 is the output, $7 the input.
+
+    it("fails with the binary's stderr when it exits non-zero on a PNG", async () => {
+      const optimise = await createOxipngOptimiser(
+        await shim("failing-oxipng", 'echo "not an optimiser" >&2\nexit 5'),
+      );
+      await expect(optimise(png)).rejects.toThrow(/failed on a PNG: not an optimiser/);
+    });
+
+    it("fails with the exit code when it exits non-zero and says nothing", async () => {
+      const optimise = await createOxipngOptimiser(await shim("mute-oxipng", "exit 7"));
+      await expect(optimise(png)).rejects.toThrow(/failed on a PNG: exit 7/);
+    });
+
+    it("rejects output that is not a PNG instead of hashing it", async () => {
+      const optimise = await createOxipngOptimiser(
+        await shim("garbage-oxipng", "printf 'garbage' > \"$6\""),
+      );
+      await expect(optimise(png)).rejects.toThrow(/wrote output that is not a readable PNG/);
+    });
+
+    it("rejects an empty output file", async () => {
+      const optimise = await createOxipngOptimiser(await shim("empty-oxipng", ': > "$6"'));
+      await expect(optimise(png)).rejects.toThrow(/not a readable PNG/);
+    });
+
+    it("rejects a truncated PNG that still has a valid header", async () => {
+      const optimise = await createOxipngOptimiser(
+        await shim("truncated-oxipng", 'head -c 40 "$7" > "$6"'),
+      );
+      await expect(optimise(png)).rejects.toThrow(/not a readable PNG/);
+    });
+
+    it("rejects a valid PNG with other pixels", async () => {
+      const other = path.join(root, "other.png");
+      await fs.writeFile(other, solidPng(8, 8, [200, 0, 0, 255]));
+      const optimise = await createOxipngOptimiser(
+        await shim("lossy-oxipng", `cp "${other}" "$6"`),
+      );
+      await expect(optimise(png)).rejects.toThrow(/changed \d+ pixels; only lossless/);
+    });
+
+    it("rejects a valid PNG of another size", async () => {
+      const other = path.join(root, "bigger.png");
+      await fs.writeFile(other, solidPng(9, 8, [10, 20, 30, 255]));
+      const optimise = await createOxipngOptimiser(
+        await shim("resizing-oxipng", `cp "${other}" "$6"`),
+      );
+      await expect(optimise(png)).rejects.toThrow(/changed the image size \(8x8 to 9x8\)/);
+    });
+
+    it("stops a pack build from DOCSX_OXIPNG_BIN before any file is hashed", async () => {
+      const script = await shim("env-garbage-oxipng", "printf 'garbage' > \"$6\"");
+      const optimise = await createOxipngOptimiser(oxipngCommand({ DOCSX_OXIPNG_BIN: script }));
+      await expect(
+        buildPack({ source: await sourceOf(), burn: markingBurner, optimise, warn: quiet }),
+      ).rejects.toThrow(/not a readable PNG/);
+    });
+  });
+
   it("takes the command from DOCSX_OXIPNG_BIN, else oxipng", () => {
     expect(oxipngCommand({})).toBe("oxipng");
     expect(oxipngCommand({ DOCSX_OXIPNG_BIN: "/opt/bin/oxipng" })).toBe("/opt/bin/oxipng");
