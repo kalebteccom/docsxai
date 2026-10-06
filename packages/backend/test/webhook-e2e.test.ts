@@ -98,7 +98,13 @@ beforeAll(async () => {
   await fetch(`${base}/v1/workspaces/${wsId}/projects/${projectId}/revisions/${rev.id}/flows`, {
     method: "PUT",
     headers: h(),
-    body: JSON.stringify({ flows: [{ id: "checkout" }] }),
+    body: JSON.stringify({
+      schema: "docsxai/flows@1",
+      files: {
+        "checkout.flow.yaml":
+          "name: checkout\nsteps:\n  - id: open\n    action: navigate\n    value: /checkout\n",
+      },
+    }),
   });
   await fetch(`${base}/v1/workspaces/${wsId}/projects/${projectId}/revisions/${rev.id}/finalize`, {
     method: "POST",

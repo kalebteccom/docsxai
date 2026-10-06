@@ -147,6 +147,8 @@ GitHub push/PR ──▶ POST /v1/github/webhook          (no bearer auth; HMAC-
 - **`viewer-refresh`** — re-renders the viewer (`docsxai render`) from the materialized workspace and records `index.html` as a content-addressed blob.
 - **`wiki-push`** — loads the configured publisher plugin with the engine's plugin contract (`docsxai` manifest in the plugin's `package.json` + `register(api)` module) from `plugin_config.sources` dirs (or `path:` entries in the workspace's `docsxai.config.json`) and reports its `PublishResult` into the run-history summary.
 
+The materialized workspace has the layout `pull` writes: `flows/<name>.flow.yaml`, `docs/<flow>[/<variant>]/{annotations.json, screenshots/}`, `docs/{style.yaml, style.json, locators.yaml}` and `.docsxai.json` (with `app_url` when the runner is given an `appUrl`), plus `webhook-job.json`. A file name outside what a workspace produces fails the job before the engine starts.
+
 The engine CLI is resolved like the engine resolves its viewer bin: `DOCSX_ENGINE_BIN` env override → the installed `@docsxai/engine` package's `docsxai` bin → `docsxai` on `PATH`.
 
 ### Owner-gated checklist (App registration)
