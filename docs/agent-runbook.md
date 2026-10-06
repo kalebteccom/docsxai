@@ -164,7 +164,7 @@ steps:
     value: /dashboard # `navigate` takes `value` (a path resolved against the workspace app_url, or an absolute URL) — NOT `target`
     wait_for: load # network_idle | load | element_stable | settled | { selector: $x } | { timeout_ms: N }
   - id: open-sidebar
-    action: click # navigate|click|fill|upload|press|hover|select|check|uncheck|wait|hide|show. click/hover/check/uncheck/hide take `target`; fill/select/press/upload take `target` + `value`; navigate takes `value`; show takes an optional `target`
+    action: click # navigate|click|fill|upload|press|hover|select|check|uncheck|wait|hide|show. click/hover/check/uncheck/hide take `target`; fill/select/press/upload take `target` + `value` (an `upload` value is a file path relative to the workspace: absolute paths, `..` segments and symlinks that leave the workspace are refused); navigate takes `value`; show takes an optional `target`
     target: $play_button # $name (from `locators`) or an inline selector
     wait_for: { selector: $recap_panel }
     success: { visible: $recap_panel } # visible | hidden | { url_matches: '...' } | { text_contains: { selector: $x, text: '...' } } — halts on failure

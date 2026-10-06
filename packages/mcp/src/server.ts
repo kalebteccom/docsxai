@@ -46,12 +46,15 @@ export const TOOL_DEFINITIONS: ReadonlyArray<ToolDefinition> = [
 export interface CreateDocsxaiMcpServerOptions {
   /** Default workspace dir (`--workspace <dir>` on the bin); used when a call omits `workspace`. */
   defaultWorkspace?: string;
+  /** Confine every caller-supplied path to this real path (the HTTP transport sets it). */
+  workspaceRoot?: string;
 }
 
 /** Build the MCP server with every tool registered. The caller connects it to a transport. */
 export function createDocsxaiMcpServer(opts: CreateDocsxaiMcpServerOptions = {}): McpServer {
   const ctx: ToolContext = {
     ...(opts.defaultWorkspace ? { defaultWorkspace: opts.defaultWorkspace } : {}),
+    ...(opts.workspaceRoot ? { workspaceRoot: opts.workspaceRoot } : {}),
   };
   const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
 

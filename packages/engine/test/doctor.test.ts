@@ -527,6 +527,37 @@ describe("checkEnv", () => {
     expect(bad?.detail).toMatch(/DOCSX_TOKN/);
     expect(bad?.fix).toMatch(/known: DOCSX_TOKEN/);
   });
+
+  it.each([
+    "DOCSX_BACKEND_DENY_PRIVATE_APP_URL",
+    "DOCSX_EGRESS_GUARD",
+    "DOCSX_EGRESS_DENY_PRIVATE",
+  ])("accepts %s as 1, true, yes and the off spellings in any case", (name) => {
+    for (const v of ["1", "true", "YES", "Yes", "0", "false", "no", ""]) {
+      expect(checkEnv({ [name]: v }).every((c) => c.ok)).toBe(true);
+    }
+  });
+
+  it.each([
+    "DOCSX_BACKEND_DENY_PRIVATE_APP_URL",
+    "DOCSX_EGRESS_GUARD",
+    "DOCSX_EGRESS_DENY_PRIVATE",
+  ])("warns when %s holds any other value", (name) => {
+    for (const v of ["on", "enabled", "2", "y", "1 1"]) {
+      const bad = checkEnv({ [name]: v }).filter((c) => !c.ok);
+      expect(bad).toHaveLength(1);
+      expect(bad[0]!.detail).toContain(name);
+      expect(bad[0]!.detail).toContain(JSON.stringify(v));
+      expect(bad[0]!.fix).toMatch(/1, true or yes/);
+    }
+  });
+
+  it("lists the egress guard variables as known, not as typos", () => {
+    const checks = checkEnv({ DOCSX_EGRESS_GUARD: "1", DOCSX_EGRESS_DENY_PRIVATE: "1" });
+    expect(checks).toEqual([
+      { name: "env", ok: true, detail: "set: DOCSX_EGRESS_DENY_PRIVATE, DOCSX_EGRESS_GUARD" },
+    ]);
+  });
 });
 
 describe("buildDoctorChecks + formatDoctorChecks", () => {

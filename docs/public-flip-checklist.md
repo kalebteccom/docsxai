@@ -27,7 +27,7 @@ Planning-level checklist for the docsxai public flip. The repo is public and `0.
 - [x] `@docsxai` org scope claimed on npm (registered) - enforce "Require 2FA" on it before the first publish
 - [x] `docsxai` unscoped package name claimed — ships as the real batteries-included meta-package from `packages/docsxai/` (bin wraps `@docsxai/engine`'s CLI in-process; depends on `@docsxai/viewer`), published by `release.yml` alongside the scoped packages
 - [ ] Typosquat package names pre-claimed and deprecated (`doxai`, `docsai`, `docsx-ai`, etc.)
-- [ ] npm trusted-publisher configuration set per published name (repo + workflow + `release` environment binding) — 6 bindings total: `docsxai` unscoped plus the 5 published scoped packages on the registered `@docsxai` org, `@docsxai/{backend,engine,plugin,skill,viewer}`. `@docsxai/{mcp,plugin-confluence,plugin-sharepoint,plugin-starlight}` stay `private: true` / repo-only at the flip (documented as such; revisit post-flip) and need no bindings
+- [ ] npm trusted-publisher configuration set per published name (repo + workflow + `release` environment binding) — 6 bindings total: `docsxai` unscoped plus the 5 published scoped packages on the registered `@docsxai` org, `@docsxai/{backend,engine,plugin,skill,viewer}`. `@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-sharepoint,plugin-starlight}` stay `private: true` / repo-only at the flip (documented as such; revisit post-flip) and need no bindings
 - [ ] GitHub `release` environment configured (required reviewer, branch restriction)
 - [ ] Domain renewal calendar reminders set
 
