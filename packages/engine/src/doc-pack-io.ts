@@ -17,7 +17,7 @@ import type {
   StylePayload,
 } from "./backend-client.js";
 import { FlowName } from "./doc-pack.js";
-import { findCaseCollision } from "./flow-name-rules.js";
+import { findCaseCollision, hasTrailingDot, isWindowsDeviceName } from "./flow-name-rules.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 
 export interface DocPackPayloads {
@@ -193,8 +193,21 @@ const SAFE_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const SCREENSHOT_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:png|jpe?g|webp)$/i;
 
 const isFlowName = (name: string): boolean => FlowName.safeParse(name).success;
+
+/**
+ * A path segment or file name a workspace can hold on every disk: safe characters, no `..`, no
+ * trailing dot and not a Windows device name (`con`, `nul`, `com1`, ..., with or without an extension).
+ */
 const isSafeSegment = (seg: string): boolean =>
-  seg.length <= 128 && SAFE_SEGMENT.test(seg) && !seg.includes("..") && !seg.endsWith(".");
+  seg.length <= 128 &&
+  SAFE_SEGMENT.test(seg) &&
+  !seg.includes("..") &&
+  !hasTrailingDot(seg) &&
+  !isWindowsDeviceName(seg);
+
+/** `<stem>.png|jpg|jpeg|webp` with the stem held to the same rules as a segment. */
+const isScreenshotFile = (file: string): boolean =>
+  SCREENSHOT_FILE.test(file) && isSafeSegment(file) && isSafeSegment(file.replace(/\.[^.]+$/, ""));
 
 /** `<flow>[/<variant>]`, every segment safe, the flow segment a valid flow name. */
 function isOutputDir(segments: string[]): boolean {
@@ -219,7 +232,7 @@ function isAnnotationsPath(rel: string): boolean {
 function isScreenshotPath(rel: string): boolean {
   const segments = rel.split("/");
   const file = segments.pop() ?? "";
-  return SCREENSHOT_FILE.test(file) && segments.pop() === "screenshots" && isOutputDir(segments);
+  return isScreenshotFile(file) && segments.pop() === "screenshots" && isOutputDir(segments);
 }
 
 function describeName(name: string): string {
@@ -231,7 +244,9 @@ function describeName(name: string): string {
  * Throws {@link UnsafePackNameError} on the first file name in `payloads` that is not one a
  * workspace produces: a flow file that is not `<flow name>.flow.yaml`, an annotations file that is
  * not `<flow>[/<variant>]/annotations.json`, a screenshot that is not under a `screenshots/`
- * directory of such a path, or two flow files that differ only by case. The backend is not trusted
+ * directory of such a path, a variant segment or screenshot stem that is a Windows device name or
+ * ends in a dot, or two flow files, annotation paths, screenshot paths or output directories that
+ * differ only by case. The backend is not trusted
  * with names, and a name like `../.docsxai.json` would otherwise land on workspace config.
  */
 export function assertSafePackNames(payloads: Partial<DocPackPayloads>): void {
@@ -248,11 +263,27 @@ export function assertSafePackNames(payloads: Partial<DocPackPayloads>): void {
       );
     }
   }
-  const clash = findCaseCollision(Object.keys(payloads.flows?.files ?? {}));
-  if (clash) {
-    throw new UnsafePackNameError(
-      `refusing the pulled doc pack, nothing written: flows ${describeName(clash[0])} and ${describeName(clash[1])} differ only by case`,
-    );
+  const annotationNames = Object.keys(payloads.annotations?.files ?? {});
+  const screenshotNames = Object.keys(payloads.screenshots?.files ?? {});
+  // Directories are compared across annotations and screenshots: `Tour/` and `tour/` are one
+  // directory on a case-insensitive disk, whichever artifact names them.
+  const outputDirs = [
+    ...annotationNames.map((n) => n.split("/").slice(0, -1).join("/")),
+    ...screenshotNames.map((n) => n.split("/").slice(0, -2).join("/")),
+  ];
+  const collisions: Array<[string, string[]]> = [
+    ["flows", Object.keys(payloads.flows?.files ?? {})],
+    ["annotations", annotationNames],
+    ["screenshots", screenshotNames],
+    ["output directories", outputDirs],
+  ];
+  for (const [artifact, names] of collisions) {
+    const clash = findCaseCollision(names);
+    if (clash) {
+      throw new UnsafePackNameError(
+        `refusing the pulled doc pack, nothing written: ${artifact} ${describeName(clash[0])} and ${describeName(clash[1])} differ only by case`,
+      );
+    }
   }
 }
 

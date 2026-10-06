@@ -101,6 +101,85 @@ describe("assertSafePackNames", () => {
     );
   });
 
+  it.each([
+    "tour/con/annotations.json",
+    "tour/NUL.dark/annotations.json",
+    "tour/lpt1/annotations.json",
+    "tour/com9.v2/annotations.json",
+    "tour/x./annotations.json",
+  ])("refuses the Windows-hostile variant segment in %j", (name) => {
+    expect(() => assertSafePackNames(annotations(name))).toThrow(UnsafePackNameError);
+    expect(() =>
+      assertSafePackNames(screenshots(name.replace("annotations.json", "screenshots/s.png"))),
+    ).toThrow(UnsafePackNameError);
+  });
+
+  it("keeps variants that only start like a device name", () => {
+    expect(() =>
+      assertSafePackNames(
+        annotations("tour/console/annotations.json", "tour/com10/annotations.json"),
+      ),
+    ).not.toThrow();
+  });
+
+  it.each([
+    "tour/screenshots/con.png",
+    "tour/screenshots/NUL.webp",
+    "tour/screenshots/aux.v2.png",
+    "tour/screenshots/lpt3.jpg",
+    "tour/screenshots/s..png",
+    "tour/screenshots/s..2.png",
+  ])("refuses the Windows-hostile screenshot name %j", (name) => {
+    expect(() => assertSafePackNames(screenshots(name))).toThrow(UnsafePackNameError);
+  });
+
+  it("keeps screenshot stems that only start like a device name", () => {
+    expect(() =>
+      assertSafePackNames(
+        screenshots("tour/screenshots/console.png", "tour/screenshots/conclusion.png"),
+      ),
+    ).not.toThrow();
+  });
+
+  it("refuses two annotation paths that differ only by case", () => {
+    expect(() =>
+      assertSafePackNames(annotations("Tour/annotations.json", "tour/annotations.json")),
+    ).toThrow(/annotations .* differ only by case/);
+    expect(() =>
+      assertSafePackNames(
+        annotations("tour/En.dark/annotations.json", "tour/en.dark/annotations.json"),
+      ),
+    ).toThrow(/differ only by case/);
+  });
+
+  it("refuses two screenshot paths that differ only by case", () => {
+    expect(() =>
+      assertSafePackNames(screenshots("tour/screenshots/A.png", "tour/screenshots/a.png")),
+    ).toThrow(/screenshots .* differ only by case/);
+  });
+
+  it("refuses an annotations directory and a screenshots directory that differ only by case", () => {
+    expect(() =>
+      assertSafePackNames({
+        ...annotations("Tour/annotations.json"),
+        ...screenshots("tour/screenshots/s.png"),
+      }),
+    ).toThrow(/output directories .* differ only by case/);
+  });
+
+  it("accepts the same directory named the same way by both artifacts", () => {
+    expect(() =>
+      assertSafePackNames({
+        ...annotations("tour/annotations.json", "tour/en.dark/annotations.json"),
+        ...screenshots(
+          "tour/screenshots/a.png",
+          "tour/screenshots/b.png",
+          "tour/en.dark/screenshots/a.png",
+        ),
+      }),
+    ).not.toThrow();
+  });
+
   it("names the artifact and shortens a long name in the message", () => {
     const long = `${"a".repeat(200)}/x.flow.yaml`;
     const message = (() => {
