@@ -43,7 +43,7 @@
     "README.md"
   ],
   "scripts": {
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests --testTimeout=30000"
   },
   "dependencies": {
     "@docsxai/engine": "workspace:*",

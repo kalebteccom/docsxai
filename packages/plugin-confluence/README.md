@@ -1,6 +1,6 @@
 # @docsxai/plugin-confluence
 
-docsxai **publisher plugin** for Confluence Cloud. Registers `confluence:push`, which takes the engine's ADF projection (`docsxai export adf` / `projectDocPackToAdf`) and publishes it through the Confluence Cloud REST v2 API — idempotently.
+docsxai **publisher plugin** for Confluence Cloud. Registers `confluence:push`, which takes the engine's ADF projection (`docsxai export adf` / `projectDocPackToAdf`) and publishes it to Confluence Cloud — idempotently. Pages, properties and attachment listing use the REST v2 API; attachment upload uses the v1 `child/attachment` resource, the only upload endpoint Cloud offers.
 
 The engine emits projections only and performs no wiki egress; this plugin is the Confluence egress path, declared in its manifest as `egress:*.atlassian.net` and gated by the workspace's `plugin_capabilities` opt-in. All HTTP uses the built-in `fetch`.
 
@@ -46,12 +46,13 @@ Every published page carries a `docsxai-content-sha` content-property: the sha25
 
 ## Caveats
 
-- Attachment upload posts multipart to `…/api/v2/pages/{id}/attachments`. Confluence Cloud currently exposes upload on the v1 `child/attachment` resource; revisit this endpoint before pointing the plugin at a real site.
+- Attachment upload posts multipart (`file`, `comment` = `docsxai-sha256:<hex>`, `minorEdit=true`, header `X-Atlassian-Token: no-check`) to `POST /wiki/rest/api/content/{pageId}/child/attachment`. The v2 attachments resource is read-only on Cloud (a POST answers 405), so v2 is only used to list existing attachments. Replacing an attachment of the same name posts to `…/child/attachment/{attachmentId}/data`, because v1 refuses a second attachment with the same file name. The media file id patched into the page body is `extensions.fileId` from the upload response.
+- A failed publish throws a `ConfluencePublishError` whose `partial.pages` lists the pages written before the failure (same shape as `pages[]`: `id`, `url`, `action`, `section`), and logs them as a `page_map` fragment. If a page was created and an upload then failed, merge `{ [section]: id }` into `page_map` and publish again: the retry finds the page without its `docsxai-content-sha` property, updates it in place (uploading only the missing attachments) and creates no duplicate.
 - The plugin is in-process and unsandboxed, like every docsxai plugin — `trust: "kalebtec"` is a review signal, not a boundary.
 
 ## Tests
 
-`pnpm test` (after `pnpm -r build` — the runtime-load test resolves the **built** package through the engine's real `resolvePlugins`). The suite runs an in-process fake Confluence v2 server on loopback that counts mutations: same projection published 3× → run 1 creates, runs 2–3 all `unchanged` with zero mutations; a prose change → exactly one page update; token-masking asserted against an error body that echoes the credential.
+`pnpm test` (after `pnpm -r build` — the runtime-load test resolves the **built** package through the engine's real `resolvePlugins`). The suite runs an in-process fake Confluence server on loopback (v2 attachment POST answers 405, uploads go to v1 `child/attachment`) that counts mutations: same projection published 3× → run 1 creates, runs 2–3 all `unchanged` with zero mutations; a prose change → exactly one page update; an upload failure after page creation leaves a retryable `page_map`; token-masking asserted against an error body that echoes the credential.
 
 ## License
 
