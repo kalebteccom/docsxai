@@ -9,6 +9,7 @@ import {
   type BurnNode,
 } from "../src/burn.js";
 import { parseFontMetrics } from "../src/font-metrics.js";
+import { BADGE_FILL } from "../src/viewer-style.js";
 import type { AnnotationRecord } from "../src/annotations.js";
 import { decodePng, pixelAt, solidPng } from "./helpers/png.js";
 
@@ -42,7 +43,7 @@ const calloutOf = (tree: BurnNode) =>
   overlayNodes(tree).find((n) => styleOf(n).backgroundColor === "#fff");
 const arrowOf = (tree: BurnNode) => overlayNodes(tree).find((n) => styleOf(n).clipPath);
 const badgeOf = (tree: BurnNode) =>
-  overlayNodes(tree).find((n) => styleOf(n).backgroundColor === "#e8590c");
+  overlayNodes(tree).find((n) => styleOf(n).backgroundColor === "#c2410c");
 const calloutLines = (callout: BurnNode) =>
   (callout.props.children as BurnNode[]).map((l) => l.props.children as string);
 
@@ -151,6 +152,12 @@ describe("buildBurnTree", () => {
     // top-left of the halo, pulled 8px outside it
     expect(styleOf(badge).left).toBe(CENTERED_BOX.x - 8);
     expect(styleOf(badge).top).toBe(CENTERED_BOX.y - 8);
+  });
+
+  it("fills the badge with the AA colour of the viewer badge and keeps the halo accent", () => {
+    const tree = treeFor([buildAnnotation({ index: 1 })]);
+    expect(styleOf(badgeOf(tree)!).backgroundColor).toBe(BADGE_FILL);
+    expect(styleOf(haloOf(tree)!).border).toBe("2px solid #e8590c");
   });
 
   it("renders no badge without an index", () => {

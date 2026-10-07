@@ -20,6 +20,7 @@ import { Resvg } from "@resvg/resvg-js";
 import type { Rect } from "./placement.js";
 import { anchorBadge, planBadge, BADGE_DEFAULT_OFFSET, BADGE_INNER } from "./badge-placement.js";
 import { arrowGeometry, growRect, type ArrowGeometry } from "./arrow.js";
+import { BADGE_FILL } from "./viewer-style.js";
 import { connectorNodes } from "./burn-connector.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
@@ -48,6 +49,7 @@ import type { AnnotationRecord, AnnotationsFile, BoundingBox } from "./annotatio
 
 export { arrowGeometry, type ArrowGeometry };
 
+/** Halo / box outline. The numbered badge fill is BADGE_FILL (AA contrast for its white digits). */
 const ACCENT = "#e8590c";
 const INK = "#1c1c1c";
 const BADGE_BORDER = 2;
@@ -198,7 +200,7 @@ function badgeNode(box: Rect, index: number): BurnNode {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: ACCENT,
+      backgroundColor: BADGE_FILL,
       border: `${BADGE_BORDER}px solid #fff`,
       borderRadius: box.height / 2,
       color: "#fff",
