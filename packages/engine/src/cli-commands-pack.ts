@@ -4,7 +4,7 @@
 // validate the argv edge and run the viewer's command through the shared bin resolution, so the
 // engine still does not depend on the viewer.
 
-import { USAGE } from "./cli-usage.js";
+import { usageError } from "./cli-messages.js";
 import { runViewerBin } from "./viewer-bin.js";
 
 interface FlagSpec {
@@ -35,11 +35,6 @@ function checkArgs(args: string[], spec: FlagSpec): { dir: string; rest: string[
   if (positionals.length === 0) return "missing <workspace-or-raw-dir>";
   if (positionals.length > 1) return `unexpected argument "${positionals[1]}"`;
   return { dir: positionals[0]!, rest };
-}
-
-function usageError(command: string, message: string): number {
-  process.stderr.write(`${command}: ${message}\n\n${USAGE}\n`);
-  return 2;
 }
 
 /** `pack` — burn, optimise, hash-name and write the screenshot pack; with `--check`, compare instead of write. */

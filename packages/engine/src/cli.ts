@@ -95,7 +95,9 @@ export async function main(argv: string[]): Promise<number> {
     case "pull":
       return cmdPull(rest);
     default:
-      process.stderr.write(`unknown command: ${cmd}\n\n${USAGE}\n`);
+      process.stderr.write(
+        `unknown command: ${cmd}\nrun \`docsxai --help\` to list the commands\n`,
+      );
       return 2;
   }
 }

@@ -56,7 +56,7 @@ describe("backend engine argv through the engine's flag parser", () => {
 
   it("the old `--workspace <dir>` form leaves the engine without a positional", () => {
     // What the backend sent before: parseFlags consumes the directory as a flag value, so
-    // positionals[0] is undefined and cmdRun / cmdRender exit 2 with `missing <project-dir>`.
+    // positionals[0] is undefined and cmdRun / cmdRender exit 2 with `missing <workspace-dir>`.
     const { positionals } = parseFlags(["--workspace", WORKSPACE]);
     expect(positionals[0]).toBeUndefined();
   });
@@ -77,19 +77,19 @@ describe.skipIf(!engineBuilt)("backend engine argv through the bare bin", () => 
 
   it("run <dir> reaches the workspace check instead of failing argument validation", async () => {
     const r = await docsxai(engineRunArgv(tmp));
-    expect(r.stderr).not.toContain("missing <project-dir>");
+    expect(r.stderr).not.toContain("missing <workspace-dir>");
     expect(r.code).toBe(1);
     expect(r.stderr).toContain("has no flows/ directory");
   });
 
-  it("the old `run --workspace <dir>` form exits 2 with missing <project-dir>", async () => {
+  it("the old `run --workspace <dir>` form exits 2 with missing <workspace-dir>", async () => {
     const r = await docsxai(["run", "--workspace", tmp]);
     expect(r.code).toBe(2);
-    expect(r.stderr).toContain("run: missing <project-dir>");
+    expect(r.stderr).toContain("run: missing <workspace-dir>");
   });
 
   it.skipIf(!viewerBuilt)("render <dir> passes argument validation", async () => {
     const r = await docsxai(engineRenderArgv(tmp));
-    expect(r.stderr).not.toContain("missing <project-dir>");
+    expect(r.stderr).not.toContain("missing <workspace-dir>");
   });
 });

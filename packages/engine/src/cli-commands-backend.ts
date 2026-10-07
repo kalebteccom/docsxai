@@ -9,7 +9,6 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import {
   BackendClient,
-  BackendClientError,
   createBackendClient,
   oauthLogin,
   saveBackendTokenFile,
@@ -25,14 +24,21 @@ import {
 import { pluginsCli } from "./plugins-cli.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import { parseFlags } from "./cli-shared.js";
+import { configProblem, explainBackendFailure } from "./cli-backend-errors.js";
+import {
+  redactUrl,
+  sanitizeForTerminal,
+  shellQuote,
+  usageError,
+  withNext,
+} from "./cli-messages.js";
 
 export async function cmdLogin(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   const backendUrl =
     typeof flags.get("backend-url") === "string" ? (flags.get("backend-url") as string) : undefined;
   if (!backendUrl) {
-    process.stderr.write(`login: --backend-url <url> required\n`);
-    return 2;
+    return usageError("login", "--backend-url <url> required");
   }
   const oauthFlag = flags.get("oauth");
   if (oauthFlag !== undefined) {
@@ -42,10 +48,10 @@ export async function cmdLogin(args: string[]): Promise<number> {
     // from the positional.
     const workspaceDir = typeof oauthFlag === "string" ? oauthFlag : positionals[0];
     if (!workspaceDir) {
-      process.stderr.write(
-        `login: --oauth requires a <workspace-dir> (tokens are stored at <workspace>/.auth/backend-token.json)\n`,
+      return usageError(
+        "login",
+        "--oauth requires a <workspace-dir> (tokens are stored at <workspace>/.auth/backend-token.json)",
       );
-      return 2;
     }
     try {
       const tokens = await oauthLogin({
@@ -60,40 +66,44 @@ export async function cmdLogin(args: string[]): Promise<number> {
       );
       return 0;
     } catch (e) {
-      process.stderr.write(`login: ${(e as Error).message}\n`);
+      const text =
+        explainBackendFailure(e, backendUrl) ?? sanitizeForTerminal((e as Error).message);
+      process.stderr.write(`login: ${text}\n`);
       return 1;
     }
   }
   if (!process.env.DOCSX_TOKEN) {
-    process.stderr.write(
-      `login: DOCSX_TOKEN env var not set. Export it before running: DOCSX_TOKEN=<token> docsxai login --backend-url ${backendUrl}\n`,
-    );
+    const next = `DOCSX_TOKEN=<token> docsxai login --backend-url ${shellQuote(redactUrl(backendUrl))}  (or add --oauth <workspace-dir> to sign in as a person)`;
+    process.stderr.write(`login: ${withNext("DOCSX_TOKEN env var not set", next)}\n`);
     return 2;
   }
   let client: BackendClient;
   try {
     client = new BackendClient({ baseUrl: backendUrl });
   } catch (e) {
-    process.stderr.write(`login: ${(e as Error).message}\n`);
+    process.stderr.write(`login: ${sanitizeForTerminal((e as Error).message)}\n`);
     return 1;
   }
   try {
     const h = await client.health();
     if (!h.ok) {
-      process.stderr.write(`login: backend health-check returned ok=false\n`);
+      const note = withNext(
+        `backend health-check at ${redactUrl(backendUrl)} returned ok=false`,
+        "check the backend's logs, then retry",
+      );
+      process.stderr.write(`login: ${note}\n`);
       return 1;
     }
     const wss = await client.listWorkspaces();
     process.stdout.write(
-      `login: ok. ${wss.length} workspace${wss.length !== 1 ? "s" : ""} visible at ${backendUrl}\n`,
+      `login: ok. ${wss.length} workspace${wss.length !== 1 ? "s" : ""} visible at ${redactUrl(backendUrl)}\n`,
     );
     return 0;
   } catch (e) {
-    if (e instanceof BackendClientError) {
-      process.stderr.write(`login: ${e.message}\n`);
-      return 1;
-    }
-    throw e;
+    const text = explainBackendFailure(e, backendUrl);
+    if (text === undefined) throw e;
+    process.stderr.write(`login: ${text}\n`);
+    return 1;
   }
 }
 
@@ -122,23 +132,20 @@ async function ensureBackendBinding(
 
 export async function cmdPush(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write(`push: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("push", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url) {
-    process.stderr.write(
-      `push: no backend_url in ${path.join(projectDir, ".docsxai.json")}. Set it before pushing.\n`,
-    );
+    const file = path.join(projectDir, ".docsxai.json");
+    const why = wsCfg ? "" : ` (${await configProblem(projectDir)})`;
+    const next = 'add "backend_url": "<url>" to it, then docsxai login --backend-url <url>';
+    process.stderr.write(`push: ${withNext(`no backend_url in ${file}${why}`, next)}\n`);
     return 2;
   }
   const kindArg =
     typeof flags.get("kind") === "string" ? (flags.get("kind") as string) : "calibrate";
   if (kindArg !== "calibrate" && kindArg !== "run" && kindArg !== "edit") {
-    process.stderr.write(`push: --kind must be calibrate | run | edit (got "${kindArg}")\n`);
-    return 2;
+    return usageError("push", `--kind must be calibrate | run | edit (got "${kindArg}")`);
   }
   const author =
     (typeof flags.get("author") === "string" ? (flags.get("author") as string) : null) ??
@@ -149,7 +156,7 @@ export async function cmdPush(args: string[]): Promise<number> {
   try {
     client = await createBackendClient({ baseUrl: wsCfg.backend_url, workspaceDir: projectDir });
   } catch (e) {
-    process.stderr.write(`push: ${(e as Error).message}\n`);
+    process.stderr.write(`push: ${sanitizeForTerminal((e as Error).message)}\n`);
     return 1;
   }
 
@@ -201,29 +208,29 @@ export async function cmdPush(args: string[]): Promise<number> {
     }
     await client.finalizeRevision(binding.wsId, binding.projectId, rev.id);
     process.stdout.write(
-      `push: revision ${rev.id} (${kindArg}, ${author}) — ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded, finalized\n`,
+      `push: revision ${sanitizeForTerminal(rev.id)} (${kindArg}, ${sanitizeForTerminal(author)}) on ${redactUrl(wsCfg.backend_url)} — ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded, finalized\n`,
     );
     return 0;
   } catch (e) {
-    if (e instanceof BackendClientError) {
-      process.stderr.write(`push: ${e.message}\n`);
-      return 1;
-    }
-    throw e;
+    const text = explainBackendFailure(e, wsCfg.backend_url, projectDir);
+    if (text === undefined) throw e;
+    process.stderr.write(`push: ${text}\n`);
+    return 1;
   }
 }
 
 export async function cmdPull(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write(`pull: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("pull", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url || !wsCfg.backend_workspace_id || !wsCfg.backend_project_id) {
+    const gap = wsCfg
+      ? "backend_url, backend_workspace_id and backend_project_id are all needed"
+      : await configProblem(projectDir);
+    const next = `docsxai push ${shellQuote(projectDir)}  (binds it on the first push), or set the three keys in .docsxai.json`;
     process.stderr.write(
-      `pull: workspace isn't bound to a backend yet. Run \`push\` first (or hand-edit .docsxai.json's backend_workspace_id / backend_project_id).\n`,
+      `pull: ${withNext(`workspace isn't bound to a backend yet (${gap})`, next)}\n`,
     );
     return 2;
   }
@@ -233,7 +240,7 @@ export async function cmdPull(args: string[]): Promise<number> {
   try {
     client = await createBackendClient({ baseUrl: wsCfg.backend_url, workspaceDir: projectDir });
   } catch (e) {
-    process.stderr.write(`pull: ${(e as Error).message}\n`);
+    process.stderr.write(`pull: ${sanitizeForTerminal((e as Error).message)}\n`);
     return 1;
   }
 
@@ -259,15 +266,20 @@ export async function cmdPull(args: string[]): Promise<number> {
       : undefined;
     const r = await writeDocPack(projectDir, payloads, screenshotBytes ? { screenshotBytes } : {});
     process.stdout.write(
-      `pull: revision ${rev.id} (${rev.kind}, ${rev.author}) — wrote ${r.filesWritten} file(s)\n`,
+      `pull: revision ${sanitizeForTerminal(rev.id)} (${sanitizeForTerminal(rev.kind)}, ${sanitizeForTerminal(rev.author)}) — wrote ${r.filesWritten} file(s) to ${sanitizeForTerminal(projectDir)}\n`,
     );
     return 0;
   } catch (e) {
-    if (e instanceof BackendClientError || e instanceof UnsafePackNameError) {
-      process.stderr.write(`pull: ${e.message}\n`);
-      return 1;
-    }
-    throw e;
+    const text =
+      e instanceof UnsafePackNameError
+        ? withNext(
+            `${sanitizeForTerminal(e.message)}\n  why: the revision names a file a workspace would not produce; nothing was written`,
+            `docsxai pull ${shellQuote(projectDir)} --rev <older-revision-id>`,
+          )
+        : explainBackendFailure(e, wsCfg.backend_url, projectDir);
+    if (text === undefined) throw e;
+    process.stderr.write(`pull: ${text}\n`);
+    return 1;
   }
 }
 

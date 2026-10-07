@@ -33,14 +33,22 @@ describe("docsxai CLI — main()", () => {
     expect(out).toMatch(/docsxai burn <workspace-dir>/);
   });
 
+  it("--help ends with the conventions and an Examples section", async () => {
+    expect(await main(["--help"])).toBe(0);
+    expect(out).toContain("Exit 0 success, 1 runtime failure, 2 usage error.");
+    expect(out).toContain("\nExamples:\n");
+    expect(out).toContain("docsxai pack ~/docsxai/my-app --check --against ./public/screens");
+    expect(out.indexOf("\nExamples:\n")).toBeGreaterThan(out.indexOf("\nNotes:\n"));
+  });
+
   it("exits 2 on an unknown command", async () => {
     expect(await main(["frobnicate"])).toBe(2);
     expect(err).toMatch(/unknown command: frobnicate/);
   });
 
-  it("run without a project dir exits 2", async () => {
+  it("run without a workspace dir exits 2", async () => {
     expect(await main(["run"])).toBe(2);
-    expect(err).toMatch(/missing <project-dir>/);
+    expect(err).toMatch(/missing <workspace-dir>/);
   });
 
   it("run against a non-existent project exits 1", async () => {
@@ -83,9 +91,9 @@ describe("docsxai CLI — main()", () => {
     expect(err).toMatch(/--start-from requires --flow/);
   });
 
-  it("render without a project dir exits 2", async () => {
+  it("render without a workspace dir exits 2", async () => {
     expect(await main(["render"])).toBe(2);
-    expect(err).toMatch(/missing <project-dir>/);
+    expect(err).toMatch(/missing <workspace-dir>/);
   });
 
   it("init requires a workspace dir (unless --persist tmp) and validates enums", async () => {
@@ -118,9 +126,9 @@ describe("docsxai CLI — main()", () => {
     expect(err).toMatch(/no URL/);
   });
 
-  it("capture-auth requires a project dir and --base-url, and a real auth descriptor", async () => {
+  it("capture-auth requires a workspace dir and --base-url, and a real auth descriptor", async () => {
     expect(await main(["capture-auth"])).toBe(2);
-    expect(err).toMatch(/missing <project-dir>/);
+    expect(err).toMatch(/missing <workspace-dir>/);
     err = "";
     expect(await main(["capture-auth", "/some/dir"])).toBe(2);
     expect(err).toMatch(/--base-url .* required/);

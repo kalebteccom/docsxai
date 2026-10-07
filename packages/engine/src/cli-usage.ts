@@ -183,4 +183,29 @@ Notes:
     optionally backend_workspace_id / backend_project_id; created on first push if absent and
     persisted to the config). --kind defaults to "calibrate"; --author defaults to the OS user.
   • pull fetches a revision's artifacts back into the workspace files (default: HEAD). Useful for
-    syncing with a different operator's edits or rolling back to a named revision.`;
+    syncing with a different operator's edits or rolling back to a named revision.
+  • A command that works on a workspace takes its directory as the first argument. Reports and data go to
+    stdout; progress lines and warnings go to stderr where a command already splits them. Output has no
+    colour. An error prints \`<command>: what failed\`, then \`next: <command to run>\` when there is one.
+    Exit 0 success, 1 runtime failure, 2 usage error.
+  • --format json (lint, flow-tree, diagnose, style, diff, plugins, run --verify-determinism) is the
+    machine-readable output; the text formats are for people and may change.
+  • run, calibrate, burn, pack, zip, baseline, push, pull and doctor end with one line,
+    \`<command>: <result> …\`, naming the counts and where the output went (run --verify-determinism
+    ends with its report).
+
+Examples:
+  docsxai init ~/docsxai/my-app --app-url https://app.example.com
+  docsxai capture-auth ~/docsxai/my-app
+  docsxai calibrate ~/docsxai/my-app --from login.flow.yaml
+  docsxai run ~/docsxai/my-app --flow login
+  docsxai run ~/docsxai/my-app --verify-determinism --runs 3 --format md
+  docsxai lint ~/docsxai/my-app --format json
+  docsxai render ~/docsxai/my-app
+  docsxai burn ~/docsxai/my-app --flow login --out ~/docsxai/my-app/burned
+  docsxai pack ~/docsxai/my-app --out ~/docsxai/my-app/.screens
+  docsxai pack ~/docsxai/my-app --check --against ./public/screens
+  docsxai baseline ~/docsxai/my-app
+  docsxai diff ~/docsxai/my-app --fail-on warn
+  docsxai doctor ~/docsxai/my-app
+  docsxai push ~/docsxai/my-app --kind run`;

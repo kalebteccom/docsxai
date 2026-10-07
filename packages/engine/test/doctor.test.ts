@@ -590,6 +590,7 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
     expect(text).toContain("− plugins");
     expect(text).toContain("✓ viewer");
     expect(text).toContain("all checks passed");
+    expect(text).toMatch(/\ndoctor: all checks passed \(\d+ checks, \d+ informational\)\n$/);
   });
 
   it("skips workspace-scoped checks outside a workspace", async () => {
@@ -612,6 +613,9 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
     expect(text).toContain("✗ chromium");
     expect(text).toContain("    fix: install it");
     expect(text).toContain("fix the ✗ items above");
+    expect(text).toContain(
+      "\ndoctor: fix the ✗ items above and run docsxai doctor again (1 of 2 checks failed)\n",
+    );
   });
 });
 

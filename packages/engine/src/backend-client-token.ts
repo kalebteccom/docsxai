@@ -3,6 +3,7 @@
 // load/save helpers. Re-exported from `./backend-client.js`.
 
 import { promises as fs } from "node:fs";
+import { redactUrl, shellQuote } from "./cli-messages.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 import { BackendClientError, type BackendTokenFile } from "./backend-client-contracts.js";
 
@@ -68,7 +69,7 @@ export async function resolveBackendToken(opts: {
 }): Promise<string> {
   if (opts.token) return opts.token;
   if (process.env.DOCSX_TOKEN) return process.env.DOCSX_TOKEN;
-  const reloginHint = `set DOCSX_TOKEN or run \`docsxai login --backend-url ${opts.baseUrl} --oauth <workspace-dir>\``;
+  const reloginHint = `set DOCSX_TOKEN or run \`docsxai login --backend-url ${shellQuote(redactUrl(opts.baseUrl))} --oauth <workspace-dir>\``;
   if (!opts.workspaceDir) {
     throw new BackendClientError(`no bearer token — ${reloginHint}`);
   }

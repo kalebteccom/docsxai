@@ -35,7 +35,8 @@ import { listFlowFiles, parseFlags } from "./cli-shared.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
-import { USAGE } from "./cli-usage.js";
+import { usageError, withNext } from "./cli-messages.js";
+import { reportRun } from "./cli-run-summary.js";
 
 async function loadAuthStorageState(projectDir: string): Promise<StorageState | undefined> {
   const descriptorPath = resolveWorkspacePath(projectDir, "auth", "strategy.yaml");
@@ -51,8 +52,10 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
   const state = await cache.load(role);
   if (!state) {
     throw new Error(
-      `auth/strategy.yaml configures role "${role}" but no valid cached session was found at ${path.join(projectDir, ".auth", role + ".json")}.\n` +
-        `Capture one first (calibration's auth step, e.g. the manual-capture flow).`,
+      withNext(
+        `auth/strategy.yaml configures role "${role}" but there is no valid cached session at ${path.join(projectDir, ".auth", role + ".json")} (missing or expired)`,
+        `docsxai capture-auth ${projectDir}`,
+      ),
     );
   }
   return state;
@@ -60,10 +63,7 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
 
 export async function cmdRun(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write("run: missing <project-dir>\n\n" + USAGE + "\n");
-    return 2;
-  }
+  if (!positionals[0]) return usageError("run", "missing <workspace-dir>");
   const projectDir: string = positionals[0];
   const onlyFlow =
     typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
@@ -78,16 +78,10 @@ export async function cmdRun(args: string[]): Promise<number> {
   const pause = flags.get("pause") === true;
   const headed = flags.get("headed") === true || pause; // --pause implies --headed
   if (startFrom && !onlyFlow) {
-    process.stderr.write(
-      `run: --start-from requires --flow <name> (single-flow calibration aid)\n`,
-    );
-    return 2;
+    return usageError("run", "--start-from requires --flow <name> (single-flow calibration aid)");
   }
   const verify = parseVerifyArgs(flags);
-  if (typeof verify === "string") {
-    process.stderr.write(`run: ${verify}\n\n${USAGE}\n`);
-    return 2;
-  }
+  if (typeof verify === "string") return usageError("run", verify);
   const wsCfg = await loadWorkspaceConfig(projectDir);
   const baseURL =
     (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ??
@@ -117,6 +111,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   const flows: FlowFile[] = [];
   const units: FlowVariant[] = [];
   const matrixFlows = new Set<string>();
+  const knownFlows: string[] = [];
   let flowCount = 0;
   for (const fp of flowPaths) {
     let flow: FlowFile;
@@ -127,11 +122,12 @@ export async function cmdRun(args: string[]): Promise<number> {
       variants = expandFlowVariants(flow, fp);
     } catch (e) {
       if (e instanceof FlowFileError) {
-        process.stderr.write(`run: ${e.message}\n`);
+        process.stderr.write(`run: ${withNext(e.message, `docsxai lint ${projectDir}`)}\n`);
         return 1;
       }
       throw e;
     }
+    knownFlows.push(flow.name);
     if (onlyFlow && flow.name !== onlyFlow) continue;
     flowCount++;
     flows.push(flow);
@@ -141,8 +137,8 @@ export async function cmdRun(args: string[]): Promise<number> {
   if (flowCount === 0) {
     process.stderr.write(
       onlyFlow
-        ? `run: no flow named "${onlyFlow}"\n`
-        : `run: no flow-files in ${projectDir}/flows\n`,
+        ? `run: no flow named "${onlyFlow}" (flows: ${knownFlows.join(", ") || "none"})\n`
+        : `run: ${withNext(`no flow-files in ${projectDir}/flows`, `docsxai calibrate ${projectDir} --from <flow.yaml>`)}\n`,
     );
     return 1;
   }
@@ -254,6 +250,7 @@ export async function cmdRun(args: string[]): Promise<number> {
     progress: (line) => process.stdout.write(line),
   });
   const anyFailed = failures.length > 0;
+  reportRun({ projectDir, noun, total: units.length, okCount, failures });
 
   // Backend-bound workspaces get a run record appended; offline-tolerant (warn, never fail the run).
   const history = await recordRunHistory({
@@ -271,19 +268,16 @@ export async function cmdRun(args: string[]): Promise<number> {
 export async function cmdCaptureAuth(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   const projectDir = positionals[0];
-  if (!projectDir) {
-    process.stderr.write("capture-auth: missing <project-dir>\n\n" + USAGE + "\n");
-    return 2;
-  }
+  if (!projectDir) return usageError("capture-auth", "missing <workspace-dir>");
   const wsCfg = await loadWorkspaceConfig(projectDir);
   const baseURL =
     (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ??
     wsCfg?.app_url;
   if (!baseURL) {
-    process.stderr.write(
-      "capture-auth: --base-url <url> is required (or set app_url in the workspace's .docsxai.json)\n",
+    return usageError(
+      "capture-auth",
+      "--base-url <url> is required (or set app_url in the workspace's .docsxai.json)",
     );
-    return 2;
   }
   const headless = flags.get("headless") === true;
   const ignoreHTTPSErrors =
@@ -301,7 +295,9 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
   try {
     descriptorText = await fs.readFile(descriptorPath, "utf8");
   } catch {
-    process.stderr.write(`capture-auth: no auth descriptor at ${descriptorPath}\n`);
+    process.stderr.write(
+      `capture-auth: ${withNext(`no auth descriptor at ${descriptorPath}`, "write auth/strategy.yaml (`docsxai init <new-dir>` scaffolds an example to copy)")}\n`,
+    );
     return 1;
   }
   let role: string;
@@ -314,7 +310,10 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
         : descriptor.default_role;
     const ra = descriptor.roles[role];
     if (!ra) {
-      process.stderr.write(`capture-auth: role "${role}" not in ${descriptorPath}\n`);
+      const roles = Object.keys(descriptor.roles).join(", ");
+      process.stderr.write(
+        `capture-auth: role "${role}" not in ${descriptorPath} (roles: ${roles}); pass --role <name>\n`,
+      );
       return 1;
     }
     roleAuth = ra;
@@ -387,10 +386,8 @@ export async function cmdInit(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   const persistTmp = flags.get("persist") === "tmp";
   const dir = positionals[0];
-  if (!persistTmp && !dir) {
-    process.stderr.write("init: missing <workspace-dir> (or use --persist tmp)\n\n" + USAGE + "\n");
-    return 2;
-  }
+  if (!persistTmp && !dir)
+    return usageError("init", "missing <workspace-dir> (or use --persist tmp)");
   const str = (k: string): string | undefined =>
     typeof flags.get(k) === "string" ? (flags.get(k) as string) : undefined;
   const auth = str("auth");
@@ -428,7 +425,7 @@ export async function cmdInit(args: string[]): Promise<number> {
     );
     return 0;
   } catch (e) {
-    process.stderr.write(`init: ${(e as Error).message}\n`);
+    process.stderr.write(`init: ${(e as Error).message.replace(/^init: /, "")}\n`);
     return 1;
   }
 }
@@ -436,24 +433,22 @@ export async function cmdInit(args: string[]): Promise<number> {
 export async function cmdCalibrate(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   const workspaceDir = positionals[0];
-  if (!workspaceDir) {
-    process.stderr.write("calibrate: missing <workspace-dir>\n\n" + USAGE + "\n");
-    return 2;
-  }
+  if (!workspaceDir) return usageError("calibrate", "missing <workspace-dir>");
   const from = typeof flags.get("from") === "string" ? (flags.get("from") as string) : undefined;
   if (!from) {
-    process.stderr.write(
-      "calibrate: --from <flow.md|.yaml> is required (the structured flow-guide)\n",
+    return usageError(
+      "calibrate",
+      "--from <flow.md|.yaml> is required (the structured flow-guide)",
     );
-    return 2;
   }
   const flowName =
     typeof flags.get("name") === "string" ? (flags.get("name") as string) : undefined;
   let text: string;
   try {
     text = await fs.readFile(from, "utf8");
-  } catch {
-    process.stderr.write(`calibrate: cannot read ${from}\n`);
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code ?? "unreadable";
+    process.stderr.write(`calibrate: cannot read ${from} (${code}); check the path\n`);
     return 1;
   }
   try {
@@ -470,7 +465,9 @@ export async function cmdCalibrate(args: string[]): Promise<number> {
     );
     return 0;
   } catch (e) {
-    process.stderr.write(`calibrate: ${(e as Error).message}\n`);
+    process.stderr.write(
+      `calibrate: ${withNext((e as Error).message, `fix ${from}, then docsxai calibrate ${workspaceDir} --from ${from}`)}\n`,
+    );
     return 1;
   }
 }

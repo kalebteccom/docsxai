@@ -39,25 +39,22 @@ import { resolvePlugins } from "./plugins/runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import { listFlowFiles, parseFlags } from "./cli-shared.js";
-import { USAGE } from "./cli-usage.js";
+import { usageError, withNext } from "./cli-messages.js";
 
 export async function cmdInspect(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   const workspaceDir = positionals[0];
-  if (!workspaceDir) {
-    process.stderr.write("inspect: missing <workspace-dir>\n\n" + USAGE + "\n");
-    return 2;
-  }
+  if (!workspaceDir) return usageError("inspect", "missing <workspace-dir>");
   const wsCfg = await loadWorkspaceConfig(workspaceDir);
   const cdp = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
   const explicitUrl =
     typeof flags.get("url") === "string" ? (flags.get("url") as string) : undefined;
   const url = explicitUrl ?? wsCfg?.app_url;
   if (!cdp && !url) {
-    process.stderr.write(
-      "inspect: no URL — pass --url <url>, set app_url in .docsxai.json, or use --cdp <endpoint>\n",
+    return usageError(
+      "inspect",
+      "no URL — pass --url <url>, set app_url in .docsxai.json, or use --cdp <endpoint>",
     );
-    return 2;
   }
   const selector =
     typeof flags.get("selector") === "string" ? (flags.get("selector") as string) : undefined;
@@ -118,7 +115,12 @@ export async function cmdInspect(args: string[]): Promise<number> {
   try {
     // In CDP-attach mode without an explicit --url, inspect whatever the attached browser already has open.
     if (url && (!cdp || explicitUrl))
-      await session.page.goto(url, { waitUntil: "domcontentloaded" }).catch(() => undefined);
+      await session.page.goto(url, { waitUntil: "domcontentloaded" }).catch((e: Error) => {
+        const why = e.message.split("\n")[0];
+        process.stderr.write(
+          `inspect: warning — could not load ${url}: ${why}; is the app running?\n`,
+        );
+      });
     if (waitForSel)
       await session.page.waitForSelector(waitForSel, { timeout: 30_000 }).catch(() => undefined);
     else if (waitMs > 0) await session.page.waitForTimeout(waitMs);
@@ -176,17 +178,13 @@ export async function cmdInspect(args: string[]): Promise<number> {
 
 export async function cmdLint(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write(`lint: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("lint", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const flowFilter =
     typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
   if (format !== "text" && format !== "json") {
-    process.stderr.write(`lint: --format must be "text" or "json"\n`);
-    return 2;
+    return usageError("lint", '--format must be "text" or "json"');
   }
 
   let flowPaths: string[];
@@ -205,7 +203,9 @@ export async function cmdLint(args: string[]): Promise<number> {
       flowsByName.set(flow.name, flow);
     } catch (e) {
       const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
-      process.stderr.write(`lint: parse error in ${p}: ${msg}\n`);
+      process.stderr.write(
+        `lint: ${withNext(`parse error in ${p}: ${msg}`, `fix the flow-file, then docsxai lint ${projectDir}`)}\n`,
+      );
       return 1;
     }
   }
@@ -216,8 +216,8 @@ export async function cmdLint(args: string[]): Promise<number> {
       : []
     : Array.from(flowsByName.values());
   if (flowFilter && targets.length === 0) {
-    process.stderr.write(`lint: flow not found: ${flowFilter}\n`);
-    return 2;
+    const known = [...flowsByName.keys()].join(", ") || "none";
+    return usageError("lint", `flow not found: ${flowFilter} (flows: ${known})`);
   }
 
   const loadFlow = (name: string) => {
@@ -263,15 +263,11 @@ export async function cmdLint(args: string[]): Promise<number> {
 
 export async function cmdFlowTree(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write(`flow-tree: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("flow-tree", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
   if (format !== "text" && format !== "json") {
-    process.stderr.write(`flow-tree: --format must be "text" or "json"\n`);
-    return 2;
+    return usageError("flow-tree", '--format must be "text" or "json"');
   }
 
   let flowPaths: string[];
@@ -290,7 +286,9 @@ export async function cmdFlowTree(args: string[]): Promise<number> {
       flowsByName.set(flow.name, flow);
     } catch (e) {
       const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
-      process.stderr.write(`flow-tree: parse error in ${p}: ${msg}\n`);
+      process.stderr.write(
+        `flow-tree: ${withNext(`parse error in ${p}: ${msg}`, `fix the flow-file, then docsxai flow-tree ${projectDir}`)}\n`,
+      );
       return 1;
     }
   }
@@ -308,10 +306,7 @@ export async function cmdFlowTree(args: string[]): Promise<number> {
 
 export async function cmdDiagnose(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write(`diagnose: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("diagnose", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const flowName =
     typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
@@ -322,17 +317,10 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
     typeof flags.get("variant") === "string" ? (flags.get("variant") as string) : undefined;
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
 
-  if (!flowName) {
-    process.stderr.write(`diagnose: --flow <name> required\n`);
-    return 2;
-  }
-  if (!stepId) {
-    process.stderr.write(`diagnose: --step <step-id> required\n`);
-    return 2;
-  }
+  if (!flowName) return usageError("diagnose", "--flow <name> required");
+  if (!stepId) return usageError("diagnose", "--step <step-id> required");
   if (format !== "text" && format !== "json") {
-    process.stderr.write(`diagnose: --format must be "text" or "json"\n`);
-    return 2;
+    return usageError("diagnose", '--format must be "text" or "json"');
   }
 
   // Load the flow (resolving `extends` so step lookup works against the merged step list).
@@ -342,7 +330,12 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
     try {
       text = await fs.readFile(fp, "utf8");
     } catch {
-      throw new FlowFileError(`no flow named "${name}" at ${fp}`);
+      throw new FlowFileError(
+        withNext(
+          `no flow named "${name}" at ${fp}`,
+          `docsxai flow-tree ${projectDir}  (lists the flows)`,
+        ),
+      );
     }
     return parseFlowFile(text, fp);
   };
@@ -419,7 +412,13 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
       ...(variantId ? { variant: { id: variantId, all: picked.ids } } : {}),
     });
   } catch (e) {
-    process.stderr.write(`diagnose: live probe failed: ${(e as Error).message}\n`);
+    const hint = cdpEndpoint
+      ? withNext(
+          "",
+          `check Chrome is running with --remote-debugging-port and --cdp ${cdpEndpoint} points at it, or drop --cdp`,
+        )
+      : "";
+    process.stderr.write(`diagnose: live probe failed: ${(e as Error).message}${hint}\n`);
     return 1;
   } finally {
     if (liveSession) await liveSession.close();
@@ -435,16 +434,12 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
 
 export async function cmdStyle(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write(`style: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("style", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const check = flags.get("check") === true;
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
   if (format !== "text" && format !== "json") {
-    process.stderr.write(`style: --format must be "text" or "json"\n`);
-    return 2;
+    return usageError("style", '--format must be "text" or "json"');
   }
 
   // init-if-absent (idempotent); then load + validate; then rederive JSON; then optional jargon check.
@@ -454,7 +449,9 @@ export async function cmdStyle(args: string[]): Promise<number> {
     style = await loadStyle(projectDir);
   } catch (e) {
     if (e instanceof StyleError) {
-      process.stderr.write(`style: ${e.message}\n`);
+      process.stderr.write(
+        `style: ${withNext(e.message, `fix docs/style.yaml, then docsxai style ${projectDir}`)}\n`,
+      );
       return 1;
     }
     throw e;
