@@ -55,6 +55,7 @@ export type NotionPublisherOptions = NotionUrlOptions & NotionClientOptions;
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
 const PAGE_HASH_SCHEMA = "docsxai/notion-page@1";
+const MANIFEST_KEY = "docsxai-manifest";
 
 function sha256Hex(input: string | Uint8Array): string {
   return createHash("sha256").update(input).digest("hex");
@@ -76,6 +77,35 @@ async function loadProjection(ctx: PublisherContext): Promise<AdfProjection> {
   const parsed = JSON.parse(text) as unknown;
   if (!isProjection(parsed)) throw new Error(`notion: ${p} is not an ADF projection`);
   return parsed;
+}
+
+/** Page identity of a section: the manifest key. */
+function sectionKey(section: string): string {
+  return section === "project" ? "index" : safeName(section);
+}
+
+/**
+ * Refuses a projection whose pages would share an identity: two sections with one key (compared
+ * case-insensitively, as a file system or a title search would), a section named like the manifest
+ * page, or a page titled like it, which a later push would take for the manifest.
+ */
+function assertDistinctSections(documents: AdfDocument[], titlePrefix = ""): void {
+  const owners = new Map<string, string>();
+  for (const doc of documents) {
+    const key = sectionKey(doc.section).toLowerCase();
+    const other = owners.get(key);
+    if (other !== undefined) {
+      throw new Error(
+        `notion: sections "${other}" and "${doc.section}" share the page key "${key}", rename one of them`,
+      );
+    }
+    owners.set(key, doc.section);
+    if (key === MANIFEST_KEY || `${titlePrefix}${doc.title}` === MANIFEST_TITLE) {
+      throw new Error(
+        `notion: section "${doc.section}" is named like the manifest page "${MANIFEST_TITLE}", rename it`,
+      );
+    }
+  }
 }
 
 /** The properties that set a page's title: the database's title property, or `title` under a page. */
@@ -203,6 +233,7 @@ export function createNotionPublisher(options: NotionPublisherOptions = {}): Pub
       try {
         const config = parseConfig(ctx.config, options);
         const projection = await loadProjection(ctx);
+        assertDistinctSections(projection.documents, config.title_prefix);
         const client = new NotionClient(config.base_url, token, mask, options);
         const { manifest, pageId: manifestPageId } = await loadManifest(client, config, log);
 
@@ -212,7 +243,7 @@ export function createNotionPublisher(options: NotionPublisherOptions = {}): Pub
         try {
           for (const doc of projection.documents) {
             const title = `${config.title_prefix ?? ""}${doc.title}`;
-            const key = doc.section === "project" ? "index" : safeName(doc.section);
+            const key = sectionKey(doc.section);
             const images = await readImages(ctx.workspaceDir, doc);
 
             // The blocks as hashed: an image stands in as the hash of its bytes, so the hash does
