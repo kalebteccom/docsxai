@@ -26,10 +26,10 @@ export default defineConfig({
       // links can never ship. This is the build-time "error boundary" for a
       // static docs site.
       plugins: [starlightLinksValidator()],
-      // The branded 404 lives at src/content/docs/404.mdx and renders through
-      // the docs catch-all route. Starlight's own injected /404 route would
-      // collide with it (an Astro route-conflict warning on every build), so
-      // it's disabled — the content entry is the single source of the page.
+      // The branded 404 lives at src/pages/404.astro, a file-based route Astro
+      // writes to 404.html. Starlight's own injected /404 route would collide
+      // with it (an Astro route-conflict warning on every build), so it's
+      // disabled and the page file is the single source of the 404.
       disable404Route: true,
       logo: {
         src: "./src/assets/docsxai-tile.svg",

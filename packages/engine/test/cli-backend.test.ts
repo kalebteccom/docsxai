@@ -125,6 +125,21 @@ describe("docsxai push / pull against a real stub", () => {
     );
   });
 
+  it("pull prints no control characters from a revision's author", async () => {
+    const src = await scaffoldWorkspace();
+    expect(await main(["push", src, "--author", "\u001b[2J\u001b]0;pwned\u0007eve"])).toBe(0);
+    expect(out).not.toContain("\u001b");
+    expect(out).not.toContain("\u0007");
+    const cfg = await fs.readFile(path.join(src, ".docsxai.json"), "utf8");
+    const dst = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-cli-pull-ctl-"));
+    await fs.writeFile(path.join(dst, ".docsxai.json"), cfg, "utf8");
+    out = "";
+    expect(await main(["pull", dst])).toBe(0);
+    expect(out).toContain("[2J]0;pwnedeve)");
+    expect(out).not.toContain("\u001b");
+    expect(out).not.toContain("\u0007");
+  });
+
   it("push exits 2 without a backend_url and pull exits 2 without a binding", async () => {
     const ws = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-cli-unbound-"));
     await fs.writeFile(

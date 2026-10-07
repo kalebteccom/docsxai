@@ -54,6 +54,16 @@ bad flag value) exit 2; operational failures (a halt, a lint warning, drift at
 the threshold) exit 1. The transcripts below show representative output; paths
 and counts vary with your workspace.
 
+Reports and data go to stdout. Progress lines and warnings go to stderr where
+a command already splits them, and nothing is coloured. A failing command
+prints `<command>: what failed` and, when a command can fix it, a second line
+`  next: <command to run>`. A usage error also prints that command's own usage
+line; `docsxai --help` lists every flag. `run`, `calibrate`, `burn`, `pack`,
+`zip`, `baseline`, `push`, `pull` and `doctor` end with one line that starts
+with the command name and gives the counts and where the output went. Use
+`--format json` where a command offers it when a script reads the output: the
+text formats are for people.
+
 ## The core loop
 
 ### `docsxai init`
@@ -201,7 +211,8 @@ A clean run prints one line per flow and exits 0:
 
 ```
 $ docsxai run ~/docsxai/my-app --flow publish-post
-publish-post — 5 step(s) executed, 4 annotation(s) written
+run: publish-post — 5 step(s) executed, 4 annotation(s) written
+run: 1 of 1 flow ok, outputs in ~/docsxai/my-app/docs
 ```
 
 A halted run names the step, the inferred cause, and the halt screenshot,
@@ -210,8 +221,10 @@ retrying:
 
 ```
 $ docsxai run ~/docsxai/my-app --flow publish-post
-[target is covered by another element] step "publish" (click) failed at
+run: [target is covered by another element] step "publish" (click) failed at
 https://localhost:3000/editor/draft-7: … (halt screenshot: docs/publish-post/halts/publish.png)
+run: 1 of 1 flow failed, 0 ok; outputs in ~/docsxai/my-app/docs
+  publish-post: next: docsxai diagnose ~/docsxai/my-app --flow publish-post --step publish
 ```
 
 :::caution[For agents]
@@ -483,7 +496,7 @@ docsxai doctor — environment & workspace health
   ✓ viewer     @docsxai/viewer installed next to the engine → …/dist/index.js (layer 2: installed package)
   − env        no DOCSX_* variables set (defaults apply)
 
-fix the ✗ items above
+doctor: fix the ✗ items above and run docsxai doctor again (1 of 7 checks failed)
 ```
 
 Run it first when anything misbehaves - it answers the usual "is it my

@@ -21,7 +21,7 @@ stating plainly:
   drift reports, and the publishers are all docsxai's side.
 - **The docsxai MCP server exposes meta-orchestration only.** Its
   [fourteen tools](/reference/mcp-tools/) run flows, lint, diagnose, and
-  introspect the pack; none of them is a browser primitive. Keeping the two
+  introspect the doc pack; none of them is a browser primitive. Keeping the two
   MCP surfaces disjoint is what keeps `docsxai run` reproducible.
 
 The two tools meet at the

@@ -199,7 +199,7 @@ applies; the engine logs one stderr warning listing the skipped fields.
 
 ## Matrix
 
-A `matrix` expands one flow file into a set of variants, so a desktop and a mobile
+A `matrix` expands one flow-file into a set of variants, so a desktop and a mobile
 walk, a light and a dark theme, or an English and a Spanish pass need one file
 instead of one copy each. Each axis is optional, at least one is required:
 

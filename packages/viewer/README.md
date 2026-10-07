@@ -1,6 +1,6 @@
 # @docsxai/viewer
 
-Static-HTML interactive viewer + burned-annotation renderer + Starlight docs-site emitter. The viewer overlays a pulsing halo, a numbered badge (when a step has multiple call-outs), and a hover-revealed Popper-placed callout from `annotations.json` over clean screenshots at render time. Per-annotation `nudge: { x, y }` lets the author shift a callout aside when two would otherwise overlap; the halo stays anchored on the target.
+Static-HTML interactive viewer + burned-annotation renderer + Starlight docs-site emitter. The viewer overlays a pulsing halo, a numbered badge (when a step has multiple call-outs), and a Popper-placed callout revealed on hover, focus or tap from `annotations.json` over clean screenshots at render time. Per-annotation `nudge: { x, y }` lets the author shift a callout aside when two would otherwise overlap; the halo stays anchored on the target.
 
 PNGs in the doc pack stay clean (no baked annotations) — re-stylable, re-localisable, and machine-inspectable. For delivery surfaces that can't run the interactive viewer (Confluence, Notion, plain wikis), `burn` bakes the same annotations into copies of the PNGs.
 
@@ -59,6 +59,20 @@ What gets emitted:
 - **Deterministic** — same doc pack + same config → byte-identical file tree (no timestamps, sorted writes), asserted by a two-emit golden test.
 
 `buildStarlightSite({ siteDir })` runs `astro build` programmatically: it resolves the astro bin from this package's own install and, when the emitted site has no `node_modules`, symlinks the astro + starlight installs in individually — so building never touches the network. `ASTRO_TELEMETRY_DISABLED=1` is always set. That zero-install shortcut requires the site directory to share a filesystem ancestor with the docsxai install (the normal case — the site is emitted inside the repo that installed it); for a fully detached site directory, `npm install` inside the emitted site and build there. The real-build E2E test is opt-in via `DOCSX_STARLIGHT_BUILD=1` (the default test run never invokes astro).
+
+## Accessibility and keyboard
+
+The emitted pages have a skip link, header/main/footer landmarks, one `<h1>` per page and an `<h2>` per step (write-up headings move down two levels), and colour tokens that meet WCAG AA in light and dark schemes (`src/viewer-style.ts`; `test/viewer-style.test.ts` computes the ratios). A call-out's halo is a button labelled with its copy: focus, hover or a tap shows the callout, Esc hides it. Keys, listed on every page under "Keyboard shortcuts" from the same table the handler reads (`src/viewer-keys.ts`):
+
+| Key        | Action                             |
+| ---------- | ---------------------------------- |
+| `→` or `j` | Next step (next card on the index) |
+| `←` or `k` | Previous step                      |
+| Home / End | First / last step                  |
+| `]` / `[`  | Next / previous flow               |
+| Esc        | Hide the open callout              |
+
+Keys with Ctrl, Alt, Cmd or Shift, and keys typed into a field, go to the browser. A step change moves focus to the step and is announced through a live region. The halo pulse stops under `prefers-reduced-motion`, image boxes are reserved from the PNG size, and a damaged `annotations.json`, a missing screenshot or an image that fails to load (with Retry) each get a message on the page. The audit behind these is `docs/ai-context/ux/viewer-audit.md`.
 
 ## Overlay single-sourcing
 

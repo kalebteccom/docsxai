@@ -2,7 +2,7 @@
 
 > Deterministic screenshot docs for web apps. An LLM-agnostic engine plus a Claude Code plugin that walks a running web app, follows written flows, and emits screenshot-rich user documentation. Calibration is AI-assisted and rare; execution is deterministic, agent-free, and CI-friendly.
 
-docsxai treats screenshot docs as a build artifact: a written flow-file is the source, the rendered doc pack is the output, and a re-run is the refresh. The engine ships the `docsxai` CLI, a deterministic Playwright-backed runtime, calibration helpers, and target-site auth strategies; sibling packages add the Claude Code plugin, a standalone MCP server, an authenticated doc-pack backend, a viewer/renderer, and publisher plugins for Starlight and Confluence.
+docsxai treats screenshot docs as a build artifact: a written flow-file is the source, the rendered doc pack is the output, and a re-run is the refresh. The engine ships the `docsxai` CLI, a deterministic Playwright-backed runtime, calibration helpers, and target-site auth strategies; sibling packages add the Claude Code plugin, a standalone MCP server, an authenticated doc-pack backend, a viewer/renderer, a Starlight site renderer plugin, and publisher plugins for Confluence, GitBook, Guru, Notion and SharePoint.
 
 Every page below is served as plaintext Markdown. The rendered site at https://docsxai.dev is written for end users; the Markdown versions also carry the "For agents" guidance it leaves out, and the agent runbook and agent guidance exist only here.
 

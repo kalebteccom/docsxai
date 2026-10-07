@@ -10,7 +10,6 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { FlowFileError } from "./flow-file.js";
 import {
   diffDocPacks,
   type DriftSeverity,
@@ -24,17 +23,26 @@ import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
 import { parseFlags } from "./cli-shared.js";
-import { USAGE } from "./cli-usage.js";
+import { shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdRender(args: string[]): Promise<number> {
   const { positionals } = parseFlags(args);
   const projectDir = positionals[0];
-  if (!projectDir) {
-    process.stderr.write("render: missing <project-dir>\n\n" + USAGE + "\n");
-    return 2;
-  }
+  if (!projectDir) return usageError("render", "missing <workspace-dir>");
   const docsDir = resolveWorkspacePath(projectDir, "docs");
   const outDir = resolveWorkspacePath(projectDir, ".viewer");
+  if (
+    !(await fs.stat(docsDir).then(
+      (s) => s.isDirectory(),
+      () => false,
+    ))
+  ) {
+    const note = withNext(
+      `warning — ${docsDir} does not exist, so the viewer will be empty`,
+      `docsxai run ${projectDir}`,
+    );
+    process.stderr.write(`render: ${note}\n`);
+  }
   const code = await runViewerBin("render", ["build", docsDir, outDir]);
   if (code === 0) {
     process.stdout.write(
@@ -89,10 +97,7 @@ function parseBurnArgs(args: string[]): BurnArgs | string {
  */
 export async function cmdBurn(args: string[]): Promise<number> {
   const parsed = parseBurnArgs(args);
-  if (typeof parsed === "string") {
-    process.stderr.write(`burn: ${parsed}\n\n${USAGE}\n`);
-    return 2;
-  }
+  if (typeof parsed === "string") return usageError("burn", parsed);
   const docsDir = resolveWorkspacePath(parsed.workspace, "docs");
   if (
     !(await fs.stat(docsDir).then(
@@ -100,9 +105,11 @@ export async function cmdBurn(args: string[]): Promise<number> {
       () => false,
     ))
   ) {
-    process.stderr.write(
-      `burn: ${parsed.workspace} has no docs/ directory (expected ${docsDir}). Run \`docsxai run\` first.\n`,
+    const note = withNext(
+      `${parsed.workspace} has no docs/ directory (expected ${docsDir})`,
+      `docsxai run ${parsed.workspace}`,
     );
+    process.stderr.write(`burn: ${note}\n`);
     return 1;
   }
   return runViewerBin("burn", [
@@ -117,10 +124,7 @@ export async function cmdBurn(args: string[]): Promise<number> {
 
 export async function cmdZip(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write(`zip: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("zip", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const output =
     typeof flags.get("out") === "string"
@@ -135,7 +139,12 @@ export async function cmdZip(args: string[]): Promise<number> {
     return 0;
   } catch (e) {
     if (e instanceof ZipError) {
-      process.stderr.write(`zip: ${e.message}\n`);
+      const next = /nothing to zip/.test(e.message)
+        ? `docsxai run ${projectDir}`
+        : /doesn't exist/.test(e.message)
+          ? `docsxai init ${projectDir}  (or fix the path)`
+          : undefined;
+      process.stderr.write(`zip: ${next ? withNext(e.message, next) : e.message}\n`);
       return 1;
     }
     throw e;
@@ -150,28 +159,24 @@ export async function cmdExport(args: string[]): Promise<number> {
     case "playwright":
       return cmdExportPlaywright(rest);
     default:
-      process.stderr.write(
-        `export: unknown format "${format ?? ""}" — supported: adf, playwright\n`,
+      return usageError(
+        "export",
+        format === undefined
+          ? "missing format — supported: adf, playwright"
+          : `unknown format "${format}" — supported: adf, playwright`,
       );
-      return 2;
   }
 }
 
 async function cmdExportAdf(rest: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(rest);
-  if (!positionals[0]) {
-    process.stderr.write(`export adf: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("export adf", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const modeFlag = flags.get("mode");
   let mode: AdfExportMode = "single";
   if (typeof modeFlag === "string") {
     if (modeFlag !== "single" && modeFlag !== "page-tree") {
-      process.stderr.write(
-        `export adf: --mode must be "single" or "page-tree" (got "${modeFlag}")\n`,
-      );
-      return 2;
+      return usageError("export adf", `--mode must be "single" or "page-tree" (got "${modeFlag}")`);
     }
     mode = modeFlag;
   }
@@ -207,17 +212,16 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
     for (const w of projection.warnings) process.stderr.write(`export adf: warning: ${w}\n`);
     return 0;
   } catch (e) {
-    process.stderr.write(`export adf: ${(e as Error).message}\n`);
+    process.stderr.write(
+      `export adf: ${withNext((e as Error).message, `docsxai lint ${projectDir}`)}\n`,
+    );
     return 1;
   }
 }
 
 async function cmdExportPlaywright(rest: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(rest);
-  if (!positionals[0]) {
-    process.stderr.write(`export playwright: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("export playwright", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const flow = flags.get("flow");
   const outFlag = flags.get("out");
@@ -240,11 +244,9 @@ async function cmdExportPlaywright(rest: string[]): Promise<number> {
     );
     return 0;
   } catch (e) {
-    if (e instanceof FlowFileError) {
-      process.stderr.write(`export playwright: ${e.message}\n`);
-      return 1;
-    }
-    process.stderr.write(`export playwright: ${(e as Error).message}\n`);
+    process.stderr.write(
+      `export playwright: ${withNext((e as Error).message, `docsxai lint ${projectDir}`)}\n`,
+    );
     return 1;
   }
 }
@@ -263,10 +265,7 @@ async function copyIfExists(src: string, dest: string): Promise<number> {
 
 export async function cmdBaseline(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write(`baseline: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("baseline", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const outFlag = flags.get("out");
   const outDir =
@@ -315,6 +314,13 @@ export async function cmdBaseline(args: string[]): Promise<number> {
     process.stdout.write(
       `baseline: snapshotted ${copied} file${copied === 1 ? "" : "s"} to ${outDir}\n`,
     );
+    if (copied === 0) {
+      const note = withNext(
+        "warning — no flows/ or docs/ files found to snapshot",
+        `docsxai run ${projectDir}`,
+      );
+      process.stderr.write(`baseline: ${note}\n`);
+    }
     return 0;
   } catch (e) {
     process.stderr.write(`baseline: ${(e as Error).message}\n`);
@@ -324,10 +330,7 @@ export async function cmdBaseline(args: string[]): Promise<number> {
 
 export async function cmdDiff(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) {
-    process.stderr.write(`diff: missing <workspace-dir>\n`);
-    return 2;
-  }
+  if (!positionals[0]) return usageError("diff", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const againstFlag = flags.get("against");
   const againstDir =
@@ -337,15 +340,13 @@ export async function cmdDiff(args: string[]): Promise<number> {
 
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
   if (format !== "json" && format !== "md" && format !== "text") {
-    process.stderr.write(`diff: --format must be json | md | text (got "${format}")\n`);
-    return 2;
+    return usageError("diff", `--format must be json | md | text (got "${format}")`);
   }
   const failOnFlag = flags.get("fail-on");
   let failOn: DriftSeverity | null = null;
   if (failOnFlag !== undefined) {
     if (failOnFlag !== "warn" && failOnFlag !== "fail") {
-      process.stderr.write(`diff: --fail-on must be warn | fail (got "${String(failOnFlag)}")\n`);
-      return 2;
+      return usageError("diff", `--fail-on must be warn | fail (got "${String(failOnFlag)}")`);
     }
     failOn = failOnFlag;
   }
@@ -353,9 +354,11 @@ export async function cmdDiff(args: string[]): Promise<number> {
   try {
     await fs.access(path.join(againstDir, "flows"));
   } catch {
-    process.stderr.write(
-      `diff: no baseline at ${againstDir} — run \`docsxai baseline ${projectDir}\` first (or pass --against <dir>)\n`,
+    const note = withNext(
+      `no baseline at ${againstDir}`,
+      `docsxai baseline ${shellQuote(projectDir)}  (or pass --against <dir>)`,
     );
+    process.stderr.write(`diff: ${note}\n`);
     return 2;
   }
 

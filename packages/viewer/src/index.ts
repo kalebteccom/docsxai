@@ -207,50 +207,60 @@ interface ParsedArgs {
   maxOverlap?: number;
   plainConnectors: boolean;
   build: boolean;
+  /** The usage-error message when the argv names an unknown flag or leaves a flag without its value. */
+  error?: string;
 }
+
+const VALUED_FLAGS = ["--flow", "--out", "--title", "--accent", "--report", "--max-overlap"];
 
 function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = { positional: [], flows: [], plainConnectors: false, build: false };
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--flow" && argv[i + 1]) {
-      parsed.flows.push(argv[i + 1]!);
-      i++;
-    } else if (argv[i] === "--out" && argv[i + 1]) {
-      parsed.out = argv[i + 1]!;
-      i++;
-    } else if (argv[i] === "--title" && argv[i + 1]) {
-      parsed.title = argv[i + 1]!;
-      i++;
-    } else if (argv[i] === "--accent" && argv[i + 1]) {
-      parsed.accent = argv[i + 1]!;
-      i++;
-    } else if (argv[i] === "--report" && argv[i + 1]) {
-      parsed.report = argv[i + 1]!;
-      i++;
-    } else if (argv[i] === "--max-overlap" && argv[i + 1]) {
-      parsed.maxOverlap = Number(argv[i + 1]);
-      i++;
-    } else if (argv[i] === "--no-connector-outline") {
-      parsed.plainConnectors = true;
-    } else if (argv[i] === "--build") {
-      parsed.build = true;
-    } else parsed.positional.push(argv[i]!);
+    const a = argv[i]!;
+    if (VALUED_FLAGS.includes(a)) {
+      const value = argv[++i];
+      if (value === undefined || value.startsWith("--"))
+        return { ...parsed, error: `${a} needs a value` };
+      if (a === "--flow") parsed.flows.push(value);
+      else if (a === "--out") parsed.out = value;
+      else if (a === "--title") parsed.title = value;
+      else if (a === "--accent") parsed.accent = value;
+      else if (a === "--report") parsed.report = value;
+      else parsed.maxOverlap = Number(value);
+    } else if (a === "--no-connector-outline") parsed.plainConnectors = true;
+    else if (a === "--build") parsed.build = true;
+    else if (a.startsWith("--")) return { ...parsed, error: `unknown flag ${a}` };
+    else parsed.positional.push(a);
   }
   return parsed;
 }
 
+/** The `docsxai-viewer <command>` line(s) of the help text. */
+function usageOf(command: string): string {
+  return USAGE.split("\n")
+    .filter((l) => l.startsWith(`  docsxai-viewer ${command} `))
+    .map((l) => l.trim())
+    .join("\n       ");
+}
+
+/** A usage error shows the failing command's own usage line, not the whole help text. Returns exit code 2. */
+function usageError(command: string, message: string): number {
+  const hint = "run `docsxai-viewer` with no arguments for every flag";
+  process.stderr.write(`${command}: ${message}\nusage: ${usageOf(command)}\n${hint}\n`);
+  return 2;
+}
+
 async function runBuild(args: ParsedArgs): Promise<number> {
+  if (args.error) return usageError("build", args.error);
   const [docsDir, outDir] = args.positional;
-  if (!docsDir || !outDir) {
-    process.stderr.write("build: requires <docs-dir> and <out-dir>\n\n" + USAGE + "\n");
-    return 2;
-  }
+  if (!docsDir || !outDir) return usageError("build", "requires <docs-dir> and <out-dir>");
   try {
     const r = await buildViewer({
       docsDir,
       outDir,
       ...(args.flows.length ? { flows: args.flows } : {}),
     });
+    for (const w of r.warnings) process.stderr.write(`viewer: warning: ${w}\n`);
     process.stdout.write(`viewer: wrote ${r.pages.length} page(s) to ${outDir}\n`);
     return 0;
   } catch (e) {
@@ -260,15 +270,12 @@ async function runBuild(args: ParsedArgs): Promise<number> {
 }
 
 async function runBurn(args: ParsedArgs): Promise<number> {
+  if (args.error) return usageError("burn", args.error);
   const [workspace] = args.positional;
-  if (!workspace) {
-    process.stderr.write("burn: requires <workspace>\n\n" + USAGE + "\n");
-    return 2;
-  }
+  if (!workspace) return usageError("burn", "requires <workspace>");
   const ratio = args.maxOverlap;
   if (ratio !== undefined && !(Number.isFinite(ratio) && ratio >= 0)) {
-    process.stderr.write("burn: --max-overlap needs a number >= 0\n");
-    return 2;
+    return usageError("burn", "--max-overlap needs a number >= 0");
   }
   const docsDir = path.join(workspace, "docs");
   try {
@@ -285,6 +292,7 @@ async function runBurn(args: ParsedArgs): Promise<number> {
       return 1;
     }
     const reports: FlowBurnReport[] = [];
+    let images = 0;
     for (const flow of flows) {
       const outDir = args.out ? path.join(args.out, flow) : path.join(docsDir, flow, "burned");
       const r = await burnFlow({
@@ -295,7 +303,12 @@ async function runBurn(args: ParsedArgs): Promise<number> {
         ...(args.plainConnectors ? { connector: "off" as const } : {}),
       });
       reports.push(r.report);
+      images += r.written.length;
       process.stdout.write(`burn: wrote ${r.written.length} image(s) to ${outDir}\n`);
+    }
+    if (flows.length > 1) {
+      const root = args.out ?? path.join(docsDir, "<flow>", "burned");
+      process.stdout.write(`burn: ${images} image(s) from ${flows.length} flows in ${root}\n`);
     }
     if (args.report) {
       const report = burnReport(reports, ratio);
@@ -314,11 +327,9 @@ async function runBurn(args: ParsedArgs): Promise<number> {
 }
 
 async function runSite(args: ParsedArgs): Promise<number> {
+  if (args.error) return usageError("site", args.error);
   const [workspace] = args.positional;
-  if (!workspace) {
-    process.stderr.write("site: requires <workspace>\n\n" + USAGE + "\n");
-    return 2;
-  }
+  if (!workspace) return usageError("site", "requires <workspace>");
   const outDir = args.out ?? path.join(workspace, "site");
   try {
     const r = await emitStarlightSite({

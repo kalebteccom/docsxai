@@ -39,3 +39,16 @@ import Default from "@astrojs/starlight/components/Sidebar.astro";
     <path d="M7 17 17 7M7 7h10v10"></path>
   </svg>
 </a>
+
+<script>
+  // The sidebar groups are always open: brand.css hides the caret and blocks
+  // pointer toggles. Enter or Space on a group's summary could still collapse
+  // it, and Starlight persists that state, leaving a group no pointer can
+  // reopen. Keep every group open and take the summaries out of the tab order.
+  for (const summary of document.querySelectorAll<HTMLElement>("#starlight__sidebar summary")) {
+    summary.tabIndex = -1;
+    summary.addEventListener("click", (event) => event.preventDefault());
+    const group = summary.parentElement;
+    if (group instanceof HTMLDetailsElement) group.open = true;
+  }
+</script>

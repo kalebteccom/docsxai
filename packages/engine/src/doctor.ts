@@ -61,14 +61,19 @@ export async function buildDoctorChecks(opts: DoctorOptions = {}): Promise<Docto
 
 export function formatDoctorChecks(checks: DoctorCheck[]): string {
   let out = "docsxai doctor — environment & workspace health\n\n";
-  let allOk = true;
+  let failed = 0;
   for (const c of checks) {
-    if (!c.ok) allOk = false;
+    if (!c.ok) failed++;
     const glyph = c.info ? "−" : c.ok ? "✓" : "✗";
     out += `  ${glyph} ${c.name.padEnd(10)} ${c.detail}\n`;
     if (!c.ok && c.fix) out += `    fix: ${c.fix}\n`;
   }
-  out += `\n${allOk ? "all checks passed" : "fix the ✗ items above"}\n`;
+  const infos = checks.filter((c) => c.info).length;
+  const scored = checks.length - infos;
+  out +=
+    failed === 0
+      ? `\ndoctor: all checks passed (${scored} checks, ${infos} informational)\n`
+      : `\ndoctor: fix the ✗ items above and run docsxai doctor again (${failed} of ${scored} checks failed)\n`;
   return out;
 }
 
