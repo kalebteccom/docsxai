@@ -940,6 +940,40 @@ describe("gitbook publisher: manifest page", () => {
     expect(lines.filter((l) => l.includes("is not valid, redoing it"))).toHaveLength(1);
   });
 
+  it("drops the later of two entries that name one page", () => {
+    const good = "a".repeat(64);
+    const warnings: string[] = [];
+    const manifest = parseManifestMarkdown(
+      manifestToMarkdown({
+        schema: MANIFEST_SCHEMA,
+        pages: { a: { pageId: "pg1", sha256: good }, b: { pageId: "pg1", sha256: good } },
+      }),
+      (m) => warnings.push(m),
+      "t",
+    );
+    expect(Object.keys(manifest.pages)).toEqual(["a"]);
+    expect(warnings).toEqual(['manifest entry "b" is not valid, redoing it']);
+  });
+
+  it("gives the dropped entry a page of its own on the next push", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir, options: PAGE_TREE });
+    const publisher = createGitBookPublisher(LOOPBACK);
+    const run1 = await publisher.publish(makeCtx(dir, projection, capture().log));
+    const entries = readManifest().pages;
+    writeManifest({
+      schema: MANIFEST_SCHEMA,
+      pages: { checkout: entries["checkout"], login: entries["checkout"], index: entries["index"] },
+    });
+    const run2 = await publisher.publish(makeCtx(dir, projection, capture().log));
+    expect(run2.pages.map((p) => [p.section, p.action])).toEqual([
+      ["project", "unchanged"],
+      ["checkout", "unchanged"],
+      ["login", "created"],
+    ]);
+    expect(run2.pages[2]!.id).not.toBe(run1.pages[2]!.id);
+  });
+
   it("does not update a page outside the target that the manifest points at", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
