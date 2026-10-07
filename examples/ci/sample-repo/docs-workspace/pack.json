@@ -1,0 +1,5 @@
+{
+  "schema": "docsxai/pack-config@1",
+  "sources": { "obstacles": { "flow": "app", "variant": "en.light.1280" } },
+  "flows": { "app": { "steps": { "share": { "alt": { "en": "Share dialog over a page" } } } } }
+}
