@@ -4,6 +4,7 @@
 // (the plugin runtime + lock + manifest domain).
 
 import { promises as fs } from "node:fs";
+import { shellQuote } from "./cli-messages.js";
 import { isApiVersionCompatible, RUNTIME_API_VERSION } from "./plugins/manifest.js";
 import {
   PLUGINS_LOCK_FILE,
@@ -54,7 +55,7 @@ export async function checkPlugins(workspaceDir: string): Promise<DoctorCheck[]>
           name: "plugins",
           ok: false,
           detail: e.message,
-          fix: `re-pin: docsxai plugins sync ${workspaceDir}`,
+          fix: `re-pin: docsxai plugins sync ${shellQuote(workspaceDir)}`,
         },
       ];
     }
@@ -67,7 +68,7 @@ export async function checkPlugins(workspaceDir: string): Promise<DoctorCheck[]>
       name: "plugins",
       ok: false,
       detail: `${PLUGINS_LOCK_FILE} missing (${cfg.sources.length} plugin(s) configured — no reproducibility pin)`,
-      fix: `docsxai plugins sync ${workspaceDir}`,
+      fix: `docsxai plugins sync ${shellQuote(workspaceDir)}`,
     });
   }
 
@@ -115,7 +116,7 @@ export async function checkPlugins(workspaceDir: string): Promise<DoctorCheck[]>
       if (mismatch) {
         issues.push({
           detail: mismatch,
-          fix: `after auditing the change: docsxai plugins sync ${workspaceDir}`,
+          fix: `after auditing the change: docsxai plugins sync ${shellQuote(workspaceDir)}`,
         });
       } else {
         lockNote = "lock ok";

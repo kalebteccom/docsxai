@@ -13,3 +13,47 @@ import Default from "@astrojs/starlight/components/Footer.astro";
   <span class="sep">·</span>
   Apache-2.0 licensed
 </div>
+
+<script>
+  // A table wider than the column scrolls inside its wrapper (brand.css). A keyboard cannot
+  // reach a scroller that is not focusable, so while a wrapper overflows it gets tabindex,
+  // region and a label naming the section it sits in. A table that fits stays out of the tab order.
+  const HEADINGS = "h1, h2, h3, h4, h5, h6";
+
+  function sectionTitle(wrap: Element): string {
+    for (let el = wrap.previousElementSibling; el; el = el.previousElementSibling) {
+      const heading = el.matches(HEADINGS) ? el : el.querySelector(HEADINGS);
+      if (!heading) continue;
+      const copy = heading.cloneNode(true) as Element;
+      copy.querySelector(".sl-anchor-link")?.remove();
+      return copy.textContent?.trim() ?? "";
+    }
+    return "";
+  }
+
+  function sync(wrap: HTMLElement): void {
+    if (wrap.scrollWidth > wrap.clientWidth + 1) {
+      const title = sectionTitle(wrap);
+      wrap.tabIndex = 0;
+      wrap.setAttribute("role", "region");
+      wrap.setAttribute("aria-label", title ? `Table, ${title}` : "Table");
+    } else {
+      wrap.removeAttribute("tabindex");
+      wrap.removeAttribute("role");
+      wrap.removeAttribute("aria-label");
+    }
+  }
+
+  const observer = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const wrap = entry.target.closest<HTMLElement>(".docsx-table-scroll");
+      if (wrap) sync(wrap);
+    }
+  });
+  for (const wrap of document.querySelectorAll<HTMLElement>(".docsx-table-scroll")) {
+    sync(wrap);
+    observer.observe(wrap);
+    const table = wrap.firstElementChild;
+    if (table) observer.observe(table);
+  }
+</script>

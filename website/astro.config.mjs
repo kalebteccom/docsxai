@@ -3,6 +3,7 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
 import rehypeStripAgentAsides from "./plugins/rehype-strip-agent-asides.mjs";
+import rehypeWrapTables from "./plugins/rehype-wrap-tables.mjs";
 
 // The docsxai documentation site, served at docsxai.dev.
 // Static Astro + Starlight. The published content lives in
@@ -15,7 +16,7 @@ export default defineConfig({
   // in the page source and is served from the plaintext .md endpoint, so the
   // human site stays end-user-focused while agents still get it via llms.txt.
   markdown: {
-    rehypePlugins: [rehypeStripAgentAsides],
+    rehypePlugins: [rehypeStripAgentAsides, rehypeWrapTables],
   },
   integrations: [
     starlight({

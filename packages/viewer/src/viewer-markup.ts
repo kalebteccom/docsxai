@@ -13,8 +13,8 @@ const escAttrSingle = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;");
 
 // `file://` pages with inlined JS/CSS get cached hard by browsers — a re-render then looks
-// stale on a normal reload. These metas + the visible "rendered <ts>" footer below let you
-// see at a glance whether you're looking at a fresh render (and tell browsers not to cache).
+// stale on a normal reload. These metas ask browsers not to cache; the footer names the viewer
+// build and carries no clock, so rendering the same pack twice gives byte-identical pages.
 const HEAD_NOCACHE =
   '<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">';
 
@@ -33,8 +33,8 @@ function pageHead(title: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_VIEWPORT}${HEAD_CSP}${HEAD_NOCACHE}<title>${esc(title)}</title><style>${VIEWER_STYLE}</style></head>`;
 }
 
-function renderedFooter(renderedAt: string): string {
-  return `<footer class="meta site-footer">Rendered <time datetime="${esc(renderedAt)}">${esc(renderedAt)}</time>. Hard-reload if this page looks stale.</footer>`;
+function renderedFooter(stamp: string): string {
+  return `<footer class="meta site-footer">Rendered by ${esc(stamp)}. Hard-reload if this page looks stale.</footer>`;
 }
 
 const SKIP_LINK = '<a class="skip-link" href="#main">Skip to content</a>';
@@ -136,7 +136,7 @@ const NO_STEPS =
 export function flowPageHtml(
   flow: string,
   steps: ViewerStep[],
-  renderedAt: string,
+  stamp: string,
   overlayJs: string,
   opts: FlowPageOptions = {},
 ): string {
@@ -144,7 +144,7 @@ export function flowPageHtml(
   const notices = (opts.notices ?? []).map((n) => `<p class="notice">${esc(n)}</p>`).join("");
   const body = steps.length ? steps.map((s, i) => stepHtml(s, i + 1)).join("\n") : NO_STEPS;
   return `${pageHead(`${flow} · ${SITE_TITLE}`)}
-<body>${SKIP_LINK}${header}<main id="main" tabindex="-1"><h1>${esc(flow)}</h1>${notices}${body}</main>${LIVE_REGION}${renderedFooter(renderedAt)}<script>${overlayJs}</script></body></html>`;
+<body>${SKIP_LINK}${header}<main id="main" tabindex="-1"><h1>${esc(flow)}</h1>${notices}${body}</main>${LIVE_REGION}${renderedFooter(stamp)}<script>${overlayJs}</script></body></html>`;
 }
 
 export interface FlowSummary {
@@ -163,12 +163,12 @@ function flowCard(m: FlowSummary): string {
   return `<li><a class="flow-card" href="./${esc(m.flow)}/index.html">${img}<div class="flow-card-meta"><strong>${esc(m.flow)}</strong><span>${sub}</span></div></a></li>`;
 }
 
-export function indexHtml(meta: FlowSummary[], renderedAt: string, overlayJs = ""): string {
+export function indexHtml(meta: FlowSummary[], stamp: string, overlayJs = ""): string {
   const list = meta.length
     ? `<ul class="flow-grid" role="list">${meta.map(flowCard).join("\n")}</ul>`
     : `<p class="empty">No flows yet. Run <code>docsxai run</code>, then <code>docsxai render</code>.</p>`;
   const header = meta.length ? `<header class="site-header">${shortcutsHtml(false)}</header>` : "";
   const script = overlayJs ? `<script>${overlayJs}</script>` : "";
   return `${pageHead(SITE_TITLE)}
-<body>${SKIP_LINK}${header}<main id="main" tabindex="-1"><h1>${SITE_TITLE}</h1>${list}</main>${renderedFooter(renderedAt)}${script}</body></html>`;
+<body>${SKIP_LINK}${header}<main id="main" tabindex="-1"><h1>${SITE_TITLE}</h1>${list}</main>${renderedFooter(stamp)}${script}</body></html>`;
 }

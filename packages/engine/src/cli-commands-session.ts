@@ -35,7 +35,7 @@ import { listFlowFiles, parseFlags } from "./cli-shared.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
-import { usageError, withNext } from "./cli-messages.js";
+import { shellQuote, usageError, withNext } from "./cli-messages.js";
 import { reportRun } from "./cli-run-summary.js";
 
 async function loadAuthStorageState(projectDir: string): Promise<StorageState | undefined> {
@@ -54,7 +54,7 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
     throw new Error(
       withNext(
         `auth/strategy.yaml configures role "${role}" but there is no valid cached session at ${path.join(projectDir, ".auth", role + ".json")} (missing or expired)`,
-        `docsxai capture-auth ${projectDir}`,
+        `docsxai capture-auth ${shellQuote(projectDir)}`,
       ),
     );
   }
@@ -122,7 +122,9 @@ export async function cmdRun(args: string[]): Promise<number> {
       variants = expandFlowVariants(flow, fp);
     } catch (e) {
       if (e instanceof FlowFileError) {
-        process.stderr.write(`run: ${withNext(e.message, `docsxai lint ${projectDir}`)}\n`);
+        process.stderr.write(
+          `run: ${withNext(e.message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
+        );
         return 1;
       }
       throw e;
@@ -138,7 +140,7 @@ export async function cmdRun(args: string[]): Promise<number> {
     process.stderr.write(
       onlyFlow
         ? `run: no flow named "${onlyFlow}" (flows: ${knownFlows.join(", ") || "none"})\n`
-        : `run: ${withNext(`no flow-files in ${projectDir}/flows`, `docsxai calibrate ${projectDir} --from <flow.yaml>`)}\n`,
+        : `run: ${withNext(`no flow-files in ${projectDir}/flows`, `docsxai calibrate ${shellQuote(projectDir)} --from <flow.yaml>`)}\n`,
     );
     return 1;
   }
@@ -421,7 +423,7 @@ export async function cmdInit(args: string[]): Promise<number> {
       `init: workspace ${r.ephemeral ? "(ephemeral) " : ""}at ${r.dir}\n  created: ${r.created.join(", ")}\n`,
     );
     process.stdout.write(
-      `  next: ${appUrl ? "" : "(set app_url in .docsxai.json, then) "}docsxai capture-auth ${r.dir}  →  …calibrate…  →  docsxai run ${r.dir}  →  docsxai render ${r.dir}\n`,
+      `  next: ${appUrl ? "" : "(set app_url in .docsxai.json, then) "}docsxai capture-auth ${shellQuote(r.dir)}  →  …calibrate…  →  docsxai run ${shellQuote(r.dir)}  →  docsxai render ${shellQuote(r.dir)}\n`,
     );
     return 0;
   } catch (e) {
@@ -461,12 +463,12 @@ export async function cmdCalibrate(args: string[]): Promise<number> {
     process.stdout.write(`calibrate: wrote ${r.flowFilePath}  (${r.flow.steps.length} steps)\n`);
     if (r.wroteStyle) process.stdout.write(`calibrate: wrote default ${r.stylePath}\n`);
     process.stdout.write(
-      `  next: docsxai run ${workspaceDir}  (then: docsxai render ${workspaceDir})\n`,
+      `  next: docsxai run ${shellQuote(workspaceDir)}  (then: docsxai render ${shellQuote(workspaceDir)})\n`,
     );
     return 0;
   } catch (e) {
     process.stderr.write(
-      `calibrate: ${withNext((e as Error).message, `fix ${from}, then docsxai calibrate ${workspaceDir} --from ${from}`)}\n`,
+      `calibrate: ${withNext((e as Error).message, `fix ${shellQuote(from)}, then docsxai calibrate ${shellQuote(workspaceDir)} --from ${shellQuote(from)}`)}\n`,
     );
     return 1;
   }

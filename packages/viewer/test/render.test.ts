@@ -62,6 +62,20 @@ describe("buildViewer", () => {
     expect(indexHtml).toContain('href="./recap-open/index.html"');
   });
 
+  it("renders the same pack to byte-identical pages", async () => {
+    const docsDir = path.join(tmp, "docs");
+    const pages = ["index.html", "recap-open/index.html"];
+    await buildViewer({ docsDir, outDir: path.join(tmp, "out-a") });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await buildViewer({ docsDir, outDir: path.join(tmp, "out-b") });
+    for (const page of pages) {
+      const a = await fs.readFile(path.join(tmp, "out-a", page), "utf8");
+      const b = await fs.readFile(path.join(tmp, "out-b", page), "utf8");
+      expect(b).toBe(a);
+      expect(a).toMatch(/Rendered by @docsxai\/viewer [^<.]+\./);
+    }
+  });
+
   it("links each flow page to its neighbours in flow order and inlines the runtime on the index", async () => {
     const second = path.join(tmp, "docs", "zz-settings");
     await fs.mkdir(second, { recursive: true });

@@ -39,7 +39,7 @@ import { resolvePlugins } from "./plugins/runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import { listFlowFiles, parseFlags } from "./cli-shared.js";
-import { usageError, withNext } from "./cli-messages.js";
+import { shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdInspect(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
@@ -204,7 +204,7 @@ export async function cmdLint(args: string[]): Promise<number> {
     } catch (e) {
       const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
       process.stderr.write(
-        `lint: ${withNext(`parse error in ${p}: ${msg}`, `fix the flow-file, then docsxai lint ${projectDir}`)}\n`,
+        `lint: ${withNext(`parse error in ${p}: ${msg}`, `fix the flow-file, then docsxai lint ${shellQuote(projectDir)}`)}\n`,
       );
       return 1;
     }
@@ -287,7 +287,7 @@ export async function cmdFlowTree(args: string[]): Promise<number> {
     } catch (e) {
       const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
       process.stderr.write(
-        `flow-tree: ${withNext(`parse error in ${p}: ${msg}`, `fix the flow-file, then docsxai flow-tree ${projectDir}`)}\n`,
+        `flow-tree: ${withNext(`parse error in ${p}: ${msg}`, `fix the flow-file, then docsxai flow-tree ${shellQuote(projectDir)}`)}\n`,
       );
       return 1;
     }
@@ -333,7 +333,7 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
       throw new FlowFileError(
         withNext(
           `no flow named "${name}" at ${fp}`,
-          `docsxai flow-tree ${projectDir}  (lists the flows)`,
+          `docsxai flow-tree ${shellQuote(projectDir)}  (lists the flows)`,
         ),
       );
     }
@@ -415,7 +415,7 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
     const hint = cdpEndpoint
       ? withNext(
           "",
-          `check Chrome is running with --remote-debugging-port and --cdp ${cdpEndpoint} points at it, or drop --cdp`,
+          `check Chrome is running with --remote-debugging-port and --cdp ${shellQuote(cdpEndpoint)} points at it, or drop --cdp`,
         )
       : "";
     process.stderr.write(`diagnose: live probe failed: ${(e as Error).message}${hint}\n`);
@@ -450,7 +450,7 @@ export async function cmdStyle(args: string[]): Promise<number> {
   } catch (e) {
     if (e instanceof StyleError) {
       process.stderr.write(
-        `style: ${withNext(e.message, `fix docs/style.yaml, then docsxai style ${projectDir}`)}\n`,
+        `style: ${withNext(e.message, `fix docs/style.yaml, then docsxai style ${shellQuote(projectDir)}`)}\n`,
       );
       return 1;
     }
