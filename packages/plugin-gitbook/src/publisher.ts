@@ -56,8 +56,13 @@ export type GitBookPublisherOptions = GitBookUrlOptions & GitBookClientOptions;
  * 700,000 bytes encode to about 933,000 characters, under that limit whichever way the 1 MB counts.
  */
 export const MAX_INLINE_IMAGE_BYTES = 700_000;
-/** Screenshot bytes sent with one page. The rest are left out, so one batch stays a sane request size. */
-export const MAX_PAGE_IMAGE_BYTES = 16 * 1024 * 1024;
+/**
+ * Raw screenshot bytes in one content batch, which is one page. The rest are left out and
+ * captioned, so a batch stays near 5.5 MB of JSON (base64 adds a third).
+ */
+export const MAX_PAGE_IMAGE_BYTES = 4 * 1024 * 1024;
+/** Markdown of one page; a bigger page is refused rather than cut. */
+export const MAX_PAGE_MARKDOWN_BYTES = 1024 * 1024;
 
 const CHANGE_REQUEST_SUBJECT = "docsxai push";
 
@@ -124,9 +129,13 @@ async function prepare(
     );
     const name = safeName(att.fileName);
     hashes.push([name, sha256Hex(data)]);
-    if (data.byteLength > MAX_INLINE_IMAGE_BYTES || sent + data.byteLength > MAX_PAGE_IMAGE_BYTES) {
+    const tooBig = data.byteLength > MAX_INLINE_IMAGE_BYTES;
+    if (tooBig || sent + data.byteLength > MAX_PAGE_IMAGE_BYTES) {
+      const why = tooBig
+        ? `GitBook takes at most ${MAX_INLINE_IMAGE_BYTES} bytes inline per file`
+        : `a page sends at most ${MAX_PAGE_IMAGE_BYTES} bytes of screenshots`;
       warnings.push(
-        `section "${doc.section}": screenshot ${name} (${data.byteLength} bytes) was not uploaded, GitBook takes at most ${MAX_INLINE_IMAGE_BYTES} bytes inline per file`,
+        `section "${doc.section}": screenshot ${name} (${data.byteLength} bytes) was not uploaded, ${why}`,
       );
       continue;
     }
@@ -144,6 +153,12 @@ async function prepare(
     title,
     adfToMarkdown(doc.adf, (name) => refs.get(name)),
   );
+  const size = Buffer.byteLength(markdown);
+  if (size > MAX_PAGE_MARKDOWN_BYTES) {
+    throw new Error(
+      `gitbook: section "${doc.section}" renders to ${size} bytes of markdown, over the ${MAX_PAGE_MARKDOWN_BYTES} byte limit of one page`,
+    );
+  }
   const sha256 = sha256Hex(
     JSON.stringify([title, pageSlug(key), config.parent_page_id ?? null, markdown, hashes]),
   );

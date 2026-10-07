@@ -4,8 +4,12 @@
 
 import { constants, promises as fs } from "node:fs";
 
-/** Largest screenshot the publisher reads. */
-export const MAX_IMAGE_BYTES = 64 * 1024 * 1024;
+/**
+ * Largest screenshot the publisher reads. A file over the 700,000 bytes GitBook takes inline is only
+ * read to be hashed and named in a warning, so the cap sits at the 4 MiB a page's batch may carry
+ * and a bigger file is refused unread.
+ */
+export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 const READ_CHUNK = 1024 * 1024;
 

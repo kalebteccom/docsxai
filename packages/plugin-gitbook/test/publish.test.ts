@@ -13,6 +13,7 @@ import { promisify } from "node:util";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   type AdfDoc,
+  type AdfNode,
   type AdfProjection,
   type PluginLogger,
   type PublisherContext,
@@ -37,7 +38,12 @@ import {
   manifestToMarkdown,
   parseManifestMarkdown,
 } from "../src/manifest.js";
-import { MAX_INLINE_IMAGE_BYTES, createGitBookPublisher } from "../src/publisher.js";
+import {
+  MAX_INLINE_IMAGE_BYTES,
+  MAX_PAGE_IMAGE_BYTES,
+  MAX_PAGE_MARKDOWN_BYTES,
+  createGitBookPublisher,
+} from "../src/publisher.js";
 import { MAX_IMAGE_BYTES, readRegularFile } from "../src/read-file.js";
 import { type FakeGitBook, type FakePage, startFakeGitBook } from "./fake-gitbook.js";
 
@@ -808,6 +814,73 @@ describe("gitbook publisher: attachment reads", () => {
     expect((await readRegularFile(file)).equals(data)).toBe(true);
     expect((await readRegularFile(file, data.byteLength)).byteLength).toBe(data.byteLength);
     await expect(readRegularFile(file, data.byteLength - 1)).rejects.toThrow(/is larger than/);
+  });
+});
+
+describe("gitbook publisher: size caps", () => {
+  const media = (name: string): AdfNode => ({
+    type: "mediaSingle",
+    content: [{ type: "media", attrs: { type: "file", id: "", collection: "", alt: name } }],
+  });
+
+  function projectionOf(
+    content: AdfNode[],
+    attachments: AdfProjection["documents"][0]["attachments"],
+  ) {
+    return {
+      schema: "docsxai/adf-projection@1",
+      mode: "single",
+      warnings: [],
+      documents: [
+        {
+          section: "project",
+          title: "Big",
+          adf: { version: 1, type: "doc", content },
+          attachments,
+        },
+      ],
+    } as AdfProjection;
+  }
+
+  it("sends at most 4 MiB of screenshots in one batch and captions the rest", async () => {
+    const dir = await makeWorkspace();
+    const names = Array.from({ length: 8 }, (_, i) => `shot-${i}.png`);
+    for (const [i, name] of names.entries()) {
+      await fs.writeFile(path.join(dir, name), Buffer.alloc(600_000, i + 1));
+    }
+    const projection = projectionOf(
+      names.map(media),
+      names.map((fileName) => ({
+        fileName,
+        sourcePath: path.join(dir, fileName),
+        sha256: "0".repeat(64),
+      })),
+    );
+    const run = await createGitBookPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log),
+    );
+    expect(MAX_PAGE_IMAGE_BYTES).toBe(4 * 1024 * 1024);
+    // 6 x 600,000 bytes fit under 4 MiB, the 7th would not
+    expect(server.files.map((f) => f.name)).toEqual(names.slice(0, 6));
+    const left = run.warnings.filter((w) => w.includes(`at most ${MAX_PAGE_IMAGE_BYTES} bytes`));
+    expect(left).toHaveLength(2);
+    const markdown = server.pages.get(run.pages[0]!.id)!.markdown;
+    expect(markdown.match(/\*Screenshot not uploaded: /g)).toHaveLength(2);
+  });
+
+  it("refuses a page whose markdown is over 1 MiB, and writes nothing", async () => {
+    const dir = await makeWorkspace();
+    const text = "a".repeat(MAX_PAGE_MARKDOWN_BYTES + 1);
+    const projection = projectionOf([{ type: "paragraph", content: [{ type: "text", text }] }], []);
+    await expect(
+      createGitBookPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/section "project" renders to \d+ bytes of markdown, over the 1048576 byte/);
+    expect(server.writes).toBe(0);
+    expect(server.changeRequests.size).toBe(0);
+  });
+
+  it("caps the read of one screenshot at 4 MiB", () => {
+    expect(MAX_IMAGE_BYTES).toBe(4 * 1024 * 1024);
   });
 });
 
