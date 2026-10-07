@@ -6,7 +6,9 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Changed
 
-- **Interactive viewer: keyboard, screen reader, contrast, motion and error states.** Pages from `docsxai render` get landmarks, a skip link and an in-order outline; arrow keys, `j`/`k`, Home/End, `[`/`]` and Esc move between steps and flows and hide callouts, with step changes announced; call-outs open on focus or tap; text meets WCAG AA in new light and dark schemes; the halo pulse stops under `prefers-reduced-motion`; image boxes are reserved; a broken `annotations.json`, a missing screenshot, an empty flow and a failed image load (with Retry) each show a message; phones get a viewport meta, 44 px touch targets and overlays redrawn on resize; print gets its own styles. The viewer badge fill is now `#c2410c` (burned PNGs unchanged). Audit: `docs/ai-context/ux/viewer-audit.md`.
+- **Interactive viewer: keyboard, screen reader, contrast, motion and error states.** Pages from `docsxai render` get landmarks, a skip link and an in-order outline; arrow keys, `j`/`k`, Home/End, `[`/`]` and Esc move between steps and flows and hide callouts, with step changes announced; call-outs open on focus or tap; text meets WCAG AA in new light and dark schemes; the halo pulse stops under `prefers-reduced-motion`; image boxes are reserved; a broken `annotations.json`, a missing screenshot, an empty flow and a failed image load (with Retry) each show a message; phones get a viewport meta, 44 px touch targets and overlays redrawn on resize; print gets its own styles. The viewer badge fill is now `#c2410c`. Audit: `docs/ai-context/ux/viewer-audit.md`.
+
+- **Burned screenshots: numbered badge fill is `#c2410c`.** White 12 px bold numerals on the old `#e8590c` measured 3.58:1; on `#c2410c` they measure 5.18:1, and the burned badge now matches the viewer badge. Only the badge fill changes. The halo outline, connectors and arrowheads keep `#e8590c`. Burned PNGs that carry a numbered badge change once, so committed packs regenerate once (`docsxai burn` / `docsxai pack`) and pack baselines need re-recording.
 
 ### Security
 
