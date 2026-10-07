@@ -42,6 +42,7 @@ import {
   MAX_INLINE_IMAGE_BYTES,
   MAX_PAGE_IMAGE_BYTES,
   MAX_PAGE_MARKDOWN_BYTES,
+  type GitBookPublisherOptions,
   createGitBookPublisher,
 } from "../src/publisher.js";
 import { MAX_IMAGE_BYTES, readRegularFile } from "../src/read-file.js";
@@ -423,6 +424,69 @@ describe("gitbook publisher: failure leaves nothing live", () => {
     );
     expect(run.ok).toBe(false);
     expect(run.warnings.join("\n")).toContain("config.force");
+  });
+});
+
+describe("gitbook publisher: rate limits and the draft", () => {
+  const publishWith = async (
+    dir: string,
+    projection: AdfProjection,
+    options: Partial<GitBookPublisherOptions> = {},
+  ) =>
+    createGitBookPublisher({ ...LOOPBACK, ...options }).publish(
+      makeCtx(dir, projection, capture().log),
+    );
+
+  it("retries a 429 after its Retry-After, and the push still succeeds", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const waits: number[] = [];
+    server.throttle = 2;
+    server.retryAfter = "2";
+    const run = await publishWith(dir, projection, {
+      sleep: async (ms: number) => void waits.push(ms),
+    });
+    expect(run.ok).toBe(true);
+    expect(waits).toEqual([2000, 2000]);
+    expect(server.pages.size).toBe(2);
+  });
+
+  it("caps a long Retry-After at 30 s, and doubles from 1 s when there is none", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const waits: number[] = [];
+    const sleep = async (ms: number) => void waits.push(ms);
+    server.throttle = 1;
+    server.retryAfter = "3600";
+    await publishWith(dir, projection, { sleep });
+    expect(waits).toEqual([30_000]);
+
+    waits.length = 0;
+    server.throttle = 3;
+    server.retryAfter = null;
+    await publishWith(dir, projection, { sleep });
+    expect(waits).toEqual([1000, 2000, 4000]);
+  });
+
+  it("gives up after 5 retries and reports the 429", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const waits: number[] = [];
+    server.throttle = 100;
+    await expect(
+      publishWith(dir, projection, { sleep: async (ms: number) => void waits.push(ms) }),
+    ).rejects.toThrow(/HTTP 429/);
+    expect(waits).toHaveLength(5);
+    expect(server.writes).toBe(0);
+  });
+
+  it("archives a change request whose id it cannot use", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.changeRequestId = "odd id!";
+    await expect(publishWith(dir, projection)).rejects.toThrow(/did not return a usable id/);
+    expect(server.changeRequests.get("odd id!")!.status).toBe("archived");
+    expect(server.pages.size).toBe(0);
   });
 });
 

@@ -65,6 +65,11 @@ export interface FakeGitBook {
   stall: string[];
   /** When set, a POST to `.../content` answers 400 with this message and stores nothing. */
   rejectContent: string | null;
+  /** The next this-many requests answer 429, with `retryAfter` as `Retry-After` when it is set. */
+  throttle: number;
+  retryAfter: string | null;
+  /** When set, a change request is created under this id, whatever its shape. */
+  changeRequestId: string | null;
   /** When set, the page listing answers with this many extra bytes of padding. */
   listPadding: number;
   /** Adds a page straight to the live content, as an editor in the GitBook app would. */
@@ -133,6 +138,9 @@ export async function startFakeGitBook(token: string): Promise<FakeGitBook> {
     redirectPathIncludes: "",
     stall: [],
     rejectContent: null,
+    throttle: 0,
+    retryAfter: null,
+    changeRequestId: null,
     listPadding: 0,
     seedPage: (page) => {
       const id = page.id ?? `pg${nextPage++}`;
@@ -256,6 +264,16 @@ export async function startFakeGitBook(token: string): Promise<FakeGitBook> {
         sendJson(401, { error: { code: 401, message: "unauthorized" } });
         return;
       }
+      if (state.throttle > 0) {
+        state.throttle--;
+        req.resume();
+        res.writeHead(429, {
+          "content-type": "application/json",
+          ...(state.retryAfter !== null ? { "retry-after": state.retryAfter } : {}),
+        });
+        res.end(JSON.stringify({ error: { code: 429, message: "slow down" } }));
+        return;
+      }
       if (state.stall.includes(key)) {
         req.resume();
         return;
@@ -289,7 +307,7 @@ export async function startFakeGitBook(token: string): Promise<FakeGitBook> {
       if (req.method === "POST" && p === `${base}/change-requests`) {
         const body = JSON.parse((await readBody(req)).toString("utf8")) as { subject?: string };
         state.writes++;
-        const id = `cr${nextRequest++}`;
+        const id = state.changeRequestId ?? `cr${nextRequest++}`;
         state.changeRequests.set(id, {
           id,
           status: "open",
@@ -302,7 +320,7 @@ export async function startFakeGitBook(token: string): Promise<FakeGitBook> {
         return;
       }
       const cr = new RegExp(`^${base}/change-requests/([^/]+)(/content|/merge)?$`).exec(p);
-      const draft = cr ? state.changeRequests.get(cr[1]!) : undefined;
+      const draft = cr ? state.changeRequests.get(decodeURIComponent(cr[1]!)) : undefined;
       if (cr && !draft) {
         req.resume();
         sendJson(404, { error: { code: 404, message: "change request not found" } });

@@ -4,7 +4,8 @@
 // change request, apply a batch of content changes to it, merge it and (when a push fails) archive
 // it. The API token goes in the Authorization header and nowhere else; every error message passes
 // through the `mask` callback before it leaves this module. Redirects are refused, so the token
-// never follows a Location header to another host.
+// never follows a Location header to another host. A 429 means the request was not processed, so
+// it is repeated after its `Retry-After` (at most 5 times, each wait capped).
 
 export const DEFAULT_GITBOOK_URL = "https://api.gitbook.com/v1";
 export const GITBOOK_HOST = "api.gitbook.com";
@@ -27,12 +28,20 @@ const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 export const API_TIMEOUT_MS = 30_000;
 /** Longest a content batch (screenshots included) may take. */
 export const CONTENT_TIMEOUT_MS = 120_000;
+/** Retries of a request GitBook answered with 429. */
+export const MAX_RETRIES = 5;
+/** Longest a single wait before a retry, whatever `Retry-After` says. */
+export const MAX_RETRY_WAIT_MS = 30_000;
 
 export interface GitBookClientOptions {
   /** Timeout of an API call, in ms. Default {@link API_TIMEOUT_MS}. Set by tests; config cannot reach it. */
   apiTimeoutMs?: number;
   /** Timeout of a content batch, in ms. Default {@link CONTENT_TIMEOUT_MS}. */
   contentTimeoutMs?: number;
+  /** Cap of one retry wait after a 429, in ms. Default {@link MAX_RETRY_WAIT_MS}. */
+  maxRetryWaitMs?: number;
+  /** Replaces the timer behind a retry wait. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export interface GitBookUrlOptions {
@@ -180,6 +189,8 @@ export class GitBookClient {
   private readonly baseUrl: string;
   private readonly apiTimeoutMs: number;
   private readonly contentTimeoutMs: number;
+  private readonly maxRetryWaitMs: number;
+  private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(
     baseUrl: string,
@@ -191,6 +202,15 @@ export class GitBookClient {
     this.baseUrl = assertGitBookBaseUrl(baseUrl, options);
     this.apiTimeoutMs = options.apiTimeoutMs ?? API_TIMEOUT_MS;
     this.contentTimeoutMs = options.contentTimeoutMs ?? CONTENT_TIMEOUT_MS;
+    this.maxRetryWaitMs = options.maxRetryWaitMs ?? MAX_RETRY_WAIT_MS;
+    this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  }
+
+  /** Wait before retry `attempt` (0-based): `Retry-After` seconds, else 1 s doubling, capped. */
+  private retryWait(header: string | null, attempt: number): number {
+    const seconds = header === null || header.trim() === "" ? NaN : Number(header);
+    const ms = Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : 1000 * 2 ** attempt;
+    return Math.min(ms, this.maxRetryWaitMs);
   }
 
   private async send(
@@ -200,24 +220,32 @@ export class GitBookClient {
     body?: unknown,
     timeoutMs = this.apiTimeoutMs,
   ): Promise<Response> {
-    try {
-      return await fetch(`${this.baseUrl}${path}`, {
-        method,
-        redirect: "error",
-        // Covers the response body too, so a server that stalls mid-body ends the call as well.
-        signal: AbortSignal.timeout(timeoutMs),
-        headers: {
-          authorization: `Bearer ${this.token}`,
-          accept: "application/json",
-          ...(body !== undefined ? { "content-type": "application/json" } : {}),
-        },
-        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-      });
-    } catch (e) {
-      if (isTimeout(e)) {
-        throw new Error(`gitbook: ${method} ${label} timed out after ${timeoutMs} ms`);
+    for (let attempt = 0; ; attempt++) {
+      let res: Response;
+      try {
+        res = await fetch(`${this.baseUrl}${path}`, {
+          method,
+          redirect: "error",
+          // Covers the response body too, so a server that stalls mid-body ends the call as well.
+          signal: AbortSignal.timeout(timeoutMs),
+          headers: {
+            authorization: `Bearer ${this.token}`,
+            accept: "application/json",
+            ...(body !== undefined ? { "content-type": "application/json" } : {}),
+          },
+          ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        });
+      } catch (e) {
+        if (isTimeout(e)) {
+          throw new Error(`gitbook: ${method} ${label} timed out after ${timeoutMs} ms`);
+        }
+        throw new Error(this.mask(`gitbook: ${method} ${label} failed: ${(e as Error).message}`));
       }
-      throw new Error(this.mask(`gitbook: ${method} ${label} failed: ${(e as Error).message}`));
+      if (res.status !== 429 || attempt >= MAX_RETRIES) return res;
+      // GitBook rejected the request unprocessed, so repeating a write is safe.
+      const wait = this.retryWait(res.headers.get("retry-after"), attempt);
+      await res.body?.cancel().catch(() => undefined);
+      await this.sleep(wait);
     }
   }
 
@@ -296,7 +324,12 @@ export class GitBookClient {
     );
     if (!res.ok) return this.fail("POST", label, res);
     const body = await this.json("POST", label, res);
-    return usableId(isObject(body) ? body["id"] : undefined, `POST ${label}`);
+    const id = isObject(body) ? body["id"] : undefined;
+    if (typeof id === "string" && id !== "" && id.length <= 256 && !ID_PATTERN.test(id)) {
+      // The draft exists and the publisher will never see its id, so close it here.
+      await this.archive(spaceId, id).catch(() => undefined);
+    }
+    return usableId(id, `POST ${label}`);
   }
 
   /** Applies one ordered batch atomically (GitBook takes at most 50 changes) and names the pages it touched. */
