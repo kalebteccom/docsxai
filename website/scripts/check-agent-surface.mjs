@@ -1,7 +1,8 @@
 // Post-build check for the agent/end-user split. Fails the build unless:
 //   - no rendered HTML page contains a "For agents" aside,
 //   - every page whose source has a "For agents" aside keeps it in its .md twin,
-//   - the agent-only pages emit a .md and no HTML.
+//   - the agent-only pages emit a .md and no HTML,
+//   - every rendered table sits in the scroll wrapper that the keyboard script targets.
 // Runs after `astro build`, against dist/.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -22,14 +23,22 @@ function* walk(dir) {
 
 const problems = [];
 const ASIDE_HTML = /<aside[^>]*aria-label="For agents"/i;
+const TABLE_HTML = /<table[\s>]/g;
+const WRAPPED_TABLE_HTML = /<div class="docsx-table-scroll">\s*<table[\s>]/g;
 const ASIDE_SRC = /^:::\w+\[For agents\]/m;
 
 let htmlPages = 0;
 for (const f of walk(dist)) {
   if (!f.endsWith(".html")) continue;
   htmlPages++;
-  if (ASIDE_HTML.test(readFileSync(f, "utf8"))) {
+  const html = readFileSync(f, "utf8");
+  if (ASIDE_HTML.test(html)) {
     problems.push(`rendered HTML keeps a "For agents" aside: ${relative(dist, f)}`);
+  }
+  const tables = (html.match(TABLE_HTML) ?? []).length;
+  const wrapped = (html.match(WRAPPED_TABLE_HTML) ?? []).length;
+  if (tables !== wrapped) {
+    problems.push(`${tables - wrapped} table(s) outside .docsx-table-scroll: ${relative(dist, f)}`);
   }
 }
 
