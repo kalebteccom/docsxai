@@ -9,6 +9,7 @@
 import { existsSync, promises as fs } from "node:fs";
 import * as path from "node:path";
 import { parseAuthStrategyFile } from "./auth.js";
+import { shellQuote } from "./cli-messages.js";
 import {
   EGRESS_DENY_PRIVATE_ENV,
   EGRESS_GUARD_ENV,
@@ -131,7 +132,7 @@ export async function checkWorkspace(workspaceDir: string): Promise<WorkspacePro
         name: "workspace",
         ok: false,
         detail: `${configPath} is not valid JSON: ${(e as Error).message}`,
-        fix: `fix the JSON (or re-scaffold with \`docsxai init ${workspaceDir} --force\`)`,
+        fix: `fix the JSON (or re-scaffold with \`docsxai init ${shellQuote(workspaceDir)} --force\`)`,
       },
       config: null,
       present: true,
@@ -193,7 +194,7 @@ export async function checkFlows(workspaceDir: string): Promise<DoctorCheck> {
         name: "flows",
         ok: false,
         detail: `${entry} does not parse: ${msg}`,
-        fix: `fix the flow-file (then \`docsxai lint ${workspaceDir}\` for the full static report)`,
+        fix: `fix the flow-file (then \`docsxai lint ${shellQuote(workspaceDir)}\` for the full static report)`,
       };
     }
   }
@@ -247,7 +248,7 @@ export async function checkAuth(workspaceDir: string, now: number): Promise<Doct
       name: "auth",
       ok: true,
       info: true,
-      detail: `no cached session for role "${role}" — \`docsxai capture-auth ${workspaceDir}\` before \`run\``,
+      detail: `no cached session for role "${role}" — \`docsxai capture-auth ${shellQuote(workspaceDir)}\` before \`run\``,
     });
     return checks;
   }
@@ -263,14 +264,14 @@ export async function checkAuth(workspaceDir: string, now: number): Promise<Doct
       name: "auth",
       ok: false,
       detail: `cached session ${sessionPath} is corrupt (no expiresAt)`,
-      fix: `re-capture: docsxai capture-auth ${workspaceDir}`,
+      fix: `re-capture: docsxai capture-auth ${shellQuote(workspaceDir)}`,
     });
   } else if (expiresAt <= now) {
     checks.push({
       name: "auth",
       ok: false,
       detail: `cached session for role "${role}" expired ${new Date(expiresAt).toISOString()}`,
-      fix: `re-capture: docsxai capture-auth ${workspaceDir}`,
+      fix: `re-capture: docsxai capture-auth ${shellQuote(workspaceDir)}`,
     });
   } else {
     checks.push({

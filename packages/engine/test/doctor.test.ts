@@ -638,4 +638,32 @@ describe("doctor CLI dispatch", () => {
     const hasFailure = /\n {2}✗ /.test(out);
     expect(code).toBe(hasFailure ? 1 : 0);
   });
+
+  it("prints doctor's usage for --help and -h, exits 0 and runs no check", async () => {
+    for (const flag of ["--help", "-h"]) {
+      out = "";
+      expect(await main(["doctor", flag])).toBe(0);
+      expect(out).toContain("usage: docsxai doctor [<workspace-dir>]\n");
+      expect(out).toContain("Exit 0 when no row failed, 1 otherwise.");
+      expect(out).not.toContain("environment & workspace health");
+    }
+  });
+
+  it("prints the help when --help follows a workspace dir", async () => {
+    expect(await main(["doctor", tmp, "--help"])).toBe(0);
+    expect(out).toContain("usage: docsxai doctor");
+    expect(out).not.toContain("✓");
+  });
+
+  it("leaves a plain run alone: checklist printed, exit 1 iff a row failed", async () => {
+    const empty = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-doctor-nows-"));
+    try {
+      const code = await main(["doctor", empty]);
+      expect(out).toContain("environment & workspace health");
+      expect(out).not.toContain("usage: docsxai doctor");
+      expect(code).toBe(/\n {2}✗ /.test(out) ? 1 : 0);
+    } finally {
+      await fs.rm(empty, { recursive: true, force: true });
+    }
+  });
 });

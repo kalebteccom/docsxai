@@ -39,7 +39,7 @@ export async function cmdRender(args: string[]): Promise<number> {
   ) {
     const note = withNext(
       `warning — ${docsDir} does not exist, so the viewer will be empty`,
-      `docsxai run ${projectDir}`,
+      `docsxai run ${shellQuote(projectDir)}`,
     );
     process.stderr.write(`render: ${note}\n`);
   }
@@ -107,7 +107,7 @@ export async function cmdBurn(args: string[]): Promise<number> {
   ) {
     const note = withNext(
       `${parsed.workspace} has no docs/ directory (expected ${docsDir})`,
-      `docsxai run ${parsed.workspace}`,
+      `docsxai run ${shellQuote(parsed.workspace)}`,
     );
     process.stderr.write(`burn: ${note}\n`);
     return 1;
@@ -140,9 +140,9 @@ export async function cmdZip(args: string[]): Promise<number> {
   } catch (e) {
     if (e instanceof ZipError) {
       const next = /nothing to zip/.test(e.message)
-        ? `docsxai run ${projectDir}`
+        ? `docsxai run ${shellQuote(projectDir)}`
         : /doesn't exist/.test(e.message)
-          ? `docsxai init ${projectDir}  (or fix the path)`
+          ? `docsxai init ${shellQuote(projectDir)}  (or fix the path)`
           : undefined;
       process.stderr.write(`zip: ${next ? withNext(e.message, next) : e.message}\n`);
       return 1;
@@ -213,7 +213,7 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
     return 0;
   } catch (e) {
     process.stderr.write(
-      `export adf: ${withNext((e as Error).message, `docsxai lint ${projectDir}`)}\n`,
+      `export adf: ${withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
     );
     return 1;
   }
@@ -245,7 +245,7 @@ async function cmdExportPlaywright(rest: string[]): Promise<number> {
     return 0;
   } catch (e) {
     process.stderr.write(
-      `export playwright: ${withNext((e as Error).message, `docsxai lint ${projectDir}`)}\n`,
+      `export playwright: ${withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
     );
     return 1;
   }
@@ -317,7 +317,7 @@ export async function cmdBaseline(args: string[]): Promise<number> {
     if (copied === 0) {
       const note = withNext(
         "warning — no flows/ or docs/ files found to snapshot",
-        `docsxai run ${projectDir}`,
+        `docsxai run ${shellQuote(projectDir)}`,
       );
       process.stderr.write(`baseline: ${note}\n`);
     }

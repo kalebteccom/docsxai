@@ -156,3 +156,63 @@ describe("render, burn, zip, baseline, diff", () => {
     expect(err).toContain(`next: docsxai baseline ${ws}`);
   });
 });
+
+describe("next: hints quote a workspace path that is not a plain word", () => {
+  const spaced = () => path.join(tmp, "my ws");
+  const quoted = () => `'${spaced()}'`;
+
+  async function spacedWorkspace(...initArgs: string[]): Promise<string> {
+    const ws = spaced();
+    expect(await main(["init", ws, ...initArgs])).toBe(0);
+    out = "";
+    err = "";
+    return ws;
+  }
+
+  it("init closes with quoted capture-auth, run and render commands", async () => {
+    expect(await main(["init", spaced(), "--app-url", "http://127.0.0.1:1"])).toBe(0);
+    expect(out).toContain(`docsxai capture-auth ${quoted()}  →`);
+    expect(out).toContain(`docsxai run ${quoted()}  →  docsxai render ${quoted()}`);
+  });
+
+  it("run names capture-auth with the path quoted", async () => {
+    const ws = await spacedWorkspace("--app-url", "http://127.0.0.1:1");
+    expect(await main(["run", ws])).toBe(1);
+    expect(err).toContain(`next: docsxai capture-auth ${quoted()}`);
+  });
+
+  it("run, lint and flow-tree name lint or themselves with the path quoted after a parse error", async () => {
+    const ws = await spacedWorkspace("--auth", "none");
+    await fs.writeFile(path.join(ws, "flows", "bad.flow.yaml"), "name: bad\nsteps: nope\n");
+    expect(await main(["run", ws])).toBe(1);
+    expect(err).toContain(`next: docsxai lint ${quoted()}`);
+    err = "";
+    expect(await main(["lint", ws])).toBe(1);
+    expect(err).toContain(`next: fix the flow-file, then docsxai lint ${quoted()}`);
+    err = "";
+    expect(await main(["flow-tree", ws])).toBe(1);
+    expect(err).toContain(`next: fix the flow-file, then docsxai flow-tree ${quoted()}`);
+  });
+
+  it("zip and calibrate quote the path and the flow-guide", async () => {
+    const empty = path.join(tmp, "an empty dir");
+    await fs.mkdir(empty);
+    expect(await main(["zip", empty, "--out", path.join(tmp, "x.zip")])).toBe(1);
+    expect(err).toContain(`next: docsxai run '${empty}'`);
+
+    err = "";
+    const guide = path.join(tmp, "my guide.md");
+    await fs.writeFile(guide, "no yaml fence in here\n");
+    expect(await main(["calibrate", empty, "--from", guide])).toBe(1);
+    expect(err).toContain(
+      `next: fix '${guide}', then docsxai calibrate '${empty}' --from '${guide}'`,
+    );
+  });
+
+  it("an apostrophe in the path is escaped inside the quotes", async () => {
+    const odd = path.join(tmp, "it's");
+    await fs.mkdir(odd);
+    expect(await main(["baseline", odd])).toBe(0);
+    expect(err).toContain(`next: docsxai run '${odd.replace(/'/g, "'\\''")}'`);
+  });
+});

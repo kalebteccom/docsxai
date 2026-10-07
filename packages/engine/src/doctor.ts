@@ -24,6 +24,7 @@ import {
   type DoctorOptions,
 } from "./doctor-checks.js";
 import { checkPlugins } from "./doctor-checks-plugins.js";
+import { commandUsage } from "./cli-messages.js";
 
 // Re-export the probe catalogue's public surface so importers keep reaching it
 // through ./doctor.js (its original home) — no importer or test changes. The
@@ -77,8 +78,27 @@ export function formatDoctorChecks(checks: DoctorCheck[]): string {
   return out;
 }
 
+/** What `docsxai doctor --help` prints: the usage line from `docsxai --help`, then what the rows mean. */
+export function doctorHelp(): string {
+  return `${commandUsage("doctor")
+    .map((l) => `usage: ${l}\n`)
+    .join("")}
+Checks Node, Chromium, the workspace config, flow-files, cached sessions, the backend (when
+backend_url is set), plugin declarations, the viewer bin and DOCSX_* env. Runs no flow, no plugin
+code and no browser.
+
+  ✓ passed   ✗ failed, with a one-line fix   − informational, never fails
+
+Exit 0 when no row failed, 1 otherwise.
+`;
+}
+
 /** `docsxai doctor [<workspace-dir>]` — returns the process exit code. */
 export async function runDoctor(args: string[]): Promise<number> {
+  if (args.includes("--help") || args.includes("-h")) {
+    process.stdout.write(doctorHelp());
+    return 0;
+  }
   const positionals = args.filter((a) => !a.startsWith("--"));
   const checks = await buildDoctorChecks(positionals[0] ? { workspaceDir: positionals[0] } : {});
   process.stdout.write(formatDoctorChecks(checks));
