@@ -146,6 +146,15 @@ async function loadManifest(
   const { children, truncated } = await client.readChildren(pageId);
   if (truncated) throw new Error(`notion: manifest page ${pageId} is not a docsxai manifest`);
   const text = children.map((c) => c.codeText ?? "").join("");
+  // A write that died after clearing the page, or after creating it, leaves it with no JSON. That
+  // is an interrupted write of our own, so the pages are redone (and may be created a second time)
+  // instead of every later push failing. A page with JSON that is not a manifest still refuses.
+  if (text.trim() === "" && children.every((c) => c.type === "paragraph" || c.type === "code")) {
+    log.warn(
+      `manifest page ${pageId} is empty, so an earlier push was interrupted; every page is written again and may be created a second time`,
+    );
+    return { manifest: emptyManifest(), pageId };
+  }
   const manifest = parseManifestText(text, (m) => log.warn(m), `manifest page ${pageId}`);
   return { manifest, pageId };
 }

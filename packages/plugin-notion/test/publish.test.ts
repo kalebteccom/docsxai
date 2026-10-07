@@ -1053,7 +1053,6 @@ describe("notion publisher: manifest page", () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
     for (const text of [
-      "",
       "edited by hand",
       "{not json",
       JSON.stringify({ schema: MANIFEST_SCHEMA, pages: [1] }),
@@ -1065,6 +1064,37 @@ describe("notion publisher: manifest page", () => {
       await expect(publishWith(dir, projection)).rejects.toThrow("is not a docsxai manifest");
       expect(server.writes).toBe(0);
     }
+  });
+
+  it("treats an empty manifest page as an interrupted write and rewrites it", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    await publishWith(dir, projection);
+    const manifestId = manifestPage().id;
+    for (const b of server.children(manifestId)) b.archived = true;
+
+    const { log, lines } = capture();
+    const run2 = await createNotionPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(run2.ok).toBe(true);
+    expect(run2.pages.map((p) => p.action)).toEqual(["created"]);
+    expect(
+      lines.filter((l) => l.includes("is empty, so an earlier push was interrupted")),
+    ).toHaveLength(1);
+    expect(manifestPage().id).toBe(manifestId);
+    expect(readManifest().pages["index"]!.pageId).toBe(run2.pages[0]!.id);
+
+    const run3 = await publishWith(dir, projection);
+    expect(run3.pages.map((p) => p.action)).toEqual(["unchanged"]);
+  });
+
+  it("treats a whitespace-only manifest page like an empty one", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    seedManifest("  \n ");
+    const run = await publishWith(dir, projection);
+    expect(run.pages.map((p) => p.action)).toEqual(["created"]);
+    expect(readManifest().pages["index"]).toBeDefined();
+    expect(server.pagesTitled(MANIFEST_TITLE)).toHaveLength(1);
   });
 
   it("keeps a __proto__ key in the manifest from touching prototypes", async () => {
