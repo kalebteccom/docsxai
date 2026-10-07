@@ -117,7 +117,9 @@ describe("resolveBackendToken", () => {
 
   it("names the backend in the missing-token hint without credentials, query or fragment", async () => {
     vi.stubEnv("DOCSX_TOKEN", "");
-    const err = await resolveBackendToken({ baseUrl: "https://u" + ":hunter2@h.example/?token=abc#f" })
+    const err = await resolveBackendToken({
+      baseUrl: "https://u" + ":hunter2@h.example/?token=abc#f",
+    })
       .then(() => undefined)
       .catch((e: Error) => e);
     expect(err?.message).toContain("docsxai login --backend-url https://h.example --oauth");

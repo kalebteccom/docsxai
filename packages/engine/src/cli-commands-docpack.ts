@@ -23,7 +23,7 @@ import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
 import { parseFlags } from "./cli-shared.js";
-import { usageError, withNext } from "./cli-messages.js";
+import { shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdRender(args: string[]): Promise<number> {
   const { positionals } = parseFlags(args);
@@ -356,7 +356,7 @@ export async function cmdDiff(args: string[]): Promise<number> {
   } catch {
     const note = withNext(
       `no baseline at ${againstDir}`,
-      `docsxai baseline ${projectDir}  (or pass --against <dir>)`,
+      `docsxai baseline ${shellQuote(projectDir)}  (or pass --against <dir>)`,
     );
     process.stderr.write(`diff: ${note}\n`);
     return 2;

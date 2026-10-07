@@ -530,7 +530,7 @@ describe("baseline + diff CLI", () => {
   it("diff without a baseline exits 2 with a hint; bad flags exit 2", async () => {
     const ws = await makePack({});
     expect(await main(["diff", ws])).toBe(2);
-    expect(err).toMatch(/run `docsxai baseline/);
+    expect(err).toMatch(/next: docsxai baseline/);
     expect(await main(["diff", ws, "--format", "yaml"])).toBe(2);
     expect(await main(["diff", ws, "--fail-on", "info"])).toBe(2);
     expect(await main(["diff"])).toBe(2);
