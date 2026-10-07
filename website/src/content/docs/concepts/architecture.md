@@ -84,7 +84,9 @@ sessions - and it keeps the runtime testable without a browser at all.
 | [backend](/packages/backend/)                     | Doc-pack persistence: revisions, blobs, OAuth 2.1, GitHub webhook.       |
 | [viewer](/packages/viewer/)                       | Interactive viewer, browser-free burn renderer, Starlight emitter.       |
 | [plugin-confluence](/packages/plugin-confluence/) | Publisher plugin: idempotent Confluence Cloud push.                      |
+| [plugin-gitbook](/packages/plugin-gitbook/)       | Publisher plugin: idempotent GitBook page push through a change request. |
 | [plugin-guru](/packages/plugin-guru/)             | Publisher plugin: idempotent Guru card push with attached images.        |
+| [plugin-notion](/packages/plugin-notion/)         | Publisher plugin: idempotent Notion page push with uploaded images.      |
 | [plugin-sharepoint](/packages/plugin-sharepoint/) | Publisher plugin: idempotent SharePoint library push via Graph.          |
 | [plugin-starlight](/packages/plugin-starlight/)   | Renderer plugin: production Starlight docs site.                         |
 

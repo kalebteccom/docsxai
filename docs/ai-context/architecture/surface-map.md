@@ -152,9 +152,17 @@ Standalone stdio MCP server (`docsxai-mcp` bin) for any MCP-speaking host: calib
 
 First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins — the only sanctioned Confluence egress path (the engine emits ADF projections only). Repo-only (`private: true`).
 
+## `packages/plugin-gitbook/` — `@docsxai/plugin-gitbook`
+
+First-party publisher plugin (`gitbook:push`): idempotent push of a doc pack as markdown pages, with screenshots sent inline, into a GitBook space through a change request that it merges, behind the `egress:api.gitbook.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Repo-only (`private: true`).
+
 ## `packages/plugin-guru/` — `@docsxai/plugin-guru`
 
 First-party publisher plugin (`guru:push`): idempotent push of a doc pack as cards, with screenshots uploaded as Guru-hosted attachments, into a Guru collection through the Guru public API, behind the `egress:api.getguru.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to HTML. Repo-only (`private: true`).
+
+## `packages/plugin-notion/` — `@docsxai/plugin-notion`
+
+First-party publisher plugin (`notion:push`): idempotent push of a doc pack as Notion pages, with screenshots uploaded through the Notion file upload API, under a Notion page or into a Notion database through the Notion public API, behind the `egress:api.notion.com` capability. Consumes the same ADF projection as the Confluence plugin and converts it to Notion blocks. Repo-only (`private: true`).
 
 ## `packages/plugin-sharepoint/` — `@docsxai/plugin-sharepoint`
 

@@ -36,7 +36,7 @@ For each of the 6 published names — the unscoped `docsxai` meta-package (the b
 - [ ] "Require 2FA and disallow tokens" — set after the first successful OIDC publish, not before (you need at least one OIDC publish to verify the flow works first).
 - [ ] No legacy automation tokens on the maintainer account.
 
-> **Repo-only packages.** `@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-guru`, `@docsxai/plugin-sharepoint`, and `@docsxai/plugin-starlight` keep `"private": true` and do not publish at the flip (documented as repo-only; revisit post-flip). They need no trusted-publisher bindings until that decision changes — when one flips, add its binding and remove its `private` flag in the same change.
+> **Repo-only packages.** `@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion`, `@docsxai/plugin-sharepoint`, and `@docsxai/plugin-starlight` keep `"private": true` and do not publish at the flip (documented as repo-only; revisit post-flip). They need no trusted-publisher bindings until that decision changes — when one flips, add its binding and remove its `private` flag in the same change.
 
 ## 5. First OIDC publish — supervised
 

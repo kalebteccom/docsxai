@@ -114,11 +114,27 @@ export const htmlPages = [
     replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
   },
   {
+    src: "packages/plugin-gitbook/README.md",
+    out: "packages/plugin-gitbook.md",
+    title: "@docsxai/plugin-gitbook",
+    description:
+      "Publisher plugin for GitBook: pushes a doc pack as markdown pages and images into a space through a change request, idempotently.",
+    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
+  },
+  {
     src: "packages/plugin-guru/README.md",
     out: "packages/plugin-guru.md",
     title: "@docsxai/plugin-guru",
     description:
       "Publisher plugin for Guru: pushes a doc pack as cards with attached images into a collection through the Guru public API, idempotently.",
+    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
+  },
+  {
+    src: "packages/plugin-notion/README.md",
+    out: "packages/plugin-notion.md",
+    title: "@docsxai/plugin-notion",
+    description:
+      "Publisher plugin for Notion: pushes a doc pack as pages with uploaded images under a page or into a database through the Notion public API, idempotently.",
     replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
   },
   {
