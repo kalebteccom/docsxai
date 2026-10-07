@@ -4,8 +4,11 @@
 
 import { constants, promises as fs } from "node:fs";
 
-/** Largest screenshot the publisher reads. */
-export const MAX_IMAGE_BYTES = 64 * 1024 * 1024;
+/**
+ * Largest screenshot the publisher reads: the 20 MiB the upload API takes plus 1 MiB, so a file just
+ * over the limit is still read to be hashed and published as a note, and a bigger one is refused unread.
+ */
+export const MAX_IMAGE_BYTES = 21 * 1024 * 1024;
 
 export async function readRegularFile(file: string, maxBytes = MAX_IMAGE_BYTES): Promise<Buffer> {
   const first = await fs.lstat(file);

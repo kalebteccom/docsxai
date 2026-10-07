@@ -69,7 +69,7 @@ Notion allows about 3 requests a second per connection. The client spaces reques
 - Redirects are an error on every request, so the token never follows a `Location` header.
 - Every request has a timeout that also covers reading the response body: 30 s for API calls, 120 s for a file upload.
 - JSON responses are capped at 8 MiB and error bodies at 64 KiB, whether or not Notion sends a `Content-Length`. A listing follows at most 20 pages of 100 children.
-- Attachment paths must resolve inside the workspace. The read refuses a symlink in the last component, a FIFO or any non-regular file, caps the bytes actually read at 64 MiB, and hashes the bytes it read, not the `sha256` the projection claims.
+- Attachment paths must resolve inside the workspace. The read refuses a symlink in the last component, a FIFO or any non-regular file, caps the bytes actually read at 21 MiB (the 20 MiB upload limit plus 1 MiB), and hashes the bytes it read, not the `sha256` the projection claims.
 - File names are reduced to `[A-Za-z0-9._-]`, and an all-dot name (`.`, `..`) is an error.
 - A page is rewritten only when Notion reports it directly under the configured parent, not in the trash, and not the manifest page. A manifest entry that points anywhere else (the manifest page is editable by anyone with edit rights on it) is logged, ignored, and a new page is created. The foreign page is never written.
 - Everything read from the manifest page is validated: ids, hashes and URLs (page URLs must be https on `www.notion.so` or `notion.so`). A `__proto__` key lands in a prototype-less map.
