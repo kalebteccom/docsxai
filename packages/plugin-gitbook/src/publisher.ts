@@ -88,6 +88,35 @@ async function loadProjection(ctx: PublisherContext): Promise<AdfProjection> {
   return parsed;
 }
 
+/** Page identity of a section: the manifest key. */
+function sectionKey(section: string): string {
+  return section === "project" ? "index" : safeName(section);
+}
+
+/**
+ * Refuses a projection whose pages would share an identity: two sections with one slug (which
+ * covers a key that differs only in case), a section whose slug is the manifest page's, or a page
+ * titled like the manifest, which a later push would take for it.
+ */
+function assertDistinctSections(documents: AdfDocument[], titlePrefix = ""): void {
+  const owners = new Map<string, string>();
+  for (const doc of documents) {
+    const slug = pageSlug(sectionKey(doc.section));
+    const other = owners.get(slug);
+    if (other !== undefined) {
+      throw new Error(
+        `gitbook: sections "${other}" and "${doc.section}" share the page slug "${slug}", rename one of them`,
+      );
+    }
+    owners.set(slug, doc.section);
+    if (slug === MANIFEST_SLUG || `${titlePrefix}${doc.title}` === MANIFEST_TITLE) {
+      throw new Error(
+        `gitbook: section "${doc.section}" is named like the manifest page "${MANIFEST_TITLE}", rename it`,
+      );
+    }
+  }
+}
+
 interface FileUpload {
   ref: string;
   name: string;
@@ -116,7 +145,7 @@ async function prepare(
   warnings: string[],
 ): Promise<Prepared> {
   const title = `${config.title_prefix ?? ""}${doc.title}`;
-  const key = doc.section === "project" ? "index" : safeName(doc.section);
+  const key = sectionKey(doc.section);
   const files: FileUpload[] = [];
   const refs = new Map<string, string>();
   const hashes: Array<[string, string]> = [];
@@ -317,6 +346,7 @@ export function createGitBookPublisher(options: GitBookPublisherOptions = {}): P
       try {
         const config = parseConfig(ctx.config, options);
         const projection = await loadProjection(ctx);
+        assertDistinctSections(projection.documents, config.title_prefix);
         const client = new GitBookClient(config.base_url, token, mask, options);
         const space = config.space_id;
 

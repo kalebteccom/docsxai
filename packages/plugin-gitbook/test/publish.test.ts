@@ -141,6 +141,25 @@ function writeManifest(manifest: unknown): void {
   manifestPage().markdown = manifestToMarkdown(manifest as Manifest);
 }
 
+/** A projection of text-only sections, for tests that care about names and not about content. */
+function sectionsProjection(sections: Array<[section: string, title: string]>): AdfProjection {
+  return {
+    schema: "docsxai/adf-projection@1",
+    mode: "page-tree",
+    warnings: [],
+    documents: sections.map(([section, title]) => ({
+      section,
+      title,
+      adf: {
+        version: 1,
+        type: "doc",
+        content: [{ type: "paragraph", content: [{ type: "text", text: title }] }],
+      },
+      attachments: [],
+    })),
+  };
+}
+
 const PAGE_TREE = { mode: "page-tree" as const, title: "Shop docs" };
 
 describe("gitbook publisher: idempotency (fake GitBook)", () => {
@@ -881,6 +900,57 @@ describe("gitbook publisher: size caps", () => {
 
   it("caps the read of one screenshot at 4 MiB", () => {
     expect(MAX_IMAGE_BYTES).toBe(4 * 1024 * 1024);
+  });
+});
+
+describe("gitbook publisher: page identity", () => {
+  it.each([
+    [
+      [
+        ["Login", "A"],
+        ["login", "B"],
+      ],
+      /sections "Login" and "login" share the page slug "login"/,
+    ],
+    [
+      [
+        ["a b", "A"],
+        ["a_b", "B"],
+      ],
+      /sections "a b" and "a_b" share the page slug/,
+    ],
+    [
+      [
+        ["project", "A"],
+        ["index", "B"],
+      ],
+      /sections "project" and "index" share the page slug "index"/,
+    ],
+    [[["docsxai-manifest", "A"]], /section "docsxai-manifest" is named like the manifest page/],
+    [[["Docsxai Manifest", "A"]], /section "Docsxai Manifest" is named like the manifest page/],
+    [[["checkout", MANIFEST_TITLE]], /section "checkout" is named like the manifest page/],
+  ] as Array<[Array<[string, string]>, RegExp]>)(
+    "refuses %j before any request",
+    async (sections, message) => {
+      const dir = await makeWorkspace();
+      await expect(
+        createGitBookPublisher(LOOPBACK).publish(
+          makeCtx(dir, sectionsProjection(sections), capture().log),
+        ),
+      ).rejects.toThrow(message);
+      expect(server.writes).toBe(0);
+      expect(server.requests).toEqual([]);
+    },
+  );
+
+  it("applies the title prefix before comparing a title with the manifest's", async () => {
+    const dir = await makeWorkspace();
+    const projection = sectionsProjection([["checkout", "manifest"]]);
+    await expect(
+      createGitBookPublisher(LOOPBACK).publish(
+        makeCtx(dir, projection, capture().log, { title_prefix: "docsxai " }),
+      ),
+    ).rejects.toThrow(/named like the manifest page/);
   });
 });
 
