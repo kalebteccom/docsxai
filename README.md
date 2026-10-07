@@ -103,11 +103,12 @@ For the full agent-driven workflow and the fast calibration loop (`lint`, `flow-
 | [`@docsxai/skill`](packages/skill/)                         | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                                                             |
 | [`@docsxai/mcp`](packages/mcp/)                             | Standalone stdio MCP server: calibration meta-orchestration + doc-pack introspection for any MCP host (no browser primitives — browxai owns discovery).                                                    |
 | [`@docsxai/plugin-confluence`](packages/plugin-confluence/) | First-party publisher plugin — idempotent Confluence Cloud REST v2 push (`confluence:push`), capability-gated egress.                                                                                      |
+| [`@docsxai/plugin-gitbook`](packages/plugin-gitbook/)       | First-party publisher plugin. Markdown pages and images into a GitBook space through a change request (`gitbook:push`), capability-gated egress.                                                           |
 | [`@docsxai/plugin-guru`](packages/plugin-guru/)             | First-party publisher plugin. Cards with attached images in a Guru collection through the Guru public API (`guru:push`), capability-gated egress.                                                          |
 | [`@docsxai/plugin-sharepoint`](packages/plugin-sharepoint/) | First-party publisher plugin. Markdown and images into a SharePoint Online document library through Microsoft Graph (`sharepoint:push`), capability-gated egress.                                          |
 | [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin — Starlight site emission (`starlight:site`).                                                                                                                                  |
 
-`@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-guru`, `@docsxai/plugin-sharepoint` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (0.2.0).
+`@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-sharepoint` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (0.2.0).
 
 ## Documentation
 

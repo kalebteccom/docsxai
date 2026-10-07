@@ -17,7 +17,7 @@ Owns the release ritual end to end. Note: the OSS release is **owner-deferred un
 4. **Quality gate.** `pnpm typecheck && pnpm test && pnpm lint && pnpm format:check && pnpm build` all exit 0. The keystone test runs as part of `pnpm test` and requires Chromium.
 5. **Commit + tag.** `chore(release): vX.Y.Z — <release summary>` (≤72 chars). Tag `vX.Y.Z`.
 6. **Push tag.** `git push origin main && git push origin vX.Y.Z`. The CI `release.yml` workflow takes over from here.
-7. **CI release workflow** runs: SBOM generation, npm publish via OIDC trusted publisher (no long-lived token), GitHub Release creation with generated notes. Per-package publish covers the 6-package set: the `docsxai` stub plus `@docsxai/{engine,plugin,backend,skill,viewer}` (the repo-only `@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-sharepoint,plugin-starlight}` are excluded).
+7. **CI release workflow** runs: SBOM generation, npm publish via OIDC trusted publisher (no long-lived token), GitHub Release creation with generated notes. Per-package publish covers the 6-package set: the `docsxai` stub plus `@docsxai/{engine,plugin,backend,skill,viewer}` (the repo-only `@docsxai/{mcp,plugin-confluence,plugin-gitbook,plugin-guru,plugin-sharepoint,plugin-starlight}` are excluded).
 8. **Post-release smoke.** Install the published version in a scratch dir; run `docsxai --version` and a minimal `docsxai init` + `docsxai lint` on a toy workspace.
 9. **Announce.** Update README install snippet if the version is referenced by line; surface the closure entry to the owner for the internal planning archive.
 

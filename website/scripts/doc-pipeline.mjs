@@ -114,6 +114,14 @@ export const htmlPages = [
     replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
   },
   {
+    src: "packages/plugin-gitbook/README.md",
+    out: "packages/plugin-gitbook.md",
+    title: "@docsxai/plugin-gitbook",
+    description:
+      "Publisher plugin for GitBook: pushes a doc pack as markdown pages and images into a space through a change request, idempotently.",
+    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
+  },
+  {
     src: "packages/plugin-guru/README.md",
     out: "packages/plugin-guru.md",
     title: "@docsxai/plugin-guru",
