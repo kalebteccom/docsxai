@@ -29,8 +29,24 @@ export function pageSlug(key: string): string {
 /** Resolves an uploaded image, by its safe file name, to the link target the page should use. */
 export type ImageResolver = (name: string) => string | undefined;
 
+/** What starts a block at the head of a line: `#`, a bullet (`-`, `+`), a setext rule (`=`), `1.` or `1)`. */
+const LINE_START = /^([ \t]*)(?:([#+=-])|(\d{1,9})([.)]))/;
+
+/**
+ * Text as literal markdown: inline syntax is escaped everywhere, and the one character that would
+ * open a block (heading, list, thematic break or setext underline) is escaped at the head of each
+ * line, so a line of step copy cannot turn into structure.
+ */
 function escapeText(value: string): string {
-  return value.replace(/[\\`*_[\]<>{}|~]/g, (c) => `\\${c}`);
+  return value
+    .replace(/[\\`*_[\]<>{}|~]/g, (c) => `\\${c}`)
+    .split("\n")
+    .map((line) =>
+      line.replace(LINE_START, (_, indent: string, mark?: string, digits?: string, dot?: string) =>
+        mark ? `${indent}\\${mark}` : `${indent}${digits}\\${dot}`,
+      ),
+    )
+    .join("\n");
 }
 
 function safeHref(href: unknown): string | null {

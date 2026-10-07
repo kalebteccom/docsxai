@@ -1337,6 +1337,40 @@ describe("adf to markdown", () => {
     expect(md).toContain("[good](mailto:docs@example.com)");
   });
 
+  it("escapes the character that would open a block at the head of every line", () => {
+    const lines = [
+      "# not a heading",
+      "- not a bullet",
+      "+ not a bullet",
+      "12. not a list",
+      "3) not a list",
+      "---",
+      "===",
+      "> not a quote",
+      "  # indented",
+      "```fence",
+      "plain # mid - line 1. two",
+    ];
+    const doc: AdfDoc = {
+      version: 1,
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: lines.join("\n") }] }],
+    };
+    expect(adfToMarkdown(doc, none).split("\n")).toEqual([
+      "\\# not a heading",
+      "\\- not a bullet",
+      "\\+ not a bullet",
+      "12\\. not a list",
+      "3\\) not a list",
+      "\\---",
+      "\\===",
+      "\\> not a quote",
+      "  \\# indented",
+      "\\`\\`\\`fence",
+      "plain # mid - line 1. two",
+    ]);
+  });
+
   it("fences code with more backticks than the code holds", () => {
     const doc: AdfDoc = {
       version: 1,
