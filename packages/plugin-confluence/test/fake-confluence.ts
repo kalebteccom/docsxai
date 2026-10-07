@@ -1,6 +1,12 @@
-// In-process fake Confluence Cloud v2 server (node:http, loopback). Counts every mutation
+// In-process fake Confluence Cloud server (node:http, loopback). Counts every mutation
 // (page create/update, property write, attachment upload) so idempotency tests can assert
 // "re-publish unchanged → ZERO mutations" against real HTTP traffic, not mocks.
+//
+// It models what Confluence Cloud really does with attachments: the v2 attachments resource
+// is read-only (POST answers 405 METHOD_NOT_ALLOWED) and uploads go to the v1
+// `child/attachment` resource, which needs `X-Atlassian-Token: no-check`, refuses a second
+// attachment with the same file name (that is what `.../{id}/data` is for) and answers in the
+// v1 shape (`results[0].extensions.fileId`).
 
 import { createHash } from "node:crypto";
 import * as http from "node:http";
@@ -47,6 +53,10 @@ export interface FakeConfluence {
   attachments: Map<string, Map<string, FakeAttachment>>;
   /** When true, every request 500s with a body that echoes the request's decoded API token. */
   failEchoingToken: boolean;
+  /** When true, every v1 attachment upload answers 500 (the page itself is already created). */
+  failAttachmentUploads: boolean;
+  /** Count of POSTs to the read-only v2 attachments resource (each one got a 405). */
+  v2UploadAttempts: number;
   close(): Promise<void>;
 }
 
@@ -119,6 +129,8 @@ export async function startFakeConfluence(): Promise<FakeConfluence> {
     properties,
     attachments,
     failEchoingToken: false,
+    failAttachmentUploads: false,
+    v2UploadAttempts: 0,
     close: async () => {},
   };
 
@@ -167,6 +179,76 @@ export async function startFakeConfluence(): Promise<FakeConfluence> {
         pages.set(page.id, page);
         counts.pageCreates++;
         sendJson(200, { id: page.id, title: page.title, version: page.version });
+        return;
+      }
+
+      // v1 attachment upload: POST /wiki/rest/api/content/:pageId/child/attachment[/:attId/data]
+      if (
+        req.method === "POST" &&
+        segments[0] === "wiki" &&
+        segments[1] === "rest" &&
+        segments[2] === "api" &&
+        segments[3] === "content" &&
+        segments[5] === "child" &&
+        segments[6] === "attachment" &&
+        (segments.length === 7 || (segments.length === 9 && segments[8] === "data"))
+      ) {
+        const pageId = segments[4]!;
+        if (!pages.has(pageId)) {
+          sendJson(404, { message: `no page ${pageId}` });
+          return;
+        }
+        if (req.headers["x-atlassian-token"] !== "no-check") {
+          sendJson(403, { message: "XSRF check failed" });
+          return;
+        }
+        if (state.failAttachmentUploads) {
+          sendJson(500, { message: "attachment storage unavailable" });
+          return;
+        }
+        const atts = attachments.get(pageId) ?? new Map<string, FakeAttachment>();
+        attachments.set(pageId, atts);
+        const parts = parseMultipart(body, req.headers["content-type"] ?? "");
+        const file = parts.find((p) => p.name === "file");
+        const comment = parts.find((p) => p.name === "comment")?.data.toString("utf8") ?? "";
+        if (!file?.filename) {
+          sendJson(400, { message: "attachment upload without a file part" });
+          return;
+        }
+        const existing = atts.get(file.filename);
+        const isUpdate = segments.length === 9;
+        if (isUpdate && existing?.id !== segments[7]) {
+          sendJson(404, { message: `no attachment ${segments[7]}` });
+          return;
+        }
+        if (!isUpdate && existing) {
+          sendJson(400, {
+            message: `Cannot add a new attachment with same file name as an existing attachment: ${file.filename}`,
+          });
+          return;
+        }
+        const att: FakeAttachment = {
+          id: existing?.id ?? id("att"),
+          title: file.filename,
+          comment,
+          fileId: id("file"),
+          sha256: createHash("sha256").update(file.data).digest("hex"),
+        };
+        atts.set(att.title, att);
+        counts.attachmentUploads++;
+        const content = {
+          id: att.id,
+          type: "attachment",
+          title: att.title,
+          extensions: {
+            mediaType: "image/png",
+            fileSize: file.data.length,
+            comment: att.comment,
+            fileId: att.fileId,
+          },
+        };
+        // The create endpoint wraps the content in `results`; the `/data` update returns it bare.
+        sendJson(200, isUpdate ? content : { results: [content], size: 1 });
         return;
       }
 
@@ -260,23 +342,12 @@ export async function startFakeConfluence(): Promise<FakeConfluence> {
             return;
           }
           if (req.method === "POST") {
-            const parts = parseMultipart(body, req.headers["content-type"] ?? "");
-            const file = parts.find((p) => p.name === "file");
-            const comment = parts.find((p) => p.name === "comment")?.data.toString("utf8") ?? "";
-            if (!file?.filename) {
-              sendJson(400, { message: "attachment upload without a file part" });
-              return;
-            }
-            const att: FakeAttachment = {
-              id: atts.get(file.filename)?.id ?? id("att"),
-              title: file.filename,
-              comment,
-              fileId: id("file"),
-              sha256: createHash("sha256").update(file.data).digest("hex"),
-            };
-            atts.set(att.title, att);
-            counts.attachmentUploads++;
-            sendJson(200, { results: [att] });
+            state.v2UploadAttempts++;
+            sendJson(405, {
+              code: 405,
+              reason: "METHOD_NOT_ALLOWED",
+              message: "Method Not Allowed",
+            });
             return;
           }
         }

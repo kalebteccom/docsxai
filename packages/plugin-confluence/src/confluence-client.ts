@@ -1,7 +1,8 @@
-// Confluence Cloud REST v2 transport — the provider-neutral half of the egress path.
+// Confluence Cloud REST transport — the provider-neutral half of the egress path.
 //
-// A thin `fetch`-only client over the v2 API: page CRUD, content-properties, and multipart
-// attachment uploads, plus the wire DTOs they exchange. It carries no docsxai semantics —
+// A thin `fetch`-only client: v2 page CRUD, content-properties and attachment listing, plus
+// attachment uploads on the v1 `child/attachment` resource (Confluence Cloud answers 405 to a
+// v2 attachment POST), and the wire DTOs they exchange. It carries no docsxai semantics —
 // the push orchestration (idempotency, doc-pack mapping) lives in publisher.ts and drives
 // this client. The API token is masked via the `mask` callback the constructor receives, so
 // every error line this module produces is scrubbed before it surfaces.
@@ -9,7 +10,7 @@
 import { type AdfDoc } from "@docsxai/engine";
 
 // ---------------------------------------------------------------------------
-// REST v2 wire DTOs
+// REST wire DTOs
 // ---------------------------------------------------------------------------
 
 export interface V2Page {
@@ -33,8 +34,27 @@ export interface V2Attachment {
   fileId?: string;
 }
 
+/** v1 attachment content object, as returned by `child/attachment` and `.../data`. */
+interface V1Attachment {
+  id: string;
+  title: string;
+  extensions?: { comment?: string; fileId?: string };
+  metadata?: { comment?: string };
+}
+
+function fromV1(att: V1Attachment): V2Attachment {
+  const comment = att.extensions?.comment ?? att.metadata?.comment;
+  const fileId = att.extensions?.fileId;
+  return {
+    id: att.id,
+    title: att.title,
+    ...(comment !== undefined ? { comment } : {}),
+    ...(fileId !== undefined ? { fileId } : {}),
+  };
+}
+
 // ---------------------------------------------------------------------------
-// REST v2 client (built-in fetch only)
+// REST client (built-in fetch only)
 // ---------------------------------------------------------------------------
 
 export class ConfluenceClient {
@@ -63,7 +83,7 @@ export class ConfluenceClient {
           authorization: this.authHeader,
           accept: "application/json",
           ...(contentType ? { "content-type": contentType } : {}),
-          ...(method !== "GET" ? { "x-atlassian-token": "nocheck" } : {}),
+          ...(method !== "GET" ? { "x-atlassian-token": "no-check" } : {}),
         },
         ...(body !== undefined ? { body } : {}),
       });
@@ -140,27 +160,39 @@ export class ConfluenceClient {
   async listAttachments(pageId: string): Promise<V2Attachment[]> {
     const res = await this.request<{ results: V2Attachment[] }>(
       "GET",
-      `/wiki/api/v2/pages/${pageId}/attachments`,
+      `/wiki/api/v2/pages/${pageId}/attachments?limit=250`,
     );
     return res.results;
   }
 
-  /** Multipart upload; `comment` carries the sha marker the skip-unchanged check reads back. */
+  /**
+   * Multipart upload on the v1 resource; `comment` carries the sha marker the skip-unchanged
+   * check reads back. With `existingId` the bytes become a new version of that attachment
+   * (`.../{id}/data`), because v1 refuses a second attachment with the same file name.
+   */
   async uploadAttachment(opts: {
     pageId: string;
     fileName: string;
     data: Uint8Array;
     comment: string;
+    existingId?: string;
   }): Promise<V2Attachment> {
     const form = new FormData();
     form.append("file", new Blob([opts.data], { type: "image/png" }), opts.fileName);
     form.append("comment", opts.comment);
     form.append("minorEdit", "true");
-    const res = await this.request<{ results: V2Attachment[] } | V2Attachment>(
+    const base = `/wiki/rest/api/content/${opts.pageId}/child/attachment`;
+    const res = await this.request<{ results: V1Attachment[] } | V1Attachment>(
       "POST",
-      `/wiki/api/v2/pages/${opts.pageId}/attachments`,
+      opts.existingId ? `${base}/${opts.existingId}/data` : base,
       form,
     );
-    return "results" in res ? res.results[0]! : res;
+    const att = "results" in res ? res.results[0] : res;
+    if (!att) {
+      throw new Error(
+        this.mask(`confluence: attachment upload for ${opts.fileName} returned no attachment`),
+      );
+    }
+    return fromV1(att);
   }
 }

@@ -1,5 +1,6 @@
-// Publisher integration suite against the in-process fake Confluence v2 server: idempotent
-// re-publish (zero mutations), targeted update on prose change, page-tree nesting, token
+// Publisher integration suite against the in-process fake Confluence server: idempotent
+// re-publish (zero mutations), targeted update on prose change, page-tree nesting, v1
+// attachment upload (the v2 resource answers 405), a retryable partial failure, token
 // masking, and the load-through-the-REAL-resolvePlugins end-to-end row.
 
 import { promises as fs } from "node:fs";
@@ -97,7 +98,7 @@ function pageMapFrom(
   return next;
 }
 
-describe("confluence publisher — idempotency (fake v2 server)", () => {
+describe("confluence publisher — idempotency (fake server)", () => {
   it("publishes the same single-mode projection 3×: run 1 creates, runs 2-3 are all 'unchanged' with zero mutations", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
@@ -211,6 +212,91 @@ describe("confluence publisher — idempotency (fake v2 server)", () => {
     expect(message).not.toContain(TOKEN);
     expect(message).toContain("<CONFLUENCE_TOKEN>");
     for (const line of errLines) expect(line).not.toContain(TOKEN);
+  });
+});
+
+describe("confluence publisher — attachments on the v1 resource", () => {
+  it("uploads through child/attachment (never the read-only v2 resource) and patches media file ids", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const run1 = await createConfluencePublisher().publish(makeCtx(dir, projection));
+
+    expect(server.v2UploadAttempts).toBe(0);
+    expect(server.counts.attachmentUploads).toBe(2);
+    const body = server.pages.get(run1.pages[0]!.id)!.bodyValue;
+    for (const att of server.attachments.get(run1.pages[0]!.id)!.values()) {
+      expect(body).toContain(`"id":"${att.fileId}"`);
+      expect(att.comment).toBe(`docsxai-sha256:${att.sha256}`);
+    }
+  });
+
+  it("re-uploads a changed screenshot as a new version of the same attachment", async () => {
+    const dir = await makeWorkspace();
+    const publisher = createConfluencePublisher();
+    const run1 = await publisher.publish(
+      makeCtx(dir, await projectDocPackToAdf({ workspaceDir: dir })),
+    );
+    const pageId = run1.pages[0]!.id;
+    const before = new Map(
+      [...server.attachments.get(pageId)!.values()].map((a) => [a.title, a.id]),
+    );
+
+    await fs.writeFile(
+      path.join(dir, "docs", "checkout", "burned", "step-1.png"),
+      Buffer.concat([PNG_A, Buffer.from([9])]),
+    );
+    const changed = await projectDocPackToAdf({ workspaceDir: dir });
+    const run2 = await publisher.publish(makeCtx(dir, changed, pageMapFrom(run1.pages)));
+
+    expect(run2.pages.map((p) => p.action)).toEqual(["updated"]);
+    expect(server.counts.attachmentUploads).toBe(3); // only the changed png
+    const after = [...server.attachments.get(pageId)!.values()];
+    expect(after).toHaveLength(2);
+    for (const a of after) expect(a.id).toBe(before.get(a.title));
+    expect(server.v2UploadAttempts).toBe(0);
+  });
+});
+
+describe("confluence publisher — partial failure", () => {
+  it("surfaces the created page when an upload fails, and a retry updates it instead of duplicating", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const publisher = createConfluencePublisher();
+    const warnLines: string[] = [];
+    server.failAttachmentUploads = true;
+
+    let caught: (Error & { partial?: { pages: Array<Record<string, unknown>> } }) | undefined;
+    try {
+      await publisher.publish({
+        ...makeCtx(dir, projection),
+        log: { ...noopLog, warn: (m) => warnLines.push(m) },
+      });
+    } catch (e) {
+      caught = e as typeof caught;
+    }
+    expect(caught?.message).toContain("HTTP 500");
+    expect(caught?.partial?.pages).toHaveLength(1);
+    expect(caught?.partial?.pages[0]).toMatchObject({ section: "project", action: "created" });
+    expect(server.pages.size).toBe(1);
+    const pageId = caught!.partial!.pages[0]!["id"] as string;
+    expect(server.pages.has(pageId)).toBe(true);
+    expect(warnLines.join("\n")).toContain(pageId);
+
+    // Retry with the surfaced identity: same page, no second create.
+    server.failAttachmentUploads = false;
+    const retry = await publisher.publish(
+      makeCtx(dir, projection, pageMapFrom(caught!.partial!.pages as never)),
+    );
+    expect(retry.pages.map((p) => [p.id, p.action])).toEqual([[pageId, "updated"]]);
+    expect(server.counts.pageCreates).toBe(1);
+    expect(server.pages.size).toBe(1);
+    expect(server.attachments.get(pageId)!.size).toBe(2);
+
+    // And the repaired page is now idempotent.
+    const mutations = server.totalMutations();
+    const rerun = await publisher.publish(makeCtx(dir, projection, { project: pageId }));
+    expect(rerun.pages.map((p) => p.action)).toEqual(["unchanged"]);
+    expect(server.totalMutations()).toBe(mutations);
   });
 });
 

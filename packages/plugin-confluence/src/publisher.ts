@@ -1,11 +1,11 @@
 // Confluence Cloud publisher — the ONLY Confluence egress path in the docsxai tree.
 //
 // Consumes the engine's ADF projection (`docsxai export adf` / `projectDocPackToAdf`) and
-// pushes it through the Confluence Cloud REST v2 API with built-in `fetch`. Idempotent by
-// content hash: every published page carries a `docsxai-content-sha` content-property holding
-// the sha256 of its projected content (title + ADF + attachment shas). Re-publishing an
-// unchanged projection reads that property, sees a match, and performs ZERO mutations — no
-// version bumps, no attachment uploads. Page identity is the `{ section → pageId }` map the
+// pushes it through the Confluence Cloud REST API (v2 pages, v1 attachment upload) with
+// built-in `fetch`. Idempotent by content hash: every published page carries a
+// `docsxai-content-sha` content-property holding the sha256 of its projected content (title +
+// ADF + attachment shas). Re-publishing an unchanged projection reads that property, sees a
+// match, and performs ZERO mutations — no version bumps, no attachment uploads. Page identity is the `{ section → pageId }` map the
 // caller passes in `config.page_map`; the result's `pages[]` entries echo `section` so the
 // caller can persist the updated map.
 //
@@ -34,6 +34,22 @@ export {
   type V2Page,
   type V2Property,
 } from "./confluence-client.js";
+
+/** Pages already written when a publish failed; feed them into `page_map` to retry. */
+export interface PartialPublish {
+  pages: PublishResult["pages"];
+}
+
+/** A failed publish that still names the pages it created or updated before failing. */
+export class ConfluencePublishError extends Error {
+  constructor(
+    message: string,
+    readonly partial: PartialPublish,
+  ) {
+    super(message);
+    this.name = "ConfluencePublishError";
+  }
+}
 
 export const CONTENT_SHA_PROPERTY = "docsxai-content-sha";
 const SHA_COMMENT_PREFIX = "docsxai-sha256:";
@@ -225,6 +241,7 @@ async function publishDocument(opts: {
         fileName: att.fileName,
         data: await fs.readFile(att.sourcePath),
         comment: `${SHA_COMMENT_PREFIX}${att.sha256}`,
+        ...(found ? { existingId: found.id } : {}),
       });
       if (uploaded.fileId) fileIdByName.set(att.fileName, uploaded.fileId);
     }
@@ -249,25 +266,33 @@ async function publishDocument(opts: {
     ...(opts.parentId ? { parentId: opts.parentId } : {}),
     adf,
   });
-  const fileIdByName = new Map<string, string>();
-  for (const att of attachments) {
-    const uploaded = await client.uploadAttachment({
-      pageId: created.id,
-      fileName: att.fileName,
-      data: await fs.readFile(att.sourcePath),
-      comment: `${SHA_COMMENT_PREFIX}${att.sha256}`,
+  const createdPage = { id: created.id, url: pageUrl(created.id), section };
+  try {
+    const fileIdByName = new Map<string, string>();
+    for (const att of attachments) {
+      const uploaded = await client.uploadAttachment({
+        pageId: created.id,
+        fileName: att.fileName,
+        data: await fs.readFile(att.sourcePath),
+        comment: `${SHA_COMMENT_PREFIX}${att.sha256}`,
+      });
+      if (uploaded.fileId) fileIdByName.set(att.fileName, uploaded.fileId);
+    }
+    if (fileIdByName.size > 0) {
+      await client.updatePage({
+        id: created.id,
+        title,
+        version: created.version.number + 1,
+        adf: patchMediaIds(adf, fileIdByName, created.id),
+      });
+    }
+    await client.createContentProperty(created.id, CONTENT_SHA_PROPERTY, contentSha);
+  } catch (e) {
+    // The page exists but is incomplete: hand its id back so a retry (page_map) updates it.
+    throw new ConfluencePublishError((e as Error).message, {
+      pages: [{ ...createdPage, action: "created" }],
     });
-    if (uploaded.fileId) fileIdByName.set(att.fileName, uploaded.fileId);
   }
-  if (fileIdByName.size > 0) {
-    await client.updatePage({
-      id: created.id,
-      title,
-      version: created.version.number + 1,
-      adf: patchMediaIds(adf, fileIdByName, created.id),
-    });
-  }
-  await client.createContentProperty(created.id, CONTENT_SHA_PROPERTY, contentSha);
   log.info(`section "${section}": created page ${created.id}`);
   return { page: { id: created.id, url: pageUrl(created.id), action: "created", section } };
 }
@@ -289,13 +314,13 @@ export function createConfluencePublisher(): PublisherPlugin {
         error: (m) => ctx.log.error(mask(m)),
       };
 
+      const pages: PublishResult["pages"] = [];
       try {
         const config = parseConfig(ctx.config);
         const projection = await loadProjection(ctx);
         const client = new ConfluenceClient(config.base_url, email, token, mask);
 
         const warnings = [...projection.warnings];
-        const pages: PublishResult["pages"] = [];
         const withTitle = (t: string) => `${config.title_prefix ?? ""}${t}`;
 
         if (projection.mode === "page-tree") {
@@ -354,8 +379,19 @@ export function createConfluencePublisher(): PublisherPlugin {
         };
       } catch (e) {
         const masked = mask((e as Error).message);
+        const partial: PartialPublish = {
+          pages: [...pages, ...(e instanceof ConfluencePublishError ? e.partial.pages : [])],
+        };
         log.error(masked);
-        throw new Error(masked);
+        if (partial.pages.length > 0) {
+          const pageMap = Object.fromEntries(
+            partial.pages.flatMap((p) => (p.section ? [[p.section, p.id] as const] : [])),
+          );
+          log.warn(
+            `partial publish: keep these pages in page_map so a retry updates them: ${JSON.stringify(pageMap)}`,
+          );
+        }
+        throw new ConfluencePublishError(masked, partial);
       }
     },
   };
