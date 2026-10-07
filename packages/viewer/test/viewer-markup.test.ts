@@ -9,7 +9,7 @@ import {
   type ViewerStep,
 } from "../src/viewer-markup.js";
 
-const AT = "2026-01-02T03:04:05.000Z";
+const AT = "@docsxai/viewer 1.2.3";
 
 const step = (over: Partial<ViewerStep> = {}): ViewerStep => ({
   id: "open-sidebar",
@@ -72,8 +72,10 @@ describe("page landmarks and document outline", () => {
     );
   });
 
-  it("puts the render time in a machine-readable time element", () => {
-    expect(html).toContain(`Rendered <time datetime="${AT}">${AT}</time>.`);
+  it("names the viewer build in the footer and carries no clock", () => {
+    expect(html).toContain(`Rendered by ${AT}. Hard-reload`);
+    expect(html).not.toContain("<time");
+    expect(html).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:/);
   });
 });
 

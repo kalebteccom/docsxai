@@ -15,6 +15,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
 import { isSafeFlowName, isSafeStepId, showName } from "./safe-id.js";
+import { viewerStamp } from "./viewer-version.js";
 import { flowPageHtml, indexHtml, type FlowSummary, type ViewerStep } from "./viewer-markup.js";
 
 export interface BuildViewerOptions {
@@ -182,7 +183,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     return false;
   });
   await fs.mkdir(opts.outDir, { recursive: true });
-  const renderedAt = new Date().toISOString();
+  const stamp = viewerStamp();
   const overlayJs = flows.length ? await loadOverlayJs() : "";
   const pages: string[] = ["index.html"];
   const flowSummaries: FlowSummary[] = [];
@@ -235,7 +236,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     await fs.mkdir(path.join(opts.outDir, flow), { recursive: true });
     await fs.writeFile(
       path.join(opts.outDir, flow, "index.html"),
-      flowPageHtml(flow, steps, renderedAt, overlayJs, {
+      flowPageHtml(flow, steps, stamp, overlayJs, {
         neighbours: { prev: flows[i - 1], next: flows[i + 1] },
         notices: parsed.notices,
       }),
@@ -254,7 +255,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
 
   await fs.writeFile(
     path.join(opts.outDir, "index.html"),
-    indexHtml(flowSummaries, renderedAt, overlayJs),
+    indexHtml(flowSummaries, stamp, overlayJs),
     "utf8",
   );
   return { pages, warnings };
