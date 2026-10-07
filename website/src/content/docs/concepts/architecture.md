@@ -85,6 +85,7 @@ sessions - and it keeps the runtime testable without a browser at all.
 | [viewer](/packages/viewer/)                       | Interactive viewer, browser-free burn renderer, Starlight emitter.       |
 | [plugin-confluence](/packages/plugin-confluence/) | Publisher plugin: idempotent Confluence Cloud push.                      |
 | [plugin-guru](/packages/plugin-guru/)             | Publisher plugin: idempotent Guru card push with attached images.        |
+| [plugin-notion](/packages/plugin-notion/)         | Publisher plugin: idempotent Notion page push with uploaded images.      |
 | [plugin-sharepoint](/packages/plugin-sharepoint/) | Publisher plugin: idempotent SharePoint library push via Graph.          |
 | [plugin-starlight](/packages/plugin-starlight/)   | Renderer plugin: production Starlight docs site.                         |
 

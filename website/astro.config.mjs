@@ -176,6 +176,7 @@ export default defineConfig({
             { label: "skill", slug: "packages/skill" },
             { label: "plugin-confluence", slug: "packages/plugin-confluence" },
             { label: "plugin-guru", slug: "packages/plugin-guru" },
+            { label: "plugin-notion", slug: "packages/plugin-notion" },
             { label: "plugin-sharepoint", slug: "packages/plugin-sharepoint" },
             { label: "plugin-starlight", slug: "packages/plugin-starlight" },
           ],

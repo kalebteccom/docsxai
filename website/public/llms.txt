@@ -49,6 +49,7 @@ Every page below is served as plaintext Markdown. The rendered site at https://d
 - [@docsxai/skill](https://docsxai.dev/packages/skill.md): the vendorable skill fallback
 - [@docsxai/plugin-confluence](https://docsxai.dev/packages/plugin-confluence.md): the Confluence publisher plugin
 - [@docsxai/plugin-guru](https://docsxai.dev/packages/plugin-guru.md): the Guru publisher plugin
+- [@docsxai/plugin-notion](https://docsxai.dev/packages/plugin-notion.md): the Notion publisher plugin
 - [@docsxai/plugin-sharepoint](https://docsxai.dev/packages/plugin-sharepoint.md): the SharePoint publisher plugin
 - [@docsxai/plugin-starlight](https://docsxai.dev/packages/plugin-starlight.md): the Starlight site renderer plugin
 

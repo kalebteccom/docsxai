@@ -11,7 +11,7 @@ One name everywhere: the GitHub repo is `kalebteccom/docsxai` (renamed from `kal
 
 > **Status: public and published.** The repo is public and `0.2.0` is on npm (tag `v0.2.0`, 2026-06-26). `0.2.0` was published by hand: the `release.yml` run for that tag never started a job (GitHub reported failed account payments), so the packages went out from a maintainer machine with no provenance attestations and the GitHub Release has no SBOM. The OIDC path in `release.yml` has never run. This file is the mechanical checklist for the next release.
 
-Apache-2.0 is in place, READMEs/CONTRIBUTING/CHANGELOG are written, and every package carries npm metadata (`repository`/`homepage`/`bugs`/`keywords`). Six packages publish: the bare `docsxai` meta-package (the real package, not a stub: its bin runs `@docsxai/engine`'s CLI in-process and its dependency on `@docsxai/viewer` makes `docsxai render` work from one global install) plus `@docsxai/{engine,plugin,backend,skill,viewer}`; `@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-sharepoint,plugin-starlight}` and `@docsxai/website` keep `"private": true` and stay repo-only (revisitable). From the next release on, publishing only happens through the OIDC workflow — no local `npm publish` path exists.
+Apache-2.0 is in place, READMEs/CONTRIBUTING/CHANGELOG are written, and every package carries npm metadata (`repository`/`homepage`/`bugs`/`keywords`). Six packages publish: the bare `docsxai` meta-package (the real package, not a stub: its bin runs `@docsxai/engine`'s CLI in-process and its dependency on `@docsxai/viewer` makes `docsxai render` work from one global install) plus `@docsxai/{engine,plugin,backend,skill,viewer}`; `@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-notion,plugin-sharepoint,plugin-starlight}` and `@docsxai/website` keep `"private": true` and stay repo-only (revisitable). From the next release on, publishing only happens through the OIDC workflow — no local `npm publish` path exists.
 
 ## Trust model
 
@@ -29,7 +29,7 @@ Releases use **npm Trusted Publishing via GitHub OIDC** — no `NPM_TOKEN` exist
 Each step is mechanical:
 
 1. **Pre-flight.** `pnpm install && pnpm -r build && pnpm -r typecheck && pnpm -r test` — all green (build first: typecheck resolves `@docsxai/*` through `dist/`). Full-history secret/identifier scan clean (the 2026-05-15 scrub holds; re-audit any docs added since). Run the [dry run](#dry-run) against your branch.
-2. **Verify the publish set.** The six publishable manifests (`packages/docsxai` + `packages/{engine,plugin,backend,skill,viewer}`) carry no `"private"` flag; `@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-sharepoint,plugin-starlight}`, `@docsxai/website`, and the workspace root keep `"private": true`.
+2. **Verify the publish set.** The six publishable manifests (`packages/docsxai` + `packages/{engine,plugin,backend,skill,viewer}`) carry no `"private"` flag; `@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-notion,plugin-sharepoint,plugin-starlight}`, `@docsxai/website`, and the workspace root keep `"private": true`.
 3. **Finalise the CHANGELOG.** Promote `## [Unreleased]` to `## [X.Y.Z] - <date>`; add the compare link.
 4. **Version + tag.** The protected `release` environment must exist first (Release TODO). Bump all six publishable packages to the same `X.Y.Z` (the workflow fails if any differs from the tag), commit `chore(release): vX.Y.Z`, then `git tag -s vX.Y.Z -m "vX.Y.Z"` and `git push origin vX.Y.Z`.
 5. **Publish.** The tag push triggers `release.yml`; approve the `release` environment gate (once it exists). The workflow publishes the six packages with provenance, attaches the SBOM, and creates the GitHub Release. Verify each package on npm — never publish locally. If a run dies midway, rerun the failed jobs: versions already on npm are skipped.
@@ -56,7 +56,7 @@ Each step is mechanical:
 
 What `release-publish.sh` does:
 
-- Packs the six packages (`pnpm pack`, which rewrites `workspace:*` to real versions) from an explicit allow-list that leaves out the repo-only packages (`@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-sharepoint,plugin-starlight,website}`), matching their `"private": true` flags.
+- Packs the six packages (`pnpm pack`, which rewrites `workspace:*` to real versions) from an explicit allow-list that leaves out the repo-only packages (`@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-notion,plugin-sharepoint,plugin-starlight,website}`), matching their `"private": true` flags.
 - Verifies every tarball before the first publish: the manifest name matches, no `workspace:` spec is left, and on a tag push every version equals the tag (`vX.Y.Z` must match `X.Y.Z` in all six `package.json` files; the run fails otherwise). On a dry run the six versions must agree with each other.
 - Publishes in dependency order: `@docsxai/engine`, `@docsxai/viewer`, `docsxai`, then `@docsxai/{plugin,skill,backend}`.
 - Skips any package whose exact version already answers `npm view <name>@<version> version`, so a rerun after a partial publish finishes the rest. Any registry error other than 404 aborts.
@@ -83,7 +83,7 @@ Owner tasks, tracked on the board, none done yet. These items must be in place b
 
 - [x] **Protected GitHub `release` environment** (done 2026-10-05): required reviewer `rowinbot`, tag restriction `v*.*.*`, no wait timer.
   - Deployments are restricted to the `v*.*.*` tags only.
-- [ ] **Register npm Trusted Publisher bindings** (owner task: the maintainer runs `npm trust github <package> --file release.yml --repo kalebteccom/docsxai --env release --allow-publish` for each name with 2FA; the 0.2.0 packages have none) — one per published name, 6 total: the bare `docsxai` meta-package plus the 5 scoped packages under the `@docsxai` org (org registered 2026-06-12): `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/backend`, `@docsxai/skill`, `@docsxai/viewer`. (`@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-sharepoint,plugin-starlight}` stay repo-only and need no binding until they flip.) On npmjs.com → package → Settings → Trusted Publishers, bind each to:
+- [ ] **Register npm Trusted Publisher bindings** (owner task: the maintainer runs `npm trust github <package> --file release.yml --repo kalebteccom/docsxai --env release --allow-publish` for each name with 2FA; the 0.2.0 packages have none) — one per published name, 6 total: the bare `docsxai` meta-package plus the 5 scoped packages under the `@docsxai` org (org registered 2026-06-12): `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/backend`, `@docsxai/skill`, `@docsxai/viewer`. (`@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-notion,plugin-sharepoint,plugin-starlight}` stay repo-only and need no binding until they flip.) On npmjs.com → package → Settings → Trusted Publishers, bind each to:
   - Repository: `kalebteccom/docsxai`
   - Workflow filename: `release.yml`
   - Environment name: `release`
@@ -96,4 +96,4 @@ The pipeline already carries the build gate, SBOM emission, and the GitHub Relea
 
 - Do not `npm publish` — locally, ever. Publishing is OIDC-only via `release.yml`.
 - Do not push a `v*.*.*` git tag casually: a tag triggers the release workflow.
-- Do not remove the `"private": true` flags on `@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-sharepoint,plugin-starlight}`, `@docsxai/website`, or the workspace root as "cleanup" — they are the deliberate publish boundary.
+- Do not remove the `"private": true` flags on `@docsxai/{mcp,plugin-confluence,plugin-guru,plugin-notion,plugin-sharepoint,plugin-starlight}`, `@docsxai/website`, or the workspace root as "cleanup" — they are the deliberate publish boundary.

@@ -156,6 +156,10 @@ First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud RE
 
 First-party publisher plugin (`guru:push`): idempotent push of a doc pack as cards, with screenshots uploaded as Guru-hosted attachments, into a Guru collection through the Guru public API, behind the `egress:api.getguru.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to HTML. Repo-only (`private: true`).
 
+## `packages/plugin-notion/` — `@docsxai/plugin-notion`
+
+First-party publisher plugin (`notion:push`): idempotent push of a doc pack as Notion pages, with screenshots uploaded through the Notion file upload API, under a Notion page or into a Notion database through the Notion public API, behind the `egress:api.notion.com` capability. Consumes the same ADF projection as the Confluence plugin and converts it to Notion blocks. Repo-only (`private: true`).
+
 ## `packages/plugin-sharepoint/` — `@docsxai/plugin-sharepoint`
 
 First-party publisher plugin (`sharepoint:push`): idempotent push of a doc pack as markdown files plus images into a SharePoint Online document library through Microsoft Graph, behind the `egress:graph.microsoft.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Repo-only (`private: true`).
