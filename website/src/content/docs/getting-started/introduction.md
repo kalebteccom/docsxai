@@ -9,7 +9,7 @@ screenshot-rich user documentation. You describe a user journey once as a
 headless Chromium, captures clean screenshots, places halos and callouts from
 the flow's annotations, and renders a publishable doc pack. When the UI
 changes, you re-run. The docs are a build artifact: the flow is the source,
-the rendered pack is the output, a re-run is the refresh.
+the rendered doc pack is the output, a re-run is the refresh.
 
 ## The two-mode bet
 

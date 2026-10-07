@@ -4,8 +4,9 @@ description: Scaffold a workspace, capture an authed session if your app needs l
 ---
 
 This page takes you from nothing to a rendered doc pack against your own app.
-It assumes `docsxai` is on your PATH ([Installation](/getting-started/installation/))
-and your app is running somewhere reachable, say `https://localhost:3000`.
+It assumes `docsxai` and Chromium are installed ([Installation](/getting-started/installation/);
+`docsxai doctor` checks both) and your app is running somewhere reachable, say
+`https://localhost:3000`.
 
 ## 1. Scaffold a workspace
 
@@ -17,9 +18,15 @@ writes into the app's checkout:
 docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
 ```
 
-This creates `flows/`, `docs/`, `auth/strategy.yaml`, `.auth/`, `.viewer/`,
-and a `.docsxai.json` config holding `app_url`, so later commands need no
-flags. Add `--ignore-https-errors` if the app runs on a self-signed dev cert.
+`--auth manual-capture` means you log in by hand once in step 2. `--ttl 1h` is
+the fallback expiry of that cached session. If the app has no login, use
+`--auth none` instead and skip step 2.
+
+The command prints `init: workspace at <dir>`, the list of what it created, and
+a `next:` line with the follow-up commands. It creates `flows/`, `docs/`,
+`auth/strategy.yaml`, `.auth/`, `.viewer/`, and a `.docsxai.json` config
+holding `app_url`, so later commands need no flags. Add `--ignore-https-errors`
+if the app runs on a self-signed dev cert.
 
 ## 2. Capture an authed session (skip if the app has no login)
 
@@ -76,7 +83,13 @@ docsxai run ~/docsxai/my-app --flow open-reports
 
 Headless Chromium loads the cached session, replays the steps, and writes
 `docs/open-reports/annotations.json` plus a clean screenshot per annotated
-step. No agent, no LLM calls; the run halts with a `[cause: ...]` prefix if a
+step. A successful run prints one line per flow:
+
+```text
+run: open-reports — 2 step(s) executed, 1 annotation(s) written
+```
+
+No agent, no LLM calls; the run halts with a `[cause: ...]` prefix if a
 locator or success check fails ([Troubleshooting](/guides/troubleshooting/)).
 While iterating on a single step,
 `run --flow open-reports --stop-after open-app --pause` keeps the headed
@@ -89,8 +102,9 @@ docsxai render ~/docsxai/my-app
 open ~/docsxai/my-app/.viewer/index.html
 ```
 
-The viewer index links each flow; every flow page shows the screenshots with
-pulsing halos - hover one to read its callout.
+`render` prints the path to open. `open` is the macOS command; on Linux use
+`xdg-open`, on Windows `start`. The viewer index links each flow; every flow
+page shows the screenshots with pulsing halos - hover one to read its callout.
 
 ## Where to next
 

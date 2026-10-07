@@ -10,7 +10,7 @@ lastUpdated: false
 <div class="docsx-hero not-content">
   <div class="docsx-hero-copy">
     <p class="docsx-kicker">Deterministic screenshot docs</p>
-    <h1 class="docsx-wordmark">doc<span class="x">s</span>xai</h1>
+    <p class="docsx-wordmark">doc<span class="x">s</span>xai</p>
     <div class="docsx-lede">
       Write a flow once. Replay it forever. docsxai walks your running web
       app, follows written flows, and emits screenshot-rich user docs that
@@ -31,13 +31,13 @@ lastUpdated: false
       <span class="docsx-window-title">docsxai <span class="dot">·</span> run</span>
     </div>
     <div class="docsx-snap">
-      <div class="docsx-snap-note"># docsxai run --flow publish-post</div>
+      <div class="docsx-snap-note"># docsxai run . --flow publish-post</div>
       <div class="row">
         <span class="t-time">run</span>
         <span class="t-kind">publish-post</span>
         <span class="t-body">4 steps, 4 annotations</span>
       </div>
-      <div class="docsx-snap-note"># docsxai diff --fail-on warn</div>
+      <div class="docsx-snap-note"># docsxai diff . --fail-on warn</div>
       <div class="row">
         <span class="t-time">diff</span>
         <span class="t-kind">drift</span>
@@ -48,7 +48,7 @@ lastUpdated: false
         <span class="t-kind">totals</span>
         <span class="t-body">0 changed, sev none</span>
       </div>
-      <div class="docsx-snap-note"># docsxai render</div>
+      <div class="docsx-snap-note"># docsxai render .</div>
       <div class="row">
         <span class="t-time">render</span>
         <span class="t-kind">.viewer/</span>
@@ -140,7 +140,7 @@ lastUpdated: false
       <div class="docsx-card-text">
         A frozen clock, pinned locale, timezone, and viewport: the same flow
         against the same target state produces byte-identical screenshots.
-        Baseline the pack, gate CI on pixel-level drift with
+        Baseline the doc pack, gate CI on pixel-level drift with
         <code>diff --fail-on warn</code>.
       </div>
     </div>
@@ -160,7 +160,8 @@ lastUpdated: false
       <div class="docsx-card-text">
         Publishers, renderers, lint rules, and auth strategies extend the
         engine through a namespaced, capability-declared, sha256-locked
-        runtime. Confluence and Starlight ship as first-party plugins.
+        runtime. First-party plugins publish to Confluence, GitBook, Guru,
+        Notion and SharePoint, and render a Starlight site.
       </div>
     </div>
     <div class="docsx-card">
