@@ -1066,6 +1066,44 @@ describe("notion publisher: manifest page", () => {
     }
   });
 
+  it("drops the later of two entries that name one page", () => {
+    const id = randomUUID();
+    const warnings: string[] = [];
+    const text = JSON.stringify({
+      schema: MANIFEST_SCHEMA,
+      pages: { a: { pageId: id, sha256: goodSha }, b: { pageId: id, sha256: goodSha } },
+    });
+    const manifest = parseManifestText(text, (m) => warnings.push(m), "t");
+    expect(Object.keys(manifest.pages)).toEqual(["a"]);
+    expect(warnings).toEqual(['manifest entry "b" is not valid, redoing it']);
+  });
+
+  it("gives the dropped entry a page of its own on the next push", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir, options: PAGE_TREE });
+    const run1 = await publishWith(dir, projection);
+    const entries = readManifest().pages;
+    setManifestText(
+      JSON.stringify({
+        schema: MANIFEST_SCHEMA,
+        pages: {
+          checkout: entries["checkout"],
+          login: entries["checkout"],
+          index: entries["index"],
+        },
+      }),
+    );
+    const { log, lines } = capture();
+    const run2 = await createNotionPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(run2.pages.map((p) => [p.section, p.action])).toEqual([
+      ["project", "unchanged"],
+      ["checkout", "unchanged"],
+      ["login", "created"],
+    ]);
+    expect(run2.pages[2]!.id).not.toBe(run1.pages[2]!.id);
+    expect(lines.filter((l) => l.includes('manifest entry "login" is not valid'))).toHaveLength(1);
+  });
+
   it("treats an empty manifest page as an interrupted write and rewrites it", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });

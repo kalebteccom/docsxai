@@ -97,9 +97,16 @@ export function parseManifestText(
   if (!isObject(pageMap)) throw notManifest();
   const manifest = emptyManifest();
   let dropped = 0;
+  // Two keys naming one page would rewrite it twice with different content, so the later key is
+  // dropped and gets a page of its own.
+  const seen = new Set<string>();
   for (const [key, value] of Object.entries(pageMap)) {
-    const checked = KEY.test(key) && !/^\.+$/.test(key) ? validPage(value) : null;
-    if (checked) manifest.pages[key] = checked.entry;
+    let checked = KEY.test(key) && !/^\.+$/.test(key) ? validPage(value) : null;
+    if (checked && seen.has(checked.entry.pageId)) checked = null;
+    if (checked) {
+      seen.add(checked.entry.pageId);
+      manifest.pages[key] = checked.entry;
+    }
     if (checked?.ok) continue;
     dropped++;
     if (dropped <= MAX_MANIFEST_WARNINGS) {
