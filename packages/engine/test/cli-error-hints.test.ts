@@ -177,6 +177,10 @@ describe("next: hints quote a workspace path that is not a plain word", () => {
 
   it("run names capture-auth with the path quoted", async () => {
     const ws = await spacedWorkspace("--app-url", "http://127.0.0.1:1");
+    await fs.writeFile(
+      path.join(ws, "flows", "ok.flow.yaml"),
+      "name: ok\nsteps:\n  - id: step-1\n    action: navigate\n    value: /x\n",
+    );
     expect(await main(["run", ws])).toBe(1);
     expect(err).toContain(`next: docsxai capture-auth ${quoted()}`);
   });

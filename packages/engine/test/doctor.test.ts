@@ -652,7 +652,7 @@ describe("doctor CLI dispatch", () => {
   it("prints the help when --help follows a workspace dir", async () => {
     expect(await main(["doctor", tmp, "--help"])).toBe(0);
     expect(out).toContain("usage: docsxai doctor");
-    expect(out).not.toContain("✓");
+    expect(out).not.toContain("environment & workspace health");
   });
 
   it("leaves a plain run alone: checklist printed, exit 1 iff a row failed", async () => {
