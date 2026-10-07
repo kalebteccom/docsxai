@@ -53,6 +53,8 @@ export interface FakeGitBook {
   authHeaders: string[];
   /** The `result` a merge answers with. */
   mergeResult: "merge" | "conflicts";
+  /** The next this-many merges answer `conflicts` whatever `mergeResult` says. */
+  conflictMerges: number;
   /** When true, every request answers 500 with a body that echoes the token. */
   failEchoingToken: boolean;
   /** When set, every POST and PATCH answers 307 with this `Location` and stores nothing. */
@@ -125,6 +127,7 @@ export async function startFakeGitBook(token: string): Promise<FakeGitBook> {
     requests: [],
     authHeaders: [],
     mergeResult: "merge",
+    conflictMerges: 0,
     failEchoingToken: false,
     redirectWritesTo: null,
     redirectPathIncludes: "",
@@ -335,7 +338,9 @@ export async function startFakeGitBook(token: string): Promise<FakeGitBook> {
         draft.status = "merged";
         state.pages = clonePages(draft.pages);
         state.files = [...draft.files];
-        sendJson(200, { revision: `rev-${draft.id}`, result: state.mergeResult });
+        const result = state.conflictMerges > 0 ? "conflicts" : state.mergeResult;
+        if (state.conflictMerges > 0) state.conflictMerges--;
+        sendJson(200, { revision: `rev-${draft.id}`, result });
         return;
       }
       if (cr && draft && req.method === "PATCH" && !cr[2]) {

@@ -364,18 +364,40 @@ describe("gitbook publisher: failure leaves nothing live", () => {
     expect([...server.changeRequests.values()].map((c) => c.status)).toEqual(["archived"]);
   });
 
-  it("reports a merge with conflicts as a warning, and a later push is still unchanged", async () => {
+  it("fails a merge with conflicts and marks its pages to be written again", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
-    server.mergeResult = "conflicts";
+    server.conflictMerges = 1;
     const { log, lines } = capture();
     const publisher = createGitBookPublisher(LOOPBACK);
     const run = await publisher.publish(makeCtx(dir, projection, log));
+    expect(run.ok).toBe(false);
     expect(run.warnings.some((w) => w.includes("merged with conflicts"))).toBe(true);
     expect(lines.some((l) => l.includes("merged with conflicts"))).toBe(true);
+    // the pages landed, but the manifest does not vouch for them
+    expect(server.pages.size).toBe(2);
+    expect(server.changeRequests.size).toBe(2);
+    expect(readManifest().pages["index"]).toEqual({ pageId: run.pages[0]!.id, sha256: "" });
+
+    const run2 = await publisher.publish(makeCtx(dir, projection, capture().log));
+    expect(run2.ok).toBe(true);
+    expect(run2.pages.map((p) => [p.id, p.action])).toEqual([[run.pages[0]!.id, "updated"]]);
+    expect(server.pages.size).toBe(2);
     const writes = server.writes;
-    await publisher.publish(makeCtx(dir, projection, capture().log));
+    const run3 = await publisher.publish(makeCtx(dir, projection, capture().log));
+    expect(run3.pages.map((p) => p.action)).toEqual(["unchanged"]);
     expect(server.writes).toBe(writes);
+  });
+
+  it("asks for force when the manifest reset conflicts as well", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.mergeResult = "conflicts";
+    const run = await createGitBookPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log),
+    );
+    expect(run.ok).toBe(false);
+    expect(run.warnings.join("\n")).toContain("config.force");
   });
 });
 

@@ -21,6 +21,7 @@ const KEY = /^[A-Za-z0-9._-]{1,200}$/;
 
 export interface PageEntry {
   pageId: string;
+  /** Hash of what was last written, or "" while the page waits to be written again. */
   sha256: string;
 }
 
@@ -39,13 +40,14 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 /**
  * A page entry keeps its page id whenever that is usable, so a damaged hash costs one in-place
- * update and never a second page. `ok` is false when anything was repaired.
+ * update and never a second page. `ok` is false when anything was repaired. An empty hash is the
+ * "redo me" marker the publisher leaves after a merge with conflicts, and is not damage.
  */
 function validPage(value: unknown): { entry: PageEntry; ok: boolean } | null {
   if (!isObject(value)) return null;
   const { pageId, sha256 } = value;
   if (typeof pageId !== "string" || !ID_PATTERN.test(pageId)) return null;
-  const good = typeof sha256 === "string" && SHA256_HEX.test(sha256);
+  const good = typeof sha256 === "string" && (sha256 === "" || SHA256_HEX.test(sha256));
   return { entry: { pageId, sha256: good ? sha256 : "" }, ok: good };
 }
 

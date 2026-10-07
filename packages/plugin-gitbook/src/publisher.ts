@@ -11,7 +11,8 @@
 // changed and opens a change request only when there is something to write. An unchanged pack
 // costs a page listing, a read of the manifest page and zero writes. A push that fails before the
 // merge archives its draft, so nothing half-written goes live and the manifest never describes
-// work that did not land.
+// work that did not land. A merge that answers `conflicts` has landed anyway: the push then fails
+// and resets the hashes of the pages it wrote in a second change request, so the next push redoes them.
 //
 // The API token is read from the environment variable named in `secretsEnv.token` and is masked
 // in every error and log line.
@@ -207,6 +208,83 @@ async function loadManifest(
   return { manifest, page };
 }
 
+/** One manifest write: an update of the manifest page, or the hidden page created on the first push. */
+function manifestChange(
+  manifest: Manifest,
+  manifestPageId: string | undefined,
+  parentPageId: string | undefined,
+): ContentChange {
+  const document = { markdown: withTitle(MANIFEST_TITLE, manifestToMarkdown(manifest)) };
+  return manifestPageId
+    ? { operation: "update_page", page: manifestPageId, title: MANIFEST_TITLE, document }
+    : {
+        operation: "insert_page",
+        title: MANIFEST_TITLE,
+        slug: MANIFEST_SLUG,
+        ...(parentPageId ? { into: parentPageId } : {}),
+        hidden: true,
+        noIndex: true,
+        noRobotsIndex: true,
+        document,
+      };
+}
+
+/** Runs `work` in a new change request and archives the draft when `work` throws. */
+async function inChangeRequest<T>(
+  client: GitBookClient,
+  space: string,
+  log: PluginLogger,
+  work: (crId: string) => Promise<T>,
+): Promise<T> {
+  const crId = await client.createChangeRequest(space, CHANGE_REQUEST_SUBJECT);
+  try {
+    return await work(crId);
+  } catch (e) {
+    try {
+      await client.archive(space, crId);
+    } catch (archiveError) {
+      log.warn(`change request ${crId} could not be archived: ${(archiveError as Error).message}`);
+    }
+    throw e;
+  }
+}
+
+/**
+ * A merge that answers `conflicts` has landed in the space, archived or not, and the manifest in it
+ * already holds the new hashes. A second change request rewrites those entries with an empty hash
+ * so the next push writes the pages again in place. The returned text is the failure the push
+ * reports; it says what happens next.
+ */
+async function resetHashes(
+  client: GitBookClient,
+  config: GitBookPublishConfig,
+  log: PluginLogger,
+  manifest: Manifest,
+  written: Map<string, string>,
+  merged: { crId: string; manifestId: string | undefined },
+): Promise<string> {
+  const head = `change request ${merged.crId} was merged with conflicts, check the space for conflict markers`;
+  const force = "push again with config.force to write every page again";
+  try {
+    if (!merged.manifestId) throw new Error("GitBook did not report the manifest page");
+    for (const key of written.keys()) {
+      manifest.pages[key] = { pageId: manifest.pages[key]!.pageId, sha256: "" };
+    }
+    const reset = await inChangeRequest(client, config.space_id, log, async (crId) => {
+      await client.applyChanges(config.space_id, crId, [
+        manifestChange(manifest, merged.manifestId, config.parent_page_id),
+      ]);
+      return client.merge(config.space_id, crId);
+    });
+    return reset === "conflicts"
+      ? `${head}; resetting the manifest conflicted too, ${force}`
+      : `${head}; the pages are marked unwritten, so the next push writes them again`;
+  } catch (e) {
+    log.warn(`manifest hashes were not reset: ${(e as Error).message}`);
+    return `${head}; the manifest was not reset, ${force}`;
+  }
+}
+
 export function createGitBookPublisher(options: GitBookPublisherOptions = {}): PublisherPlugin {
   return {
     async publish(ctx: PublisherContext): Promise<PublishResult> {
@@ -267,9 +345,9 @@ export function createGitBookPublisher(options: GitBookPublisherOptions = {}): P
         }
 
         const written = new Map<string, string>();
+        let conflict: string | null = null;
         if (todo.length > 0) {
-          const crId = await client.createChangeRequest(space, CHANGE_REQUEST_SUBJECT);
-          try {
+          const outcome = await inChangeRequest(client, space, log, async (crId) => {
             for (const p of todo) {
               const current = found.get(p.key);
               const changes: ContentChange[] = [];
@@ -300,41 +378,14 @@ export function createGitBookPublisher(options: GitBookPublisherOptions = {}): P
               manifest.pages[p.key] = { pageId: id, sha256: p.sha256 };
               written.set(p.key, id);
             }
-
-            const body = { markdown: withTitle(MANIFEST_TITLE, manifestToMarkdown(manifest)) };
-            await client.applyChanges(space, crId, [
-              manifestPage
-                ? {
-                    operation: "update_page",
-                    page: manifestPage.id,
-                    title: MANIFEST_TITLE,
-                    document: body,
-                  }
-                : {
-                    operation: "insert_page",
-                    title: MANIFEST_TITLE,
-                    slug: MANIFEST_SLUG,
-                    ...(config.parent_page_id ? { into: config.parent_page_id } : {}),
-                    hidden: true,
-                    noIndex: true,
-                    noRobotsIndex: true,
-                    document: body,
-                  },
+            const applied = await client.applyChanges(space, crId, [
+              manifestChange(manifest, manifestPage?.id, config.parent_page_id),
             ]);
-            if ((await client.merge(space, crId)) === "conflicts") {
-              const note = `change request ${crId} was merged with conflicts, check the space for conflict markers`;
-              log.warn(note);
-              warnings.push(note);
-            }
-          } catch (e) {
-            try {
-              await client.archive(space, crId);
-            } catch (archiveError) {
-              log.warn(
-                `change request ${crId} could not be archived: ${(archiveError as Error).message}`,
-              );
-            }
-            throw e;
+            const merged = await client.merge(space, crId);
+            return { crId, manifestId: manifestPage?.id ?? applied.created[0], merged };
+          });
+          if (outcome.merged === "conflicts") {
+            conflict = await resetHashes(client, config, log, manifest, written, outcome);
           }
         }
 
@@ -359,7 +410,11 @@ export function createGitBookPublisher(options: GitBookPublisherOptions = {}): P
           return { id, ...(url ? { url } : {}), action, section: p.section };
         });
 
-        return { ok: true, target: `gitbook:space/${space}`, pages, warnings };
+        if (conflict) {
+          warnings.push(conflict);
+          log.error(conflict);
+        }
+        return { ok: conflict === null, target: `gitbook:space/${space}`, pages, warnings };
       } catch (e) {
         const masked = mask((e as Error).message);
         log.error(masked);
