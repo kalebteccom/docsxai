@@ -1134,6 +1134,26 @@ describe("sharepoint publisher: file names and folder", () => {
     expect(safeName(raw)).toBe(expected);
   });
 
+  it.each([".-.", ".-.-", "-.-.", ".--.", " .- . "])(
+    "safeName falls back to item when the trailing strip leaves %j empty",
+    (raw) => {
+      expect(safeName(raw)).toBe("item");
+    },
+  );
+
+  it("publishes a section named .-.- as item.md, never as .md", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({
+      workspaceDir: dir,
+      options: { mode: "page-tree" },
+    });
+    projection.documents[1]!.section = ".-.-";
+    const { log, lines } = capture();
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(lines).toContain('section ".-.-": created (docsxai/item.md)');
+    expect(text("docsxai/item.md")).toMatch(/^# /);
+  });
+
   it("safeName keeps ordinary names, dots inside included", () => {
     expect(safeName("a..b")).toBe("a..b");
     expect(safeName("checkout--step-1.png")).toBe("checkout--step-1.png");
