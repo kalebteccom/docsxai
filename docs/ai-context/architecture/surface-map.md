@@ -181,7 +181,7 @@ First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight e
 
 ## `packages/docsxai/` — `docsxai` (meta-package)
 
-The unscoped batteries-included CLI install: `bin.mjs` resolves `@docsxai/engine`'s CLI entry (`@docsxai/engine/cli`) and runs it in-process; `index.mjs`/`index.d.mts` re-export the engine's library surface; dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (the viewer dep is deliberate — one global install puts `docsxai-viewer` on the path so `docsxai render`, `docsxai burn`, `docsxai pack` and `docsxai drift` work out of the box; the bin sets `DOCSX_VIEWER_BIN` to the viewer it resolves when unset, since the engine's own lookup can't see a sibling dependency in a nested layout). No build step; gated by `packages/docsxai/test/bin.test.ts` (real subprocess: init + lint against a fixture workspace, `burn`, `pack` and `drift` on a checked-in pack).
+The unscoped batteries-included CLI install: `bin.mjs` resolves `@docsxai/engine`'s CLI entry (`@docsxai/engine/cli`) and runs it in-process; `index.mjs`/`index.d.mts` re-export the engine's library surface; dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (the viewer dep is deliberate — one global install puts `docsxai-viewer` on the path so `docsxai render`, `docsxai burn`, `docsxai pack` and `docsxai pack --check` work out of the box; the bin sets `DOCSX_VIEWER_BIN` to the viewer it resolves when unset, since the engine's own lookup can't see a sibling dependency in a nested layout). No build step; gated by `packages/docsxai/test/bin.test.ts` (real subprocess: init + lint against a fixture workspace, `burn`, `pack` and `pack --check` on a checked-in pack).
 
 ## `docs/`, `scripts/`
 

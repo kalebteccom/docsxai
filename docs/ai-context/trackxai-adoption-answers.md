@@ -8,9 +8,11 @@ Basis:
 - trackxai's files were read from branch `feat/docsxai-screens-pack` (`bf2c7d4`) in the trackxai clone. The local `main` (`530942a`) does not hold `e2e/docsxai/`, and `86582063` is not in that clone. The flows live in `e2e/docsxai/flows/`.
 - Line numbers refer to `main`.
 
+Status at `0.3.0-rc.2`: the answers below were written against `0.3.0-rc.1` and `main` at `1740660`. Three have moved since. Questions 1 and 2: `pack` now reads the matrix layout, with a `sources` entry that has `matrix`, or a `matrixFlow` block that maps ids to pack keys (`packages/viewer/src/pack-matrix.ts`, `pack-workspace.ts`; the forms are in `packages/viewer/README.md` and `pack-adoption-notes.md`), so the copy script in question 1 is not needed. Question 7: the recipes in `docs/ci-recipes.md` and `examples/ci/` now install `docsxai@next`, and `next` is `0.3.0-rc.2`. Everything else, including the `baseline` and `diff` limit in question 6, still holds on `main`.
+
 ## 1. Does `pack` read the matrix layout?
 
-No. `pack` reads flat `docs/<capture-flow>/screenshots/<step>.png` and `docs/<capture-flow>/annotations.json`. A matrix run writes `docs/<flow>/<variant>/screenshots/`, and nothing in `pack` looks one level down.
+No, in `0.3.0-rc.1` (since changed, see the status note above). `pack` read flat `docs/<capture-flow>/screenshots/<step>.png` and `docs/<capture-flow>/annotations.json`. A matrix run writes `docs/<flow>/<variant>/screenshots/`, and nothing in `pack` looks one level down.
 
 Evidence:
 
@@ -22,7 +24,7 @@ Evidence:
 - `docs/public-surface.md` (PACK-18 and open decision 11) records the same limit: "reads `docs/<capture-flow>/` only, not the matrix layout".
 - A change that adds matrix input to `pack` is planned and not in `0.3.0-rc.1` or `main`.
 
-Workaround today, a post-run copy (recommended). After `docsxai run`, copy each variant into a scratch workspace as a flat capture flow, and generate `pack.json` from the `variant` object that `annotations.json` already carries:
+Workaround at the time, a post-run copy (not needed since `0.3.0-rc.2`). After `docsxai run`, copy each variant into a scratch workspace as a flat capture flow, and generate `pack.json` from the `variant` object that `annotations.json` already carries:
 
 ```sh
 # from e2e/docsxai, after: docsxai run . --flow screens
@@ -58,7 +60,7 @@ The other route is flat flow files per variant (question 3). It costs more.
 
 ## 2. Matrix variant id versus pack variant key
 
-Two grammars, no conversion between them.
+Two grammars. In `0.3.0-rc.1` nothing converted between them; since `0.3.0-rc.2` a `pack.json` `sources` entry with `matrix`, or a `matrixFlow` block (`map`, `auto`), maps each id to a key.
 
 Matrix variant id (`packages/engine/src/flow-matrix.ts:62-67`): the present axes joined by `.`, in the order `<locale>.<color_scheme>.<viewport name>`.
 
@@ -178,7 +180,7 @@ Bins:
 - `bin.mjs:13-20` sets `DOCSX_VIEWER_BIN` from `import.meta.resolve("@docsxai/viewer")` when it is unset, so a global `docsxai` finds its viewer without help.
 - `packages/docsxai/README.md` says the `docsxai-viewer` bin also lands on PATH. I expect npm to link only the top-level package's bins on a global install, so I would not rely on that. Not tested here, and the CLI does not need it.
 
-The recipes in `docs/ci-recipes.md` and `examples/ci/` use the bare `npm install --global docsxai` line. Until `latest` moves to 0.3.x they install a version without `pack`. That is a docs gap, not fixed here.
+At the time the recipes in `docs/ci-recipes.md` and `examples/ci/` used the bare `npm install --global docsxai` line, which installs a version without `pack` until `latest` moves to 0.3.x. `0.3.0-rc.2` fixed that: they install `docsxai@next`, and a test checks that every recipe's install line carries a version or dist-tag.
 
 ## 8. oxipng on a Debian CI image
 

@@ -3,9 +3,10 @@ title: CLI
 description: The full docsxai command reference - every command, every flag, and the operational notes that ship in the CLI's own help text, rendered per command.
 ---
 
-This page is generated from the engine source (the usage text `docsxai
---help` prints); flag spellings are exact. The binary is `docsxai` - the
-packages are named `@docsxai/*`, the command is not.
+This page follows the usage text `docsxai --help` prints; flag spellings are
+exact, and a test checks that every command and flag shown here appears in that
+text. The binary is `docsxai` - the packages are named `@docsxai/*`, the
+command is not.
 
 ## Synopsis
 
@@ -292,9 +293,14 @@ viewer's `burn` through the same bin resolution as `render`. Reads
 `<workspace>/docs/<flow>/annotations.json` and writes
 `docs/<flow>/burned/<step>.png`, or `<out>/<flow>/<step>.png` with `--out`.
 `--flow` limits it to named flows and can be repeated; the default is every
-flow with an `annotations.json`. `--report <file>` writes a JSON placement
-report (callout and badge boxes, overlaps, callouts flagged unplaceable),
-resolved under the workspace when relative. `--no-connector-outline` keeps
+flow with an `annotations.json`. A flow that ran a [matrix](/reference/flow-file/#matrix)
+holds its outputs one level down, and `burn` treats each `<flow>/<variant>` as a
+flow: `--flow <name>` selects all of a flow's variants. `--report <file>` writes a
+JSON placement report (`docsxai/burn-report@1`: callout and badge boxes,
+overlaps, and `unplaceable` for a callout whose best spot still covers more than
+10% of its own area), resolved under the workspace when relative. The report
+threshold (`--max-overlap <ratio>`) is a flag of the viewer's own bin,
+`docsxai-viewer burn`; `docsxai burn` does not forward it. `--no-connector-outline` keeps
 every arrow and stem plain ink; by default one over a dark part of the
 screenshot gets a white outline. Exit 1 when the workspace has no `docs/`
 directory or no flow to burn; exit 2 for a bad flag.
@@ -338,6 +344,44 @@ plus optional `arrow_style`, `nudge`, `obstacles`, `placement`), a `step.json`
 (`alt`, optional `caption`) and an optional `flow.json` (`title`). `--from-raw`
 reads `<dir>` that way even when it has a `docs/` folder.
 
+A flow with a [matrix](/reference/flow-file/#matrix) writes one directory per cell,
+`docs/<flow>/<variant id>/{screenshots/, annotations.json}`, and `pack.json` reads
+those in two forms. The ids (`en-US.dark.mobile-390`) and the pack keys
+(`en.dark.390`) are different grammars, so each id is mapped to a key. A `sources`
+entry with `matrix` names one variant directory; its key is only a label:
+
+```json
+{
+  "sources": {
+    "login-mobile": { "flow": "login", "matrix": "es-ES.dark.mobile-390", "variant": "es.dark.390" }
+  }
+}
+```
+
+`matrixFlow` takes every variant directory of one flow. `map` gives
+`<matrix id>: <pack key>`, and `"auto": true` maps the ids that already read
+`<locale>.<theme>.<viewport width>` to themselves (name a viewport by its width,
+`{ name: "1280", ... }`, in the flow's matrix for that):
+
+```json
+{
+  "matrixFlow": {
+    "flow": "login",
+    "auto": true,
+    "map": { "en-US.light.desktop-1280": "en.light.1280" }
+  }
+}
+```
+
+Use one form per flow. `matrixFlow` stops on a variant directory it has no key
+for, so pack a subset with `sources` entries. `packFlow` sets the flow id in the
+pack when the matrix flow's name is not a valid one (capitals, dots). A
+`flows.<flow>.steps` entry is written once and checked against every variant, and
+`alt` needs each locale the mapped keys use. `pack --check` reads the same layouts.
+A symlinked flow or `screenshots/` directory stops the pack, a symlinked variant
+directory is skipped with a warning under `matrixFlow`, and a flow with more than
+256 variant directories is refused.
+
 Output goes to `--out` (default `<workspace>/.screens`; required for a raw
 directory): `<flow>/<step>.<hash8>.png` plus `manifest.json`
 (`docsxai/screens-pack@2`). Locales, themes and viewports are not a fixed list; a
@@ -346,19 +390,21 @@ variant key is `<locale>.<theme>.<viewport>`, for example `pt-BR.dark.1280`.
 `/screens`). `--generated-for` records free text such as a commit sha; without it
 the key is left out, and the manifest never holds a timestamp.
 
-Optimising uses the external `oxipng` binary (`brew install oxipng`), found on
-PATH or at `$DOCSX_OXIPNG_BIN`. When it is missing the command fails with that
-one-line hint; `--no-optimise` skips it. The hash is taken from the optimised
-bytes, and the optimiser's output is checked first: it has to be a complete PNG with
-the same pixels as its input, or the build stops. A different `oxipng` version can
-produce different bytes, so upgrading it changes the hashes (pin it in CI). Files the old `manifest.json` listed and the new one does not are removed
-by exact path, and nothing else in `--out` is touched. Loopback addresses
-(`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`), private-network addresses (10/8,
-172.16/12, 192.168/16, 169.254/16), email addresses (not on `example.com`, `.org`,
-`.net`, `.test`, `.invalid` or `.example`), `Authorization:` headers other than
-`Bearer`, tokens in a URL query and obvious secrets in a title, caption, alt text
-or callout stop the build, naming the manifest path and rule.
-Exit 1 for a failed build, 2 for a bad flag.
+Optimising uses the external `oxipng` binary: the path in `$DOCSX_OXIPNG_BIN` when
+that is set, otherwise `oxipng` on PATH. When it is missing the command fails with a
+one-line message (its `brew install oxipng` hint is for macOS; on Linux install a
+release binary of `oxipng`); `--no-optimise` skips it. The hash is taken from the optimised bytes, and
+the optimiser's output is checked first: it has to be a complete PNG with the same
+pixels as its input, or the build stops. A different `oxipng` version can produce
+different bytes, so upgrading it changes the hashes (pin it in CI). Files the old
+`manifest.json` listed and the new one does not are removed by exact path, and
+nothing else in `--out` is touched. Loopback addresses (`localhost`, `127.x.x.x`,
+`::1`, `0.0.0.0`), private-network addresses (10/8, 172.16/12, 192.168/16, link-local
+169.254/16), email addresses (the reserved example domains `example.com`,
+`example.org`, `example.net` and the `.test`, `.invalid` and `.example` TLDs pass),
+`Authorization:` headers other than `Bearer`, tokens in a URL query and obvious
+secrets in a title, caption, alt text or callout stop the build, naming the manifest
+path and rule. Exit 1 for a failed build, 2 for a bad flag.
 
 ```
 $ docsxai pack ~/docsxai/my-app
@@ -374,8 +420,9 @@ line shows the changed share of the image and the box around the change. A
 rebuild that differs only in bytes (the optimiser) passes. The command fails for
 a change over `--threshold` (percent, default 0.5), a resized variant, a new or
 missing variant, and a committed file that does not match its name. Exit 1 on any
-of those, 2 for a bad flag. The report has no timestamps. The `drift` command
-of earlier builds still works for now: it prints a deprecation warning and runs
+of those, 2 for a bad flag, and 1 when the committed `manifest.json` is missing or is not
+`docsxai/screens-pack@2`. The report has no timestamps. The `drift` command of
+earlier builds still works for now: it prints a deprecation warning and runs
 `pack --check` with the same arguments.
 
 ```
