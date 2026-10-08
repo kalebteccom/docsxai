@@ -62,6 +62,16 @@ export interface PackConfig {
   >;
 }
 
+/** Sets an own property, even for `__proto__`, which a plain assignment would turn into a prototype change. */
+function setOwn<T>(target: Record<string, T>, key: string, value: T): void {
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+}
+
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
 
 function objectAt(value: unknown, label: string): Obj {
@@ -122,19 +132,19 @@ export function parsePackConfig(raw: Obj): PackConfig {
     for (const [stepId, stepEntry] of Object.entries(objectAt(f.steps, `flows["${id}"].steps`))) {
       const s = objectAt(stepEntry, `flows["${id}"].steps["${stepId}"]`);
       const where = `${PACK_CONFIG_FILE} flows["${id}"].steps["${stepId}"]`;
-      steps[stepId] = {
+      setOwn(steps, stepId, {
         alt: readLocalized(s.alt, `${where}.alt`),
         ...(s.caption !== undefined
           ? { caption: readLocalized(s.caption, `${where}.caption`) }
           : {}),
-      };
+      });
     }
-    flows[id] = {
+    setOwn(flows, id, {
       steps,
       ...(f.title !== undefined
         ? { title: readLocalized(f.title, `${PACK_CONFIG_FILE} flows["${id}"].title`) }
         : {}),
-    };
+    });
   }
   return { sources, ...(matrixFlow ? { matrixFlow } : {}), flows };
 }
@@ -178,7 +188,9 @@ async function addSource(
   into.set(flow, steps);
   for (const file of shots) {
     const id = file.replace(/\.png$/, "");
-    const text = config.flows[flow]?.steps[id];
+    // Own keys only: a flow or step named `constructor` finds `Object`'s members otherwise.
+    const flowText = Object.hasOwn(config.flows, flow) ? config.flows[flow] : undefined;
+    const text = flowText && Object.hasOwn(flowText.steps, id) ? flowText.steps[id] : undefined;
     if (!text)
       throw new Error(
         `${PACK_CONFIG_FILE} has no flows["${flow}"].steps["${id}"] (screenshot ${label}/${file})`,

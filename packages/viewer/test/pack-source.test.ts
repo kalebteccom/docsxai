@@ -229,6 +229,19 @@ describe("parsePackConfig", () => {
     });
   });
 
+  it("keeps a flow or step named __proto__ as an own entry", () => {
+    const c = config() as Record<string, any>;
+    c.flows = JSON.parse(
+      '{"__proto__":{"steps":{"__proto__":{"alt":{"en":"A"}}}},"app":{"steps":{}}}',
+    );
+    const parsed = parsePackConfig(c);
+    expect(Object.keys(parsed.flows).sort()).toEqual(["__proto__", "app"]);
+    expect(
+      Object.keys(Object.getOwnPropertyDescriptor(parsed.flows, "__proto__")!.value.steps),
+    ).toEqual(["__proto__"]);
+    expect(Object.getPrototypeOf(parsed.flows)).toBe(Object.prototype);
+  });
+
   it.each<[string, (c: Record<string, any>) => void, RegExp]>([
     [
       "wrong schema",
@@ -415,6 +428,27 @@ describe("readWorkspace", () => {
     config.flows.other = { steps: { x: { alt: { en: "X" } } } };
     await writeWorkspace(ws(), { config, shots: { a: shots("board") } });
     await expect(readWorkspace(ws())).rejects.toThrow(/flows\["other"\] has no source feeding it/);
+  });
+
+  it("names a flow called constructor instead of throwing a TypeError", async () => {
+    const config = packConfig({ a: "en.dark.1280" }, ["board"]) as {
+      sources: Record<string, { flow: string }>;
+    };
+    config.sources.a!.flow = "constructor";
+    await writeWorkspace(ws(), { config, shots: { a: shots("board") } });
+    await expect(readWorkspace(ws())).rejects.toThrow(
+      /pack\.json has no flows\["constructor"\]\.steps\["board"\]/,
+    );
+  });
+
+  it("does not take a screenshot called constructor for a step of the flow", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ a: "en.dark.1280" }, ["board"]),
+      shots: { a: shots("board", "constructor") },
+    });
+    await expect(readWorkspace(ws())).rejects.toThrow(
+      /pack\.json has no flows\["app"\]\.steps\["constructor"\]/,
+    );
   });
 
   it("refuses a workspace without pack.json", async () => {
