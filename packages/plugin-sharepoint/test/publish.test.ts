@@ -926,6 +926,71 @@ describe("sharepoint publisher: colliding targets", () => {
   });
 });
 
+describe("sharepoint publisher: timeouts", () => {
+  const FAST = { ...LOOPBACK, apiTimeoutMs: 300, uploadTimeoutMs: 300 };
+
+  it("ends a stalled manifest read with a timeout error and writes nothing", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = [`GET docsxai/${MANIFEST_FILE}`];
+    const started = Date.now();
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/GET docsxai\/docsxai-manifest\.json timed out after 300 ms/);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(server.writes).toBe(0);
+  });
+
+  it("ends a stalled upload with a timeout error", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = ["PUT docsxai/images/checkout--step-1.png"];
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/PUT docsxai\/images\/checkout--step-1\.png timed out after 300 ms/);
+    expect(server.files.has("docsxai/index.md")).toBe(false);
+  });
+
+  it("a manifest write that hangs after a failed upload keeps the first error and logs the second", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    // Both images go up, then the page times out, then the manifest write times out too.
+    server.stall = ["PUT docsxai/index.md", `PUT docsxai/${MANIFEST_FILE}`];
+    const { log, lines } = capture();
+    const started = Date.now();
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, log)),
+    ).rejects.toThrow(/PUT docsxai\/index\.md timed out after 300 ms/);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(lines.some((l) => l.includes("manifest write failed"))).toBe(true);
+    expect(lines.some((l) => l.includes("docsxai-manifest.json timed out"))).toBe(true);
+    expect(server.writes).toBe(2);
+  });
+
+  it("a manifest write that fails after a failed upload still records the uploaded files", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = ["PUT docsxai/index.md"];
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/index\.md timed out/);
+    const manifest = JSON.parse(text(`docsxai/${MANIFEST_FILE}`)) as { files: object };
+    expect(Object.keys(manifest.files).sort()).toEqual([
+      "images/checkout--step-1.png",
+      "images/login--step-1.png",
+    ]);
+  });
+
+  it("a manifest write that times out fails a push that had no other error", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = [`PUT docsxai/${MANIFEST_FILE}`];
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/PUT docsxai\/docsxai-manifest\.json timed out after 300 ms/);
+  });
+});
+
 describe("sharepoint publisher: file names and folder", () => {
   it.each([".", "..", "...", "-.-", " .. "])("safeName refuses the all-dot name %j", (raw) => {
     expect(() => safeName(raw)).toThrow(/not a usable file name/);

@@ -342,6 +342,7 @@ export function createSharePointPublisher(
         };
 
         const pages: PublishResult["pages"] = [];
+        let failure: { error: unknown } | undefined;
         try {
           for (const doc of projection.documents) {
             const title = `${config.title_prefix ?? ""}${String(doc.title)}`;
@@ -360,12 +361,21 @@ export function createSharePointPublisher(
               section: doc.section,
             });
           }
-        } finally {
-          if (sent.size > 0) {
+        } catch (e) {
+          failure = { error: e };
+        }
+        // The manifest still records what was uploaded before a failure. A failed manifest write
+        // is logged and the error that stopped the push is the one reported.
+        if (sent.size > 0) {
+          try {
             const body = Buffer.from(manifestJson(manifest), "utf8");
             await client.upload(`${config.folder}/${MANIFEST_FILE}`, body, "application/json");
+          } catch (e) {
+            if (!failure) throw e;
+            log.error(`manifest write failed: ${(e as Error).message}`);
           }
         }
+        if (failure) throw failure.error;
 
         return {
           ok: true,
