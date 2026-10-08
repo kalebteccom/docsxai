@@ -37,7 +37,26 @@ PNGs in the doc pack stay clean (no baked annotations) — re-stylable, re-local
 
 **Manifest.** `docsxai/screens-pack@2`: `{ schema, generated_for?, flows: { <flow>: { title?, steps: { <step>: { caption?, alt, variants: { "<locale>.<theme>.<viewport>": { src, width, height, bytes, callouts: [{ index, copy, bbox? }] } } } } } } }`. `title`, `caption` and `alt` are `{ <locale>: text }`; `alt` must have every locale a variant of the step uses. A locale is a tag like `en` or `pt-BR`, a theme is `^[a-z][a-z0-9-]{0,23}$`, a viewport is 3 or 4 digits; nothing is limited to en/es, light/dark or 390/1280. Flow and step ids are lowercase words joined by `-` or `_`, at most 64 characters, no dots. `src` is `<public-prefix>/<flow>/<step>.<hash8>.png` (default prefix `/screens`). Keys are sorted at every depth, callouts are in index order, there are no timestamps, and the same input gives the same text and the same bytes.
 
-**Sources.** A raw capture is `<root>/<flow>/<step>/<locale>.<theme>.<viewport>.png` with a `.json` sidecar (`width` and `height` must match the PNG when present; `annotations` of `{ index, copy, bbox, arrow_style?, nudge?, obstacles?, placement? }`), `step.json` (`alt`, `caption?`) and `flow.json` (`title?`); a step's badge numbers are drawn when it has two or more annotations, as the engine does. A workspace reads `docs/<capture-flow>/screenshots/<step>.png` and `annotations.json` through `pack.json` (`docsxai/pack-config@1`): `sources` maps a capture flow to `{ flow, variant }`, `flows.<flow>.steps.<step>` holds `alt` and `caption?`. Every screenshot needs a `steps` entry and every entry needs a screenshot. Callouts in the manifest are the annotations the burner draws: a `bounding_box` and non-empty `copy`.
+**Sources.** A raw capture is `<root>/<flow>/<step>/<locale>.<theme>.<viewport>.png` with a `.json` sidecar (`width` and `height` must match the PNG when present; `annotations` of `{ index, copy, bbox, arrow_style?, nudge?, obstacles?, placement? }`), `step.json` (`alt`, `caption?`) and `flow.json` (`title?`); a step's badge numbers are drawn when it has two or more annotations, as the engine does. A workspace reads `docs/<capture-flow>/screenshots/<step>.png` and `annotations.json` through `pack.json` (`docsxai/pack-config@1`): `sources` maps a capture flow to `{ flow, variant }`, `flows.<flow>.steps.<step>` holds `alt` and `caption?`. Every screenshot needs a `steps` entry and every entry needs a screenshot. A matrix flow (`docsxai run` on a flow with `matrix:`) writes `docs/<flow>/<variant id>/screenshots/` and `annotations.json`, one directory per cell, and `pack.json` reads those directories in two forms (`pack` and `pack --check` resolve them the same way):
+
+```json
+{
+  "schema": "docsxai/pack-config@1",
+  "sources": {
+    "login-mobile": { "flow": "login", "matrix": "es-ES.dark.mobile-390", "variant": "es.dark.390" }
+  },
+  "matrixFlow": {
+    "flow": "login",
+    "auto": true,
+    "map": { "en-US.light.desktop-1280": "en.light.1280" }
+  },
+  "flows": {
+    "login": { "steps": { "home": { "alt": { "en": "Sign-in page", "es": "Pagina de acceso" } } } }
+  }
+}
+```
+
+A `sources` entry with `matrix` names one variant directory; its key is only a label, and `flow` is the matrix flow and the pack flow. `matrixFlow` takes every variant directory of one flow: `map` gives `<matrix id>: <pack key>`, and `auto: true` maps the ids that already read `<locale>.<theme>.<viewport width>` (the matrix needs a viewport named by its width, `{ name: "1280", ... }`, for that; a preset such as `desktop-1280` has to be in `map`). A directory with no pack key, a mapped id with no directory and two ids of one flow that map to one key stop the pack and name the ids (with the ids on disk for a missing one). Use the `sources` form to pack a subset of the variants. `packFlow` sets the flow id in the pack when the matrix flow's name is not a valid one (uppercase, dots). Callouts in the manifest are the annotations the burner draws: a `bounding_box` and non-empty `copy`.
 
 **Optimising and hashing.** `oxipng` is external (`brew install oxipng`): `$DOCSX_OXIPNG_BIN` or PATH. The file name carries the first 8 hex digits of the sha256 of the optimised bytes, `bytes` is that file's size, and the output's dimensions are checked against the capture. Optimising is lossless, so two builds with the same `oxipng` give the same names; a different `oxipng` version can change them. The output is checked before it is hashed: a complete PNG with the input's pixels, or the build stops.
 

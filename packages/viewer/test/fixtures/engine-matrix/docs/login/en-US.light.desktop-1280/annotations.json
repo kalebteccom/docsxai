@@ -1,0 +1,28 @@
+{
+  "schema": "docsxai/annotations@1",
+  "flow": "login",
+  "variant": {
+    "id": "en-US.light.desktop-1280",
+    "locale": "en-US",
+    "color_scheme": "light",
+    "viewport": {
+      "name": "desktop-1280",
+      "width": 1280,
+      "height": 800
+    }
+  },
+  "annotations": [
+    {
+      "step": "home",
+      "selector": "#sign-in",
+      "copy": "Sign in",
+      "bounding_box": {
+        "x": 20,
+        "y": 30,
+        "width": 40,
+        "height": 16
+      },
+      "index": 1
+    }
+  ]
+}
