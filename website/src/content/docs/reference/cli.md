@@ -279,6 +279,10 @@ order: the `DOCSX_VIEWER_BIN` env var (path to the viewer's bin script),
 the `@docsxai/viewer` package installed next to the engine, then
 `docsxai-viewer` on PATH. A launch failure reports all three attempts.
 
+Flow names and step ids from the doc pack become file paths and link targets, so
+`render` skips a flow name or step id that holds `..`, `:`, `\` or a control
+character (a step id also `/`), with a warning on stderr.
+
 ```
 $ docsxai render ~/docsxai/my-app
 render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; each flow page
@@ -380,7 +384,7 @@ pack when the matrix flow's name is not a valid one (capitals, dots). A
 `alt` needs each locale the mapped keys use. `pack --check` reads the same layouts.
 A symlinked flow or `screenshots/` directory stops the pack, a symlinked variant
 directory is skipped with a warning under `matrixFlow`, and a flow with more than
-256 variant directories is refused.
+256 variant directories is refused. Errors name paths relative to the workspace.
 
 Output goes to `--out` (default `<workspace>/.screens`; required for a raw
 directory): `<flow>/<step>.<hash8>.png` plus `manifest.json`
