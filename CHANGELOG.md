@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.3.0-rc.2] - 2026-10-08
+
+Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.1` it adds matrix-aware `docsxai pack`, a hardened `pack.json` reader, the burned badge fill `#c2410c` (burned PNGs that carry a numbered badge change once, so re-record pack baselines once), and viewer, CLI and docs-site UX fixes.
+
 ### Changed
 
 - **Interactive viewer: keyboard, screen reader, contrast, motion and error states.** Pages from `docsxai render` get landmarks, a skip link and an in-order outline; arrow keys, `j`/`k`, Home/End, `[`/`]` and Esc move between steps and flows and hide callouts, with step changes announced; call-outs open on focus or tap; text meets WCAG AA in new light and dark schemes; the halo pulse stops under `prefers-reduced-motion`; image boxes are reserved; a broken `annotations.json`, a missing screenshot, an empty flow and a failed image load (with Retry) each show a message; phones get a viewport meta, 44 px touch targets and overlays redrawn on resize; print gets its own styles. The viewer badge fill is now `#c2410c`. Audit: `docs/ai-context/ux/viewer-audit.md`.
