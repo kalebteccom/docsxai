@@ -24,6 +24,9 @@ export const CAPTURE_FLOW = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
 /** A matrix variant id as a directory name: locale tags keep their capitals, viewport names their dashes. */
 const MATRIX_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
+/** Most variant directories read under one flow; a `docs/<flow>/` with more is not a matrix run. */
+export const MAX_VARIANT_DIRS = 256;
+
 /** The per-flow screenshot directory of an unexpanded flow; never a matrix variant. */
 const SCREENSHOTS_DIR = "screenshots";
 
@@ -165,10 +168,16 @@ export async function variantIds(
       }
     }
   }
-  return candidates
+  const ids = candidates
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .sort();
+  if (ids.length > MAX_VARIANT_DIRS) {
+    throw new Error(
+      `docs/${flow}/ has ${ids.length} variant directories; pack reads at most ${MAX_VARIANT_DIRS}`,
+    );
+  }
+  return ids;
 }
 
 function matrixSource(
@@ -190,7 +199,8 @@ function expandMatrixFlow(mf: MatrixFlow, have: string[], file: string): Resolve
   const where = `${file}: matrixFlow "${mf.flow}"`;
   if (have.length === 0) throw new Error(`${where}: no variant directories under docs/${mf.flow}/`);
   const mapped = new Map(Object.entries(mf.map));
-  const missing = [...mapped.keys()].filter((id) => !have.includes(id));
+  const known = new Set(have);
+  const missing = [...mapped.keys()].filter((id) => !known.has(id));
   if (missing.length > 0) {
     throw new Error(
       `${where}: map names ${list(missing)}, not under docs/${mf.flow}/ (available: ${list(have)})`,
@@ -244,9 +254,12 @@ export async function resolveSources(
   warn?: (message: string) => void,
 ): Promise<ResolvedSource[]> {
   const out: ResolvedSource[] = [];
-  const cache = new Map<string, string[]>();
-  const idsOf = async (flow: string): Promise<string[]> => {
-    const known = cache.get(flow) ?? (await variantIds(docsDir, flow, warn));
+  const cache = new Map<string, { ids: string[]; set: Set<string> }>();
+  const idsOf = async (flow: string): Promise<{ ids: string[]; set: Set<string> }> => {
+    const cached = cache.get(flow);
+    if (cached) return cached;
+    const ids = await variantIds(docsDir, flow, warn);
+    const known = { ids, set: new Set(ids) };
     cache.set(flow, known);
     return known;
   };
@@ -256,15 +269,15 @@ export async function resolveSources(
       continue;
     }
     const have = await idsOf(e.flow);
-    if (!have.includes(e.matrix)) {
+    if (!have.set.has(e.matrix)) {
       throw new Error(
-        `${file}: sources["${name}"]: no matrix variant "${e.matrix}" under docs/${e.flow}/ (available: ${list(have)})`,
+        `${file}: sources["${name}"]: no matrix variant "${e.matrix}" under docs/${e.flow}/ (available: ${list(have.ids)})`,
       );
     }
     out.push(matrixSource(e.flow, e.matrix, e.packFlow, e.variant));
   }
   if (matrixFlow) {
-    out.push(...expandMatrixFlow(matrixFlow, await idsOf(matrixFlow.flow), file));
+    out.push(...expandMatrixFlow(matrixFlow, (await idsOf(matrixFlow.flow)).ids, file));
   }
   rejectSharedTargets(out, file);
   return out.sort((a, b) => (a.label < b.label ? -1 : 1));

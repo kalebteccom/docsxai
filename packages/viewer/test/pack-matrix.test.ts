@@ -8,6 +8,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runDrift, runPack } from "../src/pack-cli.js";
+import { MAX_VARIANT_DIRS } from "../src/pack-matrix.js";
 import type { ScreensPack } from "../src/pack-schema.js";
 import { parsePackConfig, readWorkspace } from "../src/pack-workspace.js";
 import { validatePack } from "../src/pack-validate.js";
@@ -304,6 +305,29 @@ describe("variants that cannot be placed", () => {
     err = "";
     expect(await runDrift([ws(), "--against", path.join(root, "none")])).toBe(1);
     expect(err).toContain(`pack --check: pack.json: matrixFlow "login": no pack key for ${MOBILE}`);
+  });
+});
+
+describe("the number of variant directories", () => {
+  const fill = async (count: number): Promise<void> => {
+    const dir = path.join(ws(), "docs", "many");
+    await fs.mkdir(dir, { recursive: true });
+    for (let i = 0; i < count; i++) await fs.mkdir(path.join(dir, `v${i}`));
+    await setSources(ws(), { matrixFlow: { flow: "many", auto: true } });
+  };
+
+  it("reads up to the cap", async () => {
+    await fill(MAX_VARIANT_DIRS);
+    // The directories have no pack keys, which is the next check after the cap.
+    await expect(readWorkspace(ws())).rejects.toThrow(/matrixFlow "many": no pack key for v0, /);
+  });
+
+  it("refuses a flow directory with more, without listing them", async () => {
+    await fill(MAX_VARIANT_DIRS + 1);
+    const error = await readWorkspace(ws()).catch((e: Error) => e);
+    expect((error as Error).message).toBe(
+      `docs/many/ has ${MAX_VARIANT_DIRS + 1} variant directories; pack reads at most ${MAX_VARIANT_DIRS}`,
+    );
   });
 });
 
