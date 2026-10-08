@@ -9,12 +9,16 @@ import type { AdfDoc, AdfNode } from "@docsxai/engine";
 
 export const IMAGES_DIR = "images";
 
-/** SharePoint rejects `" * : < > ? / \ |`; keep to a conservative portable set. */
+/**
+ * SharePoint rejects `" * : < > ? / \ |` and strips a trailing dot, so `a.` and `a` are one file.
+ * Keep to a conservative portable set and drop trailing dots here, so two names SharePoint would
+ * merge come out as the same string and the publisher's collision check sees them.
+ */
 export function safeName(raw: string): string {
   const name = raw.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "item";
   if (/^\.+$/.test(name))
     throw new Error(`sharepoint: ${JSON.stringify(raw)} is not a usable file name`);
-  return name;
+  return name.replace(/[.-]+$/, "");
 }
 
 /** C0 and C1 controls, DEL and the Unicode line and paragraph separators. */
@@ -108,8 +112,20 @@ function codeSpan(text: string): string {
   return `${fence}${pad}${flat}${pad}${fence}`;
 }
 
+/**
+ * Inline nodes joined in order. A `!` that ends one node and sits right before a link (the next
+ * output that starts with a bare `[`, since text escapes its own brackets) would read as `![t](url)`,
+ * an image the viewer loads on sight, so that `!` is escaped.
+ */
 function inline(nodes: AdfNode[] | undefined): string {
-  return (nodes ?? []).map(inlineNode).join("");
+  const parts = (nodes ?? []).map(inlineNode);
+  return parts
+    .map((part, i) => {
+      if (!part.endsWith("!")) return part;
+      const next = parts.slice(i + 1).find((p) => p !== "");
+      return next?.startsWith("[") ? `${part.slice(0, -1)}\\!` : part;
+    })
+    .join("");
 }
 
 function inlineNode(node: AdfNode): string {
@@ -134,7 +150,21 @@ function listItems(node: AdfNode, ordered: boolean): string {
     .join("\n");
 }
 
-function block(node: AdfNode): string {
+/** Library-relative path of images, keyed by the `alt` that names them. */
+export type ImagePaths = ReadonlyMap<string, string>;
+
+/** The `alt` of an image block, which the engine's projection sets to the attachment file name. */
+function imageAlt(node: AdfNode): string | undefined {
+  const alt = node.content?.[0]?.attrs?.["alt"];
+  return node.type === "mediaSingle" && typeof alt === "string" ? alt : undefined;
+}
+
+/** Every image a document links, by `alt`, so a publisher can check them before it writes anything. */
+export function imageAlts(doc: AdfDoc): string[] {
+  return doc.content.flatMap((node) => imageAlt(node) ?? []);
+}
+
+function block(node: AdfNode, images: ImagePaths | undefined): string {
   switch (node.type) {
     case "heading": {
       const asked = Number(node.attrs?.["level"] ?? 2);
@@ -151,19 +181,23 @@ function block(node: AdfNode): string {
       return `${fence}\n${code}\n${fence}`;
     }
     case "mediaSingle": {
-      const alt = node.content?.[0]?.attrs?.["alt"];
-      return typeof alt === "string"
-        ? `![${escapeInline(singleLine(alt))}](${IMAGES_DIR}/${safeName(alt)})`
-        : "";
+      const alt = imageAlt(node);
+      return alt === undefined
+        ? ""
+        : `![${escapeInline(singleLine(alt))}](${images?.get(alt) ?? `${IMAGES_DIR}/${safeName(alt)}`})`;
     }
     default:
       return inline(node.content);
   }
 }
 
-export function adfToMarkdown(doc: AdfDoc): string {
+/**
+ * `images` maps an image's `alt` to the path its file is uploaded to, so link and upload share one
+ * name. An `alt` it does not list links to its own safe name.
+ */
+export function adfToMarkdown(doc: AdfDoc, images?: ImagePaths): string {
   return doc.content
-    .map(block)
+    .map((node) => block(node, images))
     .filter((s) => s.length > 0)
     .join("\n\n");
 }

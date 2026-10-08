@@ -25,6 +25,7 @@ import {
   GRAPH_HOSTS,
   GraphClient,
   type GraphClientOptions,
+  SHAREPOINT_DOMAINS,
   assertGraphBaseUrl,
   isDownloadUrl,
   readBoundedText,
@@ -41,6 +42,18 @@ import { type FakeGraph, startFakeGraph } from "./fake-graph.js";
 
 /** The fake Graph server is plain http on loopback, which the publisher refuses unless told otherwise. */
 const LOOPBACK = { allowLoopbackHttp: true } as const;
+
+/** Every host the code can reach: the Graph endpoints and the SharePoint download domains. */
+const ALL_CAPABILITIES = [
+  "egress:graph.microsoft.com",
+  "egress:graph.microsoft.us",
+  "egress:microsoftgraph.chinacloudapi.cn",
+  "egress:graph.microsoft.de",
+  "egress:*.sharepoint.com",
+  "egress:*.sharepoint.us",
+  "egress:*.sharepoint.cn",
+  "egress:*.sharepoint.de",
+];
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TOKEN = "eyJ0eXAi.fake-graph-bearer-token.sig123";
@@ -368,6 +381,21 @@ describe("adf to markdown: injection", () => {
     );
   });
 
+  it("escapes a trailing ! so text before a link cannot become an image", () => {
+    const href = "https://e.com/x.png";
+    expect(render(para(txt("Look!"), linked("t", href)))).toBe("Look\\![t](https://e.com/x.png)");
+    expect(render(para(txt("Look!"), txt(""), linked("t", href)))).toBe(
+      "Look\\![t](https://e.com/x.png)",
+    );
+    expect(render(para(txt("a!", { type: "strong" }), linked("t", href)))).toBe(
+      "**a!**[t](https://e.com/x.png)",
+    );
+    // No link follows, so the text stays as written.
+    expect(render(para(txt("Done!")))).toBe("Done!");
+    expect(render(para(txt("Hi!"), txt(" there")))).toBe("Hi! there");
+    expect(render(para(txt("Hi!"), linked("t", "javascript:alert(1)")))).toBe("Hi!t");
+  });
+
   it.each([
     [0, "# t"],
     [-3, "# t"],
@@ -422,6 +450,41 @@ describe("adf to markdown: injection", () => {
   });
 });
 
+describe("sharepoint publisher: log lines", () => {
+  /** A line `singleLine` would change holds a newline or another control character. */
+  const hasControls = (line: string): boolean => singleLine(line) !== line;
+
+  it("logs a section name on one line, without control characters", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({
+      workspaceDir: dir,
+      options: { mode: "page-tree" },
+    });
+    projection.documents[1]!.section = "check\nINFO fake\u2028out\u0007\u009b";
+    const { log, lines } = capture();
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    const line = lines.find((l) => l.startsWith('section "check'));
+    expect(line).toBe('section "check INFO fake out ": created (docsxai/check-INFO-fake-out.md)');
+    expect(lines.filter(hasControls)).toEqual([]);
+  });
+
+  it("quotes a section name on one line in a collision error", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({
+      workspaceDir: dir,
+      options: { mode: "page-tree" },
+    });
+    projection.documents[1]!.section = "a\nb";
+    projection.documents[2]!.section = "a b";
+    const { log, lines } = capture();
+    const error = await createSharePointPublisher(LOOPBACK)
+      .publish(makeCtx(dir, projection, log))
+      .catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/^sharepoint: sections "a b" and "a b" both publish/);
+    expect(lines.filter(hasControls)).toEqual([]);
+  });
+});
+
 describe("sharepoint publisher: titles", () => {
   it("writes a title and a title_prefix with newlines and markup as one escaped heading", async () => {
     const dir = await makeWorkspace();
@@ -444,15 +507,12 @@ describe("sharepoint publisher: titles", () => {
 });
 
 describe("sharepoint plugin: manifest and runtime", () => {
-  it("declares the Graph host and the SharePoint download hosts, and stays private", async () => {
+  it("declares every Graph host and SharePoint download domain, and stays private", async () => {
     const pkg = JSON.parse(await fs.readFile(path.join(PKG_ROOT, "package.json"), "utf8")) as {
       private?: boolean;
       docsxai: { namespace: string; kinds: string[]; capabilities: string[]; trust: string };
     };
-    expect(pkg.docsxai.capabilities).toEqual([
-      "egress:graph.microsoft.com",
-      "egress:*.sharepoint.com",
-    ]);
+    expect(pkg.docsxai.capabilities).toEqual(ALL_CAPABILITIES);
     expect(pkg.docsxai.namespace).toBe("sharepoint");
     expect(pkg.docsxai.kinds).toEqual(["publisher"]);
     expect(pkg.private).toBe(true);
@@ -465,7 +525,7 @@ describe("sharepoint plugin: manifest and runtime", () => {
     const registry = await resolvePlugins({
       workspaceDir: dir,
       sources: [{ path: PKG_ROOT }],
-      enabledCapabilities: ["egress:graph.microsoft.com", "egress:*.sharepoint.com"],
+      enabledCapabilities: ALL_CAPABILITIES,
     });
     const record = registry.pluginsInfo("sharepoint");
     expect(record?.status).toBe("loaded");
@@ -477,6 +537,13 @@ describe("sharepoint plugin: manifest and runtime", () => {
       registry.getPublisher("sharepoint:push").publish(makeCtx(dir, projection, capture().log)),
     ).rejects.toThrow("graph_base_url must be https");
     expect(server.authHeaders).toEqual([]);
+  });
+
+  it("declares a capability for every host the code accepts", () => {
+    const declared = new Set(ALL_CAPABILITIES);
+    for (const host of GRAPH_HOSTS) expect(declared.has(`egress:${host}`)).toBe(true);
+    for (const domain of SHAREPOINT_DOMAINS) expect(declared.has(`egress:*.${domain}`)).toBe(true);
+    expect(declared.size).toBe(GRAPH_HOSTS.length + SHAREPOINT_DOMAINS.length);
   });
 
   it("is disabled when the egress capability is not operator-enabled", async () => {
@@ -646,7 +713,7 @@ describe("sharepoint publisher: attachment reads", () => {
     edit: (att: { sourcePath: string; sha256: string }) => void,
   ): Promise<unknown> {
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
-    edit(projection.documents[0]!.attachments[0]!);
+    edit(projection.documents[0]!.attachments[0]);
     return createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
   }
 
@@ -865,6 +932,17 @@ describe("sharepoint publisher: colliding targets", () => {
     return { dir, projection };
   }
 
+  /** The `media` node of a document's first image, to rename in a test. */
+  function mediaOf(doc: AdfProjection["documents"][number]): Record<string, unknown> {
+    return doc.adf.content.find((n) => n.type === "mediaSingle")!.content![0]!.attrs!;
+  }
+
+  /** Renames a document's first screenshot and the image that links it, as the projection pairs them. */
+  function renameShot(doc: AdfProjection["documents"][number], fileName: string): void {
+    doc.attachments[0]!.fileName = fileName;
+    mediaOf(doc)["alt"] = fileName;
+  }
+
   async function refused(dir: string, projection: AdfProjection, message: RegExp): Promise<void> {
     await expect(
       createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
@@ -906,8 +984,8 @@ describe("sharepoint publisher: colliding targets", () => {
 
   it("refuses two screenshots that share an image path", async () => {
     const { dir, projection } = await tree();
-    projection.documents[1]!.attachments[0]!.fileName = "x y.png";
-    projection.documents[2]!.attachments[0]!.fileName = "x-y.png";
+    renameShot(projection.documents[1], "x y.png");
+    renameShot(projection.documents[2], "x-y.png");
     await refused(
       dir,
       projection,
@@ -915,9 +993,58 @@ describe("sharepoint publisher: colliding targets", () => {
     );
   });
 
+  it("refuses an image named .., before any request", async () => {
+    const { dir, projection } = await tree();
+    mediaOf(projection.documents[1])["alt"] = "..";
+    await refused(dir, projection, /not a usable file name/);
+  });
+
+  it("refuses a screenshot named .. that its image links, before any request", async () => {
+    const { dir, projection } = await tree();
+    renameShot(projection.documents[1], "..");
+    await refused(dir, projection, /not a usable file name/);
+  });
+
+  it("refuses an image that no screenshot of its document carries, before any request", async () => {
+    const { dir, projection } = await tree();
+    mediaOf(projection.documents[1])["alt"] = "other.png";
+    await refused(
+      dir,
+      projection,
+      /section "checkout" links image "other\.png" but lists no screenshot with that file name/,
+    );
+  });
+
+  it("links an image by the name its screenshot is uploaded under", async () => {
+    const { dir, projection } = await tree();
+    renameShot(projection.documents[1], "Shot A!.png");
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
+    expect(text("docsxai/checkout.md")).toContain("(images/Shot-A-.png)");
+    expect(server.files.get("docsxai/images/Shot-A-.png")!.data.equals(PNG_A)).toBe(true);
+  });
+
+  it('refuses sections "a." and "a", which SharePoint stores as one file', async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.section = "a.";
+    projection.documents[2]!.section = "a";
+    await refused(dir, projection, /sections "a\." and "a" both publish to docsxai\/a\.md/);
+  });
+
+  it('refuses screenshots "x.png." and "x.png", which SharePoint stores as one file', async () => {
+    const { dir, projection } = await tree();
+    renameShot(projection.documents[1], "x.png.");
+    renameShot(projection.documents[2], "x.png");
+    await refused(
+      dir,
+      projection,
+      /screenshots "x\.png\." \(section "checkout"\) and "x\.png" \(section "login"\) both upload to docsxai\/images\/x\.png/,
+    );
+  });
+
   it("takes one screenshot listed by two documents, and still pushes", async () => {
     const { dir, projection } = await tree();
     projection.documents[2]!.attachments = [{ ...projection.documents[1]!.attachments[0]! }];
+    mediaOf(projection.documents[2])["alt"] = "checkout--step-1.png";
     const result = await createSharePointPublisher(LOOPBACK).publish(
       makeCtx(dir, projection, capture().log),
     );
@@ -996,6 +1123,17 @@ describe("sharepoint publisher: file names and folder", () => {
     expect(() => safeName(raw)).toThrow(/not a usable file name/);
   });
 
+  it.each([
+    ["a.", "a"],
+    ["a...", "a"],
+    ["a. ", "a"],
+    ["a.-", "a"],
+    ["a-.", "a"],
+    ["x.png.", "x.png"],
+  ])("safeName drops the trailing dot of %j, as SharePoint does", (raw, expected) => {
+    expect(safeName(raw)).toBe(expected);
+  });
+
   it("safeName keeps ordinary names, dots inside included", () => {
     expect(safeName("a..b")).toBe("a..b");
     expect(safeName("checkout--step-1.png")).toBe("checkout--step-1.png");
@@ -1004,6 +1142,37 @@ describe("sharepoint publisher: file names and folder", () => {
 
   it.each(["..", "../x", "a/../b", "./a", "a/./b", "..."])("refuses folder %j", (folder) => {
     expect(() => parseConfig({ drive_id: "d", folder })).toThrow(/config\.folder/);
+  });
+
+  it.each(["drive_id", "site_id"])("refuses a %s that would change the request path", (key) => {
+    for (const id of ["..", ".", "...", "a/b", "../x", "a\\b", "a?x=1", "a#b", "/"]) {
+      expect(() => parseConfig({ [key]: id }), `${key} ${id}`).toThrow(
+        new RegExp(`config\\.${key} must not be`),
+      );
+    }
+  });
+
+  it("refuses a bad drive_id even when site_id is fine, and a bad site_id beside a good drive_id", () => {
+    expect(() => parseConfig({ drive_id: "..", site_id: "s" })).toThrow(/config\.drive_id/);
+    expect(() => parseConfig({ drive_id: "d", site_id: "a/b" })).toThrow(/config\.site_id/);
+  });
+
+  it("keeps real ids: a drive id with !, a site id with commas and dots", () => {
+    const cfg = parseConfig({ drive_id: "b!Abc-_123", site_id: "contoso.sharepoint.com,1a,2b" });
+    expect(cfg.drive_id).toBe("b!Abc-_123");
+    expect(cfg.site_id).toBe("contoso.sharepoint.com,1a,2b");
+  });
+
+  it("refuses a bad id before any request", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    await expect(
+      createSharePointPublisher(LOOPBACK).publish(
+        makeCtx(dir, projection, capture().log, { drive_id: ".." }),
+      ),
+    ).rejects.toThrow(/config\.drive_id must not be/);
+    expect(server.authHeaders).toEqual([]);
+    expect(server.writes).toBe(0);
   });
 
   it("keeps a nested folder and drops empty segments", () => {

@@ -2,7 +2,7 @@
 
 docsxai **publisher plugin** for SharePoint Online. Registers `sharepoint:push`, which takes the engine's ADF projection (`docsxai export adf` / `projectDocPackToAdf`), renders each document to markdown and uploads it, with its screenshots, into a folder of a SharePoint document library through Microsoft Graph. A second push of unchanged content performs zero writes.
 
-The engine emits projections only and performs no wiki egress. This plugin is the SharePoint egress path. Its manifest declares two capabilities, `egress:graph.microsoft.com` (the API) and `egress:*.sharepoint.com` (the pre-authenticated download URL Graph redirects a file read to), and the workspace's `plugin_capabilities` has to opt into both. All HTTP uses the built-in `fetch`.
+The engine emits projections only and performs no wiki egress. This plugin is the SharePoint egress path. Its manifest declares one capability per host the code can reach: `egress:graph.microsoft.com`, `egress:graph.microsoft.us`, `egress:microsoftgraph.chinacloudapi.cn` and `egress:graph.microsoft.de` (the API), and `egress:*.sharepoint.com`, `egress:*.sharepoint.us`, `egress:*.sharepoint.cn` and `egress:*.sharepoint.de` (the pre-authenticated download URL Graph redirects a file read to). The runtime loads a plugin only when every declared capability is enabled, so the workspace's `plugin_capabilities` has to list all eight, whichever cloud the tenant is in. All HTTP uses the built-in `fetch`.
 
 > **Repo-only.** `@docsxai/plugin-sharepoint` is not published to npm (`private: true`). A new publishable package needs an npm trusted-publisher binding first, and that is not set up. Build it from a checkout (`pnpm -r build`) and wire it by path: `{ "path": "<checkout>/packages/plugin-sharepoint" }` (relative paths resolve from the workspace directory).
 
@@ -19,7 +19,16 @@ The cost: these are files in a library, not modern site pages. They appear in th
 ```json
 {
   "plugins": [{ "path": "<checkout>/packages/plugin-sharepoint" }],
-  "plugin_capabilities": ["egress:graph.microsoft.com", "egress:*.sharepoint.com"]
+  "plugin_capabilities": [
+    "egress:graph.microsoft.com",
+    "egress:graph.microsoft.us",
+    "egress:microsoftgraph.chinacloudapi.cn",
+    "egress:graph.microsoft.de",
+    "egress:*.sharepoint.com",
+    "egress:*.sharepoint.us",
+    "egress:*.sharepoint.cn",
+    "egress:*.sharepoint.de"
+  ]
 }
 ```
 
@@ -31,14 +40,14 @@ Passed as the publisher's `config`:
 
 | Key              | Required   | Meaning                                                                                                                                                                                                                                                                                                    |
 | ---------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `drive_id`       | one of two | Document library id (`drives/{id}`). Wins when both are set.                                                                                                                                                                                                                                               |
-| `site_id`        | one of two | Site id; the site's default document library (`sites/{id}/drive`) is used.                                                                                                                                                                                                                                 |
+| `drive_id`       | one of two | Document library id (`drives/{id}`). Wins when both are set. `.`, `..` and any id with `/`, `\`, `?` or `#` are refused.                                                                                                                                                                                   |
+| `site_id`        | one of two | Site id; the site's default document library (`sites/{id}/drive`) is used. Same character rules as `drive_id`.                                                                                                                                                                                             |
 | `folder`         | no         | Folder inside the library, `docsxai` by default. The first upload into a missing folder relies on Graph creating the parent folders from the path; that is untested against a live tenant, so create the folder first if the first push fails.                                                             |
 | `graph_base_url` | no         | Graph endpoint, `https://graph.microsoft.com/v1.0` by default. Must be `https` on a Microsoft Graph host (global, US, China and Germany clouds) with no port other than the default, no query or fragment, and the path `/v1.0` or `/beta`; plain http on loopback only under the publisher's test option. |
 | `title_prefix`   | no         | Prepended to every page title, e.g. `"[Docs] "`.                                                                                                                                                                                                                                                           |
 | `force`          | no         | `true` uploads every file even when the manifest says it is unchanged.                                                                                                                                                                                                                                     |
 
-`graph_base_url` is checked against an allowlist of Graph hosts before any request, so the bearer token is only sent to one of them. Capabilities still gate which plugins load and are a review signal; they are matched as exact strings and the plugin does not check them against a national-cloud endpoint (`graph.microsoft.us`, `microsoftgraph.chinacloudapi.cn`, `graph.microsoft.de`) or its download hosts (`*.sharepoint.us`, `.cn`, `.de`), so list the matching `egress:` entries in `plugin_capabilities` yourself to record them.
+`graph_base_url` is checked against an allowlist of Graph hosts before any request, so the bearer token is only sent to one of them. Capabilities gate which plugins load and are matched as exact strings; the manifest declares every host in that allowlist and every SharePoint download domain, so the capability list matches what the code can reach.
 
 Graph answers a file read (`GET .../root:/<path>:/content`) with a redirect to a pre-authenticated download URL. A read follows exactly one hop, only when the `Location` is `https` on a subdomain of `sharepoint.com` (or the `.us`, `.cn` and `.de` domains), with no credentials and the default port, and it sends no `Authorization` header there. A second redirect, or a `Location` anywhere else, fails the read. Writes never follow a redirect. Every call has a deadline that covers the response body: 30 seconds for API calls, 120 seconds for uploads.
 

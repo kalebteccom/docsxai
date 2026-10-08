@@ -25,7 +25,14 @@ import {
   resolveWorkspacePath,
   resolveWorkspacePathReal,
 } from "@docsxai/engine";
-import { adfToMarkdown, IMAGES_DIR, safeName, singleLine, titleLine } from "./adf-markdown.js";
+import {
+  adfToMarkdown,
+  IMAGES_DIR,
+  imageAlts,
+  safeName,
+  singleLine,
+  titleLine,
+} from "./adf-markdown.js";
 import { readRegularFile } from "./read-file.js";
 import {
   assertGraphBaseUrl,
@@ -127,12 +134,23 @@ function optionalString(raw: Record<string, unknown>, key: string): string | und
   return typeof v === "string" && v.length > 0 ? v : undefined;
 }
 
+/** An id that goes into a request path: not a dot segment, and none of `/`, `\`, `?` or `#`. */
+function idValue(raw: Record<string, unknown>, key: "drive_id" | "site_id"): string | undefined {
+  const id = optionalString(raw, key);
+  if (id !== undefined && (/^\.+$/.test(id) || /[/\\?#]/.test(id))) {
+    throw new Error(
+      `sharepoint: config.${key} must not be "." or "..", or contain "/", "\\", "?" or "#"`,
+    );
+  }
+  return id;
+}
+
 export function parseConfig(
   raw: Record<string, unknown>,
   options: GraphUrlOptions = {},
 ): SharePointPublishConfig {
-  const driveId = optionalString(raw, "drive_id");
-  const siteId = optionalString(raw, "site_id");
+  const driveId = idValue(raw, "drive_id");
+  const siteId = idValue(raw, "site_id");
   if (!driveId && !siteId) {
     throw new Error("sharepoint: config.drive_id or config.site_id is required");
   }
@@ -237,11 +255,31 @@ function imageName(att: AdfAttachment): string {
   return `${IMAGES_DIR}/${safeName(att.fileName)}`;
 }
 
+/** A name from the pack as one quoted line, safe to log: a newline or control character cannot start a fake log line. */
+function quoted(name: string): string {
+  return JSON.stringify(singleLine(name));
+}
+
+/** A document links an image only through an attachment of the same name, so link and upload agree. */
+function assertImagesAttached(doc: AdfDocument): void {
+  const names = new Set(doc.attachments.map((att) => att.fileName));
+  for (const alt of imageAlts(doc.adf)) {
+    safeName(alt);
+    if (!names.has(alt)) {
+      throw new Error(
+        `sharepoint: section ${quoted(doc.section)} links image ${quoted(alt)} but lists no screenshot with that file name`,
+      );
+    }
+  }
+}
+
 /**
  * Refuses two documents or two screenshots that would land on one file. SharePoint names are case
  * insensitive and `safeName` folds spaces and punctuation, so `a b` and `a-b` (or `Login` and
  * `login`) are one path. A screenshot named twice with the same source is one file, not a clash.
- * Runs before any request, so a collision never leaves a half-written folder behind.
+ * Also checks every name the pack can produce (a section, a screenshot, an image link), so a name
+ * `safeName` refuses fails here. Runs before any request, so a bad pack never leaves a half-written
+ * folder behind.
  */
 function assertNoCollisions(documents: readonly AdfDocument[], folder: string): void {
   const pages = new Map<string, string>();
@@ -251,17 +289,18 @@ function assertNoCollisions(documents: readonly AdfDocument[], folder: string): 
     const prior = pages.get(rel.toLowerCase());
     if (prior !== undefined) {
       throw new Error(
-        `sharepoint: sections ${JSON.stringify(prior)} and ${JSON.stringify(doc.section)} both publish to ${folder}/${rel}`,
+        `sharepoint: sections ${quoted(prior)} and ${quoted(doc.section)} both publish to ${folder}/${rel}`,
       );
     }
     pages.set(rel.toLowerCase(), doc.section);
+    assertImagesAttached(doc);
     for (const att of doc.attachments) {
       const key = imageName(att).toLowerCase();
       const known = images.get(key);
       const source = `${att.fileName}\0${att.sourcePath}`;
       if (known !== undefined && known.source !== source) {
         throw new Error(
-          `sharepoint: screenshots ${JSON.stringify(known.fileName)} (section ${JSON.stringify(known.section)}) and ${JSON.stringify(att.fileName)} (section ${JSON.stringify(doc.section)}) both upload to ${folder}/${imageName(att)}`,
+          `sharepoint: screenshots ${quoted(known.fileName)} (section ${quoted(known.section)}) and ${quoted(att.fileName)} (section ${quoted(doc.section)}) both upload to ${folder}/${imageName(att)}`,
         );
       }
       images.set(key, { source, section: doc.section, fileName: att.fileName });
@@ -275,7 +314,9 @@ async function uploadsFor(
   doc: AdfDocument,
   title: string,
 ): Promise<{ page: Upload; images: Upload[] }> {
-  const markdown = Buffer.from(`${titleLine(title)}\n\n${adfToMarkdown(doc.adf)}\n`, "utf8");
+  // The page links each image by the path it is uploaded to.
+  const paths = new Map(doc.attachments.map((att) => [att.fileName, imageName(att)]));
+  const markdown = Buffer.from(`${titleLine(title)}\n\n${adfToMarkdown(doc.adf, paths)}\n`, "utf8");
   const images: Upload[] = [];
   for (const att of doc.attachments) {
     // The projection can come from a caller, so the path is held inside the workspace and the
@@ -353,7 +394,9 @@ export function createSharePointPublisher(
             wrote = (await push(page)) || wrote;
             const entry = manifest.files[page.rel]!;
             const action = !wrote ? "unchanged" : existed ? "updated" : "created";
-            log.info(`section "${doc.section}": ${action} (${config.folder}/${page.rel})`);
+            log.info(
+              `section "${singleLine(doc.section)}": ${action} (${config.folder}/${page.rel})`,
+            );
             pages.push({
               id: entry.id ?? `${config.folder}/${page.rel}`,
               ...(entry.webUrl ? { url: entry.webUrl } : {}),
