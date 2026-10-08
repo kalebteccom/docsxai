@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **Static accessibility checks in CI.** `pnpm test` lints rendered viewer pages and the docs-site build lints four built pages (home, 404, a docs page, a table page) for `lang`, one `h1`, heading order, `alt`, form labels, landmarks, the skip link target, `tabindex`, empty links and buttons, `aria-*` names and roles, labelled scroll regions, `prefers-reduced-motion` and hidden scrollbars, with no browser. Rules: `docs/ai-context/ux/static-checks.md`.
+
 ### Fixed
 
 - **GitBook publisher: markdown escaping and log lines.** A code span whose content starts or ends with a backtick rendered with unbalanced fences, and a newline in a code span, heading or list item ended its line. Code spans are now padded and flattened to one line, headings and list items stay on one line, heading levels clamp to 1..6 (level 0 was 2), a `!` before a link is escaped, and link targets are percent-encoded (`(`, `)`, whitespace, brackets, quotes) where a target with a parenthesis used to lose its link. Alt text is escaped on one line, a page title and `title_prefix` are cut to one line, two screenshots of one page that fold to the same file name are refused before any write, and section names in logs and errors are quoted on one line. Pages with those characters render differently, so the first push after the upgrade rewrites them.
