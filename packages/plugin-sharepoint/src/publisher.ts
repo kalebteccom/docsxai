@@ -30,7 +30,9 @@ import {
   assertGraphBaseUrl,
   DEFAULT_GRAPH_URL,
   GraphClient,
+  type GraphClientOptions,
   type GraphUrlOptions,
+  SHAREPOINT_DOMAINS,
 } from "./graph-client.js";
 
 export const MANIFEST_FILE = "docsxai-manifest.json";
@@ -45,7 +47,8 @@ export interface SharePointPublishConfig {
   folder: string;
   /**
    * Graph endpoint. Default `https://graph.microsoft.com/v1.0`. Must be `https` on
-   * `graph.microsoft.com`, `graph.microsoft.us`, `microsoftgraph.chinacloudapi.cn` or `graph.microsoft.de`.
+   * `graph.microsoft.com`, `graph.microsoft.us`, `microsoftgraph.chinacloudapi.cn` or `graph.microsoft.de`,
+   * with the path `/v1.0` or `/beta` and no query or fragment.
    */
   graph_base_url: string;
   /** Prefixed onto every page title. */
@@ -62,10 +65,7 @@ interface ManifestEntry {
 }
 
 /** Options of the publisher itself, not of a publish call. */
-export type SharePointPublisherOptions = GraphUrlOptions;
-
-/** Hosts a SharePoint `webUrl` can be on: the public cloud and the national clouds. */
-const SHAREPOINT_DOMAINS = ["sharepoint.com", "sharepoint.us", "sharepoint.cn", "sharepoint.de"];
+export type SharePointPublisherOptions = GraphUrlOptions & GraphClientOptions;
 
 /** True for an `https:` URL on a SharePoint domain, with no credentials. */
 export function isSharePointUrl(value: unknown): value is string {

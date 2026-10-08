@@ -22,7 +22,9 @@ import { adfToMarkdown, safeName } from "../src/adf-markdown.js";
 import {
   GRAPH_HOSTS,
   GraphClient,
+  type GraphClientOptions,
   assertGraphBaseUrl,
+  isDownloadUrl,
   readBoundedText,
 } from "../src/graph-client.js";
 import { MAX_IMAGE_BYTES } from "../src/read-file.js";
@@ -30,6 +32,7 @@ import {
   MANIFEST_FILE,
   createSharePointPublisher,
   isSharePointUrl,
+  maskToken,
   parseConfig,
 } from "../src/publisher.js";
 import { type FakeGraph, startFakeGraph } from "./fake-graph.js";
@@ -361,6 +364,30 @@ describe("sharepoint publisher: graph_base_url", () => {
     expect(() => assertGraphBaseUrl(url)).toThrow(/graph_base_url/);
   });
 
+  it.each([
+    "https://graph.microsoft.com/v1.0?tenant=x",
+    "https://graph.microsoft.com/v1.0?",
+    "https://graph.microsoft.com/v1.0#frag",
+    "https://graph.microsoft.com/v1.0#",
+    "https://graph.microsoft.com",
+    "https://graph.microsoft.com/",
+    "https://graph.microsoft.com/v2.0",
+    "https://graph.microsoft.com/v1.0/sites",
+    "https://graph.microsoft.com/v1%2E0",
+    "https://graph.microsoft.com/beta/v1.0",
+  ])("refuses %s: a query, a fragment or a path other than /v1.0 and /beta", (url) => {
+    expect(() => assertGraphBaseUrl(url)).toThrow(/graph_base_url/);
+  });
+
+  it("returns the parsed origin and path: /beta passes, the host is lower-cased, :443 is dropped", () => {
+    expect(assertGraphBaseUrl("https://graph.microsoft.com/beta/")).toBe(
+      "https://graph.microsoft.com/beta",
+    );
+    expect(assertGraphBaseUrl("https://GRAPH.Microsoft.com:443/v1.0")).toBe(
+      "https://graph.microsoft.com/v1.0",
+    );
+  });
+
   it("refuses a port other than the default, and takes an explicit :443", () => {
     for (const url of [
       "https://graph.microsoft.com:8443/v1.0",
@@ -370,7 +397,7 @@ describe("sharepoint publisher: graph_base_url", () => {
       expect(() => assertGraphBaseUrl(url)).toThrow(/default https port/);
     }
     expect(assertGraphBaseUrl("https://graph.microsoft.com:443/v1.0")).toBe(
-      "https://graph.microsoft.com:443/v1.0",
+      "https://graph.microsoft.com/v1.0",
     );
   });
 
@@ -549,6 +576,135 @@ describe("sharepoint publisher: redirects", () => {
     } finally {
       await other.close();
     }
+  });
+});
+
+/** A client on the fake server, as the publisher builds it. */
+function clientFor(options: GraphClientOptions = {}): GraphClient {
+  return new GraphClient(server.baseUrl, { root: "drives/d" }, TOKEN, maskToken(TOKEN), {
+    ...LOOPBACK,
+    ...options,
+  });
+}
+
+function seed(itemPath: string, content: string): void {
+  server.files.set(itemPath, { data: Buffer.from(content), contentType: "text/plain", id: "seed" });
+}
+
+describe("sharepoint client: read redirected to a download URL", () => {
+  it("follows the one hop without the bearer token and returns the file", async () => {
+    seed("docsxai/a.txt", "hello");
+    expect(await clientFor().readText("docsxai/a.txt")).toBe("hello");
+    expect(server.authHeaders).toEqual([`Bearer ${TOKEN}`]);
+    expect(server.downloadAuthHeaders).toEqual([""]);
+  });
+
+  it("still reads a plain 200 answer, and a missing item is null without a hop", async () => {
+    server.redirectReadsToDownload = false;
+    seed("docsxai/a.txt", "direct");
+    expect(await clientFor().readText("docsxai/a.txt")).toBe("direct");
+    expect(await clientFor().readText("docsxai/none.txt")).toBeNull();
+    expect(server.downloadAuthHeaders).toEqual([]);
+  });
+
+  it("a second push reads its manifest through the redirect and writes nothing", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const publisher = createSharePointPublisher(LOOPBACK);
+    await publisher.publish(makeCtx(dir, projection, capture().log));
+    const settled = server.writes;
+    const run2 = await publisher.publish(makeCtx(dir, projection, capture().log));
+    expect(run2.pages.map((p) => p.action)).toEqual(["unchanged"]);
+    expect(server.writes).toBe(settled);
+    expect(server.downloadAuthHeaders).toEqual([""]);
+  });
+
+  it("an error answer from the download URL fails the read, it is not read as a missing file", async () => {
+    seed("docsxai/a.txt", "hello");
+    server.redirectReadsTo = `${new URL(server.baseUrl).origin}/download/nope`;
+    await expect(clientFor().readText("docsxai/a.txt")).rejects.toThrow(/HTTP 404/);
+  });
+
+  it.each([
+    "https://evil.example.com/x",
+    "https://contoso.sharepoint.com.evil.example.com/x",
+    "https://evilsharepoint.com/x",
+    "https://sharepoint.com/x",
+    "http://contoso.sharepoint.com/x",
+    "https://contoso.sharepoint.com:8443/x",
+    "https://" + "user" + ":" + "pw" + "@contoso.sharepoint.com/x",
+    "ftp://contoso.sharepoint.com/x",
+  ])("refuses a redirect to %s and sends nothing there", async (location) => {
+    seed("docsxai/a.txt", "hello");
+    server.redirectReadsTo = location;
+    await expect(clientFor().readText("docsxai/a.txt")).rejects.toThrow(
+      /not a SharePoint download URL/,
+    );
+    expect(server.downloadAuthHeaders).toEqual([]);
+  });
+
+  it("refuses a download URL that redirects again", async () => {
+    seed("docsxai/a.txt", "hello");
+    server.downloadRedirectsTo = "https://contoso.sharepoint.com/x";
+    await expect(clientFor().readText("docsxai/a.txt")).rejects.toThrow(/redirected again/);
+  });
+
+  it("isDownloadUrl takes https on a SharePoint subdomain, and loopback http only under the test option", () => {
+    for (const ok of [
+      "https://contoso.sharepoint.com/a",
+      "https://contoso-my.sharepoint.com/a?tempauth=x",
+      "https://contoso.sharepoint.us/a",
+      "https://contoso.sharepoint.cn/a",
+      "https://contoso.sharepoint.de/a",
+      "https://contoso.sharepoint.com:443/a",
+    ]) {
+      expect(isDownloadUrl(ok)).toBe(true);
+    }
+    expect(isDownloadUrl("http://127.0.0.1:4000/a")).toBe(false);
+    expect(isDownloadUrl("http://127.0.0.1:4000/a", LOOPBACK)).toBe(true);
+    expect(isDownloadUrl("http://contoso.sharepoint.com/a", LOOPBACK)).toBe(false);
+    expect(isDownloadUrl("not a url")).toBe(false);
+  });
+});
+
+describe("sharepoint client: timeouts and error bodies", () => {
+  const FAST = { apiTimeoutMs: 300, uploadTimeoutMs: 300 };
+
+  it("ends a stalled read with a timeout error", async () => {
+    server.stall = ["GET docsxai/a.txt"];
+    const started = Date.now();
+    await expect(clientFor(FAST).readText("docsxai/a.txt")).rejects.toThrow(
+      /GET docsxai\/a.txt timed out after 300 ms/,
+    );
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+
+  it("ends a response body that never finishes with a timeout error", async () => {
+    server.stallBody = ["GET docsxai/a.txt"];
+    await expect(clientFor(FAST).readText("docsxai/a.txt")).rejects.toThrow(
+      /timed out reading the response/,
+    );
+  });
+
+  it("ends a stalled upload with a timeout error and stores nothing", async () => {
+    server.stall = ["PUT docsxai/a.txt"];
+    await expect(
+      clientFor(FAST).upload("docsxai/a.txt", new Uint8Array([1]), "text/plain"),
+    ).rejects.toThrow(/PUT docsxai\/a.txt timed out after 300 ms/);
+    expect(server.writes).toBe(0);
+  });
+
+  it("masks the token before cutting an error body, so no part of it survives the cut", async () => {
+    server.failEchoingToken = true;
+    server.errorPadding = 452; // the echoed token starts at character 490 and ends past 500
+    let message = "";
+    try {
+      await clientFor().readText("docsxai/a.txt");
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toContain("HTTP 500");
+    expect(message).not.toContain(TOKEN.slice(0, 10));
   });
 });
 
