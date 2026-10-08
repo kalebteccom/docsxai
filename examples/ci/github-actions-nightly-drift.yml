@@ -5,6 +5,7 @@
 # slow and heavy, and per-PR pipelines on shared runners compete for the same CPU and memory.
 # The job replays the flows twice into isolated roots (--verify-determinism), then compares the
 # result with the committed baseline. Both reports are uploaded as one artifact, also on failure.
+# Pinned to docsxai@next, the 0.3.x line; when it ships stable, latest moves and the pin should too.
 name: docsxai-nightly-drift
 
 on:
@@ -32,7 +33,7 @@ jobs:
           node-version: 26
       - name: install docsxai and Chromium
         run: |
-          npm install --global docsxai
+          npm install --global docsxai@next
           npx playwright-core install --with-deps chromium
       - name: verify determinism
         env:

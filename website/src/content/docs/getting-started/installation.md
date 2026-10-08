@@ -11,8 +11,11 @@ plain npm packages.
 One global install of the bare `docsxai` package gives you the whole CLI:
 
 ```sh
-pnpm add -g docsxai
+pnpm add -g docsxai@next
 ```
+
+`next` is the 0.3.x line (`pack`, `--verify-determinism`, matrix flows). `latest` stays 0.2.0 until
+0.3.x ships stable; then it moves, and the pin should move to the stable version.
 
 `docsxai` is the batteries-included meta-package - its bin runs
 [`@docsxai/engine`](/packages/engine/)'s CLI in-process, and it depends on
@@ -22,7 +25,7 @@ pnpm add -g docsxai
 Prefer granular installs? The scoped packages are the same code:
 
 ```sh
-pnpm add -g @docsxai/engine @docsxai/viewer
+pnpm add -g @docsxai/engine@next @docsxai/viewer@next
 ```
 
 Use `@docsxai/engine` directly when you want the engine as a _library_

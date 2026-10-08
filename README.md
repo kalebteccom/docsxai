@@ -35,10 +35,10 @@ Per-commit LLM runs would be untenable; per-commit Playwright runs are standard.
 Requires [Node 26+](https://nodejs.org/).
 
 ```bash
-pnpm add -g docsxai      # batteries-included: the docsxai CLI + the viewer
+pnpm add -g docsxai@next      # batteries-included: the docsxai CLI + the viewer
 ```
 
-The granular equivalent is `pnpm add -g @docsxai/engine @docsxai/viewer`. Then fetch the Chromium the engine drives (a one-shot, never an install-time script):
+`next` is the 0.3.x line (`pack`, `--verify-determinism`, matrix flows); `latest` stays 0.2.0 until 0.3.x ships stable, then it moves and the pin should move to the stable version. The granular equivalent is `pnpm add -g @docsxai/engine@next @docsxai/viewer@next`. Then fetch the Chromium the engine drives (a one-shot, never an install-time script):
 
 ```bash
 npx playwright-core install chromium

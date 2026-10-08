@@ -3,9 +3,11 @@
 The batteries-included install of [docsxai](https://github.com/kalebteccom/docsxai) — deterministic screenshot docs for web apps.
 
 ```sh
-pnpm add -g docsxai        # or: npm install -g docsxai
+pnpm add -g docsxai@next   # or: npm install -g docsxai@next
 docsxai --help
 ```
+
+`next` is the 0.3.x line (`pack`, `--verify-determinism`, matrix flows); `latest` stays 0.2.0 until 0.3.x ships stable, then it moves and the pin should move to the stable version.
 
 One global install gives you the whole CLI surface. This package is a thin meta-package: its bin resolves [`@docsxai/engine`](https://www.npmjs.com/package/@docsxai/engine)'s CLI entry and runs it in-process, and it depends on [`@docsxai/viewer`](https://www.npmjs.com/package/@docsxai/viewer) so the `docsxai-viewer` bin lands on your path too — `docsxai render`, `docsxai burn`, `docsxai pack` and `docsxai drift` work out of the box (`pack` also wants the external `oxipng` binary unless you pass `--no-optimise`). The bin points `DOCSX_VIEWER_BIN` at the viewer this package resolves when you haven't set it; with it set (or in the engine alone) the engine locates the viewer through its layered resolution: `DOCSX_VIEWER_BIN`, the installed `@docsxai/viewer` package, then PATH.
 

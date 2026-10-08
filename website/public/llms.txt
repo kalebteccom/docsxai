@@ -9,7 +9,7 @@ Every page below is served as plaintext Markdown. The rendered site at https://d
 ## Start here
 
 - [Introduction](https://docsxai.dev/getting-started/introduction.md): what docsxai is, the two-mode bet, the naming table, and when to use it over a recorder
-- [Installation](https://docsxai.dev/getting-started/installation.md): `pnpm add -g docsxai` (the batteries-included meta-package: engine CLI + viewer), the scoped per-package install, the from-source build, the Chromium one-shot, and verification
+- [Installation](https://docsxai.dev/getting-started/installation.md): `pnpm add -g docsxai@next` (the batteries-included meta-package: engine CLI + viewer), the scoped per-package install, the from-source build, the Chromium one-shot, and verification
 - [Quickstart](https://docsxai.dev/getting-started/quickstart.md): init a workspace, capture auth, author a first flow, run it, render the viewer
 
 ## Concepts
