@@ -1,0 +1,22 @@
+{
+  "schema": "docsxai/pack-config@1",
+  "matrixFlow": {
+    "flow": "login",
+    "map": {
+      "en-US.light.desktop-1280": "en.light.1280",
+      "es-ES.dark.mobile-390": "es.dark.390"
+    }
+  },
+  "flows": {
+    "login": {
+      "title": { "en": "Login", "es": "Acceso" },
+      "steps": {
+        "home": {
+          "alt": { "en": "Sign-in page", "es": "Pagina de acceso" },
+          "caption": { "en": "Sign in", "es": "Entrar" }
+        },
+        "done": { "alt": { "en": "Signed in", "es": "Sesion iniciada" } }
+      }
+    }
+  }
+}

@@ -18,6 +18,16 @@ import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
 import { calloutsOf } from "./pack-annotations.js";
 import {
+  CAPTURE_FLOW,
+  parseMatrixFlow,
+  parseMatrixSource,
+  resolveSources,
+  variantIds,
+  type MatrixFlow,
+  type MatrixSource,
+  type ResolvedSource,
+} from "./pack-matrix.js";
+import {
   readJsonObject,
   readLocalized,
   type PackSource,
@@ -30,14 +40,16 @@ import { MAX_PNG_BYTES, readRegularFile } from "./safe-read.js";
 export const PACK_CONFIG_SCHEMA = "docsxai/pack-config@1";
 export const PACK_CONFIG_FILE = "pack.json";
 
-/** A capture flow's directory name under `docs/`, as the engine's `burn` accepts it. */
-const CAPTURE_FLOW = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
-
 type Obj = Record<string, unknown>;
 
 export interface PackConfig {
-  /** Capture flow name → where its screenshots go in the pack. */
-  sources: Record<string, { flow: string; variant: string }>;
+  /**
+   * Capture flow name → where its screenshots go in the pack. An entry with `matrix` names one
+   * variant directory of a matrix flow instead, and its key is only a label.
+   */
+  sources: Record<string, { flow: string; variant: string } | MatrixSource>;
+  /** Every variant directory of one matrix flow, mapped to pack keys. */
+  matrixFlow?: MatrixFlow;
   flows: Record<
     string,
     {
@@ -61,7 +73,11 @@ export function parsePackConfig(raw: Obj): PackConfig {
   }
   const sources: PackConfig["sources"] = {};
   const seen = new Map<string, string>();
-  for (const [name, entry] of Object.entries(objectAt(raw.sources, "sources"))) {
+  const matrixFlow =
+    raw.matrixFlow !== undefined ? parseMatrixFlow(raw.matrixFlow, PACK_CONFIG_FILE) : undefined;
+  const rawSources =
+    raw.sources === undefined && matrixFlow ? {} : objectAt(raw.sources, "sources");
+  for (const [name, entry] of Object.entries(rawSources)) {
     // Two names that differ only by case are one `docs/<name>/` directory on a case-insensitive disk.
     const clash = seen.get(name.toLowerCase());
     if (clash !== undefined) {
@@ -73,6 +89,10 @@ export function parsePackConfig(raw: Obj): PackConfig {
     const e = objectAt(entry, `sources["${name}"]`);
     if (!CAPTURE_FLOW.test(name))
       throw new Error(`${PACK_CONFIG_FILE}: sources["${name}"] is not a flow name`);
+    if (e.matrix !== undefined) {
+      sources[name] = parseMatrixSource(e, `${PACK_CONFIG_FILE}: sources["${name}"]`);
+      continue;
+    }
     if (typeof e.flow !== "string" || !isValidId(e.flow)) {
       throw new Error(`${PACK_CONFIG_FILE}: sources["${name}"].flow must be a flow id`);
     }
@@ -83,7 +103,9 @@ export function parsePackConfig(raw: Obj): PackConfig {
     }
     sources[name] = { flow: e.flow, variant: e.variant };
   }
-  if (Object.keys(sources).length === 0) throw new Error(`${PACK_CONFIG_FILE}: sources is empty`);
+  if (Object.keys(sources).length === 0 && !matrixFlow) {
+    throw new Error(`${PACK_CONFIG_FILE}: sources is empty`);
+  }
   const flows: PackConfig["flows"] = {};
   for (const [id, entry] of Object.entries(objectAt(raw.flows, "flows"))) {
     const f = objectAt(entry, `flows["${id}"]`);
@@ -105,7 +127,7 @@ export function parsePackConfig(raw: Obj): PackConfig {
         : {}),
     };
   }
-  return { sources, flows };
+  return { sources, ...(matrixFlow ? { matrixFlow } : {}), flows };
 }
 
 async function annotationsOf(docsFlowDir: string): Promise<AnnotationRecord[]> {
@@ -116,20 +138,32 @@ async function annotationsOf(docsFlowDir: string): Promise<AnnotationRecord[]> {
   return (parsed.annotations as unknown[]).filter(isObj) as unknown as AnnotationRecord[];
 }
 
-/** Collects the capture flow's screenshots into the logical flow they feed. */
+/**
+ * Collects one capture directory's screenshots into the logical flow they feed. A flat flow's
+ * directory is `docs/<flow>/`, a matrix variant's `docs/<flow>/<variant id>/`; both hold
+ * `screenshots/` and `annotations.json`.
+ */
 async function addSource(
   config: PackConfig,
   docsDir: string,
-  name: string,
+  source: ResolvedSource,
   into: Map<string, Map<string, SourceStep>>,
 ): Promise<void> {
-  const { flow, variant } = config.sources[name]!;
-  const flowDir = path.join(docsDir, name);
+  const { flow, variant, label } = source;
+  const flowDir = path.join(docsDir, ...source.segments);
   const shots = (await fs.readdir(path.join(flowDir, "screenshots")).catch(() => [] as string[]))
     .filter((f) => f.endsWith(".png"))
     .sort();
-  if (shots.length === 0)
-    throw new Error(`no screenshots under ${path.join(flowDir, "screenshots")}`);
+  if (shots.length === 0) {
+    // A matrix flow keeps its screenshots one level down; point at the entry that reads them.
+    const variants = source.matrixFlow === undefined ? await variantIds(docsDir, label) : [];
+    throw new Error(
+      `no screenshots under ${path.join(flowDir, "screenshots")}` +
+        (variants.length > 0
+          ? `; docs/${label}/ has variant directories (${variants.join(", ")}), so it looks like a matrix flow: use a "matrix" source or "matrixFlow" in ${PACK_CONFIG_FILE}`
+          : ""),
+    );
+  }
   const records = await annotationsOf(flowDir);
   const steps = into.get(flow) ?? new Map<string, SourceStep>();
   into.set(flow, steps);
@@ -138,7 +172,7 @@ async function addSource(
     const text = config.flows[flow]?.steps[id];
     if (!text)
       throw new Error(
-        `${PACK_CONFIG_FILE} has no flows["${flow}"].steps["${id}"] (screenshot ${name}/${file})`,
+        `${PACK_CONFIG_FILE} has no flows["${flow}"].steps["${id}"] (screenshot ${label}/${file})`,
       );
     const step = steps.get(id) ?? { id, ...text, variants: [] };
     if (step.variants.some((v) => v.key === variant)) {
@@ -160,8 +194,13 @@ export async function readWorkspace(workspace: string): Promise<PackSource> {
   const config = parsePackConfig(await readJsonObject(path.join(workspace, PACK_CONFIG_FILE)));
   const docsDir = path.join(workspace, "docs");
   const into = new Map<string, Map<string, SourceStep>>();
-  for (const name of Object.keys(config.sources).sort())
-    await addSource(config, docsDir, name, into);
+  for (const source of await resolveSources(
+    config.sources,
+    config.matrixFlow,
+    docsDir,
+    PACK_CONFIG_FILE,
+  ))
+    await addSource(config, docsDir, source, into);
   const flows: SourceFlow[] = [];
   for (const [id, text] of Object.entries(config.flows).sort(([a], [b]) => (a < b ? -1 : 1))) {
     const steps = into.get(id);

@@ -8,3 +8,7 @@ Frozen Satori trees for the scenarios in `../helpers/legacy-scenarios.ts`, as th
 - **What it proves.** `burn-legacy.test.ts` compares today's trees to it, so a record without `obstacles` or `placement` keeps burning to the same bytes, and a wide screenshot with `obstacles` keeps its 280 px callout.
 - **Guard.** `burn-legacy.test.ts` also asserts `widthLadder(...)` is `[280]` for every annotation of every scenario. A scenario that fails that check exercises the new width logic and does not belong here.
 - **Do not regenerate it from current code.** That turns the test into a comparison of the code with itself. A scenario change means regenerating from `1ff822c` (`git show 1ff822c:packages/viewer/src/<file>`), or adding the scenario to a new fixture generated that way.
+
+## `engine-matrix/`
+
+A workspace laid out as `docsxai run` writes a flow with a `matrix:` block: `docs/login/<variant id>/screenshots/<step>.png` and `docs/login/<variant id>/annotations.json` (with the `variant` record) for the ids `en-US.light.desktop-1280` and `es-ES.dark.mobile-390`, plus a `pack.json` that maps both to pack keys. `../pack-matrix.test.ts` copies it to a temporary directory. The PNGs are solid-colour images (160x100 and 80x140) written once by a throwaway script; they are not generated at test time.

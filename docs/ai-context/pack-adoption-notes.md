@@ -43,6 +43,26 @@ Things to check:
 - `generated_for` was `REMOTXAI_BUILD_SHA || "unknown"`; the script above keeps `unknown` as the fallback.
 - Optional: the sidecar can now carry `placement` (`inside`, `side`, `align`, `pin_arrow`, `max_width`) next to `arrow_style`, `nudge` and `obstacles`.
 
+## Workspaces that run a flow matrix
+
+`docsxai run` on a flow with a `matrix:` block writes `docs/<flow>/<variant id>/{screenshots/,annotations.json}`, with ids like `en-US.light.desktop-1280` (locale, colour scheme, viewport name). A pack variant key is `<locale>.<theme>.<viewport width>`, so `pack.json` maps one to the other; nothing renames directories.
+
+1. Give the flow's variants pack keys. Either list them with `matrixFlow`:
+
+   ```json
+   "matrixFlow": {
+     "flow": "login",
+     "map": { "en-US.light.desktop-1280": "en.light.1280", "es-ES.dark.mobile-390": "es.dark.390" }
+   }
+   ```
+
+   or name a viewport by its width in the flow's `matrix` (`viewports: [{ name: "1280", width: 1280, height: 800 }]`) so the ids read `en-US.light.1280`, and set `"auto": true` to map them to themselves. A `map` entry overrides `auto` for one id.
+
+2. To pack only some variants, or to give a variant a label of your own, use a `sources` entry: `"login-mobile": { "flow": "login", "matrix": "es-ES.dark.mobile-390", "variant": "es.dark.390" }`. Flat entries and matrix entries can sit in one `sources` object.
+3. `flows.<flow>.steps` is written once, as for a flat flow. Every variant directory is checked against it, and `alt` needs each locale the mapped keys use.
+4. `matrixFlow` stops on a variant directory it has no key for, such as a leftover from a removed viewport. Delete the directory or switch to `sources` entries. `pack` and `pack --check` print the unmapped ids, the missing id with the ids on disk, or the ids that map to one key.
+5. A matrix flow named like `Login.v2` is not a pack flow id. Add `"packFlow": "login"` to the entry or block.
+
 ## trackxai (workspace in this repo: `workspaces/trackxai-docs`)
 
 The capture side (flows, auth, `pipeline.sh` runs) is unchanged. Steps in `workspaces/trackxai-docs/`:
