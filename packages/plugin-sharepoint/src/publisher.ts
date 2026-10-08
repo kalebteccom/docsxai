@@ -345,7 +345,7 @@ export function createSharePointPublisher(
         let failure: { error: unknown } | undefined;
         try {
           for (const doc of projection.documents) {
-            const title = `${config.title_prefix ?? ""}${String(doc.title)}`;
+            const title = `${config.title_prefix ?? ""}${doc.title}`;
             const { page, images } = await uploadsFor(ctx.workspaceDir, doc, title);
             const existed = manifest.files[page.rel] !== undefined;
             let wrote = false;

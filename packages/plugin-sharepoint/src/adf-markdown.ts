@@ -18,11 +18,25 @@ export function safeName(raw: string): string {
 }
 
 /** C0 and C1 controls, DEL and the Unicode line and paragraph separators. */
-const CONTROLS = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g;
+function isControl(char: string): boolean {
+  const code = char.codePointAt(0) ?? 0;
+  return code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
+}
 
 /** One line: every run of control characters (newlines included) becomes a single space. */
 export function singleLine(value: string): string {
-  return value.replace(CONTROLS, " ");
+  let out = "";
+  let inRun = false;
+  for (const char of value) {
+    if (isControl(char)) {
+      if (!inRun) out += " ";
+      inRun = true;
+    } else {
+      out += char;
+      inRun = false;
+    }
+  }
+  return out;
 }
 
 /** What starts a block at the head of a line: `#`, a bullet (`-`, `+`), a setext rule (`=`), `1.` or `1)`. */
@@ -63,11 +77,15 @@ function safeHref(href: unknown): string | null {
   if (typeof href !== "string") return null;
   const trimmed = href.trim();
   if (!/^(https?:|mailto:)/i.test(trimmed)) return null;
-  return trimmed.replace(/[\s\u0000-\u001f\u007f-\u009f()<>[\]\\`"]/g, (c) => {
-    return [...Buffer.from(c, "utf8")]
-      .map((b) => `%${b.toString(16).toUpperCase().padStart(2, "0")}`)
-      .join("");
-  });
+  return Array.from(trimmed, (char) =>
+    isControl(char) || /[\s()<>[\]\\`"]/.test(char) ? percentEncode(char) : char,
+  ).join("");
+}
+
+function percentEncode(char: string): string {
+  return [...Buffer.from(char, "utf8")]
+    .map((b) => `%${b.toString(16).toUpperCase().padStart(2, "0")}`)
+    .join("");
 }
 
 /** A fence or span of backticks one longer than the longest run inside `text`. */
