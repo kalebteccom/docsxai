@@ -932,6 +932,17 @@ describe("sharepoint publisher: colliding targets", () => {
     return { dir, projection };
   }
 
+  /** The `media` node of a document's first image, to rename in a test. */
+  function mediaOf(doc: AdfProjection["documents"][number]): Record<string, unknown> {
+    return doc.adf.content.find((n) => n.type === "mediaSingle")!.content![0]!.attrs!;
+  }
+
+  /** Renames a document's first screenshot and the image that links it, as the projection pairs them. */
+  function renameShot(doc: AdfProjection["documents"][number], fileName: string): void {
+    doc.attachments[0]!.fileName = fileName;
+    mediaOf(doc)["alt"] = fileName;
+  }
+
   async function refused(dir: string, projection: AdfProjection, message: RegExp): Promise<void> {
     await expect(
       createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
@@ -973,8 +984,8 @@ describe("sharepoint publisher: colliding targets", () => {
 
   it("refuses two screenshots that share an image path", async () => {
     const { dir, projection } = await tree();
-    projection.documents[1]!.attachments[0]!.fileName = "x y.png";
-    projection.documents[2]!.attachments[0]!.fileName = "x-y.png";
+    renameShot(projection.documents[1], "x y.png");
+    renameShot(projection.documents[2], "x-y.png");
     await refused(
       dir,
       projection,
@@ -982,27 +993,21 @@ describe("sharepoint publisher: colliding targets", () => {
     );
   });
 
-  /** The `media` node of a document's first image, to rename in a test. */
-  function mediaOf(doc: AdfProjection["documents"][number]): Record<string, unknown> {
-    return doc.adf.content.find((n) => n.type === "mediaSingle")!.content![0]!.attrs!;
-  }
-
   it("refuses an image named .., before any request", async () => {
     const { dir, projection } = await tree();
-    mediaOf(projection.documents[1]!)["alt"] = "..";
+    mediaOf(projection.documents[1])["alt"] = "..";
     await refused(dir, projection, /not a usable file name/);
   });
 
   it("refuses a screenshot named .. that its image links, before any request", async () => {
     const { dir, projection } = await tree();
-    mediaOf(projection.documents[1]!)["alt"] = "..";
-    projection.documents[1]!.attachments[0]!.fileName = "..";
+    renameShot(projection.documents[1], "..");
     await refused(dir, projection, /not a usable file name/);
   });
 
   it("refuses an image that no screenshot of its document carries, before any request", async () => {
     const { dir, projection } = await tree();
-    mediaOf(projection.documents[1]!)["alt"] = "other.png";
+    mediaOf(projection.documents[1])["alt"] = "other.png";
     await refused(
       dir,
       projection,
@@ -1012,16 +1017,34 @@ describe("sharepoint publisher: colliding targets", () => {
 
   it("links an image by the name its screenshot is uploaded under", async () => {
     const { dir, projection } = await tree();
-    mediaOf(projection.documents[1]!)["alt"] = "Shot A!.png";
-    projection.documents[1]!.attachments[0]!.fileName = "Shot A!.png";
+    renameShot(projection.documents[1], "Shot A!.png");
     await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
     expect(text("docsxai/checkout.md")).toContain("(images/Shot-A-.png)");
     expect(server.files.get("docsxai/images/Shot-A-.png")!.data.equals(PNG_A)).toBe(true);
   });
 
+  it('refuses sections "a." and "a", which SharePoint stores as one file', async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.section = "a.";
+    projection.documents[2]!.section = "a";
+    await refused(dir, projection, /sections "a\." and "a" both publish to docsxai\/a\.md/);
+  });
+
+  it('refuses screenshots "x.png." and "x.png", which SharePoint stores as one file', async () => {
+    const { dir, projection } = await tree();
+    renameShot(projection.documents[1], "x.png.");
+    renameShot(projection.documents[2], "x.png");
+    await refused(
+      dir,
+      projection,
+      /screenshots "x\.png\." \(section "checkout"\) and "x\.png" \(section "login"\) both upload to docsxai\/images\/x\.png/,
+    );
+  });
+
   it("takes one screenshot listed by two documents, and still pushes", async () => {
     const { dir, projection } = await tree();
     projection.documents[2]!.attachments = [{ ...projection.documents[1]!.attachments[0]! }];
+    mediaOf(projection.documents[2])["alt"] = "checkout--step-1.png";
     const result = await createSharePointPublisher(LOOPBACK).publish(
       makeCtx(dir, projection, capture().log),
     );
@@ -1098,6 +1121,17 @@ describe("sharepoint publisher: timeouts", () => {
 describe("sharepoint publisher: file names and folder", () => {
   it.each([".", "..", "...", "-.-", " .. "])("safeName refuses the all-dot name %j", (raw) => {
     expect(() => safeName(raw)).toThrow(/not a usable file name/);
+  });
+
+  it.each([
+    ["a.", "a"],
+    ["a...", "a"],
+    ["a. ", "a"],
+    ["a.-", "a"],
+    ["a-.", "a"],
+    ["x.png.", "x.png"],
+  ])("safeName drops the trailing dot of %j, as SharePoint does", (raw, expected) => {
+    expect(safeName(raw)).toBe(expected);
   });
 
   it("safeName keeps ordinary names, dots inside included", () => {
