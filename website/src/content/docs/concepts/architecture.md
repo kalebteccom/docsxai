@@ -90,6 +90,10 @@ sessions - and it keeps the runtime testable without a browser at all.
 | [plugin-sharepoint](/packages/plugin-sharepoint/) | Publisher plugin: idempotent SharePoint library push via Graph.          |
 | [plugin-starlight](/packages/plugin-starlight/)   | Renderer plugin: production Starlight docs site.                         |
 
+`mcp` and every `plugin-*` package are repo-only: `private: true`, not on npm. Build
+them from a checkout and wire a plugin by `{ "path": ... }`. The published packages
+are `docsxai`, `engine`, `viewer`, `plugin`, `backend` and `skill`.
+
 Every arrow in that table points inward: surfaces wrap the engine, the engine
 wraps `BrowserDriver`, and nothing on the execution path knows an agent
 exists.

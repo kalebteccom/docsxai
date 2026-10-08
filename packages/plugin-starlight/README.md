@@ -6,6 +6,8 @@ No egress: the manifest declares zero capabilities. Emission is deterministic an
 
 ## Wiring
 
+> **Repo-only.** `@docsxai/plugin-starlight` is not published to npm (`private: true`). Build it from a checkout (`pnpm -r build`) and wire it by path: `{ "path": "<checkout>/packages/plugin-starlight" }` (relative paths resolve from the workspace directory). The `{ "package": ... }` form below only resolves once the plugin is installed in the workspace's `node_modules`.
+
 `.docsxai.json`:
 
 ```json
