@@ -533,7 +533,7 @@ describe("inputs the pack commands do not trust", () => {
   it("strips control characters from a screenshot name in the error", async () => {
     await writeWorkspace(ws(), {
       config: packConfig({ a: "en.dark.1280" }, ["board"]),
-      shots: { a: shots("board", "x\u001b[31my") },
+      shots: { a: { board: solidPng(7, 5), "x\u001b[31my": solidPng(7, 5) } },
     });
     const error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
     expect(error.message).toBe(
