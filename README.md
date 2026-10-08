@@ -109,7 +109,7 @@ For the full agent-driven workflow and the fast calibration loop (`lint`, `flow-
 | [`@docsxai/plugin-sharepoint`](packages/plugin-sharepoint/) | First-party publisher plugin. Markdown and images into a SharePoint Online document library through Microsoft Graph (`sharepoint:push`), capability-gated egress.                                          |
 | [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin — Starlight site emission (`starlight:site`).                                                                                                                                  |
 
-`@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion`, `@docsxai/plugin-sharepoint` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (0.2.0).
+`@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion`, `@docsxai/plugin-sharepoint` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published: `0.2.0` is on `latest`, `0.3.0-rc.2` on `next`.
 
 ## Documentation
 

@@ -1,10 +1,10 @@
 # Semver clock — the API-stable-clock
 
-docsxai is pre-1.0 (`0.2.0` is on npm). 1.0 is the stability milestone, and the path to it runs through an "API stable ~1 week" clock.
+docsxai is pre-1.0 (`0.2.0` is on npm's `latest` tag, `0.3.0-rc.2` on `next`). 1.0 is the stability milestone, and the path to it runs through an "API stable ~1 week" clock.
 
 ## What's frozen today (the stable surface)
 
-- CLI subcommand names and their documented flags (every command in [`README.md`](../../../README.md) "CLI reference").
+- CLI subcommand names and their documented flags (every command `docsxai --help` lists).
 - Flow-file schema: field names, required vs. optional, the step vocabulary, `extends:` semantics.
 - `ROUTES` shape in `@docsxai/backend` (`packages/backend/src/api.ts`).
 - ActionResult / doc-pack output shape: `annotations.json`, halt-context, the screenshot file-name pattern.
