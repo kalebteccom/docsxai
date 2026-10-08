@@ -132,7 +132,7 @@ const NEIGHBOURS = [
   { x: 100, y: 70, width: 200, height: 24 },
 ];
 const badgesOf = (t: BurnNode) =>
-  nodes(t).filter((n) => styleOf(n).backgroundColor === "#e8590c" && styleOf(n).display);
+  nodes(t).filter((n) => styleOf(n).backgroundColor === "#c2410c" && styleOf(n).display);
 const titleAnnotation = (overrides: Partial<AnnotationRecord> = {}) =>
   annotation({
     step: "board",
@@ -179,9 +179,9 @@ describe("burn badge placement", () => {
     const out = decodePng(
       await burnAnnotations({ screenshotBuffer: solidPng(800, 600), annotations }),
     );
-    // inside the circle, left of the digit: accent fill at the new box, untouched page at the old one
+    // inside the circle, left of the digit: badge fill at the new box, untouched page at the old one
     const [r, g, b] = pixelAt(out, box.x + 5, box.y + box.height / 2);
-    expect([r, g, b]).toEqual([0xe8, 0x59, 0x0c]);
+    expect([r, g, b]).toEqual([0xc2, 0x41, 0x0c]);
     // the default up-left box (92..118) no longer carries a badge
     expect(pixelAt(out, TITLE.x - 6, TITLE.y - 6)).toEqual(pixelAt(out, 700, 500));
   });

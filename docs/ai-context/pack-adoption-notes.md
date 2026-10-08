@@ -9,6 +9,8 @@ Both need, before anything else:
 
 What changes in the output for both: `manifest.json` becomes `docsxai/screens-pack@2`. Callouts are objects (`{ index, copy, bbox? }`), alt is `{ <locale>: text }`, every variant has `bytes`, and `generated_for` is omitted unless `--generated-for` is passed. Any code that reads the old manifest must change; see each section.
 
+The burned numbered badge is filled `#c2410c` now (it was `#e8590c`). Burned PNGs that carry a badge change once, so re-run `pack` and re-record committed baselines after upgrading.
+
 ## remotxai (raw capture in, `website/public/screens` out)
 
 Files on `origin/main` at the time of writing. The Playwright capture (`packages/e2e-tests`, `e2e:docs-screens`) already writes the raw contract and needs no change: `<root>/<flow>/<step>/<locale>.<theme>.<viewport>.png` with `.json` sidecar, `step.json`, `flow.json`. Flow and step directory names are kebab-case today, which the new reader accepts (underscores are allowed too).
