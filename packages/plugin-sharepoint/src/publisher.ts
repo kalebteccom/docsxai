@@ -15,6 +15,7 @@
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import {
+  type AdfAttachment,
   type AdfDocument,
   type AdfProjection,
   type PluginLogger,
@@ -227,6 +228,47 @@ interface Upload {
   contentType: string;
 }
 
+/** Library-relative name of a document's page: the overview is `index`, a flow is its safe name. */
+function pageName(doc: AdfDocument): string {
+  return `${doc.section === "project" ? "index" : safeName(doc.section)}.md`;
+}
+
+function imageName(att: AdfAttachment): string {
+  return `${IMAGES_DIR}/${safeName(att.fileName)}`;
+}
+
+/**
+ * Refuses two documents or two screenshots that would land on one file. SharePoint names are case
+ * insensitive and `safeName` folds spaces and punctuation, so `a b` and `a-b` (or `Login` and
+ * `login`) are one path. A screenshot named twice with the same source is one file, not a clash.
+ * Runs before any request, so a collision never leaves a half-written folder behind.
+ */
+function assertNoCollisions(documents: readonly AdfDocument[], folder: string): void {
+  const pages = new Map<string, string>();
+  const images = new Map<string, { source: string; section: string; fileName: string }>();
+  for (const doc of documents) {
+    const rel = pageName(doc);
+    const prior = pages.get(rel.toLowerCase());
+    if (prior !== undefined) {
+      throw new Error(
+        `sharepoint: sections ${JSON.stringify(prior)} and ${JSON.stringify(doc.section)} both publish to ${folder}/${rel}`,
+      );
+    }
+    pages.set(rel.toLowerCase(), doc.section);
+    for (const att of doc.attachments) {
+      const key = imageName(att).toLowerCase();
+      const known = images.get(key);
+      const source = `${att.fileName}\0${att.sourcePath}`;
+      if (known !== undefined && known.source !== source) {
+        throw new Error(
+          `sharepoint: screenshots ${JSON.stringify(known.fileName)} (section ${JSON.stringify(known.section)}) and ${JSON.stringify(att.fileName)} (section ${JSON.stringify(doc.section)}) both upload to ${folder}/${imageName(att)}`,
+        );
+      }
+      images.set(key, { source, section: doc.section, fileName: att.fileName });
+    }
+  }
+}
+
 /** Everything one document publishes: the page file and its screenshots, keyed by library-relative path. */
 async function uploadsFor(
   workspaceDir: string,
@@ -234,7 +276,6 @@ async function uploadsFor(
   title: string,
 ): Promise<{ page: Upload; images: Upload[] }> {
   const markdown = Buffer.from(`# ${title}\n\n${adfToMarkdown(doc.adf)}\n`, "utf8");
-  const name = doc.section === "project" ? "index" : safeName(doc.section);
   const images: Upload[] = [];
   for (const att of doc.attachments) {
     // The projection can come from a caller, so the path is held inside the workspace and the
@@ -243,14 +284,14 @@ async function uploadsFor(
       await resolveWorkspacePathReal(workspaceDir, att.sourcePath),
     );
     images.push({
-      rel: `${IMAGES_DIR}/${safeName(att.fileName)}`,
+      rel: imageName(att),
       data,
       sha256: sha256Hex(data),
       contentType: "image/png",
     });
   }
   const page = {
-    rel: `${name}.md`,
+    rel: pageName(doc),
     data: markdown,
     sha256: sha256Hex(markdown),
     contentType: "text/markdown",
@@ -277,6 +318,7 @@ export function createSharePointPublisher(
       try {
         const config = parseConfig(ctx.config, options);
         const projection = await loadProjection(ctx);
+        assertNoCollisions(projection.documents, config.folder);
         const root = config.drive_id
           ? `drives/${encodeURIComponent(config.drive_id)}`
           : `sites/${encodeURIComponent(config.site_id!)}/drive`;

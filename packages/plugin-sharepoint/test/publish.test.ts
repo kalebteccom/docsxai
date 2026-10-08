@@ -711,6 +711,78 @@ describe("sharepoint client: timeouts and error bodies", () => {
   });
 });
 
+describe("sharepoint publisher: colliding targets", () => {
+  /** A page-tree projection: documents are `project`, `checkout` and `login`. */
+  async function tree(): Promise<{ dir: string; projection: AdfProjection }> {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({
+      workspaceDir: dir,
+      options: { mode: "page-tree" },
+    });
+    return { dir, projection };
+  }
+
+  async function refused(dir: string, projection: AdfProjection, message: RegExp): Promise<void> {
+    await expect(
+      createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(message);
+    // Nothing was asked of the server, not even the manifest read.
+    expect(server.authHeaders).toEqual([]);
+    expect(server.writes).toBe(0);
+  }
+
+  it('refuses sections "a b" and "a-b", naming both and the file', async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.section = "a b";
+    projection.documents[2]!.section = "a-b";
+    await refused(dir, projection, /sections "a b" and "a-b" both publish to docsxai\/a-b\.md/);
+  });
+
+  it("refuses sections that differ only by case, as SharePoint names do not", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.section = "Login";
+    projection.documents[2]!.section = "login";
+    await refused(dir, projection, /sections "Login" and "login"/);
+  });
+
+  it("refuses a flow named like the overview page", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.section = "index";
+    await refused(
+      dir,
+      projection,
+      /sections "project" and "index" both publish to docsxai\/index\.md/,
+    );
+  });
+
+  it("refuses two sections with the same name", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[2]!.section = projection.documents[1]!.section;
+    await refused(dir, projection, /sections "checkout" and "checkout"/);
+  });
+
+  it("refuses two screenshots that share an image path", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.attachments[0]!.fileName = "x y.png";
+    projection.documents[2]!.attachments[0]!.fileName = "x-y.png";
+    await refused(
+      dir,
+      projection,
+      /screenshots "x y.png" \(section "checkout"\) and "x-y.png" \(section "login"\) both upload to docsxai\/images\/x-y\.png/,
+    );
+  });
+
+  it("takes one screenshot listed by two documents, and still pushes", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[2]!.attachments = [{ ...projection.documents[1]!.attachments[0]! }];
+    const result = await createSharePointPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log),
+    );
+    expect(result.ok).toBe(true);
+    expect(server.files.has("docsxai/images/checkout--step-1.png")).toBe(true);
+  });
+});
+
 describe("sharepoint publisher: file names and folder", () => {
   it.each([".", "..", "...", "-.-", " .. "])("safeName refuses the all-dot name %j", (raw) => {
     expect(() => safeName(raw)).toThrow(/not a usable file name/);
