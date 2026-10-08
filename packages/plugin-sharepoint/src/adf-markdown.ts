@@ -108,8 +108,20 @@ function codeSpan(text: string): string {
   return `${fence}${pad}${flat}${pad}${fence}`;
 }
 
+/**
+ * Inline nodes joined in order. A `!` that ends one node and sits right before a link (the next
+ * output that starts with a bare `[`, since text escapes its own brackets) would read as `![t](url)`,
+ * an image the viewer loads on sight, so that `!` is escaped.
+ */
 function inline(nodes: AdfNode[] | undefined): string {
-  return (nodes ?? []).map(inlineNode).join("");
+  const parts = (nodes ?? []).map(inlineNode);
+  return parts
+    .map((part, i) => {
+      if (!part.endsWith("!")) return part;
+      const next = parts.slice(i + 1).find((p) => p !== "");
+      return next?.startsWith("[") ? `${part.slice(0, -1)}\\!` : part;
+    })
+    .join("");
 }
 
 function inlineNode(node: AdfNode): string {

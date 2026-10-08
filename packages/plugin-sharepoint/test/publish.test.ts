@@ -381,6 +381,21 @@ describe("adf to markdown: injection", () => {
     );
   });
 
+  it("escapes a trailing ! so text before a link cannot become an image", () => {
+    const href = "https://e.com/x.png";
+    expect(render(para(txt("Look!"), linked("t", href)))).toBe("Look\\![t](https://e.com/x.png)");
+    expect(render(para(txt("Look!"), txt(""), linked("t", href)))).toBe(
+      "Look\\![t](https://e.com/x.png)",
+    );
+    expect(render(para(txt("a!", { type: "strong" }), linked("t", href)))).toBe(
+      "**a!**[t](https://e.com/x.png)",
+    );
+    // No link follows, so the text stays as written.
+    expect(render(para(txt("Done!")))).toBe("Done!");
+    expect(render(para(txt("Hi!"), txt(" there")))).toBe("Hi! there");
+    expect(render(para(txt("Hi!"), linked("t", "javascript:alert(1)")))).toBe("Hi!t");
+  });
+
   it.each([
     [0, "# t"],
     [-3, "# t"],
