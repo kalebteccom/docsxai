@@ -29,14 +29,14 @@ The token comes from the environment, never from config or the repo. The publish
 
 Passed as the publisher's `config`:
 
-| Key              | Required   | Meaning                                                                                                                                                                                                                                             |
-| ---------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `drive_id`       | one of two | Document library id (`drives/{id}`). Wins when both are set.                                                                                                                                                                                        |
-| `site_id`        | one of two | Site id; the site's default document library (`sites/{id}/drive`) is used.                                                                                                                                                                          |
-| `folder`         | no         | Folder inside the library, `docsxai` by default. Created by the first upload.                                                                                                                                                                       |
-| `graph_base_url` | no         | Graph endpoint, `https://graph.microsoft.com/v1.0` by default. Must be `https` on a Microsoft Graph host (global, US, China and Germany clouds) with no port other than the default; plain http on loopback only under the publisher's test option. |
-| `title_prefix`   | no         | Prepended to every page title, e.g. `"[Docs] "`.                                                                                                                                                                                                    |
-| `force`          | no         | `true` uploads every file even when the manifest says it is unchanged.                                                                                                                                                                              |
+| Key              | Required   | Meaning                                                                                                                                                                                                                                                                                                    |
+| ---------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `drive_id`       | one of two | Document library id (`drives/{id}`). Wins when both are set.                                                                                                                                                                                                                                               |
+| `site_id`        | one of two | Site id; the site's default document library (`sites/{id}/drive`) is used.                                                                                                                                                                                                                                 |
+| `folder`         | no         | Folder inside the library, `docsxai` by default. The first upload into a missing folder relies on Graph creating the parent folders from the path; that is untested against a live tenant, so create the folder first if the first push fails.                                                             |
+| `graph_base_url` | no         | Graph endpoint, `https://graph.microsoft.com/v1.0` by default. Must be `https` on a Microsoft Graph host (global, US, China and Germany clouds) with no port other than the default, no query or fragment, and the path `/v1.0` or `/beta`; plain http on loopback only under the publisher's test option. |
+| `title_prefix`   | no         | Prepended to every page title, e.g. `"[Docs] "`.                                                                                                                                                                                                                                                           |
+| `force`          | no         | `true` uploads every file even when the manifest says it is unchanged.                                                                                                                                                                                                                                     |
 
 `graph_base_url` is checked against an allowlist of Graph hosts before any request, so the bearer token is only sent to one of them. Capabilities still gate which plugins load and are a review signal; they are matched as exact strings and the plugin does not check them against a national-cloud endpoint (`graph.microsoft.us`, `microsoftgraph.chinacloudapi.cn`, `graph.microsoft.de`) or its download hosts (`*.sharepoint.us`, `.cn`, `.de`), so list the matching `egress:` entries in `plugin_capabilities` yourself to record them.
 
@@ -44,7 +44,7 @@ Graph answers a file read (`GET .../root:/<path>:/content`) with a redirect to a
 
 ## Layout
 
-For `single` mode: `<folder>/index.md` and `<folder>/images/*.png`. For `page-tree` mode: `index.md` (the overview), one `<flow>.md` per flow, and `images/`. Image names are `<flow>--<step>.png`. A fixed `docsxai-manifest.json` sits next to the pages. Files the plugin wrote earlier and the projection no longer contains are left in place.
+For `single` mode: `<folder>/index.md` and `<folder>/images/*.png`. For `page-tree` mode: `index.md` (the overview), one `<flow>.md` per flow, and `images/`. Image names are `<flow>--<step>.png`. A fixed `docsxai-manifest.json` sits next to the pages. Page and image names are compared case-insensitively after they are folded to `[A-Za-z0-9._-]`; two sections that land on one path (`a b` and `a-b`, `Login` and `login`, a flow named `index` next to the overview) or two different screenshots that share an image name fail the push before any request, with both names in the message. Files the plugin wrote earlier and the projection no longer contains are left in place.
 
 The result's `pages[]` entries carry `section`, `id` (the driveItem id), `url` (the item's `webUrl`) and `action` (`created`, `updated`, `unchanged`). Page identity is the path, so there is no page map to persist.
 
@@ -57,18 +57,20 @@ The result's `pages[]` entries carry `section`, `id` (the driveItem id), `url` (
 - a changed file is uploaded with `conflictBehavior=replace`, images first and the page second;
 - the manifest is written last, and only when something was uploaded, so a push that fails midway redoes the missing files on the next run.
 
+Document content is rendered as inert markdown: text, code spans, alt text and titles are escaped (a code span uses a backtick run longer than any inside it, a code fence likewise), titles and `title_prefix` lose newlines and control characters, links are kept only for `http`, `https` and `mailto` with parentheses, whitespace and brackets in the target percent-encoded, and heading levels are clamped to 1 to 6.
+
 A page reports `updated` when its markdown or any of its images was uploaded. The manifest is the source of truth: a file deleted by hand in SharePoint is not noticed until its content changes or `force: true` is set.
 
 ## Caveats
 
-- Simple upload takes files up to 250 MB. Screenshots are far below that, so there is no resumable upload session.
+- Every file goes up as one simple upload (`PUT .../content`); there is no resumable upload session. The plugin does not check Graph's simple-upload size limit, so a screenshot over it fails with Graph's masked response. Screenshots are capped at 64 MiB on read.
 - There is no retry on Graph throttling (HTTP 429). A throttled push fails with the masked response and can be re-run; the manifest keeps the files already uploaded.
-- Graph creates missing parent folders on upload by path. That is documented behaviour, but it has not been checked against a live tenant yet.
+- No live tenant run has happened. Two things are assumptions about Graph that the in-process fake server models and nothing has confirmed: that a file read answers with a redirect to a pre-authenticated download URL, and that an upload creates missing parent folders.
 - The plugin is in-process and unsandboxed, like every docsxai plugin. `trust: "kalebtec"` is a review signal.
 
 ## Tests
 
-`pnpm test` (after `pnpm -r build`, because the runtime-load test resolves the built package through the engine's real `resolvePlugins`). The suite runs an in-process fake Graph server on loopback, with no real network and no credentials. It asserts: a second push of the same pack performs zero writes; a prose change rewrites one page and the manifest; a changed screenshot re-uploads that image only; images arrive byte for byte; the token never appears in logs, errors or results; and the capability declaration is exactly `["egress:graph.microsoft.com"]`.
+`pnpm test` (after `pnpm -r build`, because the runtime-load test resolves the built package through the engine's real `resolvePlugins`). The suite runs an in-process fake Graph server on loopback, with no real network and no credentials. It asserts: a second push of the same pack performs zero writes; a prose change rewrites one page and the manifest; a changed screenshot re-uploads that image only; images arrive byte for byte; the token never appears in logs, errors or results (an error body is masked before it is cut); a manifest read follows one redirect to a download URL without the bearer token, and a redirect to another host, to plain http, to a URL with credentials or a port, or a second redirect, is refused; a stalled call, upload or response body ends in a timeout; colliding section and image names fail before any request; code spans, links, titles, alt text and heading levels are neutralised; and the capability declaration is exactly `["egress:graph.microsoft.com", "egress:*.sharepoint.com"]`.
 
 ## License
 
