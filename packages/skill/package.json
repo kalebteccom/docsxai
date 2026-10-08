@@ -31,7 +31,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "skill"
   ],
   "scripts": {
     "build": "node ../../scripts/clean-dist.mjs && tsc -b tsconfig.build.json",

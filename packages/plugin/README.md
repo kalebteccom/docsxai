@@ -30,25 +30,31 @@ Load the plugin straight from a checkout, with no marketplace:
 claude --plugin-dir /path/to/docsxai/packages/plugin
 ```
 
-## Commands (deterministic — thin wrappers over the `docsxai` CLI)
+## Commands (deterministic, thin wrappers over the `docsxai` CLI)
 
-| Command                         | What                                                                    |
-| ------------------------------- | ----------------------------------------------------------------------- |
-| `/docsxai:run <project-dir>`    | Re-run flow-files headlessly, refresh `annotations.json` + screenshots. |
-| `/docsxai:render <project-dir>` | Build the interactive viewer.                                           |
-| `/docsxai:push <project-dir>`   | Upload the doc pack to the configured backend.                          |
-| `/docsxai:pull <project-dir>`   | Download the doc pack from the configured backend.                      |
-| `/docsxai:login`                | Backend login: `--oauth` runs OAuth 2.1 + PKCE; CI uses `DOCSX_TOKEN`.  |
-| `/docsxai:doctor`               | Environment + workspace health-check (✓/✗ + one-line fixes).            |
-| `/docsxai:plugins`              | List, inspect, and lock the workspace's plugins.                        |
-| `/docsxai:export`               | Export the doc pack as a wiki-ready ADF projection.                     |
+Each command passes its arguments to the CLI as single-quoted shell words. The CLI's own usage line and `--help` are the reference for every flag.
 
-## Skills (calibration — agent-driven; the host supplies inference)
+| Command                                               | What                                                                                                                          |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `/docsxai:run <workspace-dir>`                        | Re-run the flows headlessly, refresh `annotations.json` and screenshots. `--variant` and `--verify-determinism` pass through. |
+| `/docsxai:render <workspace-dir>`                     | Build the interactive viewer.                                                                                                 |
+| `/docsxai:push <workspace-dir>`                       | Upload the doc pack to the configured backend.                                                                                |
+| `/docsxai:pull <workspace-dir>`                       | Download the doc pack from the configured backend.                                                                            |
+| `/docsxai:login`                                      | Backend login: `--oauth` runs OAuth 2.1 + PKCE, CI uses `DOCSX_TOKEN`.                                                        |
+| `/docsxai:doctor [<workspace-dir>]`                   | Environment and workspace health-check (✓/✗ plus a one-line fix per failure).                                                 |
+| `/docsxai:plugins <list\|info\|sync> <workspace-dir>` | List, inspect, and sync (lock) the workspace's plugins.                                                                       |
+| `/docsxai:export <adf\|playwright> <workspace-dir>`   | Export the doc pack as a Confluence ADF projection, or as Playwright specs.                                                   |
 
-| Skill       | What                                                                                              |
-| ----------- | ------------------------------------------------------------------------------------------------- |
-| `calibrate` | Drive a calibration end-to-end: discovery → mapping+testing → commit, producing a doc pack.       |
-| `diagnose`  | The explicit failure path — propose a recalibration diff when a deterministic run halts on drift. |
+The rest of the CLI has no slash command: `init`, `capture-auth`, `calibrate`, `inspect`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `burn` (annotations baked into PNG copies), and `pack` (the screenshot pack a docs site ships, with `pack --check`). Skills and agents call them through the shell; run `docsxai --help` for the flags.
+
+## Skills (calibration, agent-driven; the host supplies inference)
+
+| Skill       | What                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------ |
+| `calibrate` | Drive a calibration end-to-end: discovery → mapping+testing → commit, producing a doc pack.      |
+| `diagnose`  | The explicit failure path: propose a recalibration diff when a deterministic run halts on drift. |
+
+Invoke them as `/docsxai:calibrate` and `/docsxai:diagnose`, or let the agent load one when the request matches its description.
 
 ## MCP
 

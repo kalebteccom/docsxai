@@ -31,6 +31,10 @@ const KNOWN_CLI_COMMANDS = [
   "pull",
   "plugins",
   "export",
+  "burn",
+  "pack",
+  "baseline",
+  "diff",
 ];
 
 describe("plugin scaffold — basics", () => {
@@ -68,6 +72,15 @@ describe("plugin scaffold — basics", () => {
     await expect(
       fs.access(path.join(sourceDir, ".claude-plugin", "plugin.json")),
     ).resolves.toBeUndefined();
+  });
+
+  it("lists the plugin tree in package.json `files`, so the npm tarball carries it", async () => {
+    const pkg = JSON.parse(await fs.readFile(path.join(pluginDir, "package.json"), "utf8")) as {
+      files: string[];
+    };
+    expect(pkg.files).toEqual(
+      expect.arrayContaining(["dist", ".claude-plugin", "commands", "skills"]),
+    );
   });
 
   it("ships the deterministic commands", async () => {

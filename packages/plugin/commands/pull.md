@@ -3,14 +3,16 @@ description: Pull a revision's artifacts from the backend into the workspace fil
 argument-hint: <workspace-dir> [--rev <id>]
 ---
 
-Pull a revision (default: `head`):
+Arguments: `$ARGUMENTS`
+
+Pass every value as its own single-quoted shell word (an embedded `'` is written `'\''`) and add nothing the user did not type. Pull a revision (default: `head`):
 
 ```
-docsxai pull $ARGUMENTS
+docsxai pull '<workspace-dir>' [flags]
 ```
 
-Fetches each artifact slot present on the named revision and writes it back into the workspace files (`flows/`, `docs/<flow>/annotations.json`, `docs/<flow>/screenshots/`, `docs/style.{yaml,json}`, `docs/locators.yaml`). Useful for syncing with another operator's edits, or for rolling back to a named revision.
+It fetches each artifact slot on the named revision and writes it back into the workspace files (`flows/`, `docs/<flow>/annotations.json`, `docs/<flow>/screenshots/`, `docs/style.{yaml,json}`, `docs/locators.yaml`). The last line is `pull: revision <rev_id> … wrote <n> file(s)`. Use it to sync with another operator's edits or to roll back to a named revision.
 
-Requires the workspace to be bound to a backend (`backend_url` + `backend_workspace_id` + `backend_project_id` in `.docsxai.json`) — typically established on the first `push`.
+The workspace must be bound to a backend (`backend_url`, `backend_workspace_id` and `backend_project_id` in `.docsxai.json`), which the first `push` sets up. Otherwise it exits 2 and the `next:` line says how to bind it.
 
-**Warning:** `pull` overwrites local files in the artifact paths it touches. Commit any in-progress changes (e.g. via `push` first) before pulling someone else's revision.
+**Warning:** `pull` overwrites local files in the artifact paths it touches. Commit or push in-progress changes before pulling someone else's revision. A revision that names a file a workspace would not produce is refused with nothing written; the `next:` line suggests an older `--rev`.

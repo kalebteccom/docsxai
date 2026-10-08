@@ -12,6 +12,15 @@ afterEach(async () => {
   await fs.rm(tmp, { recursive: true, force: true });
 });
 
+describe("published package", () => {
+  it("lists the skill bundle in `files`, so vendorSkill() works from the npm tarball", async () => {
+    const pkg = JSON.parse(
+      await fs.readFile(path.join(vendoredSkillDir, "..", "package.json"), "utf8"),
+    ) as { files: string[] };
+    expect(pkg.files).toEqual(expect.arrayContaining(["dist", "skill"]));
+  });
+});
+
 describe("vendorSkill", () => {
   it("ships a docsxai/SKILL.md in the bundle with proper frontmatter", async () => {
     const text = await fs.readFile(path.join(vendoredSkillDir, "docsxai", "SKILL.md"), "utf8");
