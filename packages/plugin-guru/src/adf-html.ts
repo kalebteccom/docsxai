@@ -2,8 +2,8 @@
 //
 // The engine projects a doc pack to ADF only. Guru takes card content as HTML or markdown, and
 // HTML gives the plugin direct control over image embedding (`<img src>` pointing at the
-// Guru-hosted upload). Every text and attribute value is escaped, and a link target is kept only
-// when it is http, https or mailto. Same input, same bytes: the publisher hashes the output to
+// Guru-hosted upload). Every text and attribute value is escaped, a heading level is held to 1..6,
+// and a link target is kept only when it is http, https or mailto. Same input, same bytes: the publisher hashes the output to
 // decide whether to write.
 
 import type { AdfDoc, AdfNode } from "@docsxai/engine";
@@ -13,6 +13,33 @@ export function safeName(raw: string): string {
   const name = raw.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "item";
   if (/^\.+$/.test(name)) throw new Error(`guru: ${JSON.stringify(raw)} is not a usable name`);
   return name;
+}
+
+/** C0 and C1 controls, DEL and the Unicode line and paragraph separators. */
+function isControl(char: string): boolean {
+  const code = char.codePointAt(0) ?? 0;
+  return code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
+}
+
+/** One line: every run of control characters (newlines included) becomes a single space. */
+export function singleLine(value: string): string {
+  let out = "";
+  let inRun = false;
+  for (const char of value) {
+    if (isControl(char)) {
+      if (!inRun) out += " ";
+      inRun = true;
+    } else {
+      out += char;
+      inRun = false;
+    }
+  }
+  return out;
+}
+
+/** A name from the pack as one quoted line, safe to log: a newline or control character cannot start a fake log line, and a `"` is escaped. */
+export function quoted(name: string): string {
+  return JSON.stringify(singleLine(name));
 }
 
 const ENTITIES: Record<string, string> = {
@@ -58,10 +85,22 @@ function listItems(node: AdfNode): string {
     .join("");
 }
 
+/** The `alt` of an image block, which the engine's projection sets to the attachment file name. */
+function imageAlt(node: AdfNode): string | undefined {
+  const alt = node.content?.[0]?.attrs?.["alt"];
+  return node.type === "mediaSingle" && typeof alt === "string" ? alt : undefined;
+}
+
+/** Every image a document links, by `alt`, so a publisher can check them before it writes anything. */
+export function imageAlts(doc: AdfDoc): string[] {
+  return doc.content.flatMap((node) => imageAlt(node) ?? []);
+}
+
 function block(node: AdfNode, image: ImageResolver): string {
   switch (node.type) {
     case "heading": {
-      const level = Math.min(6, Math.max(1, Number(node.attrs?.["level"] ?? 2) || 2));
+      const asked = Number(node.attrs?.["level"] ?? 2);
+      const level = Number.isNaN(asked) ? 2 : Math.min(6, Math.max(1, Math.trunc(asked)));
       return `<h${level}>${inline(node.content)}</h${level}>`;
     }
     case "bulletList":
@@ -73,8 +112,8 @@ function block(node: AdfNode, image: ImageResolver): string {
       return `<pre><code>${escapeHtml(code)}</code></pre>`;
     }
     case "mediaSingle": {
-      const alt = node.content?.[0]?.attrs?.["alt"];
-      if (typeof alt !== "string") return "";
+      const alt = imageAlt(node);
+      if (alt === undefined) return "";
       const src = image(safeName(alt));
       return src ? `<p><img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"></p>` : "";
     }

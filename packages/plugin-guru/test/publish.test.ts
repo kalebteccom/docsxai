@@ -13,6 +13,8 @@ import { promisify } from "node:util";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   type AdfDoc,
+  type AdfMark,
+  type AdfNode,
   type AdfProjection,
   type PluginLogger,
   type PublisherContext,
@@ -20,7 +22,7 @@ import {
   projectDocPackToAdf,
   resolvePlugins,
 } from "@docsxai/engine";
-import { adfToHtml, escapeHtml, safeName } from "../src/adf-html.js";
+import { adfToHtml, escapeHtml, quoted, safeName, singleLine } from "../src/adf-html.js";
 import { parseConfig } from "../src/config.js";
 import {
   GuruClient,
@@ -1152,5 +1154,228 @@ describe("adf to html", () => {
     expect(html).not.toContain("javascript:");
     expect(html).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; more");
     expect(html).toContain('<a href="https://example.com/?a=&quot;b&quot;&amp;c=d">quote</a>');
+  });
+});
+
+const para = (...content: AdfNode[]): AdfNode => ({ type: "paragraph", content });
+const txt = (text: string, ...marks: AdfMark[]): AdfNode => ({
+  type: "text",
+  text,
+  ...(marks.length > 0 ? { marks } : {}),
+});
+const linked = (text: string, href: unknown): AdfNode =>
+  txt(text, { type: "link", attrs: { href } });
+const render = (...content: AdfNode[]): string =>
+  adfToHtml({ version: 1, type: "doc", content }, () => undefined);
+
+describe("adf to html: injection", () => {
+  it("escapes every character that can open markup in text, code and code blocks", () => {
+    const raw = `<b a="1" b='2'>&amp;</b>`;
+    const escaped = "&lt;b a=&quot;1&quot; b=&#39;2&#39;&gt;&amp;amp;&lt;/b&gt;";
+    expect(render(para(txt(raw)))).toBe(`<p>${escaped}</p>`);
+    expect(render(para(txt(raw, { type: "code" })))).toBe(`<p><code>${escaped}</code></p>`);
+    expect(render({ type: "codeBlock", content: [txt(raw)] })).toBe(
+      `<pre><code>${escaped}</code></pre>`,
+    );
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "  JavaScript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+    "file:///etc/passwd",
+    "//evil.example.com/x",
+    "/relative/path",
+    "ftp://example.com/x",
+    "\u0001javascript:alert(1)",
+    42,
+    undefined,
+  ])("keeps the text and drops a link to %j", (href) => {
+    expect(render(para(linked("click", href)))).toBe("<p>click</p>");
+  });
+
+  it("keeps http, https and mailto links, in any letter case, and escapes the target", () => {
+    expect(render(para(linked("a", "https://example.com/a")))).toBe(
+      '<p><a href="https://example.com/a">a</a></p>',
+    );
+    expect(render(para(linked("a", "HTTP://example.com/a")))).toBe(
+      '<p><a href="HTTP://example.com/a">a</a></p>',
+    );
+    expect(render(para(linked("m", "mailto:docs@example.com")))).toBe(
+      '<p><a href="mailto:docs@example.com">m</a></p>',
+    );
+    expect(render(para(linked("t", 'https://e.com/"><script>x</script>')))).toBe(
+      '<p><a href="https://e.com/&quot;&gt;&lt;script&gt;x&lt;/script&gt;">t</a></p>',
+    );
+  });
+
+  it.each([
+    [0, "<h1>t</h1>"],
+    [-3, "<h1>t</h1>"],
+    [1, "<h1>t</h1>"],
+    [6, "<h6>t</h6>"],
+    [7, "<h6>t</h6>"],
+    [99, "<h6>t</h6>"],
+    [2.7, "<h2>t</h2>"],
+    ["4", "<h4>t</h4>"],
+    ["abc", "<h2>t</h2>"],
+    [undefined, "<h2>t</h2>"],
+    [null, "<h2>t</h2>"],
+  ])("a heading of level %j renders as %j", (level, expected) => {
+    expect(render({ type: "heading", attrs: { level }, content: [txt("t")] })).toBe(expected);
+  });
+
+  it("escapes alt text and the image source", () => {
+    const alt = 'x" onerror="alert(1)';
+    const media: AdfNode = { type: "mediaSingle", content: [{ type: "media", attrs: { alt } }] };
+    const html = adfToHtml({ version: 1, type: "doc", content: [media] }, () => 'https://h/"o="1');
+    expect(html).toBe(
+      '<p><img src="https://h/&quot;o=&quot;1" alt="x&quot; onerror=&quot;alert(1)"></p>',
+    );
+  });
+
+  it("singleLine and quoted put a name on one line", () => {
+    expect(singleLine("a\r\nb\u2028c\u0007d")).toBe("a b c d");
+    expect(quoted('a\n"b"')).toBe('"a \\"b\\""');
+  });
+});
+
+describe("guru publisher: names, titles and log lines", () => {
+  /** A line `singleLine` would change holds a newline or another control character. */
+  const hasControls = (line: string): boolean => singleLine(line) !== line;
+
+  /** Text-only sections, for tests that care about names and not about content. */
+  function sectionsProjection(sections: Array<[section: string, title: string]>): AdfProjection {
+    return {
+      schema: "docsxai/adf-projection@1",
+      mode: "page-tree",
+      warnings: [],
+      documents: sections.map(([section, title]) => ({
+        section,
+        title,
+        adf: { version: 1, type: "doc", content: [para(txt(title))] },
+        attachments: [],
+      })),
+    };
+  }
+
+  async function refused(projection: AdfProjection, message: RegExp): Promise<void> {
+    const dir = await makeWorkspace();
+    const { log, lines } = capture();
+    const error = await createGuruPublisher(LOOPBACK)
+      .publish(makeCtx(dir, projection, log))
+      .catch((e: Error) => e);
+    expect((error as Error).message).toMatch(message);
+    expect(hasControls((error as Error).message)).toBe(false);
+    expect(lines.filter(hasControls)).toEqual([]);
+    // Nothing was asked of the server, not even the manifest search.
+    expect(server.requests).toEqual([]);
+    expect(server.writes).toBe(0);
+  }
+
+  it("logs a section name on one line, without control characters", async () => {
+    const dir = await makeWorkspace();
+    const projection = sectionsProjection([["check\nINFO fake\u2028out\u0007\u009b", "Checkout"]]);
+    const { log, lines } = capture();
+    await createGuruPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(lines.some((l) => /^section "check INFO fake out ": created \(card /.test(l))).toBe(
+      true,
+    );
+    expect(lines.filter(hasControls)).toEqual([]);
+  });
+
+  it("escapes a double quote in a section name so the quoting holds", async () => {
+    const dir = await makeWorkspace();
+    const projection = sectionsProjection([['say "hi" now', "Checkout"]]);
+    const { log, lines } = capture();
+    await createGuruPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(lines.some((l) => l.startsWith('section "say \\"hi\\" now": created'))).toBe(true);
+  });
+
+  it('refuses sections "a b" and "a-b", which share a manifest key, naming both', async () => {
+    await refused(
+      sectionsProjection([
+        ["a b", "A"],
+        ["a-b", "B"],
+      ]),
+      /^guru: sections "a b" and "a-b" share the manifest key "a-b"/,
+    );
+  });
+
+  it("quotes a section name on one line in a collision error", async () => {
+    await refused(
+      sectionsProjection([
+        ["a\nb", "A"],
+        ["a b", "B"],
+      ]),
+      /^guru: sections "a b" and "a b" share the manifest key/,
+    );
+  });
+
+  it("refuses a flow named like the overview page", async () => {
+    await refused(
+      sectionsProjection([
+        ["project", "A"],
+        ["index", "B"],
+      ]),
+      /sections "project" and "index" share the manifest key "index"/,
+    );
+  });
+
+  it("refuses a card titled like the manifest card, with the prefix and line breaks applied", async () => {
+    await refused(
+      sectionsProjection([["checkout", "docsxai\nmanifest"]]),
+      /section "checkout" is titled like the manifest card/,
+    );
+  });
+
+  it("refuses an image named .. before any request", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir, options: PAGE_TREE });
+    const media = projection.documents[1]!.adf.content.find((n) => n.type === "mediaSingle")!;
+    media.content![0]!.attrs!["alt"] = "..";
+    await expect(
+      createGuruPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/not a usable name/);
+    expect(server.requests).toEqual([]);
+    expect(server.writes).toBe(0);
+  });
+
+  it('refuses screenshots "x y.png" and "x-y.png" that upload as one file, before any request', async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir, options: PAGE_TREE });
+    projection.documents[1]!.attachments[0]!.fileName = "x y.png";
+    projection.documents[2]!.attachments[0]!.fileName = "x-y.png";
+    await expect(
+      createGuruPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/screenshots "x y\.png" and "x-y\.png" both upload as "x-y\.png"/);
+    expect(server.requests).toEqual([]);
+    expect(server.writes).toBe(0);
+  });
+
+  it("takes one screenshot listed by two documents, and still pushes", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir, options: PAGE_TREE });
+    projection.documents[2]!.attachments = [{ ...projection.documents[1]!.attachments[0]! }];
+    const result = await createGuruPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log),
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("writes a title and a title_prefix with newlines as one line", async () => {
+    const dir = await makeWorkspace();
+    const projection = sectionsProjection([["checkout", "Docs\n# injected\u2028x"]]);
+    await createGuruPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log, { title_prefix: "[Pre]\n" }),
+    );
+    expect(cardsTitled("[Pre] Docs # injected x")).toHaveLength(1);
+  });
+
+  it("parseConfig turns control characters in title_prefix into spaces", () => {
+    expect(parseConfig({ collection_id: "c", title_prefix: "[A]\n\t[B] " }).title_prefix).toBe(
+      "[A] [B] ",
+    );
   });
 });

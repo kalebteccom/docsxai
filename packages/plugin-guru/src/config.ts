@@ -1,5 +1,6 @@
 // Publish config and secrets for `guru:push`.
 
+import { singleLine } from "./adf-html.js";
 import {
   assertGuruBaseUrl,
   DEFAULT_GURU_URL,
@@ -50,7 +51,7 @@ export function parseConfig(
   if (share !== "TEAM" && share !== "PRIVATE") {
     throw new Error("guru: config.share_status must be TEAM or PRIVATE");
   }
-  const prefix = optionalString(raw, "title_prefix");
+  const prefix = singleLine(optionalString(raw, "title_prefix") ?? "");
   const manifestId = optionalId(raw, "manifest_card_id");
   return {
     collection_id: collection,

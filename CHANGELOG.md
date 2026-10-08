@@ -4,6 +4,11 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Fixed
+
+- **GitBook publisher: markdown escaping and log lines.** A code span whose content starts or ends with a backtick rendered with unbalanced fences, and a newline in a code span, heading or list item ended its line. Code spans are now padded and flattened to one line, headings and list items stay on one line, heading levels clamp to 1..6 (level 0 was 2), a `!` before a link is escaped, and link targets are percent-encoded (`(`, `)`, whitespace, brackets, quotes) where a target with a parenthesis used to lose its link. Alt text is escaped on one line, a page title and `title_prefix` are cut to one line, two screenshots of one page that fold to the same file name are refused before any write, and section names in logs and errors are quoted on one line. Pages with those characters render differently, so the first push after the upgrade rewrites them.
+- **Guru publisher: heading level 0, name collisions and log lines.** A heading of level 0 rendered as `<h2>` where `<h1>` was meant; levels now clamp to 1..6. Two sections that fold to one manifest key (`a b` and `a-b`) shared a card, a section titled like the manifest card was taken for it on the next push, and two different screenshots with one safe name shared an upload. Each is refused before any request, as is an image name that is all dots. Card titles and `title_prefix` are cut to one line, and section names in logs and errors are quoted on one line.
+
 ## [0.3.0-rc.2] - 2026-10-08
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.1` it adds matrix-aware `docsxai pack`, a hardened `pack.json` reader, the burned badge fill `#c2410c` (burned PNGs that carry a numbered badge change once, so re-record pack baselines once), and viewer, CLI and docs-site UX fixes.

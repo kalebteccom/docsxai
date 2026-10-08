@@ -29,7 +29,14 @@ import {
   resolveWorkspacePath,
   resolveWorkspacePathReal,
 } from "@docsxai/engine";
-import { adfToMarkdown, pageSlug, safeName, withTitle } from "./adf-markdown.js";
+import {
+  adfToMarkdown,
+  pageSlug,
+  quoted,
+  safeName,
+  singleLine,
+  withTitle,
+} from "./adf-markdown.js";
 import { type GitBookPublishConfig, maskToken, parseConfig } from "./config.js";
 import {
   type ContentChange,
@@ -88,6 +95,11 @@ async function loadProjection(ctx: PublisherContext): Promise<AdfProjection> {
   return parsed;
 }
 
+/** A page title on one line: the prefix and the document title, joined and cut at line breaks. */
+function pageTitle(titlePrefix: string | undefined, title: string): string {
+  return singleLine(`${titlePrefix ?? ""}${title}`).trim();
+}
+
 /** Page identity of a section: the manifest key. */
 function sectionKey(section: string): string {
   return section === "project" ? "index" : safeName(section);
@@ -98,20 +110,20 @@ function sectionKey(section: string): string {
  * covers a key that differs only in case), a section whose slug is the manifest page's, or a page
  * titled like the manifest, which a later push would take for it.
  */
-function assertDistinctSections(documents: AdfDocument[], titlePrefix = ""): void {
+function assertDistinctSections(documents: AdfDocument[], titlePrefix?: string): void {
   const owners = new Map<string, string>();
   for (const doc of documents) {
     const slug = pageSlug(sectionKey(doc.section));
     const other = owners.get(slug);
     if (other !== undefined) {
       throw new Error(
-        `gitbook: sections "${other}" and "${doc.section}" share the page slug "${slug}", rename one of them`,
+        `gitbook: sections ${quoted(other)} and ${quoted(doc.section)} share the page slug "${slug}", rename one of them`,
       );
     }
     owners.set(slug, doc.section);
-    if (slug === MANIFEST_SLUG || `${titlePrefix}${doc.title}` === MANIFEST_TITLE) {
+    if (slug === MANIFEST_SLUG || pageTitle(titlePrefix, doc.title) === MANIFEST_TITLE) {
       throw new Error(
-        `gitbook: section "${doc.section}" is named like the manifest page "${MANIFEST_TITLE}", rename it`,
+        `gitbook: section ${quoted(doc.section)} is named like the manifest page "${MANIFEST_TITLE}", rename it`,
       );
     }
   }
@@ -144,10 +156,11 @@ async function prepare(
   config: GitBookPublishConfig,
   warnings: string[],
 ): Promise<Prepared> {
-  const title = `${config.title_prefix ?? ""}${doc.title}`;
+  const title = pageTitle(config.title_prefix, doc.title);
   const key = sectionKey(doc.section);
   const files: FileUpload[] = [];
   const refs = new Map<string, string>();
+  const sources = new Map<string, { source: string; fileName: string }>();
   const hashes: Array<[string, string]> = [];
   let sent = 0;
   for (const att of doc.attachments) {
@@ -157,6 +170,17 @@ async function prepare(
       await resolveWorkspacePathReal(workspaceDir, att.sourcePath),
     );
     const name = safeName(att.fileName);
+    // Two screenshots that fold to one safe name would share a link target, so one page image
+    // would show the other's bytes. The same file listed twice is one screenshot.
+    const source = `${att.fileName}\0${att.sourcePath}`;
+    const known = sources.get(name);
+    if (known !== undefined && known.source !== source) {
+      throw new Error(
+        `gitbook: section ${quoted(doc.section)} has screenshots ${quoted(known.fileName)} and ${quoted(att.fileName)}, which both upload as ${quoted(name)}, rename one of them`,
+      );
+    }
+    if (known !== undefined) continue;
+    sources.set(name, { source, fileName: att.fileName });
     hashes.push([name, sha256Hex(data)]);
     const tooBig = data.byteLength > MAX_INLINE_IMAGE_BYTES;
     if (tooBig || sent + data.byteLength > MAX_PAGE_IMAGE_BYTES) {
@@ -164,7 +188,7 @@ async function prepare(
         ? `GitBook takes at most ${MAX_INLINE_IMAGE_BYTES} bytes inline per file`
         : `a page sends at most ${MAX_PAGE_IMAGE_BYTES} bytes of screenshots`;
       warnings.push(
-        `section "${doc.section}": screenshot ${name} (${data.byteLength} bytes) was not uploaded, ${why}`,
+        `section ${quoted(doc.section)}: screenshot ${name} (${data.byteLength} bytes) was not uploaded, ${why}`,
       );
       continue;
     }
@@ -185,7 +209,7 @@ async function prepare(
   const size = Buffer.byteLength(markdown);
   if (size > MAX_PAGE_MARKDOWN_BYTES) {
     throw new Error(
-      `gitbook: section "${doc.section}" renders to ${size} bytes of markdown, over the ${MAX_PAGE_MARKDOWN_BYTES} byte limit of one page`,
+      `gitbook: section ${quoted(doc.section)} renders to ${size} bytes of markdown, over the ${MAX_PAGE_MARKDOWN_BYTES} byte limit of one page`,
     );
   }
   const sha256 = sha256Hex(
@@ -338,9 +362,9 @@ export function createGitBookPublisher(options: GitBookPublisherOptions = {}): P
 
       const mask = maskToken(token);
       const log: PluginLogger = {
-        info: (m) => ctx.log.info(mask(m)),
-        warn: (m) => ctx.log.warn(mask(m)),
-        error: (m) => ctx.log.error(mask(m)),
+        info: (m) => ctx.log.info(singleLine(mask(m))),
+        warn: (m) => ctx.log.warn(singleLine(mask(m))),
+        error: (m) => ctx.log.error(singleLine(mask(m))),
       };
 
       try {
@@ -383,7 +407,7 @@ export function createGitBookPublisher(options: GitBookPublisherOptions = {}): P
           found.set(p.key, current);
           if (known && !current) {
             log.warn(
-              `section "${p.section}": page ${known.pageId} is not a page ${where(config)}, creating a new page`,
+              `section ${quoted(p.section)}: page ${known.pageId} is not a page ${where(config)}, creating a new page`,
             );
           }
           if (config.force || !known || !current || known.sha256 !== p.sha256) todo.push(p);
@@ -417,7 +441,7 @@ export function createGitBookPublisher(options: GitBookPublisherOptions = {}): P
               const id = current?.id ?? applied.created[0];
               if (!id) {
                 throw new Error(
-                  `gitbook: GitBook did not report the page created for "${p.section}"`,
+                  `gitbook: GitBook did not report the page created for ${quoted(p.section)}`,
                 );
               }
               manifest.pages[p.key] = { pageId: id, sha256: p.sha256 };
@@ -450,7 +474,7 @@ export function createGitBookPublisher(options: GitBookPublisherOptions = {}): P
             : found.get(p.key)
               ? "updated"
               : "created";
-          log.info(`section "${p.section}": ${action} (page ${id})`);
+          log.info(`section ${quoted(p.section)}: ${action} (page ${id})`);
           const url = urls.get(id);
           return { id, ...(url ? { url } : {}), action, section: p.section };
         });
@@ -461,7 +485,7 @@ export function createGitBookPublisher(options: GitBookPublisherOptions = {}): P
         }
         return { ok: conflict === null, target: `gitbook:space/${space}`, pages, warnings };
       } catch (e) {
-        const masked = mask((e as Error).message);
+        const masked = singleLine(mask((e as Error).message));
         log.error(masked);
         throw new Error(masked);
       }

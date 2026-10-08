@@ -26,7 +26,7 @@ import {
   resolveWorkspacePath,
   resolveWorkspacePathReal,
 } from "@docsxai/engine";
-import { adfToHtml, safeName } from "./adf-html.js";
+import { adfToHtml, imageAlts, quoted, safeName, singleLine } from "./adf-html.js";
 import { type GuruPublishConfig, maskSecrets, parseConfig } from "./config.js";
 import {
   type CardBody,
@@ -67,6 +67,55 @@ async function loadProjection(ctx: PublisherContext): Promise<AdfProjection> {
   const parsed = JSON.parse(text) as unknown;
   if (!isProjection(parsed)) throw new Error(`guru: ${p} is not an ADF projection`);
   return parsed;
+}
+
+/** A card title on one line: the prefix and the document title, joined and cut at line breaks. */
+function cardTitle(titlePrefix: string | undefined, title: string): string {
+  return singleLine(`${titlePrefix ?? ""}${title}`).trim();
+}
+
+/** Manifest key of a section: the overview is `index`, a flow is its safe name. */
+function sectionKey(section: string): string {
+  return section === "project" ? "index" : safeName(section);
+}
+
+/**
+ * Refuses a projection whose cards would share an identity: two sections with one manifest key
+ * (`a b` and `a-b`), which would share a card, a section titled like the manifest card, which a
+ * later push would take for it, and two different screenshots with one safe name, which would
+ * share an upload. A name `safeName` refuses (a section, a screenshot, an image link) fails here
+ * too. Runs before any request, so a bad pack never leaves a half-written collection behind.
+ */
+function assertDistinctSections(documents: readonly AdfDocument[], titlePrefix?: string): void {
+  const keys = new Map<string, string>();
+  const images = new Map<string, { source: string; fileName: string }>();
+  for (const doc of documents) {
+    const key = sectionKey(doc.section);
+    const other = keys.get(key);
+    if (other !== undefined) {
+      throw new Error(
+        `guru: sections ${quoted(other)} and ${quoted(doc.section)} share the manifest key ${quoted(key)}, rename one of them`,
+      );
+    }
+    keys.set(key, doc.section);
+    if (cardTitle(titlePrefix, doc.title) === MANIFEST_TITLE) {
+      throw new Error(
+        `guru: section ${quoted(doc.section)} is titled like the manifest card "${MANIFEST_TITLE}", rename it`,
+      );
+    }
+    for (const alt of imageAlts(doc.adf)) safeName(alt);
+    for (const att of doc.attachments) {
+      const name = safeName(att.fileName);
+      const source = `${att.fileName}\0${att.sourcePath}`;
+      const known = images.get(name);
+      if (known !== undefined && known.source !== source) {
+        throw new Error(
+          `guru: screenshots ${quoted(known.fileName)} and ${quoted(att.fileName)} both upload as ${quoted(name)}, rename one of them`,
+        );
+      }
+      images.set(name, { source, fileName: att.fileName });
+    }
+  }
 }
 
 interface LoadedManifest {
@@ -149,14 +198,15 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
         { value: email, placeholder: "<GURU_USER_EMAIL>" },
       ]);
       const log: PluginLogger = {
-        info: (m) => ctx.log.info(mask(m)),
-        warn: (m) => ctx.log.warn(mask(m)),
-        error: (m) => ctx.log.error(mask(m)),
+        info: (m) => ctx.log.info(singleLine(mask(m))),
+        warn: (m) => ctx.log.warn(singleLine(mask(m))),
+        error: (m) => ctx.log.error(singleLine(mask(m))),
       };
 
       try {
         const config = parseConfig(ctx.config, options);
         const projection = await loadProjection(ctx);
+        assertDistinctSections(projection.documents, config.title_prefix);
         const client = new GuruClient(config.base_url, email, token, mask, options);
         const { manifest, cardId: manifestCardId } = await loadManifest(client, config, log);
 
@@ -173,8 +223,8 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
         let failure: { error: unknown } | null = null;
         try {
           for (const doc of projection.documents) {
-            const title = `${config.title_prefix ?? ""}${doc.title}`;
-            const key = doc.section === "project" ? "index" : safeName(doc.section);
+            const title = cardTitle(config.title_prefix, doc.title);
+            const key = sectionKey(doc.section);
 
             const links = new Map<string, string>();
             for (const image of await readImages(ctx.workspaceDir, doc)) {
@@ -199,7 +249,7 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
             );
             const known = manifest.pages[key];
             if (!config.force && known?.sha256 === sha256) {
-              log.info(`section "${doc.section}": unchanged (card ${known.cardId})`);
+              log.info(`section ${quoted(doc.section)}: unchanged (card ${known.cardId})`);
               pages.push({
                 id: known.cardId,
                 ...(known.url ? { url: known.url } : {}),
@@ -228,7 +278,7 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
                 }
               } else {
                 log.warn(
-                  `section "${doc.section}": card ${known.cardId} is not a page in collection ${config.collection_id}, creating a new card`,
+                  `section ${quoted(doc.section)}: card ${known.cardId} is not a page in collection ${config.collection_id}, creating a new card`,
                 );
               }
               existing = null;
@@ -245,7 +295,7 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
             manifest.pages[key] = { cardId: card.id, sha256, ...(url ? { url } : {}) };
             dirty = true;
             const action = existing ? "updated" : "created";
-            log.info(`section "${doc.section}": ${action} (card ${card.id})`);
+            log.info(`section ${quoted(doc.section)}: ${action} (card ${card.id})`);
             pages.push({
               id: card.id,
               ...(url ? { url } : {}),
@@ -283,7 +333,7 @@ export function createGuruPublisher(options: GuruPublisherOptions = {}): Publish
           warnings: [...projection.warnings],
         };
       } catch (e) {
-        const masked = mask((e as Error).message);
+        const masked = singleLine(mask((e as Error).message));
         log.error(masked);
         throw new Error(masked);
       }
