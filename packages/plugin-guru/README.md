@@ -36,7 +36,7 @@ Passed as the publisher's `config`:
 
 ## Design decisions
 
-**Card content as HTML.** `POST /cards/extended` documents `content` as "the Card's HTML or Markdown content". The plugin sends HTML. The ADF renderer escapes every text and attribute value, keeps a link only when it is http, https or mailto, and writes `<img src>` for screenshots, so the result does not depend on how Guru detects markdown.
+**Card content as HTML.** `POST /cards/extended` documents `content` as "the Card's HTML or Markdown content". The plugin sends HTML. The ADF renderer escapes every text and attribute value, keeps a link only when it is http, https or mailto, holds heading levels to 1..6, and writes `<img src>` for screenshots, so the result does not depend on how Guru detects markdown.
 
 **Create, then update in place.** A new document is `POST /cards/extended` with `preferredPhrase` (the title), `content`, `shareStatus` and `collection: { id }`. A changed document is `PUT /cards/{id}/extended` with the same body. Guru's update drops every tag when `tags` is missing, so the plugin reads the card first (`GET /cards/{id}/extended`) and sends its existing `tags` back unchanged. If that read returns 404 (the card was deleted in Guru), the plugin creates a new card. A card is updated only when its read names the target collection. If Guru returns a card without its `collection` field, the plugin cannot verify it, so it creates a new card instead and logs one warning per push saying so; every push then creates new cards until the read includes the collection. The manifest card has no such fallback: a manifest read without the collection fails the push.
 
