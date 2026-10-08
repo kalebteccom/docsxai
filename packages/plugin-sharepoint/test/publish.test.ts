@@ -11,6 +11,8 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
+  type AdfMark,
+  type AdfNode,
   type AdfProjection,
   type PluginLogger,
   type PublisherContext,
@@ -18,7 +20,7 @@ import {
   projectDocPackToAdf,
   resolvePlugins,
 } from "@docsxai/engine";
-import { adfToMarkdown, safeName } from "../src/adf-markdown.js";
+import { adfToMarkdown, safeName, singleLine, titleLine } from "../src/adf-markdown.js";
 import {
   GRAPH_HOSTS,
   GraphClient,
@@ -155,7 +157,7 @@ describe("sharepoint publisher: idempotency (fake Graph)", () => {
       ["checkout", "created"],
       ["login", "created"],
     ]);
-    expect(text("docsxai/index.md")).toMatch(/^# \[Docs\] Shop docs\n/);
+    expect(text("docsxai/index.md")).toMatch(/^# \\\[Docs\\\] Shop docs\n/);
     const baseline = server.writes;
     expect(baseline).toBe(6); // 2 images + 3 pages + manifest
 
@@ -297,6 +299,147 @@ describe("adf to markdown", () => {
     ].join("\n\n");
     const md = adfToMarkdown({ version: 1, type: "doc", content: markdownToAdf(source) });
     expect(md).toBe(source);
+  });
+});
+
+const para = (...content: AdfNode[]): AdfNode => ({ type: "paragraph", content });
+const txt = (text: string, ...marks: AdfMark[]): AdfNode => ({
+  type: "text",
+  text,
+  ...(marks.length > 0 ? { marks } : {}),
+});
+const render = (...content: AdfNode[]): string =>
+  adfToMarkdown({ version: 1, type: "doc", content });
+const linked = (text: string, href: unknown): AdfNode =>
+  txt(text, { type: "link", attrs: { href } });
+
+describe("adf to markdown: injection", () => {
+  it.each([
+    ["a`b``c", "```a`b``c```"],
+    ["`x", "`` `x ``"],
+    ["x`", "`` x` ``"],
+    [" a ", "`  a  `"],
+    ["plain", "`plain`"],
+    ["line one\n\nline two", "`line one  line two`"],
+  ])("a code span of %j is %j", (text, expected) => {
+    expect(render(para(txt(text, { type: "code" })))).toBe(expected);
+  });
+
+  it("drops an empty code span", () => {
+    expect(render(para(txt("", { type: "code" }), txt("after")))).toBe("after");
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "  JavaScript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+    "file:///etc/passwd",
+    "//evil.example.com/x",
+    "/relative/path",
+    "ftp://example.com/x",
+    "\u0001javascript:alert(1)",
+    42,
+    undefined,
+  ])("keeps the text and drops a link to %j", (href) => {
+    expect(render(para(linked("click", href)))).toBe("click");
+  });
+
+  it("keeps http, https and mailto links, in any letter case", () => {
+    expect(render(para(linked("a", "https://example.com/a")))).toBe("[a](https://example.com/a)");
+    expect(render(para(linked("a", "HTTP://example.com/a")))).toBe("[a](HTTP://example.com/a)");
+    expect(render(para(linked("m", "mailto:docs@example.com")))).toBe(
+      "[m](mailto:docs@example.com)",
+    );
+  });
+
+  it("percent-encodes parentheses, whitespace, brackets, quotes and angle brackets in a target", () => {
+    expect(render(para(linked("t", "https://e.com/a)b c")))).toBe("[t](https://e.com/a%29b%20c)");
+    expect(render(para(linked("t", "https://e.com/(a)")))).toBe("[t](https://e.com/%28a%29)");
+    expect(render(para(linked("t", 'https://e.com/<x>[y]"z"\\')))).toBe(
+      "[t](https://e.com/%3Cx%3E%5By%5D%22z%22%5C)",
+    );
+    expect(render(para(linked("t", "https://e.com/a\nb")))).toBe("[t](https://e.com/a%0Ab)");
+  });
+
+  it("escapes brackets in link text, so the text cannot end the link or start another", () => {
+    expect(render(para(linked("a](https://evil.example.com)[b", "https://e.com/")))).toBe(
+      "[a\\](https://evil.example.com)\\[b](https://e.com/)",
+    );
+  });
+
+  it.each([
+    [0, "# t"],
+    [-3, "# t"],
+    [1, "# t"],
+    [6, "###### t"],
+    [7, "###### t"],
+    [99, "###### t"],
+    [2.7, "## t"],
+    ["4", "#### t"],
+    ["abc", "## t"],
+    [undefined, "## t"],
+    [null, "## t"],
+  ])("a heading of level %j renders as %j", (level, expected) => {
+    expect(render({ type: "heading", attrs: { level }, content: [txt("t")] })).toBe(expected);
+  });
+
+  it("keeps a heading and a list item on one line", () => {
+    expect(render({ type: "heading", attrs: { level: 2 }, content: [txt("a\n# b")] })).toBe(
+      "## a \\# b",
+    );
+    expect(
+      render({
+        type: "bulletList",
+        content: [{ type: "listItem", content: [para(txt("a\n- b"))] }],
+      }),
+    ).toBe("- a \\- b");
+  });
+
+  it("lengthens a code fence past any fence inside the code", () => {
+    const block = (code: string) => render({ type: "codeBlock", content: [txt(code)] });
+    expect(block("plain")).toBe("```\nplain\n```");
+    expect(block("a\n```\nb")).toBe("````\na\n```\nb\n````");
+    expect(block("a\n````\n<script>")).toBe("`````\na\n````\n<script>\n`````");
+  });
+
+  it("escapes brackets and backslashes in alt text and keeps it on one line", () => {
+    const alt = "x](javascript:alert(1)) \n![y\\";
+    expect(render({ type: "mediaSingle", content: [{ type: "media", attrs: { alt } }] })).toBe(
+      "![x\\](javascript:alert(1))  !\\[y\\\\](images/x-javascript-alert-1-y)",
+    );
+  });
+
+  it("escapes characters that open a block at the head of a line", () => {
+    expect(render(para(txt("# h\n- x\n+ y\n1. z\n2) w\n=== \n<b>hi</b> | a | b")))).toBe(
+      "\\# h\n\\- x\n\\+ y\n1\\. z\n2\\) w\n\\=== \n\\<b\\>hi\\</b\\> \\| a \\| b",
+    );
+  });
+
+  it("titleLine and singleLine put a title on one escaped line", () => {
+    expect(singleLine("a\r\nb\u2028c\u0007d")).toBe("a b c d");
+    expect(titleLine("  Docs\n# two\n\n![x](y)  ")).toBe("# Docs # two !\\[x\\](y)");
+  });
+});
+
+describe("sharepoint publisher: titles", () => {
+  it("writes a title and a title_prefix with newlines and markup as one escaped heading", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    projection.documents[0]!.title = "Docs\n# injected\n\n![x](y)";
+    await createSharePointPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log, { title_prefix: "[Pre]\n" }),
+    );
+    const lines = text("docsxai/index.md").split("\n");
+    expect(lines[0]).toBe("# \\[Pre\\] Docs # injected !\\[x\\](y)");
+    expect(lines[1]).toBe("");
+    expect(text("docsxai/index.md")).not.toContain("\n# injected");
+  });
+
+  it("parseConfig turns control characters in title_prefix into spaces", () => {
+    expect(parseConfig({ drive_id: "d", title_prefix: "[A]\n\t[B] " }).title_prefix).toBe(
+      "[A] [B] ",
+    );
   });
 });
 

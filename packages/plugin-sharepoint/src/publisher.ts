@@ -25,7 +25,7 @@ import {
   resolveWorkspacePath,
   resolveWorkspacePathReal,
 } from "@docsxai/engine";
-import { adfToMarkdown, IMAGES_DIR, safeName } from "./adf-markdown.js";
+import { adfToMarkdown, IMAGES_DIR, safeName, singleLine, titleLine } from "./adf-markdown.js";
 import { readRegularFile } from "./read-file.js";
 import {
   assertGraphBaseUrl,
@@ -142,7 +142,7 @@ export function parseConfig(
     throw new Error(`sharepoint: config.folder must not contain a "${dotted}" segment`);
   }
   const folder = parts.length > 0 ? parts : ["docsxai"];
-  const prefix = optionalString(raw, "title_prefix");
+  const prefix = singleLine(optionalString(raw, "title_prefix") ?? "");
   return {
     ...(driveId ? { drive_id: driveId } : {}),
     ...(siteId ? { site_id: siteId } : {}),
@@ -275,7 +275,7 @@ async function uploadsFor(
   doc: AdfDocument,
   title: string,
 ): Promise<{ page: Upload; images: Upload[] }> {
-  const markdown = Buffer.from(`# ${title}\n\n${adfToMarkdown(doc.adf)}\n`, "utf8");
+  const markdown = Buffer.from(`${titleLine(title)}\n\n${adfToMarkdown(doc.adf)}\n`, "utf8");
   const images: Upload[] = [];
   for (const att of doc.attachments) {
     // The projection can come from a caller, so the path is held inside the workspace and the
@@ -344,7 +344,7 @@ export function createSharePointPublisher(
         const pages: PublishResult["pages"] = [];
         try {
           for (const doc of projection.documents) {
-            const title = `${config.title_prefix ?? ""}${doc.title}`;
+            const title = `${config.title_prefix ?? ""}${String(doc.title)}`;
             const { page, images } = await uploadsFor(ctx.workspaceDir, doc, title);
             const existed = manifest.files[page.rel] !== undefined;
             let wrote = false;
