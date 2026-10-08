@@ -309,9 +309,13 @@ export class GraphClient {
     const timeoutMs = this.apiTimeoutMs;
     const signal = AbortSignal.timeout(timeoutMs);
     let res = await this.send("GET", itemPath, signal, timeoutMs);
-    if (REDIRECT_STATUSES.has(res.status))
+    let followed = false;
+    if (REDIRECT_STATUSES.has(res.status)) {
       res = await this.follow(itemPath, res, signal, timeoutMs);
-    if (res.status === 404) return null;
+      followed = true;
+    }
+    // A 404 from Graph itself means the file is missing; a 404 from the download URL is an error.
+    if (res.status === 404 && !followed) return null;
     if (!res.ok) return this.fail("GET", itemPath, res);
     return this.read(`GET ${itemPath}`, res, MAX_MANIFEST_BYTES);
   }
