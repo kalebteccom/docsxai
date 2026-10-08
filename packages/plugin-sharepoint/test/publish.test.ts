@@ -11,6 +11,8 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
+  type AdfMark,
+  type AdfNode,
   type AdfProjection,
   type PluginLogger,
   type PublisherContext,
@@ -18,11 +20,13 @@ import {
   projectDocPackToAdf,
   resolvePlugins,
 } from "@docsxai/engine";
-import { adfToMarkdown, safeName } from "../src/adf-markdown.js";
+import { adfToMarkdown, safeName, singleLine, titleLine } from "../src/adf-markdown.js";
 import {
   GRAPH_HOSTS,
   GraphClient,
+  type GraphClientOptions,
   assertGraphBaseUrl,
+  isDownloadUrl,
   readBoundedText,
 } from "../src/graph-client.js";
 import { MAX_IMAGE_BYTES } from "../src/read-file.js";
@@ -30,6 +34,7 @@ import {
   MANIFEST_FILE,
   createSharePointPublisher,
   isSharePointUrl,
+  maskToken,
   parseConfig,
 } from "../src/publisher.js";
 import { type FakeGraph, startFakeGraph } from "./fake-graph.js";
@@ -152,7 +157,7 @@ describe("sharepoint publisher: idempotency (fake Graph)", () => {
       ["checkout", "created"],
       ["login", "created"],
     ]);
-    expect(text("docsxai/index.md")).toMatch(/^# \[Docs\] Shop docs\n/);
+    expect(text("docsxai/index.md")).toMatch(/^# \\\[Docs\\\] Shop docs\n/);
     const baseline = server.writes;
     expect(baseline).toBe(6); // 2 images + 3 pages + manifest
 
@@ -297,13 +302,157 @@ describe("adf to markdown", () => {
   });
 });
 
+const para = (...content: AdfNode[]): AdfNode => ({ type: "paragraph", content });
+const txt = (text: string, ...marks: AdfMark[]): AdfNode => ({
+  type: "text",
+  text,
+  ...(marks.length > 0 ? { marks } : {}),
+});
+const render = (...content: AdfNode[]): string =>
+  adfToMarkdown({ version: 1, type: "doc", content });
+const linked = (text: string, href: unknown): AdfNode =>
+  txt(text, { type: "link", attrs: { href } });
+
+describe("adf to markdown: injection", () => {
+  it.each([
+    ["a`b``c", "```a`b``c```"],
+    ["`x", "`` `x ``"],
+    ["x`", "`` x` ``"],
+    [" a ", "`  a  `"],
+    ["plain", "`plain`"],
+    ["line one\n\nline two", "`line one  line two`"],
+  ])("a code span of %j is %j", (text, expected) => {
+    expect(render(para(txt(text, { type: "code" })))).toBe(expected);
+  });
+
+  it("drops an empty code span", () => {
+    expect(render(para(txt("", { type: "code" }), txt("after")))).toBe("after");
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "  JavaScript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+    "file:///etc/passwd",
+    "//evil.example.com/x",
+    "/relative/path",
+    "ftp://example.com/x",
+    "\u0001javascript:alert(1)",
+    42,
+    undefined,
+  ])("keeps the text and drops a link to %j", (href) => {
+    expect(render(para(linked("click", href)))).toBe("click");
+  });
+
+  it("keeps http, https and mailto links, in any letter case", () => {
+    expect(render(para(linked("a", "https://example.com/a")))).toBe("[a](https://example.com/a)");
+    expect(render(para(linked("a", "HTTP://example.com/a")))).toBe("[a](HTTP://example.com/a)");
+    expect(render(para(linked("m", "mailto:docs@example.com")))).toBe(
+      "[m](mailto:docs@example.com)",
+    );
+  });
+
+  it("percent-encodes parentheses, whitespace, brackets, quotes and angle brackets in a target", () => {
+    expect(render(para(linked("t", "https://e.com/a)b c")))).toBe("[t](https://e.com/a%29b%20c)");
+    expect(render(para(linked("t", "https://e.com/(a)")))).toBe("[t](https://e.com/%28a%29)");
+    expect(render(para(linked("t", 'https://e.com/<x>[y]"z"\\')))).toBe(
+      "[t](https://e.com/%3Cx%3E%5By%5D%22z%22%5C)",
+    );
+    expect(render(para(linked("t", "https://e.com/a\nb")))).toBe("[t](https://e.com/a%0Ab)");
+  });
+
+  it("escapes brackets in link text, so the text cannot end the link or start another", () => {
+    expect(render(para(linked("a](https://evil.example.com)[b", "https://e.com/")))).toBe(
+      "[a\\](https://evil.example.com)\\[b](https://e.com/)",
+    );
+  });
+
+  it.each([
+    [0, "# t"],
+    [-3, "# t"],
+    [1, "# t"],
+    [6, "###### t"],
+    [7, "###### t"],
+    [99, "###### t"],
+    [2.7, "## t"],
+    ["4", "#### t"],
+    ["abc", "## t"],
+    [undefined, "## t"],
+    [null, "## t"],
+  ])("a heading of level %j renders as %j", (level, expected) => {
+    expect(render({ type: "heading", attrs: { level }, content: [txt("t")] })).toBe(expected);
+  });
+
+  it("keeps a heading and a list item on one line", () => {
+    expect(render({ type: "heading", attrs: { level: 2 }, content: [txt("a\n# b")] })).toBe(
+      "## a \\# b",
+    );
+    expect(
+      render({
+        type: "bulletList",
+        content: [{ type: "listItem", content: [para(txt("a\n- b"))] }],
+      }),
+    ).toBe("- a \\- b");
+  });
+
+  it("lengthens a code fence past any fence inside the code", () => {
+    const block = (code: string) => render({ type: "codeBlock", content: [txt(code)] });
+    expect(block("plain")).toBe("```\nplain\n```");
+    expect(block("a\n```\nb")).toBe("````\na\n```\nb\n````");
+    expect(block("a\n````\n<script>")).toBe("`````\na\n````\n<script>\n`````");
+  });
+
+  it("escapes brackets and backslashes in alt text and keeps it on one line", () => {
+    const alt = "x](javascript:alert(1)) \n![y\\";
+    expect(render({ type: "mediaSingle", content: [{ type: "media", attrs: { alt } }] })).toBe(
+      "![x\\](javascript:alert(1))  !\\[y\\\\](images/x-javascript-alert-1-y)",
+    );
+  });
+
+  it("escapes characters that open a block at the head of a line", () => {
+    expect(render(para(txt("# h\n- x\n+ y\n1. z\n2) w\n=== \n<b>hi</b> | a | b")))).toBe(
+      "\\# h\n\\- x\n\\+ y\n1\\. z\n2\\) w\n\\=== \n\\<b\\>hi\\</b\\> \\| a \\| b",
+    );
+  });
+
+  it("titleLine and singleLine put a title on one escaped line", () => {
+    expect(singleLine("a\r\nb\u2028c\u0007d")).toBe("a b c d");
+    expect(titleLine("  Docs\n# two\n\n![x](y)  ")).toBe("# Docs # two !\\[x\\](y)");
+  });
+});
+
+describe("sharepoint publisher: titles", () => {
+  it("writes a title and a title_prefix with newlines and markup as one escaped heading", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    projection.documents[0]!.title = "Docs\n# injected\n\n![x](y)";
+    await createSharePointPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log, { title_prefix: "[Pre]\n" }),
+    );
+    const lines = text("docsxai/index.md").split("\n");
+    expect(lines[0]).toBe("# \\[Pre\\] Docs # injected !\\[x\\](y)");
+    expect(lines[1]).toBe("");
+    expect(text("docsxai/index.md")).not.toContain("\n# injected");
+  });
+
+  it("parseConfig turns control characters in title_prefix into spaces", () => {
+    expect(parseConfig({ drive_id: "d", title_prefix: "[A]\n\t[B] " }).title_prefix).toBe(
+      "[A] [B] ",
+    );
+  });
+});
+
 describe("sharepoint plugin: manifest and runtime", () => {
-  it("declares exactly one capability, the Graph host, and stays private", async () => {
+  it("declares the Graph host and the SharePoint download hosts, and stays private", async () => {
     const pkg = JSON.parse(await fs.readFile(path.join(PKG_ROOT, "package.json"), "utf8")) as {
       private?: boolean;
       docsxai: { namespace: string; kinds: string[]; capabilities: string[]; trust: string };
     };
-    expect(pkg.docsxai.capabilities).toEqual(["egress:graph.microsoft.com"]);
+    expect(pkg.docsxai.capabilities).toEqual([
+      "egress:graph.microsoft.com",
+      "egress:*.sharepoint.com",
+    ]);
     expect(pkg.docsxai.namespace).toBe("sharepoint");
     expect(pkg.docsxai.kinds).toEqual(["publisher"]);
     expect(pkg.private).toBe(true);
@@ -316,7 +465,7 @@ describe("sharepoint plugin: manifest and runtime", () => {
     const registry = await resolvePlugins({
       workspaceDir: dir,
       sources: [{ path: PKG_ROOT }],
-      enabledCapabilities: ["egress:graph.microsoft.com"],
+      enabledCapabilities: ["egress:graph.microsoft.com", "egress:*.sharepoint.com"],
     });
     const record = registry.pluginsInfo("sharepoint");
     expect(record?.status).toBe("loaded");
@@ -361,6 +510,30 @@ describe("sharepoint publisher: graph_base_url", () => {
     expect(() => assertGraphBaseUrl(url)).toThrow(/graph_base_url/);
   });
 
+  it.each([
+    "https://graph.microsoft.com/v1.0?tenant=x",
+    "https://graph.microsoft.com/v1.0?",
+    "https://graph.microsoft.com/v1.0#frag",
+    "https://graph.microsoft.com/v1.0#",
+    "https://graph.microsoft.com",
+    "https://graph.microsoft.com/",
+    "https://graph.microsoft.com/v2.0",
+    "https://graph.microsoft.com/v1.0/sites",
+    "https://graph.microsoft.com/v1%2E0",
+    "https://graph.microsoft.com/beta/v1.0",
+  ])("refuses %s: a query, a fragment or a path other than /v1.0 and /beta", (url) => {
+    expect(() => assertGraphBaseUrl(url)).toThrow(/graph_base_url/);
+  });
+
+  it("returns the parsed origin and path: /beta passes, the host is lower-cased, :443 is dropped", () => {
+    expect(assertGraphBaseUrl("https://graph.microsoft.com/beta/")).toBe(
+      "https://graph.microsoft.com/beta",
+    );
+    expect(assertGraphBaseUrl("https://GRAPH.Microsoft.com:443/v1.0")).toBe(
+      "https://graph.microsoft.com/v1.0",
+    );
+  });
+
   it("refuses a port other than the default, and takes an explicit :443", () => {
     for (const url of [
       "https://graph.microsoft.com:8443/v1.0",
@@ -370,7 +543,7 @@ describe("sharepoint publisher: graph_base_url", () => {
       expect(() => assertGraphBaseUrl(url)).toThrow(/default https port/);
     }
     expect(assertGraphBaseUrl("https://graph.microsoft.com:443/v1.0")).toBe(
-      "https://graph.microsoft.com:443/v1.0",
+      "https://graph.microsoft.com/v1.0",
     );
   });
 
@@ -549,6 +722,272 @@ describe("sharepoint publisher: redirects", () => {
     } finally {
       await other.close();
     }
+  });
+});
+
+/** A client on the fake server, as the publisher builds it. */
+function clientFor(options: GraphClientOptions = {}): GraphClient {
+  return new GraphClient(server.baseUrl, { root: "drives/d" }, TOKEN, maskToken(TOKEN), {
+    ...LOOPBACK,
+    ...options,
+  });
+}
+
+function seed(itemPath: string, content: string): void {
+  server.files.set(itemPath, { data: Buffer.from(content), contentType: "text/plain", id: "seed" });
+}
+
+describe("sharepoint client: read redirected to a download URL", () => {
+  it("follows the one hop without the bearer token and returns the file", async () => {
+    seed("docsxai/a.txt", "hello");
+    expect(await clientFor().readText("docsxai/a.txt")).toBe("hello");
+    expect(server.authHeaders).toEqual([`Bearer ${TOKEN}`]);
+    expect(server.downloadAuthHeaders).toEqual([""]);
+  });
+
+  it("still reads a plain 200 answer, and a missing item is null without a hop", async () => {
+    server.redirectReadsToDownload = false;
+    seed("docsxai/a.txt", "direct");
+    expect(await clientFor().readText("docsxai/a.txt")).toBe("direct");
+    expect(await clientFor().readText("docsxai/none.txt")).toBeNull();
+    expect(server.downloadAuthHeaders).toEqual([]);
+  });
+
+  it("a second push reads its manifest through the redirect and writes nothing", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    const publisher = createSharePointPublisher(LOOPBACK);
+    await publisher.publish(makeCtx(dir, projection, capture().log));
+    const settled = server.writes;
+    const run2 = await publisher.publish(makeCtx(dir, projection, capture().log));
+    expect(run2.pages.map((p) => p.action)).toEqual(["unchanged"]);
+    expect(server.writes).toBe(settled);
+    expect(server.downloadAuthHeaders).toEqual([""]);
+  });
+
+  it("an error answer from the download URL fails the read, it is not read as a missing file", async () => {
+    seed("docsxai/a.txt", "hello");
+    server.redirectReadsTo = `${new URL(server.baseUrl).origin}/download/nope`;
+    await expect(clientFor().readText("docsxai/a.txt")).rejects.toThrow(/HTTP 404/);
+  });
+
+  it.each([
+    "https://evil.example.com/x",
+    "https://contoso.sharepoint.com.evil.example.com/x",
+    "https://evilsharepoint.com/x",
+    "https://sharepoint.com/x",
+    "http://contoso.sharepoint.com/x",
+    "https://contoso.sharepoint.com:8443/x",
+    "https://" + "user" + ":" + "pw" + "@contoso.sharepoint.com/x",
+    "ftp://contoso.sharepoint.com/x",
+  ])("refuses a redirect to %s and sends nothing there", async (location) => {
+    seed("docsxai/a.txt", "hello");
+    server.redirectReadsTo = location;
+    await expect(clientFor().readText("docsxai/a.txt")).rejects.toThrow(
+      /not a SharePoint download URL/,
+    );
+    expect(server.downloadAuthHeaders).toEqual([]);
+  });
+
+  it("refuses a download URL that redirects again", async () => {
+    seed("docsxai/a.txt", "hello");
+    server.downloadRedirectsTo = "https://contoso.sharepoint.com/x";
+    await expect(clientFor().readText("docsxai/a.txt")).rejects.toThrow(/redirected again/);
+  });
+
+  it("isDownloadUrl takes https on a SharePoint subdomain, and loopback http only under the test option", () => {
+    for (const ok of [
+      "https://contoso.sharepoint.com/a",
+      "https://contoso-my.sharepoint.com/a?tempauth=x",
+      "https://contoso.sharepoint.us/a",
+      "https://contoso.sharepoint.cn/a",
+      "https://contoso.sharepoint.de/a",
+      "https://contoso.sharepoint.com:443/a",
+    ]) {
+      expect(isDownloadUrl(ok)).toBe(true);
+    }
+    expect(isDownloadUrl("http://127.0.0.1:4000/a")).toBe(false);
+    expect(isDownloadUrl("http://127.0.0.1:4000/a", LOOPBACK)).toBe(true);
+    expect(isDownloadUrl("http://contoso.sharepoint.com/a", LOOPBACK)).toBe(false);
+    expect(isDownloadUrl("not a url")).toBe(false);
+  });
+});
+
+describe("sharepoint client: timeouts and error bodies", () => {
+  const FAST = { apiTimeoutMs: 300, uploadTimeoutMs: 300 };
+
+  it("ends a stalled read with a timeout error", async () => {
+    server.stall = ["GET docsxai/a.txt"];
+    const started = Date.now();
+    await expect(clientFor(FAST).readText("docsxai/a.txt")).rejects.toThrow(
+      /GET docsxai\/a.txt timed out after 300 ms/,
+    );
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+
+  it("ends a response body that never finishes with a timeout error", async () => {
+    server.stallBody = ["GET docsxai/a.txt"];
+    await expect(clientFor(FAST).readText("docsxai/a.txt")).rejects.toThrow(
+      /timed out reading the response/,
+    );
+  });
+
+  it("ends a stalled upload with a timeout error and stores nothing", async () => {
+    server.stall = ["PUT docsxai/a.txt"];
+    await expect(
+      clientFor(FAST).upload("docsxai/a.txt", new Uint8Array([1]), "text/plain"),
+    ).rejects.toThrow(/PUT docsxai\/a.txt timed out after 300 ms/);
+    expect(server.writes).toBe(0);
+  });
+
+  it("masks the token before cutting an error body, so no part of it survives the cut", async () => {
+    server.failEchoingToken = true;
+    server.errorPadding = 452; // the echoed token starts at character 490 and ends past 500
+    let message = "";
+    try {
+      await clientFor().readText("docsxai/a.txt");
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toContain("HTTP 500");
+    expect(message).not.toContain(TOKEN.slice(0, 10));
+  });
+});
+
+describe("sharepoint publisher: colliding targets", () => {
+  /** A page-tree projection: documents are `project`, `checkout` and `login`. */
+  async function tree(): Promise<{ dir: string; projection: AdfProjection }> {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({
+      workspaceDir: dir,
+      options: { mode: "page-tree" },
+    });
+    return { dir, projection };
+  }
+
+  async function refused(dir: string, projection: AdfProjection, message: RegExp): Promise<void> {
+    await expect(
+      createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(message);
+    // Nothing was asked of the server, not even the manifest read.
+    expect(server.authHeaders).toEqual([]);
+    expect(server.writes).toBe(0);
+  }
+
+  it('refuses sections "a b" and "a-b", naming both and the file', async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.section = "a b";
+    projection.documents[2]!.section = "a-b";
+    await refused(dir, projection, /sections "a b" and "a-b" both publish to docsxai\/a-b\.md/);
+  });
+
+  it("refuses sections that differ only by case, as SharePoint names do not", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.section = "Login";
+    projection.documents[2]!.section = "login";
+    await refused(dir, projection, /sections "Login" and "login"/);
+  });
+
+  it("refuses a flow named like the overview page", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.section = "index";
+    await refused(
+      dir,
+      projection,
+      /sections "project" and "index" both publish to docsxai\/index\.md/,
+    );
+  });
+
+  it("refuses two sections with the same name", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[2]!.section = projection.documents[1]!.section;
+    await refused(dir, projection, /sections "checkout" and "checkout"/);
+  });
+
+  it("refuses two screenshots that share an image path", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[1]!.attachments[0]!.fileName = "x y.png";
+    projection.documents[2]!.attachments[0]!.fileName = "x-y.png";
+    await refused(
+      dir,
+      projection,
+      /screenshots "x y.png" \(section "checkout"\) and "x-y.png" \(section "login"\) both upload to docsxai\/images\/x-y\.png/,
+    );
+  });
+
+  it("takes one screenshot listed by two documents, and still pushes", async () => {
+    const { dir, projection } = await tree();
+    projection.documents[2]!.attachments = [{ ...projection.documents[1]!.attachments[0]! }];
+    const result = await createSharePointPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log),
+    );
+    expect(result.ok).toBe(true);
+    expect(server.files.has("docsxai/images/checkout--step-1.png")).toBe(true);
+  });
+});
+
+describe("sharepoint publisher: timeouts", () => {
+  const FAST = { ...LOOPBACK, apiTimeoutMs: 300, uploadTimeoutMs: 300 };
+
+  it("ends a stalled manifest read with a timeout error and writes nothing", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = [`GET docsxai/${MANIFEST_FILE}`];
+    const started = Date.now();
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/GET docsxai\/docsxai-manifest\.json timed out after 300 ms/);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(server.writes).toBe(0);
+  });
+
+  it("ends a stalled upload with a timeout error", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = ["PUT docsxai/images/checkout--step-1.png"];
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/PUT docsxai\/images\/checkout--step-1\.png timed out after 300 ms/);
+    expect(server.files.has("docsxai/index.md")).toBe(false);
+  });
+
+  it("a manifest write that hangs after a failed upload keeps the first error and logs the second", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    // Both images go up, then the page times out, then the manifest write times out too.
+    server.stall = ["PUT docsxai/index.md", `PUT docsxai/${MANIFEST_FILE}`];
+    const { log, lines } = capture();
+    const started = Date.now();
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, log)),
+    ).rejects.toThrow(/PUT docsxai\/index\.md timed out after 300 ms/);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(lines.some((l) => l.includes("manifest write failed"))).toBe(true);
+    expect(lines.some((l) => l.includes("docsxai-manifest.json timed out"))).toBe(true);
+    expect(server.writes).toBe(2);
+  });
+
+  it("a manifest write that fails after a failed upload still records the uploaded files", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = ["PUT docsxai/index.md"];
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/index\.md timed out/);
+    const manifest = JSON.parse(text(`docsxai/${MANIFEST_FILE}`)) as { files: object };
+    expect(Object.keys(manifest.files).sort()).toEqual([
+      "images/checkout--step-1.png",
+      "images/login--step-1.png",
+    ]);
+  });
+
+  it("a manifest write that times out fails a push that had no other error", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    server.stall = [`PUT docsxai/${MANIFEST_FILE}`];
+    await expect(
+      createSharePointPublisher(FAST).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/PUT docsxai\/docsxai-manifest\.json timed out after 300 ms/);
   });
 });
 

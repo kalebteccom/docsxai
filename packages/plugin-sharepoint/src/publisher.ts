@@ -15,6 +15,7 @@
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import {
+  type AdfAttachment,
   type AdfDocument,
   type AdfProjection,
   type PluginLogger,
@@ -24,13 +25,15 @@ import {
   resolveWorkspacePath,
   resolveWorkspacePathReal,
 } from "@docsxai/engine";
-import { adfToMarkdown, IMAGES_DIR, safeName } from "./adf-markdown.js";
+import { adfToMarkdown, IMAGES_DIR, safeName, singleLine, titleLine } from "./adf-markdown.js";
 import { readRegularFile } from "./read-file.js";
 import {
   assertGraphBaseUrl,
   DEFAULT_GRAPH_URL,
   GraphClient,
+  type GraphClientOptions,
   type GraphUrlOptions,
+  SHAREPOINT_DOMAINS,
 } from "./graph-client.js";
 
 export const MANIFEST_FILE = "docsxai-manifest.json";
@@ -45,7 +48,8 @@ export interface SharePointPublishConfig {
   folder: string;
   /**
    * Graph endpoint. Default `https://graph.microsoft.com/v1.0`. Must be `https` on
-   * `graph.microsoft.com`, `graph.microsoft.us`, `microsoftgraph.chinacloudapi.cn` or `graph.microsoft.de`.
+   * `graph.microsoft.com`, `graph.microsoft.us`, `microsoftgraph.chinacloudapi.cn` or `graph.microsoft.de`,
+   * with the path `/v1.0` or `/beta` and no query or fragment.
    */
   graph_base_url: string;
   /** Prefixed onto every page title. */
@@ -62,10 +66,7 @@ interface ManifestEntry {
 }
 
 /** Options of the publisher itself, not of a publish call. */
-export type SharePointPublisherOptions = GraphUrlOptions;
-
-/** Hosts a SharePoint `webUrl` can be on: the public cloud and the national clouds. */
-const SHAREPOINT_DOMAINS = ["sharepoint.com", "sharepoint.us", "sharepoint.cn", "sharepoint.de"];
+export type SharePointPublisherOptions = GraphUrlOptions & GraphClientOptions;
 
 /** True for an `https:` URL on a SharePoint domain, with no credentials. */
 export function isSharePointUrl(value: unknown): value is string {
@@ -141,7 +142,7 @@ export function parseConfig(
     throw new Error(`sharepoint: config.folder must not contain a "${dotted}" segment`);
   }
   const folder = parts.length > 0 ? parts : ["docsxai"];
-  const prefix = optionalString(raw, "title_prefix");
+  const prefix = singleLine(optionalString(raw, "title_prefix") ?? "");
   return {
     ...(driveId ? { drive_id: driveId } : {}),
     ...(siteId ? { site_id: siteId } : {}),
@@ -227,14 +228,54 @@ interface Upload {
   contentType: string;
 }
 
+/** Library-relative name of a document's page: the overview is `index`, a flow is its safe name. */
+function pageName(doc: AdfDocument): string {
+  return `${doc.section === "project" ? "index" : safeName(doc.section)}.md`;
+}
+
+function imageName(att: AdfAttachment): string {
+  return `${IMAGES_DIR}/${safeName(att.fileName)}`;
+}
+
+/**
+ * Refuses two documents or two screenshots that would land on one file. SharePoint names are case
+ * insensitive and `safeName` folds spaces and punctuation, so `a b` and `a-b` (or `Login` and
+ * `login`) are one path. A screenshot named twice with the same source is one file, not a clash.
+ * Runs before any request, so a collision never leaves a half-written folder behind.
+ */
+function assertNoCollisions(documents: readonly AdfDocument[], folder: string): void {
+  const pages = new Map<string, string>();
+  const images = new Map<string, { source: string; section: string; fileName: string }>();
+  for (const doc of documents) {
+    const rel = pageName(doc);
+    const prior = pages.get(rel.toLowerCase());
+    if (prior !== undefined) {
+      throw new Error(
+        `sharepoint: sections ${JSON.stringify(prior)} and ${JSON.stringify(doc.section)} both publish to ${folder}/${rel}`,
+      );
+    }
+    pages.set(rel.toLowerCase(), doc.section);
+    for (const att of doc.attachments) {
+      const key = imageName(att).toLowerCase();
+      const known = images.get(key);
+      const source = `${att.fileName}\0${att.sourcePath}`;
+      if (known !== undefined && known.source !== source) {
+        throw new Error(
+          `sharepoint: screenshots ${JSON.stringify(known.fileName)} (section ${JSON.stringify(known.section)}) and ${JSON.stringify(att.fileName)} (section ${JSON.stringify(doc.section)}) both upload to ${folder}/${imageName(att)}`,
+        );
+      }
+      images.set(key, { source, section: doc.section, fileName: att.fileName });
+    }
+  }
+}
+
 /** Everything one document publishes: the page file and its screenshots, keyed by library-relative path. */
 async function uploadsFor(
   workspaceDir: string,
   doc: AdfDocument,
   title: string,
 ): Promise<{ page: Upload; images: Upload[] }> {
-  const markdown = Buffer.from(`# ${title}\n\n${adfToMarkdown(doc.adf)}\n`, "utf8");
-  const name = doc.section === "project" ? "index" : safeName(doc.section);
+  const markdown = Buffer.from(`${titleLine(title)}\n\n${adfToMarkdown(doc.adf)}\n`, "utf8");
   const images: Upload[] = [];
   for (const att of doc.attachments) {
     // The projection can come from a caller, so the path is held inside the workspace and the
@@ -243,14 +284,14 @@ async function uploadsFor(
       await resolveWorkspacePathReal(workspaceDir, att.sourcePath),
     );
     images.push({
-      rel: `${IMAGES_DIR}/${safeName(att.fileName)}`,
+      rel: imageName(att),
       data,
       sha256: sha256Hex(data),
       contentType: "image/png",
     });
   }
   const page = {
-    rel: `${name}.md`,
+    rel: pageName(doc),
     data: markdown,
     sha256: sha256Hex(markdown),
     contentType: "text/markdown",
@@ -277,6 +318,7 @@ export function createSharePointPublisher(
       try {
         const config = parseConfig(ctx.config, options);
         const projection = await loadProjection(ctx);
+        assertNoCollisions(projection.documents, config.folder);
         const root = config.drive_id
           ? `drives/${encodeURIComponent(config.drive_id)}`
           : `sites/${encodeURIComponent(config.site_id!)}/drive`;
@@ -300,6 +342,7 @@ export function createSharePointPublisher(
         };
 
         const pages: PublishResult["pages"] = [];
+        let failure: { error: unknown } | undefined;
         try {
           for (const doc of projection.documents) {
             const title = `${config.title_prefix ?? ""}${doc.title}`;
@@ -318,12 +361,21 @@ export function createSharePointPublisher(
               section: doc.section,
             });
           }
-        } finally {
-          if (sent.size > 0) {
+        } catch (e) {
+          failure = { error: e };
+        }
+        // The manifest still records what was uploaded before a failure. A failed manifest write
+        // is logged and the error that stopped the push is the one reported.
+        if (sent.size > 0) {
+          try {
             const body = Buffer.from(manifestJson(manifest), "utf8");
             await client.upload(`${config.folder}/${MANIFEST_FILE}`, body, "application/json");
+          } catch (e) {
+            if (!failure) throw e;
+            log.error(`manifest write failed: ${(e as Error).message}`);
           }
         }
+        if (failure) throw failure.error;
 
         return {
           ok: true,
