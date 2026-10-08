@@ -331,6 +331,24 @@ describe("the number of variant directories", () => {
   });
 });
 
+describe("what error messages show", () => {
+  it("strips control characters from a directory name it lists", async () => {
+    await fs.mkdir(path.join(ws(), "docs", "login", "evil\n\u001b[31mx"));
+    await setSources(ws(), { matrixFlow: { flow: "login", auto: true, map: BOTH } });
+    const error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toMatch(/matrixFlow "login": no pack key for evil\[31mx\./);
+    expect([...error.message].some((ch) => ch.charCodeAt(0) < 0x20)).toBe(false);
+  });
+
+  it("shows a workspace-relative path when the flow directory cannot be listed", async () => {
+    await fs.rm(path.join(ws(), "docs", "login"), { recursive: true, force: true });
+    await fs.writeFile(path.join(ws(), "docs", "login"), "not a directory");
+    await setSources(ws(), mapOf(BOTH));
+    const error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toBe("cannot read docs/login/ (ENOTDIR)");
+  });
+});
+
 describe("symlinks under docs/", () => {
   /** Moves `dir` out of the workspace and leaves a symlink to it in its place. */
   async function linkAway(dir: string): Promise<void> {

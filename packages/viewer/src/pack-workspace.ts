@@ -34,7 +34,7 @@ import {
   type SourceFlow,
   type SourceStep,
 } from "./pack-source.js";
-import { refuseSymlinks } from "./pack-paths.js";
+import { nameList, printable, refuseSymlinks, showingPath } from "./pack-paths.js";
 import { isValidId, parseVariantKey, type LocalizedText } from "./pack-schema.js";
 import { MAX_PNG_BYTES, readRegularFile } from "./safe-read.js";
 
@@ -150,11 +150,11 @@ export function parsePackConfig(raw: Obj): PackConfig {
   return { sources, ...(matrixFlow ? { matrixFlow } : {}), flows };
 }
 
-async function annotationsOf(docsFlowDir: string): Promise<AnnotationRecord[]> {
-  const file = path.join(docsFlowDir, "annotations.json");
-  const parsed = await readJsonObject(file, true);
+async function annotationsOf(flowDir: string, shownDir: string): Promise<AnnotationRecord[]> {
+  const shown = `${shownDir}/annotations.json`;
+  const parsed = await readJsonObject(path.join(flowDir, "annotations.json"), true, shown);
   if (parsed.annotations === undefined) return [];
-  if (!Array.isArray(parsed.annotations)) throw new Error(`${file}: annotations must be an array`);
+  if (!Array.isArray(parsed.annotations)) throw new Error(`${shown}: annotations must be an array`);
   return (parsed.annotations as unknown[]).filter(isObj) as unknown as AnnotationRecord[];
 }
 
@@ -170,6 +170,7 @@ async function addSource(
   into: Map<string, Map<string, SourceStep>>,
 ): Promise<void> {
   const { flow, variant, label } = source;
+  const shownDir = `docs/${source.segments.join("/")}`;
   const flowDir = path.join(docsDir, ...source.segments);
   await refuseSymlinks(docsDir, [...source.segments, "screenshots"]);
   const shots = (await fs.readdir(path.join(flowDir, "screenshots")).catch(() => [] as string[]))
@@ -179,13 +180,13 @@ async function addSource(
     // A matrix flow keeps its screenshots one level down; point at the entry that reads them.
     const variants = source.matrixFlow === undefined ? await variantIds(docsDir, label) : [];
     throw new Error(
-      `no screenshots under ${path.join(flowDir, "screenshots")}` +
+      `no screenshots under ${shownDir}/screenshots` +
         (variants.length > 0
-          ? `; docs/${label}/ has variant directories (${variants.join(", ")}), so it looks like a matrix flow: use a "matrix" source or "matrixFlow" in ${PACK_CONFIG_FILE}`
+          ? `; docs/${label}/ has variant directories (${nameList(variants)}), so it looks like a matrix flow: use a "matrix" source or "matrixFlow" in ${PACK_CONFIG_FILE}`
           : ""),
     );
   }
-  const records = await annotationsOf(flowDir);
+  const records = await annotationsOf(flowDir, shownDir);
   const steps = into.get(flow) ?? new Map<string, SourceStep>();
   into.set(flow, steps);
   for (const file of shots) {
@@ -195,16 +196,18 @@ async function addSource(
     const text = flowText && Object.hasOwn(flowText.steps, id) ? flowText.steps[id] : undefined;
     if (!text)
       throw new Error(
-        `${PACK_CONFIG_FILE} has no flows["${flow}"].steps["${id}"] (screenshot ${label}/${file})`,
+        `${PACK_CONFIG_FILE} has no flows["${flow}"].steps["${printable(id)}"] (screenshot ${label}/${printable(file)})`,
       );
     const step = steps.get(id) ?? { id, ...text, variants: [] };
     if (step.variants.some((v) => v.key === variant)) {
-      throw new Error(`${PACK_CONFIG_FILE}: two sources feed ${flow}/${id}/${variant}`);
+      throw new Error(`${PACK_CONFIG_FILE}: two sources feed ${flow}/${printable(id)}/${variant}`);
     }
     const annotations = records.filter((r) => r.step === id);
     step.variants.push({
       key: variant,
-      png: await readRegularFile(path.join(flowDir, "screenshots", file), MAX_PNG_BYTES),
+      png: await showingPath(`${shownDir}/screenshots/${printable(file)}`, () =>
+        readRegularFile(path.join(flowDir, "screenshots", file), MAX_PNG_BYTES),
+      ),
       annotations,
       callouts: calloutsOf(annotations),
     });
@@ -217,7 +220,9 @@ export async function readWorkspace(
   workspace: string,
   warn?: (message: string) => void,
 ): Promise<PackSource> {
-  const config = parsePackConfig(await readJsonObject(path.join(workspace, PACK_CONFIG_FILE)));
+  const config = parsePackConfig(
+    await readJsonObject(path.join(workspace, PACK_CONFIG_FILE), false, PACK_CONFIG_FILE),
+  );
   const docsDir = path.join(workspace, "docs");
   const into = new Map<string, Map<string, SourceStep>>();
   for (const source of await resolveSources(

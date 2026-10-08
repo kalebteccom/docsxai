@@ -503,6 +503,44 @@ describe("inputs the pack commands do not trust", () => {
     expect((error as Error).message).not.toContain("hunter2");
   });
 
+  it("names workspace-relative paths in read errors", async () => {
+    const config = packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]);
+    await writeWorkspace(ws(), { config, shots: {} });
+    let error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toMatch(/^no screenshots under docs\/desktop-1280\/screenshots$/);
+
+    await writeWorkspace(ws(), {
+      config,
+      shots: { "desktop-1280": { board: solidPng(7, 5) } },
+    });
+    const annotations = path.join(ws(), "docs", "desktop-1280", "annotations.json");
+    await fs.writeFile(annotations, "{ nope");
+    error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toBe("invalid JSON in docs/desktop-1280/annotations.json");
+
+    await fs.writeFile(annotations, JSON.stringify({ annotations: {} }));
+    error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toBe("docs/desktop-1280/annotations.json: annotations must be an array");
+
+    await fs.rm(annotations);
+    const shot = path.join(ws(), "docs", "desktop-1280", "screenshots", "board.png");
+    await fs.rename(shot, path.join(root, "elsewhere.png"));
+    await fs.symlink(path.join(root, "elsewhere.png"), shot);
+    error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toMatch(/^docs\/desktop-1280\/screenshots\/board\.png is a symlink/);
+  });
+
+  it("strips control characters from a screenshot name in the error", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ a: "en.dark.1280" }, ["board"]),
+      shots: { a: shots("board", "x\u001b[31my") },
+    });
+    const error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toBe(
+      'pack.json has no flows["app"].steps["x[31my"] (screenshot a/x[31my.png)',
+    );
+  });
+
   it("refuses a symlinked screenshots directory in a workspace source", async () => {
     await writeWorkspace(ws(), {
       config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),

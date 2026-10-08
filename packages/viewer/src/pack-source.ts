@@ -13,6 +13,7 @@ import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
 import { pngDimensions } from "./burn.js";
 import { calloutsOf, recordsFromSidecar } from "./pack-annotations.js";
+import { showingPath } from "./pack-paths.js";
 import { isValidId, parseVariantKey, type LocalizedText, type PackCallout } from "./pack-schema.js";
 import { MAX_JSON_BYTES, MAX_PNG_BYTES, readRegularFile } from "./safe-read.js";
 
@@ -41,25 +42,28 @@ export type PackSource = SourceFlow[];
 
 type Obj = Record<string, unknown>;
 
-/** Reads a JSON file that must hold an object. `optional`: a missing file reads as `{}`. */
-export async function readJsonObject(file: string, optional = false): Promise<Obj> {
+/**
+ * Reads a JSON file that must hold an object. `optional`: a missing file reads as `{}`. `shown`
+ * is the name messages use for the file, when the absolute path should not appear in them.
+ */
+export async function readJsonObject(file: string, optional = false, shown = file): Promise<Obj> {
   let text: string;
   try {
-    text = (await readRegularFile(file, MAX_JSON_BYTES)).toString("utf8");
+    text = (await showingPath(shown, () => readRegularFile(file, MAX_JSON_BYTES))).toString("utf8");
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
     if (optional) return {};
-    throw new Error(`missing ${file}`);
+    throw new Error(`missing ${shown}`);
   }
   let value: unknown;
   try {
     value = JSON.parse(text);
   } catch {
     // The parser's message quotes the offending text; the capture is not trusted, so it is dropped.
-    throw new Error(`invalid JSON in ${file}`);
+    throw new Error(`invalid JSON in ${shown}`);
   }
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error(`${file}: expected a JSON object`);
+    throw new Error(`${shown}: expected a JSON object`);
   }
   return value as Obj;
 }

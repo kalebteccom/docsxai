@@ -15,7 +15,7 @@
 
 import { promises as fs, type Dirent } from "node:fs";
 import * as path from "node:path";
-import { refuseSymlinks } from "./pack-paths.js";
+import { nameList, printable, refuseSymlinks } from "./pack-paths.js";
 import { isValidId, parseVariantKey } from "./pack-schema.js";
 
 /** A capture flow's directory name under `docs/`, as the engine's `burn` accepts it. */
@@ -139,8 +139,6 @@ export function parseMatrixFlow(value: unknown, file: string): MatrixFlow {
   return { flow, map, auto, ...(packFlow !== undefined ? { packFlow } : {}) };
 }
 
-const list = (names: string[]): string => (names.length > 0 ? names.join(", ") : "none");
-
 const byName = (a: Dirent, b: Dirent): number => (a.name < b.name ? -1 : 1);
 
 /**
@@ -156,15 +154,18 @@ export async function variantIds(
   const entries = await fs
     .readdir(path.join(docsDir, flow), { withFileTypes: true })
     .catch((e: unknown): Dirent[] => {
-      if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
-      throw e;
+      const code = (e as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") return [];
+      throw new Error(`cannot read docs/${flow}/ (${code ?? "unknown error"})`);
     });
   const candidates = entries.filter((d) => !d.name.startsWith(".") && d.name !== SCREENSHOTS_DIR);
   if (warn) {
     for (const d of candidates.filter((c) => c.isSymbolicLink()).sort(byName)) {
       const target = await fs.stat(path.join(docsDir, flow, d.name)).catch(() => undefined);
       if (target?.isDirectory()) {
-        warn(`docs/${flow}/${d.name} is a symlink and was skipped; pack does not follow symlinks`);
+        warn(
+          `docs/${flow}/${printable(d.name)} is a symlink and was skipped; pack does not follow symlinks`,
+        );
       }
     }
   }
@@ -203,7 +204,7 @@ function expandMatrixFlow(mf: MatrixFlow, have: string[], file: string): Resolve
   const missing = [...mapped.keys()].filter((id) => !known.has(id));
   if (missing.length > 0) {
     throw new Error(
-      `${where}: map names ${list(missing)}, not under docs/${mf.flow}/ (available: ${list(have)})`,
+      `${where}: map names ${nameList(missing)}, not under docs/${mf.flow}/ (available: ${nameList(have)})`,
     );
   }
   const unmapped: string[] = [];
@@ -215,7 +216,7 @@ function expandMatrixFlow(mf: MatrixFlow, have: string[], file: string): Resolve
   }
   if (unmapped.length > 0) {
     throw new Error(
-      `${where}: no pack key for ${unmapped.join(", ")}. Map each as <matrix id>: <locale>.<theme>.<viewport> in "map"${
+      `${where}: no pack key for ${nameList(unmapped)}. Map each as <matrix id>: <locale>.<theme>.<viewport> in "map"${
         mf.auto ? "" : ', or set "auto": true for ids already in that form'
       }`,
     );
@@ -236,7 +237,7 @@ function rejectSharedTargets(sources: ResolvedSource[], file: string): void {
   for (const { source, labels } of byTarget.values()) {
     if (labels.length < 2) continue;
     throw new Error(
-      `${file}: docs/${labels.join(", docs/")} all map to variant "${source.variant}" of pack flow "${source.flow}"`,
+      `${file}: docs/${labels.map(printable).join(", docs/")} all map to variant "${source.variant}" of pack flow "${source.flow}"`,
     );
   }
 }
@@ -271,7 +272,7 @@ export async function resolveSources(
     const have = await idsOf(e.flow);
     if (!have.set.has(e.matrix)) {
       throw new Error(
-        `${file}: sources["${name}"]: no matrix variant "${e.matrix}" under docs/${e.flow}/ (available: ${list(have.ids)})`,
+        `${file}: sources["${name}"]: no matrix variant "${e.matrix}" under docs/${e.flow}/ (available: ${nameList(have.ids)})`,
       );
     }
     out.push(matrixSource(e.flow, e.matrix, e.packFlow, e.variant));
