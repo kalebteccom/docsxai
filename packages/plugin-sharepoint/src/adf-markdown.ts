@@ -18,7 +18,8 @@ export function safeName(raw: string): string {
   const name = raw.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "item";
   if (/^\.+$/.test(name))
     throw new Error(`sharepoint: ${JSON.stringify(raw)} is not a usable file name`);
-  return name.replace(/[.-]+$/, "");
+  // `.-.` is not all dots, but the strip leaves nothing: fall back like an empty name does.
+  return name.replace(/[.-]+$/, "") || "item";
 }
 
 /** C0 and C1 controls, DEL and the Unicode line and paragraph separators. */
@@ -41,6 +42,11 @@ export function singleLine(value: string): string {
     }
   }
   return out;
+}
+
+/** A name from the pack as one quoted line, safe to log: a newline or control character cannot start a fake log line, and a `"` is escaped. */
+export function quoted(name: string): string {
+  return JSON.stringify(singleLine(name));
 }
 
 /** What starts a block at the head of a line: `#`, a bullet (`-`, `+`), a setext rule (`=`), `1.` or `1)`. */

@@ -3,14 +3,17 @@
 // refuses a symlink in the last path component, and caps the bytes actually read.
 
 import { constants, promises as fs } from "node:fs";
+import { quoted } from "./adf-markdown.js";
 
 /** Largest screenshot the publisher reads. */
 export const MAX_IMAGE_BYTES = 64 * 1024 * 1024;
 
 export async function readRegularFile(file: string, maxBytes = MAX_IMAGE_BYTES): Promise<Buffer> {
   const first = await fs.lstat(file);
-  if (first.isSymbolicLink()) throw new Error(`sharepoint: attachment ${file} is a symlink`);
-  if (!first.isFile()) throw new Error(`sharepoint: attachment ${file} is not a regular file`);
+  if (first.isSymbolicLink())
+    throw new Error(`sharepoint: attachment ${quoted(file)} is a symlink`);
+  if (!first.isFile())
+    throw new Error(`sharepoint: attachment ${quoted(file)} is not a regular file`);
   const handle = await fs.open(
     file,
     constants.O_RDONLY |
@@ -20,9 +23,10 @@ export async function readRegularFile(file: string, maxBytes = MAX_IMAGE_BYTES):
   );
   try {
     const stat = await handle.stat();
-    if (!stat.isFile()) throw new Error(`sharepoint: attachment ${file} is not a regular file`);
+    if (!stat.isFile())
+      throw new Error(`sharepoint: attachment ${quoted(file)} is not a regular file`);
     if (stat.size > maxBytes) {
-      throw new Error(`sharepoint: attachment ${file} is larger than ${maxBytes} bytes`);
+      throw new Error(`sharepoint: attachment ${quoted(file)} is larger than ${maxBytes} bytes`);
     }
     // The file can grow after the fstat; the cap holds for the bytes actually read.
     const chunks: Buffer[] = [];
@@ -33,7 +37,7 @@ export async function readRegularFile(file: string, maxBytes = MAX_IMAGE_BYTES):
       if (bytesRead === 0) break;
       total += bytesRead;
       if (total > maxBytes) {
-        throw new Error(`sharepoint: attachment ${file} is larger than ${maxBytes} bytes`);
+        throw new Error(`sharepoint: attachment ${quoted(file)} is larger than ${maxBytes} bytes`);
       }
       chunks.push(chunk.subarray(0, bytesRead));
     }
