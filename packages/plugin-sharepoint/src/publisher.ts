@@ -29,6 +29,7 @@ import {
   adfToMarkdown,
   IMAGES_DIR,
   imageAlts,
+  quoted,
   safeName,
   singleLine,
   titleLine,
@@ -255,11 +256,6 @@ function imageName(att: AdfAttachment): string {
   return `${IMAGES_DIR}/${safeName(att.fileName)}`;
 }
 
-/** A name from the pack as one quoted line, safe to log: a newline or control character cannot start a fake log line. */
-function quoted(name: string): string {
-  return JSON.stringify(singleLine(name));
-}
-
 /** A document links an image only through an attachment of the same name, so link and upload agree. */
 function assertImagesAttached(doc: AdfDocument): void {
   const names = new Set(doc.attachments.map((att) => att.fileName));
@@ -394,9 +390,7 @@ export function createSharePointPublisher(
             wrote = (await push(page)) || wrote;
             const entry = manifest.files[page.rel]!;
             const action = !wrote ? "unchanged" : existed ? "updated" : "created";
-            log.info(
-              `section "${singleLine(doc.section)}": ${action} (${config.folder}/${page.rel})`,
-            );
+            log.info(`section ${quoted(doc.section)}: ${action} (${config.folder}/${page.rel})`);
             pages.push({
               id: entry.id ?? `${config.folder}/${page.rel}`,
               ...(entry.webUrl ? { url: entry.webUrl } : {}),
@@ -415,7 +409,7 @@ export function createSharePointPublisher(
             await client.upload(`${config.folder}/${MANIFEST_FILE}`, body, "application/json");
           } catch (e) {
             if (!failure) throw e;
-            log.error(`manifest write failed: ${(e as Error).message}`);
+            log.error(`manifest write failed: ${singleLine((e as Error).message)}`);
           }
         }
         if (failure) throw failure.error;
@@ -427,7 +421,9 @@ export function createSharePointPublisher(
           warnings: [...projection.warnings],
         };
       } catch (e) {
-        const masked = mask((e as Error).message);
+        // Paths and names from the pack reach error messages (the engine's path-escape error and
+        // the filesystem's own errors embed them raw), so the message is one line before it is logged.
+        const masked = singleLine(mask((e as Error).message));
         log.error(masked);
         throw new Error(masked);
       }

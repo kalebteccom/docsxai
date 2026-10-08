@@ -44,6 +44,11 @@ export function singleLine(value: string): string {
   return out;
 }
 
+/** A name from the pack as one quoted line, safe to log: a newline or control character cannot start a fake log line, and a `"` is escaped. */
+export function quoted(name: string): string {
+  return JSON.stringify(singleLine(name));
+}
+
 /** What starts a block at the head of a line: `#`, a bullet (`-`, `+`), a setext rule (`=`), `1.` or `1)`. */
 const LINE_START = /^([ \t]*)(?:([#+=-])|(\d{1,9})([.)]))/;
 

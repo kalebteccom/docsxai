@@ -468,6 +468,57 @@ describe("sharepoint publisher: log lines", () => {
     expect(lines.filter(hasControls)).toEqual([]);
   });
 
+  it("escapes a double quote in a section name so the quoting holds", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({
+      workspaceDir: dir,
+      options: { mode: "page-tree" },
+    });
+    projection.documents[1]!.section = 'say "hi" now';
+    const { log, lines } = capture();
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(lines).toContain('section "say \\"hi\\" now": created (docsxai/say-hi-now.md)');
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "quotes an attachment path with a newline and a quote in a read error, on one line",
+    async () => {
+      const dir = await makeWorkspace();
+      const link = path.join(dir, "docs", "checkout", "burned", 'x"\ny.png');
+      await fs.symlink(path.join(dir, "docs", "login", "burned", "step-1.png"), link);
+      const projection = await projectDocPackToAdf({ workspaceDir: dir });
+      projection.documents[0]!.attachments[0]!.sourcePath = link;
+      const { log, lines } = capture();
+      const error = await createSharePointPublisher(LOOPBACK)
+        .publish(makeCtx(dir, projection, log))
+        .catch((e: Error) => e);
+      const message = (error as Error).message;
+      expect(message).toContain('x\\" y.png" is a symlink');
+      expect(hasControls(message)).toBe(false);
+      expect(lines.filter(hasControls)).toEqual([]);
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "reports a path-escape error on one line when the source path holds a newline",
+    async () => {
+      const dir = await makeWorkspace();
+      const outside = await makeWorkspace();
+      const file = path.join(outside, "a\nb.png");
+      await fs.writeFile(file, PNG_A);
+      const projection = await projectDocPackToAdf({ workspaceDir: dir });
+      projection.documents[0]!.attachments[0]!.sourcePath = file;
+      const { log, lines } = capture();
+      const error = await createSharePointPublisher(LOOPBACK)
+        .publish(makeCtx(dir, projection, log))
+        .catch((e: Error) => e);
+      expect((error as Error).message).toMatch(/escapes workspace root/);
+      expect(hasControls((error as Error).message)).toBe(false);
+      expect(lines.filter(hasControls)).toEqual([]);
+      expect(lines.length).toBeGreaterThan(0);
+    },
+  );
+
   it("quotes a section name on one line in a collision error", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({
