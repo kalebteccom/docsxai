@@ -33,7 +33,13 @@
     ],
     "capabilities": [
       "egress:graph.microsoft.com",
-      "egress:*.sharepoint.com"
+      "egress:graph.microsoft.us",
+      "egress:microsoftgraph.chinacloudapi.cn",
+      "egress:graph.microsoft.de",
+      "egress:*.sharepoint.com",
+      "egress:*.sharepoint.us",
+      "egress:*.sharepoint.cn",
+      "egress:*.sharepoint.de"
     ],
     "trust": "kalebtec"
   },

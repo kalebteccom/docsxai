@@ -25,6 +25,7 @@ import {
   GRAPH_HOSTS,
   GraphClient,
   type GraphClientOptions,
+  SHAREPOINT_DOMAINS,
   assertGraphBaseUrl,
   isDownloadUrl,
   readBoundedText,
@@ -41,6 +42,18 @@ import { type FakeGraph, startFakeGraph } from "./fake-graph.js";
 
 /** The fake Graph server is plain http on loopback, which the publisher refuses unless told otherwise. */
 const LOOPBACK = { allowLoopbackHttp: true } as const;
+
+/** Every host the code can reach: the Graph endpoints and the SharePoint download domains. */
+const ALL_CAPABILITIES = [
+  "egress:graph.microsoft.com",
+  "egress:graph.microsoft.us",
+  "egress:microsoftgraph.chinacloudapi.cn",
+  "egress:graph.microsoft.de",
+  "egress:*.sharepoint.com",
+  "egress:*.sharepoint.us",
+  "egress:*.sharepoint.cn",
+  "egress:*.sharepoint.de",
+];
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TOKEN = "eyJ0eXAi.fake-graph-bearer-token.sig123";
@@ -444,15 +457,12 @@ describe("sharepoint publisher: titles", () => {
 });
 
 describe("sharepoint plugin: manifest and runtime", () => {
-  it("declares the Graph host and the SharePoint download hosts, and stays private", async () => {
+  it("declares every Graph host and SharePoint download domain, and stays private", async () => {
     const pkg = JSON.parse(await fs.readFile(path.join(PKG_ROOT, "package.json"), "utf8")) as {
       private?: boolean;
       docsxai: { namespace: string; kinds: string[]; capabilities: string[]; trust: string };
     };
-    expect(pkg.docsxai.capabilities).toEqual([
-      "egress:graph.microsoft.com",
-      "egress:*.sharepoint.com",
-    ]);
+    expect(pkg.docsxai.capabilities).toEqual(ALL_CAPABILITIES);
     expect(pkg.docsxai.namespace).toBe("sharepoint");
     expect(pkg.docsxai.kinds).toEqual(["publisher"]);
     expect(pkg.private).toBe(true);
@@ -465,7 +475,7 @@ describe("sharepoint plugin: manifest and runtime", () => {
     const registry = await resolvePlugins({
       workspaceDir: dir,
       sources: [{ path: PKG_ROOT }],
-      enabledCapabilities: ["egress:graph.microsoft.com", "egress:*.sharepoint.com"],
+      enabledCapabilities: ALL_CAPABILITIES,
     });
     const record = registry.pluginsInfo("sharepoint");
     expect(record?.status).toBe("loaded");
@@ -477,6 +487,13 @@ describe("sharepoint plugin: manifest and runtime", () => {
       registry.getPublisher("sharepoint:push").publish(makeCtx(dir, projection, capture().log)),
     ).rejects.toThrow("graph_base_url must be https");
     expect(server.authHeaders).toEqual([]);
+  });
+
+  it("declares a capability for every host the code accepts", () => {
+    const declared = new Set(ALL_CAPABILITIES);
+    for (const host of GRAPH_HOSTS) expect(declared.has(`egress:${host}`)).toBe(true);
+    for (const domain of SHAREPOINT_DOMAINS) expect(declared.has(`egress:*.${domain}`)).toBe(true);
+    expect(declared.size).toBe(GRAPH_HOSTS.length + SHAREPOINT_DOMAINS.length);
   });
 
   it("is disabled when the egress capability is not operator-enabled", async () => {
@@ -646,7 +663,7 @@ describe("sharepoint publisher: attachment reads", () => {
     edit: (att: { sourcePath: string; sha256: string }) => void,
   ): Promise<unknown> {
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
-    edit(projection.documents[0]!.attachments[0]!);
+    edit(projection.documents[0]!.attachments[0]);
     return createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
   }
 
