@@ -134,12 +134,23 @@ function optionalString(raw: Record<string, unknown>, key: string): string | und
   return typeof v === "string" && v.length > 0 ? v : undefined;
 }
 
+/** An id that goes into a request path: not a dot segment, and none of `/`, `\`, `?` or `#`. */
+function idValue(raw: Record<string, unknown>, key: "drive_id" | "site_id"): string | undefined {
+  const id = optionalString(raw, key);
+  if (id !== undefined && (/^\.+$/.test(id) || /[/\\?#]/.test(id))) {
+    throw new Error(
+      `sharepoint: config.${key} must not be "." or "..", or contain "/", "\\", "?" or "#"`,
+    );
+  }
+  return id;
+}
+
 export function parseConfig(
   raw: Record<string, unknown>,
   options: GraphUrlOptions = {},
 ): SharePointPublishConfig {
-  const driveId = optionalString(raw, "drive_id");
-  const siteId = optionalString(raw, "site_id");
+  const driveId = idValue(raw, "drive_id");
+  const siteId = idValue(raw, "site_id");
   if (!driveId && !siteId) {
     throw new Error("sharepoint: config.drive_id or config.site_id is required");
   }

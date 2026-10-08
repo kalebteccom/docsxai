@@ -1144,6 +1144,37 @@ describe("sharepoint publisher: file names and folder", () => {
     expect(() => parseConfig({ drive_id: "d", folder })).toThrow(/config\.folder/);
   });
 
+  it.each(["drive_id", "site_id"])("refuses a %s that would change the request path", (key) => {
+    for (const id of ["..", ".", "...", "a/b", "../x", "a\\b", "a?x=1", "a#b", "/"]) {
+      expect(() => parseConfig({ [key]: id }), `${key} ${id}`).toThrow(
+        new RegExp(`config\\.${key} must not be`),
+      );
+    }
+  });
+
+  it("refuses a bad drive_id even when site_id is fine, and a bad site_id beside a good drive_id", () => {
+    expect(() => parseConfig({ drive_id: "..", site_id: "s" })).toThrow(/config\.drive_id/);
+    expect(() => parseConfig({ drive_id: "d", site_id: "a/b" })).toThrow(/config\.site_id/);
+  });
+
+  it("keeps real ids: a drive id with !, a site id with commas and dots", () => {
+    const cfg = parseConfig({ drive_id: "b!Abc-_123", site_id: "contoso.sharepoint.com,1a,2b" });
+    expect(cfg.drive_id).toBe("b!Abc-_123");
+    expect(cfg.site_id).toBe("contoso.sharepoint.com,1a,2b");
+  });
+
+  it("refuses a bad id before any request", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir });
+    await expect(
+      createSharePointPublisher(LOOPBACK).publish(
+        makeCtx(dir, projection, capture().log, { drive_id: ".." }),
+      ),
+    ).rejects.toThrow(/config\.drive_id must not be/);
+    expect(server.authHeaders).toEqual([]);
+    expect(server.writes).toBe(0);
+  });
+
   it("keeps a nested folder and drops empty segments", () => {
     expect(parseConfig({ drive_id: "d", folder: "/Docs//App/" }).folder).toBe("Docs/App");
   });

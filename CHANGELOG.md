@@ -30,6 +30,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **SharePoint publisher: image link and upload share one name; names checked first.** A page linked an image by `safeName(alt)` while the upload used `safeName(fileName)`, and an `alt` of `..` threw only after earlier files were written. The link now takes the path of the screenshot with the same file name, a media node with no such screenshot is refused, and every section, screenshot and image name is checked before the first request.
 - **SharePoint publisher: section names in log lines.** The per-section log line and the collision errors printed `doc.section` as written, so a newline or control character in a section name could forge a log line. They now print the name on one line with controls replaced by a space.
 - **SharePoint publisher: trailing dot in a name.** SharePoint strips a trailing `.`, so `a.` and `a` were one file that the collision check treated as two. `safeName` now drops trailing dots (and any dashes left behind), so both come out as `a` and are refused as a collision.
+- **SharePoint publisher: `site_id` and `drive_id` validation.** A `site_id` or `drive_id` of `..`, or one containing `/`, `\`, `?` or `#`, now fails config validation before any request. `encodeURIComponent` left `..` untouched, so it reached the request path as a dot segment.
 
 ### Added
 
