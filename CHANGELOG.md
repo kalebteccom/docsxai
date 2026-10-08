@@ -28,6 +28,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **SharePoint publisher: capabilities cover every reachable host.** The code accepted `graph.microsoft.us`, `microsoftgraph.chinacloudapi.cn`, `graph.microsoft.de` and the `sharepoint.us`, `.cn` and `.de` download domains, but the manifest declared only `egress:graph.microsoft.com` and `egress:*.sharepoint.com`. It now declares all eight, so a workspace's `plugin_capabilities` has to list all eight to load the plugin. README, AGENTS.md and `docs/public-surface.md` row PLUG-13 are updated.
 - **SharePoint publisher: `!` before a link.** A text node ending in `!` followed by a link-marked node rendered as `![t](url)`, which markdown viewers load as a remote image. The `!` is now escaped when a link follows it.
 - **SharePoint publisher: image link and upload share one name; names checked first.** A page linked an image by `safeName(alt)` while the upload used `safeName(fileName)`, and an `alt` of `..` threw only after earlier files were written. The link now takes the path of the screenshot with the same file name, a media node with no such screenshot is refused, and every section, screenshot and image name is checked before the first request.
+- **SharePoint publisher: section names in log lines.** The per-section log line and the collision errors printed `doc.section` as written, so a newline or control character in a section name could forge a log line. They now print the name on one line with controls replaced by a space.
 
 ### Added
 

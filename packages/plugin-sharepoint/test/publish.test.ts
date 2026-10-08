@@ -450,6 +450,41 @@ describe("adf to markdown: injection", () => {
   });
 });
 
+describe("sharepoint publisher: log lines", () => {
+  /** A line `singleLine` would change holds a newline or another control character. */
+  const hasControls = (line: string): boolean => singleLine(line) !== line;
+
+  it("logs a section name on one line, without control characters", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({
+      workspaceDir: dir,
+      options: { mode: "page-tree" },
+    });
+    projection.documents[1]!.section = "check\nINFO fake\u2028out\u0007\u009b";
+    const { log, lines } = capture();
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    const line = lines.find((l) => l.startsWith('section "check'));
+    expect(line).toBe('section "check INFO fake out ": created (docsxai/check-INFO-fake-out.md)');
+    expect(lines.filter(hasControls)).toEqual([]);
+  });
+
+  it("quotes a section name on one line in a collision error", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({
+      workspaceDir: dir,
+      options: { mode: "page-tree" },
+    });
+    projection.documents[1]!.section = "a\nb";
+    projection.documents[2]!.section = "a b";
+    const { log, lines } = capture();
+    const error = await createSharePointPublisher(LOOPBACK)
+      .publish(makeCtx(dir, projection, log))
+      .catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/^sharepoint: sections "a b" and "a b" both publish/);
+    expect(lines.filter(hasControls)).toEqual([]);
+  });
+});
+
 describe("sharepoint publisher: titles", () => {
   it("writes a title and a title_prefix with newlines and markup as one escaped heading", async () => {
     const dir = await makeWorkspace();

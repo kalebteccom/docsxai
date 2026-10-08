@@ -244,6 +244,11 @@ function imageName(att: AdfAttachment): string {
   return `${IMAGES_DIR}/${safeName(att.fileName)}`;
 }
 
+/** A name from the pack as one quoted line, safe to log: a newline or control character cannot start a fake log line. */
+function quoted(name: string): string {
+  return JSON.stringify(singleLine(name));
+}
+
 /** A document links an image only through an attachment of the same name, so link and upload agree. */
 function assertImagesAttached(doc: AdfDocument): void {
   const names = new Set(doc.attachments.map((att) => att.fileName));
@@ -251,7 +256,7 @@ function assertImagesAttached(doc: AdfDocument): void {
     safeName(alt);
     if (!names.has(alt)) {
       throw new Error(
-        `sharepoint: section ${JSON.stringify(doc.section)} links image ${JSON.stringify(alt)} but lists no screenshot with that file name`,
+        `sharepoint: section ${quoted(doc.section)} links image ${quoted(alt)} but lists no screenshot with that file name`,
       );
     }
   }
@@ -273,7 +278,7 @@ function assertNoCollisions(documents: readonly AdfDocument[], folder: string): 
     const prior = pages.get(rel.toLowerCase());
     if (prior !== undefined) {
       throw new Error(
-        `sharepoint: sections ${JSON.stringify(prior)} and ${JSON.stringify(doc.section)} both publish to ${folder}/${rel}`,
+        `sharepoint: sections ${quoted(prior)} and ${quoted(doc.section)} both publish to ${folder}/${rel}`,
       );
     }
     pages.set(rel.toLowerCase(), doc.section);
@@ -284,7 +289,7 @@ function assertNoCollisions(documents: readonly AdfDocument[], folder: string): 
       const source = `${att.fileName}\0${att.sourcePath}`;
       if (known !== undefined && known.source !== source) {
         throw new Error(
-          `sharepoint: screenshots ${JSON.stringify(known.fileName)} (section ${JSON.stringify(known.section)}) and ${JSON.stringify(att.fileName)} (section ${JSON.stringify(doc.section)}) both upload to ${folder}/${imageName(att)}`,
+          `sharepoint: screenshots ${quoted(known.fileName)} (section ${quoted(known.section)}) and ${quoted(att.fileName)} (section ${quoted(doc.section)}) both upload to ${folder}/${imageName(att)}`,
         );
       }
       images.set(key, { source, section: doc.section, fileName: att.fileName });
@@ -378,7 +383,9 @@ export function createSharePointPublisher(
             wrote = (await push(page)) || wrote;
             const entry = manifest.files[page.rel]!;
             const action = !wrote ? "unchanged" : existed ? "updated" : "created";
-            log.info(`section "${doc.section}": ${action} (${config.folder}/${page.rel})`);
+            log.info(
+              `section "${singleLine(doc.section)}": ${action} (${config.folder}/${page.rel})`,
+            );
             pages.push({
               id: entry.id ?? `${config.folder}/${page.rel}`,
               ...(entry.webUrl ? { url: entry.webUrl } : {}),
