@@ -32,7 +32,8 @@
       "publisher"
     ],
     "capabilities": [
-      "egress:graph.microsoft.com"
+      "egress:graph.microsoft.com",
+      "egress:*.sharepoint.com"
     ],
     "trust": "kalebtec"
   },

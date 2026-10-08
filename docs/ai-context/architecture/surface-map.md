@@ -166,7 +166,7 @@ First-party publisher plugin (`notion:push`): idempotent push of a doc pack as N
 
 ## `packages/plugin-sharepoint/` — `@docsxai/plugin-sharepoint`
 
-First-party publisher plugin (`sharepoint:push`): idempotent push of a doc pack as markdown files plus images into a SharePoint Online document library through Microsoft Graph, behind the `egress:graph.microsoft.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Repo-only (`private: true`).
+First-party publisher plugin (`sharepoint:push`): idempotent push of a doc pack as markdown files plus images into a SharePoint Online document library through Microsoft Graph, behind the `egress:graph.microsoft.com` and `egress:*.sharepoint.com` capabilities. Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Repo-only (`private: true`).
 
 ## `packages/plugin-starlight/` — `@docsxai/plugin-starlight`
 

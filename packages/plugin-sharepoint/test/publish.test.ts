@@ -301,12 +301,15 @@ describe("adf to markdown", () => {
 });
 
 describe("sharepoint plugin: manifest and runtime", () => {
-  it("declares exactly one capability, the Graph host, and stays private", async () => {
+  it("declares the Graph host and the SharePoint download hosts, and stays private", async () => {
     const pkg = JSON.parse(await fs.readFile(path.join(PKG_ROOT, "package.json"), "utf8")) as {
       private?: boolean;
       docsxai: { namespace: string; kinds: string[]; capabilities: string[]; trust: string };
     };
-    expect(pkg.docsxai.capabilities).toEqual(["egress:graph.microsoft.com"]);
+    expect(pkg.docsxai.capabilities).toEqual([
+      "egress:graph.microsoft.com",
+      "egress:*.sharepoint.com",
+    ]);
     expect(pkg.docsxai.namespace).toBe("sharepoint");
     expect(pkg.docsxai.kinds).toEqual(["publisher"]);
     expect(pkg.private).toBe(true);
@@ -319,7 +322,7 @@ describe("sharepoint plugin: manifest and runtime", () => {
     const registry = await resolvePlugins({
       workspaceDir: dir,
       sources: [{ path: PKG_ROOT }],
-      enabledCapabilities: ["egress:graph.microsoft.com"],
+      enabledCapabilities: ["egress:graph.microsoft.com", "egress:*.sharepoint.com"],
     });
     const record = registry.pluginsInfo("sharepoint");
     expect(record?.status).toBe("loaded");
