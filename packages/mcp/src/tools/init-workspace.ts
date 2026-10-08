@@ -8,10 +8,16 @@ export const initWorkspaceTool = defineTool({
   name: "init_workspace",
   title: "Initialize a docsxai workspace",
   description:
-    "Scaffold a new docsxai workspace directory (flows/, docs/, auth/strategy.yaml, .docsxai.json). " +
-    "Put it OUTSIDE the documented app's source repo.",
+    "Create a new docsxai workspace (flows/, docs/, auth/strategy.yaml, .docsxai.json). Use it " +
+    "once, first: every other tool needs an existing workspace. Put the workspace outside the " +
+    "documented app's source repo. Returns { dir, created, ephemeral }: the absolute directory " +
+    "and the files written. Fails when `dir` is not empty unless `force` is true; pick a fresh " +
+    "directory first.",
   inputSchema: {
-    dir: z.string().min(1).describe("Directory to create the workspace in"),
+    dir: z
+      .string()
+      .min(1)
+      .describe("Directory to create the workspace in. Pass it as `workspace` to the other tools."),
     appUrl: z.string().optional().describe("Base URL of the running app this workspace documents"),
     auth: z
       .enum(["manual-capture", "none"])
@@ -19,10 +25,23 @@ export const initWorkspaceTool = defineTool({
       .describe("Auth scaffold: manual-capture (default) writes auth/strategy.yaml; none skips it"),
     role: z.string().optional().describe("Default auth role name"),
     ttl: z.string().optional().describe("Cached-session TTL fallback (e.g. 1h, 30m, session)"),
-    captureTrigger: z.enum(["console", "button"]).optional(),
+    captureTrigger: z
+      .enum(["console", "button"])
+      .optional()
+      .describe("How a person triggers the manual session capture: console (default) or button"),
     authCookie: z.string().optional().describe("Name of the app's auth/session cookie"),
-    ignoreHttpsErrors: z.boolean().optional(),
-    force: z.boolean().optional().describe("Allow scaffolding into a non-empty directory"),
+    ignoreHttpsErrors: z
+      .boolean()
+      .optional()
+      .describe(
+        "Accept self-signed or invalid TLS certificates on the app (saved in .docsxai.json)",
+      ),
+    force: z
+      .boolean()
+      .optional()
+      .describe(
+        "Scaffold into a non-empty directory. Overwrites .docsxai.json, auth/strategy.yaml, README.md and .gitignore there.",
+      ),
   },
   async handler(args, ctx) {
     const dir = ctx.workspaceRoot ? await resolveToolPath(args.dir, ctx) : args.dir;
@@ -42,9 +61,12 @@ export const initWorkspaceTool = defineTool({
       });
       return ok({ dir: r.dir, created: r.created, ephemeral: r.ephemeral });
     } catch (e) {
+      const message = (e as Error).message;
       return fail(
-        (e as Error).message,
-        "pass force: true to scaffold into a non-empty directory, or pick a fresh dir",
+        message,
+        /is not empty/.test(message)
+          ? "pick a fresh dir, or pass force: true to scaffold into this one (it overwrites .docsxai.json, auth/strategy.yaml, README.md and .gitignore)"
+          : "check the arguments and that the directory can be created, then retry",
       );
     }
   },

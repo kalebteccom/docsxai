@@ -20,10 +20,22 @@ import { renderViewerTool } from "./tools/render-viewer.js";
 import { runFlowsTool } from "./tools/run-flows.js";
 import { styleCheckTool } from "./tools/style-check.js";
 import { zipPackTool } from "./tools/zip-pack.js";
+import { scrubResult } from "./path-scrub.js";
 import { toFailure, type ToolContext, type ToolDefinition, type ToolResult } from "./shared.js";
 
 export const SERVER_NAME = "docsxai-mcp";
 export const SERVER_VERSION = "0.1.0";
+
+/** What a connecting agent is told about the server as a whole (the MCP `instructions` field). */
+export const SERVER_INSTRUCTIONS =
+  "docsxai-mcp runs and inspects a docsxai workspace: flow-files, run output and the doc pack. " +
+  "It drives no browser page; use a browser tool such as browxai to discover selectors and write " +
+  "flows/<name>.flow.yaml. Usual order: init_workspace (once), list_flows, lint_flows, " +
+  "run_flows, diagnose_halt for a halt, get_run_artifacts and get_annotations to read the " +
+  "output, render_viewer, then zip_pack or push_pack. Every tool but init_workspace takes " +
+  "`workspace` (omit it to use the server's default). A result is JSON: { ok: true, ... } on " +
+  "success, or { ok: false, error, hint } where hint is the next step. run_flows returns " +
+  "ok: true even when a flow halted; check allOk and flows[].ok.";
 
 /** Every tool the server exposes, in registration order. Composed here and nowhere else. */
 export const TOOL_DEFINITIONS: ReadonlyArray<ToolDefinition> = [
@@ -56,7 +68,10 @@ export function createDocsxaiMcpServer(opts: CreateDocsxaiMcpServerOptions = {})
     ...(opts.defaultWorkspace ? { defaultWorkspace: opts.defaultWorkspace } : {}),
     ...(opts.workspaceRoot ? { workspaceRoot: opts.workspaceRoot } : {}),
   };
-  const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
+  const server = new McpServer(
+    { name: SERVER_NAME, version: SERVER_VERSION },
+    { instructions: SERVER_INSTRUCTIONS },
+  );
 
   const seen = new Set<string>();
   for (const def of TOOL_DEFINITIONS) {
@@ -72,6 +87,8 @@ export function createDocsxaiMcpServer(opts: CreateDocsxaiMcpServerOptions = {})
         } catch (e) {
           result = toFailure(e);
         }
+        // Over HTTP, no path outside the workspace root leaves in an error or a message.
+        if (ctx.workspaceRoot) result = scrubResult(result, ctx.workspaceRoot);
         return {
           content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
           ...(result.ok ? {} : { isError: true }),

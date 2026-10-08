@@ -5,7 +5,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { resolveWorkspacePath } from "@docsxai/engine";
 import { z } from "zod";
-import { defineTool, ok, requireWorkspace } from "../shared.js";
+import { defineTool, ok, requireWorkspace, WORKSPACE_ARG } from "../shared.js";
 
 async function listPngs(dir: string): Promise<string[]> {
   try {
@@ -31,14 +31,18 @@ export const getRunArtifactsTool = defineTool({
   name: "get_run_artifacts",
   title: "List run artifact paths",
   description:
-    "List the absolute paths of a run's artifacts per flow — annotations.json, screenshots, halt " +
-    "screenshots, step write-ups — plus workspace-level style/locators. Paths only, no contents.",
+    "List what a run left on disk, per flow: annotations.json, screenshots, halt screenshots " +
+    "and step write-ups, plus the workspace's style.yaml, locators.yaml and viewer index when " +
+    "they exist. Use it to find a halt screenshot after run_flows, or to see which flows have " +
+    "output at all. Returns absolute paths only, never file contents; read the ones you need. " +
+    "A flow with no output yet is left out, and `hint` says so when none has output.",
   inputSchema: {
-    workspace: z
+    workspace: WORKSPACE_ARG,
+    flow: z
       .string()
+      .min(1)
       .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
-    flow: z.string().optional().describe("Limit to one flow (default: every flow under docs/)"),
+      .describe("Limit to one flow, by name (default: every flow that has output under docs/)"),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);
@@ -81,6 +85,13 @@ export const getRunArtifactsTool = defineTool({
       ...((await exists(styleYaml)) ? { style: styleYaml } : {}),
       ...((await exists(locatorsYaml)) ? { locators: locatorsYaml } : {}),
       ...((await exists(viewerIndex)) ? { viewerIndex } : {}),
+      ...(flows.length === 0
+        ? {
+            hint: args.flow
+              ? `no output for flow "${args.flow}" under docs/; run_flows creates it, and list_flows shows the flow names`
+              : "no flow output under docs/ yet; run_flows creates it",
+          }
+        : {}),
     });
   },
 });

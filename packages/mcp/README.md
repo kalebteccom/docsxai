@@ -127,7 +127,18 @@ A client config for a host that takes a URL and headers:
 
 Every result is structured JSON: `{ "ok": true, … }` on success, `{ "ok": false, "error": "…",
 "hint": "…" }` on failure. `run_flows` reports per-flow `ok` so one halted flow doesn't mask the
-others.
+others, and returns `ok: true` for a run in which a flow halted: read `allOk` and `flows[].ok`.
+
+Each tool's description says what it does, when to use it, what it returns and how it fails, and
+every argument is described in the schema. The server also sends usage instructions (the usual tool
+order and the result convention) with the tool list.
+
+Arguments are camelCase and follow the CLI: `flow` is `--flow`, `baseUrl` is `--base-url`,
+`startFrom` and `stopAfter` are `--start-from` and `--stop-after`, `out` is `--out`, `includeViewer`
+is `--include-viewer`. `workspace` is the CLI's `<workspace-dir>`; `init_workspace` calls the same
+thing `dir`. Not every CLI flag has an argument (`variant` for matrix flows, `--pause` and
+`--verify-determinism` have none), and `style_check` scans by default where `docsxai style` needs
+`--check`.
 
 ## Environment variables
 

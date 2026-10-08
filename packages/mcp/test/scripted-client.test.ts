@@ -75,6 +75,14 @@ describe("scripted client — initialize + tools/list", () => {
     await client.close();
   });
 
+  it("sends usage instructions that name the result convention", async () => {
+    const client = await connect();
+    const instructions = client.getInstructions() ?? "";
+    expect(instructions).toContain("run_flows");
+    expect(instructions).toContain("hint");
+    await client.close();
+  });
+
   it("lists every tool with an object input schema", async () => {
     const client = await connect();
     const { tools } = await client.listTools();

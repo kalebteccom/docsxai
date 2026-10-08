@@ -4,21 +4,26 @@
 import { spawn } from "node:child_process";
 import * as path from "node:path";
 import { formatViewerBinFailure, resolveViewerBin, resolveWorkspacePath } from "@docsxai/engine";
-import { z } from "zod";
-import { defineTool, fail, ok, requireWorkspace, type ToolResult } from "../shared.js";
+import {
+  defineTool,
+  fail,
+  ok,
+  requireWorkspace,
+  type ToolResult,
+  WORKSPACE_ARG,
+} from "../shared.js";
 
 export const renderViewerTool = defineTool({
   name: "render_viewer",
   title: "Render the static viewer",
   description:
-    "Build the workspace's static HTML viewer from docs/ into .viewer/ by spawning the " +
-    "docsxai-viewer bin (resolved via DOCSX_VIEWER_BIN, the installed " +
-    "@docsxai/viewer package, then PATH).",
+    "Build the interactive HTML viewer (screenshots with numbered call-outs) from the " +
+    "workspace's docs/ into .viewer/. Use it after run_flows to review or share the result; it " +
+    "only reads docs/, so run_flows has to have produced output first. Returns { outDir, " +
+    "indexHtml, viewerSource, output }. Fails with the viewer's own message when the viewer " +
+    "bin cannot be found or the build exits non-zero.",
   inputSchema: {
-    workspace: z
-      .string()
-      .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: WORKSPACE_ARG,
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

@@ -2,20 +2,20 @@
 // and a one-look summary of its pinned execution environment.
 
 import * as path from "node:path";
-import { z } from "zod";
-import { defineTool, loadFlowsByName, ok, requireWorkspace } from "../shared.js";
+import { defineTool, loadFlowsByName, ok, requireWorkspace, WORKSPACE_ARG } from "../shared.js";
 
 export const listFlowsTool = defineTool({
   name: "list_flows",
   title: "List the workspace's flows",
   description:
-    "List every flow-file in the workspace: name, step ids/actions, extends parent, and the " +
-    "pinned environment summary (locale/timezone/viewport/clock/color-scheme/reduced-motion).",
+    "List the workspace's flows. Use it first to learn the flow names and step ids that " +
+    "run_flows, diagnose_halt and get_annotations take. Returns { flows }: per flow the name, " +
+    "file, `extends` parent, step ids with their actions (and which are optional), and the " +
+    "pinned environment (locale, timezone, viewport, clock, color scheme, reduced motion). " +
+    "Reads flow-files only. `flows` is empty when none exist yet. Fails with a parse error " +
+    "naming the flow-file that does not parse.",
   inputSchema: {
-    workspace: z
-      .string()
-      .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: WORKSPACE_ARG,
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

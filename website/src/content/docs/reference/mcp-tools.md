@@ -57,7 +57,16 @@ call. Logs go to stderr; stdout is the MCP wire.
 Every result is structured JSON: `{ "ok": true, ... }` on success,
 `{ "ok": false, "error": "...", "hint": "..." }` on failure - the hint is the
 agent-actionable next step. `run_flows` reports per-flow `ok`, so one halted
-flow does not mask the others.
+flow does not mask the others, and returns `ok: true` for a run in which a flow
+halted: read `allOk` and `flows[].ok`.
+
+Each tool's description says what it does, when to use it, what it returns and
+how it fails, and every argument is described in the schema. The server also
+sends usage instructions (the usual tool order and this result contract) with
+the tool list. Arguments are camelCase and follow the CLI: `flow` is `--flow`,
+`baseUrl` is `--base-url`, `startFrom` and `stopAfter` are `--start-from` and
+`--stop-after`, `out` is `--out`. `workspace` is the CLI's `<workspace-dir>`;
+`init_workspace` calls the same thing `dir`.
 
 ## Worked examples
 

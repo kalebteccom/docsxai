@@ -1,20 +1,19 @@
 // plugins_list — resolve + load the workspace's configured plugins and report each one's status.
 
 import { readPluginsLock, readWorkspacePluginsConfig, resolvePlugins } from "@docsxai/engine";
-import { z } from "zod";
-import { defineTool, ok, requireWorkspace } from "../shared.js";
+import { defineTool, ok, requireWorkspace, WORKSPACE_ARG } from "../shared.js";
 
 export const pluginsListTool = defineTool({
   name: "plugins_list",
   title: "List workspace plugins",
   description:
-    "Resolve and load the workspace's configured plugin set (.docsxai.json `plugins` + " +
-    "`plugin_capabilities`) and report each plugin's status, trust, and registered artifacts.",
+    "Show which plugins the workspace configures and whether each one loaded. Use it when a " +
+    "publisher, renderer or lint rule you expect is missing. Reads .docsxai.json `plugins` and " +
+    "`plugin_capabilities`, resolves them and returns { configured, loaded, plugins }: per " +
+    "plugin the name, version, source, trust, status (with statusReason when it did not load) " +
+    "and the artifacts it registered. `configured` is 0 for a workspace with no plugins.",
   inputSchema: {
-    workspace: z
-      .string()
-      .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: WORKSPACE_ARG,
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

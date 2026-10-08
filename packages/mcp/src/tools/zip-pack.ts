@@ -10,6 +10,7 @@ import {
   requireWorkspace,
   resolveToolPath,
   type ToolContext,
+  WORKSPACE_ARG,
 } from "../shared.js";
 
 /**
@@ -31,18 +32,23 @@ export const zipPackTool = defineTool({
   name: "zip_pack",
   title: "Zip the doc pack",
   description:
-    "Package the workspace's doc pack (flows/, docs/, .docsxai.json, auth/strategy.yaml, " +
-    "README.md) into a deterministic zip. Excludes .auth/, halts/, and .viewer/ by default.",
+    "Package the workspace's doc pack into a deterministic zip for hand-off: flows/, docs/, " +
+    ".docsxai.json, auth/strategy.yaml and README.md. Cached sessions (.auth/), halt " +
+    "screenshots and the built viewer are left out unless `includeViewer` adds the viewer. " +
+    "Returns { output, entries, bytes }. Fails with a hint when the archive cannot be built.",
   inputSchema: {
-    workspace: z
-      .string()
-      .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: WORKSPACE_ARG,
     out: z
       .string()
+      .min(1)
       .optional()
-      .describe("Output zip path (default: <workspace>.zip next to the workspace dir)"),
-    includeViewer: z.boolean().optional().describe("Bundle the rendered .viewer/ output too"),
+      .describe(
+        "Where to write the zip (default: <workspace>.zip next to the workspace directory; inside the workspace when that would fall outside the HTTP workspace root)",
+      ),
+    includeViewer: z
+      .boolean()
+      .optional()
+      .describe("Also bundle the rendered .viewer/ output (default false)"),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);
@@ -55,7 +61,12 @@ export const zipPackTool = defineTool({
       });
       return ok({ workspace: ws, output: r.output, entries: r.entries, bytes: r.bytes });
     } catch (e) {
-      if (e instanceof ZipError) return fail(e.message);
+      if (e instanceof ZipError) {
+        return fail(
+          e.message,
+          "the workspace needs flows/ or docs/ (run_flows creates docs/ output); check `workspace`, then retry",
+        );
+      }
       throw e;
     }
   },

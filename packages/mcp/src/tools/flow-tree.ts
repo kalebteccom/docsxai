@@ -1,20 +1,20 @@
 // flow_tree — the workspace's extends graph (roots, descendants, orphans, resolution issues).
 
 import { buildFlowTree } from "@docsxai/engine";
-import { z } from "zod";
-import { defineTool, loadFlowsByName, ok, requireWorkspace } from "../shared.js";
+import { defineTool, loadFlowsByName, ok, requireWorkspace, WORKSPACE_ARG } from "../shared.js";
 
 export const flowTreeTool = defineTool({
   name: "flow_tree",
   title: "Show the flow extends graph",
   description:
-    "Build the workspace's flow `extends` graph: root flows + descendants, orphans (parent not " +
-    "in the workspace), and resolution issues (cycles / step-id collisions). Pure-static.",
+    "Show how the workspace's flows `extends` each other. Use it before editing a parent flow " +
+    "(to see which flows inherit from it) or when lint_flows or run_flows reports an `extends` " +
+    "problem. Returns { roots, orphans, issues, clean }: root flows with their descendants, " +
+    "flows whose parent is not in the workspace, and resolution issues (cycles, step-id " +
+    "collisions). `clean` is true when there are no orphans and no issues. Static: no browser. " +
+    "Fails with a parse error naming the flow-file that does not parse.",
   inputSchema: {
-    workspace: z
-      .string()
-      .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: WORKSPACE_ARG,
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);
