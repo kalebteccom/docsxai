@@ -75,6 +75,7 @@ A page reports `updated` when its markdown or any of its images was uploaded. Th
 - Every file goes up as one simple upload (`PUT .../content`); there is no resumable upload session. The plugin does not check Graph's simple-upload size limit, so a screenshot over it fails with Graph's masked response. Screenshots are capped at 64 MiB on read.
 - There is no retry on Graph throttling (HTTP 429). A throttled push fails with the masked response and can be re-run; the manifest keeps the files already uploaded.
 - No live tenant run has happened. Two things are assumptions about Graph that the in-process fake server models and nothing has confirmed: that a file read answers with a redirect to a pre-authenticated download URL, and that an upload creates missing parent folders.
+- Markdown escaping is cosmetic. Text is escaped for inline syntax and for the characters that open a block at the head of a line, but not for `&entity;` references or for the leading indent that makes an indented code block, so a step that contains `&amp;` or four leading spaces can render differently from its source.
 - The plugin is in-process and unsandboxed, like every docsxai plugin. `trust: "kalebtec"` is a review signal.
 
 ## Tests
