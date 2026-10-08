@@ -32,6 +32,16 @@ Contrast ratios are WCAG 2.x relative-luminance ratios, computed by hand from th
 | UX-22 | Headings and landmarks                                             | Hand-authored pages step h2 to h3 to h4 without skips. The landing goes h1 (now the page title), h2, h3. Starlight provides header, nav, main and aside landmarks.                                                                      | No change.                                                                                                                                                                                      | info     |
 | UX-23 | Root `.gitignore`                                                  | The generated `packages/plugin-{gitbook,guru,notion,sharepoint}.md` pages aren't ignored like the other synced pages, so a local `sync-docs` run leaves them untracked and committable.                                                 | Left (not UX). One-line fix per page in `.gitignore`.                                                                                                                                           | low      |
 
+## Scrollbars
+
+Every scroller on the site takes one thin scrollbar from `src/styles/brand.css`, following the Kalebtec scrollbar spec v1:
+
+- Three tokens per theme (`:root[data-theme="dark"]` and `:root[data-theme="light"]`): `--scrollbar-track: transparent`, `--scrollbar-thumb` and `--scrollbar-thumb-hover`, Starlight's `--sl-color-white` (the strongest text colour in each theme) at 50% and 70%.
+- Thumb contrast at 50%, composited: dark 5.33:1 on the page (`#140d04`), 5.25:1 on the sidebar; light 3.35:1 on the page (`#fdfaf3`), 3.27:1 on the sidebar. `website/scripts/check-scrollbars.test.mjs` computes these from `brand.css`.
+- `scrollbar-width: thin` and `scrollbar-color` on `:root` and `*`, a 12 px webkit fallback only where `scrollbar-color` is unsupported, and a reset to `auto` under forced colours and `prefers-contrast: more`.
+- Conflicts: Starlight's on-this-page column set `scrollbar-width: none`. `brand.css` is unlayered and Starlight's component CSS sits in `@layer starlight.core`, so the site-wide rule wins and the column shows its bar. Expressive Code drew its own webkit scrollbar on code blocks, fainter than 3:1 and winning in Safari; `useThemedScrollbars: false` turns it off. The table wrapper, the run transcript, the Pagefind dialog and the mobile menu keep their `overflow: auto` and take the site-wide bar.
+- Not checked in a browser: Firefox, Safari, Chromium 121+, a table, a code block and the search dialog in both themes.
+
 ## What needs a browser
 
 - The skip link on `/` and `/404.html`: focus moves to the visually hidden title and the hero is the first thing in view.
