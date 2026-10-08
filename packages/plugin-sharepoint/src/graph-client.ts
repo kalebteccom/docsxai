@@ -312,8 +312,8 @@ export class GraphClient {
     if (REDIRECT_STATUSES.has(res.status))
       res = await this.follow(itemPath, res, signal, timeoutMs);
     if (res.status === 404) return null;
-    if (!res.ok) return this.fail("GET", itemPath, res, timeoutMs);
-    return this.read(`GET ${itemPath}`, res, MAX_MANIFEST_BYTES, timeoutMs);
+    if (!res.ok) return this.fail("GET", itemPath, res);
+    return this.read(`GET ${itemPath}`, res, MAX_MANIFEST_BYTES);
   }
 
   async upload(itemPath: string, data: Uint8Array, contentType: string): Promise<DriveItem> {
