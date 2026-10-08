@@ -42,6 +42,9 @@ export const PACK_CONFIG_FILE = "pack.json";
 
 type Obj = Record<string, unknown>;
 
+/** Names that clash with `Object.prototype` members; refused as `sources` keys. */
+const RESERVED_NAMES: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
+
 export interface PackConfig {
   /**
    * Capture flow name → where its screenshots go in the pack. An entry with `matrix` names one
@@ -78,6 +81,12 @@ export function parsePackConfig(raw: Obj): PackConfig {
   const rawSources =
     raw.sources === undefined && matrixFlow ? {} : objectAt(raw.sources, "sources");
   for (const [name, entry] of Object.entries(rawSources)) {
+    // `sources[name] = ...` with `__proto__` sets the prototype and the entry silently vanishes.
+    if (RESERVED_NAMES.has(name)) {
+      throw new Error(
+        `${PACK_CONFIG_FILE}: sources["${name}"] is a reserved name (not allowed: ${[...RESERVED_NAMES].join(", ")})`,
+      );
+    }
     // Two names that differ only by case are one `docs/<name>/` directory on a case-insensitive disk.
     const clash = seen.get(name.toLowerCase());
     if (clash !== undefined) {

@@ -262,6 +262,24 @@ describe("parsePackConfig", () => {
       },
       /sources\["Desktop-1280"\] and sources\["desktop-1280"\] differ only by case/,
     ],
+    [
+      "a source named __proto__",
+      (c) => {
+        // JSON.parse makes an own `__proto__` key; an object literal would set the prototype.
+        c.sources = JSON.parse('{"__proto__":{"flow":"app","variant":"en.dark.390"}}');
+      },
+      /sources\["__proto__"\] is a reserved name/,
+    ],
+    [
+      "a source named constructor",
+      (c) => (c.sources = { constructor: { flow: "app", variant: "en.dark.390" } }),
+      /sources\["constructor"\] is a reserved name/,
+    ],
+    [
+      "a source named prototype",
+      (c) => (c.sources = { prototype: { flow: "app", variant: "en.dark.390" } }),
+      /sources\["prototype"\] is a reserved name/,
+    ],
     ["flows missing", (c) => delete c.flows, /flows must be an object/],
     ["steps missing", (c) => delete c.flows.app.steps, /flows\["app"\]\.steps must be an object/],
     [
