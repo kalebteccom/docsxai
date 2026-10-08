@@ -503,6 +503,34 @@ describe("inputs the pack commands do not trust", () => {
     expect((error as Error).message).not.toContain("hunter2");
   });
 
+  it("refuses a symlinked screenshots directory in a workspace source", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),
+      shots: { "desktop-1280": { board: solidPng(7, 5) } },
+    });
+    const dir = path.join(ws(), "docs", "desktop-1280", "screenshots");
+    const elsewhere = path.join(root, "elsewhere-shots");
+    await fs.rename(dir, elsewhere);
+    await fs.symlink(elsewhere, dir, "dir");
+    await expect(readWorkspace(ws())).rejects.toThrow(
+      /docs\/desktop-1280\/screenshots is a symlink/,
+    );
+  });
+
+  it("refuses a symlinked capture flow directory in a workspace source", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),
+      shots: { "desktop-1280": { board: solidPng(7, 5) } },
+    });
+    const dir = path.join(ws(), "docs", "desktop-1280");
+    const elsewhere = path.join(root, "elsewhere-flow");
+    await fs.rename(dir, elsewhere);
+    await fs.symlink(elsewhere, dir, "dir");
+    const error = await readWorkspace(ws()).catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/docs\/desktop-1280 is a symlink/);
+    expect((error as Error).message).not.toContain(root);
+  });
+
   it("refuses a symlinked screenshot in a workspace source", async () => {
     await writeWorkspace(ws(), {
       config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),

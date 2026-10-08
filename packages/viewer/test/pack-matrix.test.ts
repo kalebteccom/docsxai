@@ -307,6 +307,60 @@ describe("variants that cannot be placed", () => {
   });
 });
 
+describe("symlinks under docs/", () => {
+  /** Moves `dir` out of the workspace and leaves a symlink to it in its place. */
+  async function linkAway(dir: string): Promise<void> {
+    const elsewhere = path.join(root, `elsewhere-${path.basename(dir)}`);
+    await fs.rename(dir, elsewhere);
+    await fs.symlink(elsewhere, dir, "dir");
+  }
+  const variantDir = (id: string) => path.join(ws(), "docs", "login", id);
+
+  it("skips a symlinked variant directory with a warning that names it", async () => {
+    await linkAway(variantDir(MOBILE));
+    await setSources(ws(), { matrixFlow: { flow: "login", map: { [DESKTOP]: "en.light.1280" } } });
+    const warnings: string[] = [];
+    const flows = await readWorkspace(ws(), (m) => warnings.push(m));
+    expect(flows[0]!.steps.every((s) => s.variants.length === 1)).toBe(true);
+    expect(warnings).toEqual([
+      `docs/login/${MOBILE} is a symlink and was skipped; pack does not follow symlinks`,
+    ]);
+  });
+
+  it("names a mapped variant that is a symlink in the warning next to the missing-variant error", async () => {
+    await linkAway(variantDir(MOBILE));
+    await setSources(ws(), mapOf(BOTH));
+    const warnings: string[] = [];
+    await expect(readWorkspace(ws(), (m) => warnings.push(m))).rejects.toThrow(
+      new RegExp(`map names ${MOBILE}, not under docs/login/ \\(available: ${DESKTOP}\\)`),
+    );
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain(`docs/login/${MOBILE}`);
+  });
+
+  it("prints the warning from pack", async () => {
+    await linkAway(variantDir(MOBILE));
+    await setSources(ws(), { matrixFlow: { flow: "login", map: { [DESKTOP]: "en.light.1280" } } });
+    await runPack([ws(), "--no-optimise"]);
+    expect(err).toContain(`warning: docs/login/${MOBILE} is a symlink and was skipped`);
+  });
+
+  it("refuses a symlinked matrix flow directory", async () => {
+    await linkAway(path.join(ws(), "docs", "login"));
+    await setSources(ws(), mapOf(BOTH));
+    const error = await readWorkspace(ws()).catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/^docs\/login is a symlink/);
+  });
+
+  it("refuses a symlinked screenshots directory under a variant", async () => {
+    await linkAway(path.join(variantDir(DESKTOP), "screenshots"));
+    await setSources(ws(), mapOf(BOTH));
+    await expect(readWorkspace(ws())).rejects.toThrow(
+      new RegExp(`docs/login/${DESKTOP}/screenshots is a symlink`),
+    );
+  });
+});
+
 describe("parsePackConfig, matrix forms", () => {
   const base = (): Obj => ({
     schema: SCHEMA,

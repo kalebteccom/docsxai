@@ -34,6 +34,7 @@ import {
   type SourceFlow,
   type SourceStep,
 } from "./pack-source.js";
+import { refuseSymlinks } from "./pack-paths.js";
 import { isValidId, parseVariantKey, type LocalizedText } from "./pack-schema.js";
 import { MAX_PNG_BYTES, readRegularFile } from "./safe-read.js";
 
@@ -170,6 +171,7 @@ async function addSource(
 ): Promise<void> {
   const { flow, variant, label } = source;
   const flowDir = path.join(docsDir, ...source.segments);
+  await refuseSymlinks(docsDir, [...source.segments, "screenshots"]);
   const shots = (await fs.readdir(path.join(flowDir, "screenshots")).catch(() => [] as string[]))
     .filter((f) => f.endsWith(".png"))
     .sort();
@@ -211,7 +213,10 @@ async function addSource(
 }
 
 /** Reads `<workspace>/pack.json` and the screenshots it points at. */
-export async function readWorkspace(workspace: string): Promise<PackSource> {
+export async function readWorkspace(
+  workspace: string,
+  warn?: (message: string) => void,
+): Promise<PackSource> {
   const config = parsePackConfig(await readJsonObject(path.join(workspace, PACK_CONFIG_FILE)));
   const docsDir = path.join(workspace, "docs");
   const into = new Map<string, Map<string, SourceStep>>();
@@ -220,6 +225,7 @@ export async function readWorkspace(workspace: string): Promise<PackSource> {
     config.matrixFlow,
     docsDir,
     PACK_CONFIG_FILE,
+    warn,
   ))
     await addSource(config, docsDir, source, into);
   const flows: SourceFlow[] = [];

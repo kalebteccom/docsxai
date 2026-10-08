@@ -15,6 +15,7 @@
 
 import { promises as fs, type Dirent } from "node:fs";
 import * as path from "node:path";
+import { refuseSymlinks } from "./pack-paths.js";
 import { isValidId, parseVariantKey } from "./pack-schema.js";
 
 /** A capture flow's directory name under `docs/`, as the engine's `burn` accepts it. */
@@ -137,16 +138,35 @@ export function parseMatrixFlow(value: unknown, file: string): MatrixFlow {
 
 const list = (names: string[]): string => (names.length > 0 ? names.join(", ") : "none");
 
-/** The variant directories `docsxai run` left under `docs/<flow>/`, sorted. */
-export async function variantIds(docsDir: string, flow: string): Promise<string[]> {
+const byName = (a: Dirent, b: Dirent): number => (a.name < b.name ? -1 : 1);
+
+/**
+ * The variant directories `docsxai run` left under `docs/<flow>/`, sorted. A symlinked directory is
+ * not one: it is left out and reported through `warn`, and a symlinked `docs/<flow>/` is refused.
+ */
+export async function variantIds(
+  docsDir: string,
+  flow: string,
+  warn?: (message: string) => void,
+): Promise<string[]> {
+  await refuseSymlinks(docsDir, [flow]);
   const entries = await fs
     .readdir(path.join(docsDir, flow), { withFileTypes: true })
     .catch((e: unknown): Dirent[] => {
       if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
       throw e;
     });
-  return entries
-    .filter((d) => d.isDirectory() && !d.name.startsWith(".") && d.name !== SCREENSHOTS_DIR)
+  const candidates = entries.filter((d) => !d.name.startsWith(".") && d.name !== SCREENSHOTS_DIR);
+  if (warn) {
+    for (const d of candidates.filter((c) => c.isSymbolicLink()).sort(byName)) {
+      const target = await fs.stat(path.join(docsDir, flow, d.name)).catch(() => undefined);
+      if (target?.isDirectory()) {
+        warn(`docs/${flow}/${d.name} is a symlink and was skipped; pack does not follow symlinks`);
+      }
+    }
+  }
+  return candidates
+    .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .sort();
 }
@@ -221,11 +241,12 @@ export async function resolveSources(
   matrixFlow: MatrixFlow | undefined,
   docsDir: string,
   file: string,
+  warn?: (message: string) => void,
 ): Promise<ResolvedSource[]> {
   const out: ResolvedSource[] = [];
   const cache = new Map<string, string[]>();
   const idsOf = async (flow: string): Promise<string[]> => {
-    const known = cache.get(flow) ?? (await variantIds(docsDir, flow));
+    const known = cache.get(flow) ?? (await variantIds(docsDir, flow, warn));
     cache.set(flow, known);
     return known;
   };

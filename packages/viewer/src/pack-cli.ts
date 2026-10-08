@@ -87,7 +87,7 @@ async function loadSource(
       `${dir} has docs/ but no ${PACK_CONFIG_FILE}. Add one (docsxai/pack-config@1) naming which capture flow feeds which variant and the alt text, or pass --from-raw for a raw capture directory.`,
     );
   }
-  return { source: await readWorkspace(dir), workspace: true };
+  return { source: await readWorkspace(dir, warn), workspace: true };
 }
 
 const warn = (message: string): void => {
