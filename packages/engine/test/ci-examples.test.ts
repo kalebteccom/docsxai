@@ -78,6 +78,26 @@ function fencedBlocks(markdown: string): { lang: string; body: string; before: s
   return blocks;
 }
 
+/** The package arguments of the `npm install` / `pnpm add` lines among shell lines. */
+function installedPackages(lines: string[]): string[] {
+  return lines
+    .filter((l) => /^(?:npm (?:install|i)|pnpm add)\b/.test(l))
+    .flatMap((l) => l.split(/\s+/).slice(2))
+    .filter((t) => !t.startsWith("-"));
+}
+
+const DOCSXAI_PACKAGE = /^(?:@docsxai\/[\w-]+|docsxai)(?:@|$)/;
+/** A docsxai package with a version, a range or a dist-tag after the name. */
+const PINNED_PACKAGE = /^(?:@docsxai\/[\w-]+|docsxai)@[\w.^~*-]+$/;
+
+function expectPinnedInstall(lines: string[], where: string): void {
+  const packages = installedPackages(lines).filter((t) => DOCSXAI_PACKAGE.test(t));
+  expect(packages.length, `${where}: no docsxai install line found`).toBeGreaterThan(0);
+  for (const pkg of packages) {
+    expect(pkg, `${where}: \`${pkg}\` has no version or dist-tag`).toMatch(PINNED_PACKAGE);
+  }
+}
+
 function expectKnownToHelp(commands: string[], where: string): void {
   const entries = usageEntries(helpText);
   expect(commands.length, `${where}: no docsxai command found`).toBeGreaterThan(0);
@@ -121,6 +141,21 @@ describe("help parsing helpers", () => {
     expect(docsxaiCommands(lines)).toEqual(["docsxai run ws --flow a", "docsxai diff ws"]);
   });
 
+  it("finds a bare docsxai install and accepts a tag, a version and a range", () => {
+    expect(() => expectPinnedInstall(["npm install --global docsxai"], "x")).toThrow(
+      /no version or dist-tag/,
+    );
+    expect(() => expectPinnedInstall(["pnpm add -g @docsxai/engine docsxai@next"], "x")).toThrow(
+      /`@docsxai\/engine` has no version/,
+    );
+    expect(() => expectPinnedInstall(["npx playwright-core install chromium"], "x")).toThrow(
+      /no docsxai install line/,
+    );
+    for (const ok of ["docsxai@next", "docsxai@0.3.0", "docsxai@0.3.0-rc.1", "docsxai@^0.3.0"]) {
+      expectPinnedInstall([`npm install --global ${ok}`], "x");
+    }
+  });
+
   it("rejects a command or flag the help does not know", () => {
     expect(() => expectKnownToHelp(["docsxai frobnicate ws"], "x")).toThrow(/does not list/);
     expect(() => expectKnownToHelp(["docsxai run ws --verify-everything"], "x")).toThrow(
@@ -155,6 +190,10 @@ describe("examples/ci recipes", () => {
 
       it("uses only commands and flags that `docsxai --help` lists", () => {
         expectKnownToHelp(docsxaiCommands(scriptsIn(doc)), file);
+      });
+
+      it("installs docsxai with a version or dist-tag, because latest has no pack or verify", () => {
+        expectPinnedInstall(scriptsIn(doc), file);
       });
 
       it("produces and uploads both markdown reports", () => {
@@ -237,6 +276,13 @@ describe("docs/ci-recipes.md", () => {
         commands.push(...docsxaiCommands(shellLines(b.body)));
     }
     expectKnownToHelp(commands, "docs/ci-recipes.md");
+  });
+
+  it("pins the docsxai install in every embedded recipe and in the prose", () => {
+    for (const b of blocks.filter((x) => x.before.includes("<!-- example:"))) {
+      expectPinnedInstall(scriptsIn(parse(b.body)), "docs/ci-recipes.md");
+    }
+    expect(md).not.toMatch(/(?:install --global|add -g) docsxai(?![@\w-])/);
   });
 
   it("says browser capture does not belong in per-PR pipelines on shared runners", () => {

@@ -229,6 +229,19 @@ describe("parsePackConfig", () => {
     });
   });
 
+  it("keeps a flow or step named __proto__ as an own entry", () => {
+    const c = config() as Record<string, any>;
+    c.flows = JSON.parse(
+      '{"__proto__":{"steps":{"__proto__":{"alt":{"en":"A"}}}},"app":{"steps":{}}}',
+    );
+    const parsed = parsePackConfig(c);
+    expect(Object.keys(parsed.flows).sort()).toEqual(["__proto__", "app"]);
+    expect(
+      Object.keys(Object.getOwnPropertyDescriptor(parsed.flows, "__proto__")!.value.steps),
+    ).toEqual(["__proto__"]);
+    expect(Object.getPrototypeOf(parsed.flows)).toBe(Object.prototype);
+  });
+
   it.each<[string, (c: Record<string, any>) => void, RegExp]>([
     [
       "wrong schema",
@@ -261,6 +274,24 @@ describe("parsePackConfig", () => {
         };
       },
       /sources\["Desktop-1280"\] and sources\["desktop-1280"\] differ only by case/,
+    ],
+    [
+      "a source named __proto__",
+      (c) => {
+        // JSON.parse makes an own `__proto__` key; an object literal would set the prototype.
+        c.sources = JSON.parse('{"__proto__":{"flow":"app","variant":"en.dark.390"}}');
+      },
+      /sources\["__proto__"\] is a reserved name/,
+    ],
+    [
+      "a source named constructor",
+      (c) => (c.sources = { constructor: { flow: "app", variant: "en.dark.390" } }),
+      /sources\["constructor"\] is a reserved name/,
+    ],
+    [
+      "a source named prototype",
+      (c) => (c.sources = { prototype: { flow: "app", variant: "en.dark.390" } }),
+      /sources\["prototype"\] is a reserved name/,
     ],
     ["flows missing", (c) => delete c.flows, /flows must be an object/],
     ["steps missing", (c) => delete c.flows.app.steps, /flows\["app"\]\.steps must be an object/],
@@ -399,6 +430,27 @@ describe("readWorkspace", () => {
     await expect(readWorkspace(ws())).rejects.toThrow(/flows\["other"\] has no source feeding it/);
   });
 
+  it("names a flow called constructor instead of throwing a TypeError", async () => {
+    const config = packConfig({ a: "en.dark.1280" }, ["board"]) as {
+      sources: Record<string, { flow: string }>;
+    };
+    config.sources.a!.flow = "constructor";
+    await writeWorkspace(ws(), { config, shots: { a: shots("board") } });
+    await expect(readWorkspace(ws())).rejects.toThrow(
+      /pack\.json has no flows\["constructor"\]\.steps\["board"\]/,
+    );
+  });
+
+  it("does not take a screenshot called constructor for a step of the flow", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ a: "en.dark.1280" }, ["board"]),
+      shots: { a: shots("board", "constructor") },
+    });
+    await expect(readWorkspace(ws())).rejects.toThrow(
+      /pack\.json has no flows\["app"\]\.steps\["constructor"\]/,
+    );
+  });
+
   it("refuses a workspace without pack.json", async () => {
     await fs.mkdir(path.join(ws(), "docs"), { recursive: true });
     await expect(readWorkspace(ws())).rejects.toThrow(/missing .*pack\.json/);
@@ -449,6 +501,72 @@ describe("inputs the pack commands do not trust", () => {
     const error = await readRawCapture(raw()).catch((e: Error) => e);
     expect((error as Error).message).toMatch(/invalid JSON in .*en\.light\.390\.json$/);
     expect((error as Error).message).not.toContain("hunter2");
+  });
+
+  it("names workspace-relative paths in read errors", async () => {
+    const config = packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]);
+    await writeWorkspace(ws(), { config, shots: {} });
+    let error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toMatch(/^no screenshots under docs\/desktop-1280\/screenshots$/);
+
+    await writeWorkspace(ws(), {
+      config,
+      shots: { "desktop-1280": { board: solidPng(7, 5) } },
+    });
+    const annotations = path.join(ws(), "docs", "desktop-1280", "annotations.json");
+    await fs.writeFile(annotations, "{ nope");
+    error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toBe("invalid JSON in docs/desktop-1280/annotations.json");
+
+    await fs.writeFile(annotations, JSON.stringify({ annotations: {} }));
+    error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toBe("docs/desktop-1280/annotations.json: annotations must be an array");
+
+    await fs.rm(annotations);
+    const shot = path.join(ws(), "docs", "desktop-1280", "screenshots", "board.png");
+    await fs.rename(shot, path.join(root, "elsewhere.png"));
+    await fs.symlink(path.join(root, "elsewhere.png"), shot);
+    error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toMatch(/^docs\/desktop-1280\/screenshots\/board\.png is a symlink/);
+  });
+
+  it("strips control characters from a screenshot name in the error", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ a: "en.dark.1280" }, ["board"]),
+      shots: { a: { board: solidPng(7, 5), "x\u001b[31my": solidPng(7, 5) } },
+    });
+    const error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toBe(
+      'pack.json has no flows["app"].steps["x[31my"] (screenshot a/x[31my.png)',
+    );
+  });
+
+  it("refuses a symlinked screenshots directory in a workspace source", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),
+      shots: { "desktop-1280": { board: solidPng(7, 5) } },
+    });
+    const dir = path.join(ws(), "docs", "desktop-1280", "screenshots");
+    const elsewhere = path.join(root, "elsewhere-shots");
+    await fs.rename(dir, elsewhere);
+    await fs.symlink(elsewhere, dir, "dir");
+    await expect(readWorkspace(ws())).rejects.toThrow(
+      /docs\/desktop-1280\/screenshots is a symlink/,
+    );
+  });
+
+  it("refuses a symlinked capture flow directory in a workspace source", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),
+      shots: { "desktop-1280": { board: solidPng(7, 5) } },
+    });
+    const dir = path.join(ws(), "docs", "desktop-1280");
+    const elsewhere = path.join(root, "elsewhere-flow");
+    await fs.rename(dir, elsewhere);
+    await fs.symlink(elsewhere, dir, "dir");
+    const error = await readWorkspace(ws()).catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/docs\/desktop-1280 is a symlink/);
+    expect((error as Error).message).not.toContain(root);
   });
 
   it("refuses a symlinked screenshot in a workspace source", async () => {

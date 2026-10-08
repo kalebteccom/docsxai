@@ -8,6 +8,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runDrift, runPack } from "../src/pack-cli.js";
+import { MAX_VARIANT_DIRS } from "../src/pack-matrix.js";
 import type { ScreensPack } from "../src/pack-schema.js";
 import { parsePackConfig, readWorkspace } from "../src/pack-workspace.js";
 import { validatePack } from "../src/pack-validate.js";
@@ -307,6 +308,101 @@ describe("variants that cannot be placed", () => {
   });
 });
 
+describe("the number of variant directories", () => {
+  const fill = async (count: number): Promise<void> => {
+    const dir = path.join(ws(), "docs", "many");
+    await fs.mkdir(dir, { recursive: true });
+    for (let i = 0; i < count; i++) await fs.mkdir(path.join(dir, `v${i}`));
+    await setSources(ws(), { matrixFlow: { flow: "many", auto: true } });
+  };
+
+  it("reads up to the cap", async () => {
+    await fill(MAX_VARIANT_DIRS);
+    // The directories have no pack keys, which is the next check after the cap.
+    await expect(readWorkspace(ws())).rejects.toThrow(/matrixFlow "many": no pack key for v0, /);
+  });
+
+  it("refuses a flow directory with more, without listing them", async () => {
+    await fill(MAX_VARIANT_DIRS + 1);
+    const error = await readWorkspace(ws()).catch((e: Error) => e);
+    expect((error as Error).message).toBe(
+      `docs/many/ has ${MAX_VARIANT_DIRS + 1} variant directories; pack reads at most ${MAX_VARIANT_DIRS}`,
+    );
+  });
+});
+
+describe("what error messages show", () => {
+  it("strips control characters from a directory name it lists", async () => {
+    await fs.mkdir(path.join(ws(), "docs", "login", "evil\n\u001b[31mx"));
+    await setSources(ws(), { matrixFlow: { flow: "login", auto: true, map: BOTH } });
+    const error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toMatch(/matrixFlow "login": no pack key for evil\[31mx\./);
+    expect([...error.message].some((ch) => ch.charCodeAt(0) < 0x20)).toBe(false);
+  });
+
+  it("shows a workspace-relative path when the flow directory cannot be listed", async () => {
+    await fs.rm(path.join(ws(), "docs", "login"), { recursive: true, force: true });
+    await fs.writeFile(path.join(ws(), "docs", "login"), "not a directory");
+    await setSources(ws(), mapOf(BOTH));
+    const error = (await readWorkspace(ws()).catch((e: Error) => e)) as Error;
+    expect(error.message).toBe("cannot read docs/login/ (ENOTDIR)");
+  });
+});
+
+describe("symlinks under docs/", () => {
+  /** Moves `dir` out of the workspace and leaves a symlink to it in its place. */
+  async function linkAway(dir: string): Promise<void> {
+    const elsewhere = path.join(root, `elsewhere-${path.basename(dir)}`);
+    await fs.rename(dir, elsewhere);
+    await fs.symlink(elsewhere, dir, "dir");
+  }
+  const variantDir = (id: string) => path.join(ws(), "docs", "login", id);
+
+  it("skips a symlinked variant directory with a warning that names it", async () => {
+    await linkAway(variantDir(MOBILE));
+    await setSources(ws(), { matrixFlow: { flow: "login", map: { [DESKTOP]: "en.light.1280" } } });
+    const warnings: string[] = [];
+    const flows = await readWorkspace(ws(), (m) => warnings.push(m));
+    expect(flows[0]!.steps.every((s) => s.variants.length === 1)).toBe(true);
+    expect(warnings).toEqual([
+      `docs/login/${MOBILE} is a symlink and was skipped; pack does not follow symlinks`,
+    ]);
+  });
+
+  it("names a mapped variant that is a symlink in the warning next to the missing-variant error", async () => {
+    await linkAway(variantDir(MOBILE));
+    await setSources(ws(), mapOf(BOTH));
+    const warnings: string[] = [];
+    await expect(readWorkspace(ws(), (m) => warnings.push(m))).rejects.toThrow(
+      new RegExp(`map names ${MOBILE}, not under docs/login/ \\(available: ${DESKTOP}\\)`),
+    );
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain(`docs/login/${MOBILE}`);
+  });
+
+  it("prints the warning from pack", async () => {
+    await linkAway(variantDir(MOBILE));
+    await setSources(ws(), { matrixFlow: { flow: "login", map: { [DESKTOP]: "en.light.1280" } } });
+    await runPack([ws(), "--no-optimise"]);
+    expect(err).toContain(`warning: docs/login/${MOBILE} is a symlink and was skipped`);
+  });
+
+  it("refuses a symlinked matrix flow directory", async () => {
+    await linkAway(path.join(ws(), "docs", "login"));
+    await setSources(ws(), mapOf(BOTH));
+    const error = await readWorkspace(ws()).catch((e: Error) => e);
+    expect((error as Error).message).toMatch(/^docs\/login is a symlink/);
+  });
+
+  it("refuses a symlinked screenshots directory under a variant", async () => {
+    await linkAway(path.join(variantDir(DESKTOP), "screenshots"));
+    await setSources(ws(), mapOf(BOTH));
+    await expect(readWorkspace(ws())).rejects.toThrow(
+      new RegExp(`docs/login/${DESKTOP}/screenshots is a symlink`),
+    );
+  });
+});
+
 describe("parsePackConfig, matrix forms", () => {
   const base = (): Obj => ({
     schema: SCHEMA,
@@ -415,6 +511,24 @@ describe("parsePackConfig, matrix forms", () => {
       "map value not a pack key",
       { ...base(), matrixFlow: { flow: "login", map: { [DESKTOP]: "light" } } },
       new RegExp(`map\\["${DESKTOP}"\\] must be <locale>\\.<theme>\\.<viewport>`),
+    ],
+    [
+      "a flat source and a matrixFlow that differ only by case",
+      {
+        ...withSources({ Login: { flow: "app", variant: "en.light.1280" } }),
+        matrixFlow: { flow: "login", auto: true },
+      },
+      /sources\["Login"\] and matrixFlow "login" differ only by case/,
+    ],
+    [
+      "a matrix source and a matrixFlow that differ only by case",
+      {
+        ...withSources({
+          x: { flow: "Login", packFlow: "login", matrix: DESKTOP, variant: "en.light.1280" },
+        }),
+        matrixFlow: { flow: "login", auto: true },
+      },
+      /sources\["x"\]\.flow "Login" and matrixFlow "login" differ only by case/,
     ],
     ["no sources and no matrixFlow", withSources({}), /sources is empty/],
     ["sources missing and no matrixFlow", base(), /sources must be an object/],

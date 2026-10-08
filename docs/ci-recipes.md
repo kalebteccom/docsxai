@@ -128,7 +128,7 @@ CPU and memory, and it needs target credentials that a pull request from a fork 
 Schedule it (nightly, or on a deploy of the target app) on a runner you control, and keep per-PR
 pipelines to the checks that need no browser, such as `docsxai lint` and `docsxai flow-tree`.
 
-The recipes install with `npm install --global docsxai` because a plain Node image has npm and nothing else to set up; `pnpm add -g docsxai` works the same where pnpm is already on the runner. Pin the actions by commit SHA in your own repository.
+The recipes install with `npm install --global docsxai@next` because a plain Node image has npm and nothing else to set up; `pnpm add -g docsxai@next` works the same where pnpm is already on the runner. The pin is `next` because `pack`, `--verify-determinism` and matrix flows are in 0.3.x, which is on the `next` dist-tag while `latest` stays 0.2.0; when 0.3.x ships stable, `latest` moves to it and the pin should move to the stable version. Pin the actions by commit SHA in your own repository.
 
 The three files below also live under `examples/ci/` in the docsxai repository, and a test keeps the
 copies in this page identical to them.
@@ -145,6 +145,7 @@ copies in this page identical to them.
 # slow and heavy, and per-PR pipelines on shared runners compete for the same CPU and memory.
 # The job replays the flows twice into isolated roots (--verify-determinism), then compares the
 # result with the committed baseline. Both reports are uploaded as one artifact, also on failure.
+# Pinned to docsxai@next, the 0.3.x line; when it ships stable, latest moves and the pin should too.
 name: docsxai-nightly-drift
 
 on:
@@ -172,7 +173,7 @@ jobs:
           node-version: 26
       - name: install docsxai and Chromium
         run: |
-          npm install --global docsxai
+          npm install --global docsxai@next
           npx playwright-core install --with-deps chromium
       - name: verify determinism
         env:
@@ -206,13 +207,14 @@ jobs:
 # The rule below runs the job for scheduled pipelines only. Do not widen it to merge request or
 # push pipelines: browser capture is slow and heavy, and per-PR pipelines on shared runners
 # compete for the same CPU and memory.
+# Pinned to docsxai@next, the 0.3.x line; when it ships stable, latest moves and the pin should too.
 docsxai-nightly-drift:
   image: node:26
   timeout: 1h
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - npm install --global docsxai
+    - npm install --global docsxai@next
     - npx playwright-core install --with-deps chromium
     - docsxai run ./docs-workspace --base-url "$APP_URL" --verify-determinism --format md > determinism-report.md
     - docsxai diff ./docs-workspace --against ./docs-workspace/.baseline --format md --fail-on fail > drift-report.md
@@ -239,6 +241,7 @@ docsxai-nightly-drift:
 #
 # The workflow runs for that cron only. Do not add push or pull_request events: browser capture is
 # slow and heavy, and per-PR pipelines on shared runners compete for the same CPU and memory.
+# Pinned to docsxai@next, the 0.3.x line; when it ships stable, latest moves and the pin should too.
 when:
   - event: cron
     cron: docsxai-nightly-drift
@@ -254,7 +257,7 @@ steps:
       APP_EDITOR_PASS:
         from_secret: app_editor_pass
     commands:
-      - npm install --global docsxai
+      - npm install --global docsxai@next
       - npx playwright-core install --with-deps chromium
       - docsxai run ./docs-workspace --base-url "$APP_URL" --verify-determinism --format md > determinism-report.md
       - docsxai diff ./docs-workspace --against ./docs-workspace/.baseline --format md --fail-on fail > drift-report.md

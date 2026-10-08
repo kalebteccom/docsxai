@@ -6,6 +6,7 @@
 #
 # The workflow runs for that cron only. Do not add push or pull_request events: browser capture is
 # slow and heavy, and per-PR pipelines on shared runners compete for the same CPU and memory.
+# Pinned to docsxai@next, the 0.3.x line; when it ships stable, latest moves and the pin should too.
 when:
   - event: cron
     cron: docsxai-nightly-drift
@@ -21,7 +22,7 @@ steps:
       APP_EDITOR_PASS:
         from_secret: app_editor_pass
     commands:
-      - npm install --global docsxai
+      - npm install --global docsxai@next
       - npx playwright-core install --with-deps chromium
       - docsxai run ./docs-workspace --base-url "$APP_URL" --verify-determinism --format md > determinism-report.md
       - docsxai diff ./docs-workspace --against ./docs-workspace/.baseline --format md --fail-on fail > drift-report.md
