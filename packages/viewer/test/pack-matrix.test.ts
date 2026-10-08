@@ -512,6 +512,24 @@ describe("parsePackConfig, matrix forms", () => {
       { ...base(), matrixFlow: { flow: "login", map: { [DESKTOP]: "light" } } },
       new RegExp(`map\\["${DESKTOP}"\\] must be <locale>\\.<theme>\\.<viewport>`),
     ],
+    [
+      "a flat source and a matrixFlow that differ only by case",
+      {
+        ...withSources({ Login: { flow: "app", variant: "en.light.1280" } }),
+        matrixFlow: { flow: "login", auto: true },
+      },
+      /sources\["Login"\] and matrixFlow "login" differ only by case/,
+    ],
+    [
+      "a matrix source and a matrixFlow that differ only by case",
+      {
+        ...withSources({
+          x: { flow: "Login", packFlow: "login", matrix: DESKTOP, variant: "en.light.1280" },
+        }),
+        matrixFlow: { flow: "login", auto: true },
+      },
+      /sources\["x"\]\.flow "Login" and matrixFlow "login" differ only by case/,
+    ],
     ["no sources and no matrixFlow", withSources({}), /sources is empty/],
     ["sources missing and no matrixFlow", base(), /sources must be an object/],
   ])("refuses %s", (_name, config, message) => {

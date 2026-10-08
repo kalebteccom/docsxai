@@ -80,6 +80,24 @@ function objectAt(value: unknown, label: string): Obj {
   return value;
 }
 
+/** A `docs/` directory name some `pack.json` entry reads, and how a message names that entry. */
+interface DirUse {
+  dir: string;
+  entry: string;
+}
+
+/** Two entries that name directories differing only by case read one directory on a case-insensitive disk. */
+function rejectDirClashes(uses: DirUse[]): void {
+  const seen = new Map<string, DirUse>();
+  for (const use of uses) {
+    const earlier = seen.get(use.dir.toLowerCase());
+    if (earlier !== undefined && earlier.dir !== use.dir) {
+      throw new Error(`${PACK_CONFIG_FILE}: ${earlier.entry} and ${use.entry} differ only by case`);
+    }
+    if (earlier === undefined) seen.set(use.dir.toLowerCase(), use);
+  }
+}
+
 /** Checks the shape of `pack.json`. Text rules (locales, lengths, alt coverage) are the pack validator's. */
 export function parsePackConfig(raw: Obj): PackConfig {
   if (raw.schema !== PACK_CONFIG_SCHEMA) {
@@ -87,6 +105,7 @@ export function parsePackConfig(raw: Obj): PackConfig {
   }
   const sources: PackConfig["sources"] = {};
   const seen = new Map<string, string>();
+  const dirUses: DirUse[] = [];
   const matrixFlow =
     raw.matrixFlow !== undefined ? parseMatrixFlow(raw.matrixFlow, PACK_CONFIG_FILE) : undefined;
   const rawSources =
@@ -110,7 +129,12 @@ export function parsePackConfig(raw: Obj): PackConfig {
     if (!CAPTURE_FLOW.test(name))
       throw new Error(`${PACK_CONFIG_FILE}: sources["${name}"] is not a flow name`);
     if (e.matrix !== undefined) {
-      sources[name] = parseMatrixSource(e, `${PACK_CONFIG_FILE}: sources["${name}"]`);
+      const matrixSource = parseMatrixSource(e, `${PACK_CONFIG_FILE}: sources["${name}"]`);
+      sources[name] = matrixSource;
+      dirUses.push({
+        dir: matrixSource.flow,
+        entry: `sources["${name}"].flow "${matrixSource.flow}"`,
+      });
       continue;
     }
     if (typeof e.flow !== "string" || !isValidId(e.flow)) {
@@ -122,7 +146,12 @@ export function parsePackConfig(raw: Obj): PackConfig {
       );
     }
     sources[name] = { flow: e.flow, variant: e.variant };
+    dirUses.push({ dir: name, entry: `sources["${name}"]` });
   }
+  if (matrixFlow) {
+    dirUses.push({ dir: matrixFlow.flow, entry: `matrixFlow "${matrixFlow.flow}"` });
+  }
+  rejectDirClashes(dirUses);
   if (Object.keys(sources).length === 0 && !matrixFlow) {
     throw new Error(`${PACK_CONFIG_FILE}: sources is empty`);
   }
