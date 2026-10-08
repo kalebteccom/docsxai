@@ -33,6 +33,16 @@ Severity: high blocks a task for some readers, medium makes it hard, low is poli
 | UX-21 | print           | No print rules. Closed write-ups printed as their summary, the overlay printed at screen positions, a dark scheme could print dark.                                               | Print block: black on white, header and overlay hidden, figures kept whole, headings kept with their figure. The runtime opens closed write-ups before printing and closes them after.                                                                           | low      |
 | UX-22 | shortcuts       | Shortcuts were not documented anywhere.                                                                                                                                           | A "Keyboard shortcuts" disclosure in the header, rendered from the same table the key handler reads (`SHORTCUTS` in `viewer-keys.ts`).                                                                                                                           | low      |
 
+## Scrollbars
+
+Every scroller in the page (the page itself, step write-ups, `<pre>` blocks) takes one thin scrollbar from `src/viewer-style.ts`, following the Kalebtec scrollbar spec v1:
+
+- Three tokens per scheme, written into both `:root` blocks: `--scrollbar-track: transparent`, `--scrollbar-thumb` and `--scrollbar-thumb-hover`, the scheme's `--fg` at 50% and 70% through `color-mix`.
+- Thumb contrast at 50%, composited: light 3.30:1 on `bg`, 3.24:1 on `surface`, 3.17:1 on `surface2`; dark 4.55:1, 4.40:1, 4.10:1. The test computes these from the token objects.
+- `scrollbar-width: thin` and `scrollbar-color` on `:root` and `*`. A 12 px `::-webkit-scrollbar` fallback (3 px transparent border, `background-clip: content-box`, 6 px radius) applies only where `scrollbar-color` is unsupported, because Chromium ignores the webkit rules once the standard properties are set.
+- Forced colours and `prefers-contrast: more` reset both properties to `auto`. Nothing sets `scrollbar-width: none` or hides a scrollbar pseudo-element, and no `overflow` rule changed.
+- Not checked in a browser: Firefox, Safari, Chromium 121+, a `<pre>` and a write-up in both schemes.
+
 ## Open items
 
 - **Footer timestamp.** Every page carries `Rendered <time>`, so two renders of the same doc pack differ in that line. The rest of the markup is a pure function of the doc pack. Making the line optional, or taking the time from `SOURCE_DATE_EPOCH`, is a separate change.

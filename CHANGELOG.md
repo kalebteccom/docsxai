@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Changed
+
+- **Scrollbars on the docs site and in the interactive viewer.** Every scroller gets a thin scrollbar from three tokens (`--scrollbar-track`, `--scrollbar-thumb`, `--scrollbar-thumb-hover`): the thumb is the theme's text colour at 50%, 70% on hover, at least 3:1 against the page in light and dark; browsers without `scrollbar-color` get a 12 px webkit bar, forced colours and `prefers-contrast: more` keep the system scrollbar, and no scrollbar is hidden (the docs site's on-this-page list showed none).
+
 ### Fixed
 
 - **GitBook publisher: markdown escaping and log lines.** A code span whose content starts or ends with a backtick rendered with unbalanced fences, and a newline in a code span, heading or list item ended its line. Code spans are now padded and flattened to one line, headings and list items stay on one line, heading levels clamp to 1..6 (level 0 was 2), a `!` before a link is escaped, and link targets are percent-encoded (`(`, `)`, whitespace, brackets, quotes) where a target with a parenthesis used to lose its link. Alt text is escaped on one line, a page title and `title_prefix` are cut to one line, two screenshots of one page that fold to the same file name are refused before any write, and section names in logs and errors are quoted on one line. Pages with those characters render differently, so the first push after the upgrade rewrites them.

@@ -5,6 +5,9 @@
 // the ratios from these objects, so a token change that drops a pair below AA fails a test.
 // The overlay (halo, badge, callout) sits on the screenshot, not on the page, so its colours are
 // fixed in both schemes.
+// Scrollbars: one thin bar for every scroller on the page, its thumb the scheme's text colour at
+// 50% (70% on hover), at least 3:1 against every page surface. Browsers without scrollbar-color get
+// a 12px webkit bar; forced colours and prefers-contrast: more hand the bar back to the system.
 
 export interface ViewerTokens {
   /** Body text. */
@@ -60,9 +63,29 @@ export function tokenCss(t: ViewerTokens): string {
     .join(" ");
 }
 
+/** Scrollbar thumb opacity over the text colour, idle and hovered. */
+export const SCROLLBAR_THUMB_ALPHA = 0.5;
+export const SCROLLBAR_THUMB_HOVER_ALPHA = 0.7;
+
+/** `--scrollbar-track: ...; --scrollbar-thumb: ...; --scrollbar-thumb-hover: ...;` for one token set. */
+export function scrollbarTokenCss(t: ViewerTokens): string {
+  const thumb = (alpha: number) =>
+    `color-mix(in srgb, ${t.fg} ${Math.round(alpha * 100)}%, transparent)`;
+  return `--scrollbar-track: transparent; --scrollbar-thumb: ${thumb(SCROLLBAR_THUMB_ALPHA)}; --scrollbar-thumb-hover: ${thumb(SCROLLBAR_THUMB_HOVER_ALPHA)};`;
+}
+
 export const VIEWER_STYLE = `
-  :root { ${tokenCss(LIGHT_TOKENS)} color-scheme: light dark; font-family: -apple-system, system-ui, sans-serif; line-height: 1.5; color: var(--fg); background: var(--bg); }
-  @media (prefers-color-scheme: dark) { :root { ${tokenCss(DARK_TOKENS)} } }
+  :root { ${tokenCss(LIGHT_TOKENS)} ${scrollbarTokenCss(LIGHT_TOKENS)} color-scheme: light dark; font-family: -apple-system, system-ui, sans-serif; line-height: 1.5; color: var(--fg); background: var(--bg); }
+  @media (prefers-color-scheme: dark) { :root { ${tokenCss(DARK_TOKENS)} ${scrollbarTokenCss(DARK_TOKENS)} } }
+  :root, * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+  @supports not (scrollbar-color: auto) {
+    * { scrollbar-width: auto; }
+    ::-webkit-scrollbar { width: 12px; height: 12px; }
+    ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border: 3px solid transparent; background-clip: content-box; border-radius: 6px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); background-clip: content-box; }
+  }
+  @media (forced-colors: active), (prefers-contrast: more) { :root, * { scrollbar-width: auto; scrollbar-color: auto; } }
   body { margin: 0; padding: 2rem; max-width: 980px; margin-inline: auto; }
   a { color: var(--link); }
   :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }

@@ -81,7 +81,7 @@ What gets emitted:
 
 ## Accessibility and keyboard
 
-The emitted pages have a skip link, header/main/footer landmarks, one `<h1>` per page and an `<h2>` per step (write-up headings move down two levels), and colour tokens that meet WCAG AA in light and dark schemes (`src/viewer-style.ts`; `test/viewer-style.test.ts` computes the ratios). A call-out's halo is a button labelled with its copy: focus, hover or a tap shows the callout, Esc hides it. Keys, listed on every page under "Keyboard shortcuts" from the same table the handler reads (`src/viewer-keys.ts`):
+The emitted pages have a skip link, header/main/footer landmarks, one `<h1>` per page and an `<h2>` per step (write-up headings move down two levels), and colour tokens that meet WCAG AA in light and dark schemes (`src/viewer-style.ts`; `test/viewer-style.test.ts` computes the ratios). Every scroller gets a thin scrollbar whose thumb is the scheme's text colour at 50% (at least 3:1 against every page surface); forced colours and `prefers-contrast: more` keep the system scrollbar. A call-out's halo is a button labelled with its copy: focus, hover or a tap shows the callout, Esc hides it. Keys, listed on every page under "Keyboard shortcuts" from the same table the handler reads (`src/viewer-keys.ts`):
 
 | Key        | Action                             |
 | ---------- | ---------------------------------- |
