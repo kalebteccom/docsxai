@@ -69,6 +69,69 @@
   --docsx-glass-border: color-mix(in srgb, var(--docsx-amber-700) 13%, transparent);
 }
 
+/* ---- Scrollbars ------------------------------------------------------------ */
+
+/* One thin, token-driven scrollbar for every scroller on the site: page, sidebar,
+   table of contents, tables, code blocks, the search dialog, the mobile menu.
+   The thumb is the theme's strongest text colour (--sl-color-white: near-white in
+   dark, near-black in light) at 50%, 70% on hover: at least 3.2:1 against the page
+   and sidebar backgrounds in both themes (WCAG 1.4.11). Starlight's reset.css sets
+   color-scheme per theme, so native controls and the forced fallback follow it.
+   This sheet is unlayered, so these rules beat Starlight's layered component CSS,
+   including the TOC's scrollbar-width: none. Expressive Code's own webkit scrollbar
+   rules are off (useThemedScrollbars: false in astro.config.mjs). */
+:root,
+:root[data-theme="dark"] {
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: color-mix(in srgb, var(--sl-color-white) 50%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--sl-color-white) 70%, transparent);
+}
+:root[data-theme="light"] {
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: color-mix(in srgb, var(--sl-color-white) 50%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--sl-color-white) 70%, transparent);
+}
+
+:root,
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Browsers without scrollbar-color (older Safari): a 12px hit area with a thumb
+   drawn 3px inside it. */
+@supports not (scrollbar-color: auto) {
+  * {
+    scrollbar-width: auto;
+  }
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: content-box;
+  }
+}
+
+/* High-contrast users keep their system scrollbar. */
+@media (forced-colors: active), (prefers-contrast: more) {
+  :root,
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+}
+
 /* Display type for headings and the site title. */
 .sl-markdown-content h1,
 .sl-markdown-content h2,

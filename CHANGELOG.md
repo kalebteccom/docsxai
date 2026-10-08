@@ -7,6 +7,9 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Added
 
 - **Static accessibility checks in CI.** `pnpm test` lints rendered viewer pages and the docs-site build lints four built pages (home, 404, a docs page, a table page) for `lang`, one `h1`, heading order, `alt`, form labels, landmarks, the skip link target, `tabindex`, empty links and buttons, `aria-*` names and roles, labelled scroll regions, `prefers-reduced-motion` and hidden scrollbars, with no browser. Rules: `docs/ai-context/ux/static-checks.md`.
+### Changed
+
+- **Scrollbars on the docs site and in the interactive viewer.** Every scroller gets a thin scrollbar from three tokens (`--scrollbar-track`, `--scrollbar-thumb`, `--scrollbar-thumb-hover`): the thumb is the theme's text colour at 50%, 70% on hover, at least 3:1 against the page in light and dark; browsers without `scrollbar-color` get a 12 px webkit bar, forced colours and `prefers-contrast: more` keep the system scrollbar, and no scrollbar is hidden (the docs site's on-this-page list showed none).
 
 ### Fixed
 

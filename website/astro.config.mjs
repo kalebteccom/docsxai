@@ -120,6 +120,9 @@ export default defineConfig({
       ],
       expressiveCode: {
         themes: ["github-dark", "github-light"],
+        // Code blocks take the site-wide scrollbar from brand.css; the theme's own webkit
+        // scrollbar rules would override it in Safari with a fainter thumb.
+        useThemedScrollbars: false,
         styleOverrides: {
           borderRadius: "0.5rem",
           borderColor: "var(--docsx-code-border)",

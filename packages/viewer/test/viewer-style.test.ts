@@ -3,7 +3,10 @@ import {
   BADGE_FILL,
   DARK_TOKENS,
   LIGHT_TOKENS,
+  SCROLLBAR_THUMB_ALPHA,
+  SCROLLBAR_THUMB_HOVER_ALPHA,
   VIEWER_STYLE,
+  scrollbarTokenCss,
   tokenCss,
   type ViewerTokens,
 } from "../src/viewer-style.js";
@@ -20,6 +23,17 @@ function luminance(hex: string): number {
 function contrast(a: string, b: string): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi! + 0.05) / (lo! + 0.05);
+}
+// `fg` at `alpha` composited over the opaque `bg`, as a hex colour.
+function over(fg: string, bg: string, alpha: number): string {
+  const ch = (hex: string, i: number) => parseInt(hex.replace("#", "").slice(i, i + 2), 16);
+  return (
+    "#" +
+    [0, 2, 4]
+      .map((i) => Math.round(alpha * ch(fg, i) + (1 - alpha) * ch(bg, i)))
+      .map((v) => v.toString(16).padStart(2, "0"))
+      .join("")
+  );
 }
 
 // Every text-on-background pair the stylesheet uses, by token name.
@@ -54,6 +68,14 @@ describe.each([
   it("focus ring meets the 3:1 non-text minimum against the page", () => {
     expect(contrast(tokens.focus, tokens.bg)).toBeGreaterThanOrEqual(3);
   });
+
+  it.each(["bg", "surface", "surface2"] as const)(
+    "scrollbar thumb meets the 3:1 non-text minimum on %s",
+    (surface) => {
+      const bg = tokens[surface];
+      expect(contrast(over(tokens.fg, bg, SCROLLBAR_THUMB_ALPHA), bg)).toBeGreaterThanOrEqual(3);
+    },
+  );
 });
 
 describe("overlay colours (fixed in both schemes)", () => {
@@ -68,9 +90,11 @@ describe("overlay colours (fixed in both schemes)", () => {
 
 describe("stylesheet", () => {
   it("declares both token sets, the dark one behind prefers-color-scheme", () => {
-    expect(VIEWER_STYLE).toContain(`:root { ${tokenCss(LIGHT_TOKENS)} color-scheme: light dark;`);
     expect(VIEWER_STYLE).toContain(
-      `@media (prefers-color-scheme: dark) { :root { ${tokenCss(DARK_TOKENS)} } }`,
+      `:root { ${tokenCss(LIGHT_TOKENS)} ${scrollbarTokenCss(LIGHT_TOKENS)} color-scheme: light dark;`,
+    );
+    expect(VIEWER_STYLE).toContain(
+      `@media (prefers-color-scheme: dark) { :root { ${tokenCss(DARK_TOKENS)} ${scrollbarTokenCss(DARK_TOKENS)} } }`,
     );
   });
 
@@ -88,6 +112,53 @@ describe("stylesheet", () => {
 
   it("shows a visible focus ring on keyboard focus", () => {
     expect(VIEWER_STYLE).toContain(":focus-visible { outline: 3px solid var(--focus);");
+  });
+});
+
+describe("scrollbars", () => {
+  it.each([
+    ["light", LIGHT_TOKENS],
+    ["dark", DARK_TOKENS],
+  ])("derives the three tokens from the %s text colour", (_name, tokens) => {
+    expect(scrollbarTokenCss(tokens)).toBe(
+      `--scrollbar-track: transparent; --scrollbar-thumb: color-mix(in srgb, ${tokens.fg} 50%, transparent); --scrollbar-thumb-hover: color-mix(in srgb, ${tokens.fg} 70%, transparent);`,
+    );
+    expect(SCROLLBAR_THUMB_HOVER_ALPHA).toBeGreaterThan(SCROLLBAR_THUMB_ALPHA);
+  });
+
+  it("sets the standard properties on the root and every element", () => {
+    expect(VIEWER_STYLE).toContain(
+      ":root, * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }",
+    );
+  });
+
+  it("falls back to a 12px webkit bar where scrollbar-color is unsupported", () => {
+    const start = VIEWER_STYLE.indexOf("@supports not (scrollbar-color: auto) {");
+    expect(start).toBeGreaterThan(0);
+    const fallback = VIEWER_STYLE.slice(start, VIEWER_STYLE.indexOf("@media", start));
+    expect(fallback).toContain("* { scrollbar-width: auto; }");
+    expect(fallback).toContain("::-webkit-scrollbar { width: 12px; height: 12px; }");
+    expect(fallback).toContain("::-webkit-scrollbar-track { background: var(--scrollbar-track); }");
+    expect(fallback).toContain(
+      "::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border: 3px solid transparent; background-clip: content-box; border-radius: 6px; }",
+    );
+    expect(fallback).toContain(
+      "::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); background-clip: content-box; }",
+    );
+  });
+
+  it("hands the bar back to the system under forced colours or more contrast, after the custom rule", () => {
+    const reset =
+      "@media (forced-colors: active), (prefers-contrast: more) { :root, * { scrollbar-width: auto; scrollbar-color: auto; } }";
+    expect(VIEWER_STYLE).toContain(reset);
+    expect(VIEWER_STYLE.indexOf(reset)).toBeGreaterThan(VIEWER_STYLE.indexOf(":root, * {"));
+  });
+
+  it("never hides a scrollbar", () => {
+    expect(VIEWER_STYLE).not.toMatch(/scrollbar-width:\s*none/);
+    expect(VIEWER_STYLE).not.toMatch(
+      /::-webkit-scrollbar[\w-]*(?::[\w-]+)?\s*\{[^}]*display:\s*none/,
+    );
   });
 });
 
