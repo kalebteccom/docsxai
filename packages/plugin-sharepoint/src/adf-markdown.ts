@@ -146,7 +146,21 @@ function listItems(node: AdfNode, ordered: boolean): string {
     .join("\n");
 }
 
-function block(node: AdfNode): string {
+/** Library-relative path of images, keyed by the `alt` that names them. */
+export type ImagePaths = ReadonlyMap<string, string>;
+
+/** The `alt` of an image block, which the engine's projection sets to the attachment file name. */
+function imageAlt(node: AdfNode): string | undefined {
+  const alt = node.content?.[0]?.attrs?.["alt"];
+  return node.type === "mediaSingle" && typeof alt === "string" ? alt : undefined;
+}
+
+/** Every image a document links, by `alt`, so a publisher can check them before it writes anything. */
+export function imageAlts(doc: AdfDoc): string[] {
+  return doc.content.flatMap((node) => imageAlt(node) ?? []);
+}
+
+function block(node: AdfNode, images: ImagePaths | undefined): string {
   switch (node.type) {
     case "heading": {
       const asked = Number(node.attrs?.["level"] ?? 2);
@@ -163,19 +177,23 @@ function block(node: AdfNode): string {
       return `${fence}\n${code}\n${fence}`;
     }
     case "mediaSingle": {
-      const alt = node.content?.[0]?.attrs?.["alt"];
-      return typeof alt === "string"
-        ? `![${escapeInline(singleLine(alt))}](${IMAGES_DIR}/${safeName(alt)})`
-        : "";
+      const alt = imageAlt(node);
+      return alt === undefined
+        ? ""
+        : `![${escapeInline(singleLine(alt))}](${images?.get(alt) ?? `${IMAGES_DIR}/${safeName(alt)}`})`;
     }
     default:
       return inline(node.content);
   }
 }
 
-export function adfToMarkdown(doc: AdfDoc): string {
+/**
+ * `images` maps an image's `alt` to the path its file is uploaded to, so link and upload share one
+ * name. An `alt` it does not list links to its own safe name.
+ */
+export function adfToMarkdown(doc: AdfDoc, images?: ImagePaths): string {
   return doc.content
-    .map(block)
+    .map((node) => block(node, images))
     .filter((s) => s.length > 0)
     .join("\n\n");
 }

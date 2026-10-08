@@ -947,6 +947,43 @@ describe("sharepoint publisher: colliding targets", () => {
     );
   });
 
+  /** The `media` node of a document's first image, to rename in a test. */
+  function mediaOf(doc: AdfProjection["documents"][number]): Record<string, unknown> {
+    return doc.adf.content.find((n) => n.type === "mediaSingle")!.content![0]!.attrs!;
+  }
+
+  it("refuses an image named .., before any request", async () => {
+    const { dir, projection } = await tree();
+    mediaOf(projection.documents[1]!)["alt"] = "..";
+    await refused(dir, projection, /not a usable file name/);
+  });
+
+  it("refuses a screenshot named .. that its image links, before any request", async () => {
+    const { dir, projection } = await tree();
+    mediaOf(projection.documents[1]!)["alt"] = "..";
+    projection.documents[1]!.attachments[0]!.fileName = "..";
+    await refused(dir, projection, /not a usable file name/);
+  });
+
+  it("refuses an image that no screenshot of its document carries, before any request", async () => {
+    const { dir, projection } = await tree();
+    mediaOf(projection.documents[1]!)["alt"] = "other.png";
+    await refused(
+      dir,
+      projection,
+      /section "checkout" links image "other\.png" but lists no screenshot with that file name/,
+    );
+  });
+
+  it("links an image by the name its screenshot is uploaded under", async () => {
+    const { dir, projection } = await tree();
+    mediaOf(projection.documents[1]!)["alt"] = "Shot A!.png";
+    projection.documents[1]!.attachments[0]!.fileName = "Shot A!.png";
+    await createSharePointPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log));
+    expect(text("docsxai/checkout.md")).toContain("(images/Shot-A-.png)");
+    expect(server.files.get("docsxai/images/Shot-A-.png")!.data.equals(PNG_A)).toBe(true);
+  });
+
   it("takes one screenshot listed by two documents, and still pushes", async () => {
     const { dir, projection } = await tree();
     projection.documents[2]!.attachments = [{ ...projection.documents[1]!.attachments[0]! }];

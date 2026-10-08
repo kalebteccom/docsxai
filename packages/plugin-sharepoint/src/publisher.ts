@@ -25,7 +25,14 @@ import {
   resolveWorkspacePath,
   resolveWorkspacePathReal,
 } from "@docsxai/engine";
-import { adfToMarkdown, IMAGES_DIR, safeName, singleLine, titleLine } from "./adf-markdown.js";
+import {
+  adfToMarkdown,
+  IMAGES_DIR,
+  imageAlts,
+  safeName,
+  singleLine,
+  titleLine,
+} from "./adf-markdown.js";
 import { readRegularFile } from "./read-file.js";
 import {
   assertGraphBaseUrl,
@@ -237,11 +244,26 @@ function imageName(att: AdfAttachment): string {
   return `${IMAGES_DIR}/${safeName(att.fileName)}`;
 }
 
+/** A document links an image only through an attachment of the same name, so link and upload agree. */
+function assertImagesAttached(doc: AdfDocument): void {
+  const names = new Set(doc.attachments.map((att) => att.fileName));
+  for (const alt of imageAlts(doc.adf)) {
+    safeName(alt);
+    if (!names.has(alt)) {
+      throw new Error(
+        `sharepoint: section ${JSON.stringify(doc.section)} links image ${JSON.stringify(alt)} but lists no screenshot with that file name`,
+      );
+    }
+  }
+}
+
 /**
  * Refuses two documents or two screenshots that would land on one file. SharePoint names are case
  * insensitive and `safeName` folds spaces and punctuation, so `a b` and `a-b` (or `Login` and
  * `login`) are one path. A screenshot named twice with the same source is one file, not a clash.
- * Runs before any request, so a collision never leaves a half-written folder behind.
+ * Also checks every name the pack can produce (a section, a screenshot, an image link), so a name
+ * `safeName` refuses fails here. Runs before any request, so a bad pack never leaves a half-written
+ * folder behind.
  */
 function assertNoCollisions(documents: readonly AdfDocument[], folder: string): void {
   const pages = new Map<string, string>();
@@ -255,6 +277,7 @@ function assertNoCollisions(documents: readonly AdfDocument[], folder: string): 
       );
     }
     pages.set(rel.toLowerCase(), doc.section);
+    assertImagesAttached(doc);
     for (const att of doc.attachments) {
       const key = imageName(att).toLowerCase();
       const known = images.get(key);
@@ -275,7 +298,9 @@ async function uploadsFor(
   doc: AdfDocument,
   title: string,
 ): Promise<{ page: Upload; images: Upload[] }> {
-  const markdown = Buffer.from(`${titleLine(title)}\n\n${adfToMarkdown(doc.adf)}\n`, "utf8");
+  // The page links each image by the path it is uploaded to.
+  const paths = new Map(doc.attachments.map((att) => [att.fileName, imageName(att)]));
+  const markdown = Buffer.from(`${titleLine(title)}\n\n${adfToMarkdown(doc.adf, paths)}\n`, "utf8");
   const images: Upload[] = [];
   for (const att of doc.attachments) {
     // The projection can come from a caller, so the path is held inside the workspace and the
