@@ -122,6 +122,12 @@ clock, an animation, a lazy image, a rotating banner. Pin it with the flow's `en
 again. Diff only means something once the check passes, which is why the recipes stop at the first
 failing step.
 
+`diff` reads only `docs/<flow>/screenshots/` and `docs/<flow>/annotations.json`. A flow with a
+`matrix:` writes `docs/<flow>/<variant>/...`, so `diff` reports no screenshot drift for it and
+exits 0. In a workspace that uses matrix flows, replace the `diff` line with
+`docsxai pack --check --against <pack-dir>` (it needs a `pack.json` in the workspace but no
+`oxipng`), and keep the `--verify-determinism` line as it is.
+
 **Do not run browser capture in per-PR pipelines on shared runners.** A capture launches Chromium,
 walks the whole app and takes screenshots, so it competes with every other job on the runner for
 CPU and memory, and it needs target credentials that a pull request from a fork must never see.

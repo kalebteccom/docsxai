@@ -524,8 +524,19 @@ freshness, backend reachability when `backend_url` is configured (plus a
 token-presence note), the plugin declarations through the same inspection
 `plugins list` runs - declared/installed/lock/capabilities, with **no plugin
 code executed** - viewer-bin resolution (naming which of the three layers
-hit), and `DOCSX_*` env sanity (`DOCSX_CACHE_KEY` well-formed when set,
-unknown `DOCSX_*` names flagged as likely typos). Exit 1 on any `✗`.
+hit), and `DOCSX_*` env sanity. Exit 1 on any `✗`.
+
+The env row checks three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
+bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typo; the
+names it knows are `DOCSX_TOKEN`, `DOCSX_CACHE_KEY`, `DOCSX_VIEWER_BIN`,
+`DOCSX_ENGINE_BIN`, `DOCSX_DATA_DIR`, `DOCSX_OAUTH_AUTO_APPROVE`,
+`DOCSX_WEBHOOK_SECRET`, `DOCSX_OXIPNG_BIN`, `DOCSX_BACKEND_DENY_PRIVATE_APP_URL`,
+`DOCSX_EGRESS_GUARD`, `DOCSX_EGRESS_DENY_PRIVATE` and `DOCSX_MCP_TOKEN`. And the
+three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD`,
+`DOCSX_EGRESS_DENY_PRIVATE`) fail the row when set to something other than `1`, `true`,
+`yes`, `0`, `false` or `no` (any case), because any other value reads as off.
+`docsxai doctor --help` prints its usage line and what the `✓`, `✗` and `−` rows mean,
+and runs no check.
 
 ```
 $ docsxai doctor ~/docsxai/my-app
@@ -581,6 +592,10 @@ Snapshots the doc pack - `flows/`, `docs/<flow>/*.md`, `annotations.json`,
 against in CI. Refresh replaces the previous snapshot whole, so stale
 leftovers never read as drift.
 
+`baseline` reads only `docs/<flow>/screenshots/` and `docs/<flow>/annotations.json`. A
+flow with a [matrix](/reference/flow-file/#matrix) writes one directory per variant
+below those paths, so its screenshots are not in the baseline.
+
 ```
 $ docsxai baseline ~/docsxai/my-app
 baseline: snapshotted 23 files to ~/docsxai/my-app/.baseline
@@ -611,6 +626,12 @@ $ echo $?
 
 With no drift the report is two lines (`no drift detected`) and the exit
 code is 0.
+
+Because the baseline holds no matrix screenshots, `diff` reports no screenshot drift
+for a matrix flow, and exits 0 even under `--fail-on warn`; it still compares the flow
+YAML (steps and locators). Gate a matrix workspace's screenshots with
+[`pack --check`](#docsxai-pack---check), which reads the variant directories, and keep
+`run --verify-determinism` as the separate check that two runs agree.
 
 ## Packaging and export
 
@@ -709,13 +730,15 @@ locators) and POSTs it as a new revision against the backend named in
 `backend_project_id` - created on first push if absent and persisted back to
 the config). Screenshot bytes travel as content-addressed blobs, HEAD-probed
 so unchanged PNGs are skipped. `--kind` defaults to `calibrate`; `--author`
-defaults to the OS user. The revision is finalized after upload - a sealed,
-immutable snapshot.
+defaults to the OS user. Screenshots and `annotations.json` under
+`docs/<flow>/<variant>/` (a matrix flow) travel too. The revision is finalized after
+upload - a sealed, immutable snapshot. The backend URL printed in the summary has no
+query string or fragment.
 
 ```
 $ docsxai push ~/docsxai/my-app --kind run --author ci
 push: screenshots — 2 blob(s) uploaded, 7 already on the backend
-push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) — 5 artifact slots uploaded, finalized
+push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) on http://127.0.0.1:4477 — 5 artifact slots uploaded, finalized
 ```
 
 ### `docsxai pull`
@@ -727,8 +750,27 @@ verified against their sha256 before they touch disk.
 
 ```
 $ docsxai pull ~/docsxai/my-app
-pull: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) — wrote 23 file(s)
+pull: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) — wrote 23 file(s) to ~/docsxai/my-app
 ```
+
+The backend is not trusted with file names. Before it writes anything, `pull`
+checks every name in the revision and refuses the whole revision on one bad name:
+
+- a flow file must be `<flow name>.flow.yaml`, where the name follows the
+  [flow name rule](/reference/flow-file/#top-level-keys) (letters, digits, `.`, `_`
+  and `-`, no `..`, no trailing `.`, not a Windows device name, at most 64
+  characters);
+- annotations must be `docs/<flow>[/<variant>]/annotations.json` and screenshots
+  `docs/<flow>[/<variant>]/screenshots/<file>.png`, `.jpg`, `.jpeg` or `.webp`, with
+  the same character rules for the variant and the file stem, no variant named
+  `annotations.json` or `screenshots`, and at most 128 characters in a variant or file name;
+- two names that differ only by case (`Tour/` and `tour/`) are refused, because
+  they are one directory on a case-insensitive disk.
+
+A refused revision exits 1 with `refusing the pulled doc pack, nothing written`, and
+the `next:` line suggests an older `--rev`. Flow, annotation and screenshot files are
+also written through the workspace root, so a symlink inside the workspace that
+points out of it stops the pull.
 
 The endpoint surface behind `login`/`push`/`pull` is documented in the
 [backend API reference](/reference/backend-api/).
