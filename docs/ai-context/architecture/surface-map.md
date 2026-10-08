@@ -146,7 +146,7 @@ The rendering surface: interactive viewer, burn renderer, Starlight site emitter
 
 ## `packages/mcp/` — `@docsxai/mcp`
 
-Standalone stdio MCP server (`docsxai-mcp` bin) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives — live-page discovery is browxai's. One tool = one file under `src/tools/`; the registry is composed only in `src/server.ts`. Add-a-tool checklist: [`../tool-registration/mcp-tool-registry.md`](../tool-registration/mcp-tool-registry.md). Repo-only (`private: true`).
+Standalone MCP server (`docsxai-mcp` bin; stdio, plus an opt-in Streamable HTTP transport behind `serve --http`) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives — live-page discovery is browxai's. One tool = one file under `src/tools/`; the registry is composed only in `src/server.ts`. The HTTP transport is `src/http-*.ts` (token, Host/Origin guard, sessions, egress rules for `run_flows`) plus `src/workspace-root.ts` (path confinement) and `src/serve-args.ts`. Add-a-tool checklist: [`../tool-registration/mcp-tool-registry.md`](../tool-registration/mcp-tool-registry.md). Repo-only (`private: true`).
 
 ## `packages/plugin-confluence/` — `@docsxai/plugin-confluence`
 
@@ -166,7 +166,7 @@ First-party publisher plugin (`notion:push`): idempotent push of a doc pack as N
 
 ## `packages/plugin-sharepoint/` — `@docsxai/plugin-sharepoint`
 
-First-party publisher plugin (`sharepoint:push`): idempotent push of a doc pack as markdown files plus images into a SharePoint Online document library through Microsoft Graph, behind the `egress:graph.microsoft.com` and `egress:*.sharepoint.com` capabilities. Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Repo-only (`private: true`).
+First-party publisher plugin (`sharepoint:push`): idempotent push of a doc pack as markdown files plus images into a SharePoint Online document library through Microsoft Graph, behind eight `egress:` capabilities, one per Graph host and SharePoint download domain (public and national clouds). Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Repo-only (`private: true`).
 
 ## `packages/plugin-starlight/` — `@docsxai/plugin-starlight`
 
