@@ -1,5 +1,6 @@
 // Publish config and secrets for `gitbook:push`.
 
+import { singleLine } from "./adf-markdown.js";
 import {
   assertGitBookBaseUrl,
   DEFAULT_GITBOOK_URL,
@@ -46,7 +47,7 @@ export function parseConfig(
   if (!space) throw new Error("gitbook: config.space_id is required");
   const parent = optionalId(raw, "parent_page_id");
   const manifest = optionalId(raw, "manifest_page_id");
-  const prefix = optionalString(raw, "title_prefix");
+  const prefix = singleLine(optionalString(raw, "title_prefix") ?? "");
   return {
     space_id: space,
     base_url: assertGitBookBaseUrl(optionalString(raw, "base_url") ?? DEFAULT_GITBOOK_URL, options),

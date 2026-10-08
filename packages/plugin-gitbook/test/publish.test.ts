@@ -13,6 +13,7 @@ import { promisify } from "node:util";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   type AdfDoc,
+  type AdfMark,
   type AdfNode,
   type AdfProjection,
   type PluginLogger,
@@ -21,7 +22,14 @@ import {
   projectDocPackToAdf,
   resolvePlugins,
 } from "@docsxai/engine";
-import { adfToMarkdown, pageSlug, safeName, withTitle } from "../src/adf-markdown.js";
+import {
+  adfToMarkdown,
+  pageSlug,
+  quoted,
+  safeName,
+  singleLine,
+  withTitle,
+} from "../src/adf-markdown.js";
 import { parseConfig } from "../src/config.js";
 import {
   GitBookClient,
@@ -1401,5 +1409,237 @@ describe("adf to markdown", () => {
     expect(withTitle('A "quoted": title', "Body")).toBe(
       '---\ntitle: "A \\"quoted\\": title"\n---\n\nBody\n',
     );
+  });
+});
+
+const para = (...content: AdfNode[]): AdfNode => ({ type: "paragraph", content });
+const txt = (text: string, ...marks: AdfMark[]): AdfNode => ({
+  type: "text",
+  text,
+  ...(marks.length > 0 ? { marks } : {}),
+});
+const linked = (text: string, href: unknown): AdfNode =>
+  txt(text, { type: "link", attrs: { href } });
+const render = (...content: AdfNode[]): string =>
+  adfToMarkdown({ version: 1, type: "doc", content }, () => undefined);
+
+describe("adf to markdown: injection", () => {
+  it.each([
+    ["a`b``c", "```a`b``c```"],
+    ["`x", "`` `x ``"],
+    ["x`", "`` x` ``"],
+    [" a ", "`  a  `"],
+    ["plain", "`plain`"],
+    ["line one\n\nline two", "`line one  line two`"],
+  ])("a code span of %j is %j", (text, expected) => {
+    expect(render(para(txt(text, { type: "code" })))).toBe(expected);
+  });
+
+  it("drops an empty code span", () => {
+    expect(render(para(txt("", { type: "code" }), txt("after")))).toBe("after");
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "  JavaScript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+    "file:///etc/passwd",
+    "//evil.example.com/x",
+    "/relative/path",
+    "ftp://example.com/x",
+    "\u0001javascript:alert(1)",
+    42,
+    undefined,
+  ])("keeps the text and drops a link to %j", (href) => {
+    expect(render(para(linked("click", href)))).toBe("click");
+  });
+
+  it("keeps http, https and mailto links, in any letter case", () => {
+    expect(render(para(linked("a", "https://example.com/a")))).toBe("[a](https://example.com/a)");
+    expect(render(para(linked("a", "HTTP://example.com/a")))).toBe("[a](HTTP://example.com/a)");
+    expect(render(para(linked("m", "mailto:docs@example.com")))).toBe(
+      "[m](mailto:docs@example.com)",
+    );
+  });
+
+  it("percent-encodes parentheses, whitespace, brackets, quotes and angle brackets in a target", () => {
+    expect(render(para(linked("t", "https://e.com/a)b c")))).toBe("[t](https://e.com/a%29b%20c)");
+    expect(render(para(linked("t", "https://e.com/(a)")))).toBe("[t](https://e.com/%28a%29)");
+    expect(render(para(linked("t", 'https://e.com/<x>[y]"z"\\')))).toBe(
+      "[t](https://e.com/%3Cx%3E%5By%5D%22z%22%5C)",
+    );
+    expect(render(para(linked("t", "https://e.com/a\nb")))).toBe("[t](https://e.com/a%0Ab)");
+  });
+
+  it("escapes brackets in link text, so the text cannot end the link or start another", () => {
+    expect(render(para(linked("a](https://evil.example.com)[b", "https://e.com/")))).toBe(
+      "[a\\](https://evil.example.com)\\[b](https://e.com/)",
+    );
+  });
+
+  it("escapes a trailing ! so text before a link cannot become an image", () => {
+    const href = "https://e.com/x.png";
+    expect(render(para(txt("Look!"), linked("t", href)))).toBe("Look\\![t](https://e.com/x.png)");
+    expect(render(para(txt("Look!"), txt(""), linked("t", href)))).toBe(
+      "Look\\![t](https://e.com/x.png)",
+    );
+    expect(render(para(txt("a!", { type: "strong" }), linked("t", href)))).toBe(
+      "**a!**[t](https://e.com/x.png)",
+    );
+    // No link follows, so the text stays as written.
+    expect(render(para(txt("Done!")))).toBe("Done!");
+    expect(render(para(txt("Hi!"), txt(" there")))).toBe("Hi! there");
+    expect(render(para(txt("Hi!"), linked("t", "javascript:alert(1)")))).toBe("Hi!t");
+  });
+
+  it.each([
+    [0, "# t"],
+    [-3, "# t"],
+    [1, "# t"],
+    [6, "###### t"],
+    [7, "###### t"],
+    [99, "###### t"],
+    [2.7, "## t"],
+    ["4", "#### t"],
+    ["abc", "## t"],
+    [undefined, "## t"],
+    [null, "## t"],
+  ])("a heading of level %j renders as %j", (level, expected) => {
+    expect(render({ type: "heading", attrs: { level }, content: [txt("t")] })).toBe(expected);
+  });
+
+  it("keeps a heading and a list item on one line", () => {
+    expect(render({ type: "heading", attrs: { level: 2 }, content: [txt("a\n# b")] })).toBe(
+      "## a \\# b",
+    );
+    expect(
+      render({
+        type: "bulletList",
+        content: [{ type: "listItem", content: [para(txt("a\n- b"))] }],
+      }),
+    ).toBe("- a \\- b");
+  });
+
+  it("lengthens a code fence past any fence inside the code", () => {
+    const block = (code: string) => render({ type: "codeBlock", content: [txt(code)] });
+    expect(block("plain")).toBe("```\nplain\n```");
+    expect(block("a\n```\nb")).toBe("````\na\n```\nb\n````");
+    expect(block("a\n````\n<script>")).toBe("`````\na\n````\n<script>\n`````");
+  });
+
+  it("escapes brackets and backslashes in alt text and keeps it on one line", () => {
+    const alt = "x](javascript:alert(1)) \n![y\\";
+    const media: AdfNode = { type: "mediaSingle", content: [{ type: "media", attrs: { alt } }] };
+    expect(render(media)).toBe("*Screenshot not uploaded: x\\](javascript:alert(1))  !\\[y\\\\*");
+    expect(adfToMarkdown({ version: 1, type: "doc", content: [media] }, () => "./ref-0")).toBe(
+      "![x\\](javascript:alert(1))  !\\[y\\\\](./ref-0)",
+    );
+  });
+
+  it("singleLine and withTitle put a title on one line", () => {
+    expect(singleLine("a\r\nb\u2028c\u0007d")).toBe("a b c d");
+    expect(quoted('a\n"b"')).toBe('"a \\"b\\""');
+    expect(withTitle("  Docs\n# two\u2028x  ", "Body")).toBe(
+      '---\ntitle: "Docs # two x"\n---\n\nBody\n',
+    );
+  });
+});
+
+describe("gitbook publisher: log lines", () => {
+  /** A line `singleLine` would change holds a newline or another control character. */
+  const hasControls = (line: string): boolean => singleLine(line) !== line;
+
+  it("logs a section name on one line, without control characters", async () => {
+    const dir = await makeWorkspace();
+    const projection = sectionsProjection([["check\nINFO fake\u2028out\u0007\u009b", "Checkout"]]);
+    const { log, lines } = capture();
+    await createGitBookPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(lines.some((l) => /^section "check INFO fake out ": created \(page /.test(l))).toBe(
+      true,
+    );
+    expect(lines.filter(hasControls)).toEqual([]);
+  });
+
+  it("escapes a double quote in a section name so the quoting holds", async () => {
+    const dir = await makeWorkspace();
+    const projection = sectionsProjection([['say "hi" now', "Checkout"]]);
+    const { log, lines } = capture();
+    await createGitBookPublisher(LOOPBACK).publish(makeCtx(dir, projection, log));
+    expect(lines.some((l) => l.startsWith('section "say \\"hi\\" now": created'))).toBe(true);
+  });
+
+  it("quotes a section name on one line in a collision error", async () => {
+    const dir = await makeWorkspace();
+    const projection = sectionsProjection([
+      ["a\nb", "A"],
+      ["a b", "B"],
+    ]);
+    const { log, lines } = capture();
+    const error = await createGitBookPublisher(LOOPBACK)
+      .publish(makeCtx(dir, projection, log))
+      .catch((e: Error) => e);
+    expect((error as Error).message).toMatch(
+      /^gitbook: sections "a b" and "a b" share the page slug/,
+    );
+    expect(hasControls((error as Error).message)).toBe(false);
+    expect(lines.filter(hasControls)).toEqual([]);
+  });
+});
+
+describe("gitbook publisher: titles", () => {
+  it("writes a title and a title_prefix with newlines as one line in the frontmatter and the change", async () => {
+    const dir = await makeWorkspace();
+    const projection = sectionsProjection([["checkout", "Docs\n# injected\u2028x"]]);
+    await createGitBookPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log, { title_prefix: "[Pre]\n" }),
+    );
+    const page = [...server.pages.values()].find((p) => p.slug === "checkout")!;
+    expect(page.title).toBe("[Pre] Docs # injected x");
+    expect(page.markdown.startsWith('---\ntitle: "[Pre] Docs # injected x"\n---\n\n')).toBe(true);
+  });
+
+  it("parseConfig turns control characters in title_prefix into spaces", () => {
+    expect(parseConfig({ space_id: "s", title_prefix: "[A]\n\t[B] " }).title_prefix).toBe(
+      "[A] [B] ",
+    );
+  });
+
+  it("compares the one-line title with the manifest's", async () => {
+    const dir = await makeWorkspace();
+    const projection = sectionsProjection([["checkout", "docsxai\nmanifest"]]);
+    await expect(
+      createGitBookPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(/named like the manifest page/);
+  });
+});
+
+describe("gitbook publisher: screenshot names", () => {
+  it('refuses screenshots "x y.png" and "x-y.png" on one page, before any write', async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir, options: PAGE_TREE });
+    const checkout = projection.documents[1]!;
+    const login = projection.documents[2]!;
+    checkout.attachments = [
+      { ...checkout.attachments[0]!, fileName: "x y.png" },
+      { ...login.attachments[0]!, fileName: "x-y.png" },
+    ];
+    await expect(
+      createGitBookPublisher(LOOPBACK).publish(makeCtx(dir, projection, capture().log)),
+    ).rejects.toThrow(
+      /section "checkout" has screenshots "x y\.png" and "x-y\.png", which both upload as "x-y\.png"/,
+    );
+    expect(server.writes).toBe(0);
+  });
+
+  it("takes one screenshot listed twice on a page, and still pushes", async () => {
+    const dir = await makeWorkspace();
+    const projection = await projectDocPackToAdf({ workspaceDir: dir, options: PAGE_TREE });
+    const checkout = projection.documents[1]!;
+    checkout.attachments = [checkout.attachments[0]!, { ...checkout.attachments[0]! }];
+    const result = await createGitBookPublisher(LOOPBACK).publish(
+      makeCtx(dir, projection, capture().log),
+    );
+    expect(result.ok).toBe(true);
   });
 });
