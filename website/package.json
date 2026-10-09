@@ -15,7 +15,7 @@
     "og": "node scripts/gen-og.mjs"
   },
   "devDependencies": {
-    "@astrojs/starlight": "0.41.2",
+    "@astrojs/starlight": "0.42.5",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
