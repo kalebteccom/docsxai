@@ -3,9 +3,11 @@
 # This is the only merge gate: a pull request merges on a green pipeline at its exact head commit. GitHub Actions runs release.yml only.
 # INVARIANT: this pipeline never publishes and names no secrets. Releases run in .woodpecker/release.yaml (manual event only) and, until it is retired, .github/workflows/release.yml (OIDC).
 
-# INVARIANT: push events only. The repo is public and Woodpecker runs with allow_pr=false, so a PR gets its status from the push to its branch; no pull_request, tag or release events.
+# INVARIANT: push events only, and never on main. The repo is public and Woodpecker runs with allow_pr=false, so a PR gets its status from the push to its branch; no pull_request, tag or release events. A PR merges on green at its exact head, so main already equals the gated tree and this pipeline does not run again after the merge (the main slot is for releases and post-merge checks only; there are none today).
 when:
   - event: push
+    branch:
+      exclude: [main]
 
 steps:
   - name: setup
