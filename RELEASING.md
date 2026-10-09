@@ -91,7 +91,7 @@ What `release-publish.sh` does (shared by both runners):
 
 ## GitHub Actions (until retired)
 
-`.github/workflows/release.yml` is unchanged and still publishes on a `v*.*.*` tag push behind the `release` environment, over OIDC with provenance, then creates the GitHub Release with an SBOM. Its `dry-run` job runs on `workflow_dispatch` (`gh workflow run release.yml --ref <branch>`) and needs no credentials. It stays until the first Woodpecker release succeeds; a follow-up change then deletes it, and from then on nothing release-related runs on GitHub Actions.
+`.github/workflows/release.yml` is unchanged, but it calls the same `scripts/release-publish.sh` as the Woodpecker pipeline, which now also fetches the tag and requires it to equal HEAD (an unauthenticated fetch from a public repo; it would fail if the repository went private). It still publishes on a `v*.*.*` tag push behind the `release` environment, over OIDC with provenance, then creates the GitHub Release with an SBOM. Its `dry-run` job runs on `workflow_dispatch` (`gh workflow run release.yml --ref <branch>`) and needs no credentials. It stays until the first Woodpecker release succeeds; a follow-up change then deletes it, and from then on nothing release-related runs on GitHub Actions.
 
 ## Dry run
 

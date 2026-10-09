@@ -5,6 +5,7 @@
 # on the branch whose head is the tagged commit. No push, pull_request, tag or cron trigger: PR-derived code never runs here.
 # INVARIANT: the publish step is the only step that names a secret. npm_publish_token is a stage-only npm token, and the repo admin
 # restricts the secret's events to exactly `manual`, so no other event can read it even if a pipeline asked for it.
+# NOTE: a manual run uses this file and scripts/release-publish.sh as they are on the branch the owner picks; pick the tagged commit on main (or a release/vX.Y.Z branch at the tag) and nothing else.
 # INVARIANT: RELEASE_PUBLISH_MODE is pinned to stage below; switching to direct is a reviewed change to this file (see RELEASING.md).
 
 when:
