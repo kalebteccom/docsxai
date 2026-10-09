@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Screenshot the built docs site and a rendered viewer pack in Chromium, for
 // the visual-captures workflow. It writes PNGs and a markdown summary; it
-// compares nothing. It fails when a server cannot start, Chromium cannot
+// compares nothing. Page captures are cut to a maximum height; the plan in
+// visual-plan.mjs says which ones and how tall. It fails when a server cannot start, Chromium cannot
 // launch or no capture succeeds. A single capture that fails is listed in the
 // summary.
 //
@@ -18,7 +19,14 @@ import { createRequire } from "node:module";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { candidateFiles, contentType, planCaptures, summaryMarkdown } from "./visual-plan.mjs";
+import {
+  candidateFiles,
+  contentType,
+  pickTable,
+  planCaptures,
+  summaryMarkdown,
+  tableScrollY,
+} from "./visual-plan.mjs";
 
 const { values: args } = parseArgs({
   options: {
@@ -113,6 +121,74 @@ const ACTIONS = {
   },
 };
 
+// The functions passed to page.evaluate run in the page; globalThis keeps
+// `document` and `window` out of this Node-globals lint scope.
+
+// Waits two frames so a scroll has been painted before the screenshot.
+async function settle(page) {
+  await page.evaluate(
+    () =>
+      new Promise((ok) =>
+        globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(ok)),
+      ),
+  );
+}
+
+// Scrolls to the first table that overflows sideways (its scroller is the
+// .docsx-table-scroll wrapper on the docs site, the table itself elsewhere).
+// Returns a note when no table overflows at this width.
+async function showTable(page) {
+  const measures = await page.evaluate(() =>
+    [...globalThis.document.querySelectorAll("table")].map((t) => {
+      const el = t.closest(".docsx-table-scroll") ?? t;
+      return { scrollWidth: el.scrollWidth, clientWidth: el.clientWidth };
+    }),
+  );
+  const { index, overflows } = pickTable(measures);
+  if (index < 0) throw new Error("no table on the page");
+  const box = await page.evaluate((i) => {
+    const t = globalThis.document.querySelectorAll("table")[i];
+    const r = (t.closest(".docsx-table-scroll") ?? t).getBoundingClientRect();
+    const header = globalThis.document.querySelector("header");
+    const fixed = header && /fixed|sticky/.test(globalThis.getComputedStyle(header).position);
+    return {
+      top: r.top,
+      bottom: r.bottom,
+      scrollY: globalThis.scrollY,
+      viewportHeight: globalThis.innerHeight,
+      headerHeight: fixed ? header.getBoundingClientRect().bottom : 0,
+    };
+  }, index);
+  const y = tableScrollY(box);
+  await page.evaluate((top) => globalThis.scrollTo({ top, behavior: "instant" }), y);
+  await settle(page);
+  return overflows ? undefined : "no table overflows at this width; the first table is shown";
+}
+
+// Scrolls the page and every vertical scroller in it (the docs sidebar, the
+// table of contents) to the end, waits for images the scroll brought in, then
+// scrolls again in case they made the page taller.
+async function showBottom(page) {
+  const toEnd = () =>
+    page.evaluate(() => {
+      const doc = globalThis.document;
+      for (const el of doc.querySelectorAll("*")) {
+        const oy = globalThis.getComputedStyle(el).overflowY;
+        if ((oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight + 1)
+          el.scrollTo({ top: el.scrollHeight, behavior: "instant" });
+      }
+      globalThis.scrollTo({ top: doc.documentElement.scrollHeight, behavior: "instant" });
+    });
+  await toEnd();
+  await page
+    .waitForFunction(() => [...globalThis.document.images].every((i) => i.complete), null, {
+      timeout: 5_000,
+    })
+    .catch(() => undefined); // a slow image leaves a gap in the picture, not a failed capture
+  await toEnd();
+  await settle(page);
+}
+
 async function captureOne(browser, origins, item, outDir) {
   const context = await browser.newContext({
     viewport: { width: item.viewport.width, height: item.viewport.height },
@@ -126,13 +202,22 @@ async function captureOne(browser, origins, item, outDir) {
     const page = await context.newPage();
     if (item.action === "breakImages") await page.route("**/screenshots/*.png", (r) => r.abort());
     await page.goto(origins[item.server] + item.path, { waitUntil: "load" });
-    // Runs in the page; globalThis keeps `document` out of this Node-globals lint scope.
     await page.evaluate(() => globalThis.document.fonts.ready.then(() => true));
     if (item.action) await ACTIONS[item.action](page);
+    let note;
+    if (item.capture === "table") note = await showTable(page);
+    if (item.capture === "bottom") await showBottom(page);
     const file = join(outDir, item.file);
     await mkdir(dirname(file), { recursive: true });
-    await page.screenshot({ path: file, fullPage: Boolean(item.fullPage), animations: "disabled" });
-    return { ...item };
+    // A clip with fullPage is in page coordinates and is trimmed to the page.
+    const top = item.capture === "top";
+    await page.screenshot({
+      path: file,
+      fullPage: top,
+      ...(top && { clip: item.clip }),
+      animations: "disabled",
+    });
+    return note ? { ...item, note } : { ...item };
   } catch (err) {
     return { ...item, error: err instanceof Error ? err.message : String(err) };
   } finally {
