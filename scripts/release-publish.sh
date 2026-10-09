@@ -1,18 +1,34 @@
 #!/usr/bin/env bash
 # Pack, verify and publish the six npm packages. Called by
-# .github/workflows/release.yml; see RELEASING.md.
+# .woodpecker/release.yaml and .github/workflows/release.yml; see RELEASING.md.
 #
 #   release-publish.sh dry-run   pack + verify + `npm publish --dry-run`.
-#                                 Needs no credentials and mints no OIDC token.
-#   release-publish.sh publish   pack + verify + real publish with provenance.
-#                                 Tag pushes only (GITHUB_REF_TYPE=tag).
+#                                 Needs no credentials.
+#   release-publish.sh publish   pack + verify + publish. Needs a release tag.
 #
-# Everything is packed and verified before the first publish call, so a bad
-# tarball or a tag/version mismatch fails the run with nothing on the registry.
-# A version already on npm is skipped, so a rerun after a partial publish
-# finishes the remaining packages instead of failing with a 403.
+# Environment:
+#   RELEASE_TAG            the vX.Y.Z[-pre] tag to release. Falls back to
+#                          GITHUB_REF_NAME on a GitHub tag push.
+#   RELEASE_REQUIRE_TAG=1  dry-run fails without a tag too (Woodpecker).
+#   RELEASE_PUBLISH_MODE   stage (default off GitHub Actions): `npm stage
+#                          publish`, a maintainer approves each stage with 2FA.
+#                          direct (default on GitHub Actions): `npm publish`,
+#                          with --provenance on GitHub Actions only.
+#   NODE_AUTH_TOKEN        the npm token, off GitHub Actions only. Never printed.
+#
+# With a tag, the checked-out commit must be the tag's commit and every package
+# version must equal the tag. Everything is packed and verified before the
+# first publish call, so a bad tarball or a mismatch fails the run with nothing
+# on the registry. A version already on npm is skipped, so a rerun after a
+# partial publish finishes the remaining packages instead of failing with a 403.
 set -euo pipefail
+set +x
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+fail() {
+  echo "release-publish: $1" >&2
+  exit 1
+}
 
 mode="${1:-}"
 case "$mode" in
@@ -22,6 +38,40 @@ case "$mode" in
     exit 2
     ;;
 esac
+
+on_github=false
+[ "${GITHUB_ACTIONS:-}" = "true" ] && on_github=true
+
+publish_mode="${RELEASE_PUBLISH_MODE:-}"
+if [ -z "$publish_mode" ]; then
+  if $on_github; then publish_mode=direct; else publish_mode=stage; fi
+fi
+case "$publish_mode" in
+  stage | direct) ;;
+  *) fail "RELEASE_PUBLISH_MODE must be stage or direct, got '${publish_mode}'" ;;
+esac
+
+# 0 when version $1 >= $2, comparing X.Y.Z and ignoring any prerelease suffix.
+version_at_least() {
+  node -e '
+    const [have, want] = process.argv.slice(1).map((v) =>
+      v.trim().replace(/^v/, "").split("-")[0].split(".").map(Number),
+    );
+    for (let i = 0; i < 3; i++) {
+      if (have[i] !== want[i]) process.exit(have[i] > want[i] ? 0 : 1);
+    }
+  ' "$1" "$2"
+}
+
+# `npm stage` needs npm >= 11.15.0 on Node >= 22.14.0.
+if [ "$publish_mode" = "stage" ]; then
+  npm_version="$(npm --version)"
+  node_version="$(node --version)"
+  version_at_least "$npm_version" 11.15.0 ||
+    fail "stage mode needs npm >= 11.15.0 for \`npm stage publish\`, found npm ${npm_version}"
+  version_at_least "$node_version" 22.14.0 ||
+    fail "stage mode needs Node >= 22.14.0, found ${node_version}"
+fi
 
 # Dependencies before dependents: `docsxai` depends on engine + viewer.
 # plugin, skill and backend do not depend on the engine at install time, so
@@ -36,17 +86,27 @@ packages=(
 )
 
 expected=""
-tag=""
-if [ "$mode" = "publish" ]; then
-  if [ "${GITHUB_REF_TYPE:-}" != "tag" ]; then
-    echo "publish mode runs on a tag ref only (GITHUB_REF_TYPE=${GITHUB_REF_TYPE:-unset})" >&2
-    exit 1
-  fi
-  tag="${GITHUB_REF_NAME:?GITHUB_REF_NAME is required}"
+tag="${RELEASE_TAG:-}"
+if [ -z "$tag" ] && [ "$mode" = "publish" ] && [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+  tag="${GITHUB_REF_NAME:-}"
+fi
+if [ -z "$tag" ] && { [ "$mode" = "publish" ] || [ "${RELEASE_REQUIRE_TAG:-}" = "1" ]; }; then
+  fail "${mode} needs RELEASE_TAG or a GitHub tag push (GITHUB_REF_TYPE=${GITHUB_REF_TYPE:-unset})"
+fi
+if [ -n "$tag" ]; then
   if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-    echo "tag '$tag' is not vX.Y.Z[-prerelease]" >&2
-    exit 1
+    fail "tag '${tag}' is not vX.Y.Z[-prerelease]"
   fi
+  # The tag on the remote is the authority; a stale or missing local tag is replaced.
+  git fetch --quiet --no-tags origin "+refs/tags/${tag}:refs/tags/${tag}" ||
+    fail "could not fetch tag ${tag} from origin"
+  tag_commit="$(git rev-parse --verify --quiet "refs/tags/${tag}^{commit}")" ||
+    fail "tag ${tag} does not point at a commit"
+  head_commit="$(git rev-parse --verify HEAD)"
+  if [ "$tag_commit" != "$head_commit" ]; then
+    fail "HEAD is ${head_commit} but ${tag} is ${tag_commit}; run the release on the tagged commit"
+  fi
+  echo "release tag ${tag} is HEAD (${head_commit})"
   expected="${tag#v}"
 fi
 
@@ -61,8 +121,8 @@ for i in "${!packages[@]}"; do
   mkdir -p "$dest"
   echo "::group::pack ${pkg}"
   # `pnpm pack` rewrites workspace:* to the real version inside the tarball.
-  # npm_config_ignore_scripts keeps prepack/prepare from running with the OIDC
-  # token in scope (pnpm 9 rejects a `pack --ignore-scripts` flag but honours
+  # npm_config_ignore_scripts keeps prepack/prepare from running with a
+  # credential in scope (pnpm 9 rejects a `pack --ignore-scripts` flag but honours
   # the env var). The tarballs ship the dist/ built by the preceding build step.
   # Packed from the package directory: pnpm 9 rejects `--filter ... pack`
   # ("Unknown option: 'recursive'").
@@ -92,7 +152,7 @@ for i in "${!packages[@]}"; do
     echo "tarball for ${pkg} contains package '${name}'" >&2
     exit 1
   fi
-  # Tag push: every version must equal the tag. Dry run: all must agree.
+  # With a tag every version must equal it; without one, all must agree.
   [ -n "$expected" ] || expected="$version"
   if [ "$version" != "$expected" ]; then
     echo "${pkg} is ${version}, expected ${expected}${tag:+ (tag ${tag})}" >&2
@@ -139,12 +199,32 @@ published() {
 }
 
 flags=(--access public --tag "$dist_tag")
+publish_cmd=(npm publish)
 if [ "$mode" = "dry-run" ]; then
   flags+=(--dry-run)
-else
+elif [ "$publish_mode" = "stage" ]; then
+  publish_cmd=(npm stage publish)
+elif $on_github; then
+  # Provenance needs a GitHub or GitLab OIDC identity; no other runner has one.
   flags+=(--provenance)
 fi
 
+# Off GitHub Actions the token comes from NODE_AUTH_TOKEN. The user config
+# written here holds the variable name, which npm expands when it reads the
+# file, so the token is never written to disk. It lives outside the workspace
+# and is removed on exit.
+if [ "$mode" = "publish" ] && ! $on_github; then
+  [ -n "${NODE_AUTH_TOKEN:-}" ] ||
+    fail "NODE_AUTH_TOKEN is empty; the npm_publish_token secret did not reach this step"
+  npmrc_dir="$(mktemp -d)"
+  trap 'rm -rf "$npmrc_dir"' EXIT
+  # shellcheck disable=SC2016 # literal ${NODE_AUTH_TOKEN}, expanded by npm
+  printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' >"$npmrc_dir/npmrc"
+  chmod 600 "$npmrc_dir/npmrc"
+  export NPM_CONFIG_USERCONFIG="$npmrc_dir/npmrc"
+fi
+
+staged=()
 for i in "${!packages[@]}"; do
   pkg="${packages[$i]}"
   spec="${pkg}@${versions[$i]}"
@@ -152,7 +232,20 @@ for i in "${!packages[@]}"; do
   if published "$spec" "${versions[$i]}"; then
     echo "${spec} already on npm, skipping"
   else
-    npm publish "${tarballs[$i]}" "${flags[@]}"
+    "${publish_cmd[@]}" "${tarballs[$i]}" "${flags[@]}"
+    if [ "$mode" = "publish" ] && [ "$publish_mode" = "stage" ]; then
+      staged+=("$pkg")
+    fi
   fi
   echo "::endgroup::"
 done
+
+if [ "${#staged[@]}" -gt 0 ]; then
+  echo
+  echo "Staged, not live. The stage ids are in the npm output above and in npm stage list."
+  for pkg in "${staged[@]}"; do
+    npm stage list "$pkg" || echo "npm stage list ${pkg} failed; list it from a maintainer machine"
+  done
+  echo "Approve each from a machine with your 2FA: npm stage approve <stage-id> --otp <code>"
+  echo "Or drop it: npm stage reject <stage-id>"
+fi
