@@ -42,6 +42,16 @@ describe("commandUsage", () => {
     expect(init).not.toContain("\n");
   });
 
+  it("phrases shared flags one way across commands", () => {
+    const names = ["init", "inspect", "run", "lint", "flow-tree", "diagnose", "style", "diff"];
+    const lines = [...names, "plugins", "capture-auth"].flatMap((n) => commandUsage(n));
+    expect(lines.join(" ")).toContain("--format text|md|json");
+    for (const format of lines.join(" ").match(/--format [^\]\s]+/g) ?? [])
+      expect(format).toMatch(/^--format text\|/);
+    for (const role of lines.join(" ").match(/--role <[^>]+>/g) ?? [])
+      expect(role).toBe("--role <role>");
+  });
+
   it("is empty for a name that is not a command", () => {
     expect(commandUsage("frobnicate")).toEqual([]);
   });

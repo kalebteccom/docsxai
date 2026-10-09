@@ -17,6 +17,7 @@
 import { pathToFileURL } from "node:url";
 import { runDoctor } from "./doctor.js";
 import { USAGE } from "./cli-usage.js";
+import { runAsBin } from "./cli-unexpected.js";
 import { cmdCalibrate, cmdCaptureAuth, cmdInit, cmdRun } from "./cli-commands-session.js";
 import {
   cmdDiagnose,
@@ -37,6 +38,9 @@ import { cmdLogin, cmdPlugins, cmdPull, cmdPush } from "./cli-commands-backend.j
 import { cmdPack } from "./cli-commands-pack.js";
 import { RETIRED_COMMANDS } from "./cli-retired.js";
 import { findRetired, warnDeprecated } from "./deprecation.js";
+
+// The bins wrap `main` in this, so an error no command handled prints one line, not a stack.
+export { runAsBin };
 
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
@@ -104,5 +108,5 @@ export async function main(argv: string[]): Promise<number> {
 
 // Run as the bin entry, but not when imported (e.g. in tests).
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  void main(process.argv.slice(2)).then((code) => process.exit(code));
+  void runAsBin(main, process.argv.slice(2)).then((code) => process.exit(code));
 }

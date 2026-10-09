@@ -20,5 +20,5 @@ if (!process.env.DOCSX_VIEWER_BIN) {
   }
 }
 
-const { main } = await import("@docsxai/engine/cli");
-process.exit(await main(process.argv.slice(2)));
+const { main, runAsBin } = await import("@docsxai/engine/cli");
+process.exit(await runAsBin(main, process.argv.slice(2)));
