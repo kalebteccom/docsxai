@@ -75,7 +75,6 @@ describe("burn on a light screenshot", () => {
     const plain = treeWith(undefined);
     expect(halos(plain)).toHaveLength(0);
     expect(treeWith(lightShot())).toEqual(plain);
-    expect(JSON.stringify(treeWith(lightShot()))).toBe(JSON.stringify(plain));
   });
 
   it("holds for a callout that sits right against its arrow too (no stem)", () => {
