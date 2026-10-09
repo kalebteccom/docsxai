@@ -172,7 +172,8 @@ Every behavior-change diff verifies this gate locally before pushing — never p
 - GitHub has no required status checks. Its ruleset blocks branch deletion and force push only, so whoever merges checks the Woodpecker status.
 - Pipeline steps: setup, build, typecheck, lint, format-check, architecture (depcruise, jscpd, the screenshot plan test), test, docs-build, audit (`pnpm audit:prod`, licenses, lockfile lint), package-contents (`scripts/audit-package-contents.mjs`) and secret-scan (trufflehog over the pushed commit range, `scripts/secret-scan-range.sh`).
 - The keystone step is disabled until the CI image is confirmed to run Chromium headless. Run the keystone locally for any change it covers.
-- GitHub Actions runs `.github/workflows/release.yml` only (npm OIDC publish behind the `release` environment). An Actions run that fails on billing is expected and is not a gate.
+- Releases run in `.woodpecker/release.yaml`, a separate Woodpecker workflow on the `manual` event only. The owner starts it with `RELEASE_TAG`; it stages the six packages with `npm stage publish` and the owner approves them with 2FA. Its `publish` step is the only place the `npm_publish_token` secret is named, and the secret is restricted to the `manual` event. See `RELEASING.md`.
+- GitHub Actions runs `.github/workflows/release.yml` only (npm OIDC publish behind the `release` environment) until the first Woodpecker release succeeds; a follow-up deletes it. An Actions run that fails on billing is expected and is not a gate.
 
 ## Related
 
