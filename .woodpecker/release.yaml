@@ -1,13 +1,17 @@
 # ci-optimised: v1
-# Release pipeline: packs, verifies and stages the six npm packages for one tag. See RELEASING.md.
+# Release pipeline: packs, verifies and publishes the six npm packages for one tag. See RELEASING.md.
 # Mirrors .github/workflows/release.yml (build, dry-run, publish) without provenance and without the GitHub Release step.
 #
-# INVARIANT: manual event only. The owner starts it from the Woodpecker UI with the manual-pipeline variable RELEASE_TAG=vX.Y.Z[-pre],
+# INVARIANT: manual event only. The owner (or an agent the owner authorises) starts it from the Woodpecker UI with the manual-pipeline variable RELEASE_TAG=vX.Y.Z[-pre],
 # on the branch whose head is the tagged commit. No push, pull_request, tag or cron trigger: PR-derived code never runs here.
-# INVARIANT: the publish step is the only step that names a secret. npm_publish_token is a stage-only npm token, and the repo admin
-# restricts the secret's events to exactly `manual`, so no other event can read it even if a pipeline asked for it.
+# INVARIANT: the publish step is the only step that names a secret. npm_publish_token is a granular npm publish token that bypasses
+# 2FA, IP-locked to the CI box, limited to the six packages, with a 90-day expiry. The repo admin restricts the secret's events to
+# exactly `manual`, so no other event can read it even if a pipeline asked for it.
 # NOTE: a manual run uses this file and scripts/release-publish.sh as they are on the branch the owner picks; pick the tagged commit on main (or a release/vX.Y.Z branch at the tag) and nothing else.
-# INVARIANT: RELEASE_PUBLISH_MODE is pinned to stage below; switching to direct is a reviewed change to this file (see RELEASING.md).
+# INVARIANT: RELEASE_PUBLISH_MODE is pinned to direct below: publish with --access public, --tag next for a prerelease, no provenance.
+# Stage mode stays in the script, unused; selecting it is a reviewed change to this file (see RELEASING.md).
+# INVARIANT: only six packages publish: docsxai, @docsxai/engine, @docsxai/viewer, @docsxai/plugin, @docsxai/skill, @docsxai/backend.
+# The script refuses any other list.
 
 when:
   - event: manual
@@ -46,7 +50,7 @@ steps:
       - bash scripts/gate-slot.sh pnpm test
 
   # Needs no credentials. Fails before publish when RELEASE_TAG is missing, is not HEAD, or differs from a package version,
-  # or when npm is older than 11.15.0.
+  # or when the package list is not the six.
   - name: dry-run
     image: remotxai-ci:latest
     depends_on: [build]
@@ -58,20 +62,20 @@ steps:
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: safe.directory
       GIT_CONFIG_VALUE_0: "*"
-      RELEASE_PUBLISH_MODE: stage
+      RELEASE_PUBLISH_MODE: direct
     commands:
       - bash scripts/gate-slot.sh node scripts/audit-package-contents.mjs
       - bash scripts/gate-slot.sh bash scripts/release-publish.sh dry-run
 
-  # Stages each version with `npm stage publish`; nothing is live until the owner runs `npm stage approve --otp`.
-  # The script reads the token from NODE_AUTH_TOKEN, never prints it and writes it to no file.
+  # Publishes each version directly; it is live as soon as npm accepts it. An auth, token or permission error stops the step
+  # before the next package. The script reads the token from NODE_AUTH_TOKEN, never prints it and writes it to no file.
   - name: publish
     image: remotxai-ci:latest
     depends_on: [verify, dry-run]
     volumes:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     environment:
-      RELEASE_PUBLISH_MODE: stage
+      RELEASE_PUBLISH_MODE: direct
       # Same as dry-run.
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: safe.directory
