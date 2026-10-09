@@ -31,7 +31,7 @@ fi
 base=""
 prev="${CI_PREV_COMMIT_SHA:-}"
 if [ -n "$prev" ] && [ -n "$(printf %s "$prev" | tr -d 0)" ]; then
-  is_commit "$prev" || git fetch --quiet --no-tags origin "$prev" 2>/dev/null || true
+  is_commit "$prev" || git fetch --quiet --no-tags origin -- "$prev" 2>/dev/null || true
   if is_commit "$prev" && git merge-base --is-ancestor "$prev" "$head"; then
     base="$prev"
   fi
@@ -44,7 +44,12 @@ if [ -z "$base" ]; then
     die "no merge base between origin/main and $head"
 fi
 
-echo "secret-scan: scanning $base..$head ($(git rev-list --count "$base..$head") commits)"
+count="$(git rev-list --count "$base..$head")"
+echo "secret-scan: scanning $base..$head ($count commits)"
+if [ "$count" -eq 0 ]; then
+  echo "secret-scan: range is empty (a re-run of an already scanned commit); nothing new to scan"
+  exit 0
+fi
 exec trufflehog git "file://$(pwd)" \
   --since-commit="$base" \
   --branch="$head" \
