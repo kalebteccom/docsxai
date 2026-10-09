@@ -68,6 +68,7 @@ A halt names the variant: `[<cause>] [variant en-US.dark.desktop-1280] step "x" 
 - `docsxai-viewer burn` and `render` discover `docs/<flow>/<variant>/annotations.json` and treat `<flow>/<variant>` as the flow name. That is the one viewer change: `discoverFlows` takes `{ variants: true }`, and `burn --flow <flow>` also selects its variants. The Starlight emitter keeps flat discovery.
 - `push`, `pull` read and write variant directories: the annotation and screenshot keys become `<flow>/<variant>/...`.
 - `zip` already walks `docs/` recursively.
+- `pack` and `pack --check` read the variant directories through `pack.json`: a `sources` entry with `matrix` names one, a `matrixFlow` block maps all of them (`packages/viewer/src/pack-matrix.ts`). Matrix ids and pack keys stay two grammars.
 - Not covered yet: `baseline` and `diff` (drift) read flat flow directories, `export` refuses a matrix flow, and the MCP `run_flows` and `diagnose_halt` tools do not expand variants (`runFlow` makes `run_flows` fail with a clear message).
 
 ## Determinism

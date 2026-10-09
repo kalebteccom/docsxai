@@ -4,7 +4,7 @@ What each consumer of the old screenshot scripts does to switch to `docsxai pack
 
 Both need, before anything else:
 
-- A docsxai build that has `pack` and `pack --check`. From a checkout: `pnpm -r build`, then run `node <checkout>/packages/engine/dist/cli.js pack ...` with `DOCSX_VIEWER_BIN=<checkout>/packages/viewer/dist/index.js` set (the engine does not find the viewer on its own in a checkout). From an install: the `docsxai` package, once released.
+- A docsxai build that has `pack` and `pack --check`. From a checkout: `pnpm -r build`, then run `node <checkout>/packages/engine/dist/cli.js pack ...` with `DOCSX_VIEWER_BIN=<checkout>/packages/viewer/dist/index.js` set (the engine does not find the viewer on its own in a checkout). From an install: `docsxai@next` (`pnpm add -g docsxai@next`), the 0.3.x line; `latest` is still 0.2.0, which has no `pack`.
 - `oxipng` on PATH (`brew install oxipng`), or `DOCSX_OXIPNG_BIN` pointing at it. Both consumers already require it today (remotxai) or will now (trackxai).
 
 What changes in the output for both: `manifest.json` becomes `docsxai/screens-pack@2`. Callouts are objects (`{ index, copy, bbox? }`), alt is `{ <locale>: text }`, every variant has `bytes`, and `generated_for` is omitted unless `--generated-for` is passed. Any code that reads the old manifest must change; see each section.

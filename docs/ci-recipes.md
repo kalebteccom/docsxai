@@ -37,7 +37,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 26 }
-      - run: pnpm add -g @docsxai/engine @docsxai/viewer
+      - run: pnpm add -g @docsxai/engine@next @docsxai/viewer@next
       - run: pnpm exec playwright-core install chromium
       - name: replay the doc pack
         env:
@@ -86,7 +86,7 @@ refresh-docs:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
     - corepack enable && corepack prepare pnpm@9 --activate
-    - pnpm add -g @docsxai/engine @docsxai/viewer
+    - pnpm add -g @docsxai/engine@next @docsxai/viewer@next
     - pnpm exec playwright-core install chromium --with-deps
     - docsxai run ./docs-workspace --base-url "$APP_URL"
     - docsxai render ./docs-workspace
@@ -122,13 +122,19 @@ clock, an animation, a lazy image, a rotating banner. Pin it with the flow's `en
 again. Diff only means something once the check passes, which is why the recipes stop at the first
 failing step.
 
+`diff` reads only `docs/<flow>/screenshots/` and `docs/<flow>/annotations.json`. A flow with a
+`matrix:` writes `docs/<flow>/<variant>/...`, so `diff` reports no screenshot drift for it and
+exits 0. In a workspace that uses matrix flows, replace the `diff` line with
+`docsxai pack --check --against <pack-dir>` (it needs a `pack.json` in the workspace but no
+`oxipng`), and keep the `--verify-determinism` line as it is.
+
 **Do not run browser capture in per-PR pipelines on shared runners.** A capture launches Chromium,
 walks the whole app and takes screenshots, so it competes with every other job on the runner for
 CPU and memory, and it needs target credentials that a pull request from a fork must never see.
 Schedule it (nightly, or on a deploy of the target app) on a runner you control, and keep per-PR
 pipelines to the checks that need no browser, such as `docsxai lint` and `docsxai flow-tree`.
 
-The recipes install with `npm install --global docsxai@next` because a plain Node image has npm and nothing else to set up; `pnpm add -g docsxai@next` works the same where pnpm is already on the runner. The pin is `next` because `pack`, `--verify-determinism` and matrix flows are in 0.3.x, which is on the `next` dist-tag while `latest` stays 0.2.0; when 0.3.x ships stable, `latest` moves to it and the pin should move to the stable version. Pin the actions by commit SHA in your own repository.
+The recipes install with `npm install --global docsxai@next` because a plain Node image has npm and nothing else to set up; `pnpm add -g docsxai@next` works the same where pnpm is already on the runner. The pin is `next` because `pack`, `--verify-determinism` and matrix flows are in 0.3.x, which is on the `next` dist-tag while `latest` stays 0.2.0; when 0.3.x ships stable, `latest` moves to it and the pin should move to the stable version. The weekly refresh and GitLab recipes above install the scoped packages with the same `@next` tag, for the same reason: a bare `@docsxai/engine` resolves to 0.2.0 while `latest` is there. Pin the actions by commit SHA in your own repository.
 
 The three files below also live under `examples/ci/` in the docsxai repository, and a test keeps the
 copies in this page identical to them.
