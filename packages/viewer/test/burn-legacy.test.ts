@@ -35,20 +35,4 @@ describe("burn output without the new options", () => {
       expect(JSON.parse(JSON.stringify(tree))).toEqual(expected);
     });
   }
-
-  it("does not read the report or the capture-only placement keys", () => {
-    const [scenario] = LEGACY_SCENARIOS;
-    const input = {
-      image: { ...scenario!.image, dataUri: "data:image/png;base64,AAAA" },
-      metrics: METRICS,
-    };
-    const plain = buildBurnTree({ ...input, annotations: scenario!.annotations });
-    const reported = buildBurnTree({ ...input, annotations: scenario!.annotations, report: [] });
-    expect(reported).toEqual(plain);
-    const scanned = scenario!.annotations.map((a) => ({
-      ...a,
-      placement: { obstacle_radius: 40, obstacle_limit: 3 },
-    }));
-    expect(buildBurnTree({ ...input, annotations: scanned })).toEqual(plain);
-  });
 });

@@ -6,36 +6,32 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  flagsIn as sharedFlagsIn,
+  hasFlag as sharedHasFlag,
+  usageEntries as usageEntriesOf,
+} from "../../../scripts/cli-usage-support.js";
 import { listCommands, listSkills, pluginDir } from "../src/index.js";
 
 const repoRoot = path.resolve(pluginDir, "..", "..");
 const vendoredSkillFile = path.join(repoRoot, "packages", "skill", "skill", "docsxai", "SKILL.md");
 
-/** The `Usage:` entries of the help text, one whitespace-normalised line per entry. */
+/** The `Usage:` entries of the help text, read from the source, with the optional brackets dropped. */
 async function usageEntries(): Promise<string[]> {
   const src = await fs.readFile(
     path.join(repoRoot, "packages", "engine", "src", "cli-usage.ts"),
     "utf8",
   );
-  const start = src.indexOf("Usage:\n");
-  const end = src.indexOf("\n\nNotes:");
-  expect(start, "Usage: block in cli-usage.ts").toBeGreaterThan(-1);
-  expect(end, "Notes: block in cli-usage.ts").toBeGreaterThan(start);
-  const entries: string[] = [];
-  for (const line of src.slice(start + "Usage:\n".length, end).split("\n")) {
-    if (/^ {2}docsxai /.test(line)) entries.push(line.trim());
-    else if (entries.length > 0) entries[entries.length - 1] += ` ${line.trim()}`;
-  }
-  return entries.map((e) => e.replace(/\s+/g, " ").replace(/[[\]]/g, ""));
+  return usageEntriesOf(src).map((e) => e.replace(/[[\]]/g, ""));
 }
 
 const subcommandOf = (entry: string): string => entry.split(" ")[1] ?? "";
 /** Flags of other tools that the prose mentions in passing (Chrome's own, for the CDP walkthrough). */
 const FOREIGN_FLAGS = new Set(["--remote-debugging-port"]);
 const flagsIn = (text: string): string[] =>
-  (text.match(/--[a-z][a-z-]*/g) ?? []).filter((f) => !FOREIGN_FLAGS.has(f));
+  sharedFlagsIn(text).filter((f) => !FOREIGN_FLAGS.has(f));
 const hasFlag = (entries: string[], flag: string): boolean =>
-  entries.some((e) => flagsIn(e).includes(flag));
+  entries.some((e) => sharedHasFlag(e, flag));
 
 /** Every code span in the markdown: each non-empty line of a fenced block, and each inline span. */
 function codeSpans(markdown: string): string[] {
@@ -99,14 +95,7 @@ async function markdownDocs(): Promise<{ commands: Doc[]; others: Doc[]; all: Do
 }
 
 describe("commands against the CLI help text", () => {
-  it("every command wraps a real subcommand", async () => {
-    const subcommands = new Set((await usageEntries()).map(subcommandOf));
-    for (const cmd of await listCommands()) {
-      expect(subcommands.has(cmd), `commands/${cmd}.md wraps \`docsxai ${cmd}\``).toBe(true);
-    }
-  });
-
-  it("every argument-hint is a subset of the command's usage lines", async () => {
+  it("every command wraps a real subcommand and its argument-hint is a subset of the usage lines", async () => {
     const entries = await usageEntries();
     for (const cmd of await listCommands()) {
       const hint = frontmatterValue(
@@ -115,6 +104,7 @@ describe("commands against the CLI help text", () => {
       );
       expect(hint, `commands/${cmd}.md argument-hint`).toBeTruthy();
       const own = entries.filter((e) => subcommandOf(e) === cmd);
+      expect(own.length, `commands/${cmd}.md wraps \`docsxai ${cmd}\``).toBeGreaterThan(0);
       const afterCmd = own.map((e) => e.split(" ").slice(2));
       const tokens = hint!.replace(/[[\]]/g, "").split(/\s+/);
       const flagAt = tokens.findIndex((t) => t.startsWith("--"));

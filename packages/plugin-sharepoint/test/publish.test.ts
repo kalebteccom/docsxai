@@ -5,7 +5,6 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -39,6 +38,15 @@ import {
   parseConfig,
 } from "../src/publisher.js";
 import { type FakeGraph, startFakeGraph } from "./fake-graph.js";
+import {
+  PNG_A,
+  PNG_B,
+  capture,
+  makeWorkspace as makeWorkspaceIn,
+  removeWorkspaces,
+} from "../../../scripts/publisher-test-support.js";
+
+const makeWorkspace = () => makeWorkspaceIn("sharepoint");
 
 /** The fake Graph server is plain http on loopback, which the publisher refuses unless told otherwise. */
 const LOOPBACK = { allowLoopbackHttp: true } as const;
@@ -58,7 +66,6 @@ const ALL_CAPABILITIES = [
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TOKEN = "eyJ0eXAi.fake-graph-bearer-token.sig123";
 
-const tempDirs: string[] = [];
 let server: FakeGraph;
 
 beforeAll(() => {
@@ -66,7 +73,7 @@ beforeAll(() => {
 });
 afterAll(async () => {
   delete process.env["SHAREPOINT_TOKEN"];
-  for (const d of tempDirs) await fs.rm(d, { recursive: true, force: true });
+  await removeWorkspaces();
 });
 beforeEach(async () => {
   server = await startFakeGraph(TOKEN);
@@ -74,41 +81,6 @@ beforeEach(async () => {
 afterEach(async () => {
   await server.close();
 });
-
-const PNG_A = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
-const PNG_B = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 2]);
-
-/** Two flows, one documented step each: enough for both modes and for image attachment. */
-async function makeWorkspace(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-sharepoint-test-"));
-  tempDirs.push(dir);
-  for (const [flow, png] of [
-    ["checkout", PNG_A],
-    ["login", PNG_B],
-  ] as const) {
-    await fs.mkdir(path.join(dir, "flows"), { recursive: true });
-    await fs.mkdir(path.join(dir, "docs", flow, "burned"), { recursive: true });
-    await fs.writeFile(
-      path.join(dir, "flows", `${flow}.flow.yaml`),
-      `name: ${flow}\nsteps:\n  - id: step-1\n    action: navigate\n    value: /${flow}\n`,
-      "utf8",
-    );
-    await fs.writeFile(path.join(dir, "docs", flow, "step-1.md"), `Go to **${flow}**.\n`, "utf8");
-    await fs.writeFile(path.join(dir, "docs", flow, "burned", "step-1.png"), png);
-  }
-  return dir;
-}
-
-interface Captured {
-  log: PluginLogger;
-  lines: string[];
-}
-
-function capture(): Captured {
-  const lines: string[] = [];
-  const push = (m: string) => lines.push(m);
-  return { log: { info: push, warn: push, error: push }, lines };
-}
 
 function makeCtx(
   workspaceDir: string,

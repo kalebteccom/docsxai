@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { main } from "../src/cli.js";
 import { USAGE } from "../src/cli-usage.js";
+import { flagsIn, hasFlag, usageByCommand } from "../../../scripts/cli-usage-support.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "../../..");
@@ -43,26 +44,7 @@ const EXTRA_FLAGS: Record<string, string[]> = { doctor: ["--help"] };
 // Usage text
 // ---------------------------------------------------------------------------
 
-/** The `docsxai <command> …` entries of the Usage block, keyed by command (`export adf`, `run`, …). */
-function usageEntries(usage: string): Map<string, string> {
-  const block = usage.slice(usage.indexOf("Usage:"), usage.indexOf("\nNotes:"));
-  const entries = new Map<string, string>();
-  let key: string | null = null;
-  for (const line of block.split("\n").slice(1)) {
-    const head = /^ {2}docsxai (\S+)(?: (adf|playwright)\b)?/.exec(line);
-    if (head) {
-      key = head[1] === "export" && head[2] ? `export ${head[2]}` : head[1]!;
-      entries.set(key, (entries.get(key) ?? "") + line + "\n");
-    } else if (key && /^ {3,}\S/.test(line)) {
-      entries.set(key, (entries.get(key) ?? "") + line + "\n");
-    } else {
-      key = null;
-    }
-  }
-  return entries;
-}
-
-const usage = usageEntries(USAGE);
+const usage = usageByCommand(USAGE);
 
 // ---------------------------------------------------------------------------
 // Extraction
@@ -138,9 +120,6 @@ function mentionsIn(markdown: string): Mention[] {
 // Checking
 // ---------------------------------------------------------------------------
 
-const hasFlag = (text: string, flag: string): boolean =>
-  new RegExp(`(?<![\\w-])${flag}(?![\\w-])`).test(text);
-
 /** What is wrong with one mention: an unknown command, or a flag its usage entry does not list. */
 function problemsWith(command: string): string[] {
   const [first = "", second = ""] = command.split(/\s+/);
@@ -149,8 +128,7 @@ function problemsWith(command: string): string[] {
   if (entry === undefined) {
     return [`\`docsxai ${command}\` uses "${key}", which \`docsxai --help\` does not list`];
   }
-  const flags = command.match(/(?<![\w-])--[a-z][a-z0-9-]*/g) ?? [];
-  return flags
+  return flagsIn(command)
     .filter((flag) => !hasFlag(entry, flag) && !(EXTRA_FLAGS[key] ?? []).includes(flag))
     .map(
       (flag) =>

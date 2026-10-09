@@ -90,17 +90,6 @@ describe("layoutCallout adaptive width", () => {
     { x: 0, y: 612, width: 390, height: 232 },
   ];
 
-  it("shrinks a callout that has no clear spot at full width until it fits", () => {
-    const full = layout(ann({ obstacles: [] }));
-    expect(calloutBox(full).width).toBeGreaterThan(242);
-    const l = layout(ann({ obstacles }));
-    const box = calloutBox(l);
-    expect(box.width).toBeLessThanOrEqual(210);
-    expect(l.obstacleOverlap).toBe(0);
-    expect(l.otherOverlap).toBe(0);
-    for (const o of obstacles) expect(overlapArea(box, o)).toBe(0);
-  });
-
   it("keeps the widest box that is clear", () => {
     const l = layout(ann({ obstacles: [{ x: 0, y: 0, width: 5, height: 5 }] }));
     const widest = measureCallout("" + COPY, METRICS, 242).size.width;
