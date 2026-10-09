@@ -38,7 +38,7 @@ for (const k of ["site", "viewer", "empty", "out"]) {
 }
 
 const engineRequire = createRequire(new URL("../packages/engine/package.json", import.meta.url));
-const { chromium } = await import(engineRequire.resolve("playwright-core"));
+const { chromium } = engineRequire("playwright-core");
 
 async function isFile(p) {
   try {
