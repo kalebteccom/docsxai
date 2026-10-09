@@ -1,3 +1,4 @@
+# ci-optimised: v1
 # Release pipeline: packs, verifies and stages the six npm packages for one tag. See RELEASING.md.
 # Mirrors .github/workflows/release.yml (build, dry-run, publish) without provenance and without the GitHub Release step.
 #
