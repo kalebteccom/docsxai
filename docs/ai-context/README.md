@@ -18,6 +18,7 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 - Editing a plugin command, a plugin skill or the vendored skill (`packages/plugin/commands/`, `packages/plugin/skills/`, `packages/skill/skill/`) → read [`ux/plugin-audit.md`](ux/plugin-audit.md). `packages/plugin/test/cli-usage.test.ts` fails when their `docsxai ...` examples drift from `docsxai --help`.
 - Changing the interactive viewer's markup, styles or overlay runtime (`packages/viewer/src/render.ts`, `viewer-*.ts`, `overlay-runtime.ts`) → read [`ux/viewer-audit.md`](ux/viewer-audit.md).
 - Changing a tool description, an input schema or an error message in `packages/mcp` → read [`ux/mcp-audit.md`](ux/mcp-audit.md).
+- Adding or tuning a static accessibility rule, or the CI step that lints built HTML → read [`ux/static-checks.md`](ux/static-checks.md).
 - Touching the engine runtime, the `BrowserDriver` interface, or auth strategies → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`testing/qa-patterns.md`](testing/qa-patterns.md) — the keystone test is the regression gate.
 - Touching any code path that writes artifacts (screenshots, annotations, halt context, doc-pack zip) → read [`secrets-and-egress/README.md`](secrets-and-egress/README.md).
 - Releasing or changing the surface → read [`release-process/semver-clock.md`](release-process/semver-clock.md) and [`../public-surface.md`](../public-surface.md). A change to a pinned surface trips a contract test (`packages/*/test/contract/`); the update procedure is in each test file's header.
