@@ -429,7 +429,7 @@ describe("failures name the failed thing and the next step", () => {
     const r = await run("push_pack", { workspace: badCfgWs });
     expect(r.ok).toBe(false);
     expect(errorOf(r)).toBe(".docsxai.json is not valid JSON");
-    expect(hintOf(r)).toContain("valid JSON");
+    expect(hintOf(r)).toContain("so it parses");
   });
 
   it("pull_pack names the missing backend keys", async () => {
