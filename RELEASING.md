@@ -18,19 +18,19 @@ Apache-2.0 is in place, READMEs/CONTRIBUTING/CHANGELOG are written, and every pa
 The Woodpecker pipeline publishes directly: `npm publish <tarball> --access public`, with `--tag next` for a prerelease and no provenance. A version is live on npm as soon as the `publish` step accepts it. Nobody approves it afterwards, so every gate sits before the publish call:
 
 1. **The manual trigger.** `.woodpecker/release.yaml` runs on the `manual` event only. The owner, or an agent the owner authorises for that release, starts it from the Woodpecker UI (ops.kalebtec.com) for one tag. No push, pull request, tag or cron event starts it.
-2. **The CI guard on the config files.** The CI host's guard runs a `.woodpecker/*.yaml` file only when it is on the guard's allowlist and its first line is `# ci-optimised: v1`. A changed release config does not run until it passes the guard.
+2. **The CI guard on the config files.** The CI host's guard (a server-side setting that this repository cannot check; verify it on the host) runs a `.woodpecker/*.yaml` file only when it is on the guard's allowlist and its first line is `# ci-optimised: v1`. A changed release config does not run until it passes the guard.
 3. **Tag equals HEAD.** `scripts/release-publish.sh` fetches the tag from `origin` and fails unless it points at the checked-out commit. Every package version must equal the tag.
 4. **Verify and dry-run first.** `publish` depends on `setup`, `build`, `verify` (typecheck and tests) and `dry-run` (package contents audit, pack, verify, `--dry-run`). The script also packs and checks all six tarballs before its first publish call.
 5. **The secret is in one step.** Only the `publish` step names `npm_publish_token`. `dry-run` has no secret.
 6. **The secret is limited to the manual event.** The repo admin restricts `npm_publish_token` to exactly `manual`.
 
-The token is a granular npm publish token with "bypass 2FA" set, IP-locked to the CI box, limited to the six published packages, with a 90-day expiry.
+The token is meant to be a granular npm publish token with "bypass 2FA" set, IP-locked to the CI box, limited to the six published packages, with a 90-day expiry. Those four properties are set on npmjs.com and nothing in this repository can check them: verify each on the npm Access Tokens page before the first run, and again at each rotation.
 
 Rules for the secret:
 
 - Name: `npm_publish_token`, a repository secret in Woodpecker. Only the `publish` step of `.woodpecker/release.yaml` names it, as `NODE_AUTH_TOKEN`.
 - Events: the repo admin restricts the secret to exactly `manual`. Woodpecker exposes a secret to push, tag and deployment events by default and never to `pull_request` (checked 2026-10-09); the restriction removes push, tag and deployment too. Do not leave it at the default. Do not restrict it to plugin images, since the publish step is a command step.
-- Never exposed to pull requests or PR-derived code: `.woodpecker/ci.yaml` runs on push only and names no secret, Woodpecker runs with `allow_pr=false`, and the release pipeline runs only on a commit that a pushed tag points at.
+- Never exposed to pull requests or PR-derived code: `.woodpecker/ci.yaml` runs on push only and names no secret, Woodpecker is meant to run with `allow_pr=false` (a server setting to verify on the host), and the release pipeline runs only on a commit that a pushed tag points at.
 - The owner keeps the token in `~/.config/docsxai/npm-publish.token` (mode 600) on the CI host, and the Woodpecker secret is created from that file. Nobody prints, pastes or commits the value. `scripts/release-publish.sh` runs with `set +x`, never echoes the variable, and writes an npm user config outside the workspace that holds `${NODE_AUTH_TOKEN}` as a placeholder, which npm expands when it reads it. The file has mode 600 and is removed when the script exits.
 - If npm answers with an auth, token or permission error (`E401`, `E403`, `ENEEDAUTH`, `EOTP`, or a message about two-factor), the script stops at once with "token or permission problem: stop and tell the owner" and publishes nothing further. Do not retry with another token: tell the owner.
 

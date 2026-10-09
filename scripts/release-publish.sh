@@ -83,8 +83,9 @@ packages=(
   @docsxai/backend
 )
 
-# The publish set is exactly these six. Anything else is a reviewed change to
-# this list and to this check.
+# The publish set is exactly these six. This check catches drift between the
+# list above and this literal; the backstop against a seventh package is code
+# review of a change to both.
 allowed="@docsxai/backend @docsxai/engine @docsxai/plugin @docsxai/skill @docsxai/viewer docsxai"
 actual="$(printf '%s\n' "${packages[@]}" | LC_ALL=C sort | tr '\n' ' ')"
 [ "${actual% }" = "$allowed" ] ||
@@ -238,6 +239,12 @@ if [ "$mode" = "publish" ] && ! $on_github; then
   printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' >"$npmrc_dir/npmrc"
   chmod 600 "$npmrc_dir/npmrc"
   export NPM_CONFIG_USERCONFIG="$npmrc_dir/npmrc"
+  # npm writes a debug log on failure; keep it at notice level and inside the
+  # directory removed on exit, so no verbose request header can reach a
+  # persistent path.
+  export NPM_CONFIG_LOGLEVEL=notice
+  export NPM_CONFIG_LOGS_DIR="$npmrc_dir/npm-logs"
+  mkdir -p "$NPM_CONFIG_LOGS_DIR"
 fi
 
 staged=()
@@ -251,9 +258,11 @@ for i in "${!packages[@]}"; do
     # Output goes to the log and to a file that is checked for auth errors.
     # npm never prints the token.
     rc=0
-    "${publish_cmd[@]}" "${tarballs[$i]}" "${flags[@]}" 2>&1 | tee "$out/publish.log" || rc=$?
+    publish_log="$out/publish.$i.log"
+    (umask 077 && : >"$publish_log")
+    "${publish_cmd[@]}" "${tarballs[$i]}" "${flags[@]}" 2>&1 | tee "$publish_log" || rc=$?
     if [ "$rc" -ne 0 ]; then
-      if grep -Eiq "$auth_error_re" "$out/publish.log"; then
+      if grep -Eiq "$auth_error_re" "$publish_log"; then
         auth_stop "${publish_cmd[*]} ${spec}"
       fi
       fail "${publish_cmd[*]} ${spec} failed (exit ${rc}); nothing after it was published"
