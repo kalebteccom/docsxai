@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { main } from "../src/cli.js";
 import { USAGE } from "../src/cli-usage.js";
-import { flagsIn, hasFlag, usageEntries } from "../../../scripts/cli-usage-support.js";
+import { flagsIn, hasFlag, usageByCommand } from "../../../scripts/cli-usage-support.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "../../..");
@@ -43,17 +43,6 @@ const EXTRA_FLAGS: Record<string, string[]> = { doctor: ["--help"] };
 // ---------------------------------------------------------------------------
 // Usage text
 // ---------------------------------------------------------------------------
-
-/** The `docsxai <command> …` entries of the Usage block, keyed by command (`export adf`, `run`, …). */
-function usageByCommand(text: string): Map<string, string> {
-  const entries = new Map<string, string>();
-  for (const entry of usageEntries(text)) {
-    const head = /^docsxai (\S+)(?: (adf|playwright)\b)?/.exec(entry)!;
-    const key = head[1] === "export" && head[2] ? `export ${head[2]}` : head[1]!;
-    entries.set(key, (entries.get(key) ?? "") + entry + "\n");
-  }
-  return entries;
-}
 
 const usage = usageByCommand(USAGE);
 

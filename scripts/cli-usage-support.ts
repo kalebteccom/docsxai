@@ -30,3 +30,14 @@ export function flagsIn(text: string): string[] {
 export function hasFlag(text: string, flag: string): boolean {
   return flagsIn(text).includes(flag);
 }
+
+/** The entries keyed by command: `run`, `diff`, `export adf`, `export playwright`, `--help`. */
+export function usageByCommand(text: string): Map<string, string> {
+  const entries = new Map<string, string>();
+  for (const entry of usageEntries(text)) {
+    const head = /^docsxai (\S+)(?: (adf|playwright)\b)?/.exec(entry)!;
+    const key = head[1] === "export" && head[2] ? `export ${head[2]}` : head[1]!;
+    entries.set(key, (entries.get(key) ?? "") + entry + "\n");
+  }
+  return entries;
+}
