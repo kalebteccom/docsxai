@@ -45,7 +45,7 @@
   "devDependencies": {
     "@astrojs/starlight": "0.41.2",
     "@types/node": "^20.19.43",
-    "astro": "7.3.5",
+    "astro": "7.3.6",
     "esbuild": "^0.28.2",
     "vitest": "^2.0.0"
   },
