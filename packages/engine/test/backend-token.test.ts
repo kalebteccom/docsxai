@@ -166,6 +166,29 @@ describe("oauthLogin + refresh-on-expiry", () => {
     );
   });
 
+  it("redacts credentials and query from a URL the refresh error quotes", async () => {
+    const ws = await tmpWorkspace();
+    await saveBackendTokenFile(ws, {
+      access_token: "stale",
+      refresh_token: "r",
+      expires_at: Date.now() - 1000,
+    });
+    // Built by concatenation so no literal credentialed URL sits in the source.
+    const leaky = "https://ops" + ":s3cret@backend.example.com/v1/oauth/token?sig=abc";
+    const failingFetch = (() =>
+      Promise.reject(new TypeError(`request to ${leaky} failed`))) as typeof fetch;
+    const err = await resolveBackendToken({
+      baseUrl: "https://backend.example.com",
+      workspaceDir: ws,
+      fetch: failingFetch,
+    }).catch((e: Error) => e);
+    expect(err).toBeInstanceOf(Error);
+    const message = (err as Error).message;
+    expect(message).toContain("request to https://backend.example.com/v1/oauth/token failed");
+    expect(message).not.toContain("s3cret");
+    expect(message).not.toContain("sig=abc");
+  });
+
   it("times out cleanly when the redirect never arrives", async () => {
     await expect(
       oauthLogin({ backendUrl: base, onAuthorizeUrl: () => undefined, timeoutMs: 100 }),

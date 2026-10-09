@@ -382,6 +382,7 @@ export const KNOWN_DOCSX_ENV_VARS: ReadonlyArray<string> = [
   "DOCSX_EGRESS_GUARD",
   "DOCSX_EGRESS_DENY_PRIVATE",
   "DOCSX_MCP_TOKEN",
+  "DOCSX_DEBUG",
 ];
 
 /** On/off switches: `1`, `true` or `yes` turns one on; anything else non-empty, `0`/`false`/`no` aside, is read as off. */

@@ -78,7 +78,7 @@ describe("capture-auth", () => {
     const ws = await scaffold("--app-url", "http://127.0.0.1:1");
     expect(await main(["capture-auth", ws, "--role", "ghost"])).toBe(1);
     expect(err).toContain('capture-auth: role "ghost" not in ');
-    expect(err).toContain("(roles: editor); pass --role <name>");
+    expect(err).toContain("(roles: editor); pass --role <role>");
   });
 
   it("says how to get a descriptor when there is none", async () => {

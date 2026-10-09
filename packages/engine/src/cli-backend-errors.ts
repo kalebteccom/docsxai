@@ -6,7 +6,13 @@
 
 import { promises as fs } from "node:fs";
 import { BackendClientError } from "./backend-client.js";
-import { redactUrl, sanitizeForTerminal, shellQuote, withNext } from "./cli-messages.js";
+import {
+  redactUrl,
+  redactUrlsIn,
+  sanitizeForTerminal,
+  shellQuote,
+  withNext,
+} from "./cli-messages.js";
 import { resolveWorkspacePath, WORKSPACE_CONFIG_FILE } from "./workspace.js";
 
 /** The error code Node's fetch buries in `cause` (ECONNREFUSED, ENOTFOUND, ...), or the message when there is none. */
@@ -37,8 +43,9 @@ export function explainBackendFailure(
     );
   }
   if (!(e instanceof BackendClientError)) return undefined;
-  // The message carries the start of the response body, which the backend controls.
-  const message = sanitizeForTerminal(e.message);
+  // The message carries the start of the response body, which the backend controls, and can
+  // quote a URL with its credentials or query.
+  const message = sanitizeForTerminal(redactUrlsIn(e.message));
   if (e.status === 401 || e.status === 403) {
     const oauth = workspaceDir
       ? `  (or add --oauth ${shellQuote(workspaceDir)} to sign in as a person)`

@@ -5,13 +5,13 @@
 export const USAGE = `docsxai — deterministic execution CLI
 
 Usage:
-  docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>] [--ttl <dur>]
+  docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>] [--ttl <dur>]
                                  [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                  [--persist tmp] [--force]
   docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
   docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
-  docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]
+  docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|md|json] [--flow <name>] [--base-url <url>] [--concurrency <N>]
   docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
   docsxai flow-tree <workspace-dir> [--format text|json]
   docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
@@ -19,7 +19,7 @@ Usage:
   docsxai style <workspace-dir> [--check] [--format text|json]
   docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
   docsxai baseline <workspace-dir> [--out <dir>]
-  docsxai diff <workspace-dir> [--against <dir>] [--format json|md|text] [--fail-on warn|fail]
+  docsxai diff <workspace-dir> [--against <dir>] [--format text|md|json] [--fail-on warn|fail]
   docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
   docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]
   docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
@@ -187,7 +187,8 @@ Notes:
   • A command that works on a workspace takes its directory as the first argument. Reports and data go to
     stdout; progress lines and warnings go to stderr where a command already splits them. Output has no
     colour. An error prints \`<command>: what failed\`, then \`next: <command to run>\` when there is one.
-    Exit 0 success, 1 runtime failure, 2 usage error.
+    Exit 0 success, 1 runtime failure, 2 usage error. An error no command handled is a bug: it prints one
+    \`docsxai: unexpected error\` line; set DOCSX_DEBUG=1 to print its stack trace.
   • --format json (lint, flow-tree, diagnose, style, diff, plugins, run --verify-determinism) is the
     machine-readable output; the text formats are for people and may change.
   • run, calibrate, burn, pack, zip, baseline, push, pull and doctor end with one line,

@@ -11,13 +11,13 @@ command is not.
 ## Synopsis
 
 ```
-docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <name>] [--ttl <dur>]
+docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>] [--ttl <dur>]
                                [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                [--persist tmp] [--force]
 docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
 docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
 docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
-docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format json|md|text] [--flow <name>] [--base-url <url>] [--concurrency <N>]
+docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|md|json] [--flow <name>] [--base-url <url>] [--concurrency <N>]
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
 docsxai flow-tree <workspace-dir> [--format text|json]
 docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
@@ -25,7 +25,7 @@ docsxai doctor [<workspace-dir>]
 docsxai style <workspace-dir> [--check] [--format text|json]
 docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
 docsxai baseline <workspace-dir> [--out <dir>]
-docsxai diff <workspace-dir> [--against <dir>] [--format json|md|text] [--fail-on warn|fail]
+docsxai diff <workspace-dir> [--against <dir>] [--format text|md|json] [--fail-on warn|fail]
 docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
 docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]
 docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
@@ -64,6 +64,11 @@ line; `docsxai --help` lists every flag. `run`, `calibrate`, `burn`, `pack`,
 with the command name and gives the counts and where the output went. Use
 `--format json` where a command offers it when a script reads the output: the
 text formats are for people.
+
+An error that no command turned into a message is a bug in docsxai. The CLI
+prints `docsxai: unexpected error: <first line>` and a `next:` line, and exits 1.
+Set `DOCSX_DEBUG=1` and run the command again to print the stack trace, then
+include it when you report the bug.
 
 ## The core loop
 
@@ -535,7 +540,7 @@ bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typ
 names it knows are `DOCSX_TOKEN`, `DOCSX_CACHE_KEY`, `DOCSX_VIEWER_BIN`,
 `DOCSX_ENGINE_BIN`, `DOCSX_DATA_DIR`, `DOCSX_OAUTH_AUTO_APPROVE`,
 `DOCSX_WEBHOOK_SECRET`, `DOCSX_OXIPNG_BIN`, `DOCSX_BACKEND_DENY_PRIVATE_APP_URL`,
-`DOCSX_EGRESS_GUARD`, `DOCSX_EGRESS_DENY_PRIVATE` and `DOCSX_MCP_TOKEN`. And the
+`DOCSX_EGRESS_GUARD`, `DOCSX_EGRESS_DENY_PRIVATE`, `DOCSX_MCP_TOKEN` and `DOCSX_DEBUG`. And the
 three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD`,
 `DOCSX_EGRESS_DENY_PRIVATE`) fail the row when set to something other than `1`, `true`,
 `yes`, `0`, `false` or `no` (any case), because any other value reads as off.

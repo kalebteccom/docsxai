@@ -104,6 +104,17 @@ describe("explainBackendFailure", () => {
     );
   });
 
+  it("redacts a credentialed URL that the error message quotes", () => {
+    const quoted = "https://ops" + ":s3cret@h.example/cb?code=xyz";
+    const text = explainBackendFailure(
+      new BackendClientError(`token exchange → 400: bad redirect ${quoted}`, 400),
+      URL_REFUSED,
+    )!;
+    expect(text).toContain("bad redirect https://h.example/cb");
+    expect(text).not.toContain("s3cret");
+    expect(text).not.toContain("code=xyz");
+  });
+
   it("returns undefined for an error that is not a backend failure", () => {
     expect(explainBackendFailure(new RangeError("boom"), URL_REFUSED)).toBeUndefined();
     expect(explainBackendFailure("text", URL_REFUSED)).toBeUndefined();
