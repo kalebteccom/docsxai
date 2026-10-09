@@ -34,11 +34,11 @@ pieces enforce this.
 
 One name everywhere:
 
-| Name         | What it names                                                                                                                                                                                  |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docsxai`    | The product, the GitHub repo `kalebteccom/docsxai`, this site, the CLI binary, and the bare npm meta-package (`pnpm add -g docsxai`).                                                          |
-| `DOCSX_*`    | The env-var prefix; the workspace config is `.docsxai.json`, schema ids are `docsxai/*@N`.                                                                                                     |
-| `@docsxai/*` | The npm scope: `@docsxai/engine`, `@docsxai/viewer`, `@docsxai/plugin`, `@docsxai/backend` and `@docsxai/skill` are published. `@docsxai/mcp` and the publisher plugins are repo-only for now. |
+| Name         | What it names                                                                                                                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docsxai`    | The product, the GitHub repo `kalebteccom/docsxai`, this site, the CLI binary, and the bare npm meta-package (`pnpm add -g docsxai@next`).                                                                 |
+| `DOCSX_*`    | The env-var prefix; the workspace config is `.docsxai.json`, schema ids are `docsxai/*@N`.                                                                                                                 |
+| `@docsxai/*` | The npm scope: `@docsxai/engine`, `@docsxai/viewer`, `@docsxai/plugin`, `@docsxai/backend` and `@docsxai/skill` are published. `@docsxai/mcp` and every `@docsxai/plugin-*` package are repo-only for now. |
 
 When you type a command, it is `docsxai`. When you install the CLI, it is the
 bare `docsxai` package (which wraps `@docsxai/engine` and ships

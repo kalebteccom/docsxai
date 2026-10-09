@@ -102,3 +102,7 @@ Commit it: it is the "before" that `docsxai diff` compares against, in CI
 or locally. Thresholds default to warn at 1% changed pixels and fail at 5%,
 with structural changes warning - all tunable through the diff policy on the
 library surface.
+Both read the flat layout, `docs/<flow>/screenshots/` and `docs/<flow>/annotations.json`. A
+flow with a [matrix](/reference/flow-file/#matrix) writes one directory per variant below
+that, which `baseline` and `diff` do not read; compare those screenshots with
+`docsxai pack --check` instead.

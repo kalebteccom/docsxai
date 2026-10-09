@@ -72,7 +72,7 @@ What the server enforces:
   that omits `workspace` uses `--workspace`, then the root itself. `..` and links that point out of
   the root are refused. Paths inside a workspace that a flow or config names are not re-checked, so
   keep the root free of workspaces you do not trust. stdio is unchanged.
-- **Browser tools.** Over HTTP, `run_flows` and `diagnose_halt` refuse `cdp`, `run_flows` refuses a `baseUrl` (or a workspace `app_url`) that is not an http(s) URL or whose host is, or resolves to, a link-local or cloud-metadata address (and, with `DOCSX_EGRESS_DENY_PRIVATE` on, a loopback or private one), and every browser a tool starts gets the engine's request guard (`DOCSX_EGRESS_GUARD=0` switches it off). The refusal message names no address. stdio is unchanged.
+- **Browser tools.** Over HTTP, `run_flows` and `diagnose_halt` refuse `cdp`, `run_flows` refuses a `baseUrl` (or a workspace `app_url`) that is not an http(s) URL or whose host is, or resolves to, a link-local or cloud-metadata address (and, with `DOCSX_EGRESS_DENY_PRIVATE` on, a loopback or private one), and every browser a tool starts gets the engine's request guard (`DOCSX_EGRESS_GUARD` set to `0`, `false` or `no` switches it off). The refusal message names no address. stdio is unchanged.
 - **Token.** Required, at least 32 printable ASCII characters with at least 8 distinct ones. It is
   read from `DOCSX_MCP_TOKEN` or `--token-file`, never from an argument (`--token ...` is refused
   without echoing it), compared in constant time, and never logged. A token file that group or
@@ -140,14 +140,20 @@ thing `dir`. Not every CLI flag has an argument (`variant` for matrix flows, `--
 `--verify-determinism` have none), and `style_check` scans by default where `docsxai style` needs
 `--check`.
 
+The tools do not expand a flow's `matrix:`: `run_flows` reports such a flow as failed (`runFlow`
+refuses an unexpanded matrix) and `diagnose_halt` has no `variant` argument. Run those flows with
+`docsxai run`, and diagnose them with `docsxai diagnose --variant <id>`.
+
 ## Environment variables
 
-| Var                | Used by                       | Meaning                                                              |
-| ------------------ | ----------------------------- | -------------------------------------------------------------------- |
-| `DOCSX_VIEWER_BIN` | `render_viewer`               | Explicit path to the viewer bin (overrides package/PATH resolution). |
-| `DOCSX_TOKEN`      | `push_pack`, `pull_pack`      | Backend bearer token (when not using the OAuth token file).          |
-| `DOCSX_MCP_TOKEN`  | `serve --http`                | Bearer token clients must send, at least 32 characters. Required.    |
-| `DOCSX_*` creds    | `run_flows` (auth strategies) | Per-role credential env vars named in `auth/strategy.yaml`.          |
+| Var                         | Used by                       | Meaning                                                               |
+| --------------------------- | ----------------------------- | --------------------------------------------------------------------- |
+| `DOCSX_VIEWER_BIN`          | `render_viewer`               | Explicit path to the viewer bin (overrides package/PATH resolution).  |
+| `DOCSX_TOKEN`               | `push_pack`, `pull_pack`      | Backend bearer token (when not using the OAuth token file).           |
+| `DOCSX_MCP_TOKEN`           | `serve --http`                | Bearer token clients must send, at least 32 characters. Required.     |
+| `DOCSX_EGRESS_GUARD`        | `run_flows` over HTTP         | On unless `0`, `false` or `no`: the engine's request guard.           |
+| `DOCSX_EGRESS_DENY_PRIVATE` | `run_flows` over HTTP         | `1`, `true` or `yes` also refuses loopback and private-network hosts. |
+| `DOCSX_*` creds             | `run_flows` (auth strategies) | Per-role credential env vars named in `auth/strategy.yaml`.           |
 
 ## Tests
 

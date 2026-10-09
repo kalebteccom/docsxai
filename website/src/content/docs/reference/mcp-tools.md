@@ -3,8 +3,9 @@ title: MCP tools
 description: The fourteen tools the standalone docsxai-mcp server exposes - calibration meta-orchestration plus read-only doc-pack introspection for any MCP-speaking host - and the structured result contract they share.
 ---
 
-`@docsxai/mcp` is a standalone stdio MCP server over the engine. It
-lets any MCP-speaking host agent (Claude Code, Codex, Cursor, a scripted
+`@docsxai/mcp` is a standalone MCP server over the engine (stdio, plus an
+opt-in HTTP transport). It is repo-only: `private: true`, not on npm, so you run
+it from a source checkout. It lets any MCP-speaking host agent (Claude Code, Codex, Cursor, a scripted
 client) drive the calibration workflow and introspect a doc pack without
 shelling out to the `docsxai` CLI - the tools wrap the same engine
 functions the CLI wraps, so behaviour is identical by construction.
@@ -32,6 +33,29 @@ is what keeps `docsxai run` agent-free and reproducible.
 `--workspace <dir>` sets the default workspace for tool calls that omit the
 `workspace` argument; every tool also accepts an explicit `workspace` per
 call. Logs go to stderr; stdout is the MCP wire.
+
+## Over HTTP (opt-in, experimental)
+
+stdio is the default. `docsxai-mcp serve --http --workspace-root <dir>` serves the same
+fourteen tools at `/mcp` over Streamable HTTP, for a host that connects by URL. Nothing
+is added or removed; the server enforces more around them:
+
+- A bearer token is required. It comes from `DOCSX_MCP_TOKEN` or `--token-file`, never
+  from an argument, and has to be at least 32 printable ASCII characters with at least 8
+  distinct ones. A token file that group or other can read is refused on POSIX.
+- It binds `127.0.0.1:8765`. A non-loopback `--host` needs `--allow-remote`, and the
+  server speaks plain HTTP, so terminate TLS in front of it.
+- Every path a tool receives has to resolve, symlinks included, inside
+  `--workspace-root`, which is required.
+- `run_flows` and `diagnose_halt` refuse `cdp`. `run_flows` refuses a `baseUrl` (or a
+  workspace `app_url`) that is not an http(s) URL or whose host is, or resolves to, a
+  link-local or cloud-metadata address (with `DOCSX_EGRESS_DENY_PRIVATE` on, a loopback
+  or private one too), and the browser it starts gets the engine's request guard.
+- `Host` and `Origin` are checked against an allow-list (403, before the token), and
+  there are limits of 1 MiB per body, 16 sessions and 30 minutes idle.
+
+The flags, the full list of checks and a client config are in the
+[package page](/packages/mcp/).
 
 ## The tools
 
@@ -67,6 +91,11 @@ the tool list. Arguments are camelCase and follow the CLI: `flow` is `--flow`,
 `baseUrl` is `--base-url`, `startFrom` and `stopAfter` are `--start-from` and
 `--stop-after`, `out` is `--out`. `workspace` is the CLI's `<workspace-dir>`;
 `init_workspace` calls the same thing `dir`.
+
+The tools do not expand a flow's [`matrix`](/reference/flow-file/#matrix):
+`run_flows` reports a flow that has one as failed, and `diagnose_halt` has no
+`variant` argument. Use `docsxai run` and `docsxai diagnose --variant <id>` for those
+flows.
 
 ## Worked examples
 
@@ -150,11 +179,14 @@ instead of throwing:
 
 ## Environment variables
 
-| Variable           | Used by                       | Meaning                                                              |
-| ------------------ | ----------------------------- | -------------------------------------------------------------------- |
-| `DOCSX_VIEWER_BIN` | `render_viewer`               | Explicit path to the viewer bin (overrides package/PATH resolution). |
-| `DOCSX_TOKEN`      | `push_pack`, `pull_pack`      | Backend bearer token (when not using the OAuth token file).          |
-| `DOCSX_*` creds    | `run_flows` (auth strategies) | Per-role credential env vars named in `auth/strategy.yaml`.          |
+| Variable                    | Used by                       | Meaning                                                                       |
+| --------------------------- | ----------------------------- | ----------------------------------------------------------------------------- |
+| `DOCSX_VIEWER_BIN`          | `render_viewer`               | Explicit path to the viewer bin (overrides package/PATH resolution).          |
+| `DOCSX_TOKEN`               | `push_pack`, `pull_pack`      | Backend bearer token (when not using the OAuth token file).                   |
+| `DOCSX_MCP_TOKEN`           | `serve --http`                | Bearer token clients must send, at least 32 characters. Required.             |
+| `DOCSX_EGRESS_GUARD`        | `run_flows` over HTTP         | On by default over HTTP; `0`, `false` or `no` switches the request guard off. |
+| `DOCSX_EGRESS_DENY_PRIVATE` | `run_flows` over HTTP         | `1`, `true` or `yes` also refuses loopback and private-network hosts.         |
+| `DOCSX_*` creds             | `run_flows` (auth strategies) | Per-role credential env vars named in `auth/strategy.yaml`.                   |
 
 For install and test detail see the [package page](/packages/mcp/); for the
 endpoints behind `push_pack` / `pull_pack` see the

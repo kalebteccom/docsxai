@@ -3,9 +3,10 @@ title: CLI
 description: The full docsxai command reference - every command, every flag, and the operational notes that ship in the CLI's own help text, rendered per command.
 ---
 
-This page is generated from the engine source (the usage text `docsxai
---help` prints); flag spellings are exact. The binary is `docsxai` - the
-packages are named `@docsxai/*`, the command is not.
+This page follows the usage text `docsxai --help` prints; flag spellings are
+exact, and a test checks that every command and flag shown here appears in that
+text. The binary is `docsxai` - the packages are named `@docsxai/*`, the
+command is not.
 
 ## Synopsis
 
@@ -278,6 +279,10 @@ order: the `DOCSX_VIEWER_BIN` env var (path to the viewer's bin script),
 the `@docsxai/viewer` package installed next to the engine, then
 `docsxai-viewer` on PATH. A launch failure reports all three attempts.
 
+Flow names and step ids from the doc pack become file paths and link targets, so
+`render` skips a flow name or step id that holds `..`, `:`, `\` or a control
+character (a step id also `/`), with a warning on stderr.
+
 ```
 $ docsxai render ~/docsxai/my-app
 render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; each flow page
@@ -292,9 +297,14 @@ viewer's `burn` through the same bin resolution as `render`. Reads
 `<workspace>/docs/<flow>/annotations.json` and writes
 `docs/<flow>/burned/<step>.png`, or `<out>/<flow>/<step>.png` with `--out`.
 `--flow` limits it to named flows and can be repeated; the default is every
-flow with an `annotations.json`. `--report <file>` writes a JSON placement
-report (callout and badge boxes, overlaps, callouts flagged unplaceable),
-resolved under the workspace when relative. `--no-connector-outline` keeps
+flow with an `annotations.json`. A flow that ran a [matrix](/reference/flow-file/#matrix)
+holds its outputs one level down, and `burn` treats each `<flow>/<variant>` as a
+flow: `--flow <name>` selects all of a flow's variants. `--report <file>` writes a
+JSON placement report (`docsxai/burn-report@1`: callout and badge boxes,
+overlaps, and `unplaceable` for a callout whose best spot still covers more than
+10% of its own area), resolved under the workspace when relative. The report
+threshold (`--max-overlap <ratio>`) is a flag of the viewer's own bin,
+`docsxai-viewer burn`; `docsxai burn` does not forward it. `--no-connector-outline` keeps
 every arrow and stem plain ink; by default one over a dark part of the
 screenshot gets a white outline. Exit 1 when the workspace has no `docs/`
 directory or no flow to burn; exit 2 for a bad flag.
@@ -338,6 +348,44 @@ plus optional `arrow_style`, `nudge`, `obstacles`, `placement`), a `step.json`
 (`alt`, optional `caption`) and an optional `flow.json` (`title`). `--from-raw`
 reads `<dir>` that way even when it has a `docs/` folder.
 
+A flow with a [matrix](/reference/flow-file/#matrix) writes one directory per cell,
+`docs/<flow>/<variant id>/{screenshots/, annotations.json}`, and `pack.json` reads
+those in two forms. The ids (`en-US.dark.mobile-390`) and the pack keys
+(`en.dark.390`) are different grammars, so each id is mapped to a key. A `sources`
+entry with `matrix` names one variant directory; its key is only a label:
+
+```json
+{
+  "sources": {
+    "login-mobile": { "flow": "login", "matrix": "es-ES.dark.mobile-390", "variant": "es.dark.390" }
+  }
+}
+```
+
+`matrixFlow` takes every variant directory of one flow. `map` gives
+`<matrix id>: <pack key>`, and `"auto": true` maps the ids that already read
+`<locale>.<theme>.<viewport width>` to themselves (name a viewport by its width,
+`{ name: "1280", ... }`, in the flow's matrix for that):
+
+```json
+{
+  "matrixFlow": {
+    "flow": "login",
+    "auto": true,
+    "map": { "en-US.light.desktop-1280": "en.light.1280" }
+  }
+}
+```
+
+Use one form per flow. `matrixFlow` stops on a variant directory it has no key
+for, so pack a subset with `sources` entries. `packFlow` sets the flow id in the
+pack when the matrix flow's name is not a valid one (capitals, dots). A
+`flows.<flow>.steps` entry is written once and checked against every variant, and
+`alt` needs each locale the mapped keys use. `pack --check` reads the same layouts.
+A symlinked flow or `screenshots/` directory stops the pack, a symlinked variant
+directory is skipped with a warning under `matrixFlow`, and a flow with more than
+256 variant directories is refused. Errors name paths relative to the workspace.
+
 Output goes to `--out` (default `<workspace>/.screens`; required for a raw
 directory): `<flow>/<step>.<hash8>.png` plus `manifest.json`
 (`docsxai/screens-pack@2`). Locales, themes and viewports are not a fixed list; a
@@ -346,19 +394,21 @@ variant key is `<locale>.<theme>.<viewport>`, for example `pt-BR.dark.1280`.
 `/screens`). `--generated-for` records free text such as a commit sha; without it
 the key is left out, and the manifest never holds a timestamp.
 
-Optimising uses the external `oxipng` binary (`brew install oxipng`), found on
-PATH or at `$DOCSX_OXIPNG_BIN`. When it is missing the command fails with that
-one-line hint; `--no-optimise` skips it. The hash is taken from the optimised
-bytes, and the optimiser's output is checked first: it has to be a complete PNG with
-the same pixels as its input, or the build stops. A different `oxipng` version can
-produce different bytes, so upgrading it changes the hashes (pin it in CI). Files the old `manifest.json` listed and the new one does not are removed
-by exact path, and nothing else in `--out` is touched. Loopback addresses
-(`localhost`, `127.x.x.x`, `::1`, `0.0.0.0`), private-network addresses (10/8,
-172.16/12, 192.168/16, 169.254/16), email addresses (not on `example.com`, `.org`,
-`.net`, `.test`, `.invalid` or `.example`), `Authorization:` headers other than
-`Bearer`, tokens in a URL query and obvious secrets in a title, caption, alt text
-or callout stop the build, naming the manifest path and rule.
-Exit 1 for a failed build, 2 for a bad flag.
+Optimising uses the external `oxipng` binary: the path in `$DOCSX_OXIPNG_BIN` when
+that is set, otherwise `oxipng` on PATH. When it is missing the command fails with a
+one-line message (its `brew install oxipng` hint is for macOS; on Linux install a
+release binary of `oxipng`); `--no-optimise` skips it. The hash is taken from the optimised bytes, and
+the optimiser's output is checked first: it has to be a complete PNG with the same
+pixels as its input, or the build stops. A different `oxipng` version can produce
+different bytes, so upgrading it changes the hashes (pin it in CI). Files the old
+`manifest.json` listed and the new one does not are removed by exact path, and
+nothing else in `--out` is touched. Loopback addresses (`localhost`, `127.x.x.x`,
+`::1`, `0.0.0.0`), private-network addresses (10/8, 172.16/12, 192.168/16, link-local
+169.254/16), email addresses (the reserved example domains `example.com`,
+`example.org`, `example.net` and the `.test`, `.invalid` and `.example` TLDs pass),
+`Authorization:` headers other than `Bearer`, tokens in a URL query and obvious
+secrets in a title, caption, alt text or callout stop the build, naming the manifest
+path and rule. Exit 1 for a failed build, 2 for a bad flag.
 
 ```
 $ docsxai pack ~/docsxai/my-app
@@ -374,8 +424,9 @@ line shows the changed share of the image and the box around the change. A
 rebuild that differs only in bytes (the optimiser) passes. The command fails for
 a change over `--threshold` (percent, default 0.5), a resized variant, a new or
 missing variant, and a committed file that does not match its name. Exit 1 on any
-of those, 2 for a bad flag. The report has no timestamps. The `drift` command
-of earlier builds still works for now: it prints a deprecation warning and runs
+of those, 2 for a bad flag, and 1 when the committed `manifest.json` is missing or is not
+`docsxai/screens-pack@2`. The report has no timestamps. The `drift` command of
+earlier builds still works for now: it prints a deprecation warning and runs
 `pack --check` with the same arguments.
 
 ```
@@ -477,8 +528,19 @@ freshness, backend reachability when `backend_url` is configured (plus a
 token-presence note), the plugin declarations through the same inspection
 `plugins list` runs - declared/installed/lock/capabilities, with **no plugin
 code executed** - viewer-bin resolution (naming which of the three layers
-hit), and `DOCSX_*` env sanity (`DOCSX_CACHE_KEY` well-formed when set,
-unknown `DOCSX_*` names flagged as likely typos). Exit 1 on any `✗`.
+hit), and `DOCSX_*` env sanity. Exit 1 on any `✗`.
+
+The env row checks three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
+bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typo; the
+names it knows are `DOCSX_TOKEN`, `DOCSX_CACHE_KEY`, `DOCSX_VIEWER_BIN`,
+`DOCSX_ENGINE_BIN`, `DOCSX_DATA_DIR`, `DOCSX_OAUTH_AUTO_APPROVE`,
+`DOCSX_WEBHOOK_SECRET`, `DOCSX_OXIPNG_BIN`, `DOCSX_BACKEND_DENY_PRIVATE_APP_URL`,
+`DOCSX_EGRESS_GUARD`, `DOCSX_EGRESS_DENY_PRIVATE` and `DOCSX_MCP_TOKEN`. And the
+three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD`,
+`DOCSX_EGRESS_DENY_PRIVATE`) fail the row when set to something other than `1`, `true`,
+`yes`, `0`, `false` or `no` (any case), because any other value reads as off.
+`docsxai doctor --help` prints its usage line and what the `✓`, `✗` and `−` rows mean,
+and runs no check.
 
 ```
 $ docsxai doctor ~/docsxai/my-app
@@ -534,6 +596,10 @@ Snapshots the doc pack - `flows/`, `docs/<flow>/*.md`, `annotations.json`,
 against in CI. Refresh replaces the previous snapshot whole, so stale
 leftovers never read as drift.
 
+`baseline` reads only `docs/<flow>/screenshots/` and `docs/<flow>/annotations.json`. A
+flow with a [matrix](/reference/flow-file/#matrix) writes one directory per variant
+below those paths, so its screenshots are not in the baseline.
+
 ```
 $ docsxai baseline ~/docsxai/my-app
 baseline: snapshotted 23 files to ~/docsxai/my-app/.baseline
@@ -564,6 +630,12 @@ $ echo $?
 
 With no drift the report is two lines (`no drift detected`) and the exit
 code is 0.
+
+Because the baseline holds no matrix screenshots, `diff` reports no screenshot drift
+for a matrix flow, and exits 0 even under `--fail-on warn`; it still compares the flow
+YAML (steps and locators). Gate a matrix workspace's screenshots with
+[`pack --check`](#docsxai-pack---check), which reads the variant directories, and keep
+`run --verify-determinism` as the separate check that two runs agree.
 
 ## Packaging and export
 
@@ -662,13 +734,15 @@ locators) and POSTs it as a new revision against the backend named in
 `backend_project_id` - created on first push if absent and persisted back to
 the config). Screenshot bytes travel as content-addressed blobs, HEAD-probed
 so unchanged PNGs are skipped. `--kind` defaults to `calibrate`; `--author`
-defaults to the OS user. The revision is finalized after upload - a sealed,
-immutable snapshot.
+defaults to the OS user. Screenshots and `annotations.json` under
+`docs/<flow>/<variant>/` (a matrix flow) travel too. The revision is finalized after
+upload - a sealed, immutable snapshot. The backend URL printed in the summary has no
+query string or fragment.
 
 ```
 $ docsxai push ~/docsxai/my-app --kind run --author ci
 push: screenshots — 2 blob(s) uploaded, 7 already on the backend
-push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) — 5 artifact slots uploaded, finalized
+push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) on http://127.0.0.1:4477 — 5 artifact slots uploaded, finalized
 ```
 
 ### `docsxai pull`
@@ -680,8 +754,27 @@ verified against their sha256 before they touch disk.
 
 ```
 $ docsxai pull ~/docsxai/my-app
-pull: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) — wrote 23 file(s)
+pull: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) — wrote 23 file(s) to ~/docsxai/my-app
 ```
+
+The backend is not trusted with file names. Before it writes anything, `pull`
+checks every name in the revision and refuses the whole revision on one bad name:
+
+- a flow file must be `<flow name>.flow.yaml`, where the name follows the
+  [flow name rule](/reference/flow-file/#top-level-keys) (letters, digits, `.`, `_`
+  and `-`, no `..`, no trailing `.`, not a Windows device name, at most 64
+  characters);
+- annotations must be `docs/<flow>[/<variant>]/annotations.json` and screenshots
+  `docs/<flow>[/<variant>]/screenshots/<file>.png`, `.jpg`, `.jpeg` or `.webp`, with
+  the same character rules for the variant and the file stem, no variant named
+  `annotations.json` or `screenshots`, and at most 128 characters in a variant or file name;
+- two names that differ only by case (`Tour/` and `tour/`) are refused, because
+  they are one directory on a case-insensitive disk.
+
+A refused revision exits 1 with `refusing the pulled doc pack, nothing written`, and
+the `next:` line suggests an older `--rev`. Flow, annotation and screenshot files are
+also written through the workspace root, so a symlink inside the workspace that
+points out of it stops the pull.
 
 The endpoint surface behind `login`/`push`/`pull` is documented in the
 [backend API reference](/reference/backend-api/).

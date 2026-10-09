@@ -5,17 +5,19 @@ plugin kind, an auth strategy, a backend route, an output strategy.
 
 ## The lattice
 
-| Surface                                      | Default                 | Gate                                                            |
-| -------------------------------------------- | ----------------------- | --------------------------------------------------------------- |
-| Engine CLI (run/render/lint/diagnose/…)      | on                      | workspace-rooted IO only (`resolveWorkspacePath`)               |
-| Engine outbound HTTP                         | backend client only     | `backend_url` opt-in in `.docsxai.json`                         |
-| Publisher plugins (wiki/VCS egress)          | **off**                 | manifest `egress:<host-glob>` ⊆ workspace `plugin_capabilities` |
-| Renderer / lint-rule / auth-strategy plugins | off                     | declared in `.docsxai.json` `plugins` + lock verification       |
-| Backend webhook endpoint                     | off                     | per-project `webhook-config` + HMAC secret + `enabled`          |
-| Backend OAuth auto-approve                   | off                     | `DOCSX_OAUTH_AUTO_APPROVE=1` or CI bearer                       |
-| Encrypted auth-cache relay                   | off                     | `store: backend` + `DOCSX_CACHE_KEY` + pushed workspace         |
-| MCP server tools                             | on (read + orchestrate) | no browser primitives by design; workspace validation           |
-| `manual-capture` instrumented Chrome         | operator-invoked        | headed, human in the loop                                       |
+| Surface                                      | Default                                                 | Gate                                                                                                                                                          |
+| -------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Engine CLI (run/render/lint/diagnose/…)      | on                                                      | workspace-rooted IO only (`resolveWorkspacePath`)                                                                                                             |
+| Engine outbound HTTP                         | backend client only                                     | `backend_url` opt-in in `.docsxai.json`                                                                                                                       |
+| Publisher plugins (wiki/VCS egress)          | **off**                                                 | manifest `egress:<host-glob>` ⊆ workspace `plugin_capabilities`                                                                                               |
+| Renderer / lint-rule / auth-strategy plugins | off                                                     | declared in `.docsxai.json` `plugins` + lock verification                                                                                                     |
+| Backend webhook endpoint                     | off                                                     | per-project `webhook-config` + HMAC secret + `enabled`                                                                                                        |
+| Backend OAuth auto-approve                   | off                                                     | `DOCSX_OAUTH_AUTO_APPROVE=1` or CI bearer                                                                                                                     |
+| Encrypted auth-cache relay                   | off                                                     | `store: backend` + `DOCSX_CACHE_KEY` + pushed workspace                                                                                                       |
+| MCP server tools                             | on (read + orchestrate)                                 | no browser primitives by design; workspace validation                                                                                                         |
+| MCP HTTP transport                           | **off** (stdio is the default)                          | `serve --http` + `--workspace-root` + a bearer token (`DOCSX_MCP_TOKEN` or `--token-file`) + Host/Origin allow-list; non-loopback bind needs `--allow-remote` |
+| Engine request guard (browser egress)        | off for a local `run`; on for webhook runs and MCP HTTP | `DOCSX_EGRESS_GUARD` (`1`, `true`, `yes`); `DOCSX_EGRESS_DENY_PRIVATE` adds loopback and private ranges                                                       |
+| `manual-capture` instrumented Chrome         | operator-invoked                                        | headed, human in the loop                                                                                                                                     |
 
 Composition is multiplicative: a wiki push from a webhook needs the webhook
 gate AND the plugin capability AND the publisher's env secrets — each layer

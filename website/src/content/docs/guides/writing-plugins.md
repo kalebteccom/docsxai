@@ -10,7 +10,7 @@ a module exporting `register(api)`. This guide walks the authoring path; the
 [plugins reference](/reference/plugins/) has the field-by-field manifest and
 lock-file tables.
 
-Two first-party plugins are worth cribbing from:
+Two first-party plugins are worth cribbing from (both are repo-only, so read them in a checkout):
 [plugin-confluence](/packages/plugin-confluence/) (a publisher) and
 [plugin-starlight](/packages/plugin-starlight/) (a renderer).
 

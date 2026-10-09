@@ -40,6 +40,7 @@ first differing artefact: docs/publish-post/screenshots/publish.png (run 2 vs ru
 | JSON     | the key path of the first difference, such as `annotations[0].bounding_box.x` |
 | Text     | the first differing line                                                      |
 | Other    | the two sizes, or the offset of the first differing byte                      |
+| Missing  | the file is present in run 1 and absent in a later run, or the reverse        |
 
 `--format md` writes the same report as a markdown section for a job summary or an artifact, and
 `--format json` writes it for tooling. The report holds no timestamps or paths, so the same runs
@@ -64,6 +65,12 @@ then run `--verify-determinism` again. Do not raise the `diff` thresholds or add
 A nightly job runs both checks and keeps the reports as an artifact. Copy-paste versions for GitHub
 Actions, GitLab CI and Woodpecker are in the [CI recipes](/guides/ci-recipes/#nightly-drift-jobs), and
 runnable copies sit in `examples/ci/` in the repository.
+
+`docsxai diff` reads only `docs/<flow>/screenshots/`, so it sees no screenshots for a flow
+with a [matrix](/reference/flow-file/#matrix) (those sit under `docs/<flow>/<variant>/`) and
+exits 0 on them. For a matrix workspace, replace the `diff` line with
+`docsxai pack --check --against <pack-dir>` (see the [CLI reference](/reference/cli/#docsxai-pack---check));
+`--verify-determinism` works on matrix flows as it is.
 
 Browser capture does not belong in per-PR pipelines on shared runners. It launches Chromium, walks
 the whole app and needs target credentials, so schedule it on a runner you control.
