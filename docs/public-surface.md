@@ -1,6 +1,6 @@
 # Public surface and compatibility policy
 
-docsxai is `0.x` (`0.2.0` is the last release on `latest`, `0.3.0-rc.2` is on `next`). This page does three things:
+docsxai is `0.x` (`0.2.0` is the last release on `latest`, `0.3.0-rc.3` is on `next`). This page does three things:
 
 1. It lists every surface an adopter, a plugin author or a host agent can depend on, marks each one `stable candidate`, `experimental` or `internal`, and says why.
 2. It states what a release may change before 1.0, what is frozen after it, and how a deprecation is announced.
