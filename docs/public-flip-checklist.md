@@ -10,12 +10,12 @@ Planning-level checklist for the docsxai public flip. The repo is public and `0.
 - [ ] `docs/security-best-practices-for-adopters.md`
 - [ ] Per-package `LICENSE` files + `"author"` fields in each `package.json`
 - [ ] `THIRD_PARTY_NOTICES.md` regenerated from current `pnpm-lock.yaml`
-- [ ] Prettier, ESLint, `.githooks/`, `.woodpecker.yml`, `release.yml`, CODEOWNERS, Dependabot config
+- [ ] Prettier, ESLint, `.githooks/`, `.woodpecker/ci.yaml`, `release.yml`, CODEOWNERS, Dependabot config
 
 ## Pre-flight: quality-gate convergence merged
 
-- [ ] `pnpm lint` clean (0 errors / 0 warnings); the gate is load-bearing in `.woodpecker.yml`
-- [ ] `pnpm format:check` clean; the gate is load-bearing in `.woodpecker.yml`
+- [ ] `pnpm lint` clean (0 errors / 0 warnings); the gate is load-bearing in `.woodpecker/ci.yaml`
+- [ ] `pnpm format:check` clean; the gate is load-bearing in `.woodpecker/ci.yaml`
 - [ ] Per-package `tsconfig.build.json` excludes tests and disables sourceMap / declarationMap — `node scripts/audit-package-contents.mjs` is clean
 - [ ] `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm audit:prod` all green
 - [ ] `zizmor --persona=auditor --min-severity=high .github/workflows/` reports 0 findings

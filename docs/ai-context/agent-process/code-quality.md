@@ -14,7 +14,7 @@ pnpm format:check
 pnpm build
 ```
 
-CI runs the same gate in the Woodpecker pipeline (see [`.woodpecker.yml`](../../../.woodpecker.yml) and the CI section of [`AGENTS.md`](../../../AGENTS.md)). Pushing a diff that the local gate would reject is a self-inflicted CI failure.
+CI runs the same gate in the Woodpecker pipeline (see [`.woodpecker/ci.yaml`](../../../.woodpecker/ci.yaml) and the CI section of [`AGENTS.md`](../../../AGENTS.md)). Pushing a diff that the local gate would reject is a self-inflicted CI failure.
 
 The keystone test (`packages/engine/test/keystone.test.ts`) runs as part of `pnpm test` and requires Chromium — it's the regression gate for runtime behavior. Don't shortcut it.
 

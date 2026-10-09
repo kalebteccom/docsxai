@@ -301,6 +301,12 @@ describe("this repository's own CI", () => {
       const text = read(".github", "workflows", f);
       expect(text, `.github/workflows/${f}`).not.toMatch(/verify-determinism|nightly-drift/);
     }
-    expect(read(".woodpecker.yml")).not.toMatch(/verify-determinism|nightly-drift/);
+    const pipelines = readdirSync(path.join(repo, ".woodpecker"));
+    expect(pipelines).toContain("ci.yaml");
+    for (const f of pipelines) {
+      expect(read(".woodpecker", f), `.woodpecker/${f}`).not.toMatch(
+        /verify-determinism|nightly-drift/,
+      );
+    }
   });
 });

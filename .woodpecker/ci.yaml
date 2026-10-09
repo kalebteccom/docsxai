@@ -1,7 +1,7 @@
 # ci-optimised: v1
 # Mirrors remotxai's Woodpecker layout. Gates match the AGENTS.md quality gate contract.
 # This is the only merge gate: a pull request merges on a green pipeline at its exact head commit. GitHub Actions runs release.yml only.
-# INVARIANT: this pipeline never publishes and names no secrets; releases stay in .github/workflows/release.yml (OIDC).
+# INVARIANT: this pipeline never publishes and names no secrets. Releases run in .woodpecker/release.yaml (manual event only) and, until it is retired, .github/workflows/release.yml (OIDC).
 
 # INVARIANT: push events only. The repo is public and Woodpecker runs with allow_pr=false, so a PR gets its status from the push to its branch; no pull_request, tag or release events.
 when:

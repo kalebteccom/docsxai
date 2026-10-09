@@ -1,6 +1,6 @@
 #!/bin/sh
 # Secret scan over the commits a push brings in. Run by the secret-scan step of
-# .woodpecker.yml inside the trufflehog image (POSIX sh, git and trufflehog only).
+# .woodpecker/ci.yaml inside the trufflehog image (POSIX sh, git and trufflehog only).
 #
 # Range: CI_PREV_COMMIT_SHA..CI_COMMIT_SHA. When the previous SHA is empty, all
 # zeros (a new branch), not fetchable or not an ancestor (a force push), the range
