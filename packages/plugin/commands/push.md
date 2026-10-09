@@ -3,16 +3,19 @@ description: Push the workspace's doc pack to the configured backend as a new re
 argument-hint: <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 ---
 
-Push the doc pack:
+Arguments: `$ARGUMENTS`
+
+Pass every value as its own single-quoted shell word (an embedded `'` is written `'\''`) and add nothing the user did not type. Push the doc pack:
 
 ```
-docsxai push $ARGUMENTS
+docsxai push '<workspace-dir>' [flags]
 ```
 
-Reads `flows/` + `docs/` from the workspace, serialises each artifact slot (flows / annotations / screenshots / style / locators), and POSTs them as a new revision against the backend named in `.docsxai.json`'s `backend_url`. On first push, creates the backend workspace + project and persists the new IDs back into `.docsxai.json`. Reports the new `rev_id`. The `DOCSX_TOKEN` env var must be set; run `/docsxai:login` first if you're not sure.
+It reads `flows/` and `docs/` from the workspace, serialises each artifact slot (flows, annotations, screenshots, style, locators), and posts them as a new revision against the backend named by `backend_url` in `.docsxai.json`. On the first push it creates the backend workspace and project and writes the new IDs back into `.docsxai.json`. The last line is `push: revision <rev_id> …`; report the `rev_id`. `--kind` defaults to `calibrate`. A token must be available: `DOCSX_TOKEN`, or the OAuth tokens that `docsxai login --backend-url '<url>' --oauth '<workspace-dir>'` stored. If unsure, run `/docsxai:login` first.
 
-Common failure modes:
+Every failure names the command to run next. The common ones:
 
-- `push: no backend_url in .docsxai.json` — set it (e.g. `http://localhost:4477` for a local stub) or hand-edit the workspace config.
-- `push: no bearer token` — export `DOCSX_TOKEN`.
-- A 4xx from the backend usually means workspace / project ID drift (re-bind by clearing `backend_workspace_id` + `backend_project_id` from `.docsxai.json`).
+- `no backend_url in .docsxai.json` (exit 2): add `"backend_url"` to the config (for example `http://localhost:4477` for a local backend), then log in.
+- `no bearer token`, or a 401 or 403: set `DOCSX_TOKEN` or run `docsxai login --backend-url '<url>' --oauth '<workspace-dir>'`.
+- `cannot reach <url>`: check `backend_url` and that the backend is running.
+- A 404 means `backend_workspace_id` or `backend_project_id` drifted. Remove both from `.docsxai.json` and push again to bind a new pair.

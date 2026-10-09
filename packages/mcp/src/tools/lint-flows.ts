@@ -11,21 +11,32 @@ import {
   type LintRule,
 } from "@docsxai/engine";
 import { z } from "zod";
-import { defineTool, fail, loadFlowsByName, ok, requireWorkspace } from "../shared.js";
+import {
+  defineTool,
+  fail,
+  loadFlowsByName,
+  ok,
+  requireWorkspace,
+  WORKSPACE_ARG,
+} from "../shared.js";
 
 export const lintFlowsTool = defineTool({
   name: "lint_flows",
   title: "Lint the workspace's flows",
   description:
-    "Run the static lint rules (R001 deep extends chain, R002 unmounting annotation target, " +
-    "R003 missing wait timeout on long-async steps, R004 bare data-attribute selector, …) plus " +
-    "any plugin-contributed rules across the workspace's flow-files. No browser, no live page.",
+    "Check flow-files for problems that make a run halt or a doc drift, without a browser: " +
+    "deep `extends` chains, annotation targets that unmount, missing wait timeouts on slow " +
+    "steps, bare data-attribute selectors, and any rules plugins contribute. Use it after " +
+    "writing or editing a flow and before run_flows. Returns { issues, summary, clean, " +
+    "flowsLinted }: each issue has a code, severity, flow, optional stepId, message and suggestion; `clean` is false when any " +
+    "error or warning is left. Fails with the available flow names when `flow` does not exist.",
   inputSchema: {
-    workspace: z
+    workspace: WORKSPACE_ARG,
+    flow: z
       .string()
+      .min(1)
       .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
-    flow: z.string().optional().describe("Lint only this flow (default: every flow)"),
+      .describe("Lint only this flow, by name (default: every flow)"),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

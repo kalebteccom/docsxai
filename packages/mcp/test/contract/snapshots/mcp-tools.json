@@ -19,30 +19,30 @@
   "tools": {
     "diagnose_halt": {
       "fields": {
-        "cdp?": "string",
+        "cdp?": "string[min:1]",
         "flow": "string[min:1]",
         "step": "string[min:1]",
-        "workspace?": "string"
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "flow_tree": {
       "fields": {
-        "workspace?": "string"
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "get_annotations": {
       "fields": {
         "flow": "string[min:1]",
-        "workspace?": "string"
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "get_run_artifacts": {
       "fields": {
-        "flow?": "string",
-        "workspace?": "string"
+        "flow?": "string[min:1]",
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
@@ -62,70 +62,70 @@
     },
     "lint_flows": {
       "fields": {
-        "flow?": "string",
-        "workspace?": "string"
+        "flow?": "string[min:1]",
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "list_flows": {
       "fields": {
-        "workspace?": "string"
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "plugins_list": {
       "fields": {
-        "workspace?": "string"
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "pull_pack": {
       "fields": {
-        "rev?": "string",
-        "workspace?": "string"
+        "rev?": "string[min:1]",
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "push_pack": {
       "fields": {
-        "author?": "string",
+        "author?": "string[min:1]",
         "kind?": "enum:calibrate|run|edit",
-        "workspace?": "string"
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "render_viewer": {
       "fields": {
-        "workspace?": "string"
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "run_flows": {
       "fields": {
-        "baseUrl?": "string",
-        "cdp?": "string",
+        "baseUrl?": "string[min:1]",
+        "cdp?": "string[min:1]",
         "concurrency?": "number[int,max:16,min:1]",
-        "flow?": "string",
+        "flow?": "string[min:1]",
         "headed?": "boolean",
         "ignoreHttpsErrors?": "boolean",
-        "startFrom?": "string",
-        "stopAfter?": "string",
-        "workspace?": "string"
+        "startFrom?": "string[min:1]",
+        "stopAfter?": "string[min:1]",
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "style_check": {
       "fields": {
         "check?": "boolean",
-        "workspace?": "string"
+        "workspace?": "string[min:1]"
       },
       "strict": false
     },
     "zip_pack": {
       "fields": {
         "includeViewer?": "boolean",
-        "out?": "string",
-        "workspace?": "string"
+        "out?": "string[min:1]",
+        "workspace?": "string[min:1]"
       },
       "strict": false
     }

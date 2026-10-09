@@ -261,6 +261,7 @@ describe("emitStarlightSite — file tree golden", () => {
       "src/content/docs/flows/checkout.mdx",
       "src/content/docs/flows/login.mdx",
       "src/content/docs/index.mdx",
+      "src/styles/scrollbars.css",
       "src/styles/theme.css",
       "tsconfig.json",
     ]);
@@ -381,7 +382,7 @@ describe("emitStarlightSite — MDX content", () => {
 });
 
 describe("emitStarlightSite — config generation", () => {
-  it("defaults: title Documentation, no accent CSS, no logo, no remote anything", async () => {
+  it("defaults: title Documentation, scrollbar CSS only, no logo, no remote anything", async () => {
     const ws = await makeWorkspace({
       flows: [{ name: "solo", steps: [{ id: "step-1", annotations: [{ copy: "Here" }] }] }],
     });
@@ -391,8 +392,10 @@ describe("emitStarlightSite — config generation", () => {
     expect(r.logo).toBeNull();
     const config = await read(out, "astro.config.mjs");
     expect(config).toContain('title: "Documentation",');
-    expect(config).not.toContain("customCss");
+    expect(config).toContain('customCss: ["./src/styles/scrollbars.css"],');
+    expect(config).not.toContain("theme.css");
     expect(config).not.toContain("logo:");
+    expect(r.files).toContain("src/styles/scrollbars.css");
     expect(r.files).not.toContain("src/styles/theme.css");
   });
 
@@ -402,7 +405,9 @@ describe("emitStarlightSite — config generation", () => {
     const r = await emitStarlightSite({ workspaceDir: ws, outDir: out });
     expect(r.accent).toBe("#2563eb");
     const config = await read(out, "astro.config.mjs");
-    expect(config).toContain('customCss: ["./src/styles/theme.css"],');
+    expect(config).toContain(
+      'customCss: ["./src/styles/scrollbars.css", "./src/styles/theme.css"],',
+    );
     const css = await read(out, "src/styles/theme.css");
     expect(css).toContain("--sl-color-accent: #2563eb;");
     expect(css).toContain(':root[data-theme="light"]');
@@ -574,6 +579,147 @@ describe("emitStarlightSite — determinism + self-containment", () => {
     expect(viewerPkg.devDependencies["astro"]).toBe(ASTRO_VERSION);
     expect(viewerPkg.devDependencies["@astrojs/starlight"]).toBe(STARLIGHT_VERSION);
   });
+});
+
+// Starlight's default palette as hsl(h, s%, l%), from `style/props.css` of the pinned
+// @astrojs/starlight. `white` is the thumb's base colour; it flips with the theme.
+type Hsl = [number, number, number];
+const STARLIGHT_SURFACES: Record<"dark" | "light", { white: Hsl; surfaces: Record<string, Hsl> }> =
+  {
+    dark: {
+      white: [0, 0, 100],
+      surfaces: {
+        "--sl-color-bg": [224, 10, 10],
+        "--sl-color-bg-sidebar and --sl-color-bg-nav": [224, 14, 16],
+      },
+    },
+    light: {
+      white: [224, 10, 10],
+      surfaces: {
+        "--sl-color-bg and --sl-color-bg-sidebar": [0, 0, 100],
+        "--sl-color-bg-nav": [224, 19, 97],
+        "gray-6 (inline code, hairlines)": [224, 20, 94],
+      },
+    },
+  };
+
+function hslToRgb([h, s, l]: Hsl): [number, number, number] {
+  const sat = s / 100;
+  const lig = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sat * Math.min(lig, 1 - lig);
+  const f = (n: number) => lig - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [f(0) * 255, f(8) * 255, f(4) * 255];
+}
+
+function luminance([r, g, b]: number[]): number {
+  const [lr, lg, lb] = [r!, g!, b!].map((v) => {
+    const c = v / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * lr! + 0.7152 * lg! + 0.0722 * lb!;
+}
+
+function contrastRatio(a: number[], b: number[]): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi! + 0.05) / (lo! + 0.05);
+}
+
+describe("emitStarlightSite — scrollbars", () => {
+  async function emitCss(): Promise<string> {
+    const ws = await makeWorkspace({ flows: [] });
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    return read(out, "src/styles/scrollbars.css");
+  }
+
+  it("wires the stylesheet and turns off the code block theme's own scrollbars", async () => {
+    const ws = await makeWorkspace(goldenSpec());
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const config = await read(out, "astro.config.mjs");
+    expect(config).toContain("expressiveCode: { useThemedScrollbars: false },");
+    expect(config).toContain('"./src/styles/scrollbars.css"');
+  });
+
+  it("defines the three override tokens on :root, mapped to --sl-color-white", async () => {
+    const css = await emitCss();
+    expect(css).toContain("--scrollbar-track: transparent;");
+    expect(css).toContain(
+      "--scrollbar-thumb: color-mix(in srgb, var(--sl-color-white) 50%, transparent);",
+    );
+    expect(css).toContain(
+      "--scrollbar-thumb-hover: color-mix(in srgb, var(--sl-color-white) 70%, transparent);",
+    );
+  });
+
+  it("sets the standard properties on :root and every element, from the tokens", async () => {
+    const css = await emitCss();
+    expect(css).toContain(
+      ":root,\n* {\n  scrollbar-width: thin;\n  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);\n}",
+    );
+  });
+
+  it("falls back to a 12px webkit bar with a 3px inset thumb where scrollbar-color is missing", async () => {
+    const css = await emitCss();
+    const start = css.indexOf("@supports not (scrollbar-color: auto) {");
+    expect(start).toBeGreaterThan(-1);
+    const fallback = css.slice(start, css.indexOf("@media", start));
+    expect(fallback).toContain("scrollbar-width: auto;");
+    expect(fallback).toMatch(/::-webkit-scrollbar \{\s*width: 12px;\s*height: 12px;/);
+    expect(fallback).toContain("background: var(--scrollbar-track);");
+    expect(fallback).toMatch(
+      /::-webkit-scrollbar-thumb \{[^}]*background: var\(--scrollbar-thumb\);/,
+    );
+    expect(fallback).toMatch(/border: 3px solid transparent;\s*background-clip: content-box;/);
+    expect(fallback).toMatch(
+      /::-webkit-scrollbar-thumb:hover \{[^}]*var\(--scrollbar-thumb-hover\)/,
+    );
+  });
+
+  it("hands the bar back to the system under forced colors and prefers-contrast: more", async () => {
+    const css = await emitCss();
+    const start = css.indexOf("@media (forced-colors: active), (prefers-contrast: more) {");
+    expect(start).toBeGreaterThan(-1);
+    const block = css.slice(start);
+    expect(block).toContain("scrollbar-width: auto;");
+    expect(block).toContain("scrollbar-color: auto;");
+  });
+
+  it("hides no scrollbar and forces none to show", async () => {
+    const css = await emitCss();
+    expect(css).not.toMatch(/scrollbar-width:\s*none/);
+    expect(css).not.toMatch(/display:\s*none/);
+    expect(css).not.toMatch(/overflow(-[xy])?:/);
+    expect(css).not.toMatch(/https?:\/\//);
+  });
+
+  it.each(["dark", "light"] as const)(
+    "%s theme: thumb and hover thumb reach 3:1 against every Starlight surface",
+    async (theme) => {
+      const css = await emitCss();
+      const pct = (name: string): number => {
+        const m = new RegExp(
+          `--${name}: color-mix\\(in srgb, var\\(--sl-color-white\\) (\\d+)%, transparent\\);`,
+        ).exec(css);
+        expect(m, `--${name} token`).not.toBeNull();
+        return Number(m![1]) / 100;
+      };
+      const { white, surfaces } = STARLIGHT_SURFACES[theme];
+      const fg = hslToRgb(white);
+      for (const [surface, hsl] of Object.entries(surfaces)) {
+        const bg = hslToRgb(hsl);
+        for (const token of ["scrollbar-thumb", "scrollbar-thumb-hover"]) {
+          const alpha = pct(token);
+          const thumb = fg.map((c, i) => alpha * c + (1 - alpha) * bg[i]!);
+          expect(
+            contrastRatio(thumb, bg),
+            `${theme} ${token} on ${surface}`,
+          ).toBeGreaterThanOrEqual(3);
+        }
+      }
+    },
+  );
 });
 
 describe("site CLI subcommand", () => {

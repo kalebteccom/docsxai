@@ -84,6 +84,17 @@ export class ToolInputError extends Error {
   }
 }
 
+/** The `workspace` argument every tool but `init_workspace` takes. */
+export const WORKSPACE_ARG = z
+  .string()
+  .min(1)
+  .optional()
+  .describe(
+    "Workspace directory, the one that holds .docsxai.json. Omit it to use the server's " +
+      "--workspace default (over HTTP, the workspace root). Relative paths start at the " +
+      "server's working directory, or at the workspace root over HTTP.",
+  );
+
 export const NO_WORKSPACE_HINT =
   "pass `workspace` in the tool arguments, or start docsxai-mcp with --workspace <dir>";
 
@@ -135,7 +146,7 @@ export async function listFlowFiles(workspace: string): Promise<string[]> {
   } catch {
     throw new ToolInputError(
       `no flows directory at ${dir}`,
-      "calibrate a flow first (flows/<name>.flow.yaml)",
+      "write flows/<name>.flow.yaml first (a browser tool such as browxai finds the selectors)",
     );
   }
   return entries
@@ -153,7 +164,7 @@ export async function loadFlowsByName(workspace: string): Promise<Map<string, Fl
       flowsByName.set(flow.name, flow);
     } catch (e) {
       const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
-      throw new ToolInputError(`parse error in ${p}: ${msg}`);
+      throw new ToolInputError(`parse error in ${p}: ${msg}`, "fix that flow-file, then retry");
     }
   }
   return flowsByName;
@@ -178,5 +189,11 @@ export async function loadMergedFlow(workspace: string, name: string): Promise<F
 /** Standard error → ToolResult conversion for the server wrapper. */
 export function toFailure(e: unknown): ToolFail {
   if (e instanceof ToolInputError) return fail(e.message, e.hint);
+  if (e instanceof FlowFileError) {
+    return fail(
+      e.message,
+      "fix the flow-file the error names, or check the flow name with list_flows",
+    );
+  }
   return fail(e instanceof Error ? e.message : String(e));
 }

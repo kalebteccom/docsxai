@@ -1,5 +1,5 @@
 ---
-name: docsxai-diagnose
+name: diagnose
 description: Use when a deterministic `docsxai run` halts on a locator or success-criterion failure (drift). Gather halt context, propose a minimal recalibration diff for the affected flow-file, validate the fix in seconds via `--start-from --cdp`. Never patch silently or add selector fallbacks.
 ---
 
@@ -10,13 +10,13 @@ A halted run means the site drifted from what the flow-file encodes — that's a
 ## 1. Run the diagnose command
 
 ```bash
-docsxai diagnose <workspace> --flow <name> --step <step-id> [--cdp <endpoint>] [--format json]
+docsxai diagnose '<workspace-dir>' --flow '<name>' --step '<step-id>' [--variant '<id>'] [--cdp '<endpoint>'] [--format json]
 ```
 
 This gathers:
 
 - The current step's selector (resolved if it's a `$ref`), `wait_for`, `success`
-- The most recent halt screenshot at `docs/<flow>/halts/<step>.png` if one exists
+- The most recent halt screenshot at `docs/<flow>/halts/<step>.png` if one exists (`docs/<flow>/<variant>/halts/<step>.png` for a variant of a `matrix:` flow, picked with `--variant <id>`)
 - **With `--cdp`:** a live probe — connects to the running Chrome, runs the engine's `BrowserDriver.actionable()` predicate on the target selector, captures current URL + bbox
 - Recommendations: one of `selector` / `wait_for` / `success` / `annotation_target` / `split_step` / `investigate` — each with a rationale and a concrete suggestion
 
@@ -46,12 +46,14 @@ If the drift is structural (steps added/removed by the app, not just a selector 
 ## 4. Validate the fix in seconds
 
 ```bash
-docsxai run <workspace> --flow <name> --start-from <step-id> --cdp <endpoint>
+docsxai run '<workspace-dir>' --flow '<name>' --start-from '<step-id>' --cdp '<endpoint>'
 ```
 
 `--start-from` skips every step before the fixed one; `--cdp` attaches to the same Chrome the diagnose probe used (so the page state from the prior steps is already there). The new annotation merges into the existing `annotations.json` by step id — prior steps' annotations and screenshots stay intact. If the step now runs clean, the fix is good; if it halts again, re-run `diagnose`.
 
-Then offer to re-`render` to refresh the viewer.
+A flow with a top-level `matrix:` can't use `--cdp`. Validate it by running one variant, `docsxai run '<workspace-dir>' --flow '<name>' --variant '<id>'`, which replays the whole flow in a fresh browser.
+
+Then offer `/docsxai:render` to refresh the viewer.
 
 ## Anti-patterns
 

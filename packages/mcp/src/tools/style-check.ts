@@ -10,23 +10,26 @@ import {
   writeStyle,
 } from "@docsxai/engine";
 import { z } from "zod";
-import { defineTool, fail, ok, requireWorkspace } from "../shared.js";
+import { defineTool, fail, ok, requireWorkspace, WORKSPACE_ARG } from "../shared.js";
 
 export const styleCheckTool = defineTool({
   name: "style_check",
   title: "Validate style + scan for jargon leaks",
   description:
-    "Initialise docs/style.yaml if absent (otherwise validate it), rederive docs/style.json, and " +
-    "scan every docs/<flow>/<step>.md write-up for jargon leaks against the style's pruning rules.",
+    "Validate the workspace's writing style and scan the step write-ups for jargon leaks. " +
+    "Creates docs/style.yaml when it is absent, rewrites docs/style.json from it, and (unless " +
+    "`check` is false) scans every docs/<flow>/<step>.md against the style's pruning rules. " +
+    "Returns { styleYaml, styleJson, jargonLeaks, clean }; each leak has the file, line, " +
+    "category and matching snippet. It never rewrites prose: reshape the flagged text yourself, then call again. " +
+    "Fails with the schema error when docs/style.yaml is invalid.",
   inputSchema: {
-    workspace: z
-      .string()
-      .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: WORKSPACE_ARG,
     check: z
       .boolean()
       .optional()
-      .describe("Scan write-ups for jargon leaks (default true; false = validate/derive only)"),
+      .describe(
+        "Scan write-ups for jargon leaks (default true). Pass false to only validate and rederive the style. The `docsxai style` CLI defaults the other way.",
+      ),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

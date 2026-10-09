@@ -4,7 +4,6 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import {
-  BackendClientError,
   createBackendClient,
   readDocPack,
   resolveWorkspacePath,
@@ -12,39 +11,50 @@ import {
   type DocPackPayloads,
 } from "@docsxai/engine";
 import { z } from "zod";
-import { defineTool, fail, ok, requireWorkspace } from "../shared.js";
+import { backendFailure } from "../backend-failure.js";
+import { defineTool, fail, ok, requireWorkspace, WORKSPACE_ARG } from "../shared.js";
 
 export const pushPackTool = defineTool({
   name: "push_pack",
   title: "Push the doc pack to the backend",
   description:
-    "Serialise the workspace's doc pack (flows + annotations + screenshots + style + locators) " +
-    "and push it as a new revision to the backend named in .docsxai.json. Screenshot bytes go " +
-    "up as content-addressed blobs; unchanged PNGs are skipped.",
+    "Upload the workspace's doc pack (flows, annotations, screenshots, style, locators) to the " +
+    "backend as a new revision, to share it or keep history. Needs backend_url in " +
+    ".docsxai.json and a valid backend token. The first push also creates the backend " +
+    "workspace and project and writes their ids into .docsxai.json. Unchanged screenshots are " +
+    "not re-uploaded. Returns { revision, kind, author, artifactsPushed, screenshots }. " +
+    "Fails with a hint when backend_url is missing or the backend rejects the request.",
   inputSchema: {
-    workspace: z
-      .string()
-      .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
+    workspace: WORKSPACE_ARG,
     kind: z
       .enum(["calibrate", "run", "edit"])
       .optional()
-      .describe("Revision kind (default calibrate)"),
-    author: z.string().optional().describe("Revision author (default: the OS user)"),
+      .describe("Revision kind: calibrate (default), run or edit"),
+    author: z
+      .string()
+      .min(1)
+      .optional()
+      .describe("Revision author name (default: the server process's OS user)"),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);
     const cfgPath = resolveWorkspacePath(ws, ".docsxai.json");
-    const wsCfg = JSON.parse(await fs.readFile(cfgPath, "utf8")) as {
+    let wsCfg: {
       backend_url?: string;
       backend_workspace_id?: string;
       backend_project_id?: string;
       [k: string]: unknown;
     };
+    try {
+      wsCfg = JSON.parse(await fs.readFile(cfgPath, "utf8")) as typeof wsCfg;
+    } catch {
+      // The parser's message quotes a piece of the file; the file name is what the caller needs.
+      return fail(".docsxai.json is not valid JSON", "fix .docsxai.json so it parses, then retry");
+    }
     if (!wsCfg.backend_url) {
       return fail(
-        `no backend_url in ${cfgPath}`,
-        "set backend_url in .docsxai.json before pushing",
+        "no backend_url in .docsxai.json",
+        "set backend_url in .docsxai.json to the backend's address, then push again",
       );
     }
     const kind = args.kind ?? "calibrate";
@@ -101,9 +111,8 @@ export const pushPackTool = defineTool({
         ...(createdBinding ? { createdBinding: true } : {}),
       });
     } catch (e) {
-      if (e instanceof BackendClientError) {
-        return fail(e.message, "is the backend reachable and the token valid (DOCSX_TOKEN)?");
-      }
+      const failure = backendFailure(e, ctx);
+      if (failure) return failure;
       throw e;
     }
   },

@@ -30,6 +30,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { FORBIDDEN_PATTERNS, missingPaths, requiredPaths } from "./package-audit-rules.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..");
@@ -41,52 +42,6 @@ const FORBIDDEN_LIFECYCLE_SCRIPTS = [
   "preuninstall",
   "uninstall",
   "postuninstall",
-];
-
-// Match against tarball-relative paths (npm puts everything under `package/`).
-// Each entry is `{ pattern: RegExp, why: string }`.
-const FORBIDDEN_PATTERNS = [
-  // Dotfiles / dot-directories — npm strips most by default, but a custom
-  // "files" allowlist that hits a directory containing dotfiles ships them.
-  { pattern: /(^|\/)\.env(\.|$)/, why: "dotenv file would leak credentials" },
-  { pattern: /(^|\/)\.git(\/|$)/, why: ".git directory" },
-  { pattern: /(^|\/)\.github(\/|$)/, why: ".github directory" },
-  { pattern: /(^|\/)\.vscode(\/|$)/, why: ".vscode directory" },
-  { pattern: /(^|\/)\.idea(\/|$)/, why: ".idea directory" },
-  { pattern: /(^|\/)\.claude(\/|$)/, why: ".claude directory" },
-  { pattern: /(^|\/)\.DS_Store$/, why: "OS cruft" },
-  { pattern: /(^|\/)\.cursor(\/|$)/, why: ".cursor directory" },
-  { pattern: /(^|\/)\.codex(\/|$)/, why: ".codex directory" },
-  { pattern: /(^|\/)\.agents(\/|$)/, why: ".agents directory" },
-
-  // Workspace cruft.
-  { pattern: /(^|\/)node_modules(\/|$)/, why: "node_modules must never be published" },
-  { pattern: /(^|\/)coverage(\/|$)/, why: "coverage output" },
-  { pattern: /(^|\/)\.nyc_output(\/|$)/, why: "nyc coverage cache" },
-  { pattern: /(^|\/)artifacts(\/|$)/, why: "investigation artifacts" },
-
-  // Tests / fixtures.
-  { pattern: /\.test\.(js|ts|tsx|mjs|cjs)$/, why: "test file" },
-  { pattern: /\.spec\.(js|ts|tsx|mjs|cjs)$/, why: "spec file" },
-  { pattern: /(^|\/)__tests__(\/|$)/, why: "__tests__ directory" },
-  { pattern: /(^|\/)__fixtures__(\/|$)/, why: "__fixtures__ directory" },
-  { pattern: /(^|\/)tests?(\/|$)/, why: "tests directory" },
-
-  // Sourcemaps — leak verbatim source via sourcesContent.
-  { pattern: /\.map$/, why: "sourcemap leaks src/" },
-
-  // Secret-shaped filenames.
-  { pattern: /(^|\/)\.npmrc$/, why: ".npmrc may carry auth tokens" },
-  { pattern: /(^|\/)\.netrc$/, why: ".netrc carries credentials" },
-  { pattern: /(^|\/)id_rsa/, why: "SSH private key" },
-  { pattern: /\.pem$/, why: "PEM-encoded credential" },
-  { pattern: /\.key$/, why: "key file" },
-  { pattern: /(^|\/)credentials\.json$/, why: "credentials file" },
-  { pattern: /(^|\/)secrets\.json$/, why: "secrets file" },
-
-  // Browser-session captures.
-  { pattern: /\.storageState\.json$/, why: "captured browser auth state" },
-  { pattern: /(^|\/)\.auth(\/|$)/, why: ".auth directory carries session state" },
 ];
 
 // Files > 1 MB raise a flag unless their path is explicitly in this list.
@@ -122,7 +77,7 @@ function inspectPackageJson(cwd) {
   return { pkg, errors };
 }
 
-function auditTarball(cwd, label) {
+function auditTarball(cwd, label, pkg) {
   const errors = [];
   let tarballs;
   try {
@@ -138,6 +93,15 @@ function auditTarball(cwd, label) {
 
   for (const tarball of tarballs) {
     const files = tarball.files ?? [];
+    const missing = missingPaths(
+      files.map((f) => f.path ?? ""),
+      requiredPaths(cwd, pkg),
+    );
+    for (const m of missing) {
+      errors.push(
+        `${label}: required path "${m}" is missing from the tarball. Check "files" in package.json (and that the build ran).`,
+      );
+    }
     for (const f of files) {
       const path = f.path ?? "";
       const size = typeof f.size === "number" ? f.size : 0;
@@ -169,17 +133,17 @@ function main() {
     const cwd = resolve(REPO_ROOT, "packages", dir);
     if (!existsSync(resolve(cwd, "package.json"))) continue;
     const pkg = JSON.parse(readFileSync(resolve(cwd, "package.json"), "utf8"));
-    targets.push({ cwd, label: pkg.name ?? `packages/${dir}` });
+    targets.push({ cwd, label: pkg.name ?? `packages/${dir}`, pkg });
   }
 
   const allErrors = [];
-  for (const { cwd, label } of targets) {
+  for (const { cwd, label, pkg } of targets) {
     // Lifecycle-script gate (applies to every published manifest).
     const { errors: pkgErrors } = inspectPackageJson(cwd);
     for (const e of pkgErrors) allErrors.push(`${label}: ${e}`);
 
     // Tarball-content gate.
-    const { errors: tarErrors } = auditTarball(cwd, label);
+    const { errors: tarErrors } = auditTarball(cwd, label, pkg);
     allErrors.push(...tarErrors);
   }
 

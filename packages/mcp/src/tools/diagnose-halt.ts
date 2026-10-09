@@ -11,32 +11,55 @@ import {
 } from "@docsxai/engine";
 import { z } from "zod";
 import { rejectCdpOverHttp } from "../http-egress.js";
-import { defineTool, fail, loadMergedFlow, ok, requireWorkspace } from "../shared.js";
+import {
+  defineTool,
+  fail,
+  loadMergedFlow,
+  ok,
+  requireWorkspace,
+  WORKSPACE_ARG,
+} from "../shared.js";
 
 export const diagnoseHaltTool = defineTool({
   name: "diagnose_halt",
   title: "Diagnose a halted step",
   description:
-    "Gather halt context for a flow step: resolved selector, wait_for/success spec, the halt " +
-    "screenshot path if one exists, and (with `cdp`) a live actionable() probe on the running " +
-    "page. Returns recommendations (selector / wait_for / success / annotation_target / " +
-    "split_step / investigate); never edits the flow-file.",
+    "Explain why one step of a flow halted. Use it after run_flows reports a halt, with that " +
+    "result's flow and haltStep. Returns { report }: the resolved selector, the wait_for and " +
+    "success specs, the halt screenshot path if one exists, and typed recommendations " +
+    "(selector, wait_for, success, annotation_target, split_step, investigate). With `cdp` it " +
+    "also probes the selector live on a running Chrome. Read-only: it never edits the " +
+    "flow-file, so apply a recommendation by editing the flow yourself. Fails with the merged " +
+    "step ids when the step does not exist. Flows with a `matrix:` are refused; the CLI's " +
+    "`diagnose --variant` handles them.",
   inputSchema: {
-    workspace: z
+    workspace: WORKSPACE_ARG,
+    flow: z.string().min(1).describe("Flow name, as list_flows reports it"),
+    step: z
       .string()
-      .optional()
-      .describe("Workspace dir (defaults to the server's --workspace)"),
-    flow: z.string().min(1).describe("Flow name"),
-    step: z.string().min(1).describe("Step id within the (merged) flow"),
+      .min(1)
+      .describe(
+        "Step id in the merged flow (after `extends` is resolved), e.g. haltStep from run_flows",
+      ),
     cdp: z
       .string()
+      .min(1)
       .optional()
-      .describe("CDP endpoint of a running Chrome to live-probe (e.g. http://localhost:9222)"),
+      .describe(
+        "CDP endpoint of a running Chrome to probe live, e.g. http://localhost:9222. Refused over HTTP.",
+      ),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);
     rejectCdpOverHttp(args.cdp, ctx);
     const flow = await loadMergedFlow(ws, args.flow);
+    if (flow.matrix) {
+      return fail(
+        `flow "${args.flow}" has a matrix, so each variant has its own steps and halt screenshot`,
+        "run `docsxai diagnose <workspace-dir> --flow <flow> --step <step> --variant <id>` " +
+          "on the machine that runs docsxai-mcp (`docsxai flow-tree <workspace-dir>` lists the variant ids)",
+      );
+    }
     const step = flow.steps.find((s) => s.id === args.step);
     if (!step) {
       return fail(
@@ -82,8 +105,10 @@ export const diagnoseHaltTool = defineTool({
       });
     } catch (e) {
       return fail(
-        `live probe failed: ${(e as Error).message}`,
-        "is Chrome running with --remote-debugging-port at that endpoint?",
+        `${args.cdp ? "live probe failed" : "diagnose failed"}: ${(e as Error).message}`,
+        args.cdp
+          ? "check that Chrome runs with --remote-debugging-port and `cdp` points at it, or leave `cdp` out for the static report"
+          : "check that the flow-files parse (lint_flows) and retry",
       );
     } finally {
       if (liveSession) await liveSession.close();

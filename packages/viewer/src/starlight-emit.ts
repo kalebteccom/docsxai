@@ -16,6 +16,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
 import { discoverFlows } from "./render.js";
+import { SCROLLBARS_CSS, SCROLLBARS_CSS_PATH } from "./starlight-scrollbars.js";
 
 /** Exact versions pinned into the emitted site's package.json — verified to install + build. */
 export const ASTRO_VERSION = "7.3.5";
@@ -271,9 +272,10 @@ function astroConfigMjs(opts: {
   if (opts.logoRel !== null) {
     lines.push(`      logo: { src: ${JSON.stringify(`./${opts.logoRel}`)} },`);
   }
-  if (opts.accent !== null) {
-    lines.push(`      customCss: ["./src/styles/theme.css"],`);
-  }
+  const css = [SCROLLBARS_CSS_PATH, ...(opts.accent !== null ? ["src/styles/theme.css"] : [])];
+  lines.push(`      customCss: [${css.map((f) => JSON.stringify(`./${f}`)).join(", ")}],`);
+  // The code block theme's own webkit scrollbar rules would override the site scrollbar.
+  lines.push(`      expressiveCode: { useThemedScrollbars: false },`);
   if (opts.flows.length > 0) {
     const items = opts.flows
       .map(
@@ -498,6 +500,7 @@ export async function emitStarlightSite(
   textFiles.set("src/content.config.ts", CONTENT_CONFIG_TS);
   textFiles.set("src/components/AnnotatedShot.astro", ANNOTATED_SHOT_ASTRO);
   textFiles.set("public/favicon.svg", FAVICON_SVG);
+  textFiles.set(SCROLLBARS_CSS_PATH, SCROLLBARS_CSS);
   if (accent !== null) textFiles.set("src/styles/theme.css", themeCss(accent));
   textFiles.set(
     "src/content/docs/index.mdx",

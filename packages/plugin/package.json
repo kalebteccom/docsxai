@@ -31,7 +31,10 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    ".claude-plugin",
+    "commands",
+    "skills"
   ],
   "scripts": {
     "build": "node ../../scripts/clean-dist.mjs && tsc -b tsconfig.build.json",

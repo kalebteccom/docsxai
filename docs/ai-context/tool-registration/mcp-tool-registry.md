@@ -15,10 +15,13 @@ for this server.
 1. **Zod schema first.** Define the input shape as a `z.ZodRawShape` (plain object of zod types,
    not a `z.object(…)`) — the SDK derives the JSON schema from it. Every workspace-scoped tool
    takes `workspace: z.string().optional()` so the bin's `--workspace` default applies. Add
-   `.describe(…)` to every field; that text is what the host agent sees.
+   `.describe(…)` to every field; that text is what the host agent sees. Give string arguments
+   `.min(1)` so an empty string cannot stand in for "unset".
 2. **One-file handler.** Create `packages/mcp/src/tools/<kebab-name>.ts` exporting a single
    `defineTool({ name, title, description, inputSchema, handler })`. The tool name is
-   `snake_case`; the file is `kebab-case`. Wrap engine functions — never re-implement engine
+   `snake_case`; the file is `kebab-case`. The description says what the tool does, when to
+   use it, what it returns and how it fails (`tools-unit.test.ts` checks the length and that it
+   says `Returns` or `Fails`). Wrap engine functions — never re-implement engine
    behaviour, and never import a tool from another tool. Results follow the convention:
    `ok({ … })` on success, `fail(error, hint?)` on failure. Domain errors return `fail(…)`;
    only programmer errors throw (the server wrapper still converts them to `{ok:false}`).
