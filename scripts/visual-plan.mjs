@@ -1,0 +1,156 @@
+// The pure half of the visual-capture CI job: which pages and states get a
+// screenshot, what each PNG is called, how the static server maps a URL to a
+// file, and the job summary. No browser and no file IO here, so
+// visual-plan.test.mjs can check it with `node --test`.
+
+export const VIEWPORTS = [
+  { width: 390, height: 844, mobile: true },
+  { width: 1280, height: 800, mobile: false },
+];
+
+export const SCHEMES = ["light", "dark"];
+
+// `server` picks the static root: "site" is the built docs site, "viewer" the
+// rendered sample pack, "empty" a pack with no flows. `action` names a step in
+// visual-capture.mjs that puts the page into the state. `mobileOnly` shots only
+// make sense at 390 px (the mobile menu exists only there).
+export const SHOTS = [
+  { surface: "docs", state: "home", server: "site", path: "/", fullPage: true },
+  { surface: "docs", state: "skip-link", server: "site", path: "/", action: "tabOnce" },
+  {
+    surface: "docs",
+    state: "skip-link-followed",
+    server: "site",
+    path: "/",
+    action: "followSkipLink",
+  },
+  { surface: "docs", state: "primary-focus", server: "site", path: "/", action: "focusPrimary" },
+  {
+    surface: "docs",
+    state: "wide-table",
+    server: "site",
+    path: "/reference/flow-file/",
+    fullPage: true,
+  },
+  { surface: "docs", state: "404", server: "site", path: "/no-such-page/", fullPage: true },
+  { surface: "docs", state: "search-open", server: "site", path: "/", action: "openSearch" },
+  {
+    surface: "docs",
+    state: "search-no-results",
+    server: "site",
+    path: "/",
+    action: "searchNoResults",
+  },
+  {
+    surface: "docs",
+    state: "menu-open",
+    server: "site",
+    path: "/getting-started/quickstart/",
+    action: "openMenu",
+    mobileOnly: true,
+  },
+  { surface: "viewer", state: "index", server: "viewer", path: "/", fullPage: true },
+  { surface: "viewer", state: "flow", server: "viewer", path: "/obstacles/", fullPage: true },
+  {
+    surface: "viewer",
+    state: "focused-step",
+    server: "viewer",
+    path: "/obstacles/",
+    action: "focusStep",
+  },
+  {
+    surface: "viewer",
+    state: "error",
+    server: "viewer",
+    path: "/obstacles/",
+    action: "breakImages",
+  },
+  { surface: "viewer", state: "empty", server: "empty", path: "/", fullPage: true },
+];
+
+/** One entry per PNG: every shot at every width and scheme, mobile-only shots at 390 px only. */
+export function planCaptures(shots = SHOTS, viewports = VIEWPORTS, schemes = SCHEMES) {
+  const plan = [];
+  for (const shot of shots) {
+    for (const vp of viewports) {
+      if (shot.mobileOnly && !vp.mobile) continue;
+      for (const scheme of schemes) {
+        const file = `${shot.surface}/${shot.state}--${vp.width}--${scheme}.png`;
+        plan.push({ ...shot, viewport: vp, scheme, file });
+      }
+    }
+  }
+  return plan;
+}
+
+/**
+ * Files to try, in order, for a request path, relative to the static root.
+ * Null when the path is malformed or climbs out of the root.
+ */
+export function candidateFiles(urlPath) {
+  let p;
+  try {
+    p = decodeURIComponent(urlPath.split(/[?#]/)[0]);
+  } catch {
+    return null;
+  }
+  if (!p.startsWith("/") || p.includes("\0") || p.includes("\\")) return null;
+  const parts = p.split("/").filter(Boolean);
+  if (parts.some((s) => s === "." || s === "..")) return null;
+  const rel = parts.join("/");
+  if (rel === "") return ["index.html"];
+  if (p.endsWith("/")) return [`${rel}/index.html`];
+  return [rel, `${rel}/index.html`, `${rel}.html`];
+}
+
+const TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".json": "application/json",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".webp": "image/webp",
+  ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".txt": "text/plain; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
+  ".wasm": "application/wasm",
+};
+
+export function contentType(file) {
+  const m = /\.[a-z0-9_]+$/i.exec(file);
+  return (m && TYPES[m[0].toLowerCase()]) || "application/octet-stream";
+}
+
+/** Markdown for $GITHUB_STEP_SUMMARY: counts, failures, and the PNG list grouped by surface. */
+export function summaryMarkdown(results, artifactName) {
+  const ok = results.filter((r) => !r.error);
+  const failed = results.filter((r) => r.error);
+  const lines = [
+    "## Visual captures",
+    "",
+    `${ok.length} screenshots in the \`${artifactName}\` artifact (Chromium, 390 and 1280 px, light and dark). Nothing is compared or gated.`,
+    "",
+  ];
+  if (failed.length) {
+    lines.push(`${failed.length} captures failed:`, "");
+    for (const r of failed) lines.push(`- \`${r.file}\`: ${oneLine(r.error)}`);
+    lines.push("");
+  }
+  for (const surface of [...new Set(ok.map((r) => r.surface))]) {
+    lines.push(
+      `<details><summary>${surface} (${ok.filter((r) => r.surface === surface).length})</summary>`,
+      "",
+    );
+    for (const r of ok.filter((x) => x.surface === surface)) lines.push(`- \`${r.file}\``);
+    lines.push("", "</details>", "");
+  }
+  return lines.join("\n");
+}
+
+function oneLine(text) {
+  return String(text).split("\n")[0].replace(/`/g, "'").slice(0, 200);
+}

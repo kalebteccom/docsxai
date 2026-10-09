@@ -1,0 +1,73 @@
+# Screenshots of the docs site and the viewer for pull requests that change
+# either one. Builds website/ and a sample viewer pack, renders both in
+# Chromium at 390 and 1280 px wide in light and dark, plus a few states
+# (docs 404, search open, a wide-table page, the mobile menu, viewer empty
+# state, image error state, a focused step), and uploads the PNGs as the
+# `visual-captures` artifact. Nothing is compared and nothing gates the merge.
+# How to read the artifact: docs/ai-context/ux/visual-captures.md.
+#
+# The repository is public, so Actions minutes on GitHub-hosted runners are
+# free. Nothing privileged runs: plain pull_request trigger, read-only token,
+# no secrets, no PR text in any shell line. PRs from forks work the same way.
+
+name: visual-captures
+
+on:
+  pull_request:
+    paths:
+      - "website/**"
+      - "packages/viewer/**"
+      - "scripts/visual-*.mjs"
+      - ".github/workflows/visual-captures.yml"
+
+permissions: {}
+
+concurrency:
+  group: visual-captures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    name: capture screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read # checkout only; upload-artifact uses the runner's own artifact token
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --test scripts/visual-plan.test.mjs
+      - run: pnpm --filter @docsxai/viewer build
+      - run: pnpm --filter @docsxai/website build
+      - name: Render the sample pack and an empty pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/empty-docs"
+          node packages/viewer/dist/index.js build examples/ci/sample-repo/docs-workspace/docs "$RUNNER_TEMP/viewer"
+          node packages/viewer/dist/index.js build "$RUNNER_TEMP/empty-docs" "$RUNNER_TEMP/viewer-empty"
+      # The documented Chromium fetch, the allowed exception to the
+      # no-install-scripts posture. Same command as ci.yml.
+      - run: pnpm -C packages/engine exec playwright-core install chromium
+      - name: Capture
+        run: >-
+          node scripts/visual-capture.mjs
+          --site website/dist
+          --viewer "$RUNNER_TEMP/viewer"
+          --empty "$RUNNER_TEMP/viewer-empty"
+          --out "$RUNNER_TEMP/visual"
+          --summary "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: visual-captures
+          path: ${{ runner.temp }}/visual
+          if-no-files-found: warn
+          retention-days: 14
