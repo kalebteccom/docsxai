@@ -3,7 +3,7 @@
 // load/save helpers. Re-exported from `./backend-client.js`.
 
 import { promises as fs } from "node:fs";
-import { redactUrl, shellQuote } from "./cli-messages.js";
+import { redactUrl, redactUrlsIn, shellQuote } from "./cli-messages.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 import { BackendClientError, type BackendTokenFile } from "./backend-client-contracts.js";
 
@@ -96,7 +96,7 @@ export async function resolveBackendToken(opts: {
     refreshed = (await res.json()) as typeof refreshed;
   } catch (e) {
     throw new BackendClientError(
-      `stored backend token expired and the refresh failed (${(e as Error).message}) — ${reloginHint}`,
+      `stored backend token expired and the refresh failed (${redactUrlsIn((e as Error).message)}) — ${reloginHint}`,
     );
   }
   const tokens: BackendTokenFile = {

@@ -81,3 +81,11 @@ export function redactUrl(raw: string): string {
     return invalid;
   }
 }
+
+/**
+ * `text` with every absolute URL in it passed through {@link redactUrl}. Error messages from
+ * `fetch` and from a backend can quote the URL they were given, user:password and query included.
+ */
+export function redactUrlsIn(text: string): string {
+  return text.replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s"'<>()`]+/gi, (url) => redactUrl(url));
+}

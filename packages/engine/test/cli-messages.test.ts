@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   commandUsage,
   redactUrl,
+  redactUrlsIn,
   sanitizeForTerminal,
   shellQuote,
   usageError,
@@ -39,6 +40,16 @@ describe("commandUsage", () => {
     const [init] = commandUsage("init");
     expect(init).toContain("[--persist tmp] [--force]");
     expect(init).not.toContain("\n");
+  });
+
+  it("phrases shared flags one way across commands", () => {
+    const names = ["init", "inspect", "run", "lint", "flow-tree", "diagnose", "style", "diff"];
+    const lines = [...names, "plugins", "capture-auth"].flatMap((n) => commandUsage(n));
+    expect(lines.join(" ")).toContain("--format text|md|json");
+    for (const format of lines.join(" ").match(/--format [^\]\s]+/g) ?? [])
+      expect(format).toMatch(/^--format text\|/);
+    for (const role of lines.join(" ").match(/--role <[^>]+>/g) ?? [])
+      expect(role).toBe("--role <role>");
   });
 
   it("is empty for a name that is not a command", () => {
@@ -104,6 +115,22 @@ describe("redactUrl", () => {
     expect(redactUrl("https://us/er:hunter2@host")).toBe("<invalid url>");
     expect(redactUrl("https://us\\er" + ":hunter2@host/x")).toBe("<invalid url>");
     expect(redactUrl("https://us%2Fer" + ":hunter2@host")).toBe("https://host");
+  });
+});
+
+describe("redactUrlsIn", () => {
+  it("redacts every URL inside a message and leaves the rest", () => {
+    const text =
+      "request to " +
+      "https://ops" +
+      ":s3cret@backend.example.com/v1/x?token=abc failed (see http://h/p#frag)";
+    expect(redactUrlsIn(text)).toBe(
+      "request to https://backend.example.com/v1/x failed (see http://h/p)",
+    );
+  });
+
+  it("returns text without a URL unchanged", () => {
+    expect(redactUrlsIn("fetch failed: ECONNREFUSED")).toBe("fetch failed: ECONNREFUSED");
   });
 });
 

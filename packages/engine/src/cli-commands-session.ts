@@ -314,7 +314,7 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
     if (!ra) {
       const roles = Object.keys(descriptor.roles).join(", ");
       process.stderr.write(
-        `capture-auth: role "${role}" not in ${descriptorPath} (roles: ${roles}); pass --role <name>\n`,
+        `capture-auth: role "${role}" not in ${descriptorPath} (roles: ${roles}); pass --role <role>\n`,
       );
       return 1;
     }
