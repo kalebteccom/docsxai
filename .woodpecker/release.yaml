@@ -1,0 +1,82 @@
+# ci-optimised: v1
+# Release pipeline: packs, verifies and stages the six npm packages for one tag. See RELEASING.md.
+# Mirrors .github/workflows/release.yml (build, dry-run, publish) without provenance and without the GitHub Release step.
+#
+# INVARIANT: manual event only. The owner starts it from the Woodpecker UI with the manual-pipeline variable RELEASE_TAG=vX.Y.Z[-pre],
+# on the branch whose head is the tagged commit. No push, pull_request, tag or cron trigger: PR-derived code never runs here.
+# INVARIANT: the publish step is the only step that names a secret. npm_publish_token is a stage-only npm token, and the repo admin
+# restricts the secret's events to exactly `manual`, so no other event can read it even if a pipeline asked for it.
+# NOTE: a manual run uses this file and scripts/release-publish.sh as they are on the branch the owner picks; pick the tagged commit on main (or a release/vX.Y.Z branch at the tag) and nothing else.
+# INVARIANT: RELEASE_PUBLISH_MODE is pinned to stage below; switching to direct is a reviewed change to this file (see RELEASING.md).
+
+when:
+  - event: manual
+
+steps:
+  # No shared pnpm store: a release installs from the registry against the lockfile, like release.yml, so a store
+  # written by branch pipelines cannot reach the published tarballs. The store sits in the container's /tmp and node_modules
+  # in the workspace gets copies, so later steps need no store.
+  - name: setup
+    image: remotxai-ci:latest
+    depends_on: []
+    commands:
+      - node --version
+      - npm --version
+      - pnpm install --frozen-lockfile --ignore-scripts --store-dir /tmp/pnpm-store
+
+  - name: build
+    image: remotxai-ci:latest
+    depends_on: [setup]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    commands:
+      - bash scripts/gate-slot.sh pnpm build
+
+  # Same checks as the build job of release.yml, on the commit being released.
+  - name: verify
+    image: remotxai-ci:latest
+    depends_on: [build]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    # PERFORMANCE: the slot pool is shared with trackxai and remotxai, so cap the packages tested in parallel.
+    environment:
+      npm_config_workspace_concurrency: "2"
+    commands:
+      - bash scripts/gate-slot.sh pnpm typecheck
+      - bash scripts/gate-slot.sh pnpm test
+
+  # Needs no credentials. Fails before publish when RELEASE_TAG is missing, is not HEAD, or differs from a package version,
+  # or when npm is older than 11.15.0.
+  - name: dry-run
+    image: remotxai-ci:latest
+    depends_on: [build]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    environment:
+      RELEASE_REQUIRE_TAG: "1"
+      # The script fetches the tag and compares it with HEAD; the workspace may belong to another uid than this container's.
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: "*"
+      RELEASE_PUBLISH_MODE: stage
+    commands:
+      - bash scripts/gate-slot.sh node scripts/audit-package-contents.mjs
+      - bash scripts/gate-slot.sh bash scripts/release-publish.sh dry-run
+
+  # Stages each version with `npm stage publish`; nothing is live until the owner runs `npm stage approve --otp`.
+  # The script reads the token from NODE_AUTH_TOKEN, never prints it and writes it to no file.
+  - name: publish
+    image: remotxai-ci:latest
+    depends_on: [verify, dry-run]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    environment:
+      RELEASE_PUBLISH_MODE: stage
+      # Same as dry-run.
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: "*"
+      NODE_AUTH_TOKEN:
+        from_secret: npm_publish_token
+    commands:
+      - bash scripts/gate-slot.sh bash scripts/release-publish.sh publish

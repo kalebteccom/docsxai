@@ -7,8 +7,8 @@ or Action with broad scope.
 ## Allowed
 
 - **Dependabot** — GitHub-native, `pull_request`-triggered, no secrets
-  exposure to PR-derived code. Auto-merge constrained to dev-deps patches
-  with a 7-day cooldown via `.github/workflows/dependabot-auto-merge.yml`.
+  exposure to PR-derived code. No auto-merge: every Dependabot PR is
+  human-reviewed and merges on a green Woodpecker pipeline like any other.
 - **CodeQL (default setup)** — GitHub-native, no secrets, results gated
   on PR status check.
 - **GitHub Secret Scanning + push protection** — free for public repos;

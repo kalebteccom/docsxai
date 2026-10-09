@@ -1,6 +1,7 @@
 # ci-optimised: v1
 # Mirrors remotxai's Woodpecker layout. Gates match the AGENTS.md quality gate contract.
-# INVARIANT: this pipeline never publishes and names no secrets; releases stay in .github/workflows/release.yml (OIDC).
+# This is the only merge gate: a pull request merges on a green pipeline at its exact head commit. GitHub Actions runs release.yml only.
+# INVARIANT: this pipeline never publishes and names no secrets. Releases run in .woodpecker/release.yaml (manual event only) and, until it is retired, .github/workflows/release.yml (OIDC).
 
 # INVARIANT: push events only. The repo is public and Woodpecker runs with allow_pr=false, so a PR gets its status from the push to its branch; no pull_request, tag or release events.
 when:
@@ -32,7 +33,44 @@ steps:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     commands:
       - bash scripts/gate-slot.sh pnpm lint
+
+  # Prettier needs no build output, so this runs beside build.
+  - name: format-check
+    image: remotxai-ci:latest
+    depends_on: [setup]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    commands:
       - bash scripts/gate-slot.sh pnpm format:check
+
+  # pnpm audit reads the npm advisory endpoint; the other two are offline checks of node_modules and the lockfile.
+  - name: audit
+    image: remotxai-ci:latest
+    depends_on: [setup]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    commands:
+      - bash scripts/gate-slot.sh pnpm audit:prod
+      - bash scripts/gate-slot.sh pnpm licenses:check
+      - bash scripts/gate-slot.sh node scripts/lockfile-lint.mjs
+
+  # Reads the dist/ output of build through npm pack --dry-run, so no second build.
+  - name: package-contents
+    image: remotxai-ci:latest
+    depends_on: [build]
+    volumes:
+      - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
+    commands:
+      - bash scripts/gate-slot.sh node scripts/audit-package-contents.mjs
+
+  # Scans only the commits this push brings in; scripts/secret-scan-range.sh computes the range and fails when it cannot.
+  # Needs no install, so it starts with setup. Not slot-gated: gate-slot.sh needs bash and flock, which this image is not known to carry, and the scan is short.
+  # PIN: version tag; replace with the image digest once read from the registry.
+  - name: secret-scan
+    image: trufflesecurity/trufflehog:3.97.6
+    depends_on: []
+    commands:
+      - sh scripts/secret-scan-range.sh
 
   - name: build
     image: remotxai-ci:latest
@@ -50,6 +88,8 @@ steps:
     commands:
       - bash scripts/gate-slot.sh pnpm depcruise
       - bash scripts/gate-slot.sh pnpm jscpd:check
+      # The page plan of the screenshot scripts; scripts/visual-*.mjs are kept without a runner.
+      - bash scripts/gate-slot.sh node --test scripts/visual-plan.test.mjs
 
   # Runs after build: the docsxai meta-package test spawns the built dist/ output.
   # The keystone suite inside this step skips itself when Chromium is absent (see keystone below).
@@ -73,7 +113,8 @@ steps:
       - bash scripts/gate-slot.sh pnpm docs:build
 
   # DISABLED: remotxai-ci carries the Chromium system libraries but not the browser binary, so the keystone suite in the test step skips silently.
-  # Enable by deleting the evaluate guard once the image is confirmed to run Chromium headless; the download below is the install ci.yml uses.
+  # Enable by deleting the evaluate guard once the image is confirmed to run Chromium headless; the download below is the documented Chromium install.
+  # Until then no pipeline runs the keystone suite against a real browser.
   - name: keystone
     image: remotxai-ci:latest
     depends_on: [build]

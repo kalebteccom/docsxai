@@ -103,7 +103,7 @@ The engine sits behind a `BrowserDriver` interface, not hard-wired to Playwright
 
 ## Workspace + paths
 
-All file IO is workspace-rooted, never `cwd`. A `docsxai` workspace is the directory passed as the CLI argument (e.g. `~/docsxai/my-app`); all artifacts (flow-files, `annotations.json`, screenshots, locator manifest, auth descriptor, halt context, viewer output) live under it. Internal Kalebtec paths do not appear in code, comments, tests, or public docs. The one exception is the CI runner's lock and cache mount paths in `.woodpecker.yml` and `scripts/gate-slot.sh`; they name directories on the CI host and carry no secrets.
+All file IO is workspace-rooted, never `cwd`. A `docsxai` workspace is the directory passed as the CLI argument (e.g. `~/docsxai/my-app`); all artifacts (flow-files, `annotations.json`, screenshots, locator manifest, auth descriptor, halt context, viewer output) live under it. Internal Kalebtec paths do not appear in code, comments, tests, or public docs. The one exception is the CI runner's lock and cache mount paths in `.woodpecker/*.yaml` and `scripts/gate-slot.sh`; they name directories on the CI host and carry no secrets.
 
 ## Worktree conventions
 
@@ -165,6 +165,15 @@ of the gate; see `docs/ai-context/architecture/fitness-functions.md`.
 The keystone test (`packages/engine/test/keystone.test.ts`) requires Chromium and runs the runtime end-to-end against a real browser — run it for anything touching page interaction, the runtime, or auth strategies.
 
 Every behavior-change diff verifies this gate locally before pushing — never push and hope CI catches it. CI runs the same gate; a CI failure on push is a self-inflicted wound.
+
+## CI and the merge gate
+
+- The merge gate is the Woodpecker pipeline in `.woodpecker/ci.yaml` at the exact head commit of the pull request. Woodpecker runs on push events only, so a pull request gets its status from the push to its branch. Merge only when the pipeline for the head SHA being merged is green. A green run on an earlier commit of the branch does not count.
+- GitHub has no required status checks. Its ruleset blocks branch deletion and force push only, so whoever merges checks the Woodpecker status.
+- Pipeline steps: setup, build, typecheck, lint, format-check, architecture (depcruise, jscpd, the screenshot plan test), test, docs-build, audit (`pnpm audit:prod`, licenses, lockfile lint), package-contents (`scripts/audit-package-contents.mjs`) and secret-scan (trufflehog over the pushed commit range, `scripts/secret-scan-range.sh`).
+- The keystone step is disabled until the CI image is confirmed to run Chromium headless. Run the keystone locally for any change it covers.
+- Releases run in `.woodpecker/release.yaml`, a separate Woodpecker workflow on the `manual` event only. The owner starts it with `RELEASE_TAG`; it stages the six packages with `npm stage publish` and the owner approves them with 2FA. Its `publish` step is the only place the `npm_publish_token` secret is named, and the secret is restricted to the `manual` event. See `RELEASING.md`.
+- GitHub Actions runs `.github/workflows/release.yml` only (npm OIDC publish behind the `release` environment) until the first Woodpecker release succeeds; a follow-up deletes it. An Actions run that fails on billing is expected and is not a gate.
 
 ## Related
 
