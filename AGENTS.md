@@ -26,18 +26,18 @@ One name everywhere: the product, the GitHub repo (`kalebteccom/docsxai`), the C
 
 Agents reading this file must not invoke the commands below unless the operator explicitly authorizes the specific invocation in the same session.
 
-| Pattern                                                             | Decision       | Why                                                                                                                                                   |
-| ------------------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm publish`, `npm publish`                                       | forbidden      | Releases go through OIDC trusted publishing in `release.yml`. No human or agent runs publish locally (baseline rule 8).                               |
-| `npm install -g <anything>`                                         | prompt         | Global installs are a typosquat vector and route around the project lockfile (baseline rules 41 / 49).                                                |
-| `git push --force` (and `--force-with-lease` to protected branches) | forbidden      | Branch ruleset rejects this server-side; the agent layer is defense-in-depth (baseline rule 26).                                                      |
-| `pnpm -C packages/engine exec playwright-core install chromium`     | explicit allow | Documented Playwright/Chromium fetch — the legit exception to `--ignore-scripts` (baseline rule 39). Must not be blocked by any blanket install rule. |
-| `gh pr merge --admin`                                               | forbidden      | Bypasses branch protection and CODEOWNERS review (baseline rules 25 / 26).                                                                            |
-| `curl <url> \| bash`, `wget <url> \| bash`                          | forbidden      | Unverified pipe-to-shell is the Codecov-2021 class. Fetch + SHA-256 verify instead (baseline rule 41).                                                |
-| `git reset --hard`                                                  | forbidden      | Never discard local work. Use a targeted revert if asked.                                                                                             |
-| `git checkout -- <path>`                                            | forbidden      | Never overwrite local files with checkout.                                                                                                            |
-| `git clean`                                                         | prompt         | Deletes untracked work; needs explicit operator review.                                                                                               |
-| `rm -rf`                                                            | prompt         | Recursive deletion needs explicit operator review.                                                                                                    |
+| Pattern                                                             | Decision       | Why                                                                                                                                                                                                       |
+| ------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm publish`, `npm publish`                                       | forbidden      | Releases publish from the Woodpecker release pipeline (`.woodpecker/release.yaml`, manual trigger) or, until it is retired, from `release.yml`. No human or agent runs publish locally (baseline rule 8). |
+| `npm install -g <anything>`                                         | prompt         | Global installs are a typosquat vector and route around the project lockfile (baseline rules 41 / 49).                                                                                                    |
+| `git push --force` (and `--force-with-lease` to protected branches) | forbidden      | Branch ruleset rejects this server-side; the agent layer is defense-in-depth (baseline rule 26).                                                                                                          |
+| `pnpm -C packages/engine exec playwright-core install chromium`     | explicit allow | Documented Playwright/Chromium fetch — the legit exception to `--ignore-scripts` (baseline rule 39). Must not be blocked by any blanket install rule.                                                     |
+| `gh pr merge --admin`                                               | forbidden      | Bypasses branch protection and CODEOWNERS review (baseline rules 25 / 26).                                                                                                                                |
+| `curl <url> \| bash`, `wget <url> \| bash`                          | forbidden      | Unverified pipe-to-shell is the Codecov-2021 class. Fetch + SHA-256 verify instead (baseline rule 41).                                                                                                    |
+| `git reset --hard`                                                  | forbidden      | Never discard local work. Use a targeted revert if asked.                                                                                                                                                 |
+| `git checkout -- <path>`                                            | forbidden      | Never overwrite local files with checkout.                                                                                                                                                                |
+| `git clean`                                                         | prompt         | Deletes untracked work; needs explicit operator review.                                                                                                                                                   |
+| `rm -rf`                                                            | prompt         | Recursive deletion needs explicit operator review.                                                                                                                                                        |
 
 Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreToolUse` hooks under `.claude/hooks/` and equivalents for Codex / Cursor; advisory where not yet wired.
 
@@ -57,7 +57,7 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 - `packages/plugin-starlight/` — `@docsxai/plugin-starlight`. First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter.
 - `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `agent-guidance.md` (the reach-for-this-not-that footgun map for calibration agents), `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
 - `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — recorded decision history. Consult for the rationale behind a fixed boundary; the standing spec and scope live in `AGENTS.md`, `docs/`, and `docs/ai-context/`, not here.
-- `RELEASING.md` — release checklist (OIDC trusted publishing via `release.yml`).
+- `RELEASING.md` — release checklist (Woodpecker release pipeline with an npm token; `release.yml` OIDC publishing until retired).
 
 ## Trust + execution posture
 
@@ -169,10 +169,10 @@ Every behavior-change diff verifies this gate locally before pushing — never p
 ## CI and the merge gate
 
 - The merge gate is the Woodpecker pipeline in `.woodpecker/ci.yaml` at the exact head commit of the pull request. Woodpecker runs on push events only, so a pull request gets its status from the push to its branch. Merge only when the pipeline for the head SHA being merged is green. A green run on an earlier commit of the branch does not count.
-- GitHub has no required status checks. Its ruleset blocks branch deletion and force push only, so whoever merges checks the Woodpecker status.
+- The `main` ruleset requires the Woodpecker status `ci/woodpecker/push/ci` besides blocking branch deletion and force push. `ci.yaml` does not run on pushes to `main`: a PR merges on green at its exact head, so main equals the gated tree and is not gated twice.
 - Pipeline steps: setup, build, typecheck, lint, format-check, architecture (depcruise, jscpd, the screenshot plan test), test, docs-build, audit (`pnpm audit:prod`, licenses, lockfile lint), package-contents (`scripts/audit-package-contents.mjs`) and secret-scan (trufflehog over the pushed commit range, `scripts/secret-scan-range.sh`).
 - The keystone step is disabled until the CI image is confirmed to run Chromium headless. Run the keystone locally for any change it covers.
-- Releases run in `.woodpecker/release.yaml`, a separate Woodpecker workflow on the `manual` event only. The owner starts it with `RELEASE_TAG`; it stages the six packages with `npm stage publish` and the owner approves them with 2FA. Its `publish` step is the only place the `npm_publish_token` secret is named, and the secret is restricted to the `manual` event. See `RELEASING.md`.
+- Releases run in `.woodpecker/release.yaml`, a separate Woodpecker workflow on the `manual` event only. The owner, or an agent the owner authorises, starts it with `RELEASE_TAG`; after verify and dry-run it publishes the six packages directly to npm with a bypass-2FA token IP-locked to the CI box (no provenance, no stage approval). Its `publish` step is the only place the `npm_publish_token` secret is named, and the secret is restricted to the `manual` event. See `RELEASING.md`.
 - GitHub Actions runs `.github/workflows/release.yml` only (npm OIDC publish behind the `release` environment) until the first Woodpecker release succeeds; a follow-up deletes it. An Actions run that fails on billing is expected and is not a gate.
 
 ## Related

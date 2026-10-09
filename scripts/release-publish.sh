@@ -10,10 +10,10 @@
 #   RELEASE_TAG            the vX.Y.Z[-pre] tag to release. Falls back to
 #                          GITHUB_REF_NAME on a GitHub tag push.
 #   RELEASE_REQUIRE_TAG=1  dry-run fails without a tag too (Woodpecker).
-#   RELEASE_PUBLISH_MODE   stage (default off GitHub Actions): `npm stage
-#                          publish`, a maintainer approves each stage with 2FA.
-#                          direct (default on GitHub Actions): `npm publish`,
+#   RELEASE_PUBLISH_MODE   direct (default on every runner): `npm publish`,
 #                          with --provenance on GitHub Actions only.
+#                          stage: `npm stage publish`, a maintainer approves
+#                          each stage with 2FA. Inactive: no pipeline sets it.
 #   NODE_AUTH_TOKEN        the npm token, off GitHub Actions only. Never printed.
 #
 # With a tag, the checked-out commit must be the tag's commit and every package
@@ -21,6 +21,7 @@
 # first publish call, so a bad tarball or a mismatch fails the run with nothing
 # on the registry. A version already on npm is skipped, so a rerun after a
 # partial publish finishes the remaining packages instead of failing with a 403.
+# An auth, token or permission error from npm stops the run at once.
 set -euo pipefail
 set +x
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -42,10 +43,7 @@ esac
 on_github=false
 [ "${GITHUB_ACTIONS:-}" = "true" ] && on_github=true
 
-publish_mode="${RELEASE_PUBLISH_MODE:-}"
-if [ -z "$publish_mode" ]; then
-  if $on_github; then publish_mode=direct; else publish_mode=stage; fi
-fi
+publish_mode="${RELEASE_PUBLISH_MODE:-direct}"
 case "$publish_mode" in
   stage | direct) ;;
   *) fail "RELEASE_PUBLISH_MODE must be stage or direct, got '${publish_mode}'" ;;
@@ -84,6 +82,14 @@ packages=(
   @docsxai/skill
   @docsxai/backend
 )
+
+# The publish set is exactly these six. This check catches drift between the
+# list above and this literal; the backstop against a seventh package is code
+# review of a change to both.
+allowed="@docsxai/backend @docsxai/engine @docsxai/plugin @docsxai/skill @docsxai/viewer docsxai"
+actual="$(printf '%s\n' "${packages[@]}" | LC_ALL=C sort | tr '\n' ' ')"
+[ "${actual% }" = "$allowed" ] ||
+  fail "package list is '${actual% }', expected exactly '${allowed}'"
 
 expected=""
 tag="${RELEASE_TAG:-}"
@@ -166,6 +172,13 @@ done
 dist_tag=latest
 case "$expected" in *-*) dist_tag=next ;; esac
 
+# npm error codes and text that mean the token or its permissions are wrong.
+auth_error_re='E401|E403|ENEEDAUTH|EOTP|two-factor'
+
+auth_stop() {
+  fail "npm reported an auth error ($1): token or permission problem: stop and tell the owner. Nothing further was published."
+}
+
 # Returns 0 when name@version is on the registry, 1 when it is not. Anything
 # else (network failure, auth error, unparseable output) aborts the run.
 published() {
@@ -194,6 +207,10 @@ published() {
   esac
   cat "$out/view.err" >&2
   printf '%s\n' "$body" >&2
+  if grep -Eiq "$auth_error_re" "$out/view.err" ||
+    printf '%s' "$body" | grep -Eiq "$auth_error_re"; then
+    auth_stop "npm view ${spec}"
+  fi
   echo "npm view ${spec} gave an unexpected answer; refusing to guess" >&2
   exit 1
 }
@@ -222,6 +239,12 @@ if [ "$mode" = "publish" ] && ! $on_github; then
   printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' >"$npmrc_dir/npmrc"
   chmod 600 "$npmrc_dir/npmrc"
   export NPM_CONFIG_USERCONFIG="$npmrc_dir/npmrc"
+  # npm writes a debug log on failure; keep it at notice level and inside the
+  # directory removed on exit, so no verbose request header can reach a
+  # persistent path.
+  export NPM_CONFIG_LOGLEVEL=notice
+  export NPM_CONFIG_LOGS_DIR="$npmrc_dir/npm-logs"
+  mkdir -p "$NPM_CONFIG_LOGS_DIR"
 fi
 
 staged=()
@@ -232,9 +255,23 @@ for i in "${!packages[@]}"; do
   if published "$spec" "${versions[$i]}"; then
     echo "${spec} already on npm, skipping"
   else
-    "${publish_cmd[@]}" "${tarballs[$i]}" "${flags[@]}"
+    # Output goes to the log and to a file that is checked for auth errors.
+    # npm never prints the token.
+    rc=0
+    publish_log="$out/publish.$i.log"
+    (umask 077 && : >"$publish_log")
+    "${publish_cmd[@]}" "${tarballs[$i]}" "${flags[@]}" 2>&1 | tee "$publish_log" || rc=$?
+    if [ "$rc" -ne 0 ]; then
+      if grep -Eiq "$auth_error_re" "$publish_log"; then
+        auth_stop "${publish_cmd[*]} ${spec}"
+      fi
+      fail "${publish_cmd[*]} ${spec} failed (exit ${rc}); nothing after it was published"
+    fi
     if [ "$mode" = "publish" ] && [ "$publish_mode" = "stage" ]; then
       staged+=("$pkg")
+      echo "staged ${spec} (dist-tag ${dist_tag})"
+    elif [ "$mode" = "publish" ]; then
+      echo "published ${spec} (dist-tag ${dist_tag})"
     fi
   fi
   echo "::endgroup::"

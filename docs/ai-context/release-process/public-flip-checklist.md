@@ -20,7 +20,7 @@ This is the artifact the owner walks through line-by-line on flip day. The plann
 
 ## 3. GitHub settings (still private)
 
-- [ ] Branch protection on `main`: no required status checks (the merge gate is the green Woodpecker pipeline at the head SHA, see `AGENTS.md`), required PR review, no force-push, linear history, signed commits required.
+- [ ] Branch protection on `main`: the required status check is the Woodpecker `ci/woodpecker/push/ci` (the merge gate is the green pipeline at the head SHA, see `AGENTS.md`), required PR review, no force-push, linear history, signed commits required.
 - [ ] CODEOWNERS protections cover: `.github/`, every `package.json`, every `LICENSE`, `release.yml`.
 - [ ] Repository "Secrets and variables → Actions" contains only what `release.yml` needs (none, if OIDC is fully set up). No long-lived npm tokens.
 - [ ] Repository "Environments → release": required reviewer is the maintainer's account; deployment branch rule restricted to `main` and tags `v*`.
