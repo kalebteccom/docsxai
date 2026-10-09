@@ -32,7 +32,11 @@ export const lintFlowsTool = defineTool({
     "error or warning is left. Fails with the available flow names when `flow` does not exist.",
   inputSchema: {
     workspace: WORKSPACE_ARG,
-    flow: z.string().min(1).optional().describe("Lint only this flow, by name (default: every flow)"),
+    flow: z
+      .string()
+      .min(1)
+      .optional()
+      .describe("Lint only this flow, by name (default: every flow)"),
   },
   async handler(args, ctx) {
     const ws = await requireWorkspace(args.workspace, ctx);

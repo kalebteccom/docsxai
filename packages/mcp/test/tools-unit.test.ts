@@ -65,7 +65,7 @@ describe("registry shape", () => {
   it("every input argument has a description an agent can read", () => {
     for (const def of TOOL_DEFINITIONS) {
       for (const [key, field] of Object.entries(def.inputSchema)) {
-        expect((field as z.ZodTypeAny).description ?? "", `${def.name}.${key}`).not.toBe("");
+        expect(field.description ?? "", `${def.name}.${key}`).not.toBe("");
       }
     }
   });
