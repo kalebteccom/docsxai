@@ -5,8 +5,8 @@ This is the artifact the owner walks through line-by-line on flip day. The plann
 ## 1. Pre-flip code state — last green build
 
 - [ ] `main` is at the commit you intend to ship. Note the SHA here: `_____`
-- [ ] CI on that SHA is green across every required check: `lint`, `format-check`, `audit`, `secret-scan`, `package-contents`, `build` matrix.
-- [ ] `zizmor --persona=auditor --min-severity=high .github/workflows/` reports `No findings to report.` (the in-CI zizmor job stays advisory because of the upstream `zizmorcore/zizmor-action` infra issue — see the TODO in `quality.yml`).
+- [ ] The Woodpecker pipeline on that SHA is green across every step: `build`, `typecheck`, `lint`, `format-check`, `architecture`, `test`, `docs-build`, `audit`, `package-contents`, `secret-scan`.
+- [ ] `zizmor --persona=auditor --min-severity=high .github/workflows/` reports `No findings to report.` (run by hand; no CI step runs zizmor since the gate workflows moved to Woodpecker and only `release.yml` remains).
 - [ ] `pnpm install --frozen-lockfile && pnpm typecheck && pnpm build && pnpm test && pnpm lint && pnpm format:check && node scripts/audit-package-contents.mjs && node scripts/lockfile-lint.mjs` all clean locally on a fresh clone.
 
 ## 2. Git scrub — full history, not just HEAD
@@ -20,7 +20,7 @@ This is the artifact the owner walks through line-by-line on flip day. The plann
 
 ## 3. GitHub settings (still private)
 
-- [ ] Branch protection on `main`: required CI checks (every `quality.yml` job + `ci.yml` build matrix), required PR review, no force-push, linear history, signed commits required.
+- [ ] Branch protection on `main`: no required status checks (the merge gate is the green Woodpecker pipeline at the head SHA, see `AGENTS.md`), required PR review, no force-push, linear history, signed commits required.
 - [ ] CODEOWNERS protections cover: `.github/`, every `package.json`, every `LICENSE`, `release.yml`.
 - [ ] Repository "Secrets and variables → Actions" contains only what `release.yml` needs (none, if OIDC is fully set up). No long-lived npm tokens.
 - [ ] Repository "Environments → release": required reviewer is the maintainer's account; deployment branch rule restricted to `main` and tags `v*`.

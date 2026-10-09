@@ -191,7 +191,7 @@ Codecov, etc.) are **not** installed and will not be invited. The
 rationale: each installed App expands the trusted-write surface to a
 third party whose own compromise becomes our compromise, and the
 findings these tools surface are already covered by first-party CI
-(`pnpm audit`, secret scanning, `zizmor`, license-checker, lockfile
+(`pnpm audit`, trufflehog secret scanning, license-checker, lockfile
 lint). Once the bot allowlist artifact lands in `.github/`, that file
 holds the canonical policy. Adding a new App that requires write
 access requires explicit owner approval and a rationale entry there.

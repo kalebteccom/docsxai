@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Screenshot the built docs site and a rendered viewer pack in Chromium, for
-// the visual-captures workflow. It writes PNGs and a markdown summary; it
-// compares nothing. It fails when a server cannot start, Chromium cannot
-// launch or no capture succeeds. A single capture that fails is listed in the
-// summary.
+// Screenshot the built docs site and a rendered viewer pack in Chromium. No CI
+// step runs it today; see docs/ai-context/ux/visual-captures.md. It writes
+// PNGs and a markdown summary; it compares nothing. It fails when a server
+// cannot start, Chromium cannot launch or no capture succeeds. A single
+// capture that fails is listed in the summary.
 //
 //   node scripts/visual-capture.mjs --site website/dist --viewer <dir> \
 //     --empty <dir> --out <dir> [--summary <file>] [--artifact <name>]

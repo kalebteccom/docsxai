@@ -6,8 +6,8 @@ version: 2
 #   - Group dev-deps patches into a single PR.
 #   - Ignore semver-major across the board — every major bump is a human
 #     review (security regressions tend to ride along on major upgrades).
-#   - github-actions ecosystem included; auto-merge workflow refuses to
-#     merge these (they're code-execution changes).
+#   - github-actions ecosystem included for release.yml. Nothing auto-merges;
+#     every Dependabot PR is human-reviewed.
 
 updates:
   - package-ecosystem: npm

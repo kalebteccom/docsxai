@@ -1,16 +1,27 @@
-# Visual captures in CI
+# Visual captures
 
-`.github/workflows/visual-captures.yml` runs on pull requests that change `website/**`, `packages/viewer/**`, the capture scripts or the workflow. It builds the docs site and renders the sample pack in `examples/ci/sample-repo/docs-workspace/docs` plus an empty pack, opens them in headless Chromium and uploads the PNGs as the `visual-captures` artifact. Nothing is compared and the job never fails on what a picture shows. It fails when a build breaks, a static server cannot start, Chromium cannot launch or not one capture succeeds. A single failed capture is listed in the run summary and the job stays green.
+The `visual-captures` GitHub Actions workflow was retired when CI moved to Woodpecker, so no pipeline takes these screenshots today. The scripts stay in the repository and do not depend on a CI runner, so a Woodpecker step can run them later. The Woodpecker `architecture` step runs `scripts/visual-plan.test.mjs`.
 
-The page list and file names live in `scripts/visual-plan.mjs`, the browser steps in `scripts/visual-capture.mjs`. Playwright comes from `@docsxai/engine`'s `playwright-core`, so the job adds no dependency.
+The scripts build nothing themselves. Given a built docs site, a rendered sample pack (`examples/ci/sample-repo/docs-workspace/docs`) and an empty pack, they open each in headless Chromium and write PNGs plus a markdown summary. Nothing is compared. A run fails when a static server cannot start, Chromium cannot launch or not one capture succeeds. A single failed capture is listed in the summary and the run still exits 0.
 
-This is not the per-PR browser capture that `docs/ci-recipes.md` warns adopters about: it reads two static builds from this repository, needs no credentials and runs on GitHub-hosted runners.
+The page list and file names live in `scripts/visual-plan.mjs`, the browser steps in `scripts/visual-capture.mjs`. Playwright comes from `@docsxai/engine`'s `playwright-core`, so the scripts add no dependency.
 
-## Getting the files
+This is not the per-PR browser capture that `docs/ci-recipes.md` warns adopters about: it reads two static builds from this repository and needs no credentials.
 
-1. Open the pull request's Checks tab, then the `visual-captures` run.
-2. The run summary lists every PNG by surface, and any capture that failed with its first error line.
-3. Download `visual-captures` from the Artifacts section at the bottom of the summary. It is kept for 14 days.
+## Running the captures
+
+```bash
+pnpm --filter @docsxai/viewer build
+pnpm --filter @docsxai/website build
+pnpm -C packages/engine exec playwright-core install chromium
+mkdir -p /tmp/empty-docs
+node packages/viewer/dist/index.js build examples/ci/sample-repo/docs-workspace/docs /tmp/viewer
+node packages/viewer/dist/index.js build /tmp/empty-docs /tmp/viewer-empty
+node scripts/visual-capture.mjs --site website/dist --viewer /tmp/viewer \
+  --empty /tmp/viewer-empty --out /tmp/visual --summary /tmp/visual-summary.md
+```
+
+The summary lists every PNG by surface, and any capture that failed with its first error line.
 
 ## File names
 
@@ -38,7 +49,7 @@ This is not the per-PR browser capture that `docs/ci-recipes.md` warns adopters 
 | `viewer/error`            | flow page with every screenshot request aborted: the error line, Retry  |
 | `viewer/empty`            | index of a pack with no flows                                           |
 
-To add a page or state, add an entry to `SHOTS` in `scripts/visual-plan.mjs` and, if it needs one, an action in `ACTIONS` in `scripts/visual-capture.mjs`. `scripts/visual-plan.test.mjs` runs first in the job.
+To add a page or state, add an entry to `SHOTS` in `scripts/visual-plan.mjs` and, if it needs one, an action in `ACTIONS` in `scripts/visual-capture.mjs`. `scripts/visual-plan.test.mjs` checks the plan and runs in the Woodpecker `architecture` step.
 
 ## What the screenshots cover
 

@@ -166,6 +166,14 @@ The keystone test (`packages/engine/test/keystone.test.ts`) requires Chromium an
 
 Every behavior-change diff verifies this gate locally before pushing — never push and hope CI catches it. CI runs the same gate; a CI failure on push is a self-inflicted wound.
 
+## CI and the merge gate
+
+- The merge gate is the Woodpecker pipeline in `.woodpecker.yml` at the exact head commit of the pull request. Woodpecker runs on push events only, so a pull request gets its status from the push to its branch. Merge only when the pipeline for the head SHA being merged is green. A green run on an earlier commit of the branch does not count.
+- GitHub has no required status checks. Its ruleset blocks branch deletion and force push only, so whoever merges checks the Woodpecker status.
+- Pipeline steps: setup, build, typecheck, lint, format-check, architecture (depcruise, jscpd, the screenshot plan test), test, docs-build, audit (`pnpm audit:prod`, licenses, lockfile lint), package-contents (`scripts/audit-package-contents.mjs`) and secret-scan (trufflehog over the pushed commit range, `scripts/secret-scan-range.sh`).
+- The keystone step is disabled until the CI image is confirmed to run Chromium headless. Run the keystone locally for any change it covers.
+- GitHub Actions runs `.github/workflows/release.yml` only (npm OIDC publish behind the `release` environment). An Actions run that fails on billing is expected and is not a gate.
+
 ## Related
 
 - [`SECURITY.md`](SECURITY.md) — vulnerability reporting + trust posture.
