@@ -50,7 +50,17 @@ if [ "$count" -eq 0 ]; then
   echo "secret-scan: range is empty (a re-run of an already scanned commit); nothing new to scan"
   exit 0
 fi
-exec trufflehog git "file://$(pwd)" \
+# trufflehog clones the repository it scans. The CI checkout can be a filtered
+# clone with missing trees, which a local clone cannot serve ("bad tree object"),
+# so scan a fresh full clone instead. Fails closed when it cannot be made.
+url="${CI_REPO_CLONE_URL:-}"
+[ -n "$url" ] || die "CI_REPO_CLONE_URL is not set; cannot make a full clone to scan"
+scan_dir="$(mktemp -d)"
+git clone --quiet --no-tags "$url" "$scan_dir/repo" || die "cannot clone $url for the scan"
+cd "$scan_dir/repo"
+is_commit "$head" || git fetch --quiet --no-tags origin "$head" || die "commit $head is not on origin"
+is_commit "$base" || die "base $base is not in the fresh clone"
+exec trufflehog git "file://$scan_dir/repo" \
   --since-commit="$base" \
   --branch="$head" \
   --results=verified,unknown \
