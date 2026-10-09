@@ -26,18 +26,18 @@ One name everywhere: the product, the GitHub repo (`kalebteccom/docsxai`), the C
 
 Agents reading this file must not invoke the commands below unless the operator explicitly authorizes the specific invocation in the same session.
 
-| Pattern                                                             | Decision       | Why                                                                                                                                                   |
-| ------------------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm publish`, `npm publish`                                       | forbidden      | Releases go through OIDC trusted publishing in `release.yml`. No human or agent runs publish locally (baseline rule 8).                               |
-| `npm install -g <anything>`                                         | prompt         | Global installs are a typosquat vector and route around the project lockfile (baseline rules 41 / 49).                                                |
-| `git push --force` (and `--force-with-lease` to protected branches) | forbidden      | Branch ruleset rejects this server-side; the agent layer is defense-in-depth (baseline rule 26).                                                      |
-| `pnpm -C packages/engine exec playwright-core install chromium`     | explicit allow | Documented Playwright/Chromium fetch — the legit exception to `--ignore-scripts` (baseline rule 39). Must not be blocked by any blanket install rule. |
-| `gh pr merge --admin`                                               | forbidden      | Bypasses branch protection and CODEOWNERS review (baseline rules 25 / 26).                                                                            |
-| `curl <url> \| bash`, `wget <url> \| bash`                          | forbidden      | Unverified pipe-to-shell is the Codecov-2021 class. Fetch + SHA-256 verify instead (baseline rule 41).                                                |
-| `git reset --hard`                                                  | forbidden      | Never discard local work. Use a targeted revert if asked.                                                                                             |
-| `git checkout -- <path>`                                            | forbidden      | Never overwrite local files with checkout.                                                                                                            |
-| `git clean`                                                         | prompt         | Deletes untracked work; needs explicit operator review.                                                                                               |
-| `rm -rf`                                                            | prompt         | Recursive deletion needs explicit operator review.                                                                                                    |
+| Pattern                                                             | Decision       | Why                                                                                                                                                                                                       |
+| ------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm publish`, `npm publish`                                       | forbidden      | Releases publish from the Woodpecker release pipeline (`.woodpecker/release.yaml`, manual trigger) or, until it is retired, from `release.yml`. No human or agent runs publish locally (baseline rule 8). |
+| `npm install -g <anything>`                                         | prompt         | Global installs are a typosquat vector and route around the project lockfile (baseline rules 41 / 49).                                                                                                    |
+| `git push --force` (and `--force-with-lease` to protected branches) | forbidden      | Branch ruleset rejects this server-side; the agent layer is defense-in-depth (baseline rule 26).                                                                                                          |
+| `pnpm -C packages/engine exec playwright-core install chromium`     | explicit allow | Documented Playwright/Chromium fetch — the legit exception to `--ignore-scripts` (baseline rule 39). Must not be blocked by any blanket install rule.                                                     |
+| `gh pr merge --admin`                                               | forbidden      | Bypasses branch protection and CODEOWNERS review (baseline rules 25 / 26).                                                                                                                                |
+| `curl <url> \| bash`, `wget <url> \| bash`                          | forbidden      | Unverified pipe-to-shell is the Codecov-2021 class. Fetch + SHA-256 verify instead (baseline rule 41).                                                                                                    |
+| `git reset --hard`                                                  | forbidden      | Never discard local work. Use a targeted revert if asked.                                                                                                                                                 |
+| `git checkout -- <path>`                                            | forbidden      | Never overwrite local files with checkout.                                                                                                                                                                |
+| `git clean`                                                         | prompt         | Deletes untracked work; needs explicit operator review.                                                                                                                                                   |
+| `rm -rf`                                                            | prompt         | Recursive deletion needs explicit operator review.                                                                                                                                                        |
 
 Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreToolUse` hooks under `.claude/hooks/` and equivalents for Codex / Cursor; advisory where not yet wired.
 
@@ -57,7 +57,7 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 - `packages/plugin-starlight/` — `@docsxai/plugin-starlight`. First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter.
 - `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `agent-guidance.md` (the reach-for-this-not-that footgun map for calibration agents), `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
 - `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — recorded decision history. Consult for the rationale behind a fixed boundary; the standing spec and scope live in `AGENTS.md`, `docs/`, and `docs/ai-context/`, not here.
-- `RELEASING.md` — release checklist (OIDC trusted publishing via `release.yml`).
+- `RELEASING.md` — release checklist (Woodpecker release pipeline with an npm token; `release.yml` OIDC publishing until retired).
 
 ## Trust + execution posture
 
