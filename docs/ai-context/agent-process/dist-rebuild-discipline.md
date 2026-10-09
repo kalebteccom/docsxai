@@ -33,7 +33,7 @@ pnpm typecheck && pnpm test && pnpm lint && pnpm format:check && pnpm build
 
 All exit 0. CI runs the same gate. A CI failure on push is a self-inflicted wound — verify locally first. Never push and hope CI catches it.
 
-The keystone test runs inside `pnpm test` and requires Chromium. If CI has Chromium installed and your local environment doesn't, that's a real gap — install it locally (`pnpm -C packages/engine exec playwright-core install chromium`) and re-run the gate.
+The keystone test runs inside `pnpm test` and requires Chromium. The Woodpecker image has no Chromium today, so the keystone branch of `pnpm test` skips there. The keystone result has to come from a Chromium-capable runner (`pnpm -C packages/engine exec playwright-core install chromium`).
 
 ## Related
 

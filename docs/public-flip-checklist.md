@@ -18,7 +18,7 @@ Planning-level checklist for the docsxai public flip. The repo is public and `0.
 - [ ] `pnpm format:check` clean; the gate is load-bearing in `.woodpecker.yml`
 - [ ] Per-package `tsconfig.build.json` excludes tests and disables sourceMap / declarationMap — `node scripts/audit-package-contents.mjs` is clean
 - [ ] `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm audit:prod` all green
-- [ ] `zizmor --persona=auditor --min-severity=high .github/workflows/` reports 0 findings
+- [ ] `zizmor --persona=auditor --min-severity=high .github/workflows/` reports 0 findings (run by hand; no CI step runs zizmor)
 
 ## Pre-flight: owner-driven setup (out-of-repo)
 

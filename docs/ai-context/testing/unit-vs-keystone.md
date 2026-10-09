@@ -23,8 +23,8 @@ mocked test for that class is worse than no test, because it reads as coverage.
 
 - Chromium-gated suites use the established pattern:
   `describe.skipIf(!chromiumAvailable)` with the shared availability probe.
-  CI installs Chromium via the documented
-  `pnpm -C packages/engine exec playwright-core install chromium` step.
+  A Chromium-capable runner installs it with the documented
+  `pnpm -C packages/engine exec playwright-core install chromium` step. The Woodpecker keystone step is disabled until its image carries Chromium.
 - Keystone fixtures are self-contained: the toy site under
   `packages/engine/test/fixtures/toy-site/` served over loopback `node:http`.
   New keystone scenarios extend the toy site rather than reaching for live

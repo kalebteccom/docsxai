@@ -144,7 +144,7 @@ Avoid: factories with `if/else` on a `kind` parameter; >2 levels of `describe` n
 
 Unit tests against a mocked `BrowserDriver` silently pass when the real Playwright integration is broken. The keystone test is the regression gate.
 
-This is not negotiable. A PR touching the runtime without a keystone-passing CI run is incomplete, regardless of unit-test coverage.
+This is not negotiable. A PR touching the runtime needs the keystone suite to pass wherever it runs, regardless of unit-test coverage. The Woodpecker keystone step is disabled until the CI image carries Chromium, so say in the PR which environment ran it.
 
 ## Acceptance criteria
 
