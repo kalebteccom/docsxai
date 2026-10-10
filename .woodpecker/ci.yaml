@@ -40,6 +40,7 @@ steps:
   - name: format-check
     image: remotxai-ci:latest
     depends_on: [setup]
+    runs_on: [success, failure]
     volumes:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     commands:
@@ -49,6 +50,7 @@ steps:
   - name: audit
     image: remotxai-ci:latest
     depends_on: [setup]
+    runs_on: [success, failure]
     volumes:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     commands:
@@ -71,6 +73,7 @@ steps:
   - name: secret-scan
     image: trufflesecurity/trufflehog:3.97.6
     depends_on: []
+    runs_on: [success, failure]
     commands:
       - sh scripts/secret-scan-range.sh
 
@@ -85,6 +88,7 @@ steps:
   - name: architecture
     image: remotxai-ci:latest
     depends_on: [setup]
+    runs_on: [success, failure]
     volumes:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     commands:
