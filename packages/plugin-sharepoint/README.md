@@ -4,7 +4,15 @@ docsxai **publisher plugin** for SharePoint Online. Registers `sharepoint:push`,
 
 The engine emits projections only and performs no wiki egress. This plugin is the SharePoint egress path. Its manifest declares one capability per host the code can reach: `egress:graph.microsoft.com`, `egress:graph.microsoft.us`, `egress:microsoftgraph.chinacloudapi.cn` and `egress:graph.microsoft.de` (the API), and `egress:*.sharepoint.com`, `egress:*.sharepoint.us`, `egress:*.sharepoint.cn` and `egress:*.sharepoint.de` (the pre-authenticated download URL Graph redirects a file read to). The runtime loads a plugin only when every declared capability is enabled, so the workspace's `plugin_capabilities` has to list all eight, whichever cloud the tenant is in. All HTTP uses the built-in `fetch`.
 
-> **Repo-only.** `@docsxai/plugin-sharepoint` is not published to npm (`private: true`). A new publishable package needs an npm trusted-publisher binding first, and that is not set up. Build it from a checkout (`pnpm -r build`) and wire it by path: `{ "path": "<checkout>/packages/plugin-sharepoint" }` (relative paths resolve from the workspace directory).
+> **Experimental.** `@docsxai/plugin-sharepoint` is published to npm as an experimental package (row PLUG-13 of `docs/public-surface.md` in the repository). Graph behaviour has only been tested against an in-process fake server. No live SharePoint tenant has been run, and the folder layout can still move.
+
+## Install
+
+```sh
+pnpm add @docsxai/plugin-sharepoint@next
+```
+
+Prereleases publish under the `next` dist-tag, and the version tracks the other docsxai packages. The package depends on `@docsxai/engine`. Install it in the same project as the `docsxai` CLI that loads it: a `{ "package": ... }` source is resolved from where the engine is installed. A `{ "path": ... }` source works from any location, so a checkout can be wired by path too (`pnpm -r build` first; relative paths resolve from the workspace directory).
 
 ## Design decision: document library, not site pages
 
@@ -14,11 +22,11 @@ The cost: these are files in a library, not modern site pages. They appear in th
 
 ## Wiring
 
-`.docsxai.json`:
+`.docsxai.json` (from a checkout, use `{ "path": "<checkout>/packages/plugin-sharepoint" }` as the plugin source):
 
 ```json
 {
-  "plugins": [{ "path": "<checkout>/packages/plugin-sharepoint" }],
+  "plugins": [{ "package": "@docsxai/plugin-sharepoint" }],
   "plugin_capabilities": [
     "egress:graph.microsoft.com",
     "egress:graph.microsoft.us",
