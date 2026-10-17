@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **`@docsxai/plugin-sharepoint` is published.** It becomes a published experimental package from the next release, as the seventh package in the release set (`scripts/release-publish.sh`, the package-contents audit and `RELEASING.md` list it). It takes the shared release version (`0.3.0-rc.3` now) and drops `"private": true`. Graph behaviour has only been tested against a fake server; no live tenant has run.
+
 ## [0.3.0-rc.3] - 2026-10-09
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.2` it fixes the `@docsxai/plugin` and `@docsxai/skill` tarballs (rc.1 and rc.2 shipped without their commands, skills and skill folder), adds thin themed scrollbars on the docs site, the viewer and emitted Starlight sites, static accessibility checks, the `DOCSX_DEBUG` error path, and the plugin, MCP and docs-accuracy passes.
