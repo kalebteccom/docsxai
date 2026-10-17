@@ -224,6 +224,12 @@ elif [ "$publish_mode" = "stage" ]; then
 elif $on_github; then
   # Provenance needs a GitHub or GitLab OIDC identity; no other runner has one.
   flags+=(--provenance)
+else
+  # Every published package.json carries publishConfig.provenance: true, and npm
+  # then refuses to publish from a runner without that identity ("Automatic
+  # provenance generation not supported for provider"). A flag given on the
+  # command line wins over publishConfig, so switch it off explicitly here.
+  flags+=(--provenance=false)
 fi
 
 # Off GitHub Actions the token comes from NODE_AUTH_TOKEN. The user config

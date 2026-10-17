@@ -36,7 +36,7 @@ Rules for the secret:
 
 What direct mode on Woodpecker gives up compared with GitHub OIDC:
 
-- **No provenance.** `--provenance` needs a GitHub Actions or GitLab CI OIDC identity, so Woodpecker releases carry no Sigstore attestation. The script passes `--provenance` only on GitHub Actions.
+- **No provenance.** `--provenance` needs a GitHub Actions or GitLab CI OIDC identity, so Woodpecker releases carry no Sigstore attestation. The script passes `--provenance` only on GitHub Actions and `--provenance=false` everywhere else: every published `package.json` carries `publishConfig.provenance: true`, npm would refuse to publish from Woodpecker with it ("Automatic provenance generation not supported for provider"), and a flag on the command line wins over `publishConfig` (read from npm's publish command source, npm 11.17).
 - **No trusted publishing.** npm trusted publishing binds a GitHub or GitLab workflow and issues a short-lived credential per run. Woodpecker has no binding, so it publishes with a long-lived token. The trusted-publisher bindings in the Release TODO apply to `release.yml` only.
 - **No 2FA on each publish.** The token bypasses 2FA, so no human confirms a version at publish time. The manual trigger is the last human step.
 - **No SBOM and no GitHub Release from CI.** The pipeline holds no GitHub token. The owner creates the release by hand (step 7 below).
