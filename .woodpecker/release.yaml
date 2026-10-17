@@ -1,16 +1,16 @@
 # ci-optimised: v1
-# Release pipeline: packs, verifies and publishes the six npm packages for one tag. See RELEASING.md.
+# Release pipeline: packs, verifies and publishes the seven npm packages for one tag. See RELEASING.md.
 # Mirrors .github/workflows/release.yml (build, dry-run, publish) without provenance and without the GitHub Release step.
 #
 # INVARIANT: manual event only. The owner (or an agent the owner authorises) starts it from the Woodpecker UI with the manual-pipeline variable RELEASE_TAG=vX.Y.Z[-pre],
 # on the branch whose head is the tagged commit. No push, pull_request, tag or cron trigger: PR-derived code never runs here.
 # INVARIANT: the publish step is the only step that names a secret. npm_publish_token is a granular npm publish token that bypasses
-# 2FA, IP-locked to the CI box, limited to the six packages, with a 90-day expiry. The repo admin restricts the secret's events to
+# 2FA, IP-locked to the CI box, limited to the seven packages, with a 90-day expiry. The repo admin restricts the secret's events to
 # exactly `manual`, so no other event can read it even if a pipeline asked for it.
 # NOTE: a manual run uses this file and scripts/release-publish.sh as they are on the branch the owner picks; pick the tagged commit on main (or a release/vX.Y.Z branch at the tag) and nothing else.
 # INVARIANT: RELEASE_PUBLISH_MODE is pinned to direct below: publish with --access public, --tag next for a prerelease, no provenance.
 # Stage mode stays in the script, unused; selecting it is a reviewed change to this file (see RELEASING.md).
-# INVARIANT: only six packages publish: docsxai, @docsxai/engine, @docsxai/viewer, @docsxai/plugin, @docsxai/skill, @docsxai/backend.
+# INVARIANT: only seven packages publish: docsxai, @docsxai/engine, @docsxai/viewer, @docsxai/plugin, @docsxai/plugin-sharepoint, @docsxai/skill, @docsxai/backend.
 # The script refuses any other list.
 
 when:
@@ -50,7 +50,7 @@ steps:
       - bash scripts/gate-slot.sh pnpm test
 
   # Needs no credentials. Fails before publish when RELEASE_TAG is missing, is not HEAD, or differs from a package version,
-  # or when the package list is not the six.
+  # or when the package list is not the seven.
   - name: dry-run
     image: remotxai-ci:latest
     depends_on: [build]

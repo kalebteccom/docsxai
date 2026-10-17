@@ -98,7 +98,7 @@ jobs:
       - run: pnpm -r test
 
   # Manual rehearsal: `gh workflow run release.yml --ref <branch>`. Packs,
-  # audits and dry-runs the publish of all six packages. No environment, no
+  # audits and dry-runs the publish of all seven packages. No environment, no
   # `id-token`, read-only token: nothing can reach the registry, and the OIDC
   # trusted-publisher binding is NOT exercised (see RELEASING.md).
   dry-run:
