@@ -7,9 +7,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { main } from "../src/cli.js";
+import { USAGE } from "../src/cli-usage.js";
+import { hasFlag, usageByCommand } from "../../../scripts/cli-usage-support.js";
 import { docsxaiCommands, scriptsIn, shellLines } from "./fixtures/ci-recipe-commands.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -29,40 +30,7 @@ const DIFF = /^docsxai diff \S+ .*--against \S+ .*--fail-on fail\b/;
 // Help text and command extraction
 // ---------------------------------------------------------------------------
 
-let helpText = "";
-
-beforeEach(async () => {
-  let out = "";
-  vi.spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
-    out += String(chunk);
-    return true;
-  });
-  expect(await main(["--help"])).toBe(0);
-  helpText = out;
-  vi.restoreAllMocks();
-});
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
-/** The `docsxai <command> …` lines of the help's Usage block, keyed by command (`export adf`, `run`, …). */
-function usageEntries(help: string): Map<string, string> {
-  const block = help.slice(help.indexOf("Usage:"), help.indexOf("Notes:"));
-  const entries = new Map<string, string>();
-  let key: string | null = null;
-  for (const line of block.split("\n").slice(1)) {
-    const head = /^ {2}docsxai (\S+)(?: (adf|playwright)\b)?/.exec(line);
-    if (head) {
-      key = head[1] === "export" && head[2] ? `export ${head[2]}` : head[1]!;
-      entries.set(key, (entries.get(key) ?? "") + line + "\n");
-    } else if (key && /^ {3,}\S/.test(line)) {
-      entries.set(key, (entries.get(key) ?? "") + line + "\n");
-    } else {
-      key = null;
-    }
-  }
-  return entries;
-}
+const usage = usageByCommand(USAGE);
 
 function fencedBlocks(markdown: string): { lang: string; body: string; before: string }[] {
   const blocks: { lang: string; body: string; before: string }[] = [];
@@ -99,12 +67,11 @@ function expectPinnedInstall(lines: string[], where: string): void {
 }
 
 function expectKnownToHelp(commands: string[], where: string): void {
-  const entries = usageEntries(helpText);
   expect(commands.length, `${where}: no docsxai command found`).toBeGreaterThan(0);
   for (const cmd of commands) {
     const tokens = cmd.split(/\s+/);
     const key = tokens[1] === "export" ? `export ${tokens[2]}` : tokens[1]!;
-    const entry = entries.get(key);
+    const entry = usage.get(key);
     expect(
       entry,
       `${where}: \`${cmd}\` uses "${key}", which \`docsxai --help\` does not list`,
@@ -112,7 +79,7 @@ function expectKnownToHelp(commands: string[], where: string): void {
     for (const flag of tokens.filter((t) => t.startsWith("--"))) {
       const name = flag.split("=")[0]!;
       expect(
-        entry!.includes(name),
+        hasFlag(entry!, name),
         `${where}: \`${cmd}\` uses ${name}, which the help does not list for "${key}"`,
       ).toBe(true);
     }
@@ -125,13 +92,12 @@ function expectKnownToHelp(commands: string[], where: string): void {
 
 describe("help parsing helpers", () => {
   it("lists the commands the recipes rely on, with their flags", () => {
-    const entries = usageEntries(helpText);
-    expect(entries.get("run")).toContain("--verify-determinism");
-    expect(entries.get("run")).toContain("--runs");
-    expect(entries.get("diff")).toContain("--against");
-    expect(entries.get("diff")).toContain("--fail-on");
-    expect(entries.has("export adf")).toBe(true);
-    expect(entries.has("baseline")).toBe(true);
+    expect(usage.get("run")).toContain("--verify-determinism");
+    expect(usage.get("run")).toContain("--runs");
+    expect(usage.get("diff")).toContain("--against");
+    expect(usage.get("diff")).toContain("--fail-on");
+    expect(usage.has("export adf")).toBe(true);
+    expect(usage.has("baseline")).toBe(true);
   });
 
   it("joins continuations and cuts a command at a pipe or redirect", () => {

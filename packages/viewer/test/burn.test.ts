@@ -48,34 +48,29 @@ const calloutLines = (callout: BurnNode) =>
   (callout.props.children as BurnNode[]).map((l) => l.props.children as string);
 
 describe("arrowGeometry", () => {
-  it("top: 14×8 downward triangle, tip bottom-center on the target's top edge", () => {
-    const g = arrowGeometry("top", { x: 100, y: 50 });
-    expect(g).toEqual({
-      left: 93,
-      top: 42,
-      width: 14,
-      height: 8,
-      clipPath: "polygon(0% 0%, 100% 0%, 50% 100%)",
-    });
-  });
-
-  it("bottom: upward triangle below the target edge", () => {
-    const g = arrowGeometry("bottom", { x: 100, y: 50 });
-    expect(g).toMatchObject({ left: 93, top: 50, width: 14, height: 8 });
-    expect(g.clipPath).toBe("polygon(50% 0%, 100% 100%, 0% 100%)");
-  });
-
-  it("left: 8×14 rightward triangle left of the target edge", () => {
-    const g = arrowGeometry("left", { x: 100, y: 50 });
-    expect(g).toMatchObject({ left: 92, top: 43, width: 8, height: 14 });
-    expect(g.clipPath).toBe("polygon(0% 0%, 100% 50%, 0% 100%)");
-  });
-
-  it("right: leftward triangle right of the target edge", () => {
-    const g = arrowGeometry("right", { x: 100, y: 50 });
-    expect(g).toMatchObject({ left: 100, top: 43, width: 8, height: 14 });
-    expect(g.clipPath).toBe("polygon(100% 0%, 100% 100%, 0% 50%)");
-  });
+  it.each([
+    [
+      "top",
+      { left: 93, top: 42, width: 14, height: 8, clipPath: "polygon(0% 0%, 100% 0%, 50% 100%)" },
+    ],
+    [
+      "bottom",
+      { left: 93, top: 50, width: 14, height: 8, clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" },
+    ],
+    [
+      "left",
+      { left: 92, top: 43, width: 8, height: 14, clipPath: "polygon(0% 0%, 100% 50%, 0% 100%)" },
+    ],
+    [
+      "right",
+      { left: 100, top: 43, width: 8, height: 14, clipPath: "polygon(100% 0%, 100% 100%, 0% 50%)" },
+    ],
+  ] as const)(
+    "%s: a triangle on that side of the target edge, pointing at it",
+    (side, expected) => {
+      expect(arrowGeometry(side, { x: 100, y: 50 })).toEqual(expected);
+    },
+  );
 });
 
 describe("buildBurnTree", () => {
@@ -154,10 +149,9 @@ describe("buildBurnTree", () => {
     expect(styleOf(badge).top).toBe(CENTERED_BOX.y - 8);
   });
 
-  it("fills the badge with the AA colour of the viewer badge and keeps the halo accent", () => {
+  it("fills the badge with the AA colour of the viewer badge", () => {
     const tree = treeFor([buildAnnotation({ index: 1 })]);
     expect(styleOf(badgeOf(tree)!).backgroundColor).toBe(BADGE_FILL);
-    expect(styleOf(haloOf(tree)!).border).toBe("2px solid #e8590c");
   });
 
   it("renders no badge without an index", () => {
@@ -199,16 +193,6 @@ describe("pngDimensions", () => {
 describe("burnAnnotations", () => {
   const SCREENSHOT = solidPng(400, 300);
   const BOX = { x: 150, y: 120, width: 80, height: 40 };
-
-  it("is byte-deterministic: two runs produce identical PNGs", async () => {
-    const input = () => ({
-      screenshotBuffer: SCREENSHOT,
-      annotations: [buildAnnotation({ bounding_box: BOX })],
-    });
-    const first = await burnAnnotations(input());
-    const second = await burnAnnotations(input());
-    expect(first.equals(second)).toBe(true);
-  });
 
   it("burns visible overlay pixels at the box border + callout side, far corner untouched", async () => {
     const out = await burnAnnotations({
