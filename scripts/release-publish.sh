@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pack, verify and publish the six npm packages. Called by
+# Pack, verify and publish the seven npm packages. Called by
 # .woodpecker/release.yaml and .github/workflows/release.yml; see RELEASING.md.
 #
 #   release-publish.sh dry-run   pack + verify + `npm publish --dry-run`.
@@ -71,22 +71,24 @@ if [ "$publish_mode" = "stage" ]; then
     fail "stage mode needs Node >= 22.14.0, found ${node_version}"
 fi
 
-# Dependencies before dependents: `docsxai` depends on engine + viewer.
-# plugin, skill and backend do not depend on the engine at install time, so
-# their position after those three is arbitrary.
+# Dependencies before dependents: `docsxai` and `@docsxai/plugin-sharepoint`
+# depend on the engine (`docsxai` on the viewer too). plugin, skill and backend
+# do not depend on the engine at install time, so their position after the
+# engine and viewer is arbitrary.
 packages=(
   @docsxai/engine
   @docsxai/viewer
   docsxai
   @docsxai/plugin
+  @docsxai/plugin-sharepoint
   @docsxai/skill
   @docsxai/backend
 )
 
-# The publish set is exactly these six. This check catches drift between the
-# list above and this literal; the backstop against a seventh package is code
+# The publish set is exactly these seven. This check catches drift between the
+# list above and this literal; the backstop against an eighth package is code
 # review of a change to both.
-allowed="@docsxai/backend @docsxai/engine @docsxai/plugin @docsxai/skill @docsxai/viewer docsxai"
+allowed="@docsxai/backend @docsxai/engine @docsxai/plugin @docsxai/plugin-sharepoint @docsxai/skill @docsxai/viewer docsxai"
 actual="$(printf '%s\n' "${packages[@]}" | LC_ALL=C sort | tr '\n' ' ')"
 [ "${actual% }" = "$allowed" ] ||
   fail "package list is '${actual% }', expected exactly '${allowed}'"

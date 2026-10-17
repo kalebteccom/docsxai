@@ -530,15 +530,17 @@ describe("sharepoint publisher: titles", () => {
 });
 
 describe("sharepoint plugin: manifest and runtime", () => {
-  it("declares every Graph host and SharePoint download domain, and stays private", async () => {
+  it("declares every Graph host and SharePoint download domain, and is a publishable package", async () => {
     const pkg = JSON.parse(await fs.readFile(path.join(PKG_ROOT, "package.json"), "utf8")) as {
       private?: boolean;
+      publishConfig?: { access?: string };
       docsxai: { namespace: string; kinds: string[]; capabilities: string[]; trust: string };
     };
     expect(pkg.docsxai.capabilities).toEqual(ALL_CAPABILITIES);
     expect(pkg.docsxai.namespace).toBe("sharepoint");
     expect(pkg.docsxai.kinds).toEqual(["publisher"]);
-    expect(pkg.private).toBe(true);
+    expect(pkg.private).toBeUndefined();
+    expect(pkg.publishConfig?.access).toBe("public");
   });
 
   it("resolvePlugins loads sharepoint:push from the built package and it refuses a non-Graph endpoint", async () => {
