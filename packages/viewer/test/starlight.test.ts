@@ -170,20 +170,13 @@ async function outDir(): Promise<string> {
 const read = (root: string, rel: string) => fs.readFile(path.join(root, rel), "utf8");
 
 describe("normalizeAccent", () => {
-  it("passes through lowercase #rrggbb", () => {
-    expect(normalizeAccent("#2563eb")).toBe("#2563eb");
-  });
-
-  it("adds the missing # and lowercases", () => {
-    expect(normalizeAccent("2563EB")).toBe("#2563eb");
-  });
-
-  it("expands #rgb shorthand", () => {
-    expect(normalizeAccent("#abc")).toBe("#aabbcc");
-  });
-
-  it("expands bare rgb shorthand", () => {
-    expect(normalizeAccent("F0a")).toBe("#ff00aa");
+  it.each([
+    ["#2563eb", "#2563eb"],
+    ["2563EB", "#2563eb"],
+    ["#abc", "#aabbcc"],
+    ["F0a", "#ff00aa"],
+  ])("normalizes %s to %s (lowercase, # added, shorthand expanded)", (input, expected) => {
+    expect(normalizeAccent(input)).toBe(expected);
   });
 
   it("throws on anything that is not a 3- or 6-digit hex color", () => {
