@@ -126,7 +126,15 @@ function auditTarball(cwd, label, pkg) {
 function main() {
   // Root workspace is `private: true` — never published; skipped.
   // Each shippable sub-package is audited independently.
-  const packageDirs = ["backend", "docsxai", "engine", "plugin", "skill", "viewer"];
+  const packageDirs = [
+    "backend",
+    "docsxai",
+    "engine",
+    "plugin",
+    "plugin-sharepoint",
+    "skill",
+    "viewer",
+  ];
 
   const targets = [];
   for (const dir of packageDirs) {

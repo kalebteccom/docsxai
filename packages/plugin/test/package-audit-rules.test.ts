@@ -1,6 +1,7 @@
-// The tarball rules behind scripts/audit-package-contents.mjs: which paths a packed @docsxai/plugin
-// and @docsxai/skill must contain, and that the forbidden-path patterns leave `.claude-plugin/` alone.
-// Lives here because the plugin and skill trees are what the required list reads.
+// The tarball rules behind scripts/audit-package-contents.mjs: which paths a packed @docsxai/plugin,
+// @docsxai/skill and @docsxai/plugin-sharepoint must contain, and that the forbidden-path patterns
+// leave `.claude-plugin/` alone. Lives here because the plugin and skill trees are what the
+// required list reads.
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
@@ -13,11 +14,16 @@ import {
 import { listCommands, listSkills, pluginDir } from "../src/index.js";
 
 const skillDir = path.resolve(pluginDir, "..", "skill");
+const sharepointDir = path.resolve(pluginDir, "..", "plugin-sharepoint");
 const readPkg = async (dir: string) =>
   JSON.parse(await fs.readFile(path.join(dir, "package.json"), "utf8")) as {
     name: string;
+    private?: boolean;
     main?: string;
     bin?: Record<string, string>;
+    files?: string[];
+    publishConfig?: { access?: string };
+    dependencies?: Record<string, string>;
   };
 const forbidden = (p: string): string[] =>
   FORBIDDEN_PATTERNS.filter(({ pattern }) => pattern.test(p)).map(({ why }) => why);
@@ -39,6 +45,12 @@ describe("required tarball paths", () => {
     );
   });
 
+  it("the SharePoint plugin needs its built entry point and nothing else", async () => {
+    expect(requiredPaths(sharepointDir, await readPkg(sharepointDir))).toEqual([
+      "dist/register.js",
+    ]);
+  });
+
   it("a package with only a main and bins needs exactly those, `./` stripped", () => {
     expect(
       requiredPaths("/nonexistent", {
@@ -58,6 +70,17 @@ describe("required tarball paths", () => {
     expect(missing).toContain("skills/calibrate/SKILL.md");
     expect(missing).not.toContain("dist/index.js");
     expect(missingPaths(required, required)).toEqual([]);
+  });
+});
+
+describe("@docsxai/plugin-sharepoint manifest", () => {
+  it("is publishable and ships built output only", async () => {
+    const pkg = await readPkg(sharepointDir);
+    expect(pkg.name).toBe("@docsxai/plugin-sharepoint");
+    expect(pkg.private).toBeUndefined();
+    expect(pkg.publishConfig?.access).toBe("public");
+    expect(pkg.files).toEqual(["dist"]);
+    expect(pkg.dependencies?.["@docsxai/engine"]).toBe("workspace:*");
   });
 });
 
