@@ -154,7 +154,7 @@ First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud RE
 
 ## `packages/plugin-gitbook/` — `@docsxai/plugin-gitbook`
 
-First-party publisher plugin (`gitbook:push`): idempotent push of a doc pack as markdown pages, with screenshots sent inline, into a GitBook space through a change request that it merges, behind the `egress:api.gitbook.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Repo-only (`private: true`).
+First-party publisher plugin (`gitbook:push`): idempotent push of a doc pack as markdown pages, with screenshots sent inline, into a GitBook space through a change request that it merges, behind the `egress:api.gitbook.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Published to npm as an experimental package from the release after `0.3.0-rc.3`.
 
 ## `packages/plugin-guru/` — `@docsxai/plugin-guru`
 
