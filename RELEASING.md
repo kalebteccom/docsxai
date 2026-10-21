@@ -15,7 +15,7 @@ Apache-2.0 is in place, READMEs/CONTRIBUTING/CHANGELOG are written, and every pa
 
 ## Trust model
 
-The Woodpecker pipeline publishes directly: `npm publish <tarball> --access public`, with `--tag next` for a prerelease and no provenance. A version is live on npm as soon as the `publish` step accepts it. Nobody approves it afterwards, so every gate sits before the publish call:
+The Woodpecker pipeline stages each version: `npm stage publish <tarball> --access public`, with `--tag next` for a prerelease and no provenance. A staged version is not live. The owner approves each one on npm with 2FA, so the gates before the stage call are:
 
 1. **The manual trigger.** `.woodpecker/release.yaml` runs on the `manual` event only. The owner, or an agent the owner authorises for that release, starts it from the Woodpecker UI (ops.kalebtec.com) for one tag. No push, pull request, tag or cron event starts it.
 2. **The CI guard on the config files.** The CI host's guard (a server-side setting that this repository cannot check; verify it on the host) runs a `.woodpecker/*.yaml` file only when it is on the guard's allowlist and its first line is `# ci-optimised: v1`. A changed release config does not run until it passes the guard.
@@ -24,7 +24,7 @@ The Woodpecker pipeline publishes directly: `npm publish <tarball> --access publ
 5. **The secret is in one step.** Only the `publish` step names `npm_publish_token`. `dry-run` has no secret.
 6. **The secret is limited to the manual event.** The repo admin restricts `npm_publish_token` to exactly `manual`.
 
-The token is meant to be a granular npm publish token with "bypass 2FA" set, IP-locked to the CI box, limited to the seven published packages, with a 90-day expiry. Those four properties are set on npmjs.com and nothing in this repository can check them: verify each on the npm Access Tokens page before the first run, and again at each rotation.
+The token is a granular npm token of type "Read and write (stage only)", IP-locked to the CI box, limited to the seven published packages, with a 90-day expiry. npm rejects a direct publish with it. Those four properties are set on npmjs.com and nothing in this repository can check them: verify each on the npm Access Tokens page before the first run, and again at each rotation.
 
 Rules for the secret:
 
@@ -34,29 +34,29 @@ Rules for the secret:
 - The owner keeps the token in `~/.config/docsxai/npm-publish.token` (mode 600) on the CI host, and the Woodpecker secret is created from that file. Nobody prints, pastes or commits the value. `scripts/release-publish.sh` runs with `set +x`, never echoes the variable, and writes an npm user config outside the workspace that holds `${NODE_AUTH_TOKEN}` as a placeholder, which npm expands when it reads it. The file has mode 600 and is removed when the script exits.
 - If npm answers with an auth, token or permission error (`E401`, `E403`, `ENEEDAUTH`, `EOTP`, or a message about two-factor), the script stops at once with "token or permission problem: stop and tell the owner" and publishes nothing further. Do not retry with another token: tell the owner.
 
-What direct mode on Woodpecker gives up compared with GitHub OIDC:
+What staged mode on Woodpecker gives up compared with GitHub OIDC:
 
 - **No provenance.** `--provenance` needs a GitHub Actions or GitLab CI OIDC identity, so Woodpecker releases carry no Sigstore attestation. The script passes `--provenance` only on GitHub Actions and `--provenance=false` everywhere else: every published `package.json` carries `publishConfig.provenance: true`, npm would refuse to publish from Woodpecker with it ("Automatic provenance generation not supported for provider"), and a flag on the command line wins over `publishConfig` (read from npm's publish command source, npm 11.17).
 - **No trusted publishing.** npm trusted publishing binds a GitHub or GitLab workflow and issues a short-lived credential per run. Woodpecker has no binding, so it publishes with a long-lived token. The trusted-publisher bindings in the Release TODO apply to `release.yml` only.
-- **No 2FA on each publish.** The token bypasses 2FA, so no human confirms a version at publish time. The manual trigger is the last human step.
+- **A human step after the pipeline.** Approving a staged version needs the owner's 2FA, so a release is not finished when the pipeline is green.
 - **No SBOM and no GitHub Release from CI.** The pipeline holds no GitHub token. The owner creates the release by hand (step 7 below).
 
-Risks of a bypass-2FA token on a shared CI box, and their mitigations:
+Risks of a stage-only token on a shared CI box, and their mitigations:
 
-- **Someone with access to the CI host reads the token** (the token file, the Woodpecker secret store or a running publish container). Mitigations: the IP lock means the token works only from the CI box's address, so a copy is useless elsewhere; the token covers the seven packages and nothing else in the account; it expires after 90 days.
+- **Someone with access to the CI host reads the token** (the token file, the Woodpecker secret store or a running publish container). The token can stage versions and keep its other write rights (dist-tags, deprecation) but cannot make a version live. Mitigations: the IP lock means the token works only from the CI box's address, so a copy is useless elsewhere; the token covers the seven packages and nothing else in the account; it expires after 90 days; a malicious stage is dropped at review.
 - **A changed pipeline or script misuses the token.** Mitigations: the CI guard allowlist on `.woodpecker/*.yaml`, the `manual`-only event restriction on the secret, the secret named in one step, and the script's fixed seven-package list.
 - **A wrong or partial release goes live.** Mitigations: tag equals HEAD, verify and dry-run before publish, all seven packed and checked before the first publish call. A bad version can be deprecated but its number cannot be reused, so the fix is a new patch release.
 
 Rotation, before the 90-day expiry and whenever anyone other than the owner may have read the CI host's secret store:
 
-1. On npmjs.com, create a new granular token with the same settings: publish permission, bypass 2FA, the seven packages only, the CI box's IP as the only allowed range, 90-day expiry.
+1. On npmjs.com, create a new granular token with the same settings: "Read and write (stage only)", the seven packages only, the CI box's IP as the only allowed range, 90-day expiry.
 2. Overwrite `~/.config/docsxai/npm-publish.token` on the CI host (mode 600).
 3. Update the Woodpecker secret `npm_publish_token` from that file, keeping the name and the `manual` event restriction.
 4. Revoke the old token on npmjs.com (Access Tokens).
 
 Revocation, when the token may have leaked: revoke it on npmjs.com (Access Tokens) first, then delete the Woodpecker secret and the token file. Check each of the seven packages on npmjs.com for versions nobody released; deprecate any with `npm deprecate` from a maintainer machine with 2FA.
 
-Planned change on npm's side: npm has announced it will retire tokens that bypass 2FA, with a target of January 2027. The date is not a promise. When that happens, the fallback is a stage-only token plus `RELEASE_PUBLISH_MODE=stage` (see "Staged mode (inactive)" below).
+npm has announced it will retire direct publishing with tokens that bypass 2FA, with a target of January 2027. The pipeline already runs in staged mode (see "Staged mode" below), so that change needs nothing here.
 
 Residual exposure, accepted for now: the pipeline uses the `remotxai-ci:latest` image of the shared CI host (not pinned by digest), and installs from the registry against the frozen lockfile with `--ignore-scripts` and no shared pnpm store. The pack step runs with lifecycle scripts disabled (`npm_config_ignore_scripts`).
 
@@ -72,11 +72,13 @@ Residual exposure, accepted for now: the pipeline uses the `remotxai-ci:latest` 
 8. **Repo check.** Confirm `npm view <package>@X.Y.Z` and `npm dist-tag ls <package>` for the seven, then that the README renders on the release commit, the LICENSE is detected, CONTRIBUTING is linked.
 9. **Site + announce.** Deploy the docs site (`website/` via Netlify) and verify DNS, then announce. The operational ordering (publish, site deploy, DNS checks) lives in `docs/ai-context/release-process/public-flip-checklist.md`.
 
-If a run dies midway, run the manual pipeline again with the same `RELEASE_TAG`: versions already on npm are skipped. If it died on "token or permission problem", do not rerun: the owner checks the token (expiry, IP lock, package scope) and rotates it first.
+If a run dies midway, approve or reject what it staged, then run the manual pipeline again with the same `RELEASE_TAG`: versions already on npm are skipped. If it died on "token or permission problem", do not rerun: the owner checks the token (expiry, IP lock, package scope) and rotates it first.
 
-### Staged mode (inactive)
+### Staged mode
 
-The script keeps a `stage` mode for the day npm retires bypass-2FA tokens. With `RELEASE_PUBLISH_MODE=stage` it runs `npm stage publish` (needs npm >= 11.15.0 and Node >= 22.14.0), which uploads each version without making it live; the owner then promotes each with `npm stage approve <stage-id> --otp <code>` or drops it with `npm stage reject <stage-id>`. It needs a stage-only granular token ("Read and write (stage only)"). Nothing in the pipeline selects it: switching is a reviewed change to `.woodpecker/release.yaml` plus a new token.
+`.woodpecker/release.yaml` sets `RELEASE_PUBLISH_MODE=stage`. The script runs `npm stage publish` (needs npm >= 11.15.0 and Node >= 22.14.0), which uploads each version without making it live. The secret `npm_publish_token` is a stage-only granular token ("Read and write (stage only)"); npm rejects a direct publish with it.
+
+After a run, the owner promotes each staged version from a machine with 2FA: `npm stage list <package>` for the ids, `npm stage approve <stage-id> --otp <code>` to go live, `npm stage reject <stage-id>` to drop one. A staged version is not on the registry, so a rerun with the same `RELEASE_TAG` tries to stage it again and npm refuses: approve or reject the earlier stage first.
 
 ## The bare `docsxai` package (meta-package)
 
@@ -95,7 +97,7 @@ The script keeps a `stage` mode for the day npm retires bypass-2FA tokens. With 
 - `build`: `pnpm build`.
 - `verify` (needs `build`): `pnpm typecheck`, `pnpm test`, the checks of the `build` job in `release.yml`.
 - `dry-run` (needs `build`; no secret): `scripts/audit-package-contents.mjs`, then `scripts/release-publish.sh dry-run` with `RELEASE_REQUIRE_TAG=1`.
-- `publish` (needs `verify` and `dry-run`; the only step with the secret): `scripts/release-publish.sh publish` with `RELEASE_PUBLISH_MODE=direct`. `dry-run` pins the same mode.
+- `publish` (needs `verify` and `dry-run`; the only step with the secret): `scripts/release-publish.sh publish` with `RELEASE_PUBLISH_MODE=stage`. `dry-run` pins the same mode, so a too-old npm or Node fails before the secret is read.
 
 What `release-publish.sh` does (shared by both runners):
 
@@ -107,7 +109,7 @@ What `release-publish.sh` does (shared by both runners):
 - Verifies every tarball before the first publish: the manifest name matches, no `workspace:` spec is left, and with a tag every version equals it. Without a tag the seven versions must agree with each other.
 - Publishes in dependency order: `@docsxai/engine`, `@docsxai/viewer`, `docsxai`, then `@docsxai/{plugin,plugin-sharepoint,skill,backend}`.
 - Skips any package whose exact version already answers `npm view <name>@<version> version`, so a rerun after a partial publish finishes the rest. Any registry error other than 404 aborts.
-- `RELEASE_PUBLISH_MODE`: `direct` (the default on every runner) runs `npm publish`, with `--provenance` on GitHub Actions only; `stage` (inactive) runs `npm stage publish`. Both pass `--access public`, and a prerelease version (`X.Y.Z-rc.1`) gets `--tag next` so it never takes `latest`.
+- `RELEASE_PUBLISH_MODE`: `direct` (the default) runs `npm publish`, with `--provenance` on GitHub Actions only; `stage` (set by `.woodpecker/release.yaml`) runs `npm stage publish` and passes `--provenance=false` off GitHub. Both pass `--access public`, and a prerelease version (`X.Y.Z-rc.1`) gets `--tag next` so it never takes `latest`.
 - After each publish, prints `published <package>@<version> (dist-tag <tag>)`. It never prints the token.
 - Stops at the first auth, token or permission error from npm (`E401`, `E403`, `ENEEDAUTH`, `EOTP`, two-factor) with "token or permission problem: stop and tell the owner", and stops at any other publish failure too. Nothing after the failed package is published.
 - Off GitHub Actions, `publish` requires a non-empty `NODE_AUTH_TOKEN` and points npm at a temporary user config (mode 600, outside the workspace, removed on exit) that references it by name.
@@ -118,7 +120,7 @@ What `release-publish.sh` does (shared by both runners):
 
 ## Dry run
 
-The `dry-run` step runs on every release pipeline before `publish`. To rehearse without publishing, delete or disable the `npm_publish_token` secret first: the `publish` step then fails on the empty token before any registry call. A rehearsal still needs a pushed tag at the branch head. With the secret in place, a run publishes for real.
+The `dry-run` step runs on every release pipeline before `publish`. To rehearse without publishing, delete or disable the `npm_publish_token` secret first: the `publish` step then fails on the empty token before any registry call. A rehearsal still needs a pushed tag at the branch head. With the secret in place, a run stages for real.
 
 While `release.yml` exists, its `dry-run` job rehearses from any branch with no tag.
 
@@ -126,10 +128,10 @@ While `release.yml` exists, its `dry-run` job rehearses from any branch with no 
 
 Owner tasks. **The pipeline cannot publish until the Woodpecker secret exists and the package settings accept the token.**
 
-- [x] **Create the npm token** on npmjs.com: granular access token with publish permission and "bypass 2FA", limited to the published packages, IP-locked to the CI box, 90-day expiry. It lives in `~/.config/docsxai/npm-publish.token` on the CI host, mode 600.
+- [ ] **Create the npm token** on npmjs.com: granular access token of type "Read and write (stage only)", limited to the published packages (scope-level write on `@docsxai` plus the package `docsxai`), IP-locked to the CI box, 90-day expiry. It lives in `~/.config/docsxai/npm-publish.token` on the CI host, mode 600.
 - [ ] **Add the Woodpecker secret** `npm_publish_token` from that file, events restricted to exactly `manual`, no image restriction. With the CLI the shape is `woodpecker-cli repo secret add --repository kalebteccom/docsxai --name npm_publish_token --event manual --value @<file>` (flags to verify against the installed CLI version).
 - [ ] **Set a rotation reminder** a week before the token's 90-day expiry, and rotate with the steps in the Trust model. An expired token fails the `publish` step with an auth error.
-- [ ] **Check the package settings:** "Require two-factor authentication and disallow tokens" on a package refuses token publishes, bypass-2FA or not. Each of the seven needs a setting that accepts the token.
+- [ ] **Check the package settings:** pipeline 152 stopped with E403 ("Two-factor authentication is required to publish this package but an automation token was specified") on a direct publish. `npm stage publish` should not need 2FA, so try it with the package settings as they are. If staging stops on a two-factor E403, set each of the seven to "Require two-factor authentication or a granular access token with bypass 2FA enabled" and rerun.
 - [ ] **Before the first release that includes `@docsxai/plugin-sharepoint`, add it to the CI publish token.** On npmjs.com, edit the granular token: packages and scopes. The package does not exist yet, so the token needs scope-level write for `@docsxai`. The name was free on the registry on 2026-10-13 (404). Without it the `publish` step stops on an auth error at that package: the three before it are live, the two after it are not, and a rerun with the same `RELEASE_TAG` finishes them once the token is fixed.
 - [ ] **After its first publish, give the second owner `kalebtec-recovery` access** to `@docsxai/plugin-sharepoint` on npmjs.com, so it has two owners.
 - [ ] **Confirm the image toolchain:** `remotxai-ci:latest` carries npm and git. The `setup` step prints the versions. npm >= 11.15.0 and Node >= 22.14.0 matter only for stage mode.

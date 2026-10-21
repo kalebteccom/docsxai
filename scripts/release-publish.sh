@@ -10,10 +10,10 @@
 #   RELEASE_TAG            the vX.Y.Z[-pre] tag to release. Falls back to
 #                          GITHUB_REF_NAME on a GitHub tag push.
 #   RELEASE_REQUIRE_TAG=1  dry-run fails without a tag too (Woodpecker).
-#   RELEASE_PUBLISH_MODE   direct (default on every runner): `npm publish`,
-#                          with --provenance on GitHub Actions only.
+#   RELEASE_PUBLISH_MODE   direct (default): `npm publish`, with --provenance on
+#                          GitHub Actions only.
 #                          stage: `npm stage publish`, a maintainer approves
-#                          each stage with 2FA. Inactive: no pipeline sets it.
+#                          each stage with 2FA. Set by .woodpecker/release.yaml.
 #   NODE_AUTH_TOKEN        the npm token, off GitHub Actions only. Never printed.
 #
 # With a tag, the checked-out commit must be the tag's commit and every package
@@ -219,10 +219,9 @@ published() {
 
 flags=(--access public --tag "$dist_tag")
 publish_cmd=(npm publish)
+[ "$mode" = "publish" ] && [ "$publish_mode" = "stage" ] && publish_cmd=(npm stage publish)
 if [ "$mode" = "dry-run" ]; then
   flags+=(--dry-run)
-elif [ "$publish_mode" = "stage" ]; then
-  publish_cmd=(npm stage publish)
 elif $on_github; then
   # Provenance needs a GitHub or GitLab OIDC identity; no other runner has one.
   flags+=(--provenance)
