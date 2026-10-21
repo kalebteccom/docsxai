@@ -4,12 +4,12 @@
 #
 # INVARIANT: manual event only. The owner (or an agent the owner authorises) starts it from the Woodpecker UI with the manual-pipeline variable RELEASE_TAG=vX.Y.Z[-pre],
 # on the branch whose head is the tagged commit. No push, pull_request, tag or cron trigger: PR-derived code never runs here.
-# INVARIANT: the publish step is the only step that names a secret. npm_publish_token is a granular npm publish token that bypasses
-# 2FA, IP-locked to the CI box, limited to the seven packages, with a 90-day expiry. The repo admin restricts the secret's events to
+# INVARIANT: the publish step is the only step that names a secret. npm_publish_token is a granular npm token of type "Read and write
+# (stage only)", IP-locked to the CI box, limited to the seven packages, with a 90-day expiry. It cannot publish directly. The repo admin restricts the secret's events to
 # exactly `manual`, so no other event can read it even if a pipeline asked for it.
 # NOTE: a manual run uses this file and scripts/release-publish.sh as they are on the branch the owner picks; pick the tagged commit on main (or a release/vX.Y.Z branch at the tag) and nothing else.
-# INVARIANT: RELEASE_PUBLISH_MODE is pinned to direct below: publish with --access public, --tag next for a prerelease, no provenance.
-# Stage mode stays in the script, unused; selecting it is a reviewed change to this file (see RELEASING.md).
+# INVARIANT: RELEASE_PUBLISH_MODE is pinned to stage below: `npm stage publish` with --access public, --tag next for a prerelease, no provenance.
+# Nothing goes live from this pipeline. The owner approves each staged version on npm with 2FA (see RELEASING.md).
 # INVARIANT: only seven packages publish: docsxai, @docsxai/engine, @docsxai/viewer, @docsxai/plugin, @docsxai/plugin-sharepoint, @docsxai/skill, @docsxai/backend.
 # The script refuses any other list.
 
@@ -62,12 +62,12 @@ steps:
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: safe.directory
       GIT_CONFIG_VALUE_0: "*"
-      RELEASE_PUBLISH_MODE: direct
+      RELEASE_PUBLISH_MODE: stage
     commands:
       - bash scripts/gate-slot.sh node scripts/audit-package-contents.mjs
       - bash scripts/gate-slot.sh bash scripts/release-publish.sh dry-run
 
-  # Publishes each version directly; it is live as soon as npm accepts it. An auth, token or permission error stops the step
+  # Stages each version; it is live only after the owner approves it with 2FA. An auth, token or permission error stops the step
   # before the next package. The script reads the token from NODE_AUTH_TOKEN, never prints it and writes it to no file.
   - name: publish
     image: remotxai-ci:latest
@@ -75,7 +75,7 @@ steps:
     volumes:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     environment:
-      RELEASE_PUBLISH_MODE: direct
+      RELEASE_PUBLISH_MODE: stage
       # Same as dry-run.
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: safe.directory
