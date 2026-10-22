@@ -228,7 +228,7 @@ describe("validation", () => {
 
 describe("contrast warnings", () => {
   it("name the pair and both numbers when text falls under AA", () => {
-    const theme = themeOf({ ink: "#999999", calloutBackground: "#ffffff" });
+    const theme = themeOf({ ink: "#999999", callout_background: "#ffffff" });
     const [warning] = contrastWarnings(theme);
     expect(warning).toContain("ink on callout_background");
     expect(warning).toContain("2.85:1");

@@ -147,5 +147,5 @@ export function tokenLayer(
         "check the file, or map your own paths with burn.theme.tokens",
     );
   }
-  return { layer: layer as ThemeLayer, problems };
+  return { layer, problems };
 }

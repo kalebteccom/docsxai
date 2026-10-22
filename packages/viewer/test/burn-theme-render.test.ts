@@ -36,7 +36,7 @@ const themeOf = (block: unknown): BurnTheme =>
 
 type Rgb = [number, number, number];
 const rgbOf = (hex: string): Rgb => [...parseHexColor(hex)!] as Rgb;
-const near = (px: number[], want: Rgb, tolerance = 4) =>
+const near = (px: number[], want: Rgb, tolerance = 8) =>
   want.every((c, i) => Math.abs(px[i]! - c) <= tolerance);
 const channelDistance = (a: number[], b: Rgb) =>
   Math.abs(a[0]! - b[0]) + Math.abs(a[1]! - b[1]) + Math.abs(a[2]! - b[2]);
@@ -69,7 +69,7 @@ async function sample(theme: BurnTheme | undefined) {
       for (let y = top; y < top + 12; y++) {
         for (let x = cx + 16; x < cx + callout.width - 16; x++) {
           const px = pixelAt(img, x, y);
-          if (px[0]! + px[1]! + px[2]! < darkest[0]! + darkest[1]! + darkest[2]!) darkest = px;
+          if (px[0] + px[1] + px[2] < darkest[0]! + darkest[1]! + darkest[2]!) darkest = px;
         }
       }
       return darkest;
