@@ -50,7 +50,7 @@
     "@docsxai/viewer": "workspace:*"
   },
   "devDependencies": {
-    "vitest": "^2.0.0"
+    "vitest": "^4.1.12"
   },
   "engines": {
     "node": ">=26"

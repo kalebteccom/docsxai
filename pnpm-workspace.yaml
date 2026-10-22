@@ -1,3 +1,7 @@
 packages:
   - "packages/*"
   - "website"
+
+overrides:
+  "fflate@<0.7.5": 0.7.5
+  "postcss-nested@<7": ^7.0.2
