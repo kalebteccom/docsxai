@@ -5,6 +5,7 @@
 import { createHash } from "node:crypto";
 import type { AnnotationRecord } from "./annotations.js";
 import { pngDimensions, renderBurn } from "./burn.js";
+import type { BurnTheme } from "./burn-theme.js";
 import { assertGuarded } from "./pack-guards.js";
 import { identityOptimiser, type Optimiser } from "./pack-optimise.js";
 import {
@@ -29,16 +30,24 @@ export type Burner = (
   warn: Warn,
 ) => Promise<{ png: Buffer; unplaceable: number }>;
 
-/** The viewer's own burner: halo, badge, callout and arrow, with obstacles and placement as the records carry them. */
-export const viewerBurner: Burner = async (png, records, warn) => {
-  const r = await renderBurn({ screenshotBuffer: png, annotations: records, options: { warn } });
-  return { png: r.png, unplaceable: r.report.filter((a) => a.unplaceable).length };
-};
+/** The viewer's burner drawing with `theme` (today's look when unset): halo, badge, callout and arrow, with obstacles and placement as the records carry them. */
+export function themedBurner(theme?: BurnTheme): Burner {
+  return async (png, records, warn) => {
+    const options = { warn, ...(theme ? { theme } : {}) };
+    const r = await renderBurn({ screenshotBuffer: png, annotations: records, options });
+    return { png: r.png, unplaceable: r.report.filter((a) => a.unplaceable).length };
+  };
+}
+
+/** The viewer's own burner in today's look. */
+export const viewerBurner: Burner = themedBurner();
 
 export interface BuildPackOptions {
   source: PackSource;
   /** Default: {@link viewerBurner}. */
   burn?: Burner;
+  /** The caption look the default burner draws with; ignored when `burn` is set. */
+  theme?: BurnTheme;
   /** Default: leave the burned bytes as they are. */
   optimise?: Optimiser;
   /** Default `/screens`. */
@@ -96,7 +105,7 @@ async function renderVariant(
 export async function buildPack(options: BuildPackOptions): Promise<BuiltPack> {
   const prefix = normalisePublicPrefix(options.publicPrefix ?? DEFAULT_PUBLIC_PREFIX);
   const opts = {
-    burn: options.burn ?? viewerBurner,
+    burn: options.burn ?? (options.theme ? themedBurner(options.theme) : viewerBurner),
     optimise: options.optimise ?? identityOptimiser,
     warn: options.warn ?? ((m: string) => console.warn(m)),
   };

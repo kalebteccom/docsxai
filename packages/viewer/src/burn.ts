@@ -6,12 +6,14 @@
 // the Satori tree as a data-URI <img>, so the whole frame rasterises in a single resvg pass —
 // one encoder produces every output byte, there is no separate composite/re-encode step, and the
 // output is byte-stable across runs: Satori layout and resvg rasterisation are pure functions of
-// their inputs, the only font is the vendored Inter (system fonts are not loaded), text becomes
-// glyph paths inside the SVG, and resvg's PNG encoder writes no timestamps.
+// their inputs, the only font is the vendored Inter or the theme's own font file (system fonts are
+// not loaded), text becomes glyph paths inside the SVG, and resvg's PNG encoder writes no
+// timestamps.
 //
 // Placement reuses the interactive overlay's `placeCallout` (placement.ts) in screenshot pixel
 // space; text sizing uses the vendored font's own metrics (font-metrics.ts) instead of the
-// overlay's DOM probe. Visual constants mirror the viewer CSS in render.ts.
+// overlay's DOM probe. Colours, radii and type sizes come from the caption theme (burn-theme.ts);
+// the viewer CSS reads the same values.
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
@@ -20,20 +22,24 @@ import { Resvg } from "@resvg/resvg-js";
 import type { Rect } from "./placement.js";
 import { anchorBadge, planBadge, BADGE_DEFAULT_OFFSET, BADGE_INNER } from "./badge-placement.js";
 import { arrowGeometry, growRect, type ArrowGeometry } from "./arrow.js";
-import { BADGE_FILL } from "./viewer-style.js";
+import {
+  DEFAULT_BURN_THEME,
+  badgeRadius,
+  connectorColor,
+  haloRadius,
+  type BurnTheme,
+} from "./burn-theme.js";
+import { loadThemeFont } from "./burn-theme-load.js";
+import { rgbaOf } from "./color.js";
 import { connectorNodes } from "./burn-connector.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
 import { measureText, parseFontMetrics, type FontMetrics } from "./font-metrics.js";
 import {
-  CALLOUT_BORDER,
-  CALLOUT_PADDING_X,
-  CALLOUT_PADDING_Y,
-  FONT_SIZE,
-  LINE_HEIGHT,
   layoutBoxes,
   layoutCallout,
   type CalloutLayout,
+  type CalloutStyle,
   type Size,
 } from "./burn-callout.js";
 import {
@@ -49,9 +55,6 @@ import type { AnnotationRecord, AnnotationsFile, BoundingBox } from "./annotatio
 
 export { arrowGeometry, type ArrowGeometry };
 
-/** Halo / box outline. The numbered badge fill is BADGE_FILL (AA contrast for its white digits). */
-const ACCENT = "#e8590c";
-const INK = "#1c1c1c";
 const BADGE_BORDER = 2;
 const BADGE_FONT_SIZE = 12;
 /** Margin of the keep-clear box around another annotation's halo (border + glow + slack). */
@@ -103,7 +106,21 @@ export interface BurnTreeInput {
    * outline. Without them every connector is plain ink.
    */
   pixels?: PixelGrid;
+  /** The caption look. Default {@link DEFAULT_BURN_THEME}, today's. */
+  theme?: BurnTheme;
 }
+
+/** Family name the theme's own font file is registered under in Satori. */
+const THEME_FONT_NAME = "ThemeFont";
+
+/** What sizes a callout box under `theme`. */
+const calloutStyleOf = (theme: BurnTheme): CalloutStyle => ({
+  fontSize: theme.fontSize,
+  lineHeight: theme.lineHeight,
+  paddingX: theme.paddingX,
+  paddingY: theme.paddingY,
+  borderWidth: theme.calloutBorderWidth,
+});
 
 /** Outer size of the numbered badge: the circle widens for multi-digit indexes. */
 function badgeSize(index: number, metrics: FontMetrics): Size {
@@ -158,9 +175,9 @@ interface DrawnCallout {
   boxes: Rect[];
 }
 
-function calloutNodes(layout: CalloutLayout, pixels?: PixelGrid): DrawnCallout {
+function calloutNodes(layout: CalloutLayout, theme: BurnTheme, pixels?: PixelGrid): DrawnCallout {
   const { lines, size: callout, nudge } = layout;
-  const nodes: BurnNode[] = connectorNodes(layout, pixels);
+  const nodes: BurnNode[] = connectorNodes(layout, pixels, connectorColor(theme));
   nodes.push(
     div(
       {
@@ -171,25 +188,29 @@ function calloutNodes(layout: CalloutLayout, pixels?: PixelGrid): DrawnCallout {
         height: callout.height,
         display: "flex",
         flexDirection: "column",
-        paddingTop: CALLOUT_PADDING_Y,
-        paddingBottom: CALLOUT_PADDING_Y,
-        paddingLeft: CALLOUT_PADDING_X,
-        paddingRight: CALLOUT_PADDING_X,
-        backgroundColor: "#fff",
-        border: `${CALLOUT_BORDER}px solid ${INK}`,
-        borderRadius: 7,
-        color: INK,
-        fontSize: FONT_SIZE,
+        paddingTop: theme.paddingY,
+        paddingBottom: theme.paddingY,
+        paddingLeft: theme.paddingX,
+        paddingRight: theme.paddingX,
+        backgroundColor: theme.calloutBackground,
+        border: `${theme.calloutBorderWidth}px solid ${theme.calloutBorderColor}`,
+        borderRadius: theme.radius,
+        color: theme.ink,
+        fontSize: theme.fontSize,
+        ...(theme.shadow !== null ? { boxShadow: theme.shadow } : {}),
       },
       lines.map((line) =>
-        div({ height: LINE_HEIGHT, lineHeight: `${LINE_HEIGHT}px`, whiteSpace: "nowrap" }, line),
+        div(
+          { height: theme.lineHeight, lineHeight: `${theme.lineHeight}px`, whiteSpace: "nowrap" },
+          line,
+        ),
       ),
     ),
   );
   return { nodes, boxes: layoutBoxes(layout) };
 }
 
-function badgeNode(box: Rect, index: number): BurnNode {
+function badgeNode(box: Rect, index: number, theme: BurnTheme): BurnNode {
   return div(
     {
       position: "absolute",
@@ -200,9 +221,9 @@ function badgeNode(box: Rect, index: number): BurnNode {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: BADGE_FILL,
+      backgroundColor: theme.badgeFill,
       border: `${BADGE_BORDER}px solid #fff`,
-      borderRadius: box.height / 2,
+      borderRadius: badgeRadius(theme.badgeShape, box.height),
       color: "#fff",
       fontSize: BADGE_FONT_SIZE,
     },
@@ -230,6 +251,8 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const { width, height } = input.image;
   const image = { width, height };
   const warn = input.warn ?? defaultWarn;
+  const theme = input.theme ?? DEFAULT_BURN_THEME;
+  const style = calloutStyleOf(theme);
   const children: BurnNode[] = [
     {
       type: "img",
@@ -259,9 +282,9 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
         top: t.y,
         width: t.width,
         height: t.height,
-        border: `2px solid ${ACCENT}`,
-        borderRadius: 4,
-        boxShadow: "0 0 0 3px rgba(232,89,12,0.35)",
+        border: `2px solid ${theme.accent}`,
+        borderRadius: haloRadius(theme),
+        boxShadow: `0 0 0 3px ${rgbaOf(theme.accent, 0.35)}`,
       }),
     );
 
@@ -284,19 +307,25 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     let calloutBox: Rect | null = null;
     if (ann.copy) {
       const clear = keepClear(input.annotations, ann, image, input.metrics, placed, badges);
-      layout = layoutCallout({ ann, target: t, image, metrics: input.metrics, clear });
-      const drawn = calloutNodes(layout, input.pixels);
+      layout = layoutCallout({ ann, target: t, image, metrics: input.metrics, clear, style });
+      const drawn = calloutNodes(layout, theme, input.pixels);
       children.push(...drawn.nodes);
       placed.push(...drawn.boxes);
       calloutBox = drawn.boxes[0]!;
     }
 
-    if (badge && typeof ann.index === "number") children.push(badgeNode(badge, ann.index));
+    if (badge && typeof ann.index === "number") children.push(badgeNode(badge, ann.index, theme));
     input.report?.push(annotationReport(ann, layout, calloutBox, badge, threshold));
   }
 
   return div(
-    { position: "relative", display: "flex", width, height, fontFamily: "Inter" },
+    {
+      position: "relative",
+      display: "flex",
+      width,
+      height,
+      fontFamily: theme.fontFile !== null ? THEME_FONT_NAME : "Inter",
+    },
     children,
   );
 }
@@ -312,6 +341,8 @@ async function loadFont(): Promise<{ data: Buffer; metrics: FontMetrics }> {
 }
 
 export interface BurnOptions {
+  /** The caption look (see burn-theme.ts). Default: today's look, byte for byte. */
+  theme?: BurnTheme;
   /** Receives skip warnings (default: console.warn). */
   warn?: Warn;
   /**
@@ -350,7 +381,10 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
     throw new Error("burnAnnotations: provide screenshotPath or screenshotBuffer");
   }
   const { width, height } = pngDimensions(screenshot);
-  const font = await loadFont();
+  const theme = input.options?.theme;
+  const themed = theme ? await loadThemeFont(theme) : undefined;
+  const font = themed ?? (await loadFont());
+  const fontName = themed ? THEME_FONT_NAME : "Inter";
   const report: AnnotationReport[] = [];
   const hasConnector = input.annotations.some((a) => a.copy && a.bounding_box);
   const pixels =
@@ -362,6 +396,7 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
     annotations: input.annotations,
     metrics: font.metrics,
     report,
+    ...(theme ? { theme } : {}),
     ...(pixels ? { pixels } : {}),
     ...(input.options?.warn ? { warn: input.options.warn } : {}),
     ...(input.options?.unplaceableRatio !== undefined
@@ -371,7 +406,7 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
   const svg = await satori(withBorderBox(tree), {
     width,
     height,
-    fonts: [{ name: "Inter", data: font.data, weight: 400, style: "normal" }],
+    fonts: [{ name: fontName, data: font.data, weight: 400, style: "normal" }],
   });
   const png = new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng();
   return { png, report };
@@ -393,6 +428,8 @@ export interface BurnFlowOptions {
   unplaceableRatio?: number;
   /** See {@link BurnOptions.connector}. */
   connector?: "auto" | "off";
+  /** See {@link BurnOptions.theme}. */
+  theme?: BurnTheme;
 }
 
 export interface BurnFlowResult {
@@ -464,6 +501,7 @@ export async function burnFlow(opts: BurnFlowOptions): Promise<BurnFlowResult> {
             ? { unplaceableRatio: opts.unplaceableRatio }
             : {}),
           ...(opts.connector ? { connector: opts.connector } : {}),
+          ...(opts.theme ? { theme: opts.theme } : {}),
         },
       });
       await fs.writeFile(dest, burned.png);

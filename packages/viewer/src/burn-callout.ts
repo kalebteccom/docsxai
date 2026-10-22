@@ -19,6 +19,23 @@ export const LINE_HEIGHT = 19;
 export const CALLOUT_PADDING_X = 11;
 export const CALLOUT_PADDING_Y = 8;
 export const CALLOUT_BORDER = 1;
+
+/** What sizes a callout box: the text and the room around it. A theme sets these. */
+export interface CalloutStyle {
+  fontSize: number;
+  lineHeight: number;
+  paddingX: number;
+  paddingY: number;
+  borderWidth: number;
+}
+
+export const DEFAULT_CALLOUT_STYLE: CalloutStyle = {
+  fontSize: FONT_SIZE,
+  lineHeight: LINE_HEIGHT,
+  paddingX: CALLOUT_PADDING_X,
+  paddingY: CALLOUT_PADDING_Y,
+  borderWidth: CALLOUT_BORDER,
+};
 /** Same outer-width clamp as the interactive overlay's measuring probe. */
 export const MAX_CALLOUT_WIDTH = 280;
 /** With obstacles, a callout is at most this share of the screenshot's width (and at least the floor). */
@@ -59,6 +76,8 @@ export interface LayoutInput {
   metrics: FontMetrics;
   /** Boxes to keep clear besides obstacles: other halos, badges, callouts already placed. */
   clear: Rect[];
+  /** Text size and padding of the box. Default {@link DEFAULT_CALLOUT_STYLE}. */
+  style?: CalloutStyle;
 }
 
 function preferredSide(arrowStyle: string | undefined): Side {
@@ -71,18 +90,20 @@ export function measureCallout(
   label: string,
   metrics: FontMetrics,
   maxWidth: number = MAX_CALLOUT_WIDTH,
+  style: CalloutStyle = DEFAULT_CALLOUT_STYLE,
 ): { lines: string[]; size: Size } {
-  const contentMax = maxWidth - 2 * (CALLOUT_PADDING_X + CALLOUT_BORDER);
-  const lines = wrapText(label, FONT_SIZE, contentMax, metrics);
+  const inset = style.paddingX + style.borderWidth;
+  const contentMax = maxWidth - 2 * inset;
+  const lines = wrapText(label, style.fontSize, contentMax, metrics);
   const contentWidth = Math.min(
-    Math.ceil(Math.max(...lines.map((l) => measureText(l, FONT_SIZE, metrics)))),
+    Math.ceil(Math.max(...lines.map((l) => measureText(l, style.fontSize, metrics)))),
     contentMax,
   );
   return {
     lines,
     size: {
-      width: contentWidth + 2 * (CALLOUT_PADDING_X + CALLOUT_BORDER),
-      height: lines.length * LINE_HEIGHT + 2 * (CALLOUT_PADDING_Y + CALLOUT_BORDER),
+      width: contentWidth + 2 * inset,
+      height: lines.length * style.lineHeight + 2 * (style.paddingY + style.borderWidth),
     },
   };
 }
@@ -162,6 +183,7 @@ function withOverlap(
 
 function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutLayout {
   const { ann, target, image, metrics, clear } = inp;
+  const style = inp.style ?? DEFAULT_CALLOUT_STYLE;
   const placement = ann.placement;
   const obstacles = ann.obstacles ?? [];
   const nudge = { x: ann.nudge?.x ?? 0, y: ann.nudge?.y ?? 0 };
@@ -170,7 +192,7 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
   if (placement?.inside === true) {
     const insideWidth = Math.min(width, Math.floor(target.width - 2 * INSIDE_MARGIN));
     if (insideWidth >= MIN_INSIDE_WIDTH) {
-      const { lines, size } = measureCallout(label, metrics, insideWidth);
+      const { lines, size } = measureCallout(label, metrics, insideWidth, style);
       const spot =
         fitsInside(target, size) &&
         planInside({
@@ -202,7 +224,7 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
     }
   }
 
-  const { lines, size } = measureCallout(label, metrics, width);
+  const { lines, size } = measureCallout(label, metrics, width, style);
   const input = { image, target, callout: size, preferred };
   const planned = steersBurner(placement) || obstacles.length > 0;
   const p = planned

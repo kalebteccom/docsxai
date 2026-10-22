@@ -2,6 +2,7 @@
 // and stem and says whether the near-black ink would disappear there. Integer maths only, so the
 // answer is a pure function of the pixels and the boxes.
 
+import { parseHexColor } from "./color.js";
 import type { Rect } from "./placement.js";
 
 /** Decoded screenshot: opaque 8-bit RGBA, row-major. */
@@ -31,8 +32,28 @@ export function lumaAt(grid: PixelGrid, x: number, y: number): number | undefine
   return lumaOf(grid.rgba[i]!, grid.rgba[i + 1]!, grid.rgba[i + 2]!);
 }
 
+/** Luma (0 to 255) over which a light connector has too little contrast to read; the mirror of DARK_LUMA. */
+export const LIGHT_LUMA = 255 - DARK_LUMA;
+
+/** Which end of the luma range a connector's colour sits at: `dark` ink is lost on dark pixels, `light` on light ones. */
+export type ConnectorTone = "dark" | "light";
+
 /** Dark and total pixel counts over the union-free sum of `boxes`, clipped to the grid. */
 export function sampleDark(grid: PixelGrid, boxes: Rect[]): { dark: number; total: number } {
+  return sampleLuma(grid, boxes, (luma) => luma < DARK_LUMA);
+}
+
+/** Light and total pixel counts, as {@link sampleDark} but for pixels at or above {@link LIGHT_LUMA}. */
+export function sampleLight(grid: PixelGrid, boxes: Rect[]): { light: number; total: number } {
+  const { dark: light, total } = sampleLuma(grid, boxes, (luma) => luma >= LIGHT_LUMA);
+  return { light, total };
+}
+
+function sampleLuma(
+  grid: PixelGrid,
+  boxes: Rect[],
+  hit: (luma: number) => boolean,
+): { dark: number; total: number } {
   let dark = 0;
   let total = 0;
   for (const box of boxes) {
@@ -43,7 +64,7 @@ export function sampleDark(grid: PixelGrid, boxes: Rect[]): { dark: number; tota
     for (let y = y0; y < y1; y++) {
       for (let x = x0; x < x1; x++) {
         total++;
-        if (lumaAt(grid, x, y)! < DARK_LUMA) dark++;
+        if (hit(lumaAt(grid, x, y)!)) dark++;
       }
     }
   }
@@ -56,7 +77,21 @@ export function sampleDark(grid: PixelGrid, boxes: Rect[]): { dark: number; tota
  * dark counts as dark, since the outline costs nothing on the light part. Boxes outside the
  * image sample nothing; with no pixels at all the answer is false, today's look.
  */
-export function needsConnectorHalo(grid: PixelGrid, boxes: Rect[]): boolean {
+export function needsConnectorHalo(
+  grid: PixelGrid,
+  boxes: Rect[],
+  tone: ConnectorTone = "dark",
+): boolean {
+  if (tone === "light") {
+    const { light, total } = sampleLight(grid, boxes);
+    return total > 0 && light * DARK_SHARE_DEN >= total * DARK_SHARE_NUM;
+  }
   const { dark, total } = sampleDark(grid, boxes);
   return total > 0 && dark * DARK_SHARE_DEN >= total * DARK_SHARE_NUM;
+}
+
+/** `light` for a colour at or above mid luma, `dark` below. */
+export function toneOf(hex: string): ConnectorTone {
+  const rgb = parseHexColor(hex);
+  return rgb !== null && lumaOf(rgb[0], rgb[1], rgb[2]) >= 128 ? "light" : "dark";
 }
