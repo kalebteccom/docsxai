@@ -210,6 +210,21 @@ function badgeNode(box: Rect, index: number): BurnNode {
   );
 }
 
+/**
+ * Satori 0.62 sizes a box by its content (CSS `content-box`), where 0.33 sized it by its border box.
+ * Pinning `border-box` on every div keeps each halo, callout and badge at the size the layout planned.
+ * Applied on the way into Satori so `buildBurnTree` output stays as it was.
+ */
+function withBorderBox(node: BurnNode): BurnNode {
+  const children = node.props.children;
+  const props: BurnNodeProps = {
+    ...node.props,
+    ...(Array.isArray(children) ? { children: children.map(withBorderBox) } : {}),
+  };
+  if (node.type === "div") props.style = { boxSizing: "border-box", ...node.props.style };
+  return { type: node.type, props };
+}
+
 /** Builds the Satori element tree: the screenshot full-bleed, overlays absolutely positioned. */
 export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const { width, height } = input.image;
@@ -353,7 +368,7 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
       ? { unplaceableRatio: input.options.unplaceableRatio }
       : {}),
   });
-  const svg = await satori(tree, {
+  const svg = await satori(withBorderBox(tree), {
     width,
     height,
     fonts: [{ name: "Inter", data: font.data, weight: 400, style: "normal" }],
