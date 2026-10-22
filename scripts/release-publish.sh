@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Pack, verify and publish the seven npm packages. Called by
-# .woodpecker/release.yaml and .github/workflows/release.yml; see RELEASING.md.
+# Pack, verify and publish the seven npm packages. Used by
+# .woodpecker/release.yaml only; see RELEASING.md.
 #
 #   release-publish.sh dry-run   pack + verify + `npm publish --dry-run`.
 #                                 Needs no credentials.
