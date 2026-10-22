@@ -5,6 +5,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { buildPack } from "./pack-build.js";
+import { workspaceTheme } from "./burn-theme-load.js";
 import { computeDrift, DEFAULT_THRESHOLD_PCT } from "./pack-drift.js";
 import { createOxipngOptimiser, identityOptimiser, oxipngCommand } from "./pack-optimise.js";
 import { DEFAULT_PUBLIC_PREFIX } from "./pack-schema.js";
@@ -115,10 +116,12 @@ export async function runPack(argv: string[]): Promise<number> {
     const outDir = path.resolve(out ?? path.join(dir, ".screens"));
     const prefix = parsed.values.get("--public-prefix");
     const generatedFor = parsed.values.get("--generated-for");
+    const theme = workspace ? await workspaceTheme(dir, warn) : undefined;
     const built = await buildPack({
       source,
       optimise,
       warn,
+      ...(theme ? { theme } : {}),
       ...(prefix !== undefined ? { publicPrefix: prefix } : {}),
       ...(generatedFor !== undefined ? { generatedFor } : {}),
     });
@@ -154,8 +157,17 @@ export async function runDrift(argv: string[]): Promise<number> {
     return usageError("pack --check", "--threshold needs a percentage >= 0");
   }
   try {
-    const { source } = await loadSource(parsed.positional, parsed.flags.has("--from-raw"));
-    const fresh = await buildPack({ source, optimise: identityOptimiser, warn });
+    const { source, workspace } = await loadSource(
+      parsed.positional,
+      parsed.flags.has("--from-raw"),
+    );
+    const theme = workspace ? await workspaceTheme(parsed.positional, warn) : undefined;
+    const fresh = await buildPack({
+      source,
+      optimise: identityOptimiser,
+      warn,
+      ...(theme ? { theme } : {}),
+    });
     const report = await computeDrift({
       fresh,
       against: path.resolve(against),

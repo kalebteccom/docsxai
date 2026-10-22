@@ -17,6 +17,9 @@ import type { AnnotationRecord } from "./annotations.js";
 import { isSafeFlowName, isSafeStepId, showName } from "./safe-id.js";
 import { viewerStamp } from "./viewer-version.js";
 import { flowPageHtml, indexHtml, type FlowSummary, type ViewerStep } from "./viewer-markup.js";
+import type { BurnTheme } from "./burn-theme.js";
+import { themeStyle } from "./burn-theme-css.js";
+import { loadThemeFont } from "./burn-theme-load.js";
 
 export interface BuildViewerOptions {
   /** The doc pack's `docs/` directory. */
@@ -25,6 +28,8 @@ export interface BuildViewerOptions {
   outDir: string;
   /** Restrict to these flow names; default = all flows found under `docsDir`. */
   flows?: string[];
+  /** The caption look the overlay shows (see burn-theme.ts). Default: the viewer's own. */
+  theme?: BurnTheme;
 }
 
 export interface BuildViewerResult {
@@ -185,6 +190,8 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
   await fs.mkdir(opts.outDir, { recursive: true });
   const stamp = viewerStamp();
   const overlayJs = flows.length ? await loadOverlayJs() : "";
+  const themed = opts.theme ? await loadThemeFont(opts.theme) : undefined;
+  const theme = opts.theme ? themeStyle(opts.theme, themed?.data) : undefined;
   const pages: string[] = ["index.html"];
   const flowSummaries: FlowSummary[] = [];
 
@@ -239,6 +246,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
       flowPageHtml(flow, steps, stamp, overlayJs, {
         neighbours: { prev: flows[i - 1], next: flows[i + 1] },
         notices: parsed.notices,
+        ...(theme ? { theme } : {}),
       }),
       "utf8",
     );

@@ -46,6 +46,31 @@ export {
   type BurnTreeInput,
 } from "./burn.js";
 export {
+  AA_TEXT_RATIO,
+  BADGE_SHAPES,
+  DEFAULT_BURN_THEME,
+  THEME_PRESET_NAMES,
+  THEME_PRESETS,
+  contrastWarnings,
+  themeContrast,
+  type BadgeShape,
+  type BurnTheme,
+  type ContrastCheck,
+  type ThemePresetName,
+} from "./burn-theme.js";
+export {
+  BurnThemeError,
+  parseThemeConfig,
+  resolveBurnTheme,
+  type ResolveContext,
+  type ThemeConfig,
+} from "./burn-theme-config.js";
+export { THEME_FIELDS, THEME_KEYS, type ThemeKey } from "./burn-theme-fields.js";
+export { flattenTokens, type TokenLeaves } from "./burn-theme-tokens.js";
+export { loadBurnTheme, loadThemeFont, type LoadedTheme } from "./burn-theme-load.js";
+export { themeStyle, themeVariables, type ThemeStyle } from "./burn-theme-css.js";
+export { contrastRatio } from "./color.js";
+export {
   BURN_REPORT_SCHEMA,
   DEFAULT_UNPLACEABLE_RATIO,
   type AnnotationReport,
@@ -133,6 +158,7 @@ export {
 export {
   buildPack,
   hash8,
+  themedBurner,
   viewerBurner,
   type BuildPackOptions,
   type BuiltPack,
@@ -156,6 +182,7 @@ export {
 export { diffGrids, diffPngs, type PixelDiff } from "./pack-pixels.js";
 
 import { buildViewer, discoverFlows } from "./render.js";
+import { workspaceTheme } from "./burn-theme-load.js";
 import { burnFlow, burnReport } from "./burn.js";
 import { DEFAULT_UNPLACEABLE_RATIO, type FlowBurnReport } from "./burn-report.js";
 import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
@@ -250,15 +277,26 @@ function usageError(command: string, message: string): number {
   return 2;
 }
 
+/** Where a theme's contrast warnings go. */
+const warnTheme = (command: string) => (message: string) =>
+  process.stderr.write(`${command}: warning: ${message}\n`);
+
 async function runBuild(args: ParsedArgs): Promise<number> {
   if (args.error) return usageError("build", args.error);
   const [docsDir, outDir] = args.positional;
   if (!docsDir || !outDir) return usageError("build", "requires <docs-dir> and <out-dir>");
   try {
+    // `docsxai render` passes `<workspace>/docs`; the workspace's `burn.theme` styles the captions.
+    const docsPath = path.resolve(docsDir);
+    const theme =
+      path.basename(docsPath) === "docs"
+        ? await workspaceTheme(path.dirname(docsPath), warnTheme("build"))
+        : undefined;
     const r = await buildViewer({
       docsDir,
       outDir,
       ...(args.flows.length ? { flows: args.flows } : {}),
+      ...(theme ? { theme } : {}),
     });
     for (const w of r.warnings) process.stderr.write(`viewer: warning: ${w}\n`);
     process.stdout.write(`viewer: wrote ${r.pages.length} page(s) to ${outDir}\n`);
@@ -279,6 +317,7 @@ async function runBurn(args: ParsedArgs): Promise<number> {
   }
   const docsDir = path.join(workspace, "docs");
   try {
+    const theme = await workspaceTheme(workspace, warnTheme("burn"));
     const found = await discoverFlows(docsDir, { variants: true });
     // `--flow <name>` also selects the `<name>/<variant>` outputs of a flow that ran a matrix.
     const flows = args.flows.length
@@ -301,6 +340,7 @@ async function runBurn(args: ParsedArgs): Promise<number> {
         outDir,
         ...(ratio !== undefined ? { unplaceableRatio: ratio } : {}),
         ...(args.plainConnectors ? { connector: "off" as const } : {}),
+        ...(theme ? { theme } : {}),
       });
       reports.push(r.report);
       images += r.written.length;

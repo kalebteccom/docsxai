@@ -7,6 +7,7 @@
       "ignore_https_errors": "ignore_https_errors?: boolean",
       "backend_url": "backend_url?: string",
       "annotations": "annotations?: { obstacles?: boolean; }",
+      "burn": "burn?: { theme?: BurnThemeConfig; }",
       "backend_workspace_id": "backend_workspace_id?: string",
       "backend_project_id": "backend_project_id?: string",
       "created_at": "created_at: string"
@@ -17,6 +18,7 @@
       "backend_project_id",
       "backend_url",
       "backend_workspace_id",
+      "burn",
       "ignore_https_errors"
     ]
   },

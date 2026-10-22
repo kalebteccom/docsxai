@@ -2,7 +2,12 @@
 // pixels (see connector-contrast.ts) a white outline goes under both so they stay visible.
 
 import { arrowGeometry, arrowHaloGeometry, growRect } from "./arrow.js";
-import { CONNECTOR_HALO, needsConnectorHalo, type PixelGrid } from "./connector-contrast.js";
+import {
+  CONNECTOR_HALO,
+  needsConnectorHalo,
+  toneOf,
+  type PixelGrid,
+} from "./connector-contrast.js";
 import { layoutBoxes, type CalloutLayout } from "./burn-callout.js";
 import type { BurnNode } from "./burn.js";
 
@@ -36,9 +41,16 @@ function box(
 /**
  * Stem and arrow nodes for a laid-out callout, nudge applied. With `pixels`, a connector whose
  * background is dark gets its outline nodes first (below both inks). Without `pixels`, or on a
- * light background, the nodes are exactly the plain ink ones.
+ * light background, the nodes are exactly the plain ink ones. `ink` is the connector colour; a
+ * light one is outlined in dark ink on light pixels, the mirror of the default.
  */
-export function connectorNodes(layout: CalloutLayout, pixels?: PixelGrid): BurnNode[] {
+export function connectorNodes(
+  layout: CalloutLayout,
+  pixels?: PixelGrid,
+  ink: string = CONNECTOR_INK,
+): BurnNode[] {
+  const tone = toneOf(ink);
+  const haloColor = tone === "dark" ? CONNECTOR_HALO_COLOR : CONNECTOR_INK;
   const { nudge, stem } = layout;
   const arrow = layout.side && layout.arrow ? arrowGeometry(layout.side, layout.arrow) : null;
   if (!stem && !arrow) return [];
@@ -49,22 +61,21 @@ export function connectorNodes(layout: CalloutLayout, pixels?: PixelGrid): BurnN
       layoutBoxes(layout)
         .slice(1)
         .map((b) => growRect(b, CONNECTOR_HALO)),
+      tone,
     );
   const nodes: BurnNode[] = [];
   if (halo) {
     if (stem) {
       const s = growRect(stem, CONNECTOR_HALO);
-      nodes.push(box(s.x + nudge.x, s.y + nudge.y, s.width, s.height, CONNECTOR_HALO_COLOR));
+      nodes.push(box(s.x + nudge.x, s.y + nudge.y, s.width, s.height, haloColor));
     }
     if (layout.side && layout.arrow) {
       const h = arrowHaloGeometry(layout.side, layout.arrow, CONNECTOR_HALO);
-      nodes.push(
-        box(h.left + nudge.x, h.top + nudge.y, h.width, h.height, CONNECTOR_HALO_COLOR, h.clipPath),
-      );
+      nodes.push(box(h.left + nudge.x, h.top + nudge.y, h.width, h.height, haloColor, h.clipPath));
     }
   }
   if (stem) {
-    nodes.push(box(stem.x + nudge.x, stem.y + nudge.y, stem.width, stem.height, CONNECTOR_INK));
+    nodes.push(box(stem.x + nudge.x, stem.y + nudge.y, stem.width, stem.height, ink));
   }
   if (arrow) {
     nodes.push(
@@ -73,7 +84,7 @@ export function connectorNodes(layout: CalloutLayout, pixels?: PixelGrid): BurnN
         arrow.top + nudge.y,
         arrow.width,
         arrow.height,
-        CONNECTOR_INK,
+        ink,
         arrow.clipPath,
       ),
     );

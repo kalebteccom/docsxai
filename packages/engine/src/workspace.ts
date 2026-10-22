@@ -74,6 +74,38 @@ export async function resolveWorkspacePathReal(
   return resolved;
 }
 
+/**
+ * The `burn.theme` block: the look of burned captions and of the viewer's overlay. Every key is
+ * optional; no block means the original look. `@docsxai/viewer` checks the values and layers them
+ * (default look, then `preset`, then the tokens file named by `from`, then the keys written here).
+ * Keys, ranges and the token mapping: docs/burn-theming.md.
+ */
+export interface BurnThemeConfig {
+  /** `clean`, `soft` or `high-contrast`. */
+  preset?: string;
+  /** Tokens file (W3C design tokens or a flat map), relative to the workspace. */
+  from?: string;
+  /** Theme key to token path, for keys that must be found in the tokens file. */
+  tokens?: Record<string, string>;
+  accent?: string;
+  ink?: string;
+  callout_background?: string;
+  callout_border_color?: string;
+  callout_border_width?: number;
+  radius?: number;
+  /** A CSS box-shadow, or `none`. */
+  shadow?: string;
+  /** `circle`, `rounded` or `square`. */
+  badge_shape?: string;
+  badge_fill?: string;
+  font_size?: number;
+  line_height?: number;
+  padding_x?: number;
+  padding_y?: number;
+  /** TTF or OTF file inside the workspace; the bundled Inter when unset. */
+  font?: string;
+}
+
 export interface WorkspaceConfig {
   schema: "docsxai/workspace@1";
   /** Base URL of the running app this workspace documents. Used as the default for `run`/`capture-auth`. */
@@ -89,6 +121,10 @@ export interface WorkspaceConfig {
      * target excluded) so the burner keeps callouts off page content. Default false.
      */
     obstacles?: boolean;
+  };
+  /** How `burn`, `pack` and `render` draw captions. Absent keys keep today's look. */
+  burn?: {
+    theme?: BurnThemeConfig;
   };
   /** Backend workspace ID, set by `push` after first round-trip. */
   backend_workspace_id?: string;

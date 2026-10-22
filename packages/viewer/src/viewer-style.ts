@@ -4,7 +4,8 @@
 // text/background pair the stylesheet uses meets WCAG AA (4.5:1); viewer-style.test.ts computes
 // the ratios from these objects, so a token change that drops a pair below AA fails a test.
 // The overlay (halo, badge, callout) sits on the screenshot, not on the page, so its colours are
-// fixed in both schemes.
+// fixed in both schemes. Each overlay value is read through a `--sd-*` variable with the original
+// value as the fallback; a page built with a caption theme sets the variables (burn-theme-css.ts).
 // Scrollbars: one thin bar for every scroller on the page, its thumb the scheme's text colour at
 // 50% (70% on hover), at least 3:1 against every page surface. Browsers without scrollbar-color get
 // a 12px webkit bar; forced colours and prefers-contrast: more hand the bar back to the system.
@@ -97,23 +98,23 @@ export const VIEWER_STYLE = `
   /* Default: a blinking halo around the target (+ a numbered badge when a screenshot has > 1 call-out) —
      does NOT cover the UI. The callout text is hidden until you hover, focus or tap the halo or its badge. */
   .sd-ann { position: absolute; left: 0; top: 0; pointer-events: none; }
-  .sd-halo { position: absolute; box-sizing: border-box; border: 2px solid #e8590c; border-radius: 4px; box-shadow: 0 0 0 3px rgba(232,89,12,.35); cursor: help; pointer-events: auto; background: transparent; margin: 0; padding: 0; font: inherit; color: inherit; -webkit-appearance: none; appearance: none; }
+  .sd-halo { position: absolute; box-sizing: border-box; border: 2px solid var(--sd-accent, #e8590c); border-radius: var(--sd-halo-radius, 4px); box-shadow: 0 0 0 3px var(--sd-accent-glow, rgba(232,89,12,.35)); cursor: help; pointer-events: auto; background: transparent; margin: 0; padding: 0; font: inherit; color: inherit; -webkit-appearance: none; appearance: none; }
   /* At least 44 x 44 px to tap, however small the target. */
   .sd-halo::before { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
   /* Two-tone ring: visible on any screenshot colour. */
   .sd-halo:focus-visible { outline: 2px solid #fff; outline-offset: 0; box-shadow: 0 0 0 5px #0b57d0; }
   /* The pulse is a separate ring that only changes opacity, so it never moves anything and the browser can composite it. */
-  .sd-halo::after { content: ""; position: absolute; inset: -8px; border: 3px solid rgba(232,89,12,.3); border-radius: 8px; pointer-events: none; animation: sd-pulse 1.7s ease-in-out infinite; }
+  .sd-halo::after { content: ""; position: absolute; inset: -8px; border: 3px solid var(--sd-accent-pulse, rgba(232,89,12,.3)); border-radius: 8px; pointer-events: none; animation: sd-pulse 1.7s ease-in-out infinite; }
   .sd-halo:focus-visible::after { display: none; }
   @keyframes sd-pulse { 0%,100% { opacity: 0; } 50% { opacity: 1; } }
-  .sd-badge { position: absolute; min-width: 22px; height: 22px; padding: 0 6px; line-height: 22px; text-align: center; font-weight: 700; font-size: 12px; color: #fff; background: ${BADGE_FILL}; border: 2px solid #fff; border-radius: 11px; box-sizing: content-box; box-shadow: 0 2px 6px rgba(0,0,0,.32); pointer-events: auto; cursor: help; }
+  .sd-badge { position: absolute; min-width: 22px; height: 22px; padding: 0 6px; line-height: 22px; text-align: center; font-weight: 700; font-size: 12px; color: #fff; background: var(--sd-badge-fill, ${BADGE_FILL}); border: 2px solid #fff; border-radius: var(--sd-badge-radius, 11px); font-family: var(--sd-font, inherit); box-sizing: content-box; box-shadow: 0 2px 6px rgba(0,0,0,.32); pointer-events: auto; cursor: help; }
   .sd-callout, .sd-arrow { position: absolute; display: none; z-index: 3; pointer-events: none; }
-  .sd-callout { background: #1c1c1c; color: #fff; padding: 8px 11px; border-radius: 7px; font-size: .85rem; line-height: 1.35; box-shadow: 0 4px 14px rgba(0,0,0,.32); overflow-wrap: anywhere; }
+  .sd-callout { background: var(--sd-callout-bg, #1c1c1c); color: var(--sd-callout-ink, #fff); padding: var(--sd-callout-padding, 8px 11px); border: var(--sd-callout-border, 0); border-radius: var(--sd-callout-radius, 7px); font-family: var(--sd-font, inherit); font-size: var(--sd-callout-font-size, .85rem); line-height: var(--sd-callout-line-height, 1.35); box-shadow: var(--sd-callout-shadow, 0 4px 14px rgba(0,0,0,.32)); overflow-wrap: anywhere; }
   .sd-arrow { width: 0; height: 0; }
-  .sd-arrow.top { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid #1c1c1c; }       /* callout above → arrow points down */
-  .sd-arrow.bottom { border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 8px solid #1c1c1c; } /* callout below → arrow points up */
-  .sd-arrow.left { border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-left: 8px solid #1c1c1c; }     /* callout left → arrow points right */
-  .sd-arrow.right { border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-right: 8px solid #1c1c1c; }   /* callout right → arrow points left */
+  .sd-arrow.top { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid var(--sd-connector, #1c1c1c); }       /* callout above → arrow points down */
+  .sd-arrow.bottom { border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 8px solid var(--sd-connector, #1c1c1c); } /* callout below → arrow points up */
+  .sd-arrow.left { border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-left: 8px solid var(--sd-connector, #1c1c1c); }     /* callout left → arrow points right */
+  .sd-arrow.right { border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-right: 8px solid var(--sd-connector, #1c1c1c); }   /* callout right → arrow points left */
   .sd-badge::before { content: ""; position: absolute; inset: -11px; }
   .sd-ann:hover .sd-callout, .sd-ann:hover .sd-arrow, .sd-ann:focus-within .sd-callout, .sd-ann:focus-within .sd-arrow, .sd-ann.sd-open .sd-callout, .sd-ann.sd-open .sd-arrow { display: block; }
   .sd-ann.sd-dismissed .sd-callout, .sd-ann.sd-dismissed .sd-arrow { display: none; }

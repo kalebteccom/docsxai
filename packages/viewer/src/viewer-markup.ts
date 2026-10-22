@@ -5,6 +5,7 @@ import { micromark } from "micromark";
 import type { AnnotationRecord } from "./annotations.js";
 import { SHORTCUTS } from "./viewer-keys.js";
 import { VIEWER_STYLE } from "./viewer-style.js";
+import type { ThemeStyle } from "./burn-theme-css.js";
 
 export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -20,8 +21,13 @@ const HEAD_NOCACHE =
 
 // Matches the inline-asset reality (inline <style>/<script>, local + data: images) while blocking
 // all network egress from an emitted page — no CDN fetches, no beacons, no remote fonts.
-const HEAD_CSP =
-  "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'\">";
+const CSP_BASE =
+  "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'";
+const cspMeta = (policy: string) =>
+  `<meta http-equiv="Content-Security-Policy" content="${policy}">`;
+const HEAD_CSP = cspMeta(CSP_BASE);
+// A themed page that embeds the theme's font as a data: URI may load fonts from data: URIs, and from nowhere else.
+const HEAD_CSP_FONT = cspMeta(`${CSP_BASE}; font-src data:`);
 
 // Without a viewport meta, phones lay the page out at ~980 px and scale it down.
 const HEAD_VIEWPORT = '<meta name="viewport" content="width=device-width, initial-scale=1">';
@@ -29,8 +35,9 @@ const HEAD_VIEWPORT = '<meta name="viewport" content="width=device-width, initia
 /** Site name shown in every page title and on the index heading. */
 export const SITE_TITLE = "Documentation";
 
-function pageHead(title: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_VIEWPORT}${HEAD_CSP}${HEAD_NOCACHE}<title>${esc(title)}</title><style>${VIEWER_STYLE}</style></head>`;
+function pageHead(title: string, theme?: ThemeStyle): string {
+  const csp = theme?.embedsFont ? HEAD_CSP_FONT : HEAD_CSP;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_VIEWPORT}${csp}${HEAD_NOCACHE}<title>${esc(title)}</title><style>${VIEWER_STYLE}${theme?.css ?? ""}</style></head>`;
 }
 
 function renderedFooter(stamp: string): string {
@@ -128,6 +135,8 @@ export interface FlowPageOptions {
   neighbours?: FlowNeighbours;
   /** Notes on a damaged annotations file, shown above the steps. */
   notices?: string[];
+  /** The caption theme as page style (see burn-theme-css.ts); without it the page looks as it always did. */
+  theme?: ThemeStyle;
 }
 
 const NO_STEPS =
@@ -143,7 +152,7 @@ export function flowPageHtml(
   const header = `<header class="site-header">${flowNav(flow, opts.neighbours ?? {})}${shortcutsHtml(true)}</header>`;
   const notices = (opts.notices ?? []).map((n) => `<p class="notice">${esc(n)}</p>`).join("");
   const body = steps.length ? steps.map((s, i) => stepHtml(s, i + 1)).join("\n") : NO_STEPS;
-  return `${pageHead(`${flow} · ${SITE_TITLE}`)}
+  return `${pageHead(`${flow} · ${SITE_TITLE}`, opts.theme)}
 <body>${SKIP_LINK}${header}<main id="main" tabindex="-1"><h1>${esc(flow)}</h1>${notices}${body}</main>${LIVE_REGION}${renderedFooter(stamp)}<script>${overlayJs}</script></body></html>`;
 }
 
