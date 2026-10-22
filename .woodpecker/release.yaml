@@ -1,6 +1,6 @@
 # ci-optimised: v1
 # Release pipeline: packs, verifies and publishes the seven npm packages for one tag. See RELEASING.md.
-# Mirrors .github/workflows/release.yml (build, dry-run, publish) without provenance and without the GitHub Release step.
+# Steps: build, verify, dry-run, publish. No provenance and no GitHub Release step.
 #
 # INVARIANT: manual event only. The owner (or an agent the owner authorises) starts it from the Woodpecker UI with the manual-pipeline variable RELEASE_TAG=vX.Y.Z[-pre],
 # on the branch whose head is the tagged commit. No push, pull_request, tag or cron trigger: PR-derived code never runs here.
@@ -17,7 +17,7 @@ when:
   - event: manual
 
 steps:
-  # No shared pnpm store: a release installs from the registry against the lockfile, like release.yml, so a store
+  # No shared pnpm store: a release installs from the registry against the lockfile, so a store
   # written by branch pipelines cannot reach the published tarballs. The store sits in the container's /tmp and node_modules
   # in the workspace gets copies, so later steps need no store.
   - name: setup
@@ -36,7 +36,7 @@ steps:
     commands:
       - bash scripts/gate-slot.sh pnpm build
 
-  # Same checks as the build job of release.yml, on the commit being released.
+  # Typecheck and tests on the commit being released.
   - name: verify
     image: remotxai-ci:latest
     depends_on: [build]

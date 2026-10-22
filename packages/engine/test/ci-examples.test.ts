@@ -262,11 +262,6 @@ describe("docs/ci-recipes.md", () => {
 
 describe("this repository's own CI", () => {
   it("does not run the nightly drift recipes", () => {
-    const workflows = readdirSync(path.join(repo, ".github", "workflows"));
-    for (const f of workflows) {
-      const text = read(".github", "workflows", f);
-      expect(text, `.github/workflows/${f}`).not.toMatch(/verify-determinism|nightly-drift/);
-    }
     const pipelines = readdirSync(path.join(repo, ".woodpecker"));
     expect(pipelines).toContain("ci.yaml");
     for (const f of pipelines) {

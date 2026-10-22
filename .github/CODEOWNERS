@@ -12,7 +12,6 @@
 # pivot to OIDC publish abuse.
 /.github/                           @rowinbot
 /.github/CODEOWNERS                 @rowinbot
-/.github/workflows/release.yml      @rowinbot
 /.github/workflows/                 @rowinbot
 /.github/dependabot.yml             @rowinbot
 
