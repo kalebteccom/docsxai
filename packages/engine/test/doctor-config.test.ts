@@ -96,9 +96,15 @@ describe("checkWritable", () => {
 
 describe("checkAppUrl", () => {
   const cfg = { app_url: "https://app.example.com/" };
-  const answer = (status: number): typeof fetch =>
-    (async () => new Response(null, { status })) as never;
-  const reject = (e: Error): typeof fetch => (async () => Promise.reject(e)) as never;
+  const answer =
+    (status: number): typeof fetch =>
+    async () =>
+      new Response(null, { status });
+  const reject =
+    (e: Error): typeof fetch =>
+    async () => {
+      throw e;
+    };
 
   it("returns null when no usable app_url is configured", async () => {
     expect(await checkAppUrl(null, answer(200), false)).toBeNull();

@@ -46,10 +46,9 @@ function themeProblems(burn: unknown): string[] {
     return [...problems, "burn.theme must be an object"];
   }
   const preset = (theme as Record<string, unknown>).preset;
-  if (preset !== undefined && !THEME_PRESETS.includes(String(preset))) {
-    problems.push(
-      `burn.theme.preset "${String(preset)}" is not one of ${THEME_PRESETS.join(", ")}`,
-    );
+  if (preset !== undefined && (typeof preset !== "string" || !THEME_PRESETS.includes(preset))) {
+    const shown = typeof preset === "string" ? preset : JSON.stringify(preset);
+    problems.push(`burn.theme.preset "${shown}" is not one of ${THEME_PRESETS.join(", ")}`);
   }
   return problems;
 }

@@ -593,7 +593,8 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
     );
     // every line is an ok: or fail: line, with no glyphs or ANSI escapes
     for (const line of text.trimEnd().split("\n")) expect(line).toMatch(/^(ok|fail): /);
-    expect(text).not.toMatch(/[✓✗−\u001b]/);
+    expect(text).not.toMatch(/[✓✗−]/);
+    expect(text.includes("\u001b")).toBe(false);
   });
 
   it("skips workspace-scoped checks outside a workspace", async () => {
