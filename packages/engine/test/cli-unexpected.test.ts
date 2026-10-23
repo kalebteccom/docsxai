@@ -1,7 +1,12 @@
 // An error no command handled: one line and a DOCSX_DEBUG hint by default, the stack with it.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { debugEnabled, runAsBin, unexpectedErrorText } from "../src/cli-unexpected.js";
+import {
+  debugEnabled,
+  interruptedText,
+  runAsBin,
+  unexpectedErrorText,
+} from "../src/cli-unexpected.js";
 import { runAsBin as fromCli } from "../src/cli.js";
 
 let err = "";
@@ -76,7 +81,31 @@ describe("unexpectedErrorText", () => {
   });
 });
 
+describe("interruptedText", () => {
+  it("names the signal and the command to start over, quoted", () => {
+    expect(interruptedText("SIGINT", ["run", "/my ws", "--flow", "tour"])).toBe(
+      "docsxai: interrupted (SIGINT); anything a finished step wrote stays on disk\n" +
+        "  next: docsxai run '/my ws' --flow tour  (the same command starts over)\n",
+    );
+  });
+});
+
 describe("runAsBin", () => {
+  it("leaves no signal listener behind", async () => {
+    const before = [process.listenerCount("SIGINT"), process.listenerCount("SIGTERM")];
+    let during: number[] = [];
+    await runAsBin(
+      () => {
+        during = [process.listenerCount("SIGINT"), process.listenerCount("SIGTERM")];
+        return Promise.resolve(0);
+      },
+      [],
+      {},
+    );
+    expect(during).toEqual(before.map((n) => n + 1));
+    expect([process.listenerCount("SIGINT"), process.listenerCount("SIGTERM")]).toEqual(before);
+  });
+
   it("passes the exit code of main through", async () => {
     expect(await runAsBin(() => Promise.resolve(2), [])).toBe(2);
     expect(err).toBe("");
