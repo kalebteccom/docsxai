@@ -11,7 +11,7 @@ Source of truth: [`AGENTS.md`](../../AGENTS.md) → "Commands the agent must not
 
 | Pattern | Decision | Why |
 |---|---|---|
-| `pnpm publish`, `npm publish` | forbidden | Releases go through OIDC trusted publishing in `release.yml`. No human or agent runs publish locally (baseline rule 8). |
+| `pnpm publish`, `npm publish` | forbidden | Releases go only through the Woodpecker release pipeline (`.woodpecker/release.yaml`, manual trigger). No human or agent runs publish locally (baseline rule 8). |
 | `npm install -g <anything>` | prompt | Global installs are a typosquat vector and route around the project lockfile (baseline rules 41 / 49). |
 | `git push --force` (and `--force-with-lease` to protected branches) | forbidden | Branch ruleset rejects this server-side; agent-layer defense-in-depth (baseline rule 26). |
 | `pnpm -C packages/engine exec playwright-core install chromium` | explicit allow | Documented Playwright/Chromium fetch — the legit exception to `--ignore-scripts` (baseline rule 39). Must not be blocked by any blanket install rule. |

@@ -49,9 +49,9 @@ fi
 
 # --- forbidden (deny) ---
 
-# pnpm publish / npm publish — releases go via OIDC trusted publishing only.
+# pnpm publish / npm publish — releases go only through the Woodpecker release pipeline.
 if echo "$STRIPPED" | grep -qE '(^|[[:space:]])(p?npm)[[:space:]]+publish([[:space:]]|$)'; then
-  emit_deny "BLOCKED: 'npm publish' / 'pnpm publish' is forbidden. Releases ship via OIDC trusted publishing in release.yml (baseline rule 8). See AGENTS.md."
+  emit_deny "BLOCKED: 'npm publish' / 'pnpm publish' is forbidden. Releases go only through the Woodpecker release pipeline (.woodpecker/release.yaml, manual trigger) (baseline rule 8). See AGENTS.md."
 fi
 
 # git push --force / git push -f / git push --force-with-lease

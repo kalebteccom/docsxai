@@ -36,14 +36,14 @@ prefix_rule(
 prefix_rule(
     pattern = ["pnpm", "publish"],
     decision = "forbidden",
-    justification = "Releases go through OIDC trusted publishing in release.yml. No local publish (baseline rule 8).",
+    justification = "Releases go only through the Woodpecker release pipeline (.woodpecker/release.yaml, manual trigger). No local publish (baseline rule 8).",
     match = ["pnpm publish", "pnpm publish --access public"],
 )
 
 prefix_rule(
     pattern = ["npm", "publish"],
     decision = "forbidden",
-    justification = "Releases go through OIDC trusted publishing in release.yml. No local publish (baseline rule 8).",
+    justification = "Releases go only through the Woodpecker release pipeline (.woodpecker/release.yaml, manual trigger). No local publish (baseline rule 8).",
     match = ["npm publish", "npm publish --access public"],
 )
 
