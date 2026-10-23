@@ -4,6 +4,7 @@
 import { micromark } from "micromark";
 import type { AnnotationRecord } from "./annotations.js";
 import { SHORTCUTS } from "./viewer-keys.js";
+import { copyButton } from "./viewer-copy.js";
 import { VIEWER_STYLE } from "./viewer-style.js";
 import type { ThemeStyle } from "./burn-theme-css.js";
 
@@ -40,8 +41,10 @@ function pageHead(title: string, theme?: ThemeStyle): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">${HEAD_VIEWPORT}${csp}${HEAD_NOCACHE}<title>${esc(title)}</title><style>${VIEWER_STYLE}${theme?.css ?? ""}</style></head>`;
 }
 
-function renderedFooter(stamp: string): string {
-  return `<footer class="meta site-footer">Rendered by ${esc(stamp)}. Hard-reload if this page looks stale.</footer>`;
+// `copy` is false on a page that ships no script (an empty index), where a button would do nothing.
+function renderedFooter(stamp: string, copy = true): string {
+  const button = copy ? ` ${copyButton(stamp, "viewer build")}` : "";
+  return `<footer class="meta site-footer">Rendered by <span class="sd-id">${esc(stamp)}</span>. Hard-reload if this page looks stale.${button}</footer>`;
 }
 
 const SKIP_LINK = '<a class="skip-link" href="#main">Skip to content</a>';
@@ -74,28 +77,36 @@ function stepCaption(anns: AnnotationRecord[]): string {
   return `<figcaption><ol class="caption-list">${anns.map((a) => `<li>${esc(a.copy)}</li>`).join("")}</ol></figcaption>`;
 }
 
-// Shown by the runtime when the <img> fires `error`; Retry reloads it.
-const SHOT_ERROR =
-  '<p class="shot-error" role="alert" hidden>The screenshot failed to load. <button type="button" class="shot-retry">Retry</button></p>';
+// Shown by the runtime when the <img> fires `error`; Retry reloads it. The runtime rewrites the
+// message while a retry runs and when it fails again.
+function shotError(id: string, rel: string): string {
+  return `<p class="shot-error" role="alert" hidden><span class="shot-error-msg">The screenshot for step ${esc(id)} could not be loaded. Check that <code>${esc(rel)}</code> is still next to this page, then press Retry.</span> <button type="button" class="shot-retry">Retry</button></p>`;
+}
 
-function stepShot(s: ViewerStep): string {
+// A step whose screenshot file does not exist: the reason and the command that captures it again.
+function missingShot(id: string, flow: string | undefined): string {
+  const cmd = `docsxai run <workspace>${flow ? ` --flow ${flow.split("/")[0]}` : ""} --start-from ${id}`;
+  return `<div class="shot-missing" role="status"><p>No screenshot for this step. <code>screenshots/${esc(id)}.png</code> was not found when this page was built.</p><p>Capture it again with <span class="sd-copyable"><code class="sd-id">${esc(cmd)}</code> ${copyButton(cmd, "command")}</span> then run <code>docsxai render &lt;workspace&gt;</code>.</p></div>`;
+}
+
+function stepShot(s: ViewerStep, flow: string | undefined): string {
   if (s.unsafe)
-    return `<p class="shot-missing" role="alert">This step's name cannot be used as a file name, so its screenshot and write-up were left out.</p>`;
-  if (!s.screenshot) return `<p class="shot-missing">No screenshot was captured for this step.</p>`;
+    return `<p class="shot-missing" role="alert">This step's name cannot be used as a file name, so its screenshot and write-up were left out. Rename the step in the flow file, then run <code>docsxai run</code> and <code>docsxai render</code> again.</p>`;
+  if (!s.screenshot) return missingShot(s.id, flow);
   const dims = s.size ? ` width="${s.size.width}" height="${s.size.height}"` : "";
   const data = s.anns.length ? ` data-anns='${escAttrSingle(JSON.stringify(s.anns))}'` : "";
-  return `<div class="shot"${data}><img src="${esc(s.screenshot)}" alt="Screenshot of step ${esc(s.id)}"${dims}></div>${SHOT_ERROR}`;
+  return `<div class="shot"${data}><img src="${esc(s.screenshot)}" alt="Screenshot of step ${esc(s.id)}"${dims}></div>${shotError(s.id, s.screenshot)}`;
 }
 
 /** One step: a labelled section, focusable from script so keyboard navigation can land on it. */
-export function stepHtml(s: ViewerStep, n: number): string {
+export function stepHtml(s: ViewerStep, n: number, flow?: string): string {
   // micromark in its safe default mode: raw HTML in the markdown is escaped, dangerous link
   // protocols are dropped — nothing in a step write-up can introduce markup or script.
   const md = s.md
     ? `<details class="write-up"><summary>Step write-up</summary><div class="md">${demoteHeadings(micromark(s.md))}</div></details>`
     : "";
-  const figure = `<figure class="shot-figure">${stepShot(s)}${stepCaption(s.anns)}</figure>`;
-  return `<section class="step" id="step-${n}" aria-labelledby="step-${n}-title" tabindex="-1"><h2 id="step-${n}-title">${esc(s.id)}</h2>${figure}${md}</section>`;
+  const figure = `<figure class="shot-figure">${stepShot(s, flow)}${stepCaption(s.anns)}</figure>`;
+  return `<section class="step" id="step-${n}" aria-labelledby="step-${n}-title" tabindex="-1"><div class="id-row"><h2 id="step-${n}-title">${esc(s.id)}</h2>${copyButton(s.id, "step id")}</div>${figure}${md}</section>`;
 }
 
 /** Neighbouring flows in the viewer's flow order, for the previous/next links and `[` / `]`. */
@@ -151,9 +162,9 @@ export function flowPageHtml(
 ): string {
   const header = `<header class="site-header">${flowNav(flow, opts.neighbours ?? {})}${shortcutsHtml(true)}</header>`;
   const notices = (opts.notices ?? []).map((n) => `<p class="notice">${esc(n)}</p>`).join("");
-  const body = steps.length ? steps.map((s, i) => stepHtml(s, i + 1)).join("\n") : NO_STEPS;
+  const body = steps.length ? steps.map((s, i) => stepHtml(s, i + 1, flow)).join("\n") : NO_STEPS;
   return `${pageHead(`${flow} · ${SITE_TITLE}`, opts.theme)}
-<body>${SKIP_LINK}${header}<main id="main" tabindex="-1"><h1>${esc(flow)}</h1>${notices}${body}</main>${LIVE_REGION}${renderedFooter(stamp)}<script>${overlayJs}</script></body></html>`;
+<body>${SKIP_LINK}${header}<main id="main" tabindex="-1"><div class="id-row"><h1>${esc(flow)}</h1>${copyButton(flow, "flow id")}</div>${notices}${body}</main>${LIVE_REGION}${renderedFooter(stamp)}<script>${overlayJs}</script></body></html>`;
 }
 
 export interface FlowSummary {
@@ -167,9 +178,9 @@ export interface FlowSummary {
 function flowCard(m: FlowSummary): string {
   const img = m.thumb
     ? `<img src="${esc(m.thumb)}" alt="" loading="lazy" decoding="async">`
-    : `<div class="thumb-missing">No screenshot</div>`;
-  const sub = `${m.steps} step${m.steps === 1 ? "" : "s"}${m.annotations ? `, ${m.annotations} annotation${m.annotations === 1 ? "" : "s"}` : ""}`;
-  return `<li><a class="flow-card" href="./${esc(m.flow)}/index.html">${img}<div class="flow-card-meta"><strong>${esc(m.flow)}</strong><span>${sub}</span></div></a></li>`;
+    : `<div class="thumb-missing">No screenshot yet. Open the flow to see how to capture it.</div>`;
+  const sub = `${m.steps === 0 ? "No steps yet" : `${m.steps} step${m.steps === 1 ? "" : "s"}`}${m.annotations ? `, ${m.annotations} annotation${m.annotations === 1 ? "" : "s"}` : ""}`;
+  return `<li class="flow-item"><a class="flow-card" href="./${esc(m.flow)}/index.html">${img}<div class="flow-card-meta"><strong class="sd-id">${esc(m.flow)}</strong><span>${sub}</span></div></a>${copyButton(m.flow, "flow id")}</li>`;
 }
 
 export function indexHtml(meta: FlowSummary[], stamp: string, overlayJs = ""): string {
@@ -178,6 +189,7 @@ export function indexHtml(meta: FlowSummary[], stamp: string, overlayJs = ""): s
     : `<p class="empty">No flows yet. Run <code>docsxai run</code>, then <code>docsxai render</code>.</p>`;
   const header = meta.length ? `<header class="site-header">${shortcutsHtml(false)}</header>` : "";
   const script = overlayJs ? `<script>${overlayJs}</script>` : "";
+  const live = meta.length ? LIVE_REGION : "";
   return `${pageHead(SITE_TITLE)}
-<body>${SKIP_LINK}${header}<main id="main" tabindex="-1"><h1>${SITE_TITLE}</h1>${list}</main>${renderedFooter(stamp)}${script}</body></html>`;
+<body>${SKIP_LINK}${header}<main id="main" tabindex="-1"><h1>${SITE_TITLE}</h1>${list}</main>${live}${renderedFooter(stamp, meta.length > 0)}${script}</body></html>`;
 }

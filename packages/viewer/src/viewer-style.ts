@@ -135,7 +135,7 @@ export const VIEWER_STYLE = `
   .flow-card img { display: block; width: 100%; height: 130px; object-fit: cover; object-position: top left; background: var(--surface); border-bottom: 1px solid var(--border); }
   .flow-card .thumb-missing { height: 130px; display: grid; place-items: center; color: var(--muted); font-size: .8rem; background: var(--surface); border-bottom: 1px solid var(--border); }
   .flow-card-meta { padding: .6rem .75rem; } .flow-card-meta strong { display: block; } .flow-card-meta span { color: var(--muted); font-size: .8rem; }
-  .skip-link { position: absolute; left: 1rem; top: -100px; padding: .5rem .75rem; background: var(--bg); color: var(--fg); border: 1px solid var(--fg); border-radius: 6px; z-index: 10; }
+  .skip-link { position: absolute; left: 1rem; top: -100px; display: inline-flex; align-items: center; min-height: 44px; box-sizing: border-box; padding: 0 .75rem; background: var(--bg); color: var(--fg); border: 1px solid var(--fg); border-radius: 6px; z-index: 10; }
   .skip-link:focus { top: 1rem; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   main:focus, .step:focus:not(:focus-visible) { outline: none; }
@@ -147,11 +147,31 @@ export const VIEWER_STYLE = `
   .shortcuts dl { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; margin: 0; }
   .shortcuts dl div { display: contents; } .shortcuts dd { margin: 0; }
   kbd { font: .85em ui-monospace, monospace; padding: 0 .35em; border: 1px solid var(--muted); border-radius: 4px; background: var(--surface); }
-  .shot-missing { margin: 0; padding: 2rem 1rem; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--muted); border-radius: 6px; }
+  /* The placeholder keeps roughly a screenshot's height, so a step does not jump when the file shows up. */
+  .shot-missing { margin: 0; padding: 2rem 1rem; box-sizing: border-box; min-height: 160px; display: grid; align-content: center; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--muted); border-radius: 6px; }
+  .shot-missing p { margin: .25rem 0; }
+  .shot-missing code { color: var(--fg); }
+  /* A screenshot of unknown size has no box to reserve from its attributes, so it holds a floor while it loads. */
+  .shot.is-loading img:not([height]) { min-height: 160px; }
   .shot-error { color: var(--danger); margin: .5rem 0 0; }
   .shot-error[hidden] { display: none; }
   .shot.is-broken { border-color: var(--danger); }
-  button.shot-retry { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--fg); border-radius: 6px; padding: .25rem .75rem; min-height: 44px; min-width: 44px; cursor: pointer; }
+  button.shot-retry { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--fg); border-radius: 6px; padding: .25rem .75rem; min-height: 44px; min-width: 44px; width: 10ch; box-sizing: border-box; cursor: pointer; }
+  button.shot-retry[aria-disabled="true"] { background: var(--surface2); cursor: progress; }
+  .flow-card .thumb-missing { padding: 0 .75rem; text-align: center; }
+  /* Copy buttons: "Copy", "Copied" and "Press Ctrl+C" share one grid cell, so the widest sets the width and no state moves the page. */
+  .id-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .75rem; }
+  .step .id-row { margin-top: 2.5rem; } .step .id-row h2 { margin: 0; }
+  .sd-id { overflow-wrap: anywhere; }
+  .sd-copyable { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; justify-content: center; }
+  .sd-copy { display: inline-grid; place-items: center; font: inherit; font-size: .85rem; color: var(--fg); background: var(--bg); border: 1px solid var(--fg); border-radius: 6px; padding: 0 .75rem; min-height: 44px; min-width: 44px; cursor: pointer; }
+  .sd-copy:hover { background: var(--surface); }
+  .sd-copy[data-state="done"] { background: var(--surface2); }
+  .sd-copy-label { grid-area: 1 / 1; visibility: hidden; white-space: nowrap; }
+  .sd-copy[data-state="idle"] .sd-copy-idle, .sd-copy[data-state="done"] .sd-copy-done, .sd-copy[data-state="fallback"] .sd-copy-fallback { visibility: visible; }
+  .sd-copy-done::before { content: "\\2713 "; }
+  .flow-item { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; } .flow-item .flow-card { align-self: stretch; }
+  .site-footer .sd-copy { margin-left: .5rem; }
   .notice { color: var(--fg); background: var(--surface); border-left: 4px solid var(--danger); padding: .5rem .75rem; border-radius: 0 6px 6px 0; }
   h1, h2 { overflow-wrap: anywhere; }
   /* Touch targets of at least 44 px for the page's own controls. */
@@ -160,6 +180,7 @@ export const VIEWER_STYLE = `
   @media (max-width: 600px) {
     body { padding: 1rem; }
     h2 { margin-top: 1.75rem; }
+    .step .id-row { margin-top: 1.75rem; }
     .step { margin: 1rem 0 2rem; }
     .flow-grid { grid-template-columns: 1fr; }
   }
@@ -170,6 +191,7 @@ export const VIEWER_STYLE = `
     :root { --fg: #000000; --bg: #ffffff; --muted: #333333; --surface: #ffffff; --surface2: #f2f2f2; --border: #999999; --link: #000000; color-scheme: light; }
     body { max-width: none; padding: 0; }
     .skip-link, .site-header, .sd-ann, .shot-error { display: none !important; }
+    .sd-copy { display: none !important; }
     h2 { break-after: avoid; }
     .shot-figure { break-inside: avoid; }
     .md { border: 1px solid var(--border); }

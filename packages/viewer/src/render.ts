@@ -52,7 +52,8 @@ export interface ParsedAnnotations {
   notices: string[];
 }
 
-const NO_CALLOUTS = "so this page shows the screenshots without call-outs.";
+const NO_CALLOUTS =
+  "so this page shows the screenshots without call-outs. Fix the file, then run docsxai render again.";
 
 /**
  * The usable records of an `annotations.json` text (null when the file is absent). A damaged
@@ -81,7 +82,7 @@ export function parseAnnotations(text: string | null): ParsedAnnotations {
   const skipped = list.length - records.length;
   const notices = skipped
     ? [
-        `${skipped} annotation record${skipped === 1 ? " was" : "s were"} skipped: each needs a step name and copy text.`,
+        `${skipped} annotation record${skipped === 1 ? " was" : "s were"} skipped: each needs a step name and copy text. Fix them in annotations.json, then run docsxai render again.`,
       ]
     : [];
   return { records, notices };
@@ -183,7 +184,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
   const flows = requested.filter((flow) => {
     if (isSafeFlowName(flow)) return true;
     warnings.push(
-      `flow ${showName(flow)} skipped: a flow name cannot hold "..", ":", "\\" or control characters`,
+      `flow ${showName(flow)} skipped: a flow name cannot hold "..", ":", "\\" or control characters, so rename it and render again`,
     );
     return false;
   });
@@ -220,7 +221,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     for (const id of stepIds) {
       if (!isSafeStepId(id)) {
         warnings.push(
-          `${flow}: step ${showName(id)} skipped: a step id cannot hold "/", "\\", "..", ":" or control characters`,
+          `${flow}: step ${showName(id)} skipped: a step id cannot hold "/", "\\", "..", ":" or control characters, so rename it in the flow file and render again`,
         );
         steps.push({ id, screenshot: null, anns: [], md: null, unsafe: true });
         continue;

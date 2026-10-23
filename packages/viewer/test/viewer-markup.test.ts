@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { COPIED_MS, copyAnnouncement, copyButton } from "../src/viewer-copy.js";
 import { SHORTCUTS } from "../src/viewer-keys.js";
 import {
   demoteHeadings,
@@ -50,7 +51,7 @@ describe("page landmarks and document outline", () => {
   it("uses one h1 for the flow and an h2 per step, each step a labelled section", () => {
     expect(html.match(/<h1>/g)).toHaveLength(1);
     expect(html).toContain(
-      '<section class="step" id="step-1" aria-labelledby="step-1-title" tabindex="-1"><h2 id="step-1-title">open-sidebar</h2>',
+      '<section class="step" id="step-1" aria-labelledby="step-1-title" tabindex="-1"><div class="id-row"><h2 id="step-1-title">open-sidebar</h2><button type="button" class="sd-copy" data-copy="open-sidebar"',
     );
     expect(html).toContain('id="step-2" aria-labelledby="step-2-title"');
   });
@@ -73,7 +74,7 @@ describe("page landmarks and document outline", () => {
   });
 
   it("names the viewer build in the footer and carries no clock", () => {
-    expect(html).toContain(`Rendered by ${AT}. Hard-reload`);
+    expect(html).toContain(`Rendered by <span class="sd-id">${AT}</span>. Hard-reload`);
     expect(html).not.toContain("<time");
     expect(html).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:/);
   });
@@ -165,6 +166,8 @@ describe("keyboard navigation markup", () => {
     const index = indexHtml([], AT);
     expect(index).not.toContain("<script>");
     expect(index).not.toContain("Keyboard shortcuts");
+    expect(index).not.toContain("sd-copy");
+    expect(index).not.toContain("sd-live");
   });
 });
 
@@ -193,16 +196,26 @@ describe("empty, error and loading states", () => {
 
   it("shows a placeholder for a step without a screenshot and keeps its caption", () => {
     const html = stepHtml(step({ screenshot: null }), 1);
-    expect(html).toContain('<p class="shot-missing">No screenshot was captured for this step.</p>');
+    expect(html).toContain('<div class="shot-missing" role="status"><p>No screenshot for this step.');
     expect(html).toContain('<figcaption class="caption">Click Play</figcaption>');
     expect(html).not.toContain("<img");
     expect(html).not.toContain("shot-error");
   });
 
+  it("gives the reason and the command that captures a missing screenshot again", () => {
+    const html = stepHtml(step({ screenshot: null }), 1, "checkout/en.dark");
+    expect(html).toContain("<code>screenshots/open-sidebar.png</code> was not found");
+    const cmd = "docsxai run &lt;workspace&gt; --flow checkout --start-from open-sidebar";
+    expect(html).toContain(`<code class="sd-id">${cmd}</code>`);
+    expect(html).toContain(`data-copy="${cmd}" data-kind="command"`);
+    expect(html).toContain("then run <code>docsxai render &lt;workspace&gt;</code>");
+    expect(stepHtml(step({ screenshot: null }), 1)).toContain("run &lt;workspace&gt; --start-from");
+  });
+
   it("shows an error state for a step whose id is not a safe file name", () => {
     const html = stepHtml(step({ id: "../x", screenshot: null, anns: [], unsafe: true }), 1);
     expect(html).toContain(
-      '<p class="shot-missing" role="alert">This step\'s name cannot be used as a file name, so its screenshot and write-up were left out.</p>',
+      '<p class="shot-missing" role="alert">This step\'s name cannot be used as a file name, so its screenshot and write-up were left out. Rename the step in the flow file, then run <code>docsxai run</code> and <code>docsxai render</code> again.</p>',
     );
     expect(html).toContain('<h2 id="step-1-title">../x</h2>');
     expect(html).not.toContain("<img");
@@ -211,13 +224,13 @@ describe("empty, error and loading states", () => {
   it("ships a hidden error line with a Retry button next to every screenshot", () => {
     const html = stepHtml(step(), 1);
     expect(html).toContain(
-      '</div><p class="shot-error" role="alert" hidden>The screenshot failed to load. <button type="button" class="shot-retry">Retry</button></p>',
+      '</div><p class="shot-error" role="alert" hidden><span class="shot-error-msg">The screenshot for step open-sidebar could not be loaded. Check that <code>screenshots/open-sidebar.png</code> is still next to this page, then press Retry.</span> <button type="button" class="shot-retry">Retry</button></p>',
     );
   });
 
   it("renders notices about a damaged annotations file above the steps, escaped", () => {
     const html = flowPageHtml("a", [step()], AT, "", { notices: ["bad <file>"] });
-    expect(html).toContain('<h1>a</h1><p class="notice">bad &lt;file&gt;</p><section');
+    expect(html).toContain('</div><p class="notice">bad &lt;file&gt;</p><section');
   });
 
   it("renders no notice markup when there is nothing to report", () => {
@@ -232,7 +245,56 @@ describe("empty, error and loading states", () => {
 
   it("shows a placeholder card for a flow without screenshots", () => {
     const html = indexHtml([{ flow: "a", steps: 0, annotations: 0, thumb: null }], AT);
-    expect(html).toContain('<div class="thumb-missing">No screenshot</div>');
-    expect(html).toContain("<span>0 steps</span>");
+    expect(html).toContain(
+      '<div class="thumb-missing">No screenshot yet. Open the flow to see how to capture it.</div>',
+    );
+    expect(html).toContain("<span>No steps yet</span>");
+    expect(indexHtml([{ flow: "a", steps: 1, annotations: 0, thumb: null }], AT)).toContain(
+      "<span>1 step</span>",
+    );
+  });
+});
+
+describe("copy buttons", () => {
+  const flow = flowPageHtml("checkout/en.dark", [step(), step({ id: "pay" })], AT, "/*js*/");
+
+  it("puts a copy button after the flow id and after every step id, outside the headings", () => {
+    expect(flow).toContain(
+      '<div class="id-row"><h1>checkout/en.dark</h1><button type="button" class="sd-copy" data-copy="checkout/en.dark" data-kind="flow id" data-state="idle" aria-label="Copy flow id checkout/en.dark">',
+    );
+    expect(flow).toContain('data-copy="open-sidebar" data-kind="step id"');
+    expect(flow).toContain('aria-label="Copy step id pay"');
+    expect(flow).not.toMatch(/<h[12][^>]*>[^<]*<button/);
+  });
+
+  it("holds all three labels in one button so its width never changes", () => {
+    const one = copyButton("x", "step id");
+    expect(one).toContain('<span class="sd-copy-label sd-copy-idle" aria-hidden="true">Copy</span>');
+    expect(one).toContain('<span class="sd-copy-label sd-copy-done" aria-hidden="true">Copied</span>');
+    expect(one).toContain(
+      '<span class="sd-copy-label sd-copy-fallback" aria-hidden="true">Press Ctrl+C</span>',
+    );
+    expect(COPIED_MS).toBe(1500);
+  });
+
+  it("escapes the value in the attribute and the accessible name", () => {
+    const one = copyButton('a"<b>&', "step id");
+    expect(one).toContain('data-copy="a&quot;&lt;b&gt;&amp;"');
+    expect(one).toContain('aria-label="Copy step id a&quot;&lt;b&gt;&amp;"');
+    expect(one).not.toContain("<b>");
+  });
+
+  it("copies the viewer build from the footer and puts a button beside each index card", () => {
+    expect(flow).toContain('data-copy="@docsxai/viewer 1.2.3" data-kind="viewer build"');
+    const index = indexHtml([{ flow: "a/b", steps: 2, annotations: 0, thumb: null }], AT, "/*js*/");
+    expect(index).toContain('<strong class="sd-id">a/b</strong>');
+    expect(index).toContain('</a><button type="button" class="sd-copy" data-copy="a/b"');
+    expect(index).toContain('id="sd-live"');
+  });
+
+  it("announces the copy through the polite live region", () => {
+    expect(copyAnnouncement("done", "step id", "pay")).toBe("Copied step id pay to the clipboard.");
+    expect(copyAnnouncement("fallback", "step id", "pay")).toContain("press Ctrl+C");
+    expect(flow).toContain('id="sd-live" class="sr-only" aria-live="polite"');
   });
 });
