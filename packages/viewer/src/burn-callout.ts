@@ -10,7 +10,7 @@
 import { placeCallout, type Rect, type Side } from "./placement.js";
 import { overlapArea, planCallout } from "./obstacle-placement.js";
 import { fitsInside, INSIDE_MARGIN, MIN_INSIDE_WIDTH, planInside } from "./inside-placement.js";
-import { arrowGeometry } from "./arrow.js";
+import { ARROW_LENGTH, arrowGeometry } from "./arrow.js";
 import { measureText, wrapText, type FontMetrics } from "./font-metrics.js";
 import type { AnnotationPlacement, AnnotationRecord, BoundingBox } from "./annotations.js";
 
@@ -61,6 +61,8 @@ export interface CalloutLayout {
   arrow: Point | null;
   /** Bar from the arrow to a detached callout, before `nudge`. */
   stem: Rect | null;
+  /** Arrow length in px, for the boxes {@link layoutBoxes} gives. */
+  arrowLength: number;
   /** Offset still to add to callout, arrow and stem when drawing. */
   nudge: Point;
   /** Px² of callout, arrow and stem on obstacles. */
@@ -78,6 +80,10 @@ export interface LayoutInput {
   clear: Rect[];
   /** Text size and padding of the box. Default {@link DEFAULT_CALLOUT_STYLE}. */
   style?: CalloutStyle;
+  /** Arrow length in px; the callout keeps 2 px more than that from its target. Default {@link ARROW_LENGTH}. */
+  arrowLength?: number;
+  /** Widest callout as a share of the image's width when obstacles limit it. Default {@link ADAPTIVE_WIDTH_RATIO}. */
+  maxWidthRatio?: number;
 }
 
 function preferredSide(arrowStyle: string | undefined): Side {
@@ -130,6 +136,7 @@ export function widthLadder(
   imageWidth: number,
   hasObstacles: boolean,
   placement?: AnnotationPlacement,
+  maxWidthRatio: number = ADAPTIVE_WIDTH_RATIO,
 ): number[] {
   const explicit = placement?.max_width;
   const usable = typeof explicit === "number" && Number.isFinite(explicit);
@@ -141,7 +148,7 @@ export function widthLadder(
   } else if (hasObstacles) {
     widest = Math.min(
       MAX_CALLOUT_WIDTH,
-      Math.max(CALLOUT_WIDTH_FLOOR, Math.round(ADAPTIVE_WIDTH_RATIO * imageWidth)),
+      Math.max(CALLOUT_WIDTH_FLOOR, Math.round(maxWidthRatio * imageWidth)),
     );
   }
   const shrinks = usable || widest < MAX_CALLOUT_WIDTH;
@@ -157,7 +164,7 @@ const shift = (r: Rect, d: Point): Rect => ({ ...r, x: r.x + d.x, y: r.y + d.y }
 export function layoutBoxes(l: CalloutLayout): Rect[] {
   const boxes: Rect[] = [{ x: l.callout.x, y: l.callout.y, ...l.size }];
   if (l.side && l.arrow) {
-    const a = arrowGeometry(l.side, l.arrow);
+    const a = arrowGeometry(l.side, l.arrow, l.arrowLength);
     boxes.push({ x: a.left, y: a.top, width: a.width, height: a.height });
   }
   if (l.stem) boxes.push(l.stem);
@@ -169,13 +176,15 @@ const covered = (boxes: Rect[], against: Rect[]) =>
 
 /** Fills in the overlap fields from the boxes the layout would paint. */
 function withOverlap(
-  l: Omit<CalloutLayout, "obstacleOverlap" | "otherOverlap">,
+  l: Omit<CalloutLayout, "obstacleOverlap" | "otherOverlap" | "arrowLength">,
   obstacles: Rect[],
   clear: Rect[],
+  arrowLength: number,
 ): CalloutLayout {
-  const boxes = layoutBoxes({ ...l, obstacleOverlap: 0, otherOverlap: 0 });
+  const boxes = layoutBoxes({ ...l, arrowLength, obstacleOverlap: 0, otherOverlap: 0 });
   return {
     ...l,
+    arrowLength,
     obstacleOverlap: Math.round(covered(boxes, obstacles)),
     otherOverlap: Math.round(covered(boxes, clear)),
   };
@@ -184,6 +193,8 @@ function withOverlap(
 function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutLayout {
   const { ann, target, image, metrics, clear } = inp;
   const style = inp.style ?? DEFAULT_CALLOUT_STYLE;
+  const arrowLength = inp.arrowLength ?? ARROW_LENGTH;
+  const gap = arrowLength + 2;
   const placement = ann.placement;
   const obstacles = ann.obstacles ?? [];
   const nudge = { x: ann.nudge?.x ?? 0, y: ann.nudge?.y ?? 0 };
@@ -219,13 +230,14 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
           },
           obstacles,
           clear,
+          arrowLength,
         );
       }
     }
   }
 
   const { lines, size } = measureCallout(label, metrics, width, style);
-  const input = { image, target, callout: size, preferred };
+  const input = { image, target, callout: size, preferred, gap };
   const planned = steersBurner(placement) || obstacles.length > 0;
   const p = planned
     ? planCallout({
@@ -236,6 +248,7 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
         ...(placement?.side ? { strictSide: true } : {}),
         ...(placement?.align ? { align: placement.align } : {}),
         ...(placement?.pin_arrow ? { pinArrow: true } : {}),
+        arrowLength,
       })
     : { ...placeCallout(input), stem: null, nudgeBaked: false };
   return withOverlap(
@@ -251,6 +264,7 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
     },
     obstacles,
     clear,
+    arrowLength,
   );
 }
 
@@ -262,7 +276,12 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
 export function layoutCallout(inp: LayoutInput): CalloutLayout {
   const { ann, image } = inp;
   const label = (typeof ann.index === "number" ? `${ann.index}. ` : "") + ann.copy;
-  const widths = widthLadder(image.width, (ann.obstacles?.length ?? 0) > 0, ann.placement);
+  const widths = widthLadder(
+    image.width,
+    (ann.obstacles?.length ?? 0) > 0,
+    ann.placement,
+    inp.maxWidthRatio,
+  );
   let best: CalloutLayout | undefined;
   for (const width of widths) {
     const layout = layoutAtWidth(inp, label, width);

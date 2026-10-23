@@ -32,6 +32,8 @@ export interface PlanInput extends PlaceInput {
    * bounded by what keeps the stem attached and the callout inside the image.
    */
   pinArrow?: boolean;
+  /** Arrow length in px. Default {@link ARROW_LENGTH}. */
+  arrowLength?: number;
 }
 
 export interface PlannedPlacement extends Placement {
@@ -211,6 +213,7 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
   const { image, target: t, callout: c } = inp;
   const nudge = inp.nudge ?? { x: 0, y: 0 };
   const pin = inp.pinArrow === true;
+  const arrowLength = inp.arrowLength ?? ARROW_LENGTH;
   const shiftBy = pin ? { x: 0, y: 0 } : nudge;
   const ctx: ScoreContext = { image, obstacles: inp.obstacles, avoid: inp.avoid ?? [] };
   for (const [rank, side] of order.entries()) {
@@ -227,7 +230,7 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
     const offsets = pin ? pinnedOffsets(side, nudge) : { across: 0, along: 0 };
     for (const extra of EXTRA_DISTANCES) {
       for (const baseStart of starts) {
-        const distance = pin ? Math.max(ARROW_LENGTH, gap + extra + offsets.across) : gap + extra;
+        const distance = pin ? Math.max(arrowLength, gap + extra + offsets.across) : gap + extra;
         const start = pin ? clamp(baseStart + offsets.along, slide.lo, slide.hi) : baseStart;
         const l = layout(side, inp, distance, start);
         const rect = { x: l.x, y: l.y, width: c.width, height: c.height };
@@ -237,9 +240,9 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
           rect.x + rect.width <= image.width &&
           rect.y + rect.height <= image.height;
         if (!inside) continue;
-        const a = arrowGeometry(side, l.arrow);
+        const a = arrowGeometry(side, l.arrow, arrowLength);
         const stem = (pin ? distance > gap : extra > 0)
-          ? stemGeometry(side, l.arrow, distance)
+          ? stemGeometry(side, l.arrow, distance, arrowLength)
           : null;
         const connector = [
           { x: a.left, y: a.top, width: a.width, height: a.height },

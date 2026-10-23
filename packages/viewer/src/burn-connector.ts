@@ -42,17 +42,22 @@ function box(
  * Stem and arrow nodes for a laid-out callout, nudge applied. With `pixels`, a connector whose
  * background is dark gets its outline nodes first (below both inks). Without `pixels`, or on a
  * light background, the nodes are exactly the plain ink ones. `ink` is the connector colour; a
- * light one is outlined in dark ink on light pixels, the mirror of the default.
+ * light one is outlined in dark ink on light pixels, the mirror of the default. `haloMargin` is
+ * the outline's width in px.
  */
 export function connectorNodes(
   layout: CalloutLayout,
   pixels?: PixelGrid,
   ink: string = CONNECTOR_INK,
+  haloMargin: number = CONNECTOR_HALO,
 ): BurnNode[] {
   const tone = toneOf(ink);
   const haloColor = tone === "dark" ? CONNECTOR_HALO_COLOR : CONNECTOR_INK;
   const { nudge, stem } = layout;
-  const arrow = layout.side && layout.arrow ? arrowGeometry(layout.side, layout.arrow) : null;
+  const arrow =
+    layout.side && layout.arrow
+      ? arrowGeometry(layout.side, layout.arrow, layout.arrowLength)
+      : null;
   if (!stem && !arrow) return [];
   const halo =
     pixels !== undefined &&
@@ -60,17 +65,17 @@ export function connectorNodes(
       pixels,
       layoutBoxes(layout)
         .slice(1)
-        .map((b) => growRect(b, CONNECTOR_HALO)),
+        .map((b) => growRect(b, haloMargin)),
       tone,
     );
   const nodes: BurnNode[] = [];
   if (halo) {
     if (stem) {
-      const s = growRect(stem, CONNECTOR_HALO);
+      const s = growRect(stem, haloMargin);
       nodes.push(box(s.x + nudge.x, s.y + nudge.y, s.width, s.height, haloColor));
     }
     if (layout.side && layout.arrow) {
-      const h = arrowHaloGeometry(layout.side, layout.arrow, CONNECTOR_HALO);
+      const h = arrowHaloGeometry(layout.side, layout.arrow, haloMargin, layout.arrowLength);
       nodes.push(box(h.left + nudge.x, h.top + nudge.y, h.width, h.height, haloColor, h.clipPath));
     }
   }

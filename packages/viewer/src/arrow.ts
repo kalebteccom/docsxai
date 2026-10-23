@@ -8,6 +8,9 @@ export const ARROW_LENGTH = 8;
 /** Thickness of the stem joining a detached callout to its arrow. */
 export const STEM_WIDTH = 2;
 
+/** Half the arrow's base for an arrow `length` px long: 7 for the default 8, the same 7:8 shape at any size. */
+export const halfBase = (length: number): number => (length * ARROW_HALF) / ARROW_LENGTH;
+
 export interface ArrowGeometry {
   left: number;
   top: number;
@@ -22,38 +25,43 @@ export interface ArrowGeometry {
  * of the viewer's `.sd-arrow.<side>` CSS triangles (7px half-base, 8px length). Satori renders
  * CSS border-triangles as filled boxes, so the burner clips an INK box to a polygon instead.
  */
-export function arrowGeometry(side: Side, tip: { x: number; y: number }): ArrowGeometry {
-  const base = ARROW_HALF * 2;
+export function arrowGeometry(
+  side: Side,
+  tip: { x: number; y: number },
+  length: number = ARROW_LENGTH,
+): ArrowGeometry {
+  const half = halfBase(length);
+  const base = half * 2;
   switch (side) {
     case "top": // callout above → arrow points down
       return {
-        left: tip.x - ARROW_HALF,
-        top: tip.y - ARROW_LENGTH,
+        left: tip.x - half,
+        top: tip.y - length,
         width: base,
-        height: ARROW_LENGTH,
+        height: length,
         clipPath: "polygon(0% 0%, 100% 0%, 50% 100%)",
       };
     case "bottom": // callout below → arrow points up
       return {
-        left: tip.x - ARROW_HALF,
+        left: tip.x - half,
         top: tip.y,
         width: base,
-        height: ARROW_LENGTH,
+        height: length,
         clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)",
       };
     case "left": // callout left → arrow points right
       return {
-        left: tip.x - ARROW_LENGTH,
-        top: tip.y - ARROW_HALF,
-        width: ARROW_LENGTH,
+        left: tip.x - length,
+        top: tip.y - half,
+        width: length,
         height: base,
         clipPath: "polygon(0% 0%, 100% 50%, 0% 100%)",
       };
     case "right": // callout right → arrow points left
       return {
         left: tip.x,
-        top: tip.y - ARROW_HALF,
-        width: ARROW_LENGTH,
+        top: tip.y - half,
+        width: length,
         height: base,
         clipPath: "polygon(100% 0%, 100% 100%, 0% 50%)",
       };
@@ -68,50 +76,53 @@ export function stemGeometry(
   side: Side,
   tip: { x: number; y: number },
   distance: number,
+  arrowLength: number = ARROW_LENGTH,
 ): Rect | null {
-  const length = distance - ARROW_LENGTH;
+  const length = distance - arrowLength;
   if (length <= 0) return null;
   const half = STEM_WIDTH / 2;
   switch (side) {
     case "top":
       return { x: tip.x - half, y: tip.y - distance, width: STEM_WIDTH, height: length };
     case "bottom":
-      return { x: tip.x - half, y: tip.y + ARROW_LENGTH, width: STEM_WIDTH, height: length };
+      return { x: tip.x - half, y: tip.y + arrowLength, width: STEM_WIDTH, height: length };
     case "left":
       return { x: tip.x - distance, y: tip.y - half, width: length, height: STEM_WIDTH };
     case "right":
-      return { x: tip.x + ARROW_LENGTH, y: tip.y - half, width: length, height: STEM_WIDTH };
+      return { x: tip.x + arrowLength, y: tip.y - half, width: length, height: STEM_WIDTH };
   }
 }
 
 type Pt = { x: number; y: number };
 
 /** The arrow's triangle in image space, in the order `arrowGeometry`'s polygon lists it. */
-function arrowVertices(side: Side, tip: Pt): [Pt, Pt, Pt] {
+function arrowVertices(side: Side, tip: Pt, arrowLength: number): [Pt, Pt, Pt] {
   const { x, y } = tip;
+  const len = arrowLength;
+  const half = halfBase(arrowLength);
   switch (side) {
     case "top":
       return [
-        { x: x - ARROW_HALF, y: y - ARROW_LENGTH },
-        { x: x + ARROW_HALF, y: y - ARROW_LENGTH },
+        { x: x - half, y: y - len },
+        { x: x + half, y: y - len },
         { x, y },
       ];
     case "bottom":
       return [
         { x, y },
-        { x: x + ARROW_HALF, y: y + ARROW_LENGTH },
-        { x: x - ARROW_HALF, y: y + ARROW_LENGTH },
+        { x: x + half, y: y + len },
+        { x: x - half, y: y + len },
       ];
     case "left":
       return [
-        { x: x - ARROW_LENGTH, y: y - ARROW_HALF },
+        { x: x - len, y: y - half },
         { x, y },
-        { x: x - ARROW_LENGTH, y: y + ARROW_HALF },
+        { x: x - len, y: y + half },
       ];
     case "right":
       return [
-        { x: x + ARROW_LENGTH, y: y - ARROW_HALF },
-        { x: x + ARROW_LENGTH, y: y + ARROW_HALF },
+        { x: x + len, y: y - half },
+        { x: x + len, y: y + half },
         { x, y },
       ];
   }
@@ -130,8 +141,13 @@ const round2 = (n: number): number => Math.round(n * 100) / 100;
  * px polygon in the same shape as {@link arrowGeometry}. Painted in a light colour under the ink
  * arrow it outlines it on dark pixels. The tip reaches about 1.5 x `margin` past the ink tip.
  */
-export function arrowHaloGeometry(side: Side, tip: Pt, margin: number): ArrowGeometry {
-  const v = arrowVertices(side, tip);
+export function arrowHaloGeometry(
+  side: Side,
+  tip: Pt,
+  margin: number,
+  arrowLength: number = ARROW_LENGTH,
+): ArrowGeometry {
+  const v = arrowVertices(side, tip, arrowLength);
   const centre = { x: (v[0].x + v[1].x + v[2].x) / 3, y: (v[0].y + v[1].y + v[2].y) / 3 };
   // Each edge moved `margin` away from the centre along its normal: a point and a direction.
   const edges = v.map((p, i) => {
