@@ -230,3 +230,22 @@ describe("next: hints quote a workspace path that is not a plain word", () => {
     expect(err).toContain(`next: docsxai run '${odd.replace(/'/g, "'\\''")}'`);
   });
 });
+
+describe("no workspace", () => {
+  it("run, lint and flow-tree on a directory without flows/ end with the init command", async () => {
+    const nowhere = path.join(tmp, "nowhere");
+    for (const cmd of ["run", "lint", "flow-tree"]) {
+      err = "";
+      expect(await main([cmd, nowhere])).toBeGreaterThan(0);
+      expect(err).toContain(`${cmd}: workspace ${nowhere} has no flows/ directory`);
+      expect(err).toContain(`next: docsxai init ${nowhere}`);
+    }
+  });
+
+  it("run on an empty flows/ names calibrate", async () => {
+    const ws = await scaffold("--auth", "none");
+    await fs.rm(path.join(ws, "flows", "clean.flow.yaml"));
+    expect(await main(["run", ws])).toBe(1);
+    expect(err).toContain(`next: docsxai calibrate ${ws} --from <flow.yaml>`);
+  });
+});
