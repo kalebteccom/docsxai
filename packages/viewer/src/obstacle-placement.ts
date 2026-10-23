@@ -5,6 +5,10 @@
 // joins them to the arrow) and slid along the target's edge, scores every candidate by how much it
 // covers, and keeps the cheapest. Pure and deterministic: candidates are enumerated in a fixed
 // order and a candidate only replaces the best on a strictly better (cost, side rank, travel).
+//
+// Priorities, highest first: a callout clear of content; a stem that crosses none (charged per px
+// of stem inside content, a halo, a badge or an earlier callout); the side the author hinted at;
+// then the shortest stem and the least slide.
 
 import { ARROW_LENGTH, arrowGeometry, stemGeometry } from "./arrow.js";
 import {
@@ -22,6 +26,13 @@ export interface PlanInput extends PlaceInput {
   avoid?: Rect[];
   /** Offset the renderer adds to callout + arrow after placement; candidates are scored shifted. */
   nudge?: { x: number; y: number };
+  /**
+   * `preferred` was set by the author (an `arrow_style` or `placement.side`) and is not the
+   * default. Candidates on that side get a bonus that outweighs a sliver of overlap (about 2 px of
+   * content along the callout's width) and a stem or two of detour; a side that covers more than
+   * that, or has no room, loses as before.
+   */
+  hinted?: boolean;
   /** Try only `preferred`'s side; the other sides are tried when it has no spot inside the image. */
   strictSide?: boolean;
   /** Where the callout rests along the target's edge before it slides. Default `"center"`. */
@@ -57,6 +68,8 @@ export interface Candidate {
   callout: Rect;
   /** Arrow triangle + stem boxes. */
   connector: Rect[];
+  /** The stem alone, when there is one. Its length inside content is charged per px. */
+  stem?: Rect | null;
 }
 
 /** Callout may be this much closer than 0 px to an obstacle before it counts as touching. */
@@ -76,10 +89,14 @@ const CONTENT_WEIGHT = 10; // callout px² on page content
 const CLEARANCE_WEIGHT = 1; // callout px² within CLEARANCE of page content
 const AVOID_WEIGHT = 8; // callout px² on a halo, badge or earlier callout
 const CONNECTOR_WEIGHT = 6; // arrow / stem px² on either
+const CROSSING_WEIGHT = 120; // per px of stem inside content or an avoided box
+/** A stem brushing a box's edge by less than this many px does not cross it. */
+const CROSSING_GRAZE = 2;
 const BOUNDS_WEIGHT = 50; // callout px² outside the image
 const STEM_COST = 1.5; // per px of stem
 const SLIDE_COST = 0.5; // per px the callout leaves its centred spot
 const SIDE_SWITCH_COST = 120; // leaving the preferred side
+const HINT_BONUS = 4000; // off a candidate on the hinted side: outweighs a ~2 px sliver of content
 
 export function overlapArea(a: Rect, b: Rect): number {
   const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
@@ -102,12 +119,28 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const sum = (rects: Rect[], against: Rect[]) =>
   rects.reduce((s, r) => s + against.reduce((t, o) => t + overlapArea(r, o), 0), 0);
 
+/**
+ * Px of `stem` that run inside `boxes`: the overlap's extent along the stem's long axis. A box
+ * counts shrunk by {@link CROSSING_GRAZE} on each side, since text boxes are looser than glyphs and
+ * a stem that only brushes an edge covers nothing.
+ */
+export function crossingLength(stem: Rect, boxes: Rect[]): number {
+  const vertical = stem.height >= stem.width;
+  const g = CROSSING_GRAZE;
+  return boxes.reduce((len, b) => {
+    const w = Math.min(stem.x + stem.width, b.x + b.width - g) - Math.max(stem.x, b.x + g);
+    const h = Math.min(stem.y + stem.height, b.y + b.height - g) - Math.max(stem.y, b.y + g);
+    return w > 0 && h > 0 ? len + (vertical ? h : w) : len;
+  }, 0);
+}
+
 /** Cost (what the planner minimises) and raw overlap (px² still covering something) of a candidate. */
 export function scorePlacement(c: Candidate, ctx: ScoreContext): { cost: number; overlap: number } {
   const padded = inflate(c.callout, CLEARANCE);
   const onContent = sum([c.callout], ctx.obstacles);
   const onAvoid = sum([c.callout], ctx.avoid);
   const connectorHits = sum(c.connector, ctx.obstacles) + sum(c.connector, ctx.avoid);
+  const crossing = c.stem ? crossingLength(c.stem, [...ctx.obstacles, ...ctx.avoid]) : 0;
   const bounds = { x: 0, y: 0, ...ctx.image };
   const outside = c.callout.width * c.callout.height - overlapArea(c.callout, bounds);
   const cost =
@@ -115,6 +148,7 @@ export function scorePlacement(c: Candidate, ctx: ScoreContext): { cost: number;
     CLEARANCE_WEIGHT * (sum([padded], ctx.obstacles) - onContent) +
     AVOID_WEIGHT * onAvoid +
     CONNECTOR_WEIGHT * connectorHits +
+    CROSSING_WEIGHT * crossing +
     BOUNDS_WEIGHT * outside;
   return { cost: Math.round(cost), overlap: Math.round(onContent + onAvoid + connectorHits) };
 }
@@ -248,7 +282,13 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
           { x: a.left, y: a.top, width: a.width, height: a.height },
           ...(stem ? [stem] : []),
         ].map((r) => shift(r, shiftBy));
-        const { cost, overlap } = scorePlacement({ callout: shift(rect, shiftBy), connector }, ctx);
+        const placed = shift(rect, shiftBy);
+        const stemBox = stem ? shift(stem, shiftBy) : null;
+        const { cost, overlap } = scorePlacement(
+          { callout: placed, connector, stem: stemBox },
+          ctx,
+        );
+        const bonus = inp.hinted && rank === 0 ? HINT_BONUS : 0;
         // Travel is measured from the un-nudged candidate, so a nudge is not charged as a detour.
         const travel = extra * STEM_COST + Math.abs(baseStart - centred) * SLIDE_COST;
         yield {
@@ -258,7 +298,7 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
           distance,
           stem,
           overlap,
-          cost: cost + Math.round(travel) + (rank === 0 ? 0 : SIDE_SWITCH_COST),
+          cost: cost + Math.round(travel) + (rank === 0 ? 0 : SIDE_SWITCH_COST) - bonus,
           rank,
           travel,
         };
