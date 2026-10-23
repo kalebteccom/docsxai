@@ -27,10 +27,10 @@
               "arrow_style?": "enum:top-left|top-right|bottom-left|bottom-right|top|bottom|left|right",
               "bounding_box?": {
                 "fields": {
-                  "height": "number[finite,min:0]",
-                  "width": "number[finite,min:0]",
-                  "x": "number[finite]",
-                  "y": "number[finite]"
+                  "height": "number[min:0]",
+                  "width": "number[min:0]",
+                  "x": "number",
+                  "y": "number"
                 },
                 "strict": true
               },
@@ -46,10 +46,10 @@
               "obstacles?": {
                 "array": {
                   "fields": {
-                    "height": "number[finite,min:0]",
-                    "width": "number[finite,min:0]",
-                    "x": "number[finite]",
-                    "y": "number[finite]"
+                    "height": "number[min:0]",
+                    "width": "number[min:0]",
+                    "x": "number",
+                    "y": "number"
                   },
                   "strict": true
                 },
@@ -59,9 +59,9 @@
                 "fields": {
                   "align?": "enum:start|center|end",
                   "inside?": "boolean",
-                  "max_width?": "number[finite,max:560,min:120]",
+                  "max_width?": "number[max:560,min:120]",
                   "obstacle_limit?": "number[int,max:40,min:1]",
-                  "obstacle_radius?": "number[finite,max:2000,min:0]",
+                  "obstacle_radius?": "number[max:2000,min:0]",
                   "pin_arrow?": "boolean",
                   "side?": "enum:top|bottom|left|right"
                 },
@@ -242,9 +242,9 @@
                     "fields": {
                       "align?": "enum:start|center|end",
                       "inside?": "boolean",
-                      "max_width?": "number[finite,max:560,min:120]",
+                      "max_width?": "number[max:560,min:120]",
                       "obstacle_limit?": "number[int,max:40,min:1]",
-                      "obstacle_radius?": "number[finite,max:2000,min:0]",
+                      "obstacle_radius?": "number[max:2000,min:0]",
                       "pin_arrow?": "boolean",
                       "side?": "enum:top|bottom|left|right"
                     },
@@ -307,9 +307,9 @@
                       "fields": {
                         "align?": "enum:start|center|end",
                         "inside?": "boolean",
-                        "max_width?": "number[finite,max:560,min:120]",
+                        "max_width?": "number[max:560,min:120]",
                         "obstacle_limit?": "number[int,max:40,min:1]",
-                        "obstacle_radius?": "number[finite,max:2000,min:0]",
+                        "obstacle_radius?": "number[max:2000,min:0]",
                         "pin_arrow?": "boolean",
                         "side?": "enum:top|bottom|left|right"
                       },

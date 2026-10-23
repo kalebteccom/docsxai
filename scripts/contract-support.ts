@@ -8,7 +8,7 @@
 //
 // Everything here is deterministic and cheap: no browser, no network, no child processes. The
 // interface helpers parse TypeScript source text with `ts.createSourceFile` (syntax only, no
-// program), and `describeZod` reads Zod's `_def` tree.
+// program), and `describeZod` reads Zod's `_zod.def` tree.
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
@@ -89,9 +89,10 @@ export function readSource(file: string): string {
 // Zod schema dump
 // ---------------------------------------------------------------------------
 //
-// Reads Zod 3's `_def` tree and returns plain JSON:
+// Reads Zod 4's `_zod.def` tree and returns plain JSON:
 //   string / number          -> "string[min:1]", "number[int,max:30000,min:100]" (checks sorted;
-//                               an exclusive bound renders as `min>0`)
+//                               an exclusive bound renders as `min>0`; numbers are finite by default, so
+//                               there is no `finite` entry)
 //   boolean, unknown, null   -> the type name
 //   literal / enum           -> "literal:<value>", "enum:a|b|c" (declaration order)
 //   union                    -> { oneOf: [...] } (declaration order, which is parse order)
@@ -102,104 +103,132 @@ export function readSource(file: string): string {
 //   nullable                 -> { nullable: <type> }
 // Refinements (`.refine`) are invisible to this dump; test them with behavioural assertions.
 
-interface ZodCheck {
-  kind: string;
+/** The fields of a Zod 4 check's definition that the dump reads. */
+interface ZodCheckDef {
+  check: string;
+  minimum?: unknown;
+  maximum?: unknown;
+  length?: unknown;
   value?: unknown;
   inclusive?: boolean;
-  regex?: RegExp;
+  format?: string;
+  pattern?: RegExp;
 }
 
 type Def = Record<string, unknown>;
 
 function defOf(schema: unknown): Def {
-  const def = (schema as { _def?: Def })._def;
+  const def = (schema as { _zod?: { def?: Def } })._zod?.def;
   if (!def) throw new Error("describeZod: value is not a Zod schema");
   return def;
 }
 
-function stringCheck(c: ZodCheck): string {
-  if (c.kind === "min" || c.kind === "max" || c.kind === "length") {
-    return `${c.kind}:${String(c.value)}`;
-  }
-  if (c.kind === "regex") return `regex:${(c.regex as RegExp).source}`;
-  return c.kind;
+/** Definitions of a schema's attached checks (`.min()`, `.regex()`, `.refine()`, ...). */
+function checkDefs(def: Def): ZodCheckDef[] {
+  const checks = (def.checks ?? []) as Array<{ _zod: { def: ZodCheckDef } }>;
+  return checks.map((c) => c._zod.def);
 }
 
-function numberCheck(c: ZodCheck): string {
-  if (c.kind === "min" || c.kind === "max") {
-    const sep = c.inclusive ? ":" : c.kind === "min" ? ">" : "<";
-    return `${c.kind}${sep}${String(c.value)}`;
+/** String entry for one check; `null` for checks the dump ignores (refinements). */
+function stringCheck(c: ZodCheckDef): string | null {
+  switch (c.check) {
+    case "min_length":
+      return `min:${String(c.minimum)}`;
+    case "max_length":
+      return `max:${String(c.maximum)}`;
+    case "length_equals":
+      return `length:${String(c.length)}`;
+    case "string_format":
+      return c.format === "regex" ? `regex:${(c.pattern as RegExp).source}` : String(c.format);
+    default:
+      return null;
   }
-  return c.kind;
 }
 
-function withChecks(base: string, checks: string[]): string {
-  return checks.length > 0 ? `${base}[${[...checks].sort().join(",")}]` : base;
+function numberCheck(c: ZodCheckDef): string | null {
+  switch (c.check) {
+    case "greater_than":
+      return `min${c.inclusive ? ":" : ">"}${String(c.value)}`;
+    case "less_than":
+      return `max${c.inclusive ? ":" : "<"}${String(c.value)}`;
+    case "number_format":
+      return c.format === "safeint" ? "int" : String(c.format);
+    default:
+      return null;
+  }
+}
+
+function withChecks(base: string, checks: Array<string | null>): string {
+  const kept = checks.filter((c): c is string => c !== null);
+  return kept.length > 0 ? `${base}[${[...kept].sort().join(",")}]` : base;
+}
+
+/** A default is stored as a value in Zod 4 (a getter); tolerate a thunk too. */
+function defaultOf(def: Def): unknown {
+  const v = def.defaultValue;
+  return typeof v === "function" ? (v as () => unknown)() : v;
 }
 
 function describeField(schema: unknown): { optional: boolean; value: unknown } {
   const def = defOf(schema);
-  if (def.typeName === "ZodOptional") {
+  if (def.type === "optional") {
     return { optional: true, value: describeZod(def.innerType) };
   }
-  if (def.typeName === "ZodDefault") {
-    const make = def.defaultValue as () => unknown;
-    return { optional: true, value: { default: make(), of: describeZod(def.innerType) } };
+  if (def.type === "default") {
+    return { optional: true, value: { default: defaultOf(def), of: describeZod(def.innerType) } };
   }
   return { optional: false, value: describeZod(schema) };
 }
 
 export function describeZod(schema: unknown): unknown {
   const def = defOf(schema);
-  switch (def.typeName) {
-    case "ZodString":
-      return withChecks("string", (def.checks as ZodCheck[]).map(stringCheck));
-    case "ZodNumber":
-      return withChecks("number", (def.checks as ZodCheck[]).map(numberCheck));
-    case "ZodBoolean":
+  switch (def.type) {
+    case "string":
+      return withChecks("string", checkDefs(def).map(stringCheck));
+    case "number":
+      return withChecks("number", checkDefs(def).map(numberCheck));
+    case "boolean":
       return "boolean";
-    case "ZodUnknown":
+    case "unknown":
       return "unknown";
-    case "ZodNull":
+    case "null":
       return "null";
-    case "ZodLiteral":
-      return `literal:${String(def.value)}`;
-    case "ZodEnum":
-      return `enum:${(def.values as string[]).join("|")}`;
-    case "ZodUnion":
+    case "literal":
+      return `literal:${String((def.values as unknown[])[0])}`;
+    case "enum":
+      return `enum:${Object.values(def.entries as Record<string, string>).join("|")}`;
+    case "union":
       return { oneOf: (def.options as unknown[]).map(describeZod) };
-    case "ZodArray": {
-      const min = def.minLength as { value: number } | null;
-      const max = def.maxLength as { value: number } | null;
+    case "array": {
+      const checks = checkDefs(def);
+      const min = checks.find((c) => c.check === "min_length");
+      const max = checks.find((c) => c.check === "max_length");
       return {
-        array: describeZod(def.type),
-        ...(min ? { min: min.value } : {}),
-        ...(max ? { max: max.value } : {}),
+        array: describeZod(def.element),
+        ...(min ? { min: min.minimum } : {}),
+        ...(max ? { max: max.maximum } : {}),
       };
     }
-    case "ZodRecord":
+    case "record":
       return { record: describeZod(def.valueType) };
-    case "ZodObject": {
-      const shape = (def.shape as () => Record<string, unknown>)();
+    case "object": {
+      const shape = def.shape as Record<string, unknown>;
       const fields: Record<string, unknown> = {};
       for (const [key, field] of Object.entries(shape)) {
         const d = describeField(field);
         fields[d.optional ? `${key}?` : key] = d.value;
       }
-      return { strict: def.unknownKeys === "strict", fields };
+      const catchall = def.catchall as { _zod?: { def?: Def } } | undefined;
+      return { strict: catchall?._zod?.def?.type === "never", fields };
     }
-    case "ZodOptional":
+    case "optional":
       return { optional: describeZod(def.innerType) };
-    case "ZodNullable":
+    case "nullable":
       return { nullable: describeZod(def.innerType) };
-    case "ZodDefault": {
-      const make = def.defaultValue as () => unknown;
-      return { default: make(), of: describeZod(def.innerType) };
-    }
-    case "ZodEffects":
-      return describeZod(def.schema);
+    case "default":
+      return { default: defaultOf(def), of: describeZod(def.innerType) };
     default:
-      throw new Error(`describeZod: unhandled Zod type ${String(def.typeName)}`);
+      throw new Error(`describeZod: unhandled Zod type ${String(def.type)}`);
   }
 }
 
