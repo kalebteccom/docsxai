@@ -4,7 +4,13 @@
 // flatten to dotted paths. Each theme key reads the default path in THEME_FIELDS unless
 // `burn.theme.tokens` names another; a key that is named there must exist in the file.
 
-import { THEME_FIELDS, THEME_KEYS, ThemeValueError, type ThemeKey } from "./burn-theme-fields.js";
+import {
+  THEME_FIELDS,
+  THEME_KEYS,
+  ThemeValueError,
+  type ThemeField,
+  type ThemeKey,
+} from "./burn-theme-fields.js";
 import type { ThemeLayer } from "./burn-theme.js";
 
 /** Dotted token path to its raw value (alias unresolved). */
@@ -121,9 +127,10 @@ export function tokenLayer(
   const problems: string[] = [];
   let found = 0;
   for (const key of THEME_KEYS) {
-    const field = THEME_FIELDS[key];
+    const field: ThemeField = THEME_FIELDS[key];
     const mapped = explicit[key];
     const tokenPath = mapped ?? field.token;
+    if (tokenPath === undefined) continue;
     if (!leaves.has(tokenPath)) {
       if (mapped !== undefined) {
         problems.push(
@@ -141,7 +148,7 @@ export function tokenLayer(
     }
   }
   if (found === 0 && problems.length === 0) {
-    const sample = THEME_KEYS.slice(0, 3).map((k) => THEME_FIELDS[k].token);
+    const sample = THEME_KEYS.slice(0, 3).map((k) => (THEME_FIELDS[k] as ThemeField).token);
     problems.push(
       `${file} has none of the tokens burn.theme reads (${sample.join(", ")}, ...); ` +
         "check the file, or map your own paths with burn.theme.tokens",

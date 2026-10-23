@@ -13,8 +13,12 @@ export type TokenKind = "colour" | "dimension" | "shadow" | "text";
 
 export interface ThemeField {
   prop: keyof BurnTheme;
-  /** Default token path in a tokens file (dotted). */
-  token: string;
+  /**
+   * Default token path in a tokens file (dotted). Absent for a setting with no design-token
+   * meaning (a render choice such as `scale`): a tokens file reaches it only through an explicit
+   * `burn.theme.tokens` mapping.
+   */
+  token?: string;
   kind: TokenKind;
   parse(value: unknown): unknown;
 }
@@ -260,14 +264,12 @@ export const THEME_FIELDS = {
   },
   max_width_ratio: {
     prop: "maxWidthRatio",
-    token: "size.callout.max-width-ratio",
     kind: "text",
     parse: widthRatio,
   },
-  scale: { prop: "scale", token: "scale.caption", kind: "text", parse: scale },
+  scale: { prop: "scale", kind: "text", parse: scale },
   display_width: {
     prop: "displayWidth",
-    token: "size.display-width",
     kind: "dimension",
     parse: numberIn(240, 2400),
   },

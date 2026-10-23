@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { BurnThemeError, parseThemeConfig, resolveBurnTheme } from "../src/burn-theme-config.js";
-import { THEME_FIELDS, THEME_KEYS } from "../src/burn-theme-fields.js";
+import { THEME_FIELDS, THEME_KEYS, type ThemeField } from "../src/burn-theme-fields.js";
 import { flattenTokens } from "../src/burn-theme-tokens.js";
 
 const WORKSPACE = path.resolve("/tmp/docsxai-theme-workspace");
@@ -211,7 +211,10 @@ describe("a tokens file that does not fit", () => {
 
 describe("the mapping table", () => {
   it("has one default token path per theme key", () => {
-    const table = THEME_KEYS.map((k) => [k, THEME_FIELDS[k].token]);
+    const table = THEME_KEYS.flatMap((k) => {
+      const token = (THEME_FIELDS[k] as ThemeField).token;
+      return token === undefined ? [] : [[k, token]];
+    });
     expect(table).toEqual([
       ["accent", "color.accent"],
       ["ink", "color.ink"],
@@ -227,6 +230,13 @@ describe("the mapping table", () => {
       ["padding_x", "space.callout.x"],
       ["padding_y", "space.callout.y"],
       ["font", "font.file"],
+      ["font_weight", "font.weight.caption"],
+      ["arrow_size", "size.callout.arrow"],
     ]);
+  });
+
+  it("leaves render settings with no default token path", () => {
+    const bare = THEME_KEYS.filter((k) => (THEME_FIELDS[k] as ThemeField).token === undefined);
+    expect(bare).toEqual(["max_width_ratio", "scale", "display_width"]);
   });
 });

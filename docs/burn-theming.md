@@ -158,29 +158,28 @@ Any key in the block overrides the preset:
 
 Both flatten to dotted paths. Each theme key reads one default path:
 
-| Theme key              | Default token path             | Value read                                                                                                     |
-| ---------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `accent`               | `color.accent`                 | colour: hex string, or an object with a `hex` member                                                           |
-| `ink`                  | `color.ink`                    | colour                                                                                                         |
-| `callout_background`   | `color.callout.background`     | colour                                                                                                         |
-| `callout_border_color` | `color.callout.border`         | colour                                                                                                         |
-| `callout_border_width` | `border.callout.width`         | dimension: `2`, `"2px"`, `"0.125rem"` or `{ "value": 2, "unit": "px" }`                                        |
-| `radius`               | `radius.callout`               | dimension                                                                                                      |
-| `shadow`               | `shadow.callout`               | CSS shadow string, or a W3C shadow object (`color`, `offsetX`, `offsetY`, `blur`, `spread`), or a list of them |
-| `badge_shape`          | `shape.badge`                  | `circle`, `rounded` or `square`                                                                                |
-| `badge_fill`           | `color.badge.background`       | colour                                                                                                         |
-| `font_size`            | `font.size.caption`            | dimension                                                                                                      |
-| `line_height`          | `font.line-height.caption`     | dimension in px (a unitless multiplier such as `1.4` is refused)                                               |
-| `padding_x`            | `space.callout.x`              | dimension                                                                                                      |
-| `padding_y`            | `space.callout.y`              | dimension                                                                                                      |
-| `font`                 | `font.file`                    | path to a `.ttf` or `.otf`, relative to the workspace root                                                     |
-| `font_weight`          | `font.weight.caption`          | `400` or `600`                                                                                                 |
-| `arrow_size`           | `size.callout.arrow`           | dimension                                                                                                      |
-| `max_width_ratio`      | `size.callout.max-width-ratio` | number from 0.2 to 1                                                                                           |
-| `scale`                | `scale.caption`                | number, or `auto`                                                                                              |
-| `display_width`        | `size.display-width`           | dimension                                                                                                      |
+| Theme key              | Default token path         | Value read                                                                                                     |
+| ---------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `accent`               | `color.accent`             | colour: hex string, or an object with a `hex` member                                                           |
+| `ink`                  | `color.ink`                | colour                                                                                                         |
+| `callout_background`   | `color.callout.background` | colour                                                                                                         |
+| `callout_border_color` | `color.callout.border`     | colour                                                                                                         |
+| `callout_border_width` | `border.callout.width`     | dimension: `2`, `"2px"`, `"0.125rem"` or `{ "value": 2, "unit": "px" }`                                        |
+| `radius`               | `radius.callout`           | dimension                                                                                                      |
+| `shadow`               | `shadow.callout`           | CSS shadow string, or a W3C shadow object (`color`, `offsetX`, `offsetY`, `blur`, `spread`), or a list of them |
+| `badge_shape`          | `shape.badge`              | `circle`, `rounded` or `square`                                                                                |
+| `badge_fill`           | `color.badge.background`   | colour                                                                                                         |
+| `font_size`            | `font.size.caption`        | dimension                                                                                                      |
+| `line_height`          | `font.line-height.caption` | dimension in px (a unitless multiplier such as `1.4` is refused)                                               |
+| `padding_x`            | `space.callout.x`          | dimension                                                                                                      |
+| `padding_y`            | `space.callout.y`          | dimension                                                                                                      |
+| `font`                 | `font.file`                | path to a `.ttf` or `.otf`, relative to the workspace root                                                     |
+| `font_weight`          | `font.weight.caption`      | `400` or `600`                                                                                                 |
+| `arrow_size`           | `size.callout.arrow`       | dimension                                                                                                      |
 
 A `rem` is 16 px. A key whose default path the file does not define is left at the preset or default.
+
+`max_width_ratio`, `scale` and `display_width` are render settings with no design-token equivalent, so they have no default path. Set them in the `burn.theme` block, or point one at a token with `tokens`.
 
 To read a key from a different path, map it in `tokens`:
 
