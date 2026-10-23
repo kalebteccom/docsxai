@@ -47,15 +47,21 @@ export {
 } from "./burn.js";
 export {
   AA_TEXT_RATIO,
+  AUTO_SCALE_MAX,
   BADGE_SHAPES,
   DEFAULT_BURN_THEME,
+  FONT_WEIGHTS,
   THEME_PRESET_NAMES,
   THEME_PRESETS,
+  captionScale,
   contrastWarnings,
+  scaledTheme,
   themeContrast,
+  weightWarnings,
   type BadgeShape,
   type BurnTheme,
   type ContrastCheck,
+  type FontWeight,
   type ThemePresetName,
 } from "./burn-theme.js";
 export {

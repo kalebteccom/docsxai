@@ -144,7 +144,7 @@ describe.each(THEME_PRESET_NAMES)("the %s preset", (name: ThemePresetName) => {
 });
 
 describe("the presets side by side", () => {
-  it("burn four different images", async () => {
+  it("burn five different images", async () => {
     const hashes = new Set<string>();
     for (const theme of [
       DEFAULT_BURN_THEME,
@@ -156,7 +156,7 @@ describe("the presets side by side", () => {
           .digest("hex"),
       );
     }
-    expect(hashes.size).toBe(4);
+    expect(hashes.size).toBe(5);
   });
 
   it("size the callout from the theme's type and padding", async () => {
