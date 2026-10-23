@@ -132,7 +132,6 @@ const calloutStyleOf = (theme: BurnTheme): CalloutStyle => ({
   borderWidth: theme.calloutBorderWidth,
 });
 
-
 interface DrawnCallout {
   nodes: BurnNode[];
   /** Boxes the callout, arrow and stem occupy (nudge applied), for later annotations to avoid. */
