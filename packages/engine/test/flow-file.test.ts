@@ -315,3 +315,36 @@ describe("flow name rule", () => {
     expect(parseFlowFile(flow("Parent_1")).extends).toBe("Parent_1");
   });
 });
+
+describe("parseFlowFile — error text names the field", () => {
+  const flowWith = (extra: string) =>
+    `name: f\nlocators: { btn: '#b' }\nsteps:\n  - id: s1\n    action: hover\n    target: $btn\n${extra}`;
+  const messageOf = (text: string): string => {
+    try {
+      parseFlowFile(text, "f.flow.yaml");
+    } catch (e) {
+      return (e as Error).message;
+    }
+    throw new Error("expected parseFlowFile to throw");
+  };
+
+  it("names the wrong-typed field inside a union instead of a bare Invalid input", () => {
+    const msg = messageOf(flowWith("    success: { visible: 5 }\n"));
+    expect(msg).toContain("f.flow.yaml: invalid flow-file:");
+    expect(msg).toContain("steps.0.success.visible:");
+    expect(msg).not.toMatch(/success: Invalid input/);
+  });
+
+  it("names an unknown key inside a union", () => {
+    const msg = messageOf(flowWith("    success: { visible: $btn, bogus: 1 }\n"));
+    expect(msg).toContain("bogus");
+  });
+
+  it("names an unknown key at the top level", () => {
+    expect(messageOf(flowWith("") + "colour: red\n")).toContain("colour");
+  });
+
+  it("puts the file name first on a YAML syntax error", () => {
+    expect(messageOf("name: [unclosed")).toMatch(/^f\.flow\.yaml: not valid YAML — /);
+  });
+});

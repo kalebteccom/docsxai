@@ -4,10 +4,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Changed
-
-- **Zod 4.** `@docsxai/engine` and `@docsxai/mcp` move to `zod ^4.6.6`. Schemas and the options they accept are unchanged. Where a flow-file, auth descriptor, plugin manifest or style file breaks a built-in rule (a wrong type, an unknown key), the message after the key path now uses Zod 4's wording. Messages written in the schemas themselves are unchanged.
-
 ## [0.3.0-rc.4] - 2026-10-23
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
@@ -23,11 +19,16 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **`release.yml` retired (#115).** The GitHub Actions release workflow is removed; releases run only on Woodpecker.
 - **Dependency refresh.** Dependencies are updated across the workspace.
 - **First-run messages.** `docsxai init` ends with a `next:` line that names `calibrate --from <flow.yaml>` and leaves out `capture-auth` for an `--auth none` workspace. `capture-auth` in a workspace with no auth descriptor says to skip it when the app needs no login. The README gains a "First run in 10 minutes" walkthrough, and the install steps name `@next` (`0.3.0-rc.3`), the Chromium download and `docsxai doctor`.
+- **Zod 4.** `@docsxai/engine` and `@docsxai/mcp` move to `zod ^4.6.6`. Schemas and the options they accept are unchanged. Where a flow-file, auth descriptor, plugin manifest or style file breaks a built-in rule (a wrong type, an unknown key), the message after the key path now uses Zod 4's wording. Messages written in the schemas themselves are unchanged.
+- **`docsxai run` prints a starting line.** Each flow prints `run: <flow> — starting` before its browser launches, so a log shows which flow is in flight. Ctrl-C (or SIGTERM) stops any command with one `docsxai: interrupted` line and the command to rerun, and exits 130 (143 for SIGTERM).
 
 ### Fixed
 
 - **Border-box fix for satori 0.63 (#119).** Rendered boxes keep their size under the new renderer.
 - **Halts for an unreachable app.** A flow that cannot reach the app (refused connection, unknown host, rejected TLS certificate) or a relative `navigate` with no `app_url` now halts with a bracketed cause that names `app_url`, `--base-url` or `--ignore-https-errors`. The scaffolded workspace `README.md` no longer shows a `calibrate --description` flag that does not exist.
+- **Flow-file errors name the field.** A wrong type or an unknown key inside `success`, `wait_for` or `redactions` printed a bare `Invalid input`; it now prints the path of the bad field and the zod message of the closest match.
+- **Missing `flows/`, token and config errors end with a command.** `run`, `lint` and `flow-tree` on a directory without `flows/` end with `next: docsxai init <dir>`. `push` and `pull` without a usable token end with the `docsxai login ... --oauth <dir>` command. `run` and `capture-auth` warn when `.docsxai.json` exists but was ignored (invalid JSON or the wrong `schema`), and `run` warns when a flow navigates to a relative path with no `app_url`.
+- **Read-only or full disks.** A write refused with `EACCES`, `EPERM`, `EROFS` or `ENOSPC` prints `cannot access <path> (<code>, <reason>)` and a `next:` line in `init`, `zip`, `baseline`, `export`, `run` and the bin's last-resort handler, with no report-a-bug line.
 
 ## [0.3.0-rc.3] - 2026-10-09
 

@@ -35,7 +35,8 @@ describe("docsxai CLI — main()", () => {
 
   it("--help ends with the conventions and an Examples section", async () => {
     expect(await main(["--help"])).toBe(0);
-    expect(out).toContain("Exit 0 success, 1 runtime failure, 2 usage error.");
+    expect(out).toContain("Exit 0 success, 1 runtime failure, 2 usage error;");
+    expect(out).toContain("Ctrl-C prints one line with the command to rerun and");
     expect(out).toContain("\nExamples:\n");
     expect(out).toContain("docsxai pack ~/docsxai/my-app --check --against ./public/screens");
     expect(out.indexOf("\nExamples:\n")).toBeGreaterThan(out.indexOf("\nNotes:\n"));

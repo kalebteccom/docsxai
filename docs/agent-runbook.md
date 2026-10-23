@@ -277,6 +277,8 @@ docsxai render "$WORKSPACE"               # builds $WORKSPACE/.viewer/index.html
 # open "$WORKSPACE/.viewer/index.html"
 ```
 
+Exit codes for every command: 0 success, 1 runtime failure, 2 usage error. Ctrl-C (SIGINT) or SIGTERM stops a command with one `docsxai: interrupted` line that carries the same command as a `next:` line, and exits 130 (SIGINT) or 143 (SIGTERM). Those two are the shell's usual 128 plus the signal number, which a killed process already reported, so no documented code changed. A plain `run` prints `run: <flow> — starting` before it launches each flow and a result line when the flow ends, so a log shows which flow is in flight. A write the disk refuses (`EACCES`, `EPERM`, `EROFS`, `ENOSPC`) prints `cannot access <path> (<code>, <reason>)` with a `next:` line and exits 1.
+
 If `run` halts on a step (a locator or success-criterion failure) that's _drift_, not a flake — don't retry blindly; report the failing step id + what changed, and propose a minimal flow-file edit (the `diagnose` playbook is `$TOOL_REPO/packages/plugin/skills/diagnose/SKILL.md`). Genuine flakiness → add async primitives (`wait_for: network_idle` / `element_stable` / a timeout) to the flow-file, documented inline.
 
 ## Drift detection + baselines

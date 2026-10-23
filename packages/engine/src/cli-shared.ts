@@ -5,6 +5,7 @@
 //   • listFlowFiles — enumerate the workspace's flows/*.flow.yaml (run / lint / flow-tree)
 
 import { promises as fs } from "node:fs";
+import { shellQuote, withNext } from "./cli-messages.js";
 import { resolveWorkspacePath } from "./workspace.js";
 
 export function parseFlags(args: string[]): {
@@ -38,9 +39,10 @@ export async function listFlowFiles(projectDir: string): Promise<string[]> {
     entries = await fs.readdir(dir);
   } catch {
     throw new Error(
-      `workspace ${projectDir} has no flows/ directory (expected ${dir}). ` +
-        `Is this a docsxai workspace? Create one with \`docsxai init <workspace-dir>\`, ` +
-        `then add flows via \`docsxai calibrate\` or by writing flows/<name>.flow.yaml.`,
+      withNext(
+        `workspace ${projectDir} has no flows/ directory (expected ${dir}); it is not a docsxai workspace`,
+        `docsxai init ${shellQuote(projectDir)}  (or fix the path; init needs a new or empty directory)`,
+      ),
     );
   }
   return entries

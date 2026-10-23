@@ -35,8 +35,9 @@ import { listFlowFiles, parseFlags } from "./cli-shared.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
-import { shellQuote, usageError, withNext } from "./cli-messages.js";
+import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 import { reportRun } from "./cli-run-summary.js";
+import { warnUnusableConfig } from "./cli-backend-errors.js";
 
 async function loadAuthStorageState(projectDir: string): Promise<StorageState | undefined> {
   const descriptorPath = resolveWorkspacePath(projectDir, "auth", "strategy.yaml");
@@ -83,6 +84,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   const verify = parseVerifyArgs(flags);
   if (typeof verify === "string") return usageError("run", verify);
   const wsCfg = await loadWorkspaceConfig(projectDir);
+  if (!wsCfg) await warnUnusableConfig("run", projectDir);
   const baseURL =
     (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ??
     wsCfg?.app_url;
@@ -188,6 +190,21 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
   }
 
+  if (!baseURL && !cdpEndpoint) {
+    const relative = units.some((u) =>
+      u.flow.steps.some(
+        (s) => s.action === "navigate" && s.value && !/^[a-z][a-z0-9+.-]*:/i.test(s.value),
+      ),
+    );
+    if (relative) {
+      const note = withNext(
+        "warning, a flow navigates to a relative path and there is no app_url",
+        `set app_url in ${path.join(projectDir, ".docsxai.json")} or pass --base-url <url>`,
+      );
+      process.stderr.write(`run: ${note}\n`);
+    }
+  }
+
   let storageState: StorageState | undefined;
   try {
     storageState = await loadAuthStorageState(projectDir);
@@ -272,6 +289,7 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
   const projectDir = positionals[0];
   if (!projectDir) return usageError("capture-auth", "missing <workspace-dir>");
   const wsCfg = await loadWorkspaceConfig(projectDir);
+  if (!wsCfg) await warnUnusableConfig("capture-auth", projectDir);
   const baseURL =
     (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ??
     wsCfg?.app_url;
@@ -430,7 +448,9 @@ export async function cmdInit(args: string[]): Promise<number> {
     );
     return 0;
   } catch (e) {
-    process.stderr.write(`init: ${(e as Error).message.replace(/^init: /, "")}\n`);
+    process.stderr.write(
+      `init: ${describeFsError(e) ?? (e as Error).message.replace(/^init: /, "")}\n`,
+    );
     return 1;
   }
 }

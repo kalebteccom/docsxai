@@ -3,7 +3,7 @@
 // progress lines; a failure goes to stderr with the halt messages it summarises.
 
 import * as path from "node:path";
-import { sanitizeForTerminal, shellQuote } from "./cli-messages.js";
+import { fsNext, sanitizeForTerminal, shellQuote } from "./cli-messages.js";
 import { type FlowFailure } from "./run-flows.js";
 
 export interface RunSummaryInput {
@@ -19,7 +19,10 @@ export interface RunSummaryInput {
 /** The command to run for a failure: `diagnose` for a halted step, `doctor` when the browser never started. */
 export function nextForFailure(projectDir: string, f: FlowFailure): string {
   const dir = shellQuote(projectDir);
-  if (f.step === null) return `docsxai doctor ${dir}`;
+  if (f.step === null) {
+    const m = /^cannot write the outputs under .* \((EACCES|EPERM|EROFS|ENOSPC)\)/.exec(f.message);
+    return m ? fsNext(m[1]!, projectDir) : `docsxai doctor ${dir}`;
+  }
   const slash = f.flow.indexOf("/");
   const flow = slash === -1 ? f.flow : f.flow.slice(0, slash);
   const variant = slash === -1 ? "" : ` --variant ${shellQuote(f.flow.slice(slash + 1))}`;
