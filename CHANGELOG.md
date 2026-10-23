@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Changed
+
+- **Zod 4.** `@docsxai/engine` and `@docsxai/mcp` move to `zod ^4.6.6`. Schemas and the options they accept are unchanged. Where a flow-file, auth descriptor, plugin manifest or style file breaks a built-in rule (a wrong type, an unknown key), the message after the key path now uses Zod 4's wording. Messages written in the schemas themselves are unchanged.
+
 ## [0.3.0-rc.4] - 2026-10-23
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

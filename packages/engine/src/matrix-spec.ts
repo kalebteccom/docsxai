@@ -120,7 +120,7 @@ export const VariantSelector = z
   })
   .strict()
   .refine((s) => Object.keys(s).length > 0, {
-    message: "name at least one of `viewport`, `color_scheme`, `locale`",
+    error: "name at least one of `viewport`, `color_scheme`, `locale`",
   });
 export type VariantSelector = z.infer<typeof VariantSelector>;
 

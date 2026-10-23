@@ -145,7 +145,7 @@ export const EmailOtpOptions = z
   })
   .strict()
   .refine((o) => o.success_selector !== undefined || o.url_matches !== undefined, {
-    message: "one of success_selector or url_matches is required",
+    error: "one of success_selector or url_matches is required",
   });
 export type EmailOtpOptions = z.infer<typeof EmailOtpOptions>;
 

@@ -49,12 +49,12 @@ export const JwtInjectionOptions = z
       })
       .strict()
       .refine((i) => (i.localStorage?.length ?? 0) + (i.cookies?.length ?? 0) > 0, {
-        message: "inject needs at least one localStorage or cookies entry",
+        error: "inject needs at least one localStorage or cookies entry",
       }),
   })
   .strict()
   .refine((o) => (o.token_env !== undefined) !== (o.token_url !== undefined), {
-    message: "exactly one of token_env or token_url is required",
+    error: "exactly one of token_env or token_url is required",
   });
 export type JwtInjectionOptions = z.infer<typeof JwtInjectionOptions>;
 

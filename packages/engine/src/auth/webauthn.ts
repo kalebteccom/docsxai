@@ -35,7 +35,7 @@ export const WebauthnOptions = z
   })
   .strict()
   .refine((o) => o.success_selector !== undefined || o.url_matches !== undefined, {
-    message: "one of success_selector or url_matches is required",
+    error: "one of success_selector or url_matches is required",
   });
 export type WebauthnOptions = z.infer<typeof WebauthnOptions>;
 
