@@ -159,7 +159,7 @@ export const htmlPages = [
     replace: [
       [
         /\n*$/,
-        "\n\nPublished to npm as an experimental package from the release after `0.3.0-rc.3`; `0.3.0-rc.3` does not include it. Until then, build it from a checkout.\n",
+        "\n\nPublished to npm as an experimental package since `0.3.0-rc.3` (dist-tag `next`).\n",
       ],
     ],
   },
