@@ -20,8 +20,8 @@ import * as path from "node:path";
 import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import type { Rect } from "./placement.js";
-import { anchorBadge, planBadge, BADGE_DEFAULT_OFFSET, BADGE_INNER } from "./badge-placement.js";
-import { arrowGeometry, growRect, type ArrowGeometry } from "./arrow.js";
+import { planBadge } from "./badge-placement.js";
+import { arrowGeometry, type ArrowGeometry } from "./arrow.js";
 import {
   DEFAULT_BURN_THEME,
   badgeRadius,
@@ -37,13 +37,21 @@ import { connectorNodes } from "./burn-connector.js";
 import { CONNECTOR_HALO } from "./connector-contrast.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
-import { measureText, parseFontMetrics, type FontMetrics } from "./font-metrics.js";
+import { parseFontMetrics, type FontMetrics } from "./font-metrics.js";
+import { atBaseSize, layoutAtScale, scaleRect } from "./burn-scale.js";
+import {
+  BADGE_BORDER,
+  BADGE_FONT_SIZE,
+  badgeBox,
+  badgeSize,
+  keepClear,
+  otherHalos,
+} from "./burn-badge.js";
 import {
   layoutBoxes,
   layoutCallout,
   type CalloutLayout,
   type CalloutStyle,
-  type Size,
 } from "./burn-callout.js";
 import {
   annotationReport,
@@ -54,14 +62,9 @@ import {
   type BurnReport,
   type FlowBurnReport,
 } from "./burn-report.js";
-import type { AnnotationRecord, AnnotationsFile, BoundingBox } from "./annotations.js";
+import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
 
 export { arrowGeometry, type ArrowGeometry };
-
-const BADGE_BORDER = 2;
-const BADGE_FONT_SIZE = 12;
-/** Margin of the keep-clear box around another annotation's halo (border + glow + slack). */
-const HALO_MARGIN = 6;
 
 type Warn = (message: string) => void;
 const defaultWarn: Warn = (message) => console.warn(message);
@@ -120,38 +123,6 @@ const THEME_FONT_NAME = "ThemeFont";
 const effectiveWeight = (theme: BurnTheme): number =>
   theme.fontFile !== null ? theme.fontWeight : 400;
 
-const scaleRect = (r: Rect, f: number): Rect =>
-  f === 1 ? r : { x: r.x * f, y: r.y * f, width: r.width * f, height: r.height * f };
-const scalePoint = (p: { x: number; y: number }, f: number) =>
-  f === 1 ? p : { x: p.x * f, y: p.y * f };
-
-/** `ann` with every length divided by `f`: the annotation as laid out at base size. */
-function atBaseSize(ann: AnnotationRecord, f: number): AnnotationRecord {
-  if (f === 1) return ann;
-  return {
-    ...ann,
-    ...(ann.bounding_box ? { bounding_box: scaleRect(ann.bounding_box, 1 / f) } : {}),
-    ...(ann.obstacles ? { obstacles: ann.obstacles.map((o) => scaleRect(o, 1 / f)) } : {}),
-    ...(ann.nudge ? { nudge: scalePoint(ann.nudge, 1 / f) } : {}),
-  };
-}
-
-/** A layout made at base size, in screenshot px: positions, sizes and overlaps multiplied by `f`. */
-function layoutAtScale(l: CalloutLayout, f: number): CalloutLayout {
-  if (f === 1) return l;
-  return {
-    ...l,
-    size: { width: l.size.width * f, height: l.size.height * f },
-    callout: scalePoint(l.callout, f),
-    arrow: l.arrow ? scalePoint(l.arrow, f) : null,
-    stem: l.stem ? scaleRect(l.stem, f) : null,
-    nudge: scalePoint(l.nudge, f),
-    arrowLength: l.arrowLength * f,
-    obstacleOverlap: Math.round(l.obstacleOverlap * f * f),
-    otherOverlap: Math.round(l.otherOverlap * f * f),
-  };
-}
-
 /** What sizes a callout box under `theme`. */
 const calloutStyleOf = (theme: BurnTheme): CalloutStyle => ({
   fontSize: theme.fontSize,
@@ -161,52 +132,6 @@ const calloutStyleOf = (theme: BurnTheme): CalloutStyle => ({
   borderWidth: theme.calloutBorderWidth,
 });
 
-/** Outer size of the numbered badge: the circle widens for multi-digit indexes. */
-function badgeSize(index: number, metrics: FontMetrics): Size {
-  return {
-    width: Math.max(
-      BADGE_INNER + 2 * BADGE_BORDER,
-      Math.ceil(measureText(String(index), BADGE_FONT_SIZE, metrics)) + 12 + 2 * BADGE_BORDER,
-    ),
-    height: BADGE_INNER + 2 * BADGE_BORDER,
-  };
-}
-
-/** Default box of the numbered badge: top-left of the halo, pulled slightly outside it, clamped to the image. */
-function badgeBox(t: BoundingBox, index: number, image: Size, metrics: FontMetrics): Rect {
-  return anchorBadge(t, "top-left", BADGE_DEFAULT_OFFSET, badgeSize(index, metrics), image);
-}
-
-/** Keep-clear boxes around every other annotation's halo. */
-function otherHalos(annotations: AnnotationRecord[], self: AnnotationRecord): Rect[] {
-  return annotations.flatMap((other) =>
-    other !== self && other.bounding_box ? [growRect(other.bounding_box, HALO_MARGIN)] : [],
-  );
-}
-
-/**
- * What an annotation's callout must stay clear of besides page content: halos, badges, earlier
- * callouts. Badges already planned stand where they were put; the rest at their default spot.
- */
-function keepClear(
-  annotations: AnnotationRecord[],
-  self: AnnotationRecord,
-  image: Size,
-  metrics: FontMetrics,
-  placed: Rect[],
-  badges: Map<AnnotationRecord, Rect>,
-): Rect[] {
-  const clear: Rect[] = [];
-  for (const other of annotations) {
-    const box = other.bounding_box;
-    if (!box) continue;
-    if (other !== self) clear.push(growRect(box, HALO_MARGIN));
-    if (typeof other.index === "number") {
-      clear.push(badges.get(other) ?? badgeBox(box, other.index, image, metrics));
-    }
-  }
-  return [...clear, ...placed];
-}
 
 interface DrawnCallout {
   nodes: BurnNode[];
