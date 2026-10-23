@@ -8,7 +8,8 @@
 // and the help text from cli-usage.ts — no cluster imports back from here, so there's no cycle.
 //   • cli-usage.ts             — the USAGE help-text constant
 //   • cli-shared.ts            — parseFlags + listFlowFiles (the shared leaf)
-//   • cli-commands-session.ts  — init / capture-auth / calibrate / run (live-browser + scaffolding)
+//   • cli-commands-session.ts  — init / calibrate / run (live-browser + scaffolding)
+//   • cli-commands-auth.ts     — capture-auth
 //   • cli-commands-authoring.ts — inspect / lint / flow-tree / diagnose / style (calibration aids)
 //   • cli-commands-docpack.ts  — render / zip / export / baseline / diff (doc-pack ops)
 //   • cli-commands-pack.ts     — pack / pack --check (screenshot pack + drift check, run by the viewer bin)
@@ -18,7 +19,8 @@ import { pathToFileURL } from "node:url";
 import { runDoctor } from "./doctor.js";
 import { USAGE } from "./cli-usage.js";
 import { runAsBin } from "./cli-unexpected.js";
-import { cmdCalibrate, cmdCaptureAuth, cmdInit, cmdRun } from "./cli-commands-session.js";
+import { cmdCaptureAuth } from "./cli-commands-auth.js";
+import { cmdCalibrate, cmdInit, cmdRun } from "./cli-commands-session.js";
 import {
   cmdDiagnose,
   cmdFlowTree,
