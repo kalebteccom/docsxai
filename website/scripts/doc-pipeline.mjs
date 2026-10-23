@@ -143,7 +143,12 @@ export const htmlPages = [
     title: "@docsxai/plugin-sharepoint",
     description:
       "Publisher plugin for SharePoint Online: pushes a doc pack as markdown and images into a document library through Microsoft Graph, idempotently.",
-    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
+    replace: [
+      [
+        /\n*$/,
+        "\n\nPublished to npm as an experimental package from the release after `0.3.0-rc.3`; `0.3.0-rc.3` does not include it. Until then, build it from a checkout.\n",
+      ],
+    ],
   },
   {
     src: "packages/plugin-starlight/README.md",
