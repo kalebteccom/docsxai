@@ -75,9 +75,11 @@ include it when you report the bug.
 ### `docsxai init`
 
 Scaffolds the workspace: `flows/`, `docs/`, `auth/`, `.auth/`, `.viewer/`, a
-`.gitignore`, a `README.md`, `auth/strategy.yaml`, and `.docsxai.json`
-(holding `app_url` plus `ignore_https_errors` so later commands need no
-flags). `--auth` must be `manual-capture` or `none`; `--ttl <dur>` sets the
+`.gitignore`, a `README.md`, `auth/strategy.yaml`, a sample flow-file
+(`flows/example.flow.yaml.sample`, ignored until you calibrate it), and
+`.docsxai.json` (holding `app_url` plus `ignore_https_errors` so later commands
+need no flags). `--auth` must be `manual-capture` (the default) or `none`, which
+writes no `auth/strategy.yaml` and suits an app that needs no login; `--ttl <dur>` sets the
 session-cache fallback expiry (`30m`, `1h`); `--capture-trigger` picks
 between the devtools-console capture call and an injected on-page button;
 `--auth-cookie <name>` pins the cache expiry to a named cookie up front. For
@@ -87,7 +89,7 @@ a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
 ```
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
 init: workspace at ~/docsxai/my-app
-  created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, auth/strategy.yaml, README.md
+  created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, auth/strategy.yaml, flows/example.flow.yaml.sample, README.md
   next: docsxai capture-auth ~/docsxai/my-app  →  docsxai calibrate ~/docsxai/my-app --from <flow.yaml>  →  docsxai run ~/docsxai/my-app  →  docsxai render ~/docsxai/my-app
 ```
 

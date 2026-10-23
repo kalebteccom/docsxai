@@ -72,6 +72,13 @@ describe("init", () => {
     expect(out).toContain(`next: docsxai calibrate ${noLogin} --from <flow.yaml>`);
     expect(out).not.toContain("capture-auth");
   });
+
+  it("lists the sample flow it wrote and finishes on the next: line", async () => {
+    const ws = path.join(tmp, "sample");
+    expect(await main(["init", ws, "--app-url", "http://127.0.0.1:1"])).toBe(0);
+    expect(out).toContain("flows/example.flow.yaml.sample");
+    expect(out.trimEnd().split("\n").at(-1)).toMatch(/^ {2}next: /);
+  });
 });
 
 describe("calibrate", () => {

@@ -33,6 +33,7 @@
         ".gitignore",
         ".docsxai.json",
         "auth/strategy.yaml",
+        "flows/example.flow.yaml.sample",
         "README.md"
       ],
       "configKeys": ["app_url", "created_at", "schema"]
@@ -46,6 +47,7 @@
         ".viewer/",
         ".gitignore",
         ".docsxai.json",
+        "flows/example.flow.yaml.sample",
         "README.md"
       ],
       "configKeys": ["created_at", "schema"]
