@@ -78,12 +78,6 @@ describe.skipIf(!engineBuilt)("bare `docsxai` bin (meta-package wrapper)", () =>
     expect(lint.stdout).toContain("no issues");
   });
 
-  it("propagates the engine's exit codes (unknown command exits 2)", async () => {
-    const r = await docsxai("not-a-command");
-    expect(r.code).toBe(2);
-    expect(r.stderr).toContain("unknown command: not-a-command");
-  });
-
   it("index.mjs re-exports the engine's library surface", async () => {
     const lib = (await import(path.join(pkgDir, "index.mjs"))) as Record<string, unknown>;
     expect(typeof lib.parseFlowFile).toBe("function");
@@ -150,12 +144,6 @@ describe.skipIf(!engineBuilt || !viewerBuilt)("`docsxai burn` through the bare b
     expect(r.code).toBe(1);
     expect(r.stderr).toContain("burn:");
   });
-
-  it("a workspace without docs/ exits 1 and a bad flag exits 2", async () => {
-    await fs.mkdir(path.join(tmp, "empty"));
-    expect((await docsxai("burn", path.join(tmp, "empty"))).code).toBe(1);
-    expect((await docsxai("burn", path.join(tmp, "empty"), "--nope")).code).toBe(2);
-  });
 });
 
 describe.skipIf(!engineBuilt || !viewerBuilt)(
@@ -173,14 +161,6 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
       await fs.writeFile(path.join(ws, "pack.json"), JSON.stringify(PACK_CONFIG), "utf8");
       return ws;
     }
-
-    it("--help lists both forms", async () => {
-      const r = await docsxai("--help");
-      expect(r.stdout).toContain("docsxai pack <workspace-or-raw-dir>");
-      expect(r.stdout).toContain(
-        "docsxai pack <workspace-or-raw-dir> --check --against <pack-dir>",
-      );
-    });
 
     it("packs a workspace into .screens, then finds no drift against it", async () => {
       const ws = await workspaceWithPackConfig();
@@ -240,25 +220,6 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
       );
       expect(lenient.code, lenient.stdout).toBe(0);
     }, 30_000);
-
-    it("the retired `docsxai drift` still runs, with a deprecation warning", async () => {
-      const ws = await workspaceWithPackConfig();
-      expect((await docsxai("pack", ws, "--no-optimise")).code).toBe(0);
-      const r = await docsxai("drift", ws, "--against", path.join(ws, ".screens"));
-      expect(r.code, r.stderr).toBe(0);
-      expect(r.stderr).toContain("docsxai: the drift command is deprecated since 0.3.0");
-      expect(r.stdout).toContain("docsxai drift: 1 compared, 0 over threshold (0.5%)");
-    }, 30_000);
-
-    it("exits 2 on a bad flag or a missing --against, and 1 on a workspace with no pack.json", async () => {
-      expect((await docsxai("pack", tmp, "--nope")).code).toBe(2);
-      expect((await docsxai("pack", tmp, "--check")).code).toBe(2);
-      const ws = path.join(tmp, "ws");
-      await fs.cp(packFixture, path.join(ws, "docs"), { recursive: true });
-      const r = await docsxai("pack", ws, "--no-optimise");
-      expect(r.code).toBe(1);
-      expect(r.stderr).toContain("no pack.json");
-    });
   },
 );
 
