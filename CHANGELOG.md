@@ -4,7 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-<<<<<<< HEAD
+### Fixed
+
+- **Burned callout, arrow and badge placement on dense screens.** A stem or arrow that ran through text or a neighbouring halo is now charged per px crossed, so a callout sits near its target and covers a few px of text before a long stem crosses six rows. An `arrow_style` or `placement.side` hint now wins over a side that is only a sliver cleaner, where a few px of overlap used to throw it away. A numbered badge no longer crosses the bottom or right edge of the screenshot: it stays inside with a 2 px margin. A callout that overran a narrow gap by a few px retries with its side padding cut by up to 6 px (never below 8 px) and keeps that box when it fits clear. Annotations without `obstacles` and hint burn the same bytes as before. Guide: `docs/burn-theming.md`.
+
 ### Added
 
 - **`burnWithWorkspaceTheme` in `@docsxai/viewer`.** Burns a screenshot with the `burn.theme` of a workspace's `.docsxai.json`, loaded once per workspace and cached by path and config mtime. It returns what `burnAnnotations` returns, lets an explicit `options.theme` win, sends theme warnings to `options.warn` once per load and throws `BurnThemeError` for an invalid block. Guide: `docs/burn-theming.md`.
@@ -16,11 +19,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Fixed
 
 - Docs site: a print stylesheet that drops the site chrome, and readable dark text on the landing-page mock buttons.
-=======
-### Fixed
-
-- **Burned callout, arrow and badge placement on dense screens.** A stem or arrow that ran through text or a neighbouring halo is now charged per px crossed, so a callout sits near its target and covers a few px of text before a long stem crosses six rows. An `arrow_style` or `placement.side` hint now wins over a side that is only a sliver cleaner, where a few px of overlap used to throw it away. A numbered badge no longer crosses the bottom or right edge of the screenshot: it stays inside with a 2 px margin. A callout that overran a narrow gap by a few px retries with its side padding cut by up to 6 px (never below 8 px) and keeps that box when it fits clear. Annotations without `obstacles` and hint burn the same bytes as before. Guide: `docs/burn-theming.md`.
->>>>>>> fix/burn-placement
 
 ## [0.3.0-rc.4] - 2026-10-23
 
