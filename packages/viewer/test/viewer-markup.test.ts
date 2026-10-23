@@ -166,7 +166,9 @@ describe("keyboard navigation markup", () => {
     const index = indexHtml([], AT);
     expect(index).not.toContain("<script>");
     expect(index).not.toContain("Keyboard shortcuts");
-    expect(index).not.toContain("sd-copy");
+    // the stylesheet names .sd-copy, so look for the element, not the class name
+    expect(index).not.toContain('<button type="button" class="sd-copy"');
+    expect(index).not.toContain("data-copy=");
     expect(index).not.toContain("sd-live");
   });
 });
