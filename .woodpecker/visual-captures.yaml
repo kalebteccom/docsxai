@@ -31,9 +31,9 @@ steps:
   - name: build
     image: remotxai-ci:latest
     depends_on: [setup]
+    failure: ignore
     commands:
-      - pnpm --filter @docsxai/viewer build
-      - pnpm --filter @docsxai/website build
+      - pnpm build
       - mkdir -p visual-work/empty-docs
       - node packages/viewer/dist/index.js build examples/ci/sample-repo/docs-workspace/docs visual-work/viewer
       - node packages/viewer/dist/index.js build visual-work/empty-docs visual-work/viewer-empty

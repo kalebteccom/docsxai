@@ -206,7 +206,6 @@ describe("scripted client — fixture-workspace introspection", () => {
     expect(report.step.resolvedSelector).toBe("#play-recap");
     expect(Array.isArray(report.recommendations)).toBe(true);
   });
-
 });
 
 describe.skipIf(!chromiumAvailable)(

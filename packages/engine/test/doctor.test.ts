@@ -654,5 +654,4 @@ describe("doctor CLI dispatch", () => {
     expect(out).toContain("usage: docsxai doctor");
     expect(out).not.toContain("environment & workspace health");
   });
-
 });

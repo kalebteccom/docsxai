@@ -165,7 +165,6 @@ describe("render, burn, zip, baseline, diff", () => {
     expect(err).toContain("baseline: warning");
     expect(err).toContain(`next: docsxai run ${empty}`);
   });
-
 });
 
 describe("next: hints quote a workspace path that is not a plain word", () => {
