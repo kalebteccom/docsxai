@@ -30,7 +30,7 @@ Rules for the secret:
 
 - Name: `npm_publish_token`, a repository secret in Woodpecker. Only the `publish` step of `.woodpecker/release.yaml` names it, as `NODE_AUTH_TOKEN`.
 - Events: the repo admin restricts the secret to exactly `manual`. Woodpecker exposes a secret to push, tag and deployment events by default and never to `pull_request` (checked 2026-10-09); the restriction removes push, tag and deployment too. Do not leave it at the default. Do not restrict it to plugin images, since the publish step is a command step.
-- Never exposed to pull requests or PR-derived code: `.woodpecker/ci.yaml` runs on push only and names no secret, Woodpecker is meant to run with `allow_pr=false` (a server setting to verify on the host), and the release pipeline runs only on a commit that a pushed tag points at.
+- Never exposed to pull requests or PR-derived code: `.woodpecker/ci.yaml` runs on push only and names no secret, Woodpecker is meant to run with `allow_pr=false` (a server setting to verify on the host), and the release pipeline runs only on the `manual` event, on a commit that a pushed tag points at.
 - The owner keeps the token in `~/.config/docsxai/npm-publish.token` (mode 600) on the CI host, and the Woodpecker secret is created from that file. Nobody prints, pastes or commits the value. `scripts/release-publish.sh` runs with `set +x`, never echoes the variable, and writes an npm user config outside the workspace that holds `${NODE_AUTH_TOKEN}` as a placeholder, which npm expands when it reads it. The file has mode 600 and is removed when the script exits.
 - If npm answers with an auth, token or permission error (`E401`, `E403`, `ENEEDAUTH`, `EOTP`, or a message about two-factor), the script stops at once with "token or permission problem: stop and tell the owner" and publishes nothing further. Do not retry with another token: tell the owner.
 
@@ -67,8 +67,8 @@ Residual exposure, accepted for now: the pipeline uses the `remotxai-ci:latest` 
 3. **Finalise the CHANGELOG.** Promote `## [Unreleased]` to `## [X.Y.Z] - <date>`; add the compare link. Bump all seven publishable packages to the same `X.Y.Z` (the pipeline fails if any differs from the tag). Commit `chore(release): vX.Y.Z` in the release pull request.
 4. **Merge.** Merge the release pull request on a green Woodpecker run at its head commit.
 5. **Tag.** On the merge commit: `git tag -s vX.Y.Z -m "vX.Y.Z"` and `git push origin vX.Y.Z`. The tag push starts nothing. It only names the commit that step 6 releases.
-6. **Run the release pipeline.** In the Woodpecker UI, open the repo, choose "Run pipeline" (manual), pick the branch whose head is the tagged commit (`main` right after the merge), and add the variable `RELEASE_TAG` = `vX.Y.Z`. The pipeline installs, builds, typechecks and tests, then the `dry-run` step checks the tag and packs, and the `publish` step publishes the seven packages. They are live when the step finishes. The log prints `published <package>@<version> (dist-tag <tag>)` for each. If `main` moved after tagging, the run fails before publishing (HEAD is not the tag). Push a branch at the tagged commit (`git push origin 'vX.Y.Z^{commit}:refs/heads/release/vX.Y.Z'`) and run the pipeline on that branch. The UI labels and how manual variables reach the steps are to verify on the first run.
-7. **GitHub Release.** After all seven are live: `gh release create vX.Y.Z --title vX.Y.Z --generate-notes --verify-tag`, adding `--prerelease` for a `-rc.N` tag. Optionally attach an SBOM generated with `npx --yes @cyclonedx/cdxgen@12.5.1 -t pnpm -o sbom.cdx.json --project-name docsxai`.
+6. **Run the release pipeline.** In the Woodpecker UI, open the repo, choose "Run pipeline" (manual), pick the branch whose head is the tagged commit (`main` right after the merge), and add the variable `RELEASE_TAG` = `vX.Y.Z`. The pipeline installs, builds, typechecks and tests, then the `dry-run` step checks the tag and packs, and the `publish` step stages the seven packages. They are not live until the owner approves each one with 2FA (see "Staged mode"). The log prints `staged <package>@<version> (dist-tag <tag>)` for each. If `main` moved after tagging, the run fails before publishing (HEAD is not the tag). Push a branch at the tagged commit (`git push origin 'vX.Y.Z^{commit}:refs/heads/release/vX.Y.Z'`) and run the pipeline on that branch.
+7. **GitHub Release.** After the owner has approved all seven and they are live: `gh release create vX.Y.Z --title vX.Y.Z --generate-notes --verify-tag`, adding `--prerelease` for a `-rc.N` tag. Optionally attach an SBOM generated with `npx --yes @cyclonedx/cdxgen@12.5.1 -t pnpm -o sbom.cdx.json --project-name docsxai`.
 8. **Repo check.** Confirm `npm view <package>@X.Y.Z` and `npm dist-tag ls <package>` for the seven, then that the README renders on the release commit, the LICENSE is detected, CONTRIBUTING is linked.
 9. **Site + announce.** Deploy the docs site (`website/` via Netlify) and verify DNS, then announce. The operational ordering (publish, site deploy, DNS checks) lives in `docs/ai-context/release-process/public-flip-checklist.md`.
 
@@ -103,14 +103,14 @@ What `release-publish.sh` does:
 
 - Resolves the tag from `RELEASE_TAG`, or from `GITHUB_REF_NAME` on a GitHub tag push. `publish` fails without one; `dry-run` fails without one when `RELEASE_REQUIRE_TAG=1`.
 - With a tag: checks it matches `vX.Y.Z[-pre]`, fetches it from `origin`, and fails unless `refs/tags/<tag>^{commit}` is `HEAD`.
-- In stage mode (inactive), fails unless npm is at least 11.15.0 and Node at least 22.14.0.
+- In stage mode (the Woodpecker setting), fails unless npm is at least 11.15.0 and Node at least 22.14.0.
 - Fails unless its package list is exactly `docsxai`, `@docsxai/engine`, `@docsxai/viewer`, `@docsxai/plugin`, `@docsxai/skill`, `@docsxai/backend`, `@docsxai/plugin-sharepoint`.
 - Packs the seven packages (`pnpm pack`, which rewrites `workspace:*` to real versions) from an explicit allow-list that leaves out the repo-only packages (`@docsxai/{mcp,plugin-confluence,plugin-gitbook,plugin-guru,plugin-notion,plugin-starlight,website}`), matching their `"private": true` flags.
 - Verifies every tarball before the first publish: the manifest name matches, no `workspace:` spec is left, and with a tag every version equals it. Without a tag the seven versions must agree with each other.
 - Publishes in dependency order: `@docsxai/engine`, `@docsxai/viewer`, `docsxai`, then `@docsxai/{plugin,plugin-sharepoint,skill,backend}`.
 - Skips any package whose exact version already answers `npm view <name>@<version> version`, so a rerun after a partial publish finishes the rest. Any registry error other than 404 aborts.
 - `RELEASE_PUBLISH_MODE`: `direct` (the default) runs `npm publish`, with `--provenance` on GitHub Actions only; `stage` (set by `.woodpecker/release.yaml`) runs `npm stage publish` and passes `--provenance=false` off GitHub. Both pass `--access public`, and a prerelease version (`X.Y.Z-rc.1`) gets `--tag next` so it never takes `latest`.
-- After each publish, prints `published <package>@<version> (dist-tag <tag>)`. It never prints the token.
+- After each package, prints `staged <package>@<version> (dist-tag <tag>)` in stage mode and `published <package>@<version> (dist-tag <tag>)` in direct mode, then the `npm stage list` output and the approve and reject commands. It never prints the token.
 - Stops at the first auth, token or permission error from npm (`E401`, `E403`, `ENEEDAUTH`, `EOTP`, two-factor) with "token or permission problem: stop and tell the owner", and stops at any other publish failure too. Nothing after the failed package is published.
 - Off GitHub Actions, `publish` requires a non-empty `NODE_AUTH_TOKEN` and points npm at a temporary user config (mode 600, outside the workspace, removed on exit) that references it by name.
 
@@ -120,15 +120,14 @@ The `dry-run` step runs on every release pipeline before `publish`. To rehearse 
 
 ## Release TODO
 
-Owner tasks. **The pipeline cannot publish until the Woodpecker secret exists and the package settings accept the token.**
+Owner tasks. Ticked items are done.
 
-- [ ] **Create the npm token** on npmjs.com: granular access token of type "Read and write (stage only)", limited to the published packages (scope-level write on `@docsxai` plus the package `docsxai`), IP-locked to the CI box, 90-day expiry. It lives in `~/.config/docsxai/npm-publish.token` on the CI host, mode 600.
-- [ ] **Add the Woodpecker secret** `npm_publish_token` from that file, events restricted to exactly `manual`, no image restriction. With the CLI the shape is `woodpecker-cli repo secret add --repository kalebteccom/docsxai --name npm_publish_token --event manual --value @<file>` (flags to verify against the installed CLI version).
+- [x] **Create the npm token** on npmjs.com: granular access token of type "Read and write (stage only)", limited to the published packages (scope-level write on `@docsxai` plus the package `docsxai`), IP-locked to the CI box, 90-day expiry. It lives in `~/.config/docsxai/npm-publish.token` on the CI host, mode 600.
+- [x] **Add the Woodpecker secret** `npm_publish_token` from that file, events restricted to exactly `manual`, no image restriction. With the CLI the shape is `woodpecker-cli repo secret add --repository kalebteccom/docsxai --name npm_publish_token --event manual --value @<file>` (flags to verify against the installed CLI version).
 - [ ] **Set a rotation reminder** a week before the token's 90-day expiry, and rotate with the steps in the Trust model. An expired token fails the `publish` step with an auth error.
-- [ ] **Check the package settings:** pipeline 152 stopped with E403 ("Two-factor authentication is required to publish this package but an automation token was specified") on a direct publish. `npm stage publish` should not need 2FA, so try it with the package settings as they are. If staging stops on a two-factor E403, set each of the seven to "Require two-factor authentication or a granular access token with bypass 2FA enabled" and rerun.
-- [ ] **Before the first release that includes `@docsxai/plugin-sharepoint`, add it to the CI publish token.** On npmjs.com, edit the granular token: packages and scopes. The package does not exist yet, so the token needs scope-level write for `@docsxai`. The name was free on the registry on 2026-10-13 (404). Without it the `publish` step stops on an auth error at that package: the three before it are live, the two after it are not, and a rerun with the same `RELEASE_TAG` finishes them once the token is fixed.
-- [ ] **After its first publish, give the second owner `kalebtec-recovery` access** to `@docsxai/plugin-sharepoint` on npmjs.com, so it has two owners.
-- [ ] **Confirm the image toolchain:** `remotxai-ci:latest` carries npm and git. The `setup` step prints the versions. npm >= 11.15.0 and Node >= 22.14.0 matter only for stage mode.
+- [ ] **Before the first release that includes `@docsxai/plugin-sharepoint`, add it to the CI publish token.** On npmjs.com, edit the granular token: packages and scopes. The token needs scope-level write for `@docsxai`, or an entry for the package. Without it the `publish` step stops on an auth error at that package: the packages before it in the publish order are staged, the ones after it are not, and a rerun with the same `RELEASE_TAG` finishes them once the token is fixed.
+- [x] **After its first publish, give the second owner `kalebtec-recovery` access** to `@docsxai/plugin-sharepoint` on npmjs.com, so it has two owners. Done: both owners are on the registry.
+- [x] **Confirm the image toolchain:** `remotxai-ci:latest` carries npm and git. The `setup` step prints the versions. npm >= 11.15.0 and Node >= 22.14.0 are needed for stage mode, which the pipeline always uses.
 - [ ] **Two owners with WebAuthn:** `kalebtec-studio` and `kalebtec-recovery` must both own all seven packages and both hold phishing-resistant WebAuthn credentials (universal-baseline rules 1 + 7); check on npmjs.com before each release.
 - Not applicable: `release.yml` is retired, so its GitHub `release` environment and npm trusted-publisher bindings are dropped.
 
@@ -136,7 +135,7 @@ Owner tasks. **The pipeline cannot publish until the Woodpecker secret exists an
 
 Checked 2026-10-09:
 
-- Woodpecker secrets: available to push, tag and deployment events by default, not to `pull_request`; restrictable to listed events in the UI or CLI (`--event`). The docs do not say how the `manual` event interacts with that default, so the secret is restricted to exactly `manual` and the first run verifies it.
+- Woodpecker secrets: available to push, tag and deployment events by default, not to `pull_request`; restrictable to listed events in the UI or CLI (`--event`). The docs do not say how the `manual` event interacts with that default, so the secret is restricted to exactly `manual`; the `0.3.0-rc.3` run read it in the `publish` step.
 - Woodpecker workflows: a repo uses either `.woodpecker.yml` or a `.woodpecker/` directory; each `.woodpecker/*.yaml` is a workflow that runs independently.
 - npm staged publishing: a stage-only granular token ("Read and write (stage only)") can run `npm stage publish` and cannot publish directly (`E_STAGE_REQUIRED`). A maintainer reviews with `npm stage list|view|download` and promotes with `npm stage approve <stage-id> --otp` (2FA) or drops with `npm stage reject`. Needs npm >= 11.15.0 and Node >= 22.14.
 - npm provenance: `--provenance` works from GitHub Actions and GitLab CI only.
@@ -146,4 +145,4 @@ Checked 2026-10-09:
 
 - Do not `npm publish` locally, ever. Releases go through `.woodpecker/release.yaml`.
 - Do not push a `v*.*.*` git tag casually: the next manual Woodpecker release pipeline publishes whatever tag it is given.
-- Do not remove the `"private": true` flags on `@docsxai/{mcp,plugin-confluence,plugin-gitbook,plugin-guru,plugin-notion,plugin-sharepoint,plugin-starlight}`, `@docsxai/website`, or the workspace root as "cleanup" — they are the deliberate publish boundary.
+- Do not remove the `"private": true` flags on `@docsxai/{mcp,plugin-confluence,plugin-gitbook,plugin-guru,plugin-notion,plugin-starlight}`, `@docsxai/website`, or the workspace root as "cleanup" — they are the deliberate publish boundary.
