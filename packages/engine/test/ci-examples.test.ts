@@ -247,6 +247,16 @@ describe("docs/ci-recipes.md", () => {
     expect(md).not.toMatch(/(?:install --global|add -g) docsxai(?![@\w-])/);
   });
 
+  it("installs through npm in every yaml block, with no corepack or pnpm global install", () => {
+    const yamlBlocks = blocks.filter((b) => b.lang === "yaml");
+    expect(yamlBlocks.length).toBeGreaterThanOrEqual(5);
+    for (const b of yamlBlocks) {
+      const lines = scriptsIn(parse(b.body));
+      expect(lines.join("\n")).not.toMatch(/corepack|pnpm add -g|pnpm\/action-setup/);
+    }
+    expect(blocks.some((b) => b.body.includes("refresh-docs:"))).toBe(true);
+  });
+
   it("says browser capture does not belong in per-PR pipelines on shared runners", () => {
     expect(md).toMatch(/Do not run browser capture in per-PR pipelines on shared runners/);
   });
