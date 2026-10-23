@@ -1,6 +1,6 @@
 # Semver clock — the API-stable-clock
 
-docsxai is pre-1.0 (`0.2.0` is on npm's `latest` tag, `0.3.0-rc.2` on `next`). 1.0 is the stability milestone, and the path to it runs through an "API stable ~1 week" clock.
+docsxai is pre-1.0 (`0.2.0` is on npm's `latest` tag, `0.3.0-rc.3` on `next`). 1.0 is the stability milestone, and the path to it runs through an "API stable ~1 week" clock.
 
 ## What's frozen today (the stable surface)
 
