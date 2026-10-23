@@ -86,6 +86,11 @@ export interface LayoutInput {
   maxWidthRatio?: number;
 }
 
+/** True when `arrow_style` names a side: the author asked for it, it is not the default. */
+function hintsSide(arrowStyle: string | undefined): boolean {
+  return arrowStyle !== undefined && SIDES.includes(arrowStyle.split("-")[0] ?? "");
+}
+
 function preferredSide(arrowStyle: string | undefined): Side {
   const pref = (arrowStyle ?? "top").split("-")[0] ?? "top";
   return SIDES.includes(pref) ? (pref as Side) : "top";
@@ -246,6 +251,7 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
         avoid: clear,
         nudge,
         ...(placement?.side ? { strictSide: true } : {}),
+        ...(placement?.side !== undefined || hintsSide(ann.arrow_style) ? { hinted: true } : {}),
         ...(placement?.align ? { align: placement.align } : {}),
         ...(placement?.pin_arrow ? { pinArrow: true } : {}),
         arrowLength,
