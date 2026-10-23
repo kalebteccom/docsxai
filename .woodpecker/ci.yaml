@@ -54,9 +54,8 @@ steps:
     volumes:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     commands:
-      - bash scripts/gate-slot.sh pnpm audit:prod
-      - bash scripts/gate-slot.sh pnpm licenses:check
-      - bash scripts/gate-slot.sh node scripts/lockfile-lint.mjs
+      # One slot for all three checks: a slot per command re-queued behind build and test on the shared pool.
+      - bash scripts/gate-slot.sh bash -ec 'pnpm audit:prod && pnpm licenses:check && node scripts/lockfile-lint.mjs'
 
   # Reads the dist/ output of build through npm pack --dry-run, so no second build.
   - name: package-contents
@@ -92,10 +91,8 @@ steps:
     volumes:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     commands:
-      - bash scripts/gate-slot.sh pnpm depcruise
-      - bash scripts/gate-slot.sh pnpm jscpd:check
-      # The page plan of the screenshot scripts; scripts/visual-*.mjs are kept without a runner.
-      - bash scripts/gate-slot.sh node --test scripts/visual-plan.test.mjs
+      # One slot for all three checks. The last is the page plan of the screenshot scripts; scripts/visual-*.mjs are kept without a runner.
+      - bash scripts/gate-slot.sh bash -ec 'pnpm depcruise && pnpm jscpd:check && node --test scripts/visual-plan.test.mjs'
 
   # Runs after build: the docsxai meta-package test spawns the built dist/ output.
   # The keystone suite inside this step skips itself when the image has no Chromium binary.
