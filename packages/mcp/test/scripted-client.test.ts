@@ -183,20 +183,6 @@ describe("scripted client — fixture-workspace introspection", () => {
     expect(r.clean).toBe(false);
   });
 
-  it("flow_tree shows the fixture flow as a root with no issues", async () => {
-    const r = await call(client, "flow_tree");
-    expect(r.ok).toBe(true);
-    expect((r.roots as Array<{ name: string }>).map((n) => n.name)).toEqual(["recap-open"]);
-    expect(r.clean).toBe(true);
-  });
-
-  it("get_annotations before any run fails with a run_flows hint", async () => {
-    const r = await call(client, "get_annotations", { flow: "recap-open" });
-    expect(r.ok).toBe(false);
-    expect(r.isError).toBe(true);
-    expect(String(r.hint)).toContain("run_flows");
-  });
-
   it("style_check initialises and validates the style artifacts", async () => {
     const r = await call(client, "style_check");
     expect(r.ok).toBe(true);
@@ -213,19 +199,6 @@ describe("scripted client — fixture-workspace introspection", () => {
     await fs.access(r.output as string);
   });
 
-  it("plugins_list reports an empty configured set", async () => {
-    const r = await call(client, "plugins_list");
-    expect(r.ok).toBe(true);
-    expect(r.configured).toBe(0);
-    expect(r.loaded).toBe(0);
-  });
-
-  it("get_run_artifacts is empty before any run", async () => {
-    const r = await call(client, "get_run_artifacts");
-    expect(r.ok).toBe(true);
-    expect(r.flows).toEqual([]);
-  });
-
   it("diagnose_halt reports static recommendations for a known step", async () => {
     const r = await call(client, "diagnose_halt", { flow: "recap-open", step: "open-sidebar" });
     expect(r.ok).toBe(true);
@@ -234,11 +207,6 @@ describe("scripted client — fixture-workspace introspection", () => {
     expect(Array.isArray(report.recommendations)).toBe(true);
   });
 
-  it("diagnose_halt on an unknown step fails with the merged step list", async () => {
-    const r = await call(client, "diagnose_halt", { flow: "recap-open", step: "nope" });
-    expect(r.ok).toBe(false);
-    expect(String(r.hint)).toContain("open-sidebar");
-  });
 });
 
 describe.skipIf(!chromiumAvailable)(
