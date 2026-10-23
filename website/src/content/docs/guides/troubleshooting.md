@@ -18,12 +18,12 @@ identically, so a second run tells you nothing new. Spend the next action on
 
 ## Reading a halt
 
-A halted step's error message starts with a `[cause: ...]` prefix inferred
+A halted step's error message starts with a cause in square brackets, inferred
 from Playwright's actionability log, and a screenshot of the moment lands at
 `docs/<flow>/halts/<step>.png` (the path is in the message). Read the cause
 first; open the screenshot to confirm. The vocabulary:
 
-| Halt cause prefix                                                            | What it means                                                                          |
+| Halt cause                                                                   | What it means                                                                          |
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `[target is disabled]` / `[target is not enabled]`                           | The element is there but rejects interaction (disabled / aria-disabled).               |
 | `[target is not visible (display:none / visibility:hidden / zero-sized)]`    | CSS-hidden at action time.                                                             |

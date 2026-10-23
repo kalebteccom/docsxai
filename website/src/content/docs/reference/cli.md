@@ -88,7 +88,7 @@ a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
 init: workspace at ~/docsxai/my-app
   created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, auth/strategy.yaml, README.md
-  next: docsxai capture-auth ~/docsxai/my-app  →  …calibrate…  →  docsxai run ~/docsxai/my-app  →  docsxai render ~/docsxai/my-app
+  next: docsxai capture-auth ~/docsxai/my-app  →  docsxai calibrate ~/docsxai/my-app --from <flow.yaml>  →  docsxai run ~/docsxai/my-app  →  docsxai render ~/docsxai/my-app
 ```
 
 ### `docsxai capture-auth`

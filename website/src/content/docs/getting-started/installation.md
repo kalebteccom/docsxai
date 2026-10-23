@@ -3,19 +3,23 @@ title: Installation
 description: Install the docsxai engine and viewer from npm or from source, fetch the Chromium runtime the engine drives, and verify the docsxai CLI works.
 ---
 
-docsxai needs [Node.js 26 or newer](https://nodejs.org/) and a Chromium binary. Everything else is
-plain npm packages.
+docsxai needs [Node.js 26 or newer](https://nodejs.org/) (check with `node --version`) and a
+Chromium binary. Everything else is plain npm packages.
 
 ## From npm
 
 One global install of the bare `docsxai` package gives you the whole CLI:
 
 ```sh
-pnpm add -g docsxai@next
+npm install -g docsxai@next
 ```
 
-`next` is the 0.3.x line (`pack`, `--verify-determinism`, matrix flows). `latest` stays 0.2.0 until
-0.3.x ships stable; then it moves, and the pin should move to the stable version.
+`pnpm add -g docsxai@next` works too. Run `pnpm setup` once first, or pnpm has no global bin
+directory on your PATH.
+
+`next` is the 0.3.x line, currently `0.3.0-rc.3` (`pack`, `--verify-determinism`, matrix flows).
+`latest` is 0.2.0 and has none of those. It moves when 0.3.x ships stable, and then the pin should
+move to the stable version.
 
 `docsxai` is the batteries-included meta-package - its bin runs
 [`@docsxai/engine`](/packages/engine/)'s CLI in-process, and it depends on
@@ -25,15 +29,15 @@ pnpm add -g docsxai@next
 Prefer granular installs? The scoped packages are the same code:
 
 ```sh
-pnpm add -g @docsxai/engine@next @docsxai/viewer@next
+npm install -g @docsxai/engine@next @docsxai/viewer@next
 ```
 
 Use `@docsxai/engine` directly when you want the engine as a _library_
 dependency (flow-file parser, deterministic runtime, exporters) - the bare
 package re-exports it, but depending on the engine keeps your tree minimal.
 
-Playwright's Chromium is installed explicitly as a one-shot, never as an
-install-time lifecycle script:
+Playwright's Chromium is a separate download. It is never an install-time
+lifecycle script, so you run it once yourself:
 
 ```sh
 npx playwright-core install chromium
@@ -53,15 +57,17 @@ for the full workspace setup.
 ## Verify
 
 ```sh
-docsxai --help
+docsxai doctor
 ```
 
-You should see the usage block listing `init`, `run`, `render`,
+`doctor` checks the Node version, Chromium, viewer resolution and more. Every
+failing row prints its own one-line fix. Outside a workspace it skips the
+workspace rows, which is fine for now.
+
+`docsxai --help` prints the usage block listing `init`, `run`, `render`,
 `capture-auth`, and the rest of the surface in the
-[CLI reference](/reference/cli/). For a full environment health-check -
-Node version, Chromium, viewer resolution, and more - run `docsxai doctor`;
-every failing row prints its own one-line fix. If `run` later complains
-that no Chromium binary is found, the fix is the same one-shot install:
+[CLI reference](/reference/cli/). If `run` later complains that no Chromium
+binary is found, the fix is the same one-time install:
 `npx playwright-core install chromium` (from a source checkout:
 `pnpm -C packages/engine exec playwright-core install chromium`).
 
