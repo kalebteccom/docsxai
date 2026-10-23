@@ -170,11 +170,10 @@ describe("checkAppUrl", () => {
   });
 
   it("prints the URL without credentials or query", async () => {
-    const c = await checkAppUrl(
-      { app_url: "https://user:pw@app.example.com/?t=1" },
-      answer(200),
-      false,
-    );
+    const url = new URL("https://app.example.com/?t=1");
+    url.username = "user";
+    url.password = "pw";
+    const c = await checkAppUrl({ app_url: url.href }, answer(200), false);
     expect(c?.detail).not.toContain("pw");
     expect(c?.detail).not.toContain("t=1");
   });
