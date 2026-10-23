@@ -363,7 +363,7 @@ describe("emitStarlightSite — MDX content", () => {
   });
 });
 
-describe("emitStarlightSite — micro-states", () => {
+describe("emitStarlightSite micro-states", () => {
   it("CopyId holds three stacked labels, names the button and has a polite status span", async () => {
     const ws = await makeWorkspace(goldenSpec());
     const out = await outDir();
