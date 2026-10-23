@@ -36,12 +36,14 @@ jobs:
           npm install --global docsxai@next
           npx playwright-core install --with-deps chromium
       - name: verify determinism
+        shell: bash # adds pipefail, so a failing docsxai fails the step despite the tee
         env:
           APP_URL: ${{ vars.APP_URL }}
           APP_EDITOR_USER: ${{ secrets.APP_EDITOR_USER }}
           APP_EDITOR_PASS: ${{ secrets.APP_EDITOR_PASS }}
         run: docsxai run ./docs-workspace --base-url "$APP_URL" --verify-determinism --format md | tee determinism-report.md
       - name: diff against the baseline
+        shell: bash
         run: docsxai diff ./docs-workspace --against ./docs-workspace/.baseline --format md --fail-on fail | tee drift-report.md
       - name: upload the reports
         if: always()

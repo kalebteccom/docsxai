@@ -9,8 +9,7 @@
 
 ## What execution mode needs
 
-- Node 26+, pnpm, and a Chromium binary
-  (`npx playwright-core install chromium`).
+- Node 26+ and a Chromium binary (`npx playwright-core install chromium`).
 - The doc-pack workspace checked out (flows/, docs/, auth/strategy.yaml,
   `.docsxai.json`) — typically its own repo or a docs/ subdirectory.
 - Target-site credentials as CI secrets, exposed under the env-var **names**
@@ -29,21 +28,24 @@ name: refresh-docs
 on:
   workflow_dispatch:
   schedule: [{ cron: "17 5 * * 1" }] # weekly; or trigger on your app's deploys
+permissions:
+  contents: write
+  pull-requests: write
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 26 }
-      - run: pnpm add -g @docsxai/engine@next @docsxai/viewer@next
-      - run: npx playwright-core install chromium
+      - run: npm install --global docsxai@next
+      - run: npx playwright-core install --with-deps chromium
       - name: replay the doc pack
         env:
+          APP_URL: ${{ vars.APP_URL }}
           APP_EDITOR_USER: ${{ secrets.APP_EDITOR_USER }}
           APP_EDITOR_PASS: ${{ secrets.APP_EDITOR_PASS }}
-        run: docsxai run ./docs-workspace --base-url ${{ vars.APP_URL }}
+        run: docsxai run ./docs-workspace --base-url "$APP_URL"
       - name: render + package
         run: |
           docsxai render ./docs-workspace
@@ -85,8 +87,7 @@ refresh-docs:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
-    - corepack enable && corepack prepare pnpm@9 --activate
-    - pnpm add -g @docsxai/engine@next @docsxai/viewer@next
+    - npm install --global docsxai@next
     - npx playwright-core install chromium --with-deps
     - docsxai run ./docs-workspace --base-url "$APP_URL"
     - docsxai render ./docs-workspace
@@ -134,7 +135,7 @@ CPU and memory, and it needs target credentials that a pull request from a fork 
 Schedule it (nightly, or on a deploy of the target app) on a runner you control, and keep per-PR
 pipelines to the checks that need no browser, such as `docsxai lint` and `docsxai flow-tree`.
 
-The recipes install with `npm install --global docsxai@next` because a plain Node image has npm and nothing else to set up; `pnpm add -g docsxai@next` works the same where pnpm is already on the runner. The pin is `next` because `pack`, `--verify-determinism` and matrix flows are in 0.3.x, which is on the `next` dist-tag while `latest` stays 0.2.0; when 0.3.x ships stable, `latest` moves to it and the pin should move to the stable version. The weekly refresh and GitLab recipes above install the scoped packages with the same `@next` tag, for the same reason: a bare `@docsxai/engine` resolves to 0.2.0 while `latest` is there. Pin the actions by commit SHA in your own repository.
+The recipes install with `npm install --global docsxai@next` because a plain Node image has npm and nothing else to set up; `pnpm add -g docsxai@next` works the same where pnpm is already on the runner. The pin is `next` because `pack`, `--verify-determinism` and matrix flows are in 0.3.x, which is on the `next` dist-tag while `latest` stays 0.2.0; when 0.3.x ships stable, `latest` moves to it and the pin should move to the stable version. The weekly refresh and GitLab recipes above install `docsxai@next` too, for the same reason: a bare `docsxai` resolves to 0.2.0 while `latest` is there. The `docsxai` package carries the viewer, so `render` works from that one install. Pin the actions by commit SHA in your own repository.
 
 The three files below also live under `examples/ci/` in the docsxai repository, and a test keeps the
 copies in this page identical to them.
@@ -182,12 +183,14 @@ jobs:
           npm install --global docsxai@next
           npx playwright-core install --with-deps chromium
       - name: verify determinism
+        shell: bash # adds pipefail, so a failing docsxai fails the step despite the tee
         env:
           APP_URL: ${{ vars.APP_URL }}
           APP_EDITOR_USER: ${{ secrets.APP_EDITOR_USER }}
           APP_EDITOR_PASS: ${{ secrets.APP_EDITOR_PASS }}
         run: docsxai run ./docs-workspace --base-url "$APP_URL" --verify-determinism --format md | tee determinism-report.md
       - name: diff against the baseline
+        shell: bash
         run: docsxai diff ./docs-workspace --against ./docs-workspace/.baseline --format md --fail-on fail | tee drift-report.md
       - name: upload the reports
         if: always()

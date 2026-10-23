@@ -14,6 +14,8 @@ Nightly drift jobs for GitHub Actions, GitLab CI and Woodpecker. Copy one into t
 
 `packages/engine/test/ci-examples.test.ts` covers the YAML shape, every command and flag against `docsxai --help`, and the copies in `docs/ci-recipes.md`.
 
+`examples/burn-theme/` is a separate example: a workspace config with a `burn.theme` block.
+
 ## Dogfood nightly runs
 
 The nightly runs for the dogfood workspaces live in the remotxai and trackxai repositories, not here: browser capture does not run in this repository's CI. Both workspaces can adopt these recipes now, since the recipes install `docsxai@next` from npm and `next` carries `pack` and `--verify-determinism` (`0.3.0-rc.3` and later).
