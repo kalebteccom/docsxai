@@ -278,6 +278,37 @@ describe("rendered viewer pages", () => {
     }
   });
 
+  it("names every copy button, and gives each page that has one a polite live region", async () => {
+    const outDir = path.join(tmp, "out-copy");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    for (const p of ["index.html", "checkout/index.html"]) {
+      const html = await fs.readFile(path.join(outDir, p), "utf8");
+      const buttons = html.match(/<button type="button" class="sd-copy"[^>]*>/g) ?? [];
+      expect(buttons.length).toBeGreaterThan(0);
+      for (const b of buttons) expect(b).toMatch(/aria-label="Copy [a-z ]+ [^"]+"/);
+      expect(html).toContain('id="sd-live" class="sr-only" aria-live="polite"');
+    }
+    const flow = await fs.readFile(path.join(outDir, "checkout/index.html"), "utf8");
+    // one for the flow, one for the step, one for the viewer build
+    expect(flow.match(/class="sd-copy"/g)).toHaveLength(3);
+  });
+
+  it("passes on a pack with a missing screenshot and on a flow with no steps", async () => {
+    await fs.rm(path.join(tmp, "docs", "checkout", "screenshots", "open-sidebar.png"));
+    await fs.mkdir(path.join(tmp, "docs", "bare"), { recursive: true });
+    await fs.writeFile(path.join(tmp, "docs", "bare", "annotations.json"), "{}");
+    const outDir = path.join(tmp, "out-states");
+    const r = await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    for (const p of r.pages) {
+      const html = await fs.readFile(path.join(outDir, p), "utf8");
+      expect(lintHtml(html).map((f) => `${p}: ${formatFinding(f)}`)).toEqual([]);
+    }
+    const flow = await fs.readFile(path.join(outDir, "checkout/index.html"), "utf8");
+    expect(flow).toContain('<div class="shot-missing" role="status">');
+    const bare = await fs.readFile(path.join(outDir, "bare/index.html"), "utf8");
+    expect(bare).toContain("This flow has no steps yet.");
+  });
+
   it("passes on an empty pack", async () => {
     const empty = path.join(tmp, "empty-docs");
     await fs.mkdir(empty);

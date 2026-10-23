@@ -4,6 +4,15 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **Copy buttons for ids in the viewer and the Starlight site.** Flow and variant ids, step ids, the viewer build and the capture command copy on click, Enter or Space. The label changes to "Copied" for 1.5 s without moving the page and a polite live region announces it; where the clipboard is unavailable the text is selected and the button reads "Press Ctrl+C". `?` opens the keyboard shortcut list.
+- **Clearer image and empty states.** A step with no screenshot shows the missing path and the command that captures it. A failed image has a Retry button with "Retrying..." and "still failing" states. A failed index thumbnail becomes a placeholder. Annotation and step-name messages now say what to do next.
+
+### Changed
+
+- **Viewer layout.** Headings sit in an id row with their copy button, the footer carries the viewer build as copyable text, and each index card has a copy button under it. The skip link is 44 px tall.
+
 ## [0.3.0-rc.4] - 2026-10-23
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

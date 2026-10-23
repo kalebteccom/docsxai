@@ -250,6 +250,7 @@ describe("emitStarlightSite — file tree golden", () => {
       "src/assets/flows/login/step-2.png",
       "src/assets/logo.png",
       "src/components/AnnotatedShot.astro",
+      "src/components/CopyId.astro",
       "src/content.config.ts",
       "src/content/docs/flows/checkout.mdx",
       "src/content/docs/flows/login.mdx",
@@ -344,9 +345,61 @@ describe("emitStarlightSite — MDX content", () => {
     const r = await emitStarlightSite({ workspaceDir: ws, outDir: out });
     expect(r.warnings).toEqual(['flow "ghost" step "step-1": no screenshot']);
     const mdx = await read(out, "src/content/docs/flows/ghost.mdx");
-    expect(mdx).toContain("_(no screenshot for this step)_");
+    expect(mdx).toContain(
+      '<AnnotatedShot missing alt={"step-1"} flow={"ghost"} items={[{"n":1,"copy":"Look here"}]} />',
+    );
     expect(mdx).not.toContain("AnnotatedShot src=");
+    expect(mdx).not.toContain("import shot0");
   });
+
+  it("puts a copy button for the flow id above the steps", async () => {
+    const ws = await makeWorkspace(goldenSpec());
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const mdx = await read(out, "src/content/docs/flows/login.mdx");
+    expect(mdx).toContain('import CopyId from "../../../components/CopyId.astro";');
+    expect(mdx).toContain('<CopyId value={"login"} kind="flow id" />');
+    expect(mdx.indexOf("<CopyId")).toBeLessThan(mdx.indexOf("## step-1"));
+  });
+});
+
+describe("emitStarlightSite micro-states", () => {
+  it("CopyId holds three stacked labels, names the button and has a polite status span", async () => {
+    const ws = await makeWorkspace(goldenSpec());
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const copy = await read(out, "src/components/CopyId.astro");
+    expect(copy).toContain("const COPIED_MS = 1500;");
+    for (const label of ["Copy", "Copied", "Press Ctrl+C"]) expect(copy).toContain(`>${label}</span>`);
+    expect(copy).toContain("grid-area: 1 / 1;");
+    expect(copy).toContain("visibility: hidden;");
+    expect(copy).toContain('role="status" aria-live="polite"');
+    expect(copy).toContain("min-height: 44px;");
+    expect(copy).toContain(":focus-visible");
+    expect(copy).toContain("navigator.clipboard");
+    expect(copy).not.toMatch(/transition|animation/);
+    // theme variables only: no hard-coded colours
+    expect(copy).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+  });
+
+  it("AnnotatedShot reserves the image box, offers Retry, and explains a missing image", async () => {
+    const ws = await makeWorkspace(goldenSpec());
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const shot = await read(out, "src/components/AnnotatedShot.astro");
+    expect(shot).toContain("width={width}");
+    expect(shot).toContain("height={height}");
+    expect(shot).toContain("could not be loaded. Check your connection, then press Retry.");
+    expect(shot).toContain('class="annotated-shot-retry"');
+    expect(shot).toContain('role="alert" hidden');
+    expect(shot).toContain("was not found when this site was built");
+    expect(shot).toContain("--start-from");
+    expect(shot).toContain("min-height: 160px;");
+    expect(shot).toContain('<CopyId value={alt} kind="step id" />');
+    expect(shot).not.toMatch(/transition|animation/);
+    expect(shot).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+  });
+
 
   it("builds the landing page from one LinkCard per flow with step/annotation counts", async () => {
     const ws = await makeWorkspace(goldenSpec());

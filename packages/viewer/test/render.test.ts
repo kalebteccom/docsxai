@@ -72,7 +72,7 @@ describe("buildViewer", () => {
       const a = await fs.readFile(path.join(tmp, "out-a", page), "utf8");
       const b = await fs.readFile(path.join(tmp, "out-b", page), "utf8");
       expect(b).toBe(a);
-      expect(a).toMatch(/Rendered by @docsxai\/viewer [^<.]+\./);
+      expect(a).toMatch(/Rendered by <span class="sd-id">@docsxai\/viewer [^<]+<\/span>\./);
     }
   });
 
@@ -120,7 +120,7 @@ describe("buildViewer", () => {
     const r = await buildViewer({ docsDir: docs, outDir });
     expect(r.warnings).toHaveLength(5);
     expect(r.warnings[0]).toBe(
-      'recap-open: step "../../secret" skipped: a step id cannot hold "/", "\\", "..", ":" or control characters',
+      'recap-open: step "../../secret" skipped: a step id cannot hold "/", "\\", "..", ":" or control characters, so rename it in the flow file and render again',
     );
     expect(r.warnings[4]).toContain('step "e\\u001bf" skipped');
     const html = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
@@ -396,10 +396,14 @@ describe("buildViewer", () => {
     const outDir = path.join(tmp, "out-missing-shot");
     await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
     const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
-    expect(flowHtml).toContain("No screenshot was captured for this step.");
+    expect(flowHtml).toContain("No screenshot for this step.");
+    expect(flowHtml).toContain("<code>screenshots/open-sidebar.png</code> was not found");
+    expect(flowHtml).toContain(
+      'data-copy="docsxai run &lt;workspace&gt; --flow recap-open --start-from open-sidebar"',
+    );
     expect(flowHtml).toContain("Click Play to open the recap sidebar");
     const index = await fs.readFile(path.join(outDir, "index.html"), "utf8");
-    expect(index).toContain('<div class="thumb-missing">No screenshot</div>');
+    expect(index).toContain('<div class="thumb-missing">No screenshot yet.');
   });
 });
 
@@ -417,6 +421,7 @@ describe("parseAnnotations", () => {
 
   it("reports a file that is not JSON or has no annotations list", () => {
     expect(parseAnnotations("{").notices[0]).toMatch(/could not be parsed/);
+    expect(parseAnnotations("{").notices[0]).toMatch(/Fix the file, then run docsxai render again\.$/);
     expect(parseAnnotations("null").notices[0]).toMatch(/no annotations list/);
     expect(parseAnnotations('{"annotations":{}}').notices[0]).toMatch(/no annotations list/);
   });
@@ -428,7 +433,7 @@ describe("parseAnnotations", () => {
     const r = parseAnnotations(text);
     expect(r.records).toEqual([rec]);
     expect(r.notices).toEqual([
-      "4 annotation records were skipped: each needs a step name and copy text.",
+      "4 annotation records were skipped: each needs a step name and copy text. Fix them in annotations.json, then run docsxai render again.",
     ]);
     const one = parseAnnotations(JSON.stringify({ annotations: [rec, {}] }));
     expect(one.notices[0]).toMatch(/^1 annotation record was skipped/);

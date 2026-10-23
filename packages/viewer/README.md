@@ -91,8 +91,17 @@ The emitted pages have a skip link, header/main/footer landmarks, one `<h1>` per
 | Home / End | First / last step                  |
 | `]` / `[`  | Next / previous flow               |
 | Esc        | Hide the open callout              |
+| `?`        | Open the shortcut list             |
 
 Keys with Ctrl, Alt, Cmd or Shift, and keys typed into a field, go to the browser. A step change moves focus to the step and is announced through a live region. The halo pulse stops under `prefers-reduced-motion`, image boxes are reserved from the PNG size, and a damaged `annotations.json`, a missing screenshot or an image that fails to load (with Retry) each get a message on the page. The audit behind these is `docs/ai-context/ux/viewer-audit.md`.
+
+### Copying ids and the other micro-states
+
+- **Copy buttons.** The flow id (variants included), each step id, the viewer build in the footer and the capture command in a missing-screenshot placeholder have a button next to them. Click, Enter or Space copies the value. The button reads "Copied" for 1.5 s and the polite live region (`#sd-live`) says so. "Copy", "Copied" and "Press Ctrl+C" share one grid cell, so the button keeps one width. Without `navigator.clipboard`, or when the browser refuses, the id's text is selected and the button reads "Press Ctrl+C" for 5 s. The index has a button under each flow card (a card is one link). Table and markup: `src/viewer-copy.ts`.
+- **Missing screenshot.** A step without a PNG shows a placeholder at least 160 px tall with the missing path and the command to capture it again (`docsxai run <workspace> --flow <flow> --start-from <step>`, then `docsxai render`).
+- **Failed image.** The step shows what failed and what to do, with a Retry button that reads "Retrying..." while it runs, says how many tries failed if it fails again, and announces the load when it works. A failed index thumbnail becomes a placeholder pointing at the flow page.
+- **Empty states.** A pack without flows and a flow without steps say so and name the command to run; a card for a flow with no steps reads "No steps yet".
+- **Layout.** Images carry width and height from the PNG, so nothing moves when they load; the page has no loading animation. All controls are at least 44 px and use the shared focus ring. The Starlight site gets the same buttons, retry and placeholder through its `CopyId` and `AnnotatedShot` components.
 
 ## Overlay single-sourcing
 
