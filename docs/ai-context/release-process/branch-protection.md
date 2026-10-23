@@ -13,9 +13,9 @@ The repo is public. The `main` ruleset requires the Woodpecker status `ci/woodpe
 - The full `main`-target ruleset: linear history, the required status check `ci/woodpecker/push/ci`, required-PR-with-CODEOWNERS-review, no admin bypass.
 - A path-scoped ruleset for `.github/**`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.npmrc`, `LICENSE`, `SECURITY.md`, `THIRD_PARTY_NOTICES.md`, `tsconfig.base.json`, `eslint.config.js`, `.githooks/**` — defense-in-depth versus a PR that silently amends CODEOWNERS.
 
-## Until the public flip
+## Agent rules
 
-The advisory rule from `AGENTS.md`: never force-push to `main`; never run `gh pr merge --admin`; never push without local verify. The Claude / Codex hooks enforce these on agent-driven `git push` invocations; the server-side ruleset arrives at the public flip.
+From `AGENTS.md`: never force-push to `main`; never run `gh pr merge --admin`; never push without local verify. The Claude / Codex hooks enforce these on agent-driven `git push` invocations; the server-side ruleset enforces them too.
 
 ## Related
 

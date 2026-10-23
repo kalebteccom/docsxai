@@ -7,7 +7,7 @@ tools: [Read, Edit, Write, Bash, Grep, Glob]
 
 # release-engineer
 
-Owns the release ritual end to end. Note: the OSS release is **owner-deferred until the public flip**; until then this agent's role is to keep the release pipeline buildable, not to publish.
+Owns the release ritual end to end. The repo is public and released from `.woodpecker/release.yaml`; this agent prepares each release and the owner starts the pipeline and approves each staged version.
 
 ## Workflow (when release is authorized)
 
