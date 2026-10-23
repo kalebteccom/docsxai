@@ -3,7 +3,7 @@
 // screenshot in the interactive viewer match.
 //
 // The default theme is today's look, value for value: burning without a theme gives the same
-// bytes as before themes existed. Three presets sit beside it. `burn-theme-config.ts` validates
+// bytes as before themes existed. Four presets sit beside it. `burn-theme-config.ts` validates
 // the `burn.theme` block of `.docsxai.json` and layers default < preset < tokens file < inline
 // keys on top of these values.
 
@@ -13,7 +13,7 @@ import { BADGE_FILL } from "./viewer-style.js";
 export const BADGE_SHAPES = ["circle", "rounded", "square"] as const;
 export type BadgeShape = (typeof BADGE_SHAPES)[number];
 
-export const THEME_PRESET_NAMES = ["clean", "soft", "high-contrast"] as const;
+export const THEME_PRESET_NAMES = ["clean", "soft", "high-contrast", "readable"] as const;
 export type ThemePresetName = (typeof THEME_PRESET_NAMES)[number];
 
 export interface BurnTheme {
@@ -41,7 +41,30 @@ export interface BurnTheme {
   paddingY: number;
   /** Absolute path of a TTF or OTF the callout text uses; null selects the bundled Inter. */
   fontFile: string | null;
+  /**
+   * Weight the callout text is set in, 400 or 600. The weight comes from the font file: the
+   * bundled Inter ships regular only, so 600 needs a semibold `fontFile`.
+   */
+  fontWeight: FontWeight;
+  /** Length of the arrow in px (its base is 7/4 of that wide). The callout keeps 2 px more than that from its target. */
+  arrowSize: number;
+  /** Widest callout as a share of the screenshot's width, where the screenshot width limits it. */
+  maxWidthRatio: number;
+  /**
+   * Multiplier of every caption dimension (text, padding, outline, radius, arrow, badge, halo,
+   * shadow), or `"auto"`: the screenshot's width over `displayWidth`, at least 1 and at most
+   * {@link AUTO_SCALE_MAX}, so a screenshot the page shrinks to its column reads at base size.
+   */
+  scale: number | "auto";
+  /** CSS px the screenshot is shown at on the page. Read by `scale: "auto"`. */
+  displayWidth: number;
 }
+
+export const FONT_WEIGHTS = [400, 600] as const;
+export type FontWeight = (typeof FONT_WEIGHTS)[number];
+
+/** Largest factor `scale: "auto"` picks. */
+export const AUTO_SCALE_MAX = 3;
 
 /** Today's look. Every number and colour here is what `burn.ts` hard-coded before themes. */
 export const DEFAULT_BURN_THEME: BurnTheme = {
@@ -59,9 +82,23 @@ export const DEFAULT_BURN_THEME: BurnTheme = {
   paddingX: 11,
   paddingY: 8,
   fontFile: null,
+  fontWeight: 400,
+  arrowSize: 8,
+  maxWidthRatio: 0.62,
+  scale: 1,
+  displayWidth: 720,
 };
 
 export type ThemeLayer = Partial<BurnTheme>;
+
+/** What a preset sets besides its own look: the caption stays at base size and the bundled font's weight. */
+const PLAIN_SIZING = {
+  fontWeight: 400,
+  arrowSize: 8,
+  maxWidthRatio: 0.62,
+  scale: 1,
+  displayWidth: 720,
+} as const;
 
 /** Every preset sets every field except `fontFile`, so a preset never inherits the default look. */
 export const THEME_PRESETS: Record<ThemePresetName, Required<Omit<BurnTheme, "fontFile">>> = {
@@ -79,6 +116,7 @@ export const THEME_PRESETS: Record<ThemePresetName, Required<Omit<BurnTheme, "fo
     lineHeight: 20,
     paddingX: 12,
     paddingY: 8,
+    ...PLAIN_SIZING,
   },
   soft: {
     accent: "#7c3aed",
@@ -94,6 +132,7 @@ export const THEME_PRESETS: Record<ThemePresetName, Required<Omit<BurnTheme, "fo
     lineHeight: 20,
     paddingX: 14,
     paddingY: 10,
+    ...PLAIN_SIZING,
   },
   "high-contrast": {
     accent: "#d10000",
@@ -109,6 +148,27 @@ export const THEME_PRESETS: Record<ThemePresetName, Required<Omit<BurnTheme, "fo
     lineHeight: 21,
     paddingX: 12,
     paddingY: 9,
+    ...PLAIN_SIZING,
+  },
+  // For a docs site: the caption is scaled up with the screenshot so it reads at 15 px next to
+  // the page text. The weight stays 400 because the bundled Inter is regular only; pair the
+  // preset with a semibold `font` and `font_weight: 600` for heavier text.
+  readable: {
+    accent: "#c2410c",
+    ink: "#111827",
+    calloutBackground: "#fafafa",
+    calloutBorderColor: "#111827",
+    calloutBorderWidth: 1,
+    radius: 8,
+    shadow: "0px 4px 12px 0px rgba(17,24,39,0.28)",
+    badgeShape: "circle",
+    badgeFill: "#9a3412",
+    fontSize: 15,
+    lineHeight: 21,
+    paddingX: 14,
+    paddingY: 10,
+    ...PLAIN_SIZING,
+    scale: "auto",
   },
 };
 
@@ -118,6 +178,36 @@ export const haloRadius = (theme: BurnTheme): number => Math.round((theme.radius
 /** Colour of the arrow and stem: the callout outline, or the text colour when there is none. */
 export const connectorColor = (theme: BurnTheme): string =>
   theme.calloutBorderWidth > 0 ? theme.calloutBorderColor : theme.ink;
+
+/** The factor `theme.scale` gives a screenshot `imageWidth` px wide: 1 for a screenshot at or under `displayWidth`. */
+export function captionScale(theme: BurnTheme, imageWidth: number): number {
+  if (theme.scale !== "auto") return theme.scale;
+  const factor = imageWidth / theme.displayWidth;
+  return Math.min(AUTO_SCALE_MAX, Math.max(1, Math.round(factor * 100) / 100));
+}
+
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+/** `theme` with the dimensions the callout and halo draw multiplied by `factor`. The theme itself when `factor` is 1. */
+export function scaledTheme(theme: BurnTheme, factor: number): BurnTheme {
+  if (factor === 1) return theme;
+  return {
+    ...theme,
+    calloutBorderWidth: round2(theme.calloutBorderWidth * factor),
+    radius: round2(theme.radius * factor),
+    shadow:
+      theme.shadow === null
+        ? null
+        : theme.shadow.replace(
+            /(-?\d+(?:\.\d+)?)px/g,
+            (_, n: string) => `${round2(Number(n) * factor)}px`,
+          ),
+    fontSize: round2(theme.fontSize * factor),
+    lineHeight: round2(theme.lineHeight * factor),
+    paddingX: round2(theme.paddingX * factor),
+    paddingY: round2(theme.paddingY * factor),
+  };
+}
 
 /** Badge corner radius for a box of `height` px; a circle is a pill. */
 export function badgeRadius(shape: BadgeShape, height: number): number {
@@ -145,6 +235,14 @@ export function themeContrast(theme: BurnTheme): ContrastCheck[] {
   return [
     check("ink on callout_background", theme.ink, theme.calloutBackground),
     check("white digits on badge_fill", "#ffffff", theme.badgeFill),
+  ];
+}
+
+/** What a theme asks for that the bundled font cannot give: the weight of a font file that has one weight. */
+export function weightWarnings(theme: BurnTheme): string[] {
+  if (theme.fontWeight === 400 || theme.fontFile !== null) return [];
+  return [
+    `burn.theme: font_weight ${theme.fontWeight} needs a font file with that weight; the bundled Inter is regular only, so the text stays 400. Set font to a semibold TTF or OTF`,
   ];
 }
 

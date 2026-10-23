@@ -52,6 +52,8 @@ export function themeVariables(theme: BurnTheme): string {
 /** The style a themed page appends. `font` is the theme's font file when it has one. */
 export function themeStyle(theme: BurnTheme, font?: Buffer): ThemeStyle {
   const rules = [themeVariables(theme)];
+  // 400 is the stylesheet's own weight, so a page at 400 stays as it was.
+  if (theme.fontWeight !== 400) rules.push(`.sd-callout { font-weight: ${theme.fontWeight}; }`);
   if (font) {
     rules.push(
       fontFace(font),

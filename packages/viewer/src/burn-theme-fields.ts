@@ -4,7 +4,7 @@
 
 import * as path from "node:path";
 import { normaliseHex } from "./color.js";
-import { BADGE_SHAPES, type BurnTheme } from "./burn-theme.js";
+import { AUTO_SCALE_MAX, BADGE_SHAPES, FONT_WEIGHTS, type BurnTheme } from "./burn-theme.js";
 
 /** A value the theme refuses. The message completes "<key> ...". */
 export class ThemeValueError extends Error {}
@@ -51,6 +51,42 @@ function oneOf<T extends string>(allowed: readonly T[]): (value: unknown) => T {
     }
     throw new ThemeValueError(`${shown(value)} is not one of ${allowed.join(", ")}`);
   };
+}
+
+/** 400 or 600, as a number or the same digits in a string (a tokens file may write either). */
+function fontWeight(value: unknown): number {
+  const n = typeof value === "string" && /^\d+$/.test(value.trim()) ? Number(value) : value;
+  if (n === 400 || n === 600) return n;
+  throw new ThemeValueError(
+    `${shown(value)} is not a supported weight; use ${FONT_WEIGHTS.join(" or ")} (the font file decides which weights exist)`,
+  );
+}
+
+/** A share of the screenshot's width, 0.2 to 1. */
+function widthRatio(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new ThemeValueError(`${shown(value)} is not a number; write a share such as 0.62`);
+  }
+  if (value < 0.2 || value > 1) throw new ThemeValueError(`${value} is outside the range 0.2 to 1`);
+  return value;
+}
+
+const SCALE_RANGE = { min: 0.5, max: 4 };
+
+/** A factor from 0.5 to 4, or `"auto"`. */
+function scale(value: unknown): number | "auto" {
+  if (value === "auto") return "auto";
+  const n =
+    typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value.trim()) ? Number(value) : value;
+  if (typeof n !== "number" || !Number.isFinite(n)) {
+    throw new ThemeValueError(
+      `${shown(value)} is not a scale; write a number such as 1.5, or "auto" (at most ${AUTO_SCALE_MAX} then)`,
+    );
+  }
+  if (n < SCALE_RANGE.min || n > SCALE_RANGE.max) {
+    throw new ThemeValueError(`${n} is outside the range ${SCALE_RANGE.min} to ${SCALE_RANGE.max}`);
+  }
+  return n;
 }
 
 const FONT_FILE = /\.(?:ttf|otf)$/i;
@@ -210,6 +246,31 @@ export const THEME_FIELDS = {
     parse: numberIn(0, 40),
   },
   font: { prop: "fontFile", token: "font.file", kind: "text", parse: fontPath },
+  font_weight: {
+    prop: "fontWeight",
+    token: "font.weight.caption",
+    kind: "text",
+    parse: fontWeight,
+  },
+  arrow_size: {
+    prop: "arrowSize",
+    token: "size.callout.arrow",
+    kind: "dimension",
+    parse: numberIn(4, 24),
+  },
+  max_width_ratio: {
+    prop: "maxWidthRatio",
+    token: "size.callout.max-width-ratio",
+    kind: "text",
+    parse: widthRatio,
+  },
+  scale: { prop: "scale", token: "scale.caption", kind: "text", parse: scale },
+  display_width: {
+    prop: "displayWidth",
+    token: "size.display-width",
+    kind: "dimension",
+    parse: numberIn(240, 2400),
+  },
 } as const satisfies Record<string, ThemeField>;
 
 export type ThemeKey = keyof typeof THEME_FIELDS;

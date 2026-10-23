@@ -4,7 +4,7 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { contrastWarnings, type BurnTheme } from "./burn-theme.js";
+import { contrastWarnings, weightWarnings, type BurnTheme } from "./burn-theme.js";
 import {
   BurnThemeError,
   parseThemeConfig,
@@ -94,7 +94,7 @@ async function readConfig(workspace: string): Promise<Record<string, unknown> | 
 
 export interface LoadedTheme {
   theme: BurnTheme;
-  /** WCAG AA misses of the text pairs; the theme is used either way. */
+  /** WCAG AA misses of the text pairs and a weight the font cannot give; the theme is used either way. */
   warnings: string[];
 }
 
@@ -123,7 +123,7 @@ export async function loadBurnTheme(workspace: string): Promise<LoadedTheme | un
   const tokens = parsed.from !== undefined ? await readTokens(workspace, parsed.from) : undefined;
   const theme = resolveBurnTheme(parsed, { workspace, ...(tokens ? { tokens } : {}) }, SOURCE);
   await loadThemeFont(theme);
-  return { theme, warnings: contrastWarnings(theme) };
+  return { theme, warnings: [...contrastWarnings(theme), ...weightWarnings(theme)] };
 }
 
 /** {@link loadBurnTheme} for a command: contrast warnings go to `warn`, and the bare theme comes back. */

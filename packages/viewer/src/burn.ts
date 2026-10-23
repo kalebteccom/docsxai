@@ -25,13 +25,16 @@ import { arrowGeometry, growRect, type ArrowGeometry } from "./arrow.js";
 import {
   DEFAULT_BURN_THEME,
   badgeRadius,
+  captionScale,
   connectorColor,
   haloRadius,
+  scaledTheme,
   type BurnTheme,
 } from "./burn-theme.js";
 import { loadThemeFont } from "./burn-theme-load.js";
 import { rgbaOf } from "./color.js";
 import { connectorNodes } from "./burn-connector.js";
+import { CONNECTOR_HALO } from "./connector-contrast.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
 import { measureText, parseFontMetrics, type FontMetrics } from "./font-metrics.js";
@@ -113,6 +116,42 @@ export interface BurnTreeInput {
 /** Family name the theme's own font file is registered under in Satori. */
 const THEME_FONT_NAME = "ThemeFont";
 
+/** Weight the callout text is drawn in: the theme's, when its own font file can supply it. */
+const effectiveWeight = (theme: BurnTheme): number =>
+  theme.fontFile !== null ? theme.fontWeight : 400;
+
+const scaleRect = (r: Rect, f: number): Rect =>
+  f === 1 ? r : { x: r.x * f, y: r.y * f, width: r.width * f, height: r.height * f };
+const scalePoint = (p: { x: number; y: number }, f: number) =>
+  f === 1 ? p : { x: p.x * f, y: p.y * f };
+
+/** `ann` with every length divided by `f`: the annotation as laid out at base size. */
+function atBaseSize(ann: AnnotationRecord, f: number): AnnotationRecord {
+  if (f === 1) return ann;
+  return {
+    ...ann,
+    ...(ann.bounding_box ? { bounding_box: scaleRect(ann.bounding_box, 1 / f) } : {}),
+    ...(ann.obstacles ? { obstacles: ann.obstacles.map((o) => scaleRect(o, 1 / f)) } : {}),
+    ...(ann.nudge ? { nudge: scalePoint(ann.nudge, 1 / f) } : {}),
+  };
+}
+
+/** A layout made at base size, in screenshot px: positions, sizes and overlaps multiplied by `f`. */
+function layoutAtScale(l: CalloutLayout, f: number): CalloutLayout {
+  if (f === 1) return l;
+  return {
+    ...l,
+    size: { width: l.size.width * f, height: l.size.height * f },
+    callout: scalePoint(l.callout, f),
+    arrow: l.arrow ? scalePoint(l.arrow, f) : null,
+    stem: l.stem ? scaleRect(l.stem, f) : null,
+    nudge: scalePoint(l.nudge, f),
+    arrowLength: l.arrowLength * f,
+    obstacleOverlap: Math.round(l.obstacleOverlap * f * f),
+    otherOverlap: Math.round(l.otherOverlap * f * f),
+  };
+}
+
 /** What sizes a callout box under `theme`. */
 const calloutStyleOf = (theme: BurnTheme): CalloutStyle => ({
   fontSize: theme.fontSize,
@@ -175,9 +214,20 @@ interface DrawnCallout {
   boxes: Rect[];
 }
 
-function calloutNodes(layout: CalloutLayout, theme: BurnTheme, pixels?: PixelGrid): DrawnCallout {
+/** `layout` and `theme` are in screenshot px, already multiplied by the caption scale `f`. */
+function calloutNodes(
+  layout: CalloutLayout,
+  theme: BurnTheme,
+  f: number,
+  pixels?: PixelGrid,
+): DrawnCallout {
   const { lines, size: callout, nudge } = layout;
-  const nodes: BurnNode[] = connectorNodes(layout, pixels, connectorColor(theme));
+  const nodes: BurnNode[] = connectorNodes(
+    layout,
+    pixels,
+    connectorColor(theme),
+    CONNECTOR_HALO * f,
+  );
   nodes.push(
     div(
       {
@@ -197,6 +247,7 @@ function calloutNodes(layout: CalloutLayout, theme: BurnTheme, pixels?: PixelGri
         borderRadius: theme.radius,
         color: theme.ink,
         fontSize: theme.fontSize,
+        ...(effectiveWeight(theme) !== 400 ? { fontWeight: effectiveWeight(theme) } : {}),
         ...(theme.shadow !== null ? { boxShadow: theme.shadow } : {}),
       },
       lines.map((line) =>
@@ -210,7 +261,7 @@ function calloutNodes(layout: CalloutLayout, theme: BurnTheme, pixels?: PixelGri
   return { nodes, boxes: layoutBoxes(layout) };
 }
 
-function badgeNode(box: Rect, index: number, theme: BurnTheme): BurnNode {
+function badgeNode(box: Rect, index: number, theme: BurnTheme, f: number): BurnNode {
   return div(
     {
       position: "absolute",
@@ -222,10 +273,10 @@ function badgeNode(box: Rect, index: number, theme: BurnTheme): BurnNode {
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: theme.badgeFill,
-      border: `${BADGE_BORDER}px solid #fff`,
+      border: `${BADGE_BORDER * f}px solid #fff`,
       borderRadius: badgeRadius(theme.badgeShape, box.height),
       color: "#fff",
-      fontSize: BADGE_FONT_SIZE,
+      fontSize: BADGE_FONT_SIZE * f,
     },
     String(index),
   );
@@ -251,8 +302,13 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const { width, height } = input.image;
   const image = { width, height };
   const warn = input.warn ?? defaultWarn;
-  const theme = input.theme ?? DEFAULT_BURN_THEME;
-  const style = calloutStyleOf(theme);
+  const base = input.theme ?? DEFAULT_BURN_THEME;
+  // Layout runs at base size on an image shrunk by `f`; what it decides is multiplied back by `f`
+  // when drawn, so every caption dimension scales together. At 1 nothing is converted.
+  const f = captionScale(base, width);
+  const theme = scaledTheme(base, f);
+  const style = calloutStyleOf(base);
+  const baseImage = f === 1 ? image : { width: width / f, height: height / f };
   const children: BurnNode[] = [
     {
       type: "img",
@@ -268,23 +324,26 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const badges = new Map<AnnotationRecord, Rect>();
   const threshold = input.unplaceableRatio ?? DEFAULT_UNPLACEABLE_RATIO;
 
-  for (const ann of input.annotations) {
+  const baseAnnotations = input.annotations.map((a) => atBaseSize(a, f));
+  for (const [i, realAnn] of input.annotations.entries()) {
+    const ann = baseAnnotations[i]!;
     if (!ann.bounding_box) {
       warn(`burn: annotation on step "${ann.step}" has no bounding_box — skipped`);
       input.report?.push(skippedReport(ann, "no bounding_box"));
       continue;
     }
     const t = ann.bounding_box;
+    const real = realAnn.bounding_box!;
     children.push(
       div({
         position: "absolute",
-        left: t.x,
-        top: t.y,
-        width: t.width,
-        height: t.height,
-        border: `2px solid ${theme.accent}`,
+        left: real.x,
+        top: real.y,
+        width: real.width,
+        height: real.height,
+        border: `${2 * f}px solid ${theme.accent}`,
         borderRadius: haloRadius(theme),
-        boxShadow: `0 0 0 3px ${rgbaOf(theme.accent, 0.35)}`,
+        boxShadow: `0 0 0 ${3 * f}px ${rgbaOf(theme.accent, 0.35)}`,
       }),
     );
 
@@ -293,29 +352,42 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       typeof ann.index === "number"
         ? ann.obstacles?.length
           ? planBadge({
-              image,
+              image: baseImage,
               target: t,
               size: badgeSize(ann.index, input.metrics),
               obstacles: ann.obstacles,
-              avoid: [...otherHalos(input.annotations, ann), ...placed, ...badges.values()],
+              avoid: [...otherHalos(baseAnnotations, ann), ...placed, ...badges.values()],
             })
-          : badgeBox(t, ann.index, image, input.metrics)
+          : badgeBox(t, ann.index, baseImage, input.metrics)
         : undefined;
     if (badge) badges.set(ann, badge);
 
     let layout: CalloutLayout | null = null;
     let calloutBox: Rect | null = null;
     if (ann.copy) {
-      const clear = keepClear(input.annotations, ann, image, input.metrics, placed, badges);
-      layout = layoutCallout({ ann, target: t, image, metrics: input.metrics, clear, style });
-      const drawn = calloutNodes(layout, theme, input.pixels);
+      const clear = keepClear(baseAnnotations, ann, baseImage, input.metrics, placed, badges);
+      const planned = layoutCallout({
+        ann,
+        target: t,
+        image: baseImage,
+        metrics: input.metrics,
+        clear,
+        style,
+        arrowLength: base.arrowSize,
+        maxWidthRatio: base.maxWidthRatio,
+      });
+      placed.push(...layoutBoxes(planned));
+      layout = layoutAtScale(planned, f);
+      const drawn = calloutNodes(layout, theme, f, input.pixels);
       children.push(...drawn.nodes);
-      placed.push(...drawn.boxes);
       calloutBox = drawn.boxes[0]!;
     }
 
-    if (badge && typeof ann.index === "number") children.push(badgeNode(badge, ann.index, theme));
-    input.report?.push(annotationReport(ann, layout, calloutBox, badge, threshold));
+    const realBadge = badge ? scaleRect(badge, f) : undefined;
+    if (realBadge && typeof ann.index === "number") {
+      children.push(badgeNode(realBadge, ann.index, theme, f));
+    }
+    input.report?.push(annotationReport(realAnn, layout, calloutBox, realBadge, threshold));
   }
 
   return div(
@@ -324,7 +396,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       display: "flex",
       width,
       height,
-      fontFamily: theme.fontFile !== null ? THEME_FONT_NAME : "Inter",
+      fontFamily: base.fontFile !== null ? THEME_FONT_NAME : "Inter",
     },
     children,
   );
@@ -406,7 +478,14 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
   const svg = await satori(withBorderBox(tree), {
     width,
     height,
-    fonts: [{ name: fontName, data: font.data, weight: 400, style: "normal" }],
+    fonts: [
+      {
+        name: fontName,
+        data: font.data,
+        weight: (theme ? effectiveWeight(theme) : 400) as 400 | 600,
+        style: "normal",
+      },
+    ],
   });
   const png = new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng();
   return { png, report };

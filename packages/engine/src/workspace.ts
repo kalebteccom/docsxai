@@ -81,7 +81,7 @@ export async function resolveWorkspacePathReal(
  * Keys, ranges and the token mapping: docs/burn-theming.md.
  */
 export interface BurnThemeConfig {
-  /** `clean`, `soft` or `high-contrast`. */
+  /** `clean`, `soft`, `high-contrast` or `readable`. */
   preset?: string;
   /** Tokens file (W3C design tokens or a flat map), relative to the workspace. */
   from?: string;
@@ -104,6 +104,16 @@ export interface BurnThemeConfig {
   padding_y?: number;
   /** TTF or OTF file inside the workspace; the bundled Inter when unset. */
   font?: string;
+  /** 400 or 600; the font file must have that weight (the bundled Inter is 400 only). */
+  font_weight?: number;
+  /** Arrow length in px, 4 to 24. */
+  arrow_size?: number;
+  /** Widest callout as a share of the screenshot's width, 0.2 to 1. */
+  max_width_ratio?: number;
+  /** Multiplier of every caption dimension, 0.5 to 4, or `"auto"` (screenshot width over `display_width`, 1 to 3). */
+  scale?: number | "auto";
+  /** CSS px the screenshot is shown at on the docs page, 240 to 2400. Read by `scale: "auto"`. */
+  display_width?: number;
 }
 
 export interface WorkspaceConfig {
