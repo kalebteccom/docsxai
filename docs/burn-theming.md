@@ -38,30 +38,30 @@ The callout outline colour follows `ink` until a preset, the tokens file or the 
 
 ## Keys
 
-| Key                    | Type               | Range or values                                 | Default           | What it sets                                                          |
-| ---------------------- | ------------------ | ----------------------------------------------- | ----------------- | --------------------------------------------------------------------- |
-| `preset`               | string             | `clean`, `soft`, `high-contrast`, `readable`    | none              | A built-in look, see [Presets](#presets).                             |
-| `from`                 | string             | path to a `.json` file inside the workspace     | none              | The tokens file.                                                      |
-| `tokens`               | object             | theme key to token path                         | none              | Reads a key from another path, and requires it to exist.              |
-| `accent`               | colour             | `#rgb` or `#rrggbb`                             | `#e8590c`         | Halo outline. Its glow is the same colour at 35% opacity.             |
-| `ink`                  | colour             | `#rgb` or `#rrggbb`                             | `#1c1c1c`         | Callout text.                                                         |
-| `callout_background`   | colour             | `#rgb` or `#rrggbb`                             | `#fff`            | Callout fill.                                                         |
-| `callout_border_color` | colour             | `#rgb` or `#rrggbb`                             | the `ink` colour  | Callout outline, and the arrow and stem that join it to its target.   |
-| `callout_border_width` | number             | 0 to 6 px                                       | `1`               | Callout outline width. 0 draws no outline and the arrow uses `ink`.   |
-| `radius`               | number             | 0 to 24 px                                      | `7`               | Callout corner radius. The halo's radius is 4/7 of it.                |
-| `shadow`               | string             | CSS `box-shadow`, up to 3 layers, or `none`     | `none`            | Callout shadow. Layers are `<x> <y> [<blur> [<spread>]] <colour>`.    |
-| `badge_shape`          | string             | `circle`, `rounded`, `square`                   | `circle`          | Badge corners: a pill, 6 px, or square.                               |
-| `badge_fill`           | colour             | `#rgb` or `#rrggbb`                             | `#c2410c`         | Badge fill. Its digits and outline are white.                         |
-| `font_size`            | number             | 8 to 32 px                                      | `14`              | Callout text size.                                                    |
-| `line_height`          | number             | 8 to 64 px, at least `font_size`                | `19`              | Callout line pitch.                                                   |
-| `padding_x`            | number             | 0 to 40 px                                      | `11`              | Callout horizontal padding.                                           |
-| `padding_y`            | number             | 0 to 40 px                                      | `8`               | Callout vertical padding.                                             |
-| `font`                 | string             | path to a `.ttf` or `.otf` inside the workspace | the bundled Inter | Callout and badge font, see [Font](#font).                            |
-| `font_weight`          | number             | `400` or `600`                                  | `400`             | Callout text weight. The font file must have it, see [Font](#font).   |
-| `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Arrow length. Its base is 7/4 of that wide.                           |
-| `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, see [Scale](#scale).     |
-| `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | `1`               | Multiplies every caption dimension, see [Scale](#scale).              |
-| `display_width`        | number             | 240 to 2400 px                                  | `720`             | CSS px the screenshot is shown at. Read by `scale: "auto"`.           |
+| Key                    | Type               | Range or values                                 | Default           | What it sets                                                        |
+| ---------------------- | ------------------ | ----------------------------------------------- | ----------------- | ------------------------------------------------------------------- |
+| `preset`               | string             | `clean`, `soft`, `high-contrast`, `readable`    | none              | A built-in look, see [Presets](#presets).                           |
+| `from`                 | string             | path to a `.json` file inside the workspace     | none              | The tokens file.                                                    |
+| `tokens`               | object             | theme key to token path                         | none              | Reads a key from another path, and requires it to exist.            |
+| `accent`               | colour             | `#rgb` or `#rrggbb`                             | `#e8590c`         | Halo outline. Its glow is the same colour at 35% opacity.           |
+| `ink`                  | colour             | `#rgb` or `#rrggbb`                             | `#1c1c1c`         | Callout text.                                                       |
+| `callout_background`   | colour             | `#rgb` or `#rrggbb`                             | `#fff`            | Callout fill.                                                       |
+| `callout_border_color` | colour             | `#rgb` or `#rrggbb`                             | the `ink` colour  | Callout outline, and the arrow and stem that join it to its target. |
+| `callout_border_width` | number             | 0 to 6 px                                       | `1`               | Callout outline width. 0 draws no outline and the arrow uses `ink`. |
+| `radius`               | number             | 0 to 24 px                                      | `7`               | Callout corner radius. The halo's radius is 4/7 of it.              |
+| `shadow`               | string             | CSS `box-shadow`, up to 3 layers, or `none`     | `none`            | Callout shadow. Layers are `<x> <y> [<blur> [<spread>]] <colour>`.  |
+| `badge_shape`          | string             | `circle`, `rounded`, `square`                   | `circle`          | Badge corners: a pill, 6 px, or square.                             |
+| `badge_fill`           | colour             | `#rgb` or `#rrggbb`                             | `#c2410c`         | Badge fill. Its digits and outline are white.                       |
+| `font_size`            | number             | 8 to 32 px                                      | `14`              | Callout text size.                                                  |
+| `line_height`          | number             | 8 to 64 px, at least `font_size`                | `19`              | Callout line pitch.                                                 |
+| `padding_x`            | number             | 0 to 40 px                                      | `11`              | Callout horizontal padding.                                         |
+| `padding_y`            | number             | 0 to 40 px                                      | `8`               | Callout vertical padding.                                           |
+| `font`                 | string             | path to a `.ttf` or `.otf` inside the workspace | the bundled Inter | Callout and badge font, see [Font](#font).                          |
+| `font_weight`          | number             | `400` or `600`                                  | `400`             | Callout text weight. The font file must have it, see [Font](#font). |
+| `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Arrow length. Its base is 7/4 of that wide.                         |
+| `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, see [Scale](#scale).   |
+| `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | `1`               | Multiplies every caption dimension, see [Scale](#scale).            |
+| `display_width`        | number             | 240 to 2400 px                                  | `720`             | CSS px the screenshot is shown at. Read by `scale: "auto"`.         |
 
 Numbers are plain values without a unit: px for sizes, a share for `max_width_ratio`, a factor for `scale`. Colours are stored as lowercase `#rrggbb`.
 
