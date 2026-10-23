@@ -27,6 +27,7 @@ export function layoutAtScale(l: CalloutLayout, f: number): CalloutLayout {
   return {
     ...l,
     size: { width: l.size.width * f, height: l.size.height * f },
+    ...(l.paddingX !== undefined ? { paddingX: l.paddingX * f } : {}),
     callout: scalePoint(l.callout, f),
     arrow: l.arrow ? scalePoint(l.arrow, f) : null,
     stem: l.stem ? scaleRect(l.stem, f) : null,
