@@ -10,7 +10,7 @@
 ## What execution mode needs
 
 - Node 26+, pnpm, and a Chromium binary
-  (`pnpm exec playwright-core install chromium`).
+  (`npx playwright-core install chromium`).
 - The doc-pack workspace checked out (flows/, docs/, auth/strategy.yaml,
   `.docsxai.json`) — typically its own repo or a docs/ subdirectory.
 - Target-site credentials as CI secrets, exposed under the env-var **names**
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 26 }
       - run: pnpm add -g @docsxai/engine@next @docsxai/viewer@next
-      - run: pnpm exec playwright-core install chromium
+      - run: npx playwright-core install chromium
       - name: replay the doc pack
         env:
           APP_EDITOR_USER: ${{ secrets.APP_EDITOR_USER }}
@@ -87,7 +87,7 @@ refresh-docs:
   script:
     - corepack enable && corepack prepare pnpm@9 --activate
     - pnpm add -g @docsxai/engine@next @docsxai/viewer@next
-    - pnpm exec playwright-core install chromium --with-deps
+    - npx playwright-core install chromium --with-deps
     - docsxai run ./docs-workspace --base-url "$APP_URL"
     - docsxai render ./docs-workspace
     - docsxai zip ./docs-workspace --out doc-pack.zip

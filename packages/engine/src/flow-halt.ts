@@ -27,6 +27,18 @@ export function inferHaltCause(rawError: string): string | undefined {
       /docsxai: cannot hide/i,
       "the browser can't apply the hide rule (no constructable stylesheets), so the element would stay visible",
     ],
+    [
+      /net::ERR_(?:CONNECTION_REFUSED|CONNECTION_RESET|CONNECTION_TIMED_OUT|NAME_NOT_RESOLVED|ADDRESS_UNREACHABLE|INTERNET_DISCONNECTED)\b/i,
+      "the app did not answer: start it, then check app_url in .docsxai.json or pass --base-url",
+    ],
+    [
+      /net::ERR_(?:CERT|SSL)_\w+/i,
+      "the app's TLS certificate was rejected: pass --ignore-https-errors, or set ignore_https_errors in .docsxai.json",
+    ],
+    [
+      /Cannot navigate to invalid URL/i,
+      "a relative path has no app_url to resolve against: set app_url in .docsxai.json or pass --base-url",
+    ],
     [/element is disabled\b/i, "target is disabled"],
     [/element is not enabled\b/i, "target is not enabled"],
     [

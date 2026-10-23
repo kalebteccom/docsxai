@@ -38,31 +38,71 @@ The callout outline colour follows `ink` until a preset, the tokens file or the 
 
 ## Keys
 
-| Key                    | Type   | Range or values                                 | Default           | What it sets                                                        |
-| ---------------------- | ------ | ----------------------------------------------- | ----------------- | ------------------------------------------------------------------- |
-| `preset`               | string | `clean`, `soft`, `high-contrast`                | none              | A built-in look, see [Presets](#presets).                           |
-| `from`                 | string | path to a `.json` file inside the workspace     | none              | The tokens file.                                                    |
-| `tokens`               | object | theme key to token path                         | none              | Reads a key from another path, and requires it to exist.            |
-| `accent`               | colour | `#rgb` or `#rrggbb`                             | `#e8590c`         | Halo outline. Its glow is the same colour at 35% opacity.           |
-| `ink`                  | colour | `#rgb` or `#rrggbb`                             | `#1c1c1c`         | Callout text.                                                       |
-| `callout_background`   | colour | `#rgb` or `#rrggbb`                             | `#fff`            | Callout fill.                                                       |
-| `callout_border_color` | colour | `#rgb` or `#rrggbb`                             | the `ink` colour  | Callout outline, and the arrow and stem that join it to its target. |
-| `callout_border_width` | number | 0 to 6 px                                       | `1`               | Callout outline width. 0 draws no outline and the arrow uses `ink`. |
-| `radius`               | number | 0 to 24 px                                      | `7`               | Callout corner radius. The halo's radius is 4/7 of it.              |
-| `shadow`               | string | CSS `box-shadow`, up to 3 layers, or `none`     | `none`            | Callout shadow. Layers are `<x> <y> [<blur> [<spread>]] <colour>`.  |
-| `badge_shape`          | string | `circle`, `rounded`, `square`                   | `circle`          | Badge corners: a pill, 6 px, or square.                             |
-| `badge_fill`           | colour | `#rgb` or `#rrggbb`                             | `#c2410c`         | Badge fill. Its digits and outline are white.                       |
-| `font_size`            | number | 8 to 32 px                                      | `14`              | Callout text size.                                                  |
-| `line_height`          | number | 8 to 64 px, at least `font_size`                | `19`              | Callout line pitch.                                                 |
-| `padding_x`            | number | 0 to 40 px                                      | `11`              | Callout horizontal padding.                                         |
-| `padding_y`            | number | 0 to 40 px                                      | `8`               | Callout vertical padding.                                           |
-| `font`                 | string | path to a `.ttf` or `.otf` inside the workspace | the bundled Inter | Callout and badge font, see [Font](#font).                          |
+| Key                    | Type               | Range or values                                 | Default           | What it sets                                                          |
+| ---------------------- | ------------------ | ----------------------------------------------- | ----------------- | --------------------------------------------------------------------- |
+| `preset`               | string             | `clean`, `soft`, `high-contrast`, `readable`    | none              | A built-in look, see [Presets](#presets).                             |
+| `from`                 | string             | path to a `.json` file inside the workspace     | none              | The tokens file.                                                      |
+| `tokens`               | object             | theme key to token path                         | none              | Reads a key from another path, and requires it to exist.              |
+| `accent`               | colour             | `#rgb` or `#rrggbb`                             | `#e8590c`         | Halo outline. Its glow is the same colour at 35% opacity.             |
+| `ink`                  | colour             | `#rgb` or `#rrggbb`                             | `#1c1c1c`         | Callout text.                                                         |
+| `callout_background`   | colour             | `#rgb` or `#rrggbb`                             | `#fff`            | Callout fill.                                                         |
+| `callout_border_color` | colour             | `#rgb` or `#rrggbb`                             | the `ink` colour  | Callout outline, and the arrow and stem that join it to its target.   |
+| `callout_border_width` | number             | 0 to 6 px                                       | `1`               | Callout outline width. 0 draws no outline and the arrow uses `ink`.   |
+| `radius`               | number             | 0 to 24 px                                      | `7`               | Callout corner radius. The halo's radius is 4/7 of it.                |
+| `shadow`               | string             | CSS `box-shadow`, up to 3 layers, or `none`     | `none`            | Callout shadow. Layers are `<x> <y> [<blur> [<spread>]] <colour>`.    |
+| `badge_shape`          | string             | `circle`, `rounded`, `square`                   | `circle`          | Badge corners: a pill, 6 px, or square.                               |
+| `badge_fill`           | colour             | `#rgb` or `#rrggbb`                             | `#c2410c`         | Badge fill. Its digits and outline are white.                         |
+| `font_size`            | number             | 8 to 32 px                                      | `14`              | Callout text size.                                                    |
+| `line_height`          | number             | 8 to 64 px, at least `font_size`                | `19`              | Callout line pitch.                                                   |
+| `padding_x`            | number             | 0 to 40 px                                      | `11`              | Callout horizontal padding.                                           |
+| `padding_y`            | number             | 0 to 40 px                                      | `8`               | Callout vertical padding.                                             |
+| `font`                 | string             | path to a `.ttf` or `.otf` inside the workspace | the bundled Inter | Callout and badge font, see [Font](#font).                            |
+| `font_weight`          | number             | `400` or `600`                                  | `400`             | Callout text weight. The font file must have it, see [Font](#font).   |
+| `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Arrow length. Its base is 7/4 of that wide.                           |
+| `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, when obstacles limit it. |
+| `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | `1`               | Multiplies every caption dimension, see [Scale](#scale).              |
+| `display_width`        | number             | 240 to 2400 px                                  | `720`             | CSS px the screenshot is shown at. Read by `scale: "auto"`.           |
 
-Numbers are plain px values without a unit. Colours are stored as lowercase `#rrggbb`.
+Numbers are plain values without a unit: px for sizes, a share for `max_width_ratio`, a factor for `scale`. Colours are stored as lowercase `#rrggbb`.
+
+## Scale
+
+A screenshot wider than the column it is shown in gets scaled down by the page, and the caption drawn into it shrinks with it. A 1440 px screenshot in a 720 px column shows 14 px text at 7 px.
+
+`scale` multiplies every caption dimension: text size, line height, padding, outline, radius, shadow, arrow, badge, halo and the callout's width. The layout (which side the callout takes, where it slides) is decided at base size and then multiplied, so a scaled caption sits where the unscaled one would.
+
+- A number such as `1.5` or `2` is used as written.
+- `"auto"` uses `max(1, screenshot width / display_width)`, at most 3, so a screenshot wider than its column gets a larger caption and a narrower one keeps base size. A 1440 px screenshot with the default `display_width` of 720 gives 2. A 390 px screenshot gives 1.
+
+`display_width` is the width in CSS px the page shows the screenshot at. It only matters for `"auto"`.
+
+`scale`, `arrow_size` and `max_width_ratio` apply to burned images. The interactive viewer shows the screenshot at its own size and keeps its arrow, so it reads `font_weight` and the other keys but not these three.
+
+## Making captions legible on a docs site
+
+1. Find the width the site shows screenshots at: the content column, in CSS px. 700 to 760 is typical.
+2. Set `display_width` to it and `scale` to `"auto"`, or take the `readable` preset, which does.
+3. Set `font_size` to the page's body size (15 or 16) so the caption reads like the text beside it.
+4. Vendor a font file next to the pack with `font`, so the caption matches the site's typeface and the output stays byte-stable.
+
+```json
+{
+  "burn": {
+    "theme": {
+      "preset": "readable",
+      "display_width": 720,
+      "accent": "#0b6e4f",
+      "font": "fonts/brand-regular.ttf"
+    }
+  }
+}
+```
+
+Screenshots narrower than `display_width` keep base size, so one block serves mobile captures and wide desktop ones.
 
 ## Presets
 
-Every preset sets every key except `font`.
+Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` keep `scale` at 1, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62 and `display_width` at 720.
 
 | Key                    | `clean`                               | `soft`                                  | `high-contrast` |
 | ---------------------- | ------------------------------------- | --------------------------------------- | --------------- |
@@ -80,7 +120,28 @@ Every preset sets every key except `font`.
 | `padding_x`            | 12                                    | 14                                      | 12              |
 | `padding_y`            | 8                                     | 10                                      | 9               |
 
-`high-contrast` is black text on a white callout (21:1) and white digits on a black badge (21:1). All three presets keep both text pairs at WCAG AA (4.5:1) or better, and a test checks that.
+`high-contrast` is black text on a white callout (21:1) and white digits on a black badge (21:1).
+
+`readable` is for docs sites. It sets `scale` to `"auto"` and differs from the others in these keys:
+
+| Key                    | `readable`                             |
+| ---------------------- | -------------------------------------- |
+| `accent`               | `#c2410c`                              |
+| `ink`                  | `#111827`                              |
+| `callout_background`   | `#fafafa`                              |
+| `callout_border_color` | `#111827`                              |
+| `callout_border_width` | 1                                      |
+| `radius`               | 8                                      |
+| `shadow`               | `0px 4px 12px 0px rgba(17,24,39,0.28)` |
+| `badge_shape`          | `circle`                               |
+| `badge_fill`           | `#9a3412`                              |
+| `font_size`            | 15                                     |
+| `line_height`          | 21                                     |
+| `padding_x`            | 14                                     |
+| `padding_y`            | 10                                     |
+| `scale`                | `auto`                                 |
+
+Ink on the callout is 16:1 and the badge digits are 7:1. All four presets keep both text pairs at WCAG AA (4.5:1) or better, and a test checks that.
 
 Any key in the block overrides the preset:
 
@@ -113,8 +174,12 @@ Both flatten to dotted paths. Each theme key reads one default path:
 | `padding_x`            | `space.callout.x`          | dimension                                                                                                      |
 | `padding_y`            | `space.callout.y`          | dimension                                                                                                      |
 | `font`                 | `font.file`                | path to a `.ttf` or `.otf`, relative to the workspace root                                                     |
+| `font_weight`          | `font.weight.caption`      | `400` or `600`                                                                                                 |
+| `arrow_size`           | `size.callout.arrow`       | dimension                                                                                                      |
 
 A `rem` is 16 px. A key whose default path the file does not define is left at the preset or default.
+
+`max_width_ratio`, `scale` and `display_width` are render settings with no design-token equivalent, so they have no default path. Set them in the `burn.theme` block, or point one at a token with `tokens`.
 
 To read a key from a different path, map it in `tokens`:
 
@@ -141,7 +206,7 @@ A tokens file that defines none of the default paths and maps none is an error t
 
 `font` points at a TTF or OTF file inside the workspace. Vendor the file in the workspace, next to the rest of the doc pack, so the output stays byte-stable: the burner reads that file and no system font. Without `font` the bundled Inter Regular is used.
 
-The file is refused when it is missing, a symlink, over 16 MiB, a collection (`.ttc`), a WOFF or WOFF2 file, or lacks the `head`, `hhea`, `hmtx` or `cmap` tables the burner measures with. Only the regular weight is used.
+The file is refused when it is missing, a symlink, over 16 MiB, a collection (`.ttc`), a WOFF or WOFF2 file, or lacks the `head`, `hhea`, `hmtx` or `cmap` tables the burner measures with. One weight is used: the file's own. `font_weight` selects 400 or 600 and the file must be that weight, for example a semibold TTF with `font_weight: 600`. The bundled Inter is regular only, so `600` without a `font` prints a warning and the text stays 400.
 
 In the interactive viewer the font is embedded in each flow page as a `data:` URI, and the page's content security policy gains `font-src data:` and nothing else. A page built without a font file keeps the policy it always had.
 
@@ -155,6 +220,8 @@ The burner and the viewer use the theme as written. `burn`, `pack` and `render` 
 ```text
 burn: warning: burn.theme: ink on callout_background is 2.32:1, WCAG AA needs 4.5:1; the captions are harder to read than they should be
 ```
+
+`font_weight: 600` without a `font` prints a warning too: the bundled Inter has no semibold.
 
 The output is still produced.
 
@@ -194,4 +261,4 @@ The command exits 1 and writes nothing.
 ## Not covered yet
 
 - Before and after images. They need a CI artifact step; none exists, so this page shows none.
-- A bold weight, and per-flow themes: one theme applies to the whole workspace.
+- Per-flow themes: one theme applies to the whole workspace.

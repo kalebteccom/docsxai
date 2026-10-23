@@ -5,7 +5,10 @@
 export type StepMove = "next" | "prev" | "first" | "last";
 
 export type ViewerAction =
-  { kind: "step"; move: StepMove } | { kind: "flow"; move: "next" | "prev" } | { kind: "dismiss" };
+  | { kind: "step"; move: StepMove }
+  | { kind: "flow"; move: "next" | "prev" }
+  | { kind: "dismiss" }
+  | { kind: "help" };
 
 export interface Shortcut {
   /** `KeyboardEvent.key` values that trigger the action. */
@@ -64,6 +67,12 @@ export const SHORTCUTS: readonly Shortcut[] = [
     action: { kind: "dismiss" },
     flowPageOnly: true,
   },
+  {
+    keys: ["?"],
+    display: ["?"],
+    description: "Open this list",
+    action: { kind: "help" },
+  },
 ];
 
 export interface KeyInput {
@@ -84,7 +93,10 @@ export interface KeyInput {
 export function keyAction(e: KeyInput): ViewerAction | null {
   if (e.altKey || e.ctrlKey || e.metaKey) return null;
   if (e.key === "Escape") return { kind: "dismiss" };
-  if (e.editable || e.shiftKey) return null;
+  if (e.editable) return null;
+  // "?" is Shift+/ on most layouts, so it is the one key read with Shift held.
+  if (e.key === "?") return { kind: "help" };
+  if (e.shiftKey) return null;
   for (const s of SHORTCUTS) if (s.keys.includes(e.key)) return s.action;
   return null;
 }

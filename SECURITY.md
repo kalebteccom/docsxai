@@ -120,7 +120,7 @@ The following are not docsxai vulnerabilities:
 ## Trust posture — what we promise, what we do not, what we cannot prevent
 
 **What we promise.** The published `@docsxai/*` packages,
-installed from npm with provenance verified (`npm audit signatures`),
+installed from npm with registry signatures verified (`npm audit signatures`),
 have no built-in code-execution surface beyond what Playwright itself
 exposes through the curated step vocabulary. The engine never imports
 a model-provider SDK, and that constraint is a contract violation if
@@ -140,8 +140,8 @@ point the engine at.
 **What we cannot prevent.** If an adopter installs a typosquat
 (`docsxa`, `dcosxai`, `docsx-ai`, `site-doc`, etc.) instead of
 `docsxai` / `@docsxai/*`, our defenses do not apply. Verify
-the package name and scope before install; verify provenance after
-install. See `docs/security-best-practices-for-adopters.md` (lands
+the package name and scope before install; verify registry signatures
+after install. See `docs/security-best-practices-for-adopters.md` (lands
 with the launch-gate phase).
 
 **The MCP HTTP transport.** `docsxai-mcp serve --http` is opt-in; the default transport is stdio.

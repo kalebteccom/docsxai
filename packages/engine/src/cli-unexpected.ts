@@ -3,7 +3,13 @@
 // stack itself when DOCSX_DEBUG is set. URLs in the text are redacted. Commands keep their own
 // error wording; this only sees what they rethrow.
 
-import { redactUrlsIn, sanitizeForTerminal, withNext } from "./cli-messages.js";
+import {
+  describeFsError,
+  redactUrlsIn,
+  sanitizeForTerminal,
+  shellQuote,
+  withNext,
+} from "./cli-messages.js";
 
 const ISSUES = "https://github.com/kalebteccom/docsxai/issues";
 
@@ -15,6 +21,9 @@ export function debugEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
 /** The stderr text for an error that reached the bin, with the stack only when `debug` is on. */
 export function unexpectedErrorText(e: unknown, debug: boolean): string {
   const raw = e instanceof Error ? e.message : String(e);
+  // A file the disk or its permissions refused is the operator's to fix, not a bug to report.
+  const fsLine = debug ? undefined : describeFsError(e);
+  if (fsLine) return `docsxai: ${fsLine}\n`;
   const first = sanitizeForTerminal(redactUrlsIn(raw.split("\n")[0] ?? "")) || "(no message)";
   if (debug) {
     const stack = e instanceof Error && e.stack ? e.stack : raw;
@@ -23,16 +32,36 @@ export function unexpectedErrorText(e: unknown, debug: boolean): string {
   return `docsxai: ${withNext(`unexpected error: ${first}`, `rerun with DOCSX_DEBUG=1 for the stack trace, and report it at ${ISSUES}`)}\n`;
 }
 
-/** Run `main` as the bin does: an error it throws becomes exit 1 and {@link unexpectedErrorText}. */
+/** The line printed when the operator stops a command with Ctrl-C (or a SIGTERM), with the command to rerun. */
+export function interruptedText(signal: string, argv: string[]): string {
+  const rerun = `docsxai ${argv.map(shellQuote).join(" ")}`.trimEnd();
+  return `docsxai: ${withNext(`interrupted (${signal}); anything a finished step wrote stays on disk`, `${rerun}  (the same command starts over)`)}\n`;
+}
+
+/**
+ * Run `main` as the bin does: an error it throws becomes exit 1 and {@link unexpectedErrorText}, and
+ * Ctrl-C or SIGTERM ends the process with {@link interruptedText} and exit 130 or 143.
+ */
 export async function runAsBin(
   main: (argv: string[]) => Promise<number>,
   argv: string[],
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<number> {
+  const signals = { SIGINT: 130, SIGTERM: 143 } as const;
+  const handlers = (Object.keys(signals) as Array<keyof typeof signals>).map((sig) => {
+    const handler = () => {
+      process.stderr.write(interruptedText(sig, argv));
+      process.exit(signals[sig]);
+    };
+    process.once(sig, handler);
+    return [sig, handler] as const;
+  });
   try {
     return await main(argv);
   } catch (e) {
     process.stderr.write(unexpectedErrorText(e, debugEnabled(env)));
     return 1;
+  } finally {
+    for (const [sig, handler] of handlers) process.off(sig, handler);
   }
 }

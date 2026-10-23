@@ -24,6 +24,8 @@ Every page below is served as plaintext Markdown. The rendered site at https://d
 - [Agent guidance](https://docsxai.dev/guides/agent-guidance.md): the reach-for-this-not-that map - ten temptations, why each bites, and the right call with a copyable example
 - [Running against an app repo](https://docsxai.dev/guides/running-against-an-app-repo.md): document an app without leaving a trace in its checkout
 - [CI recipes](https://docsxai.dev/guides/ci-recipes.md): deterministic doc refresh in your pipeline
+- [Determinism and drift](https://docsxai.dev/guides/determinism-and-drift.md): `run --verify-determinism`, reading its report, and a nightly drift gate against a committed baseline
+- [Themeable burned captions](https://docsxai.dev/guides/burn-theming.md): the `burn.theme` block of `.docsxai.json`, the clean, soft, readable and high-contrast presets, the optional tokens file, and the viewer variables (on main, after 0.3.0-rc.3)
 - [Writing plugins](https://docsxai.dev/guides/writing-plugins.md): the manifest, the four extension-point contracts, register(api), and a complete minimal publisher
 - [Security best practices](https://docsxai.dev/guides/security-best-practices.md): operational hardening for adopters
 - [Troubleshooting](https://docsxai.dev/guides/troubleshooting.md): the halt-cause vocabulary, the diagnose loop, locator gotchas, wait tuning, and the lint rules

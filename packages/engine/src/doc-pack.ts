@@ -230,7 +230,7 @@ export const StepAnnotation = z
      */
     copy_by_locale: z
       .record(LocaleTag, z.string().min(1))
-      .refine((m) => Object.keys(m).length > 0, { message: "needs at least one locale" })
+      .refine((m) => Object.keys(m).length > 0, { error: "needs at least one locale" })
       .optional(),
     /** Variants this call-out is kept for. Needs a `matrix`; see {@link VariantSelector}. */
     only: VariantSelector.optional(),
@@ -285,12 +285,12 @@ export const Step = z
   })
   .strict()
   .refine((s) => !(s.annotation && s.annotations), {
-    message:
+    error:
       "step has both `annotation` and `annotations`; use one (`annotations: [...]` for the multi-callout form)",
     path: ["annotations"],
   })
   .refine((s) => s.timeout_ms === undefined || stepTimeoutHasEffect(s), {
-    message:
+    error:
       "`timeout_ms` has no effect on this step: it bounds the wait for a `target` (click, fill, upload, press, hover, select, check, uncheck, hide), a `wait_for: settled`, or a `wait` step's `wait_for: { selector }` that has no `timeout_ms` of its own",
     path: ["timeout_ms"],
   });
@@ -319,10 +319,10 @@ export const FlowName = z
     /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
     "must start with a letter or digit and use only letters, digits, `.`, `_` and `-`",
   )
-  .refine((n) => !n.includes(".."), { message: "must not contain `..`" })
-  .refine((n) => !hasTrailingDot(n), { message: "must not end with `.`" })
+  .refine((n) => !n.includes(".."), { error: "must not contain `..`" })
+  .refine((n) => !hasTrailingDot(n), { error: "must not end with `.`" })
   .refine((n) => !isWindowsDeviceName(n), {
-    message: "must not be a Windows device name (con, prn, aux, nul, com1-9, lpt1-9)",
+    error: "must not be a Windows device name (con, prn, aux, nul, com1-9, lpt1-9)",
   });
 export type FlowName = z.infer<typeof FlowName>;
 
@@ -503,7 +503,7 @@ export const AuthStrategyDescriptor = z
   })
   .strict()
   .refine((d) => d.default_role in d.roles, {
-    message: "default_role must be one of the keys in roles",
+    error: "default_role must be one of the keys in roles",
     path: ["default_role"],
   });
 export type AuthStrategyDescriptor = z.infer<typeof AuthStrategyDescriptor>;

@@ -4,7 +4,15 @@ The first-class invocation surface for the docsxai engine.
 
 ## Install
 
-From inside Claude Code, add the marketplace this repo publishes (`.claude-plugin/marketplace.json` at the repo root, marketplace name `docsxai`) and install the plugin:
+The plugin calls the `docsxai` CLI, so install that first (Node 26+, and a one-time Chromium download):
+
+```
+npm install -g docsxai@next
+npx playwright-core install chromium
+docsxai doctor
+```
+
+Then, from inside Claude Code, add the marketplace this repo publishes (`.claude-plugin/marketplace.json` at the repo root, marketplace name `docsxai`) and install the plugin:
 
 ```
 /plugin marketplace add kalebteccom/docsxai

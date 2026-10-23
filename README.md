@@ -32,19 +32,22 @@ Per-commit LLM runs would be untenable; per-commit Playwright runs are standard.
 
 ## Install
 
-Requires [Node 26+](https://nodejs.org/).
+You need [Node 26+](https://nodejs.org/). Check with `node --version`.
 
 ```bash
-pnpm add -g docsxai@next      # batteries-included: the docsxai CLI + the viewer
-```
-
-`next` is the 0.3.x line (`pack`, `--verify-determinism`, matrix flows); `latest` stays 0.2.0 until 0.3.x ships stable, then it moves and the pin should move to the stable version. The granular equivalent is `pnpm add -g @docsxai/engine@next @docsxai/viewer@next`. Then fetch the Chromium the engine drives (a one-shot, never an install-time script):
-
-```bash
+npm install -g docsxai@next     # or: pnpm add -g docsxai@next
 npx playwright-core install chromium
+docsxai doctor
 ```
 
-Claude Code users can also install the plugin (calibration skills and the `/docsxai:*` commands) from this repo's marketplace:
+- `docsxai` is the CLI plus the viewer, in one package.
+- `@next` is the 0.3 line, currently `0.3.0-rc.3` (`pack`, `--verify-determinism`, matrix flows). `latest` is `0.2.0`, which has none of those. `latest` moves when 0.3 ships stable, then the pin should move too.
+- With pnpm, run `pnpm setup` once first, or the global install has no bin directory on your PATH.
+- Chromium is a separate download. It never runs as an install script, so you fetch it once yourself.
+- `docsxai doctor` checks Node, Chromium and the viewer. Each failing row prints its fix.
+- Granular install: `npm install -g @docsxai/engine@next @docsxai/viewer@next`.
+
+Claude Code users can also install the plugin (calibration skills and the `/docsxai:*` commands) from this repo's marketplace. The plugin runs the `docsxai` CLI, so install the CLI first.
 
 ```
 /plugin marketplace add kalebteccom/docsxai
@@ -53,40 +56,73 @@ Claude Code users can also install the plugin (calibration skills and the `/docs
 
 To try a checkout without installing, run `claude --plugin-dir /path/to/docsxai/packages/plugin`. See [`packages/plugin`](packages/plugin/).
 
-Building from source is for contributors — see [CONTRIBUTING.md](CONTRIBUTING.md).
+Building from source is for contributors. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Quick start
+## First run in 10 minutes
+
+Four words you will meet:
+
+- A **workspace** is a folder docsxai writes into. Keep it outside your app's repo.
+- A **flow** is a YAML file that lists steps: open a page, click a button, check something is visible. One flow is one user guide.
+- To **calibrate** is to write a flow for the first time. You or an AI agent do it once.
+- A **doc pack** is what a run leaves in the workspace: per flow, an `annotations.json` and its screenshots, next to the flow and style files that produced them.
+
+This walkthrough documents `example.com`, so it needs no login and no app of your own.
 
 ```bash
-# 1. Scaffold a workspace (keep it OUTSIDE the app's source repo — docsxai documents
-#    a running app from outside and never writes into the app repo)
-docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
+# 1. Make a workspace. --auth none means no login is needed.
+docsxai init ~/docsxai/hello --app-url https://example.com --auth none
 
-# 2. Capture an authed session (an instrumented Chrome opens; log in; the session is cached locally)
-docsxai capture-auth ~/docsxai/my-app
+# 2. Write a flow. One step: open the home page and point at its heading.
+cat > hello.flow.yaml <<'YAML'
+name: hello
+locators:
+  heading: "h1"
+steps:
+  - id: open-home
+    action: navigate
+    value: /
+    wait_for: load
+    success: { visible: $heading }
+    annotation: { copy: "This is the page title", target: $heading, arrow: bottom }
+YAML
 
-# 3. Calibrate a flow — either from a structured guide…
-docsxai calibrate ~/docsxai/my-app --from path/to/flow-guide.md
-#    …or hand-author `flows/<name>.flow.yaml` after exploring the live page (see docs/agent-runbook.md)
+# 3. Add it to the workspace. This checks the file and writes flows/hello.flow.yaml.
+docsxai calibrate ~/docsxai/hello --from hello.flow.yaml
 
-# 4. Run it (deterministic; no agent context, no LLM calls)
-docsxai run ~/docsxai/my-app
+# 4. Run it. This launches headless Chromium, so the Chromium download from Install must be done.
+docsxai run ~/docsxai/hello
 
-# 5. Render the interactive viewer
-#    (from a source checkout, point the engine at the built viewer bin;
-#     an installed @docsxai/viewer is found automatically)
-DOCSX_VIEWER_BIN="$PWD/packages/viewer/dist/index.js" docsxai render ~/docsxai/my-app
-open ~/docsxai/my-app/.viewer/index.html
-
-# 6. Package the doc pack into a zip for hand-off
-docsxai zip ~/docsxai/my-app --out my-app-docs.zip
+# 5. Build the viewer and open it (macOS: open, Linux: xdg-open, Windows: start).
+docsxai render ~/docsxai/hello
+open ~/docsxai/hello/.viewer/index.html
 ```
 
-> `docsxai run` launches Chromium. If no browser binary is present, install one with
-> `npx playwright-core install chromium` (or, from a source checkout,
-> `pnpm -C packages/engine exec playwright-core install chromium`).
+A good run prints `run: 1 of 1 flow ok, outputs in …/docs`. The screenshot and `annotations.json` are in `~/docsxai/hello/docs/hello/`. In the viewer, hover the pulsing halo to read the callout.
 
-For the full agent-driven workflow and the fast calibration loop (`lint`, `flow-tree`, `diagnose`, `style --check`, and `run --start-from --cdp` for the sub-3-second iteration loop), see [**docs/agent-runbook.md**](docs/agent-runbook.md).
+To document your own app, change step 1 and add a login capture:
+
+```bash
+# Add --ignore-https-errors if the app runs on a self-signed dev certificate.
+docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
+# A Chrome window opens. Log in, then run window.__docsxai.capture() in its devtools console.
+docsxai capture-auth ~/docsxai/my-app
+```
+
+Then write flows for your app. `docsxai inspect ~/docsxai/my-app` lists the page's `data-testid` elements to pin locators on. To let an AI agent write the flows, hand it [`docs/agent-runbook.md`](docs/agent-runbook.md).
+
+When something fails, every error ends with a `next:` line naming the command to run. The usual ones:
+
+| You see                                    | Do this                                                                                                        |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `no Chromium binary found`                 | `npx playwright-core install chromium`                                                                         |
+| `no flow-files in …/flows`                 | Add one with `docsxai calibrate <workspace> --from <flow.yaml>`.                                               |
+| `no valid cached session`                  | `docsxai capture-auth <workspace>`, then run again.                                                            |
+| A step halted with a `[cause]` in brackets | `docsxai diagnose <workspace> --flow <name> --step <step-id>`. The halt screenshot is in `docs/<flow>/halts/`. |
+| The app is unreachable                     | Start the app. Check `app_url` in `<workspace>/.docsxai.json`, or pass `--base-url`.                           |
+| Anything else                              | `docsxai doctor <workspace>`                                                                                   |
+
+Next: [quickstart on docsxai.dev](https://docsxai.dev/getting-started/quickstart/), the [agent runbook](docs/agent-runbook.md), [CI recipes](docs/ci-recipes.md) and the [CLI reference](https://docsxai.dev/reference/cli/). For the fast calibration loop (`lint`, `flow-tree`, `diagnose`, `style --check`, `run --start-from --cdp`), see the runbook.
 
 ## CLI reference
 
@@ -109,11 +145,12 @@ For the full agent-driven workflow and the fast calibration loop (`lint`, `flow-
 | [`@docsxai/plugin-sharepoint`](packages/plugin-sharepoint/) | First-party publisher plugin. Markdown and images into a SharePoint Online document library through Microsoft Graph (`sharepoint:push`), capability-gated egress.                                          |
 | [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin — Starlight site emission (`starlight:site`).                                                                                                                                  |
 
-`@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (`@docsxai/plugin-sharepoint` from the release after `0.3.0-rc.3`, experimental): `0.2.0` is on `latest`, `0.3.0-rc.2` on `next`.
+`@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (`@docsxai/plugin-sharepoint` since `0.3.0-rc.3`, experimental): `0.2.0` is on `latest`, `0.3.0-rc.3` on `next`.
 
 ## Documentation
 
 - [**docs/agent-runbook.md**](docs/agent-runbook.md) — hand-it-to-an-agent workflow runbook
+- [**docs/agent-guidance.md**](docs/agent-guidance.md) — the reach-for-this-not-that list for agents that write flows
 - [**docs/running-against-an-app-repo.md**](docs/running-against-an-app-repo.md) — human-readable runbook
 - [**docs/ci-recipes.md**](docs/ci-recipes.md) — wiring `run` / `baseline` / `diff` into CI
 - [**docs/actionability-contract.md**](docs/actionability-contract.md) — the portable `actionable()` predicate contract, for browser-bridge consumers

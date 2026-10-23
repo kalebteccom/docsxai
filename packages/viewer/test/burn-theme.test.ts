@@ -55,6 +55,11 @@ describe("the default theme", () => {
       paddingX: 11,
       paddingY: 8,
       fontFile: null,
+      fontWeight: 400,
+      arrowSize: 8,
+      maxWidthRatio: 0.62,
+      scale: 1,
+      displayWidth: 720,
     });
   });
 
@@ -69,8 +74,8 @@ describe("the default theme", () => {
 });
 
 describe("presets", () => {
-  it("are clean, soft and high-contrast", () => {
-    expect([...THEME_PRESET_NAMES]).toEqual(["clean", "soft", "high-contrast"]);
+  it("are clean, soft, high-contrast and readable", () => {
+    expect([...THEME_PRESET_NAMES]).toEqual(["clean", "soft", "high-contrast", "readable"]);
   });
 
   it.each(THEME_PRESET_NAMES)(
@@ -111,7 +116,7 @@ describe("presets", () => {
 
   it("refuse an unknown name and list the real ones", () => {
     expect(problemsOf({ preset: "bold" })).toEqual([
-      'preset: "bold" is not a preset; use one of clean, soft, high-contrast',
+      'preset: "bold" is not a preset; use one of clean, soft, high-contrast, readable',
     ]);
   });
 });
@@ -221,8 +226,18 @@ describe("validation", () => {
       "padding_x",
       "padding_y",
       "font",
+      "font_weight",
+      "arrow_size",
+      "max_width_ratio",
+      "scale",
+      "display_width",
     ]);
-    expect(new Set(THEME_KEYS.map((k) => THEME_FIELDS[k].token)).size).toBe(THEME_KEYS.length);
+    // render-only keys (max_width_ratio, scale, display_width) have no default token path
+    const tokens = THEME_KEYS.map((k) => (THEME_FIELDS[k] as { token?: string }).token).filter(
+      (t): t is string => t !== undefined,
+    );
+    expect(tokens).toHaveLength(THEME_KEYS.length - 3);
+    expect(new Set(tokens).size).toBe(tokens.length);
   });
 });
 

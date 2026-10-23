@@ -6,7 +6,6 @@ This is the artifact the owner walks through line-by-line on flip day. The plann
 
 - [ ] `main` is at the commit you intend to ship. Note the SHA here: `_____`
 - [ ] The Woodpecker pipeline on that SHA is green across every step: `build`, `typecheck`, `lint`, `format-check`, `architecture`, `test`, `audit`, `package-contents`, `secret-scan`.
-- [ ] `zizmor --persona=auditor --min-severity=high .github/workflows/` reports `No findings to report.` (run by hand; no CI step runs zizmor since the gate workflows moved to Woodpecker and only `release.yml` remains).
 - [ ] `pnpm install --frozen-lockfile && pnpm typecheck && pnpm build && pnpm test && pnpm lint && pnpm format:check && node scripts/audit-package-contents.mjs && node scripts/lockfile-lint.mjs` all clean locally on a fresh clone.
 
 ## 2. Git scrub — full history, not just HEAD
@@ -21,40 +20,37 @@ This is the artifact the owner walks through line-by-line on flip day. The plann
 ## 3. GitHub settings (still private)
 
 - [ ] Branch protection on `main`: the required status check is the Woodpecker `ci/woodpecker/push/ci` (the merge gate is the green pipeline at the head SHA, see `AGENTS.md`), required PR review, no force-push, linear history, signed commits required.
-- [ ] CODEOWNERS protections cover: `.github/`, every `package.json`, every `LICENSE`, `release.yml`.
-- [ ] Repository "Secrets and variables → Actions" contains only what `release.yml` needs (none, if OIDC is fully set up). No long-lived npm tokens.
-- [ ] Repository "Environments → release": required reviewer is the maintainer's account; deployment branch rule restricted to `main` and tags `v*`.
+- [ ] CODEOWNERS protections cover: `.github/`, every `package.json`, every `LICENSE`, `.woodpecker/`.
+- [ ] The Woodpecker secret `npm_publish_token` exists, is restricted to exactly the `manual` event, and is the only npm token. It is a stage-only granular token (see `RELEASING.md`).
 - [ ] Dependabot security updates enabled; Dependabot version updates per `dependabot.yml`.
 - [ ] GitHub Advanced Security: secret scanning push protection ON.
 
-## 4. npm trusted-publisher configuration (per published package)
+## 4. npm package configuration (per published package)
 
-For each of the 6 published names — the unscoped `docsxai` meta-package (the batteries-included CLI install) plus the 5 published scoped packages on the registered `@docsxai` org, `@docsxai/backend`, `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/skill`, `@docsxai/viewer`:
+For each of the 7 published names — the unscoped `docsxai` meta-package (the batteries-included CLI install) plus the 6 published scoped packages on the registered `@docsxai` org, `@docsxai/backend`, `@docsxai/engine`, `@docsxai/plugin`, `@docsxai/plugin-sharepoint`, `@docsxai/skill`, `@docsxai/viewer`:
 
-- [ ] Package exists on npm (publish a pre-release `0.0.0-trusted-publisher-setup` if needed, then deprecate).
-- [ ] Trusted publisher entry: repository `kalebteccom/docsxai`, workflow `.github/workflows/release.yml`, environment `release`.
-- [ ] "Require 2FA and disallow tokens" — set after the first successful OIDC publish, not before (you need at least one OIDC publish to verify the flow works first).
+- [ ] Package exists on npm, and both owners (`kalebtec-studio`, `kalebtec-recovery`) own it.
+- [ ] The stage-only token covers the package (scope-level write on `@docsxai` plus `docsxai`).
+- [ ] No trusted-publisher binding applies: the release pipeline runs on Woodpecker, not GitHub Actions.
 - [ ] No legacy automation tokens on the maintainer account.
 
-> **Repo-only packages.** `@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion`, `@docsxai/plugin-sharepoint`, and `@docsxai/plugin-starlight` keep `"private": true` and do not publish at the flip (documented as repo-only; revisit post-flip). They need no trusted-publisher bindings until that decision changes — when one flips, add its binding and remove its `private` flag in the same change.
+> **Repo-only packages.** `@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion`, and `@docsxai/plugin-starlight` keep `"private": true` and do not publish (documented as repo-only; revisit later). When one flips, remove its `private` flag, add it to the script's package list and to the token's scope in the same change.
 
-## 5. First OIDC publish — supervised
+## 5. First release — supervised
 
 1. Promote `## Unreleased` in `CHANGELOG.md` → `## [X.Y.Z] - YYYY-MM-DD`.
 2. Bump every publishable `packages/*/package.json` to `X.Y.Z` (root and the repo-only packages keep their versions). Verify `pnpm-lock.yaml` is consistent.
 3. Commit on a PR: `chore(release): vX.Y.Z`. Squash-merge to `main` (do not force-push to `main`).
 4. Pull the merged commit locally: `git pull --ff-only origin main`.
-5. Sign and push the tag: `git tag -s vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
-6. Watch the Actions tab. The `release.yml` job will pause on the `release` environment gate.
-7. Verify the workflow run is on the expected SHA and tag. Approve the gate.
-8. Watch each package publish. Each step should emit `npm notice Publishing to https://registry.npmjs.org/...` and the provenance attestation.
-9. From a fresh machine: `npm install @docsxai/engine@X.Y.Z && npm audit signatures`. Expect `5 packages have audited signatures` (or however many depend on docsxai packages).
+5. Sign and push the tag: `git tag -s vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`. The push starts nothing.
+6. In the Woodpecker UI, run the pipeline manually on the tagged commit with `RELEASE_TAG=vX.Y.Z` (`.woodpecker/release.yaml`).
+7. Verify the run is on the expected SHA and tag. The `publish` step stages each package.
+8. On a machine with 2FA, approve each staged version: `npm stage list <package>`, then `npm stage approve <stage-id> --otp <code>`. Staged versions carry no provenance attestation.
+9. From a fresh machine: `npm install @docsxai/engine@X.Y.Z` and confirm `npm view` shows the version on the expected dist-tag.
 
 ## 6. Post-publish hardening
 
-- [ ] On each published npm package: "Require 2FA and disallow tokens" → ON.
-- [ ] Add the vX.Y.Z release notes to GitHub Releases (the workflow creates the entry; flesh out the body).
-- [ ] Verify SBOM upload on the GitHub Release.
+- [ ] Create the GitHub Release by hand (`gh release create vX.Y.Z --generate-notes --verify-tag`; the pipeline holds no GitHub token). Attach an SBOM if wanted (see `RELEASING.md`).
 - [ ] Verify the published tarballs against `scripts/audit-package-contents.mjs` policy — pull each `.tgz` from the registry and re-audit.
 
 ## 7. Website go-live (publish-first ordering: npm publish → site deploy → DNS)

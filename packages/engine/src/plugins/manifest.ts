@@ -37,7 +37,7 @@ const manifestSchema = z
       .string()
       .regex(NAMESPACE, "namespace must match /^[a-z][a-z0-9-]*$/ (kebab-case)")
       .refine((ns) => !RESERVED_NAMESPACES.includes(ns), {
-        message: `namespace is reserved (${RESERVED_NAMESPACES.join(", ")})`,
+        error: `namespace is reserved (${RESERVED_NAMESPACES.join(", ")})`,
       }),
     register: z.string().min(1, "register must be a relative path to the register module"),
     kinds: z.array(z.enum(PLUGIN_KINDS)).min(1, "kinds must declare at least one extension point"),

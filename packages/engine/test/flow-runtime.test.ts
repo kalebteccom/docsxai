@@ -784,6 +784,27 @@ describe("inferHaltCause", () => {
     ).toMatch(/target resolved to <input disabled value="00" \/>/);
   });
 
+  it("says the app did not answer when the page cannot connect, and what to check", () => {
+    expect(
+      inferHaltCause("page.goto: net::ERR_CONNECTION_REFUSED at https://localhost:3000/"),
+    ).toMatch(/did not answer.*app_url.*--base-url/);
+    expect(
+      inferHaltCause("page.goto: net::ERR_NAME_NOT_RESOLVED at https://nope.invalid/"),
+    ).toMatch(/did not answer/);
+  });
+
+  it("names --ignore-https-errors when the TLS certificate is rejected", () => {
+    expect(
+      inferHaltCause("page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://localhost:3000/"),
+    ).toMatch(/--ignore-https-errors/);
+  });
+
+  it("names app_url when a relative navigate has no base URL", () => {
+    expect(
+      inferHaltCause("page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL"),
+    ).toMatch(/set app_url in \.docsxai\.json/);
+  });
+
   it("returns undefined when the error doesn't match any known pattern", () => {
     expect(inferHaltCause("network error: ECONNREFUSED")).toBeUndefined();
   });

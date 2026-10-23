@@ -73,7 +73,7 @@ What gets emitted:
 - **One MDX page per flow** — an H2 per step, the step's `<step>.md` prose verbatim, and an `<AnnotatedShot>` figure per screenshot. The figure's caption lists each annotation's copy, numbered (`<li value>`) to match the badge indexes burned into the image — caption numbering and burned pixels can't drift apart.
 - **Burned-image preference** — `docs/<flow>/burned/<step>.png` is copied when present, the clean screenshot is the fallback, and a missing image becomes a placeholder plus a warning (never a failure).
 - **A landing page** of flow link-cards with step/annotation counts, and a **sidebar ordered by the workspace's flow `extends` graph** (roots alphabetical, children nested DFS; flows without a flow-file append alphabetically) — the same shape as `docsxai flow-tree`.
-- **Theme from the style artifact** — `docs/style.json`'s `visual` keys (`brand_color` > `accent` > `primary_color`) become a derived `--sl-color-accent-*` scale for both color schemes; `visual.logo` is copied in. Explicit `--title` / `--accent` / `--logo` config overrides win. An unparsable style accent is a warning; an unparsable explicit accent is an error.
+- **Theme from the style artifact** — `docs/style.json`'s `visual` keys (`brand_color` > `accent` > `primary_color`) become a derived `--sl-color-accent-*` scale for both color schemes; `visual.logo` is copied in. Explicit `--title` / `--accent` flags and the `logo` config key win. An unparsable style accent is a warning; an unparsable explicit accent is an error.
 - **Thin, themed scrollbars** — `src/styles/scrollbars.css` is always emitted and wired into `customCss`: one thin bar on every scroller, thumb `--sl-color-white` at 50% (70% on hover, at least 3:1 on the page, sidebar and nav surfaces of both themes), a 12px webkit fallback where `scrollbar-color` is missing, and the system bar under forced colors or `prefers-contrast: more`. Override `--scrollbar-track`, `--scrollbar-thumb` and `--scrollbar-thumb-hover` from a later stylesheet; no bar is hidden.
 - **Pinned, self-contained output** — the emitted `package.json` exact-pins `astro@7.3.5` + `@astrojs/starlight@0.41.2` (both MIT; matching this package's devDependencies, where the pair is tested). No remote fonts, no CDN imports anywhere in the emitted tree — Starlight ships its own assets and Pagefind search at build time; a test greps every emitted text file for external URLs.
 - **Deterministic** — same doc pack + same config → byte-identical file tree (no timestamps, sorted writes), asserted by a two-emit golden test.
@@ -91,8 +91,17 @@ The emitted pages have a skip link, header/main/footer landmarks, one `<h1>` per
 | Home / End | First / last step                  |
 | `]` / `[`  | Next / previous flow               |
 | Esc        | Hide the open callout              |
+| `?`        | Open the shortcut list             |
 
 Keys with Ctrl, Alt, Cmd or Shift, and keys typed into a field, go to the browser. A step change moves focus to the step and is announced through a live region. The halo pulse stops under `prefers-reduced-motion`, image boxes are reserved from the PNG size, and a damaged `annotations.json`, a missing screenshot or an image that fails to load (with Retry) each get a message on the page. The audit behind these is `docs/ai-context/ux/viewer-audit.md`.
+
+### Copying ids and the other micro-states
+
+- **Copy buttons.** The flow id (variants included), each step id, the viewer build in the footer and the capture command in a missing-screenshot placeholder have a button next to them. Click, Enter or Space copies the value. The button reads "Copied" for 1.5 s and the polite live region (`#sd-live`) says so. "Copy", "Copied" and "Press Ctrl+C" share one grid cell, so the button keeps one width. Without `navigator.clipboard`, or when the browser refuses, the id's text is selected and the button reads "Press Ctrl+C" for 5 s. The index has a button under each flow card (a card is one link). Table and markup: `src/viewer-copy.ts`.
+- **Missing screenshot.** A step without a PNG shows a placeholder at least 160 px tall with the missing path and the command to capture it again (`docsxai run <workspace> --flow <flow> --start-from <step>`, then `docsxai render`).
+- **Failed image.** The step shows what failed and what to do, with a Retry button that reads "Retrying..." while it runs, says how many tries failed if it fails again, and announces the load when it works. A failed index thumbnail becomes a placeholder pointing at the flow page.
+- **Empty states.** A pack without flows and a flow without steps say so and name the command to run; a card for a flow with no steps reads "No steps yet".
+- **Layout.** Images carry width and height from the PNG, so nothing moves when they load; the page has no loading animation. All controls are at least 44 px and use the shared focus ring. The Starlight site gets the same buttons, retry and placeholder through its `CopyId` and `AnnotatedShot` components.
 
 ## Overlay single-sourcing
 
@@ -132,12 +141,27 @@ Design constraints, in order:
 
 ### Caption themes
 
-The halo, badge, callout and arrow take their colours, radii, shadow, badge shape and type from a `BurnTheme` (`src/burn-theme.ts`). `DEFAULT_BURN_THEME` is the look burn had before themes, and passing it, or no theme, burns the same bytes. A workspace sets a theme in the `burn.theme` block of `.docsxai.json`: a preset (`clean`, `soft`, `high-contrast`), an optional tokens file, and keys that override both. `docsxai-viewer burn`, `pack`, `pack --check` and `build` read it; the library takes a resolved theme in `BurnOptions.theme`, `BurnFlowOptions.theme`, `BuildPackOptions.theme` and `BuildViewerOptions.theme`.
+The halo, badge, callout and arrow take their colours, radii, shadow, badge shape and type from a `BurnTheme` (`src/burn-theme.ts`). `DEFAULT_BURN_THEME` is the look burn had before themes, and passing it, or no theme, burns the same bytes. A workspace sets a theme in the `burn.theme` block of `.docsxai.json`: a preset (`clean`, `soft`, `high-contrast`, `readable`), an optional tokens file, and keys that override both. `docsxai-viewer burn`, `pack`, `pack --check` and `build` read it; the library takes a resolved theme in `BurnOptions.theme`, `BurnFlowOptions.theme`, `BuildPackOptions.theme` and `BuildViewerOptions.theme`.
 
 - `src/burn-theme-fields.ts` is the key table: one checker per key, its `BurnTheme` property and its default token path. `src/burn-theme-config.ts` checks a block, collects every problem with its key, and layers default, preset, tokens, block. `src/burn-theme-tokens.ts` flattens W3C tokens or a plain map and reads the mapped values; a key named in `burn.theme.tokens` must exist. `src/burn-theme-load.ts` does the reads (`.docsxai.json`, the tokens file, the font) and `src/burn-theme-css.ts` writes the `:root { --sd-* }` rule a themed viewer page appends.
 - The callout font comes from `font`: a TTF or OTF inside the workspace, read through the same regular-file guard as pack inputs (no symlink, 16 MiB cap, an `sfnt` header). Its metrics size the callout, so wrapping and placement follow the font in use. A viewer page embeds it as a `data:` font and its CSP gains `font-src data:`; without a font the CSP is unchanged.
 - Callout size is set by `CalloutStyle` (`burn-callout.ts`): font size, line height, padding, border width. The arrow and stem take the callout outline colour; a light one is outlined in dark ink on light pixels (`toneOf` in `connector-contrast.ts`).
-- Tests assert the three presets by sampling pixels at the halo, callout background, callout outline and badge of a fixed fixture, so no golden image is stored. The default theme is pinned by `legacy-burn-trees.json` and by byte equality with a burn that passes no theme. Mapping table, key ranges and the viewer variables: [`docs/burn-theming.md`](../../docs/burn-theming.md).
+- Sizing: `scale` (a number, or `"auto"` for screenshot width over `display_width`, between 1 and 3) multiplies every caption dimension. `burn.ts` lays a screenshot out at base size on an image shrunk by that factor and multiplies the result back (`captionScale` and `scaledTheme` in `burn-theme.ts`), so placement matches the unscaled caption. `arrow_size`, `max_width_ratio` and `font_weight` are tokens too; `arrowGeometry` and `planCallout` take the arrow length. All default to the old hard-coded values.
+- Tests assert the four presets by sampling pixels at the halo, callout background, callout outline and badge of a fixed fixture, so no golden image is stored. The default theme is pinned by `legacy-burn-trees.json` and by byte equality with a burn that passes no theme. Mapping table, key ranges and the viewer variables: [`docs/burn-theming.md`](../../docs/burn-theming.md).
+
+#### Making captions legible on a docs site
+
+A wide screenshot shown in a narrow column shrinks its caption with it: a 1440 px capture in a 720 px column shows 14 px text at 7 px. Set the column width and let the burner scale up:
+
+```json
+{
+  "burn": {
+    "theme": { "preset": "readable", "display_width": 720, "font": "fonts/brand-regular.ttf" }
+  }
+}
+```
+
+`readable` is `scale: "auto"` with 15 px text, 10 and 14 px padding and ink on near-white at WCAG AA. A 1440 px screenshot gets factor 2, a 390 px one stays at 1. Guide: [`docs/burn-theming.md`](../../docs/burn-theming.md#making-captions-legible-on-a-docs-site).
 
 ### Vendored font
 

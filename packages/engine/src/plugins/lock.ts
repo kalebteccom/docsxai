@@ -39,6 +39,7 @@ const lockSchema = z
   .object({
     schema: z.literal(PLUGINS_LOCK_SCHEMA),
     plugins: z.record(
+      z.string(),
       z.object({ source: z.string(), version: z.string(), sha256: z.string() }).strict(),
     ),
   })

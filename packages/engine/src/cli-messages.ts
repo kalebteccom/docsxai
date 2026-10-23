@@ -89,3 +89,37 @@ export function redactUrl(raw: string): string {
 export function redactUrlsIn(text: string): string {
   return text.replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s"'<>()`]+/gi, (url) => redactUrl(url));
 }
+
+const FS_REASONS: Record<string, string> = {
+  EACCES: "permission denied",
+  EPERM: "operation not permitted",
+  EROFS: "read-only file system",
+  ENOSPC: "no space left on device",
+};
+
+/** The code of a file-system error the operator fixes: `EACCES`, `EPERM`, `EROFS` or `ENOSPC`. `undefined` for any other error. */
+export function fsErrorCode(e: unknown): string | undefined {
+  const code = e instanceof Error ? (e as NodeJS.ErrnoException).code : undefined;
+  return code !== undefined && code in FS_REASONS ? code : undefined;
+}
+
+/** The command to run after a file operation failed with `code` at `target` (when known). */
+export function fsNext(code: string, target?: string): string {
+  if (code === "ENOSPC") return "free disk space, then rerun the command";
+  if (code === "EROFS") return "pick a directory on a writable disk, then rerun the command";
+  return target
+    ? `chmod -R u+rw ${shellQuote(target)}  (or pick another directory), then rerun the command`
+    : "make the directory accessible (or pick another one), then rerun the command";
+}
+
+/**
+ * A line for a file operation that failed with {@link fsErrorCode}: what failed, why, and the next command.
+ * `undefined` for any other error, so the caller keeps its own wording.
+ */
+export function describeFsError(e: unknown): string | undefined {
+  const code = fsErrorCode(e);
+  if (code === undefined) return undefined;
+  const target = (e as NodeJS.ErrnoException).path;
+  const where = target ? ` ${redactUrlsIn(target)}` : "";
+  return withNext(`cannot access${where} (${code}, ${FS_REASONS[code]})`, fsNext(code, target));
+}

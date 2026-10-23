@@ -8,6 +8,7 @@
 
 import { placeCallout, type Side } from "./placement.js";
 import type { AnnotationRecord } from "./annotations.js";
+import { COPIED_MS, FALLBACK_MS, copyAnnouncement, type CopyState } from "./viewer-copy.js";
 import {
   isEditableTarget,
   keyAction,
@@ -204,32 +205,75 @@ function renderShot(shot: Element): void {
   for (const ann of anns) renderOne(shot, ann, sx, sy, im);
 }
 
+// Polite announcements share one live region with the step moves. The text is cleared first so the
+// same message twice in a row is read twice.
+function announce(text: string): void {
+  const live = document.getElementById("sd-live");
+  if (!live) return;
+  live.textContent = "";
+  window.setTimeout(() => {
+    live.textContent = text;
+  }, 50);
+}
+
 // Load, failure and retry for one screenshot. The overlay is drawn once the image has its size;
 // a failed load shows the step's error line (alt text stays visible in the image box) with a
 // Retry button that requests the file again under a fresh query string, so no cached failure
-// is reused.
+// is reused. While a retry runs the button reads "Retrying..." and ignores clicks (aria-disabled,
+// so focus stays on it); a second failure says how many tries failed; a success hides the line,
+// announces it and returns focus to the step if the button had it.
 function watchShot(shot: HTMLElement): void {
   const img = shot.querySelector("img");
   if (!img) return;
   const error = shot.parentElement
     ? shot.parentElement.querySelector<HTMLElement>(".shot-error")
     : null;
+  const msg = error ? error.querySelector<HTMLElement>(".shot-error-msg") : null;
+  const baseMsg = msg ? (msg.textContent ?? "") : "";
+  const retry = error ? error.querySelector<HTMLElement>("button") : null;
   const src = img.getAttribute("src") ?? "";
   let tries = 0;
+  let retrying = false;
+  if (!img.complete) shot.classList.add("is-loading");
   const failed = () => {
+    shot.classList.remove("is-loading");
     shot.classList.add("is-broken");
+    retrying = false;
     if (error) error.hidden = false;
+    if (retry) {
+      retry.removeAttribute("aria-disabled");
+      retry.textContent = "Retry";
+    }
+    if (msg && tries > 0)
+      msg.textContent =
+        "Still not loading after " + tries + (tries === 1 ? " try. " : " tries. ") + baseMsg;
   };
   img.addEventListener("load", () => {
-    shot.classList.remove("is-broken");
+    shot.classList.remove("is-loading", "is-broken");
+    const hadFocus = !!error && error.contains(document.activeElement);
     if (error) error.hidden = true;
+    if (tries > 0) {
+      retrying = false;
+      if (msg) msg.textContent = baseMsg;
+      if (retry) {
+        retry.removeAttribute("aria-disabled");
+        retry.textContent = "Retry";
+      }
+      announce((img.getAttribute("alt") ?? "Screenshot") + " loaded.");
+      const step = shot.closest<HTMLElement>("section.step");
+      if (hadFocus && step) step.focus({ preventScroll: true });
+    }
     renderShot(shot);
   });
   img.addEventListener("error", failed);
-  const retry = error ? error.querySelector("button") : null;
   if (retry)
     retry.addEventListener("click", () => {
+      if (retrying) return;
+      retrying = true;
       tries += 1;
+      retry.setAttribute("aria-disabled", "true");
+      retry.textContent = "Retrying\u2026";
+      shot.classList.add("is-loading");
       img.src = src + (src.indexOf("?") >= 0 ? "&" : "?") + "retry=" + tries;
     });
   if (img.complete) {
@@ -238,8 +282,87 @@ function watchShot(shot: HTMLElement): void {
   }
 }
 
+// An index thumbnail that fails to load becomes the same placeholder a flow without screenshots
+// gets, with a pointer to the flow page, where Retry lives (a card is one link, so it holds no button).
+function watchThumb(img: HTMLImageElement): void {
+  const fail = () => {
+    const box = document.createElement("div");
+    box.className = "thumb-missing";
+    box.textContent = "This thumbnail could not be loaded. Open the flow to retry.";
+    img.replaceWith(box);
+  };
+  img.addEventListener("error", fail);
+  if (img.complete && !img.naturalWidth && img.getAttribute("src")) fail();
+}
+
+// Copy buttons. The value is the button's data-copy. Without navigator.clipboard (an insecure
+// context, an old browser) or when the browser refuses, the id's text is selected and the button
+// reads "Press Ctrl+C". All three labels sit in one grid cell, so no state changes the width.
+const copyTimers = new Map<HTMLElement, number>();
+
+function selectText(el: unknown): void {
+  const sel = window.getSelection();
+  if (!(el instanceof Node) || !sel) return;
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function showCopy(btn: HTMLElement, state: CopyState, ms: number): void {
+  const kind = btn.getAttribute("data-kind") ?? "value";
+  const value = btn.getAttribute("data-copy") ?? "";
+  btn.setAttribute("data-state", state);
+  announce(copyAnnouncement(state, kind, value));
+  const old = copyTimers.get(btn);
+  if (old !== undefined) window.clearTimeout(old);
+  copyTimers.set(
+    btn,
+    window.setTimeout(() => {
+      btn.setAttribute("data-state", "idle");
+      copyTimers.delete(btn);
+    }, ms),
+  );
+}
+
+function onCopy(btn: HTMLElement): void {
+  const value = btn.getAttribute("data-copy") ?? "";
+  const fallback = () => {
+    const row = btn.closest(".id-row, .sd-copyable, .flow-item, .site-footer");
+    selectText(row ? row.querySelector("h1, h2, .sd-id") : null);
+    showCopy(btn, "fallback", FALLBACK_MS);
+  };
+  const clip = navigator.clipboard;
+  if (!clip || typeof clip.writeText !== "function") return fallback();
+  let pending: Promise<void>;
+  try {
+    pending = clip.writeText(value);
+  } catch {
+    return fallback();
+  }
+  pending.then(() => showCopy(btn, "done", COPIED_MS), fallback);
+}
+
+// "?" opens the shortcut list and moves focus to it; "?" again closes it.
+function openShortcuts(): boolean {
+  const d = document.querySelector<HTMLDetailsElement>("details.shortcuts");
+  if (!d) return false;
+  const summary = d.querySelector<HTMLElement>("summary");
+  if (d.open && d.contains(document.activeElement)) {
+    d.open = false;
+    if (summary) summary.focus();
+    return true;
+  }
+  d.open = true;
+  if (summary) summary.focus();
+  announce("Keyboard shortcuts opened.");
+  return true;
+}
+
 function go(): void {
   for (const shot of Array.from(document.querySelectorAll<HTMLElement>(".shot"))) watchShot(shot);
+  for (const img of Array.from(document.querySelectorAll<HTMLImageElement>(".flow-card img")))
+    watchThumb(img);
 }
 
 // Keyboard navigation. The items are the step sections on a flow page and the flow cards on the
@@ -280,6 +403,7 @@ function followFlowLink(rel: "prev" | "next"): boolean {
 function perform(action: ViewerAction): boolean {
   if (action.kind === "step") return moveTo(action.move);
   if (action.kind === "flow") return followFlowLink(action.move);
+  if (action.kind === "help") return openShortcuts();
   return dismissOpen();
 }
 
@@ -300,6 +424,8 @@ function onKeyDown(e: KeyboardEvent): void {
 // A tap outside every call-out closes a pinned one (touch devices never blur the halo).
 function onDocumentClick(e: MouseEvent): void {
   const t = e.target instanceof Element ? e.target : null;
+  const copy = t ? t.closest<HTMLElement>("button.sd-copy") : null;
+  if (copy) onCopy(copy);
   if (t && t.closest(".sd-ann")) return;
   for (const w of Array.from(document.querySelectorAll(".sd-ann.sd-open")))
     w.classList.remove("sd-open");

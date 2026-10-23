@@ -88,7 +88,7 @@ a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
 init: workspace at ~/docsxai/my-app
   created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, auth/strategy.yaml, README.md
-  next: docsxai capture-auth ~/docsxai/my-app  →  …calibrate…  →  docsxai run ~/docsxai/my-app  →  docsxai render ~/docsxai/my-app
+  next: docsxai capture-auth ~/docsxai/my-app  →  docsxai calibrate ~/docsxai/my-app --from <flow.yaml>  →  docsxai run ~/docsxai/my-app  →  docsxai render ~/docsxai/my-app
 ```
 
 ### `docsxai capture-auth`
@@ -284,6 +284,9 @@ order: the `DOCSX_VIEWER_BIN` env var (path to the viewer's bin script),
 the `@docsxai/viewer` package installed next to the engine, then
 `docsxai-viewer` on PATH. A launch failure reports all three attempts.
 
+`render` reads the same `burn.theme` block, so the live callouts match the burned ones (see
+[Themeable burned captions](/guides/burn-theming/)).
+
 Flow names and step ids from the doc pack become file paths and link targets, so
 `render` skips a flow name or step id that holds `..`, `:`, `\` or a control
 character (a step id also `/`), with a warning on stderr.
@@ -313,6 +316,11 @@ threshold (`--max-overlap <ratio>`) is a flag of the viewer's own bin,
 every arrow and stem plain ink; by default one over a dark part of the
 screenshot gets a white outline. Exit 1 when the workspace has no `docs/`
 directory or no flow to burn; exit 2 for a bad flag.
+
+The look of the halo, badge, callout and arrow comes from the `burn.theme` block of
+`.docsxai.json`: four presets, an optional tokens file and per-key overrides. A workspace without
+the block burns the original look, byte for byte. New in `0.3.0-rc.4`; see
+[Themeable burned captions](/guides/burn-theming/).
 
 ```
 $ docsxai burn ~/docsxai/my-app --report burn-report.json
@@ -414,6 +422,9 @@ nothing else in `--out` is touched. Loopback addresses (`localhost`, `127.x.x.x`
 `Authorization:` headers other than `Bearer`, tokens in a URL query and obvious
 secrets in a title, caption, alt text or callout stop the build, naming the manifest
 path and rule. Exit 1 for a failed build, 2 for a bad flag.
+
+`pack` and `pack --check` read the workspace's `burn.theme` block as well (see
+[Themeable burned captions](/guides/burn-theming/)).
 
 ```
 $ docsxai pack ~/docsxai/my-app

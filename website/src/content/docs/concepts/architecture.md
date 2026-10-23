@@ -69,8 +69,8 @@ The runtime is written against a thin `BrowserDriver` interface, not against
 Playwright directly: `goto`, `click`, `fill`, the wait primitives, the
 success-check reads, `screenshot`, `boundingBox`, `nearbyBoxes`, and the write-time
 `actionable(selector)` probe. The one Playwright integration point
-(`PlaywrightDriver`) stays small and is the engine's single Playwright import
-site. This seam is what lets browxai slot in as the model-agnostic discovery
+(`PlaywrightDriver`) stays small. Only it and the instrumented browser for
+`capture-auth` import `playwright-core`. This seam is what lets browxai slot in as the model-agnostic discovery
 driver during calibration while execution keeps its own raw Playwright
 sessions - and it keeps the runtime testable without a browser at all.
 
@@ -93,7 +93,7 @@ sessions - and it keeps the runtime testable without a browser at all.
 `mcp` and every `plugin-*` package except `plugin-sharepoint` are repo-only:
 `private: true`, not on npm. Build them from a checkout and wire a plugin by
 `{ "path": ... }`. The published packages are `docsxai`, `engine`, `viewer`, `plugin`,
-`backend`, `skill` and, experimental from the release after `0.3.0-rc.3`, `plugin-sharepoint`.
+`backend`, `skill` and, experimental since `0.3.0-rc.3`, `plugin-sharepoint`.
 
 Every arrow in that table points inward: surfaces wrap the engine, the engine
 wraps `BrowserDriver`, and nothing on the execution path knows an agent

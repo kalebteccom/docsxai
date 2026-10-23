@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   commandUsage,
+  describeFsError,
   redactUrl,
   redactUrlsIn,
   sanitizeForTerminal,
@@ -174,5 +175,27 @@ describe("shellQuote", () => {
 
   it("drops control characters and keeps a newline out of the word", () => {
     expect(shellQuote("a\u001b[2Jb\nc")).toBe("'a[2Jb c'");
+  });
+});
+
+describe("describeFsError", () => {
+  const mk = (code: string, p?: string) =>
+    Object.assign(new Error(`${code}: boom`), { code, ...(p ? { path: p } : {}) });
+
+  it("names the path, the code and a next line for a permission or read-only failure", () => {
+    expect(describeFsError(mk("EACCES", "/ro/x"))).toBe(
+      "cannot access /ro/x (EACCES, permission denied)\n" +
+        "  next: chmod -R u+rw /ro/x  (or pick another directory), then rerun the command",
+    );
+    const readOnly = describeFsError(mk("EROFS", "/mnt/x"));
+    expect(readOnly).toContain("read-only file system");
+    expect(readOnly).toContain("next: pick a directory on a writable disk");
+    expect(describeFsError(mk("ENOSPC"))).toContain("next: free disk space");
+  });
+
+  it("is undefined for an error that is not one of those", () => {
+    expect(describeFsError(mk("ENOENT", "/x"))).toBeUndefined();
+    expect(describeFsError(new Error("plain"))).toBeUndefined();
+    expect(describeFsError("EACCES")).toBeUndefined();
   });
 });

@@ -20,8 +20,24 @@ export class FlowFileError extends Error {
   }
 }
 
+/** The issues to print for `issue`: a union failure is replaced by the issues of its closest branch. */
+function expandIssue(issue: z.ZodIssue): z.ZodIssue[] {
+  if (issue.code !== "invalid_union") return [issue];
+  // Zod 4 keeps the issues of each branch in `errors`, with paths relative to the union.
+  const branches: z.ZodIssue[][] = issue.errors;
+  if (branches.length === 0) return [issue];
+  // The branch that got deepest into the value is the one the author meant; ties go to fewer issues.
+  const depth = (b: z.ZodIssue[]) => Math.max(0, ...b.map((i) => i.path.length));
+  const best = branches.reduce((a, b) =>
+    depth(b) > depth(a) || (depth(b) === depth(a) && b.length < a.length) ? b : a,
+  );
+  const inPlace = best.map((i) => ({ ...i, path: [...issue.path, ...i.path] }));
+  return inPlace.length > 0 ? inPlace.flatMap(expandIssue) : [issue];
+}
+
 function formatZodIssues(err: z.ZodError): string {
   return err.issues
+    .flatMap(expandIssue)
     .map((i) => {
       const path = i.path.length ? i.path.join(".") : "(root)";
       return `  • ${path}: ${i.message}`;

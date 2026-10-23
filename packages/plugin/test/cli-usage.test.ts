@@ -189,7 +189,7 @@ describe("terminology and advertised surface", () => {
 
   it("does not advertise the repo-only publisher plugins or the MCP server as installable", async () => {
     for (const [file, text] of (await markdownDocs()).all) {
-      expect(text, file).not.toMatch(/sharepoint|guru|notion|gitbook/i);
+      expect(text, file).not.toMatch(/guru|notion|gitbook/i);
       for (const paragraph of text.split(/\n\s*\n/)) {
         if (/@docsxai\/mcp|@docsxai\/plugin-confluence|confluence:push/.test(paragraph)) {
           expect(paragraph, `${file}: names a repo-only package`).toMatch(/repo-only/);

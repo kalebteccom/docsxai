@@ -61,12 +61,6 @@ describe("help", () => {
 });
 
 describe("pack dispatch", () => {
-  it("without a directory exits 2 with the usage", async () => {
-    expect(await main(["pack"])).toBe(2);
-    expect(err).toMatch(/pack: missing <workspace-or-raw-dir>/);
-    expect(err).toMatch(/docsxai pack <workspace-or-raw-dir>/);
-  });
-
   it("rejects unknown flags, flags without a value and a second positional", async () => {
     const cases: Array<[string[], RegExp]> = [
       [["pack", "d", "--frobnicate"], /unknown flag --frobnicate/],

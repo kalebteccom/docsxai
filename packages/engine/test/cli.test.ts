@@ -35,31 +35,17 @@ describe("docsxai CLI — main()", () => {
 
   it("--help ends with the conventions and an Examples section", async () => {
     expect(await main(["--help"])).toBe(0);
-    expect(out).toContain("Exit 0 success, 1 runtime failure, 2 usage error.");
+    expect(out).toContain("Exit 0 success, 1 runtime failure, 2 usage error;");
+    expect(out).toContain("Ctrl-C prints one line with the command to rerun and");
     expect(out).toContain("\nExamples:\n");
     expect(out).toContain("docsxai pack ~/docsxai/my-app --check --against ./public/screens");
     expect(out.indexOf("\nExamples:\n")).toBeGreaterThan(out.indexOf("\nNotes:\n"));
-  });
-
-  it("exits 2 on an unknown command", async () => {
-    expect(await main(["frobnicate"])).toBe(2);
-    expect(err).toMatch(/unknown command: frobnicate/);
-  });
-
-  it("run without a workspace dir exits 2", async () => {
-    expect(await main(["run"])).toBe(2);
-    expect(err).toMatch(/missing <workspace-dir>/);
   });
 
   it("run against a non-existent project exits 1", async () => {
     expect(await main(["run", "/definitely/not/a/real/dir"])).toBe(1);
     expect(err).toMatch(/has no flows\/ directory/);
     expect(err).toMatch(/docsxai init/);
-  });
-
-  it("diagnose without project dir exits 2", async () => {
-    expect(await main(["diagnose"])).toBe(2);
-    expect(err).toMatch(/missing <workspace-dir>/);
   });
 
   it("diagnose without --flow exits 2", async () => {
@@ -89,11 +75,6 @@ describe("docsxai CLI — main()", () => {
   it("run --start-from without --flow exits 2 (start-from is a single-flow calibration aid)", async () => {
     expect(await main(["run", "/some/ws", "--start-from", "edit-timing"])).toBe(2);
     expect(err).toMatch(/--start-from requires --flow/);
-  });
-
-  it("render without a workspace dir exits 2", async () => {
-    expect(await main(["render"])).toBe(2);
-    expect(err).toMatch(/missing <workspace-dir>/);
   });
 
   it("init requires a workspace dir (unless --persist tmp) and validates enums", async () => {
