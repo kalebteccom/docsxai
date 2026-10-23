@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **`burnWithWorkspaceTheme` in `@docsxai/viewer`.** Burns a screenshot with the `burn.theme` of a workspace's `.docsxai.json`, loaded once per workspace and cached by path and config mtime. It returns what `burnAnnotations` returns, lets an explicit `options.theme` win, sends theme warnings to `options.warn` once per load and throws `BurnThemeError` for an invalid block. Guide: `docs/burn-theming.md`.
+
 ### Fixed
 
 - Docs site: a print stylesheet that drops the site chrome, and readable dark text on the landing-page mock buttons.

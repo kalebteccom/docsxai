@@ -238,6 +238,22 @@ The output is still produced.
 
 An arrow or stem over a dark part of a screenshot gets a white outline, as before. A light connector colour (a light `callout_border_color`) mirrors that: it gets a dark outline over light pixels.
 
+## From a script
+
+`burnWithWorkspaceTheme` reads the theme from `<workspace>/.docsxai.json` and burns with it:
+
+```ts
+import { burnWithWorkspaceTheme } from "@docsxai/viewer";
+
+const png = await burnWithWorkspaceTheme({
+  workspace: "/path/to/workspace",
+  screenshotBuffer,
+  annotations,
+});
+```
+
+It returns what `burnAnnotations` returns and forwards `options` to it; an explicit `options.theme` wins over the workspace's. The theme is loaded once per workspace and kept for the process, keyed by the workspace path and the mtime of `.docsxai.json` (a changed tokens or font file needs a touch of the config). Contrast and font weight warnings go to `options.warn` (default `console.warn`) once per load. An invalid block throws a `BurnThemeError` with the file and the key list.
+
 ## Viewer variables
 
 `docsxai render` appends one `:root` rule to each flow page. The stylesheet reads every variable with today's value as the fallback, so a page built without a theme looks as it did.

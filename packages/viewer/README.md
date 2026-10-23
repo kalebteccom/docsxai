@@ -149,6 +149,20 @@ The halo, badge, callout and arrow take their colours, radii, shadow, badge shap
 - Sizing: `scale` (a number, or `"auto"` for screenshot width over `display_width`, between 1 and 4) multiplies every caption dimension. `burn.ts` lays a screenshot out at base size on an image shrunk by that factor and multiplies the result back (`captionScale` and `scaledTheme` in `burn-theme.ts`), so placement matches the unscaled caption. `arrow_size`, `max_width_ratio` and `font_weight` are tokens too; `arrowGeometry` and `planCallout` take the arrow length. All default to the old hard-coded values.
 - Tests assert the four presets by sampling pixels at the halo, callout background, callout outline and badge of a fixed fixture, so no golden image is stored. The default theme is pinned by `legacy-burn-trees.json` and by byte equality with a burn that passes no theme. Mapping table, key ranges and the viewer variables: [`docs/burn-theming.md`](../../docs/burn-theming.md).
 
+#### From a script
+
+```ts
+import { burnWithWorkspaceTheme } from "@docsxai/viewer";
+
+const png = await burnWithWorkspaceTheme({
+  workspace: "/path/to/workspace",
+  screenshotBuffer,
+  annotations,
+});
+```
+
+`burnWithWorkspaceTheme` loads `burn.theme` from `<workspace>/.docsxai.json` once per workspace (cached by path and config mtime), forwards `options` to `burnAnnotations` (an explicit `options.theme` wins), sends the theme's warnings to `options.warn` once per load, and throws `BurnThemeError` for an invalid block. See [`docs/burn-theming.md`](../../docs/burn-theming.md).
+
 #### Making captions legible on a docs site
 
 A wide screenshot shown in a narrow column shrinks its caption with it: a 1440 px capture in a 720 px column shows 14 px text at 7 px. Set the column width and let the burner scale up:
