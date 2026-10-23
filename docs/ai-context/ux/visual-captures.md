@@ -1,6 +1,6 @@
 # Visual captures
 
-The `visual-captures` GitHub Actions workflow was retired when CI moved to Woodpecker, so no pipeline takes these screenshots today. The scripts stay in the repository and do not depend on a CI runner, so a Woodpecker step can run them later. The Woodpecker `architecture` step runs `scripts/visual-plan.test.mjs`.
+The `.woodpecker/visual-captures.yaml` workflow runs these scripts on pushes to branches other than `main` that change `website/`, `packages/viewer/` or `scripts/visual-*.mjs`. It runs on the `browser-runner` agent, its capture step has `failure: ignore`, and it is not a required check. The PNGs and `summary.md` are copied to `/srv/docsxai-visual/<pipeline number>` on the CI box, and the `publish` step prints that folder and the file list in its log. Folders older than 14 days are pruned. The scripts do not depend on a CI runner. The Woodpecker `architecture` step runs `scripts/visual-plan.test.mjs`.
 
 The scripts build nothing themselves. Given a built docs site, a rendered sample pack (`examples/ci/sample-repo/docs-workspace/docs`) and an empty pack, they open each in headless Chromium and write PNGs plus a markdown summary. Nothing is compared. A run fails when a static server cannot start, Chromium cannot launch or not one capture succeeds. A single failed capture is listed in the summary and the run still exits 0.
 

@@ -1,0 +1,83 @@
+# ci-optimised: v1
+# Screenshots of the docs site and a sample viewer pack for branches that change either one. Informational: nothing is compared and nothing gates a merge.
+# The PNGs land in /srv/docsxai-visual/<pipeline number> on the CI box and the log prints the folder. How to read them: docs/ai-context/ux/visual-captures.md.
+# INVARIANT: not a required check. The main ruleset requires ci/woodpecker/push/ci only. This pipeline names no secrets and publishes nothing.
+
+# Only the browser runner takes this workflow: agent `browser-runner`, at most 3 workflows at once, 24 GB RAM, 8 cores and 4 GB /dev/shm per step.
+labels:
+  browser: "true"
+
+# INVARIANT: push events only, never on main, same as ci.yaml. The path filter looks at the files changed by the push, so a later push that touches none of them does not run it again.
+when:
+  - event: push
+    branch:
+      exclude: [main]
+    path:
+      include:
+        - "website/**"
+        - "packages/viewer/**"
+        - "scripts/visual-*.mjs"
+        - ".woodpecker/visual-captures.yaml"
+
+steps:
+  # The pnpm store sits in the container's /tmp, as in release.yaml; node_modules in the workspace gets copies, so later steps need no store.
+  - name: setup
+    image: remotxai-ci:latest
+    depends_on: []
+    commands:
+      - pnpm install --frozen-lockfile --ignore-scripts --store-dir /tmp/pnpm-store
+
+  # Builds the viewer and the docs site, then renders the sample pack and an empty pack into visual-work/ in the workspace.
+  - name: build
+    image: remotxai-ci:latest
+    depends_on: [setup]
+    commands:
+      - pnpm --filter @docsxai/viewer build
+      - pnpm --filter @docsxai/website build
+      - mkdir -p visual-work/empty-docs
+      - node packages/viewer/dist/index.js build examples/ci/sample-repo/docs-workspace/docs visual-work/viewer
+      - node packages/viewer/dist/index.js build visual-work/empty-docs visual-work/viewer-empty
+
+  # The documented Chromium fetch, the allowed exception to --ignore-scripts. The browser goes into a per-pipeline directory in the container's /tmp,
+  # which is gone when the step ends. A step container's /tmp is not shared, so the fetch and the capture share this step.
+  # failure: ignore keeps a capture problem from turning the workflow red. The two timeouts are the time budget: 5 minutes to fetch, 15 to capture.
+  - name: capture
+    image: remotxai-ci:latest
+    depends_on: [build]
+    failure: ignore
+    environment:
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/docsxai-pw-${CI_PIPELINE_NUMBER}
+    commands:
+      - timeout 300 pnpm -C packages/engine exec playwright-core install chromium
+      - >-
+        timeout 900 node scripts/visual-capture.mjs
+        --site website/dist
+        --viewer visual-work/viewer
+        --empty visual-work/viewer-empty
+        --out visual-work/png
+        --summary visual-work/summary.md
+        --artifact "docsxai-visual/${CI_PIPELINE_NUMBER}"
+
+  # /srv/docsxai-visual is a host folder the box admin creates and makes writable for the agent's containers. Folders older than 14 days are removed here. The two timeout 120 prefixes are this step's time budget.
+  # Shell variables are written $dest, not ${dest}: Woodpecker substitutes ${...} before the shell runs.
+  - name: publish
+    image: remotxai-ci:latest
+    depends_on: [capture]
+    failure: ignore
+    volumes:
+      - /srv/docsxai-visual:/srv/docsxai-visual
+    commands:
+      - |
+        if [ ! -d visual-work/png ]; then
+          echo "No PNGs from the capture step, nothing to publish."
+          exit 0
+        fi
+        dest=/srv/docsxai-visual/${CI_PIPELINE_NUMBER}
+        mkdir -p "$dest"
+        timeout 120 cp -R visual-work/png/. "$dest"/
+        cp visual-work/summary.md "$dest"/summary.md
+        chmod -R a+rX "$dest"
+        echo "Screenshots for ${CI_COMMIT_BRANCH} at ${CI_COMMIT_SHA}"
+        echo "Folder: $dest ($(find "$dest" -name '*.png' | wc -l) PNGs)"
+        (cd "$dest" && find . -type f | sort)
+        timeout 120 find /srv/docsxai-visual -mindepth 1 -maxdepth 1 -type d -name '[0-9]*' -mtime +14 -exec rm -rf {} +
