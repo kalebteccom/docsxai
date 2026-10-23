@@ -251,8 +251,7 @@ describe("docs/ci-recipes.md", () => {
     const yamlBlocks = blocks.filter((b) => b.lang === "yaml");
     expect(yamlBlocks.length).toBeGreaterThanOrEqual(5);
     for (const b of yamlBlocks) {
-      const lines = scriptsIn(parse(b.body));
-      expect(lines.join("\n")).not.toMatch(/corepack|pnpm add -g|pnpm\/action-setup/);
+      expect(b.body).not.toMatch(/corepack|pnpm add -g|pnpm\/action-setup/);
     }
     expect(blocks.some((b) => b.body.includes("refresh-docs:"))).toBe(true);
   });

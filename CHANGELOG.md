@@ -14,6 +14,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Fixed
 
+- **CI examples.** The GitHub Actions nightly recipe now runs its `tee` steps under `shell: bash`, so a failing `docsxai run` or `docsxai diff` fails the job (the default shell has no pipefail). The weekly GitHub and GitLab refresh recipes in `docs/ci-recipes.md` install `docsxai@next` with npm: they used `pnpm/action-setup` without a pnpm version and `corepack`, which Node 26 images do not ship. Added `examples/burn-theme/` and a README for `examples/ci/sample-repo/`.
 - Docs site: a print stylesheet that drops the site chrome, and readable dark text on the landing-page mock buttons.
 
 ## [0.3.0-rc.4] - 2026-10-23
