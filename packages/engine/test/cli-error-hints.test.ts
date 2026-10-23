@@ -249,3 +249,24 @@ describe("no workspace", () => {
     expect(err).toContain(`next: docsxai calibrate ${ws} --from <flow.yaml>`);
   });
 });
+
+describe("a .docsxai.json that does not load", () => {
+  it("run and capture-auth say the file was ignored and why", async () => {
+    const ws = await scaffold("--auth", "none");
+    await fs.rm(path.join(ws, "flows", "clean.flow.yaml"));
+    await fs.writeFile(path.join(ws, ".docsxai.json"), "{ not json");
+    expect(await main(["run", ws])).toBe(1);
+    expect(err).toContain("run: warning, ");
+    expect(err).toContain("was ignored (it is not valid JSON");
+    expect(err).toContain(`next: fix ${path.join(ws, ".docsxai.json")}, then docsxai run ${ws}`);
+    err = "";
+    expect(await main(["capture-auth", ws])).toBe(2);
+    expect(err).toContain("capture-auth: warning, ");
+    expect(err).toContain(`then docsxai capture-auth ${ws}`);
+  });
+
+  it("stays silent when there is no config file at all", async () => {
+    expect(await main(["capture-auth", tmp])).toBe(2);
+    expect(err).not.toContain("warning");
+  });
+});

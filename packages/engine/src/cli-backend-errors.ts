@@ -82,3 +82,18 @@ export async function configProblem(workspaceDir: string): Promise<string> {
   }
   return 'its "schema" must be "docsxai/workspace@1"';
 }
+
+/**
+ * Warn on stderr when `.docsxai.json` exists but did not load, so a typo does not read as "no
+ * app_url". A missing file is the normal case for a bare directory and stays silent.
+ */
+export async function warnUnusableConfig(label: string, workspaceDir: string): Promise<void> {
+  const problem = await configProblem(workspaceDir);
+  if (problem === "the file does not exist") return;
+  const file = resolveWorkspacePath(workspaceDir, WORKSPACE_CONFIG_FILE);
+  const note = withNext(
+    `warning, ${file} was ignored (${problem})`,
+    `fix ${shellQuote(file)}, then docsxai ${label} ${shellQuote(workspaceDir)}`,
+  );
+  process.stderr.write(`${label}: ${note}\n`);
+}
