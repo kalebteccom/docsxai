@@ -46,7 +46,7 @@ plugin built for `1.0.0` runs under runtime `1.5.0`; one built for `1.6.0` or
 `namespace` is mandatory, kebab-case (`/^[a-z][a-z0-9-]*$/`). Every artifact
 you register is exposed as `<namespace>:<name>` - the runtime adds the
 prefix, you pass bare names. Four namespaces are reserved (`docsxai`,
-`docsxai`, `core`, `plugins`), and if two plugins claim the same namespace,
+`site-docs`, `core`, `plugins`), and if two plugins claim the same namespace,
 **both** are disabled - load order never picks winners.
 
 ## Capabilities

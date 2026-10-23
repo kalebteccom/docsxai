@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Fixed
+
+- **Docs match the code.** Fixed the reserved plugin namespaces, the backend auth gate (any bearer without `DOCSX_TOKEN`, the webhook exemption), the optional `BrowserDriver` methods, the lint rule range, the plugin status list, the `burn.theme` preset count, the session-expiry message and the `plugin-sharepoint` publish note.
+
 ## [0.3.0-rc.4] - 2026-10-23
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

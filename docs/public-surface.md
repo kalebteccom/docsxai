@@ -285,7 +285,7 @@ Found while reading the code for this page.
 3. `WorkspaceConfig` in `workspace.ts` does not declare `plugins` and `plugin_capabilities`. They are parsed separately in `plugins/lock.ts`. A reader of the interface alone misses two stable keys.
 4. `PluginRegistry.getAuthStrategies()` is exercised by a test only. No command passes plugin strategies to `capture-auth` or `run`, so PLUG-08 stays experimental.
 5. Closed 2026-10-06: `hideElements`, `showElements` and `nearbyBoxes` are optional `BrowserDriver` methods, so a later driver method no longer needs a major release (DRV-03).
-6. The plugin reference on the docs site lists the reserved namespaces as `docsxai`, `docsxai`, `core`, `plugins`. The code reserves `docsxai`, `site-docs`, `core`, `plugins`.
+6. Closed: the plugin reference and the plugin-writing guide listed the reserved namespaces as `docsxai`, `docsxai`, `core`, `plugins`. Both now match the code: `docsxai`, `site-docs`, `core`, `plugins`.
 7. The `Notes:` block of `docsxai --help` is the only description of several behaviours (`--start-from`, `--cdp`, deterministic `zip`). The reference page and the help text can drift because nothing compares them. The contract test pins the `Usage:` lines only.
 
 ## Contract tests

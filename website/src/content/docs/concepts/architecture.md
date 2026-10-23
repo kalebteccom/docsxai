@@ -69,8 +69,8 @@ The runtime is written against a thin `BrowserDriver` interface, not against
 Playwright directly: `goto`, `click`, `fill`, the wait primitives, the
 success-check reads, `screenshot`, `boundingBox`, `nearbyBoxes`, and the write-time
 `actionable(selector)` probe. The one Playwright integration point
-(`PlaywrightDriver`) stays small and is the engine's single Playwright import
-site. This seam is what lets browxai slot in as the model-agnostic discovery
+(`PlaywrightDriver`) stays small. Only it and the instrumented browser for
+`capture-auth` import `playwright-core`. This seam is what lets browxai slot in as the model-agnostic discovery
 driver during calibration while execution keeps its own raw Playwright
 sessions - and it keeps the runtime testable without a browser at all.
 

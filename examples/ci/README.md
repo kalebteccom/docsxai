@@ -16,4 +16,4 @@ Nightly drift jobs for GitHub Actions, GitLab CI and Woodpecker. Copy one into t
 
 ## Dogfood nightly runs
 
-The nightly runs for the dogfood workspaces live in the remotxai and trackxai repositories, not here: browser capture does not run in this repository's CI. Both workspaces adopt these recipes once `0.3.0-rc.1` is published, since the recipes install `docsxai@next` from npm.
+The nightly runs for the dogfood workspaces live in the remotxai and trackxai repositories, not here: browser capture does not run in this repository's CI. Both workspaces can adopt these recipes now, since the recipes install `docsxai@next` from npm and `next` carries `pack` and `--verify-determinism` (`0.3.0-rc.3` and later).

@@ -15,11 +15,12 @@ echoes it and warns on mismatch.
 
 ## Authentication
 
-Everything except `/v1/health` and the OAuth endpoints sits behind a bearer
-gate, with two ways through:
+Everything except `/v1/health`, the OAuth endpoints and `/v1/github/webhook`
+(HMAC-verified instead) sits behind a bearer gate, with two ways through:
 
 - **CI token** - start the server with `DOCSX_TOKEN` set; callers present
-  it as `Authorization: Bearer <token>`.
+  it as `Authorization: Bearer <token>`. With no token configured the
+  stub accepts any non-empty bearer value.
 - **OAuth 2.1 access token** - issued by the backend's own minimal
   authorization server (authorization-code with PKCE, S256 only, loopback
   redirect URIs only). `docsxai login --backend-url <url> --oauth <workspace>`
