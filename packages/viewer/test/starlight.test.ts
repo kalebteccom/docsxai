@@ -370,7 +370,8 @@ describe("emitStarlightSite micro-states", () => {
     await emitStarlightSite({ workspaceDir: ws, outDir: out });
     const copy = await read(out, "src/components/CopyId.astro");
     expect(copy).toContain("const COPIED_MS = 1500;");
-    for (const label of ["Copy", "Copied", "Press Ctrl+C"]) expect(copy).toContain(`>${label}</span>`);
+    for (const label of ["Copy", "Copied", "Press Ctrl+C"])
+      expect(copy).toContain(`>${label}</span>`);
     expect(copy).toContain("grid-area: 1 / 1;");
     expect(copy).toContain("visibility: hidden;");
     expect(copy).toContain('role="status" aria-live="polite"');
@@ -399,7 +400,6 @@ describe("emitStarlightSite micro-states", () => {
     expect(shot).not.toMatch(/transition|animation/);
     expect(shot).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
   });
-
 
   it("builds the landing page from one LinkCard per flow with step/annotation counts", async () => {
     const ws = await makeWorkspace(goldenSpec());

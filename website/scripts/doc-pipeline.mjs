@@ -47,11 +47,11 @@ export const htmlPages = [
     out: "guides/burn-theming.md",
     title: "Themeable burned captions",
     description:
-      "Set the look of the halo, numbered badge, callout and arrow in burned screenshots and in the interactive viewer: the burn.theme block, the clean, soft and high-contrast presets, and an optional tokens file.",
+      "Set the look of the halo, numbered badge, callout and arrow in burned screenshots and in the interactive viewer: the burn.theme block, the clean, soft, readable and high-contrast presets, and an optional tokens file.",
     replace: [
       [
         /(Everything below is opt-in\.\n)/,
-        "$1\n:::note[Availability]\n`burn.theme` is on `main` and lands after `0.3.0-rc.3`: `docsxai@next` at `0.3.0-rc.3` does not read it. The surface is experimental, so the preset values and the token mapping can still change.\n:::\n",
+        "$1\n:::note[Availability]\n`burn.theme` is available from `0.3.0-rc.4` (`docsxai@next`). `0.2.0` and `0.3.0-rc.3` do not read it. The surface is experimental, so the preset values and the token mapping can still change.\n:::\n",
       ],
     ],
   },

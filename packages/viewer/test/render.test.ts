@@ -421,7 +421,9 @@ describe("parseAnnotations", () => {
 
   it("reports a file that is not JSON or has no annotations list", () => {
     expect(parseAnnotations("{").notices[0]).toMatch(/could not be parsed/);
-    expect(parseAnnotations("{").notices[0]).toMatch(/Fix the file, then run docsxai render again\.$/);
+    expect(parseAnnotations("{").notices[0]).toMatch(
+      /Fix the file, then run docsxai render again\.$/,
+    );
     expect(parseAnnotations("null").notices[0]).toMatch(/no annotations list/);
     expect(parseAnnotations('{"annotations":{}}').notices[0]).toMatch(/no annotations list/);
   });

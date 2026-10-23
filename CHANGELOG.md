@@ -4,10 +4,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Fixed
-
-- **Docs match the code.** Fixed the reserved plugin namespaces, the backend auth gate (any bearer without `DOCSX_TOKEN`, the webhook exemption), the optional `BrowserDriver` methods, the lint rule range, the plugin status list, the `burn.theme` preset count, the session-expiry message and the `plugin-sharepoint` publish note.
-
 ## [0.3.0-rc.4] - 2026-10-23
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
@@ -36,6 +32,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Flow-file errors name the field.** A wrong type or an unknown key inside `success`, `wait_for` or `redactions` printed a bare `Invalid input`; it now prints the path of the bad field and the zod message of the closest match.
 - **Missing `flows/`, token and config errors end with a command.** `run`, `lint` and `flow-tree` on a directory without `flows/` end with `next: docsxai init <dir>`. `push` and `pull` without a usable token end with the `docsxai login ... --oauth <dir>` command. `run` and `capture-auth` warn when `.docsxai.json` exists but was ignored (invalid JSON or the wrong `schema`), and `run` warns when a flow navigates to a relative path with no `app_url`.
 - **Read-only or full disks.** A write refused with `EACCES`, `EPERM`, `EROFS` or `ENOSPC` prints `cannot access <path> (<code>, <reason>)` and a `next:` line in `init`, `zip`, `baseline`, `export`, `run` and the bin's last-resort handler, with no report-a-bug line.
+- **Docs match the code.** Fixed the reserved plugin namespaces, the backend auth gate (any bearer without `DOCSX_TOKEN`, the webhook exemption), the optional `BrowserDriver` methods, the lint rule range, the plugin status list, the `burn.theme` preset count, the session-expiry message and the `plugin-sharepoint` publish note.
 
 ## [0.3.0-rc.3] - 2026-10-09
 

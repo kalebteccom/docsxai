@@ -47,7 +47,8 @@ export function explainBackendFailure(
   // quote a URL with its credentials or query.
   const message = sanitizeForTerminal(redactUrlsIn(e.message));
   // No usable token (never logged in, or the stored one lapsed): the client's own hint becomes the next line.
-  const tokenGap = e.status === undefined ? /^(.*?) — set DOCSX_TOKEN or run /s.exec(message) : null;
+  const tokenGap =
+    e.status === undefined ? /^(.*?) — set DOCSX_TOKEN or run /s.exec(message) : null;
   if (tokenGap) {
     const ws = workspaceDir ? shellQuote(workspaceDir) : "<workspace-dir>";
     return withNext(

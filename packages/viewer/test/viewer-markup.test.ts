@@ -196,7 +196,9 @@ describe("empty, error and loading states", () => {
 
   it("shows a placeholder for a step without a screenshot and keeps its caption", () => {
     const html = stepHtml(step({ screenshot: null }), 1);
-    expect(html).toContain('<div class="shot-missing" role="status"><p>No screenshot for this step.');
+    expect(html).toContain(
+      '<div class="shot-missing" role="status"><p>No screenshot for this step.',
+    );
     expect(html).toContain('<figcaption class="caption">Click Play</figcaption>');
     expect(html).not.toContain("<img");
     expect(html).not.toContain("shot-error");
@@ -269,8 +271,12 @@ describe("copy buttons", () => {
 
   it("holds all three labels in one button so its width never changes", () => {
     const one = copyButton("x", "step id");
-    expect(one).toContain('<span class="sd-copy-label sd-copy-idle" aria-hidden="true">Copy</span>');
-    expect(one).toContain('<span class="sd-copy-label sd-copy-done" aria-hidden="true">Copied</span>');
+    expect(one).toContain(
+      '<span class="sd-copy-label sd-copy-idle" aria-hidden="true">Copy</span>',
+    );
+    expect(one).toContain(
+      '<span class="sd-copy-label sd-copy-done" aria-hidden="true">Copied</span>',
+    );
     expect(one).toContain(
       '<span class="sd-copy-label sd-copy-fallback" aria-hidden="true">Press Ctrl+C</span>',
     );

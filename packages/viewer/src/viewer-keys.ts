@@ -5,7 +5,10 @@
 export type StepMove = "next" | "prev" | "first" | "last";
 
 export type ViewerAction =
-  { kind: "step"; move: StepMove } | { kind: "flow"; move: "next" | "prev" } | { kind: "dismiss" } | { kind: "help" };
+  | { kind: "step"; move: StepMove }
+  | { kind: "flow"; move: "next" | "prev" }
+  | { kind: "dismiss" }
+  | { kind: "help" };
 
 export interface Shortcut {
   /** `KeyboardEvent.key` values that trigger the action. */
