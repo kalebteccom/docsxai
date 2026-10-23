@@ -105,8 +105,8 @@ describe("index page", () => {
       [{ flow: "a", steps: 2, annotations: 1, thumb: "a/screenshots/x.png" }],
       AT,
     );
-    expect(html).toContain(
-      '<ul class="flow-grid" role="list"><li><a class="flow-card" href="./a/index.html">',
+    expect(html).toMatch(
+      /<main[^>]*>[\s\S]*<ul class="flow-grid" role="list"><li[^>]*><a class="flow-card" href="\.\/a\/index\.html">[\s\S]*<\/li><\/ul>[\s\S]*<\/main>/,
     );
     expect(html).toContain("<span>2 steps, 1 annotation</span>");
     // a decorative thumbnail: the card's text names the flow
