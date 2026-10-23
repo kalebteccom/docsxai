@@ -114,7 +114,7 @@ describe("docsxai run - closing line", () => {
     await fs.mkdir(path.join(ws, "flows"), { recursive: true });
     await fs.writeFile(
       path.join(ws, "flows", "f.flow.yaml"),
-      "name: f\nsteps:\n  - id: open\n    action: navigate\n    value: index.html\n",
+      "name: f\nsteps:\n  - id: open\n    action: navigate\n    value: http://localhost/index.html\n",
     );
   });
   afterEach(async () => {
