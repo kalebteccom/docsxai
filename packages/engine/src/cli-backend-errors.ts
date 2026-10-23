@@ -46,6 +46,15 @@ export function explainBackendFailure(
   // The message carries the start of the response body, which the backend controls, and can
   // quote a URL with its credentials or query.
   const message = sanitizeForTerminal(redactUrlsIn(e.message));
+  // No usable token (never logged in, or the stored one lapsed): the client's own hint becomes the next line.
+  const tokenGap = e.status === undefined ? /^(.*?) — set DOCSX_TOKEN or run /s.exec(message) : null;
+  if (tokenGap) {
+    const ws = workspaceDir ? shellQuote(workspaceDir) : "<workspace-dir>";
+    return withNext(
+      `${tokenGap[1]} for ${url}`,
+      `${login} --oauth ${ws}  (or set DOCSX_TOKEN to a CI token)`,
+    );
+  }
   if (e.status === 401 || e.status === 403) {
     const oauth = workspaceDir
       ? `  (or add --oauth ${shellQuote(workspaceDir)} to sign in as a person)`

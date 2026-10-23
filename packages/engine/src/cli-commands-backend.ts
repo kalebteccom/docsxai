@@ -156,7 +156,10 @@ export async function cmdPush(args: string[]): Promise<number> {
   try {
     client = await createBackendClient({ baseUrl: wsCfg.backend_url, workspaceDir: projectDir });
   } catch (e) {
-    process.stderr.write(`push: ${sanitizeForTerminal((e as Error).message)}\n`);
+    const text =
+      explainBackendFailure(e, wsCfg.backend_url, projectDir) ??
+      sanitizeForTerminal((e as Error).message);
+    process.stderr.write(`push: ${text}\n`);
     return 1;
   }
 
@@ -240,7 +243,10 @@ export async function cmdPull(args: string[]): Promise<number> {
   try {
     client = await createBackendClient({ baseUrl: wsCfg.backend_url, workspaceDir: projectDir });
   } catch (e) {
-    process.stderr.write(`pull: ${sanitizeForTerminal((e as Error).message)}\n`);
+    const text =
+      explainBackendFailure(e, wsCfg.backend_url, projectDir) ??
+      sanitizeForTerminal((e as Error).message);
+    process.stderr.write(`pull: ${text}\n`);
     return 1;
   }
 

