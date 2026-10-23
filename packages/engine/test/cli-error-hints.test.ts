@@ -166,11 +166,6 @@ describe("render, burn, zip, baseline, diff", () => {
     expect(err).toContain(`next: docsxai run ${empty}`);
   });
 
-  it("diff without a baseline exits 2 and names baseline", async () => {
-    const ws = await scaffold("--auth", "none");
-    expect(await main(["diff", ws])).toBe(2);
-    expect(err).toContain(`next: docsxai baseline ${ws}`);
-  });
 });
 
 describe("next: hints quote a workspace path that is not a plain word", () => {

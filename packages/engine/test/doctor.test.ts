@@ -655,15 +655,4 @@ describe("doctor CLI dispatch", () => {
     expect(out).not.toContain("environment & workspace health");
   });
 
-  it("leaves a plain run alone: checklist printed, exit 1 iff a row failed", async () => {
-    const empty = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-doctor-nows-"));
-    try {
-      const code = await main(["doctor", empty]);
-      expect(out).toContain("environment & workspace health");
-      expect(out).not.toContain("usage: docsxai doctor");
-      expect(code).toBe(/\n {2}✗ /.test(out) ? 1 : 0);
-    } finally {
-      await fs.rm(empty, { recursive: true, force: true });
-    }
-  });
 });

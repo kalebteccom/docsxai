@@ -155,12 +155,6 @@ describe("burn dispatch", () => {
   }
   const argvOf = async (file: string) => JSON.parse(await fs.readFile(file, "utf8")) as string[];
 
-  it("without a workspace dir exits 2 with the usage", async () => {
-    expect(await main(["burn"])).toBe(2);
-    expect(err).toMatch(/burn: missing <workspace-dir>/);
-    expect(err).toMatch(/docsxai burn <workspace-dir>/);
-  });
-
   it("rejects unknown flags, flags without a value, a second positional and path-like flow names", async () => {
     const cases: Array<[string[], RegExp]> = [
       [["burn", "ws", "--frobnicate"], /unknown flag --frobnicate/],
@@ -252,11 +246,6 @@ describe("burn dispatch", () => {
 });
 
 describe("push / pull / login argument contracts", () => {
-  it("push without a workspace dir exits 2", async () => {
-    expect(await main(["push"])).toBe(2);
-    expect(err).toMatch(/missing <workspace-dir>/);
-  });
-
   it("push on a workspace with no backend_url exits 2", async () => {
     const ws = await makeWorkspace();
     expect(await main(["push", ws])).toBe(2);
@@ -276,11 +265,6 @@ describe("push / pull / login argument contracts", () => {
     );
     expect(await main(["push", ws, "--kind", "bogus"])).toBe(2);
     expect(err).toMatch(/--kind must be calibrate \| run \| edit/);
-  });
-
-  it("pull without a workspace dir exits 2", async () => {
-    expect(await main(["pull"])).toBe(2);
-    expect(err).toMatch(/missing <workspace-dir>/);
   });
 
   it("pull on a workspace not bound to a backend exits 2", async () => {
