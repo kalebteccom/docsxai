@@ -22,6 +22,8 @@ const OFFSETS = [BADGE_DEFAULT_OFFSET, 14, 20, 26];
 const OBSTACLE_WEIGHT = 1;
 /** Cost per px² of badge on the target's own box. */
 const TARGET_WEIGHT = 0.5;
+/** Gap a planned badge keeps from the image edge, so its border is never cut off. */
+const EDGE_MARGIN = 2;
 const CORNERS: readonly BadgeCorner[] = ["top-left", "top-right", "bottom-left", "bottom-right"];
 
 type Size = { width: number; height: number };
@@ -60,6 +62,22 @@ export function anchorBadge(
   };
 }
 
+const within = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/**
+ * `box` moved fully inside the image, {@link EDGE_MARGIN} px from each edge. {@link anchorBadge}
+ * only keeps the circle's inner 22 px in, which lets a badge's border cross the far edge.
+ */
+function insideImage(box: Rect, image: Size): Rect {
+  const maxX = Math.max(0, image.width - box.width - EDGE_MARGIN);
+  const maxY = Math.max(0, image.height - box.height - EDGE_MARGIN);
+  return {
+    ...box,
+    x: within(box.x, Math.min(EDGE_MARGIN, maxX), maxX),
+    y: within(box.y, Math.min(EDGE_MARGIN, maxY), maxY),
+  };
+}
+
 const covered = (box: Rect, against: Rect[]) =>
   against.reduce((sum, r) => sum + overlapArea(box, r), 0);
 
@@ -68,14 +86,16 @@ const covered = (box: Rect, against: Rect[]) =>
  * area covering an obstacle or avoided box plus half the area covering the target itself (the
  * target's own first letter is what a flush-text badge hides). Obstacles outweigh the target, so a
  * badge only sits on the target to clear a neighbour. Ties go to enumeration order: nearest
- * offset first, then up-left (today's position), up-right, down-left, down-right.
+ * offset first, then up-left (today's position), up-right, down-left, down-right. Every candidate
+ * lies fully inside the image.
  */
 export function planBadge(inp: BadgeInput): Rect {
   const avoid = inp.avoid ?? [];
   let best: { box: Rect; cost: number } | undefined;
   for (const offset of OFFSETS) {
     for (const corner of CORNERS) {
-      const box = anchorBadge(inp.target, corner, offset, inp.size, inp.image);
+      const anchored = anchorBadge(inp.target, corner, offset, inp.size, inp.image);
+      const box = insideImage(anchored, inp.image);
       const cost =
         OBSTACLE_WEIGHT * (covered(box, inp.obstacles) + covered(box, avoid)) +
         TARGET_WEIGHT * overlapArea(box, inp.target);
