@@ -35,7 +35,7 @@ import { listFlowFiles, parseFlags } from "./cli-shared.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
-import { shellQuote, usageError, withNext } from "./cli-messages.js";
+import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 import { reportRun } from "./cli-run-summary.js";
 import { warnUnusableConfig } from "./cli-backend-errors.js";
 
@@ -448,7 +448,9 @@ export async function cmdInit(args: string[]): Promise<number> {
     );
     return 0;
   } catch (e) {
-    process.stderr.write(`init: ${(e as Error).message.replace(/^init: /, "")}\n`);
+    process.stderr.write(
+      `init: ${describeFsError(e) ?? (e as Error).message.replace(/^init: /, "")}\n`,
+    );
     return 1;
   }
 }

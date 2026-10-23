@@ -3,7 +3,7 @@
 // stack itself when DOCSX_DEBUG is set. URLs in the text are redacted. Commands keep their own
 // error wording; this only sees what they rethrow.
 
-import { redactUrlsIn, sanitizeForTerminal, withNext } from "./cli-messages.js";
+import { describeFsError, redactUrlsIn, sanitizeForTerminal, withNext } from "./cli-messages.js";
 
 const ISSUES = "https://github.com/kalebteccom/docsxai/issues";
 
@@ -15,6 +15,9 @@ export function debugEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
 /** The stderr text for an error that reached the bin, with the stack only when `debug` is on. */
 export function unexpectedErrorText(e: unknown, debug: boolean): string {
   const raw = e instanceof Error ? e.message : String(e);
+  // A file the disk or its permissions refused is the operator's to fix, not a bug to report.
+  const fsLine = debug ? undefined : describeFsError(e);
+  if (fsLine) return `docsxai: ${fsLine}\n`;
   const first = sanitizeForTerminal(redactUrlsIn(raw.split("\n")[0] ?? "")) || "(no message)";
   if (debug) {
     const stack = e instanceof Error && e.stack ? e.stack : raw;

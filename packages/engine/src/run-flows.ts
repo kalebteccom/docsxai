@@ -12,6 +12,7 @@ import { expandFlows, type FlowVariant } from "./flow-matrix.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
+import { fsErrorCode } from "./cli-messages.js";
 
 export interface RunFlowsOptions {
   /** The workspace: flows, auth and `upload` sources resolve against it. */
@@ -141,7 +142,10 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
       );
       return true;
     } catch (e) {
-      const message = (e as Error).message;
+      const code = fsErrorCode(e);
+      const message = code
+        ? `cannot write the outputs under ${outputRoot} (${code}): ${(e as Error).message}`
+        : (e as Error).message;
       process.stderr.write(`${tag(name)}${message}\n`);
       failures.push({
         flow: name,

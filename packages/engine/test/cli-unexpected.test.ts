@@ -58,6 +58,19 @@ describe("unexpectedErrorText", () => {
     }
   });
 
+  it("says what to fix for a file the disk refused, without the report-a-bug line", () => {
+    const e = Object.assign(new Error("EACCES: permission denied, mkdir '/ro/docs'"), {
+      code: "EACCES",
+      path: "/ro/docs",
+    });
+    const text = unexpectedErrorText(e, false);
+    expect(text).toBe(
+      "docsxai: cannot access /ro/docs (EACCES, permission denied)\n" +
+        "  next: chmod -R u+rw /ro/docs  (or pick another directory), then rerun the command\n",
+    );
+    expect(unexpectedErrorText(e, true)).toContain("unexpected error");
+  });
+
   it("handles a thrown value that is not an Error", () => {
     expect(unexpectedErrorText("boom", false)).toMatch(/^docsxai: unexpected error: boom\n/);
   });

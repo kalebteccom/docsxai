@@ -54,6 +54,15 @@ describe("formatRunSummary", () => {
 });
 
 describe("nextForFailure", () => {
+  it("names the directory fix when the outputs could not be written", () => {
+    const message = "cannot write the outputs under /ws (EACCES): EACCES: permission denied";
+    expect(nextForFailure("/ws", { flow: "tour", step: null, message })).toBe(
+      "chmod -R u+rw /ws  (or pick another directory), then rerun the command",
+    );
+    const full = { flow: "tour", step: null, message: message.replace("EACCES)", "ENOSPC)") };
+    expect(nextForFailure("/ws", full)).toBe("free disk space, then rerun the command");
+  });
+
   it("splits a variant label into --flow and --variant", () => {
     expect(
       nextForFailure("/ws", { flow: "tour/fr-FR.dark.mobile", step: "open", message: "x" }),

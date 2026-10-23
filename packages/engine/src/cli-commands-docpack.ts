@@ -23,7 +23,7 @@ import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
 import { parseFlags } from "./cli-shared.js";
-import { shellQuote, usageError, withNext } from "./cli-messages.js";
+import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdRender(args: string[]): Promise<number> {
   const { positionals } = parseFlags(args);
@@ -147,7 +147,10 @@ export async function cmdZip(args: string[]): Promise<number> {
       process.stderr.write(`zip: ${next ? withNext(e.message, next) : e.message}\n`);
       return 1;
     }
-    throw e;
+    const fsLine = describeFsError(e);
+    if (fsLine === undefined) throw e;
+    process.stderr.write(`zip: ${fsLine}\n`);
+    return 1;
   }
 }
 
@@ -213,7 +216,7 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
     return 0;
   } catch (e) {
     process.stderr.write(
-      `export adf: ${withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
+      `export adf: ${describeFsError(e) ?? withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
     );
     return 1;
   }
@@ -245,7 +248,7 @@ async function cmdExportPlaywright(rest: string[]): Promise<number> {
     return 0;
   } catch (e) {
     process.stderr.write(
-      `export playwright: ${withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
+      `export playwright: ${describeFsError(e) ?? withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
     );
     return 1;
   }
@@ -323,7 +326,7 @@ export async function cmdBaseline(args: string[]): Promise<number> {
     }
     return 0;
   } catch (e) {
-    process.stderr.write(`baseline: ${(e as Error).message}\n`);
+    process.stderr.write(`baseline: ${describeFsError(e) ?? (e as Error).message}\n`);
     return 1;
   }
 }
