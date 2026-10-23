@@ -14,8 +14,11 @@ One global install of the bare `docsxai` package gives you the whole CLI:
 pnpm add -g docsxai@next
 ```
 
-`next` is the 0.3.x line (`pack`, `--verify-determinism`, matrix flows). `latest` stays 0.2.0 until
-0.3.x ships stable; then it moves, and the pin should move to the stable version.
+`next` carries the 0.3 prerelease line, currently `0.3.0-rc.3`: it adds `burn`, `pack`,
+`run --verify-determinism` and matrix flows. `latest` still points at `0.2.0`, which has none of
+those, so a plain `pnpm add -g docsxai` installs the older release. To pin the prerelease, name the
+version: `pnpm add -g docsxai@0.3.0-rc.3`. When 0.3 ships stable, `latest` moves and the `@next`
+suffix is no longer needed.
 
 `docsxai` is the batteries-included meta-package - its bin runs
 [`@docsxai/engine`](/packages/engine/)'s CLI in-process, and it depends on
@@ -39,10 +42,19 @@ install-time lifecycle script:
 npx playwright-core install chromium
 ```
 
-Claude Code users can additionally install
-[`@docsxai/plugin`](/packages/plugin/), the first-class invocation
-surface for agent-driven calibration. The CLI does not depend on it; every
-deterministic command works standalone.
+## Claude Code plugin
+
+Claude Code users can add the plugin, which brings the calibration skills and the `/docsxai:*`
+commands. It installs from this repository's marketplace. Inside Claude Code:
+
+```text
+/plugin marketplace add kalebteccom/docsxai
+/plugin install docsxai@docsxai
+```
+
+The CLI does not depend on the plugin, and every deterministic command works without it. The
+[`@docsxai/plugin`](/packages/plugin/) page lists the commands and skills. To try a checkout
+without installing, start Claude Code with `claude --plugin-dir /path/to/docsxai/packages/plugin`.
 
 ## From source
 
