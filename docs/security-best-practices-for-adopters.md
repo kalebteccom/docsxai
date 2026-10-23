@@ -10,7 +10,7 @@ Operational practices we recommend for teams integrating docsxai.
 
 ## Verify
 
-- After install: `npm audit signatures` verifies the published Sigstore provenance attestation. Every docsxai package is published with `npm publish --provenance` from GitHub Actions OIDC, so the attestation chain ties each tarball to a specific commit + workflow run in `kalebteccom/docsxai`.
+- After install: `npm audit signatures` verifies the registry signatures of the installed tarballs. Releases run on Woodpecker CI through npm staged publishing and carry no Sigstore provenance attestation (`0.2.0` was published by hand, also without one), so `npm audit signatures` reports no attestations for docsxai packages. Check that the installed version matches a tagged release of `kalebteccom/docsxai`.
 - Watch GitHub Security Advisories on `kalebteccom/docsxai` (subscribe via the repo's "Watch → Security advisories" setting).
 - Watch for unexpected version jumps in `npm outdated` output — a published version that wasn't preceded by a tagged release on GitHub is a red flag.
 
