@@ -298,7 +298,7 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
     descriptorText = await fs.readFile(descriptorPath, "utf8");
   } catch {
     process.stderr.write(
-      `capture-auth: ${withNext(`no auth descriptor at ${descriptorPath}`, "write auth/strategy.yaml (`docsxai init <new-dir>` scaffolds an example to copy)")}\n`,
+      `capture-auth: ${withNext(`no auth descriptor at ${descriptorPath} (a workspace made with --auth none has none; if the app needs no login, skip capture-auth)`, "write auth/strategy.yaml (`docsxai init <new-dir>` scaffolds an example to copy)")}\n`,
     );
     return 1;
   }
@@ -422,8 +422,11 @@ export async function cmdInit(args: string[]): Promise<number> {
     process.stdout.write(
       `init: workspace ${r.ephemeral ? "(ephemeral) " : ""}at ${r.dir}\n  created: ${r.created.join(", ")}\n`,
     );
+    const dirArg = shellQuote(r.dir);
+    // An `--auth none` workspace has no auth descriptor, so capture-auth has nothing to run.
+    const login = auth === "none" ? "" : `docsxai capture-auth ${dirArg}  →  `;
     process.stdout.write(
-      `  next: ${appUrl ? "" : "(set app_url in .docsxai.json, then) "}docsxai capture-auth ${shellQuote(r.dir)}  →  …calibrate…  →  docsxai run ${shellQuote(r.dir)}  →  docsxai render ${shellQuote(r.dir)}\n`,
+      `  next: ${appUrl ? "" : "(set app_url in .docsxai.json, then) "}${login}docsxai calibrate ${dirArg} --from <flow.yaml>  →  docsxai run ${dirArg}  →  docsxai render ${dirArg}\n`,
     );
     return 0;
   } catch (e) {

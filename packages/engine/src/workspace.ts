@@ -179,7 +179,7 @@ Usage (from this directory):
 
 \`\`\`
 docsxai capture-auth .     # if auth is manual-capture: opens an instrumented browser; log in, then run window.__docsxai.capture()
-docsxai calibrate . --description path/to/flow.md   # (when the calibration stages land) produce/refresh flow-files
+docsxai calibrate . --from path/to/flow.yaml       # add a flow-file you wrote (an AI agent can write it: see docs/agent-runbook.md)
 docsxai run .              # replay the flow-files headlessly; refresh annotations + screenshots
 docsxai render . && open .viewer/index.html
 \`\`\`

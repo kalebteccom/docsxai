@@ -6,7 +6,14 @@ description: Scaffold a workspace, capture an authed session if your app needs l
 This page takes you from nothing to a rendered doc pack against your own app.
 It assumes `docsxai` and Chromium are installed ([Installation](/getting-started/installation/);
 `docsxai doctor` checks both) and your app is running somewhere reachable, say
-`https://localhost:3000`.
+`https://localhost:3000`. Want to try it first without an app? The
+[README walkthrough](https://github.com/kalebteccom/docsxai#first-run-in-10-minutes)
+documents `example.com`.
+
+Three terms. A **flow** is a YAML file listing the steps of one user journey.
+To **calibrate** is to write that flow the first time, by hand or with an AI
+agent. The **doc pack** is what a run writes into your workspace: annotations
+and screenshots per flow.
 
 ## 1. Scaffold a workspace
 
@@ -89,9 +96,12 @@ step. A successful run prints one line per flow:
 run: open-reports — 2 step(s) executed, 1 annotation(s) written
 ```
 
-No agent, no LLM calls; the run halts with a `[cause: ...]` prefix if a
-locator or success check fails ([Troubleshooting](/guides/troubleshooting/)).
-While iterating on a single step,
+The last line is a summary, for example
+`run: 1 of 1 flow ok, outputs in ~/docsxai/my-app/docs`.
+
+No agent, no LLM calls. If a locator or success check fails, the run halts with
+the cause in square brackets and prints a `next:` line naming the command to run
+([Troubleshooting](/guides/troubleshooting/)). While iterating on a single step,
 `run --flow open-reports --stop-after open-app --pause` keeps the headed
 browser open mid-flow.
 

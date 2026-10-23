@@ -57,6 +57,21 @@ describe("init", () => {
     expect(err).not.toContain("init: init:");
     expect(err).toContain("--force");
   });
+
+  it("ends with the commands to run, including login capture unless the workspace has no login", async () => {
+    const withLogin = path.join(tmp, "with-login");
+    expect(await main(["init", withLogin, "--app-url", "http://127.0.0.1:1"])).toBe(0);
+    expect(out).toContain(
+      `next: docsxai capture-auth ${withLogin}  →  docsxai calibrate ${withLogin} --from <flow.yaml>`,
+    );
+    out = "";
+    const noLogin = path.join(tmp, "no-login");
+    expect(await main(["init", noLogin, "--app-url", "http://127.0.0.1:1", "--auth", "none"])).toBe(
+      0,
+    );
+    expect(out).toContain(`next: docsxai calibrate ${noLogin} --from <flow.yaml>`);
+    expect(out).not.toContain("capture-auth");
+  });
 });
 
 describe("calibrate", () => {
@@ -85,6 +100,7 @@ describe("capture-auth", () => {
     const ws = await scaffold("--app-url", "http://127.0.0.1:1", "--auth", "none");
     expect(await main(["capture-auth", ws])).toBe(1);
     expect(err).toContain("capture-auth: no auth descriptor at ");
+    expect(err).toContain("if the app needs no login, skip capture-auth");
     expect(err).toContain("next: write auth/strategy.yaml");
   });
 });
