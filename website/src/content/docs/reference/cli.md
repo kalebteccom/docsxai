@@ -318,8 +318,8 @@ screenshot gets a white outline. Exit 1 when the workspace has no `docs/`
 directory or no flow to burn; exit 2 for a bad flag.
 
 The look of the halo, badge, callout and arrow comes from the `burn.theme` block of
-`.docsxai.json`: three presets, an optional tokens file and per-key overrides. A workspace without
-the block burns the original look, byte for byte. After `0.3.0-rc.3`; see
+`.docsxai.json`: four presets, an optional tokens file and per-key overrides. A workspace without
+the block burns the original look, byte for byte. New in `0.3.0-rc.4`; see
 [Themeable burned captions](/guides/burn-theming/).
 
 ```
