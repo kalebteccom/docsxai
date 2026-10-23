@@ -76,7 +76,8 @@ const SCALE_RANGE = { min: 0.5, max: 4 };
 /** A factor from 0.5 to 4, or `"auto"`. */
 function scale(value: unknown): number | "auto" {
   if (value === "auto") return "auto";
-  const n = typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value.trim()) ? Number(value) : value;
+  const n =
+    typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value.trim()) ? Number(value) : value;
   if (typeof n !== "number" || !Number.isFinite(n)) {
     throw new ThemeValueError(
       `${shown(value)} is not a scale; write a number such as 1.5, or "auto" (at most ${AUTO_SCALE_MAX} then)`,
