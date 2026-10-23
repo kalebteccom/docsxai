@@ -145,7 +145,7 @@ Next: [quickstart on docsxai.dev](https://docsxai.dev/getting-started/quickstart
 | [`@docsxai/plugin-sharepoint`](packages/plugin-sharepoint/) | First-party publisher plugin. Markdown and images into a SharePoint Online document library through Microsoft Graph (`sharepoint:push`), capability-gated egress.                                          |
 | [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin — Starlight site emission (`starlight:site`).                                                                                                                                  |
 
-`@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (`@docsxai/plugin-sharepoint` from the release after `0.3.0-rc.3`, experimental): `0.2.0` is on `latest`, `0.3.0-rc.3` on `next`.
+`@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (`@docsxai/plugin-sharepoint` since `0.3.0-rc.3`, experimental): `0.2.0` is on `latest`, `0.3.0-rc.3` on `next`.
 
 ## Documentation
 
