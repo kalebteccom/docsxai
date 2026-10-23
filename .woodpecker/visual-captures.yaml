@@ -59,7 +59,7 @@ steps:
         --artifact "docsxai-visual/${CI_PIPELINE_NUMBER}"
 
   # /srv/docsxai-visual is a host folder the box admin creates and makes writable for the agent's containers. Folders older than 14 days are removed here. The two timeout 120 prefixes are this step's time budget.
-  # Shell variables are written $dest, not ${dest}: Woodpecker substitutes ${...} before the shell runs.
+  # Shell variables are written $dest with no braces: Woodpecker substitutes the braced form before the shell runs.
   - name: publish
     image: remotxai-ci:latest
     depends_on: [capture]
