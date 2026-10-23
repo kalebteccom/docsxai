@@ -4,15 +4,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Added
-
-- **Copy buttons for ids in the viewer and the Starlight site.** Flow and variant ids, step ids, the viewer build and the capture command copy on click, Enter or Space. The label changes to "Copied" for 1.5 s without moving the page and a polite live region announces it; where the clipboard is unavailable the text is selected and the button reads "Press Ctrl+C". `?` opens the keyboard shortcut list.
-- **Clearer image and empty states.** A step with no screenshot shows the missing path and the command that captures it. A failed image has a Retry button with "Retrying..." and "still failing" states. A failed index thumbnail becomes a placeholder. Annotation and step-name messages now say what to do next.
-
-### Changed
-
-- **Viewer layout.** Headings sit in an id row with their copy button, the footer carries the viewer build as copyable text, and each index card has a copy button under it. The skip link is 44 px tall.
-
 ## [0.3.0-rc.4] - 2026-10-23
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
@@ -21,6 +12,8 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 
 - **Themeable burned captions (`burn.theme`) (#120).** The `burn.theme` block of `.docsxai.json` sets the look of the halo, numbered badge, callout and arrow that `docsxai burn` and `docsxai pack` draw, and of the interactive viewer's overlay, which reads the same values through `--sd-*` CSS variables. Keys: `accent`, `ink`, `callout_background`, `callout_border_color`, `callout_border_width`, `radius`, `shadow`, `badge_shape` (`circle`, `rounded`, `square`), `badge_fill`, `font_size`, `line_height`, `padding_x`, `padding_y` and `font` (a TTF or OTF inside the workspace; the bundled Inter without it). `preset` selects `clean`, `soft` or `high-contrast` and any key overrides it; `high-contrast` is black on white at 21:1. `from` names a tokens file (W3C design tokens, or a nested or flat map) and `tokens` maps theme keys to token paths; a mapped token the file lacks stops the command with the key and the path. A bad block lists every problem with its key, and text pairs under WCAG AA print a warning. A workspace without a block burns the same bytes as before, and a viewer page without one differs only in the stylesheet reading each value through a `var()` with today's value as the fallback. A light connector colour gets a dark outline over light pixels, mirroring the white one over dark pixels. Guide: `docs/burn-theming.md`; surface row CFG-04 (experimental). `@docsxai/viewer` exports `loadBurnTheme`, `parseThemeConfig`, `resolveBurnTheme`, `themedBurner`, `themeStyle` and the preset table.
 - **Burned captions scale with the screenshot (`burn.theme`).** New keys: `scale` (a number from 0.5 to 4, or `auto`), `display_width` (CSS px the page shows the screenshot at, default 720), `font_weight` (400 or 600, needs a font file with that weight), `arrow_size` (default 8) and `max_width_ratio` (default 0.62). `scale` multiplies text, padding, outline, radius, shadow, arrow, badge, halo and callout width; `auto` uses the screenshot width over `display_width`, between 1 and 3, so a 1440 px capture in a 720 px column gets factor 2. A fourth preset, `readable`, sets `auto`, 15 px text, 10 and 14 px padding and ink on near-white at WCAG AA. Every default equals the old value, so a workspace without the keys burns the same bytes. Bad values stop the command with the key and range. Guide: `docs/burn-theming.md`.
+- **Copy buttons for ids in the viewer and the Starlight site.** Flow and variant ids, step ids, the viewer build and the capture command copy on click, Enter or Space. The label changes to "Copied" for 1.5 s without moving the page and a polite live region announces it; where the clipboard is unavailable the text is selected and the button reads "Press Ctrl+C". `?` opens the keyboard shortcut list.
+- **Clearer image and empty states.** A step with no screenshot shows the missing path and the command that captures it. A failed image has a Retry button with "Retrying..." and "still failing" states. A failed index thumbnail becomes a placeholder. Annotation and step-name messages now say what to do next.
 
 ### Changed
 
@@ -30,6 +23,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **First-run messages.** `docsxai init` ends with a `next:` line that names `calibrate --from <flow.yaml>` and leaves out `capture-auth` for an `--auth none` workspace. `capture-auth` in a workspace with no auth descriptor says to skip it when the app needs no login. The README gains a "First run in 10 minutes" walkthrough, and the install steps name `@next` (`0.3.0-rc.3`), the Chromium download and `docsxai doctor`.
 - **Zod 4.** `@docsxai/engine` and `@docsxai/mcp` move to `zod ^4.6.6`. Schemas and the options they accept are unchanged. Where a flow-file, auth descriptor, plugin manifest or style file breaks a built-in rule (a wrong type, an unknown key), the message after the key path now uses Zod 4's wording. Messages written in the schemas themselves are unchanged.
 - **`docsxai run` prints a starting line.** Each flow prints `run: <flow> — starting` before its browser launches, so a log shows which flow is in flight. Ctrl-C (or SIGTERM) stops any command with one `docsxai: interrupted` line and the command to rerun, and exits 130 (143 for SIGTERM).
+- **Viewer layout.** Headings sit in an id row with their copy button, the footer carries the viewer build as copyable text, and each index card has a copy button under it. The skip link is 44 px tall.
 
 ### Fixed
 
