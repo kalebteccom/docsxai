@@ -11,6 +11,7 @@ import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { stringify as stringifyYaml } from "yaml";
+import { SAMPLE_FLOW, SAMPLE_FLOW_PATH, workspaceReadme } from "./workspace-templates.js";
 
 export const WORKSPACE_CONFIG_FILE = ".docsxai.json";
 
@@ -149,7 +150,7 @@ export interface InitWorkspaceOptions {
   /** Create the workspace in a throwaway temp dir instead of `dir`. */
   persistTmp?: boolean;
   appUrl?: string;
-  /** `manual-capture` (default) writes an `auth/strategy.yaml`; `none` skips it. */
+  /** `manual-capture` (default) writes an `auth/strategy.yaml`; `none` skips it, for an app that needs no login. */
   auth?: "manual-capture" | "none";
   role?: string;
   /** Cache TTL for the captured session (`session`, or a duration like `1h`/`30m`). Default `1h` — a *fallback* used only when `authCookie` isn't set/found. */
@@ -170,30 +171,6 @@ export interface InitWorkspaceResult {
   /** True if `dir` is a throwaway temp dir (from `--persist tmp`). */
   ephemeral: boolean;
 }
-
-const README = (cfg: WorkspaceConfig) => `# docsxai workspace
-
-This directory is a **docsxai workspace** — it holds the doc pack for one running app:
-
-- \`flows/<flow>.flow.yaml\` — hand-editable flow-files (the source of truth for execution)
-- \`docs/<flow>/{annotations.json, screenshots/, <step>.md}\`, \`docs/{style.yaml, locators.yaml}\` — the generated docs
-- \`auth/strategy.yaml\` — how execution authenticates to the app
-- \`.auth/<role>.json\` — captured session(s) (gitignored; never committed; never leaves this machine)
-- \`.viewer/\` — the generated interactive viewer (gitignored)
-- \`${WORKSPACE_CONFIG_FILE}\` — workspace config (\`app_url${cfg.app_url ? ` = ${cfg.app_url}` : ""}\`, \`ignore_https_errors = ${!!cfg.ignore_https_errors}\`)
-
-**Do NOT place this directory inside the app's source repo.** docsxai documents the *running* app from outside;
-keeping the workspace separate is what guarantees zero traces in the app repo.
-
-Usage (from this directory):
-
-\`\`\`
-docsxai capture-auth .     # if auth is manual-capture: opens an instrumented browser; log in, then run window.__docsxai.capture()
-docsxai calibrate . --from path/to/flow.yaml       # add a flow-file you wrote (an AI agent can write it: see docs/agent-runbook.md)
-docsxai run .              # replay the flow-files headlessly; refresh annotations + screenshots
-docsxai render . && open .viewer/index.html
-\`\`\`
-`;
 
 async function isNonEmptyDir(p: string): Promise<boolean> {
   try {
@@ -271,7 +248,14 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
     created.push("auth/strategy.yaml");
   }
 
-  await fs.writeFile(resolveWorkspacePath(dir, "README.md"), README(cfg), "utf8");
+  await fs.writeFile(resolveWorkspacePath(dir, SAMPLE_FLOW_PATH), SAMPLE_FLOW, "utf8");
+  created.push(SAMPLE_FLOW_PATH);
+
+  await fs.writeFile(
+    resolveWorkspacePath(dir, "README.md"),
+    workspaceReadme(cfg, { auth, configFile: WORKSPACE_CONFIG_FILE }),
+    "utf8",
+  );
   created.push("README.md");
 
   return { dir, created, ephemeral };

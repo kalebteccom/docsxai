@@ -57,7 +57,7 @@ docsxai init "$WORKSPACE" --app-url "$APP_URL_PLACEHOLDER" --ignore-https-errors
 
 (If you don't know `$APP_URL` yet, run `docsxai init "$WORKSPACE" --auth manual-capture --ttl 1h` now and add `app_url` to `$WORKSPACE/.docsxai.json` after step 2 — or just pass `--base-url` on later commands.)
 
-This creates `$WORKSPACE/{flows,docs,auth,.auth,.viewer}`, a `.gitignore` (`.auth/`, `.viewer/`), `auth/strategy.yaml` (`manual-capture`, `store: local`, `ttl: 1h`), a `README.md`, and `.docsxai.json` (holds `app_url` + `ignore_https_errors`, so subsequent `run`/`capture-auth` need no flags). For a fully ephemeral workspace instead: `docsxai init --persist tmp …` (it prints the temp dir; `rm -rf` it when done).
+This creates `$WORKSPACE/{flows,docs,auth,.auth,.viewer}`, a `.gitignore` (`.auth/`, `.viewer/`), `auth/strategy.yaml` (`manual-capture`, `store: local`, `ttl: 1h`), a sample flow-file (`flows/example.flow.yaml.sample`, ignored until calibrated), a `README.md` (with an optional `burn.theme` section), and `.docsxai.json` (holds `app_url` + `ignore_https_errors`, so subsequent `run`/`capture-auth` need no flags). For a fully ephemeral workspace instead: `docsxai init --persist tmp …` (it prints the temp dir; `rm -rf` it when done).
 
 ## Step 2 — run the app from a disposable worktree
 

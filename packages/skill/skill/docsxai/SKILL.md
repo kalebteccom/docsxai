@@ -22,7 +22,7 @@ docsxai burn '<workspace-dir>'
 docsxai pack '<workspace-dir>' --out '<pack-dir>'
 ```
 
-- `doctor` first when anything fails to start. Each `✗` row has a one-line fix.
+- `doctor` first when anything fails to start. Each `fail:` line carries a `next:` step.
 - A halted `run` is drift. Do not retry it. Run the `docsxai diagnose` command from the `next:` line under the failed flow, read the recommendation, and edit the flow-file by hand with one canonical locator per step.
 - A missing or expired session needs a human: `docsxai capture-auth '<workspace-dir>'` opens a headed browser to log in.
 - `render` builds the interactive viewer. `burn` bakes annotations into PNG copies. `pack` builds the screenshot pack, and `pack --check --against '<pack-dir>'` compares it with a committed one.

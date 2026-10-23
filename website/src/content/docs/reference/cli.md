@@ -75,9 +75,11 @@ include it when you report the bug.
 ### `docsxai init`
 
 Scaffolds the workspace: `flows/`, `docs/`, `auth/`, `.auth/`, `.viewer/`, a
-`.gitignore`, a `README.md`, `auth/strategy.yaml`, and `.docsxai.json`
-(holding `app_url` plus `ignore_https_errors` so later commands need no
-flags). `--auth` must be `manual-capture` or `none`; `--ttl <dur>` sets the
+`.gitignore`, a `README.md`, `auth/strategy.yaml`, a sample flow-file
+(`flows/example.flow.yaml.sample`, ignored until you calibrate it), and
+`.docsxai.json` (holding `app_url` plus `ignore_https_errors` so later commands
+need no flags). `--auth` must be `manual-capture` (the default) or `none`, which
+writes no `auth/strategy.yaml` and suits an app that needs no login; `--ttl <dur>` sets the
 session-cache fallback expiry (`30m`, `1h`); `--capture-trigger` picks
 between the devtools-console capture call and an injected on-page button;
 `--auth-cookie <name>` pins the cache expiry to a named cookie up front. For
@@ -87,7 +89,7 @@ a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
 ```
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
 init: workspace at ~/docsxai/my-app
-  created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, auth/strategy.yaml, README.md
+  created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, auth/strategy.yaml, flows/example.flow.yaml.sample, README.md
   next: docsxai capture-auth ~/docsxai/my-app  →  docsxai calibrate ~/docsxai/my-app --from <flow.yaml>  →  docsxai run ~/docsxai/my-app  →  docsxai render ~/docsxai/my-app
 ```
 
@@ -535,16 +537,19 @@ Recommendations (1):
 
 ### `docsxai doctor`
 
-Health-checks the environment and the workspace, browxai-style: a `✓`/`✗`
-checklist with a one-line fix per failing row (`−` rows are informational and
-never fail). The checks: Node >= 26, a Chromium binary for playwright-core,
-`.docsxai.json` found and parseable (the argument, or the current directory),
-every flow-file parses, the auth descriptor plus the cached session's
-freshness, backend reachability when `backend_url` is configured (plus a
-token-presence note), the plugin declarations through the same inspection
+Health-checks the environment and the workspace: one `ok:` or `fail:` line per
+check, each with a `next:` step, in plain text that reads the same in a pipe or CI
+log. The checks: Node >= 26, a Chromium binary for playwright-core (the fix is the
+install command), `.docsxai.json` found and valid (the argument, or the current
+directory; fields and the shape of `burn.theme`, whose values and contrast the viewer
+checks when you run `docsxai burn`), write access to the workspace and its output
+dirs, every flow-file parses, the auth descriptor plus the cached session's
+freshness, a HEAD to `app_url` with a 3 s timeout (skipped with a clear line when
+offline or with `--offline`), backend reachability and login state when `backend_url`
+is configured, the plugin declarations and lock through the same inspection
 `plugins list` runs - declared/installed/lock/capabilities, with **no plugin
 code executed** - viewer-bin resolution (naming which of the three layers
-hit), and `DOCSX_*` env sanity. Exit 1 on any `✗`.
+hit), and `DOCSX_*` env sanity. Exit 1 on any `fail:` line.
 
 The env row checks three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
 bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typo; the
@@ -555,31 +560,30 @@ names it knows are `DOCSX_TOKEN`, `DOCSX_CACHE_KEY`, `DOCSX_VIEWER_BIN`,
 three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD`,
 `DOCSX_EGRESS_DENY_PRIVATE`) fail the row when set to something other than `1`, `true`,
 `yes`, `0`, `false` or `no` (any case), because any other value reads as off.
-`docsxai doctor --help` prints its usage line and what the `✓`, `✗` and `−` rows mean,
-and runs no check.
+`docsxai doctor --help` prints its usage line and what the lines mean, and runs no check.
 
 ```
 $ docsxai doctor ~/docsxai/my-app
-docsxai doctor — environment & workspace health
-
-  ✓ node       v26.1.0 (>= 26 required)
-  ✓ chromium   ~/Library/Caches/ms-playwright/chromium-1223/…/Google Chrome for Testing
-  ✓ workspace  ~/docsxai/my-app/.docsxai.json (docsxai/workspace@1, app_url https://localhost:3000)
-  ✓ flows      3 flow-file(s) parse
-  ✓ auth       auth/strategy.yaml ok — role(s) editor (default "editor", strategy manual-capture)
-  ✗ auth       cached session for role "editor" expired 2026-06-12T11:00:00.000Z
-    fix: re-capture: docsxai capture-auth ~/docsxai/my-app
-  − backend    no backend_url configured — the workspace operates fully locally
-  − plugins    no plugins configured (add a "plugins" array to .docsxai.json)
-  ✓ viewer     @docsxai/viewer installed next to the engine → …/dist/index.js (layer 2: installed package)
-  − env        no DOCSX_* variables set (defaults apply)
-
-doctor: fix the ✗ items above and run docsxai doctor again (1 of 7 checks failed)
+ok: node: v26.1.0 (>= 26 required)
+ok: chromium: ~/Library/Caches/ms-playwright/chromium-1223/…/Google Chrome for Testing
+ok: workspace: ~/docsxai/my-app/.docsxai.json (docsxai/workspace@1, app_url https://localhost:3000)
+ok: config: .docsxai.json fields are valid
+ok: writable: ~/docsxai/my-app and its output dirs are writable
+ok: flows: 3 flow-file(s) parse
+ok: auth: auth/strategy.yaml ok — role(s) editor (default "editor", strategy manual-capture)
+fail: auth: cached session for role "editor" expired 2026-06-12T11:00:00.000Z next: re-capture: docsxai capture-auth ~/docsxai/my-app
+ok: app_url: https://localhost:3000/ answered HTTP 200
+ok: backend: no backend_url configured — the workspace operates fully locally
+ok: login: no backend_url, so no backend login is needed
+ok: plugins: no plugins configured (add a "plugins" array to .docsxai.json)
+ok: viewer: @docsxai/viewer installed next to the engine → …/dist/index.js (layer 2: installed package)
+ok: env: no DOCSX_* variables set (defaults apply)
+fail: doctor: 1 of 10 checks failed next: fix the fail lines above, then run docsxai doctor again
 ```
 
 Run it first when anything misbehaves - it answers the usual "is it my
-environment or my flow?" question in one shot, and every failing row names
-its own fix.
+environment or my flow?" question in one shot, and every failing line names
+its own next step.
 
 ### `docsxai style`
 

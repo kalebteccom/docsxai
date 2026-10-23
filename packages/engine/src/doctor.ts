@@ -1,10 +1,9 @@
 // `docsxai doctor` — environment + workspace health-check.
 //
-// Prints a ✓/✗ checklist with a one-line fix per failing check (− marks purely
-// informational rows; they never fail doctor). Exits 0 iff everything passes,
-// 1 otherwise. Pure inspection throughout: no flow runs, no plugin code
-// execution, no browser launch — the only network touch is an opt-in GET of
-// the configured backend's /v1/health.
+// Prints one `ok:` or `fail:` line per check, each with a `next:` step where there is one.
+// Exits 0 iff no line failed, 1 otherwise. Pure inspection throughout: no flow runs, no plugin
+// code execution, no browser launch. The network touches are a short HEAD of `app_url`
+// (skipped with --offline) and a GET of the configured backend's /v1/health.
 //
 // The per-check probe catalogue lives in ./doctor-checks.js; this file owns the
 // checklist assembly + CLI entry and re-exports the checks' public surface so
@@ -23,6 +22,12 @@ import {
   type DoctorCheck,
   type DoctorOptions,
 } from "./doctor-checks.js";
+import {
+  checkAppUrl,
+  checkConfigFields,
+  checkLogin,
+  checkWritable,
+} from "./doctor-checks-config.js";
 import { checkPlugins } from "./doctor-checks-plugins.js";
 import { commandUsage } from "./cli-messages.js";
 
@@ -31,6 +36,7 @@ import { commandUsage } from "./cli-messages.js";
 // plugin-runtime probe lives in its own sibling but is re-exported here too.
 export * from "./doctor-checks.js";
 export * from "./doctor-checks-plugins.js";
+export * from "./doctor-checks-config.js";
 
 // ---------------------------------------------------------------------------
 // Assembly + CLI entry
@@ -49,9 +55,14 @@ export async function buildDoctorChecks(opts: DoctorOptions = {}): Promise<Docto
   const ws = await checkWorkspace(workspaceDir);
   checks.push(ws.check);
   if (ws.present) {
+    checks.push(...checkConfigFields(ws.config));
+    checks.push(await checkWritable(workspaceDir));
     checks.push(await checkFlows(workspaceDir));
     checks.push(...(await checkAuth(workspaceDir, now)));
+    const appUrl = await checkAppUrl(ws.config, fetchImpl, opts.offline ?? false);
+    if (appUrl) checks.push(appUrl);
     checks.push(await checkBackend(workspaceDir, ws.config, env, fetchImpl));
+    checks.push(checkLogin(workspaceDir, ws.config, env));
     checks.push(...(await checkPlugins(workspaceDir)));
   }
 
@@ -60,21 +71,23 @@ export async function buildDoctorChecks(opts: DoctorOptions = {}): Promise<Docto
   return checks;
 }
 
+const oneLine = (t: string): string => t.replace(/\s+/g, " ").trim();
+
+/** One `ok:` or `fail:` line per check, then one summary line. Plain ASCII, no colour, no timings. */
 export function formatDoctorChecks(checks: DoctorCheck[]): string {
-  let out = "docsxai doctor — environment & workspace health\n\n";
-  let failed = 0;
+  let out = "";
   for (const c of checks) {
-    if (!c.ok) failed++;
-    const glyph = c.info ? "−" : c.ok ? "✓" : "✗";
-    out += `  ${glyph} ${c.name.padEnd(10)} ${c.detail}\n`;
-    if (!c.ok && c.fix) out += `    fix: ${c.fix}\n`;
+    out += `${c.ok ? "ok" : "fail"}: ${c.name}: ${oneLine(c.detail)}`;
+    if (c.fix) out += ` next: ${oneLine(c.fix)}`;
+    out += "\n";
   }
+  const failed = checks.filter((c) => !c.ok).length;
   const infos = checks.filter((c) => c.info).length;
   const scored = checks.length - infos;
   out +=
     failed === 0
-      ? `\ndoctor: all checks passed (${scored} checks, ${infos} informational)\n`
-      : `\ndoctor: fix the ✗ items above and run docsxai doctor again (${failed} of ${scored} checks failed)\n`;
+      ? `ok: doctor: all checks passed (${scored} checks, ${infos} informational) next: docsxai run <workspace-dir>\n`
+      : `fail: doctor: ${failed} of ${scored} checks failed next: fix the fail lines above, then run docsxai doctor again\n`;
   return out;
 }
 
@@ -83,13 +96,16 @@ export function doctorHelp(): string {
   return `${commandUsage("doctor")
     .map((l) => `usage: ${l}\n`)
     .join("")}
-Checks Node, Chromium, the workspace config, flow-files, cached sessions, the backend (when
-backend_url is set), plugin declarations, the viewer bin and DOCSX_* env. Runs no flow, no plugin
-code and no browser.
+Checks Node, Chromium, the workspace config (fields and burn.theme shape), write access, flow-files,
+cached sessions, a HEAD to app_url, the backend and login state (when backend_url is set), plugin
+declarations and lock, the viewer bin and DOCSX_* env. Runs no flow, no plugin code and no browser.
 
-  ✓ passed   ✗ failed, with a one-line fix   − informational, never fails
+  ok: <check>: <detail> next: <what to do>     passed (next is present when there is a follow-up)
+  fail: <check>: <detail> next: <what to do>   failed
 
-Exit 0 when no row failed, 1 otherwise.
+  --offline   do not probe app_url
+
+Exit 0 when no line starts with fail:, 1 otherwise.
 `;
 }
 
@@ -100,7 +116,10 @@ export async function runDoctor(args: string[]): Promise<number> {
     return 0;
   }
   const positionals = args.filter((a) => !a.startsWith("--"));
-  const checks = await buildDoctorChecks(positionals[0] ? { workspaceDir: positionals[0] } : {});
+  const checks = await buildDoctorChecks({
+    ...(positionals[0] ? { workspaceDir: positionals[0] } : {}),
+    offline: args.includes("--offline"),
+  });
   process.stdout.write(formatDoctorChecks(checks));
   return checks.every((c) => c.ok) ? 0 : 1;
 }

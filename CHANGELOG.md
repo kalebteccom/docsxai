@@ -10,10 +10,14 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Added
 
+- **`docsxai doctor` checks the config, write access, `app_url` and backend login.** New lines: `config` (field types, URL shape and the `burn.theme` shape and preset name; the viewer's value and contrast checks stay in `docsxai burn`, because the engine does not depend on the viewer), `writable` (workspace root and its output dirs), `app_url` (one HEAD with a 3 s timeout; a remote host that does not resolve prints a skipped line, `--offline` skips it, a refused connection or timeout fails) and `login` (fails when `backend_url` is set and neither `DOCSX_TOKEN` nor stored OAuth tokens exist).
+- **Sample flow in the `init` scaffold.** `flows/example.flow.yaml.sample` parses as a flow-file and is ignored until `docsxai calibrate . --from flows/example.flow.yaml.sample` writes it. The scaffolded `README.md` gains an optional `burn.theme` section and the `docsxai doctor` step.
 - **`burnWithWorkspaceTheme` in `@docsxai/viewer`.** Burns a screenshot with the `burn.theme` of a workspace's `.docsxai.json`, loaded once per workspace and cached by path and config mtime. It returns what `burnAnnotations` returns, lets an explicit `options.theme` win, sends theme warnings to `options.warn` once per load and throws `BurnThemeError` for an invalid block. Guide: `docs/burn-theming.md`.
 
 ### Changed
 
+- **`docsxai doctor` prints `ok:` and `fail:` lines.** Every line starts with `ok:` or `fail:` and carries a `next:` step where there is one; the `✓`, `✗` and `−` glyphs and the header are gone, and the last line is `ok: doctor: ...` or `fail: doctor: ...`. Exit 1 on any `fail:` line, as before.
+- **The scaffolded `README.md` follows the auth choice.** An `--auth none` workspace no longer lists `capture-auth` or `auth/strategy.yaml`, and the default one points at `--auth none` for an app without a login.
 - **`readable` caption preset and `scale: auto`.** The auto factor is capped at 4 (was 3), so a 1440 px screenshot shown at 360 px keeps about 15 px captions, it rounds up to two decimals, and `readable` limits the callout to 55 percent of the image width. Burned output without a theme and with the other presets is unchanged.
 
 ### Fixed

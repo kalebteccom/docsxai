@@ -3,8 +3,8 @@
 // One pure(ish) function per row of the doctor checklist, each over injectable inputs (a workspace
 // dir, an env source, a fake backend, a mocked chromium probe) so per-state coverage is cheap.
 // `doctor.ts` orchestrates these into the printed checklist. Pure inspection throughout: no flow
-// runs, no plugin code execution, no browser launch — the only network touch is the opt-in GET of
-// the configured backend's /v1/health.
+// runs, no plugin code execution, no browser launch. The network touches are the opt-in GET of
+// the configured backend's /v1/health here and the `app_url` HEAD in ./doctor-checks-config.js.
 
 import { existsSync, promises as fs } from "node:fs";
 import * as path from "node:path";
@@ -43,6 +43,8 @@ export interface DoctorOptions {
   fetchImpl?: typeof globalThis.fetch;
   /** Clock override for session-freshness checks (tests inject). */
   now?: number;
+  /** Skip the `app_url` reachability probe (`--offline`). */
+  offline?: boolean;
 }
 
 const CHROMIUM_FIX =
@@ -118,6 +120,7 @@ export async function checkWorkspace(workspaceDir: string): Promise<WorkspacePro
         detail: flowsDirExists
           ? `flows/ present but no ${WORKSPACE_CONFIG_FILE} at ${workspaceDir} — \`docsxai init\` writes one`
           : `no ${WORKSPACE_CONFIG_FILE} at ${workspaceDir} — not a docsxai workspace (pass <workspace-dir> or run doctor from one); workspace checks skipped`,
+        fix: `docsxai init ${shellQuote(workspaceDir)} --app-url <url>, or run doctor with a workspace dir`,
       },
       config: null,
       present: flowsDirExists,
