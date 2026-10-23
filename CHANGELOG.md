@@ -4,10 +4,25 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.3.0-rc.4] - 2026-10-23
+
+Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions, the `@docsxai/plugin-sharepoint` package, the satori 0.63 renderer, and a release pipeline where the owner approves each staged version.
+
 ### Added
 
-- **Themeable burned captions (`burn.theme`).** The `burn.theme` block of `.docsxai.json` sets the look of the halo, numbered badge, callout and arrow that `docsxai burn` and `docsxai pack` draw, and of the interactive viewer's overlay, which reads the same values through `--sd-*` CSS variables. Keys: `accent`, `ink`, `callout_background`, `callout_border_color`, `callout_border_width`, `radius`, `shadow`, `badge_shape` (`circle`, `rounded`, `square`), `badge_fill`, `font_size`, `line_height`, `padding_x`, `padding_y` and `font` (a TTF or OTF inside the workspace; the bundled Inter without it). `preset` selects `clean`, `soft` or `high-contrast` and any key overrides it; `high-contrast` is black on white at 21:1. `from` names a tokens file (W3C design tokens, or a nested or flat map) and `tokens` maps theme keys to token paths; a mapped token the file lacks stops the command with the key and the path. A bad block lists every problem with its key, and text pairs under WCAG AA print a warning. A workspace without a block burns the same bytes as before, and a viewer page without one differs only in the stylesheet reading each value through a `var()` with today's value as the fallback. A light connector colour gets a dark outline over light pixels, mirroring the white one over dark pixels. Guide: `docs/burn-theming.md`; surface row CFG-04 (experimental). `@docsxai/viewer` exports `loadBurnTheme`, `parseThemeConfig`, `resolveBurnTheme`, `themedBurner`, `themeStyle` and the preset table.
-- **`@docsxai/plugin-sharepoint` is published.** It becomes a published experimental package from the next release, as the seventh package in the release set (`scripts/release-publish.sh`, the package-contents audit and `RELEASING.md` list it). It takes the shared release version (`0.3.0-rc.3` now) and drops `"private": true`. Graph behaviour has only been tested against a fake server; no live tenant has run.
+- **Themeable burned captions (`burn.theme`) (#120).** The `burn.theme` block of `.docsxai.json` sets the look of the halo, numbered badge, callout and arrow that `docsxai burn` and `docsxai pack` draw, and of the interactive viewer's overlay, which reads the same values through `--sd-*` CSS variables. Keys: `accent`, `ink`, `callout_background`, `callout_border_color`, `callout_border_width`, `radius`, `shadow`, `badge_shape` (`circle`, `rounded`, `square`), `badge_fill`, `font_size`, `line_height`, `padding_x`, `padding_y` and `font` (a TTF or OTF inside the workspace; the bundled Inter without it). `preset` selects `clean`, `soft` or `high-contrast` and any key overrides it; `high-contrast` is black on white at 21:1. `from` names a tokens file (W3C design tokens, or a nested or flat map) and `tokens` maps theme keys to token paths; a mapped token the file lacks stops the command with the key and the path. A bad block lists every problem with its key, and text pairs under WCAG AA print a warning. A workspace without a block burns the same bytes as before, and a viewer page without one differs only in the stylesheet reading each value through a `var()` with today's value as the fallback. A light connector colour gets a dark outline over light pixels, mirroring the white one over dark pixels. Guide: `docs/burn-theming.md`; surface row CFG-04 (experimental). `@docsxai/viewer` exports `loadBurnTheme`, `parseThemeConfig`, `resolveBurnTheme`, `themedBurner`, `themeStyle` and the preset table.
+- **`@docsxai/plugin-sharepoint` is published.** It ships in this release as a published experimental package, the seventh in the release set (`scripts/release-publish.sh`, the package-contents audit and `RELEASING.md` list it). It takes the shared release version and drops `"private": true`. Graph behaviour has only been tested against a fake server; no live tenant has run.
+
+### Changed
+
+- **Satori 0.63 renderer.** The renderer that draws burned captions and the other rendered images moves to satori 0.63.
+- **Release pipeline stages versions for owner approval (#113).** The Woodpecker release pipeline stages each package version on npm, and the owner approves the staged versions before they go live.
+- **`release.yml` retired (#115).** The GitHub Actions release workflow is removed; releases run only on Woodpecker.
+- **Dependency refresh.** Dependencies are updated across the workspace.
+
+### Fixed
+
+- **Border-box fix for satori 0.63 (#119).** Rendered boxes keep their size under the new renderer.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
