@@ -21,6 +21,7 @@ website/.astro/
 # single source of truth; do not commit or hand-edit the generated copies.
 website/src/content/docs/guides/running-against-an-app-repo.md
 website/src/content/docs/guides/ci-recipes.md
+website/src/content/docs/guides/burn-theming.md
 website/src/content/docs/guides/security-best-practices.md
 website/src/content/docs/reference/actionability.md
 website/src/content/docs/packages/engine.md

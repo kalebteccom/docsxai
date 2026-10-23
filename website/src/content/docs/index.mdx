@@ -23,6 +23,10 @@ lastUpdated: false
     <div class="docsx-install">
       <span class="pfx">$</span> pnpm add -g docsxai@next
     </div>
+    <p class="docsx-install-note">
+      Installs 0.3.0-rc.3, the current prerelease. <code>latest</code> is still 0.2.0.
+      <a href="/getting-started/installation/">Install steps</a>
+    </p>
   </div>
 
   <div class="docsx-window" aria-hidden="true">
@@ -40,13 +44,14 @@ lastUpdated: false
       <div class="docsx-snap-note"># docsxai diff . --fail-on warn</div>
       <div class="row">
         <span class="t-time">diff</span>
-        <span class="t-kind">drift</span>
-        <span class="t-body">none detected</span>
+        <span class="t-kind">baseline</span>
+        <span class="t-body">no drift detected</span>
       </div>
+      <div class="docsx-snap-note"># docsxai burn .</div>
       <div class="row">
-        <span class="t-time"></span>
-        <span class="t-kind">totals</span>
-        <span class="t-body">0 changed, sev none</span>
+        <span class="t-time">burn</span>
+        <span class="t-kind">burned/</span>
+        <span class="t-body">4 images written</span>
       </div>
       <div class="docsx-snap-note"># docsxai render .</div>
       <div class="row">
@@ -138,10 +143,22 @@ lastUpdated: false
       <span class="docsx-card-mark">// execution</span>
       <h3>Deterministic CI replay</h3>
       <div class="docsx-card-text">
-        A frozen clock, pinned locale, timezone, and viewport: the same flow
-        against the same target state produces byte-identical screenshots.
-        Baseline the doc pack, gate CI on pixel-level drift with
-        <code>diff --fail-on warn</code>.
+        A frozen clock and a pinned locale, timezone, and viewport: the same
+        flow against the same target state produces byte-identical
+        screenshots. <code>run --verify-determinism</code> runs a flow two to
+        five times and names the first artifact that differs, and
+        <code>diff --fail-on warn</code> gates CI on drift against a
+        committed baseline.
+      </div>
+    </div>
+    <div class="docsx-card">
+      <span class="docsx-card-mark">// variants</span>
+      <h3>One flow, many variants</h3>
+      <div class="docsx-card-text">
+        A <code>matrix</code> block expands a flow file into one run per
+        locale, color scheme, and viewport, up to 64 combinations.
+        <code>pack</code> builds the screenshot pack from them and
+        <code>pack --check</code> compares it with the committed one.
       </div>
     </div>
     <div class="docsx-card">
@@ -155,26 +172,79 @@ lastUpdated: false
       </div>
     </div>
     <div class="docsx-card">
-      <span class="docsx-card-mark">// plugins</span>
-      <h3>A plugin runtime with teeth</h3>
+      <span class="docsx-card-mark">// output</span>
+      <h3>One doc pack, three deliveries</h3>
       <div class="docsx-card-text">
-        Publishers, renderers, lint rules, and auth strategies extend the
-        engine through a namespaced, capability-declared, sha256-locked
-        runtime. First-party plugins in the repo publish to Confluence,
-        GitBook, Guru, Notion and SharePoint, and render a Starlight site;
-        none is on npm yet.
+        An interactive viewer with halos and callouts, an Astro Starlight
+        site, or burned captions in plain PNGs for places that cannot run
+        the viewer. Redactions mask sensitive UI before any pixel hits
+        disk.
       </div>
     </div>
     <div class="docsx-card">
-      <span class="docsx-card-mark">// output</span>
-      <h3>Docs as code, rendered three ways</h3>
+      <span class="docsx-card-mark">// captions</span>
+      <h3>Themeable burned captions</h3>
       <div class="docsx-card-text">
-        One doc pack, three deliveries: an interactive viewer with halos and
-        callouts, a production Astro Starlight site, or burned-annotation
-        PNGs pushed to Confluence as ADF. Redactions mask sensitive UI
-        before any pixel hits disk.
+        The halo, numbered badge, callout, and arrow follow a
+        <code>burn.theme</code> block: three presets (clean, soft,
+        high-contrast), an optional design-tokens file, and per-key
+        overrides. The interactive viewer reads the same theme. Lands after
+        0.3.0-rc.3.
+        <a href="/guides/burn-theming/">Read the guide</a>
       </div>
     </div>
+    <div class="docsx-card">
+      <span class="docsx-card-mark">// plugins</span>
+      <h3>Publishers and renderers as plugins</h3>
+      <div class="docsx-card-text">
+        Publishers, renderers, lint rules, and auth strategies extend the
+        engine through a namespaced, capability-declared, sha256-locked
+        runtime. First-party publishers cover Confluence, GitBook, Guru,
+        Notion, and SharePoint. SharePoint is on npm as an
+        experimental package since 0.3.0-rc.3. The others are repo-only for now.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="docsx-section not-content">
+  <h2 class="docsx-section-title">Install</h2>
+  <div class="docsx-section-sub">
+    Node 26 or newer. The 0.3 prerelease is on the <code>next</code> tag, and
+    <code>latest</code> is still 0.2.0.
+  </div>
+  <div class="docsx-grid docsx-grid--install">
+    <div class="docsx-card">
+      <span class="docsx-card-mark">// cli</span>
+      <h3>The docsxai CLI</h3>
+      <pre class="docsx-code">
+        <code>
+          {"pnpm add -g docsxai@next\nnpx playwright-core install chromium\ndocsxai doctor"}
+        </code>
+      </pre>
+      <div class="docsx-card-text">
+        <code>docsxai@next</code> is 0.3.0-rc.3 today. Without a tag you get 0.2.0, which has no{" "}
+        <code>burn</code>, <code>pack</code>, or matrix flows.
+      </div>
+    </div>
+    <div class="docsx-card">
+      <span class="docsx-card-mark">// claude code</span>
+      <h3>The Claude Code plugin</h3>
+      <pre class="docsx-code">
+        <code>
+          {"/plugin marketplace add kalebteccom/docsxai\n/plugin install docsxai@docsxai"}
+        </code>
+      </pre>
+      <div class="docsx-card-text">
+        Optional. Adds the calibration skills and the
+        <code>/docsxai:*</code> commands. The CLI works without it.
+      </div>
+    </div>
+  </div>
+  <div class="docsx-cta docsx-cta--center docsx-cta--tight">
+    <a href="/getting-started/installation/" class="docsx-btn docsx-btn--ghost">
+      Installation details
+    </a>
   </div>
 </div>
 

@@ -152,6 +152,7 @@ export default defineConfig({
             { label: "Running against an app repo", slug: "guides/running-against-an-app-repo" },
             { label: "CI recipes", slug: "guides/ci-recipes" },
             { label: "Determinism and drift", slug: "guides/determinism-and-drift" },
+            { label: "Themeable burned captions", slug: "guides/burn-theming" },
             { label: "Writing plugins", slug: "guides/writing-plugins" },
             { label: "Security best practices", slug: "guides/security-best-practices" },
             { label: "Troubleshooting", slug: "guides/troubleshooting" },

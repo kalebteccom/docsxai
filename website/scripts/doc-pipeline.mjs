@@ -43,6 +43,19 @@ export const htmlPages = [
       "Deterministic doc refresh in your pipeline: GitHub Actions and generic CI examples for driving docsxai run with cached auth and uploaded doc packs.",
   },
   {
+    src: "docs/burn-theming.md",
+    out: "guides/burn-theming.md",
+    title: "Themeable burned captions",
+    description:
+      "Set the look of the halo, numbered badge, callout and arrow in burned screenshots and in the interactive viewer: the burn.theme block, the clean, soft and high-contrast presets, and an optional tokens file.",
+    replace: [
+      [
+        /(Everything below is opt-in\.\n)/,
+        "$1\n:::note[Availability]\n`burn.theme` is on `main` and lands after `0.3.0-rc.3`: `docsxai@next` at `0.3.0-rc.3` does not read it. The surface is experimental, so the preset values and the token mapping can still change.\n:::\n",
+      ],
+    ],
+  },
+  {
     src: "docs/security-best-practices-for-adopters.md",
     out: "guides/security-best-practices.md",
     title: "Security best practices",
@@ -143,7 +156,12 @@ export const htmlPages = [
     title: "@docsxai/plugin-sharepoint",
     description:
       "Publisher plugin for SharePoint Online: pushes a doc pack as markdown and images into a document library through Microsoft Graph, idempotently.",
-    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
+    replace: [
+      [
+        /\n*$/,
+        "\n\nPublished to npm as an experimental package since `0.3.0-rc.3` (dist-tag `next`).\n",
+      ],
+    ],
   },
   {
     src: "packages/plugin-starlight/README.md",

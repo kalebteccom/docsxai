@@ -358,6 +358,17 @@ main:has(.docsx-404) > .content-panel {
   color: var(--sl-color-text-accent);
   user-select: none;
 }
+.docsx-install-note {
+  margin: 0.75rem 0 0;
+  max-width: 42ch;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--sl-color-gray-3);
+}
+.docsx-install-note code {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.95em;
+}
 
 /* The product window on the right of the hero. */
 .docsx-window {
@@ -941,18 +952,16 @@ main:has(.docsx-404) > .content-panel {
   gap: 1rem;
   margin: 1.5rem 0;
 }
+/* The cards are not links, so they do not lift on hover. */
 .docsx-card {
   border: 1px solid var(--sl-color-hairline-shade);
   border-radius: 0.75rem;
   padding: 1.4rem;
   background: color-mix(in srgb, var(--sl-color-bg-sidebar) 55%, transparent);
-  transition:
-    border-color 0.15s ease,
-    transform 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 .docsx-card:hover {
   border-color: color-mix(in srgb, var(--docsx-amber-400) 45%, transparent);
-  transform: translateY(-3px);
 }
 .docsx-card h3 {
   font-family: var(--docsx-font-display);
@@ -977,6 +986,31 @@ main:has(.docsx-404) > .content-panel {
   font: inherit;
   color: inherit;
   max-width: inherit;
+}
+/* Install blocks on the landing page: a short shell transcript inside a card. It wraps
+   and never scrolls, so nothing overflows on a phone and no scroller needs a label. */
+.docsx-grid--install {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+}
+.docsx-code {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--sl-color-hairline-shade);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--sl-color-bg) 55%, transparent);
+  font-family: var(--docsx-font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--sl-color-white);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.docsx-code code {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
 }
 .docsx-card .docsx-card-mark {
   font-family: var(--docsx-font-mono);
@@ -1010,6 +1044,9 @@ main:has(.docsx-404) > .content-panel {
 .docsx-cta--center {
   justify-content: center;
   margin-top: clamp(2.5rem, 6vw, 4rem);
+}
+.docsx-cta--center.docsx-cta--tight {
+  margin-top: 1.75rem;
 }
 
 /* ---- 404 ---------------------------------------------------------------- */
@@ -1414,6 +1451,14 @@ main:has(.docsx-404) > .content-panel {
   font-size: 11px;
   letter-spacing: 0.04em;
 }
+/* #f87171 is 2.7:1 on the light canvas; this red is 6:1. */
+:root[data-theme="light"] .docsx-trust .tb-untrusted rect {
+  fill: color-mix(in srgb, #b91c1c 9%, transparent);
+  stroke: #b91c1c;
+}
+:root[data-theme="light"] .docsx-trust .tb-untrusted-tag {
+  fill: #b91c1c;
+}
 
 /* ---- Glass + halo wash ------------------------------------------------- */
 
@@ -1492,6 +1537,8 @@ body::before {
 /* A visible focus ring on every hand-built control, in the accent colour
    (11.5:1 on the dark canvas, 6.9:1 on the light one). */
 .docsx-btn:focus-visible,
+.docsx-install-note a:focus-visible,
+.docsx-card-text a:focus-visible,
 .docsx-sidebar-llms:focus-visible,
 .docsx-credit a:focus-visible {
   outline: 2px solid var(--sl-color-text-accent);
