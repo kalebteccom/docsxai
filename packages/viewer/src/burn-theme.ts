@@ -48,12 +48,16 @@ export interface BurnTheme {
   fontWeight: FontWeight;
   /** Length of the arrow in px (its base is 7/4 of that wide). The callout keeps 2 px more than that from its target. */
   arrowSize: number;
-  /** Widest callout as a share of the screenshot's width, where the screenshot width limits it. */
+  /**
+   * Widest callout as a share of the screenshot's width. Below 0.62 it limits every callout; at
+   * 0.62 or more it limits only callouts planned around obstacles.
+   */
   maxWidthRatio: number;
   /**
    * Multiplier of every caption dimension (text, padding, outline, radius, arrow, badge, halo,
    * shadow), or `"auto"`: the screenshot's width over `displayWidth`, at least 1 and at most
    * {@link AUTO_SCALE_MAX}, so a screenshot the page shrinks to its column reads at base size.
+   * On the page, text is `fontSize * scale * (displayWidth / imageWidth)` CSS px.
    */
   scale: number | "auto";
   /** CSS px the screenshot is shown at on the page. Read by `scale: "auto"`. */
@@ -63,8 +67,11 @@ export interface BurnTheme {
 export const FONT_WEIGHTS = [400, 600] as const;
 export type FontWeight = (typeof FONT_WEIGHTS)[number];
 
-/** Largest factor `scale: "auto"` picks. */
-export const AUTO_SCALE_MAX = 3;
+/**
+ * Largest factor `scale: "auto"` picks. 4 is the top of the explicit `scale` range, and it keeps a
+ * 1440 px screenshot shown at 360 px (factor 4) at its base text size.
+ */
+export const AUTO_SCALE_MAX = 4;
 
 /** Today's look. Every number and colour here is what `burn.ts` hard-coded before themes. */
 export const DEFAULT_BURN_THEME: BurnTheme = {
@@ -151,7 +158,7 @@ export const THEME_PRESETS: Record<ThemePresetName, Required<Omit<BurnTheme, "fo
     ...PLAIN_SIZING,
   },
   // For a docs site: the caption is scaled up with the screenshot so it reads at 15 px next to
-  // the page text. The weight stays 400 because the bundled Inter is regular only; pair the
+  // the page text (badge digits 12 px, halo outline 2 px, when `display_width` is the shown width). The weight stays 400 because the bundled Inter is regular only; pair the
   // preset with a semibold `font` and `font_weight: 600` for heavier text.
   readable: {
     accent: "#c2410c",
@@ -168,6 +175,8 @@ export const THEME_PRESETS: Record<ThemePresetName, Required<Omit<BurnTheme, "fo
     paddingX: 14,
     paddingY: 10,
     ...PLAIN_SIZING,
+    // Under 60% of the screenshot's width, with or without obstacles.
+    maxWidthRatio: 0.55,
     scale: "auto",
   },
 };
@@ -183,7 +192,8 @@ export const connectorColor = (theme: BurnTheme): string =>
 export function captionScale(theme: BurnTheme, imageWidth: number): number {
   if (theme.scale !== "auto") return theme.scale;
   const factor = imageWidth / theme.displayWidth;
-  return Math.min(AUTO_SCALE_MAX, Math.max(1, Math.round(factor * 100) / 100));
+  // Rounded up to 2 decimals, so on-screen sizes are never a hair under their base size.
+  return Math.min(AUTO_SCALE_MAX, Math.max(1, Math.ceil(factor * 100 - 1e-9) / 100));
 }
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;

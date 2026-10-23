@@ -71,6 +71,7 @@ export {
   type ResolveContext,
   type ThemeConfig,
 } from "./burn-theme-config.js";
+export { burnWithWorkspaceTheme, type BurnWithWorkspaceThemeInput } from "./burn-workspace.js";
 export { THEME_FIELDS, THEME_KEYS, type ThemeKey } from "./burn-theme-fields.js";
 export { flattenTokens, type TokenLeaves } from "./burn-theme-tokens.js";
 export { loadBurnTheme, loadThemeFont, type LoadedTheme } from "./burn-theme-load.js";

@@ -128,7 +128,8 @@ function steersBurner(p: AnnotationPlacement | undefined): p is AnnotationPlacem
 
 /**
  * Outer widths to try for one callout, widest first. No `obstacles` and no `max_width`: the
- * long-standing 280 px. With `obstacles` the widest is `min(280, 0.62 x image width)`, floored, and
+ * long-standing 280 px, unless `maxWidthRatio` is under the default 0.62 (then the ratio applies
+ * as it does with obstacles). With `obstacles` the widest is `min(280, 0.62 x image width)`, floored, and
  * on a screenshot narrow enough to shrink it two narrower boxes follow. An explicit `max_width`
  * replaces the widest and gets the same two fallbacks.
  */
@@ -145,7 +146,7 @@ export function widthLadder(
     widest = Math.round(
       Math.max(PLACEMENT_WIDTH_RANGE.min, Math.min(PLACEMENT_WIDTH_RANGE.max, explicit)),
     );
-  } else if (hasObstacles) {
+  } else if (hasObstacles || maxWidthRatio < ADAPTIVE_WIDTH_RATIO) {
     widest = Math.min(
       MAX_CALLOUT_WIDTH,
       Math.max(CALLOUT_WIDTH_FLOOR, Math.round(maxWidthRatio * imageWidth)),

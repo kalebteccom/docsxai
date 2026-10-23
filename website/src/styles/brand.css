@@ -757,7 +757,8 @@ main:has(.docsx-404) > .content-panel {
   font-family: var(--docsx-font-display);
   font-weight: 600;
   font-size: 0.74rem;
-  color: #fff;
+  /* Dark text: 6.9:1 on amber-500, 4.8:1 on amber-600. White was 2.8:1 and 4.1:1. */
+  color: #140d04;
   padding: 0.4rem 0.7rem;
   border-radius: 0.4rem;
   background: linear-gradient(180deg, var(--docsx-amber-500), var(--docsx-amber-600));
@@ -1568,5 +1569,56 @@ body::before {
     display: inline-flex;
     align-items: center;
     padding-inline: 0.25rem;
+  }
+}
+
+/* ---- Print --------------------------------------------------------------- */
+
+/* Paper gets the page content on a white ground: no site chrome, no halo wash, no
+   frosted surfaces, and link targets spelled out after external links. */
+@media print {
+  .header,
+  #starlight__sidebar,
+  .sidebar-pane,
+  .right-sidebar,
+  mobile-starlight-toc,
+  starlight-menu-button,
+  .pagination-links,
+  .docsx-sidebar-llms,
+  .docsx-hero::before,
+  .docsx-hero::after,
+  body::before {
+    display: none !important;
+  }
+  :root,
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
+    --sl-color-bg: #fff;
+    --sl-color-text: #000;
+    --sl-color-white: #000;
+    --sl-color-gray-1: #111;
+    --sl-color-gray-2: #222;
+    --sl-color-gray-3: #333;
+    --sl-color-text-accent: #5c3a08;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .docsx-card,
+  .docsx-window,
+  .dxm-core,
+  .dxf-flow {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    break-inside: avoid;
+  }
+  .sl-markdown-content a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    overflow-wrap: anywhere;
+  }
+  .docsx-table-scroll {
+    overflow: visible;
   }
 }
