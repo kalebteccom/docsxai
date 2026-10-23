@@ -110,7 +110,7 @@ export interface BurnThemeConfig {
   arrow_size?: number;
   /** Widest callout as a share of the screenshot's width, 0.2 to 1. */
   max_width_ratio?: number;
-  /** Multiplier of every caption dimension, 0.5 to 4, or `"auto"` (screenshot width over `display_width`, 1 to 3). */
+  /** Multiplier of every caption dimension, 0.5 to 4, or `"auto"` (screenshot width over `display_width`, 1 to 4). */
   scale?: number | "auto";
   /** CSS px the screenshot is shown at on the docs page, 240 to 2400. Read by `scale: "auto"`. */
   display_width?: number;
