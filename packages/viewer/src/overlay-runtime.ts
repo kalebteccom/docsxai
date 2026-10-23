@@ -300,9 +300,9 @@ function watchThumb(img: HTMLImageElement): void {
 // reads "Press Ctrl+C". All three labels sit in one grid cell, so no state changes the width.
 const copyTimers = new Map<HTMLElement, number>();
 
-function selectText(el: Element | null): void {
+function selectText(el: unknown): void {
   const sel = window.getSelection();
-  if (!el || !sel) return;
+  if (!(el instanceof Node) || !sel) return;
   const range = document.createRange();
   range.selectNodeContents(el);
   sel.removeAllRanges();
