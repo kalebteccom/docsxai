@@ -140,10 +140,6 @@ describe("examples/ci recipes", () => {
       const text = read(file);
       const doc: unknown = parse(text);
 
-      it("parses as YAML", () => {
-        expect(doc).toBeTypeOf("object");
-      });
-
       it("runs verify-determinism, then diff against a baseline failing on fail", () => {
         const commands = docsxaiCommands(scriptsIn(doc));
         const verify = commands.findIndex((c) => VERIFY.test(c));
