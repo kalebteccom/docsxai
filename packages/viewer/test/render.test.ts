@@ -72,7 +72,7 @@ describe("buildViewer", () => {
       const a = await fs.readFile(path.join(tmp, "out-a", page), "utf8");
       const b = await fs.readFile(path.join(tmp, "out-b", page), "utf8");
       expect(b).toBe(a);
-      expect(a).toMatch(/Rendered by @docsxai\/viewer [^<.]+\./);
+      expect(a).toMatch(/Rendered by <span class="sd-id">@docsxai\/viewer [^<]+<\/span>\./);
     }
   });
 

@@ -112,8 +112,10 @@ const ACTIONS = {
     await page.locator('starlight-menu-button[aria-expanded="true"]').waitFor();
   },
   async focusStep(page) {
-    // The viewer listens on document: the arrow focuses step 1, Tab reaches its first halo.
+    // The viewer listens on document: the arrow focuses step 1, Tab reaches its copy-id button,
+    // a second Tab its first halo.
     await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
   },
   async breakImages(page) {
