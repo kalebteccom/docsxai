@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Fixed
+
+- **Burned callout, arrow and badge placement on dense screens.** A stem or arrow that ran through text or a neighbouring halo is now charged per px crossed, so a callout sits near its target and covers a few px of text before a long stem crosses six rows. An `arrow_style` or `placement.side` hint now wins over a side that is only a sliver cleaner, where a few px of overlap used to throw it away. A numbered badge no longer crosses the bottom or right edge of the screenshot: it stays inside with a 2 px margin. A callout that overran a narrow gap by a few px retries with its side padding cut by up to 6 px (never below 8 px) and keeps that box when it fits clear. Annotations without `obstacles` and hint burn the same bytes as before. Guide: `docs/burn-theming.md`.
+
 ## [0.3.0-rc.4] - 2026-10-23
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

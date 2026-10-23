@@ -100,6 +100,10 @@ A screenshot wider than the column it is shown in gets scaled down by the page, 
 
 Screenshots narrower than `display_width` keep base size, so one block serves mobile captures and wide desktop ones.
 
+## Placement priorities
+
+When an annotation carries `obstacles`, the burner scores every callout position and keeps the cheapest. From most to least important: the callout covers no page content, halo, badge or earlier callout; the stem and arrow cross none (each px of stem inside content costs more than a px of callout covering it, and a brush of under 2 px at a box edge does not count); the side named by `arrow_style` or `placement.side` is kept; the stem is short. The side hint outweighs a sliver of overlap, about 2 px of content along the callout's width, and loses to anything deeper or to a side with no room in the image. When no spot is clear at full size the burner retries with the callout's side padding cut by up to 6 px (never below 8 px) and keeps that box if it then fits clear. A numbered badge is kept fully inside the screenshot, 2 px from the edge. Annotations without `obstacles` and hint place as before.
+
 ## Presets
 
 Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` keep `scale` at 1, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62 and `display_width` at 720.
