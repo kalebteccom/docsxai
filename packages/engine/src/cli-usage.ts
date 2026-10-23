@@ -187,8 +187,9 @@ Notes:
   • A command that works on a workspace takes its directory as the first argument. Reports and data go to
     stdout; progress lines and warnings go to stderr where a command already splits them. Output has no
     colour. An error prints \`<command>: what failed\`, then \`next: <command to run>\` when there is one.
-    Exit 0 success, 1 runtime failure, 2 usage error. An error no command handled is a bug: it prints one
-    \`docsxai: unexpected error\` line; set DOCSX_DEBUG=1 to print its stack trace.
+    Exit 0 success, 1 runtime failure, 2 usage error; Ctrl-C prints one line with the command to rerun and
+    exits 130. An error no command handled is a bug: it prints one \`docsxai: unexpected error\` line; set
+    DOCSX_DEBUG=1 to print its stack trace.
   • --format json (lint, flow-tree, diagnose, style, diff, plugins, run --verify-determinism) is the
     machine-readable output; the text formats are for people and may change.
   • run, calibrate, burn, pack, zip, baseline, push, pull and doctor end with one line,
