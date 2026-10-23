@@ -51,7 +51,7 @@ export function workspaceReadme(cfg: WorkspaceConfig, opts: ReadmeOptions): stri
 This directory is a **docsxai workspace** — it holds the doc pack for one running app:
 
 - \`flows/<flow>.flow.yaml\` — hand-editable flow-files (the source of truth for execution)
-- \`${SAMPLE_FLOW_PATH}\` — a sample flow-file to copy from (ignored until calibrated)
+- \`${SAMPLE_FLOW_PATH}\`: a sample flow-file to copy from (ignored until calibrated)
 - \`docs/<flow>/{annotations.json, screenshots/, <step>.md}\`, \`docs/{style.yaml, locators.yaml}\` — the generated docs
 ${authLine}
 - \`.viewer/\` — the generated interactive viewer (gitignored)
