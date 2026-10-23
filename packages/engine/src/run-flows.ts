@@ -90,6 +90,8 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
   async function runOne(unit: FlowVariant): Promise<boolean> {
     const { flow } = unit;
     const name = unitLabel(unit);
+    // A flow takes seconds to minutes; this line shows a log reader which one is in flight.
+    say(`${tag(name)}${name} — starting\n`);
     let session;
     try {
       // When attaching to an existing Chrome via --cdp, the operator owns its auth state — don't
