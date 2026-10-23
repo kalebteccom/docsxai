@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { renderBurn } from "../src/burn.js";
+import { widthLadder } from "../src/burn-callout.js";
 import {
   DEFAULT_BURN_THEME,
   THEME_PRESETS,
@@ -74,8 +75,18 @@ describe("captionScale", () => {
     expect(captionScale(auto, 720)).toBe(1);
   });
 
-  it("stops at 3 for auto", () => {
-    expect(captionScale({ ...DEFAULT_BURN_THEME, scale: "auto" }, 4000)).toBe(3);
+  it("stops at 4 for auto", () => {
+    expect(captionScale({ ...DEFAULT_BURN_THEME, scale: "auto" }, 4000)).toBe(4);
+  });
+
+  it("gives 4 for a 1440 px screenshot shown at 360 px", () => {
+    expect(captionScale({ ...DEFAULT_BURN_THEME, scale: "auto", displayWidth: 360 }, 1440)).toBe(4);
+  });
+
+  it("rounds up to 2 decimals so a 780 px screenshot shown at 358 px keeps its base size", () => {
+    const factor = captionScale({ ...DEFAULT_BURN_THEME, scale: "auto", displayWidth: 358 }, 780);
+    expect(factor).toBe(2.18);
+    expect(12 * factor * (358 / 780)).toBeGreaterThanOrEqual(12);
   });
 });
 
@@ -152,6 +163,25 @@ describe("the readable preset", () => {
     expect(readable.fontSize).toBe(15);
     expect([readable.paddingY, readable.paddingX, readable.radius]).toEqual([10, 14, 8]);
     expect(readable.shadow).toContain("12px");
+  });
+
+  it("limits a callout to 55% of the screenshot, with or without obstacles", () => {
+    expect(readable.maxWidthRatio).toBe(0.55);
+    expect(widthLadder(358, false, undefined, readable.maxWidthRatio)[0]).toBe(197);
+    expect(widthLadder(358, true, undefined, readable.maxWidthRatio)[0]).toBe(197);
+    expect(widthLadder(720, false, undefined, readable.maxWidthRatio)).toEqual([280]);
+    expect(widthLadder(358, false)).toEqual([280]);
+  });
+
+  it("reads at 14 px or more on screen at both case-study widths", () => {
+    const px = (imageWidth: number, shown: number, size: number) =>
+      size * captionScale({ ...readable, displayWidth: shown }, imageWidth) * (shown / imageWidth);
+    expect(px(1440, 720, readable.fontSize)).toBeGreaterThanOrEqual(14);
+    expect(px(780, 358, readable.fontSize)).toBeGreaterThanOrEqual(13);
+    expect(px(1440, 360, readable.fontSize)).toBeGreaterThanOrEqual(14);
+    expect(px(1440, 720, 12)).toBeGreaterThanOrEqual(12);
+    expect(px(780, 358, 12)).toBeGreaterThanOrEqual(12);
+    expect(px(780, 358, 2)).toBeGreaterThanOrEqual(2);
   });
 
   it("keeps every text pair at WCAG AA", () => {
