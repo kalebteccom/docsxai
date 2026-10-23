@@ -232,7 +232,12 @@ describe("validation", () => {
       "scale",
       "display_width",
     ]);
-    expect(new Set(THEME_KEYS.map((k) => THEME_FIELDS[k].token)).size).toBe(THEME_KEYS.length);
+    // render-only keys (max_width_ratio, scale, display_width) have no default token path
+    const tokens = THEME_KEYS.map((k) => (THEME_FIELDS[k] as { token?: string }).token).filter(
+      (t): t is string => t !== undefined,
+    );
+    expect(tokens).toHaveLength(THEME_KEYS.length - 3);
+    expect(new Set(tokens).size).toBe(tokens.length);
   });
 });
 
