@@ -132,12 +132,27 @@ Design constraints, in order:
 
 ### Caption themes
 
-The halo, badge, callout and arrow take their colours, radii, shadow, badge shape and type from a `BurnTheme` (`src/burn-theme.ts`). `DEFAULT_BURN_THEME` is the look burn had before themes, and passing it, or no theme, burns the same bytes. A workspace sets a theme in the `burn.theme` block of `.docsxai.json`: a preset (`clean`, `soft`, `high-contrast`), an optional tokens file, and keys that override both. `docsxai-viewer burn`, `pack`, `pack --check` and `build` read it; the library takes a resolved theme in `BurnOptions.theme`, `BurnFlowOptions.theme`, `BuildPackOptions.theme` and `BuildViewerOptions.theme`.
+The halo, badge, callout and arrow take their colours, radii, shadow, badge shape and type from a `BurnTheme` (`src/burn-theme.ts`). `DEFAULT_BURN_THEME` is the look burn had before themes, and passing it, or no theme, burns the same bytes. A workspace sets a theme in the `burn.theme` block of `.docsxai.json`: a preset (`clean`, `soft`, `high-contrast`, `readable`), an optional tokens file, and keys that override both. `docsxai-viewer burn`, `pack`, `pack --check` and `build` read it; the library takes a resolved theme in `BurnOptions.theme`, `BurnFlowOptions.theme`, `BuildPackOptions.theme` and `BuildViewerOptions.theme`.
 
 - `src/burn-theme-fields.ts` is the key table: one checker per key, its `BurnTheme` property and its default token path. `src/burn-theme-config.ts` checks a block, collects every problem with its key, and layers default, preset, tokens, block. `src/burn-theme-tokens.ts` flattens W3C tokens or a plain map and reads the mapped values; a key named in `burn.theme.tokens` must exist. `src/burn-theme-load.ts` does the reads (`.docsxai.json`, the tokens file, the font) and `src/burn-theme-css.ts` writes the `:root { --sd-* }` rule a themed viewer page appends.
 - The callout font comes from `font`: a TTF or OTF inside the workspace, read through the same regular-file guard as pack inputs (no symlink, 16 MiB cap, an `sfnt` header). Its metrics size the callout, so wrapping and placement follow the font in use. A viewer page embeds it as a `data:` font and its CSP gains `font-src data:`; without a font the CSP is unchanged.
 - Callout size is set by `CalloutStyle` (`burn-callout.ts`): font size, line height, padding, border width. The arrow and stem take the callout outline colour; a light one is outlined in dark ink on light pixels (`toneOf` in `connector-contrast.ts`).
-- Tests assert the three presets by sampling pixels at the halo, callout background, callout outline and badge of a fixed fixture, so no golden image is stored. The default theme is pinned by `legacy-burn-trees.json` and by byte equality with a burn that passes no theme. Mapping table, key ranges and the viewer variables: [`docs/burn-theming.md`](../../docs/burn-theming.md).
+- Sizing: `scale` (a number, or `"auto"` for screenshot width over `display_width`, between 1 and 3) multiplies every caption dimension. `burn.ts` lays a screenshot out at base size on an image shrunk by that factor and multiplies the result back (`captionScale` and `scaledTheme` in `burn-theme.ts`), so placement matches the unscaled caption. `arrow_size`, `max_width_ratio` and `font_weight` are tokens too; `arrowGeometry` and `planCallout` take the arrow length. All default to the old hard-coded values.
+- Tests assert the four presets by sampling pixels at the halo, callout background, callout outline and badge of a fixed fixture, so no golden image is stored. The default theme is pinned by `legacy-burn-trees.json` and by byte equality with a burn that passes no theme. Mapping table, key ranges and the viewer variables: [`docs/burn-theming.md`](../../docs/burn-theming.md).
+
+#### Making captions legible on a docs site
+
+A wide screenshot shown in a narrow column shrinks its caption with it: a 1440 px capture in a 720 px column shows 14 px text at 7 px. Set the column width and let the burner scale up:
+
+```json
+{
+  "burn": {
+    "theme": { "preset": "readable", "display_width": 720, "font": "fonts/brand-regular.ttf" }
+  }
+}
+```
+
+`readable` is `scale: "auto"` with 15 px text, 10 and 14 px padding and ink on near-white at WCAG AA. A 1440 px screenshot gets factor 2, a 390 px one stays at 1. Guide: [`docs/burn-theming.md`](../../docs/burn-theming.md#making-captions-legible-on-a-docs-site).
 
 ### Vendored font
 
