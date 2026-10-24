@@ -20,6 +20,8 @@ import { CLI_USAGE, parseCliArgs } from "./cli-args.js";
 import { isMainModule } from "./main-module.js";
 import { createBackendStub } from "./server.js";
 
+const errorText = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
 export async function runBackendStubCli(argv: string[]): Promise<number> {
   const parsed = parseCliArgs(argv, process.env);
   if (!parsed.ok) {
@@ -27,11 +29,30 @@ export async function runBackendStubCli(argv: string[]): Promise<number> {
     return 2;
   }
   const { port, dataDir } = parsed;
-  const stub = createBackendStub({
-    ...(process.env.DOCSX_TOKEN ? { token: process.env.DOCSX_TOKEN } : {}),
-    ...(dataDir ? { dataDir } : {}),
-  });
-  const url = await stub.listen(port);
+  let stub: ReturnType<typeof createBackendStub>;
+  try {
+    stub = createBackendStub({
+      ...(process.env.DOCSX_TOKEN ? { token: process.env.DOCSX_TOKEN } : {}),
+      ...(dataDir ? { dataDir } : {}),
+    });
+  } catch (e) {
+    process.stderr.write(`docsxai-backend: cannot use data dir "${dataDir}": ${errorText(e)}\n`);
+    return 1;
+  }
+  let url: string;
+  try {
+    url = await stub.listen(port);
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    const why =
+      code === "EADDRINUSE"
+        ? "the port is already in use, pick another with --port=<n>"
+        : code === "EACCES"
+          ? "permission denied for that port"
+          : errorText(e);
+    process.stderr.write(`docsxai-backend: cannot listen on 127.0.0.1:${port}: ${why}\n`);
+    return 1;
+  }
   process.stdout.write(
     `docsxai-backend listening on ${url}  (${dataDir ? `data dir: ${dataDir}` : "in-memory; not for production"})\n`,
   );

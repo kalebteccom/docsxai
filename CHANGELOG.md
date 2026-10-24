@@ -64,6 +64,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **`diff` named no file for an unreadable screenshot.** A screenshot that was cut short or not a PNG (an interrupted run, a failed copy) made `diff` print the PNG decoder's own message, such as `Invalid file signature`, with no hint of which file. The error now starts with `docs/<flow>/screenshots/<file>`.
 - **`docsxai-backend` starts through an installed symlink.** The bin compared `process.argv[1]` with the module URL, which differ when npm or pnpm links the bin, so the command exited without starting a server. It now compares the real path too.
 - **`docsxai-backend` flag parsing.** `--port=` (empty) picked a random port, `--port=70000` crashed with a stack trace, `--port 4000` and `--data-dir <dir>` were ignored, and a mistyped flag such as `--data-dri=` started an in-memory server. The bin now reads both `--flag=value` and `--flag value`, and exits 2 with a usage line for a missing value, a port outside 0-65535 or an unknown argument.
+- **`docsxai-backend` startup errors.** A port already in use, a port the user may not bind, and a `--data-dir` that is a file ended in an unhandled rejection with a stack trace. The bin now prints one line naming the port or the data dir and exits 1.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
