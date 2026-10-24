@@ -28,6 +28,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Fixed
 
+- **`renderBurn` rejects a `pixelRatio` outside 1 to 4.** `0` with `scale: "auto"` ended in `Invalid typed array length: Infinity`, and `NaN` or a negative ratio burned at a wrong size without a word; each now throws `pixelRatio must be a number from 1 to 4`.
 - **`scripts/burn-probe-batch.mjs` burns 2x raw captures at their device scale.** A frame whose sidecar has `device_scale_factor`, or whose PNG is exactly 2 to 4 times its file-name width, now burns, picks `caption_style` and checks phone chrome in device pixels; before, the probe drew every frame at 1x and graded 2x captures wrongly. An out-of-range `device_scale_factor` fails that frame.
 - **`docsxai-viewer build|burn|site` read `--flag=value`, and reject an empty or repeated value.** `--flow=a` was an unknown flag, `--out ""` and `--max-overlap ""` fell back to their defaults, and a second `--out` or `--title` silently won. `--flow` still repeats.
 - **`docsxai-viewer pack` burns 2x captures at their device scale.** A workspace `annotations.json` with `device_scale_factor`, or a raw capture sidecar with the same key, now reaches the burner as its pixel ratio, as `burn` already did; before, pack drew captions at 1x size on a 2x screenshot. A value outside 1 to 4 stops the pack and names the file.
