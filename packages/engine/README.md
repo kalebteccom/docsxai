@@ -48,7 +48,7 @@ A flag a command does not take exits 2 (`run --flwo x` prints `unknown flag --fl
 
 First-run failures print one reason and one `next:` line (`browser-launch-error.ts`, `cli-node-guard.ts`, `cli-shared.ts`). A missing Chromium gives the install command, a refused `--cdp` endpoint gives `cannot attach to the browser at <endpoint> (ECONNREFUSED)` and the `--remote-debugging-port` flag, and `run --cdp` skips the cached-session check. `init --app-url` and `login --backend-url` take only `http:` or `https:` URLs (`isHttpUrl`) and exit 2 otherwise; `run --base-url` also takes `file:` (`isRunnableUrl`, for a local static site) and exits 2 on any other scheme; an `app_url` in `.docsxai.json` that is not one stops `run` with exit 1. `init` on a file and a refused `mkdir` get their own message, `run`, `lint` and `flow-tree` on a workspace without `flows/` print `mkdir <dir>/flows` (`missingFlowsMessage`), a cached session that is not a valid session file is called corrupt (`cachedSessionIsCorrupt`), and a `.docsxai.json` that exists but cannot be read warns in `run` and `capture-auth` and fails `doctor` with `chmod u+r`. `doctor` exits 2 on an unknown flag. `cli-node-guard.ts` runs first in `cli.ts` and exits 1 with one line on Node 18 and older (`NODE_FLOOR_MAJOR`, 20), before Playwright loads.
 
-A flow with a top-level `matrix:` (`locales`, `color_schemes`, `viewports`; at most 64 variants) expands at parse time (`expandFlow` in `flow-matrix.ts`, schema in `matrix-spec.ts`) into one flow per variant, each under its own `environment`, with `only`/`skip` on steps and annotations and `copy_by_locale` on annotations. `run` starts one session per variant (`run-flows.ts`) and writes `docs/<flow>/<variant>/{screenshots/, annotations.json, halts/}`; `annotations.json` records the variant, and a halt message names it. Without a matrix the layout and every output byte are unchanged. `lint` (R015, R016), `flow-tree` and `diagnose --variant` read the matrix. Design note: `docs/ai-context/architecture/flow-matrix-decision.md`.
+A flow with a top-level `matrix:` (`locales`, `color_schemes`, `viewports`; at most 64 variants) expands at parse time (`expandFlow` in `flow-matrix.ts`, schema in `matrix-spec.ts`) into one flow per variant, each under its own `environment`, with `only`/`skip` on steps and annotations and `copy_by_locale` on annotations. `run` starts one session per variant (`run-flows.ts`) and writes `docs/<flow>/<variant>/{screenshots/, annotations.json, halts/}`; `annotations.json` records the variant, and a halt message names it. Without a matrix the layout and every output byte are unchanged. `lint` (R015, R016), `flow-tree` and `diagnose --variant` read the matrix.
 
 `run` has a sub-3-second iteration mode for long-async flows: `--start-from <step-id> --cdp <endpoint>` skips every step before the target and attaches to an already-warm Chrome.
 
@@ -152,7 +152,7 @@ docsxai plugins info <workspace> <namespace> manifest + registered artifact name
 docsxai plugins sync <workspace>             (re)write plugins-lock.json — never executes plugin code
 ```
 
-All three accept `--format json`. Plugins are resolved once per CLI invocation — there is no hot reload. See `docs/ai-context/plugin-runtime/lifecycle-and-namespacing.md` for the full lifecycle contract.
+All three accept `--format json`. Plugins are resolved once per CLI invocation — there is no hot reload.
 
 ## License
 

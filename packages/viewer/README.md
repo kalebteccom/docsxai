@@ -101,7 +101,7 @@ The emitted pages have a skip link, header/main/footer landmarks, one `<h1>` per
 | Esc        | Hide the open callout              |
 | `?`        | Open the shortcut list             |
 
-Keys with Ctrl, Alt, Cmd or Shift, and keys typed into a field, go to the browser. A step change moves focus to the step and is announced through a live region. The halo pulse stops under `prefers-reduced-motion`, image boxes are reserved from the PNG size, and a damaged `annotations.json`, a missing screenshot or an image that fails to load (with Retry) each get a message on the page. The audit behind these is `docs/ai-context/ux/viewer-audit.md`.
+Keys with Ctrl, Alt, Cmd or Shift, and keys typed into a field, go to the browser. A step change moves focus to the step and is announced through a live region. The halo pulse stops under `prefers-reduced-motion`, image boxes are reserved from the PNG size, and a damaged `annotations.json`, a missing screenshot or an image that fails to load (with Retry) each get a message on the page.
 
 ### Copying ids and the other micro-states
 

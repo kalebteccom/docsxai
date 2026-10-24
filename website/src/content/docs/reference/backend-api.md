@@ -228,6 +228,5 @@ get 413 `{ "error": "payload_too_large" }`. Errors are uniform
 Storage is in-memory by default and filesystem-backed with a data dir
 (`--data-dir=`, `dataDir`, or `DOCSX_DATA_DIR`): atomic writes, reads
 always from disk, every path containment-guarded against the data root.
-The endpoint shape is what production will be; a hosted multi-tenant
-deployment is owner-gated. See the [package page](/packages/backend/) for
+There is no hosted multi-tenant deployment. See the [package page](/packages/backend/) for
 the store layout and the GitHub App registration checklist.

@@ -155,7 +155,6 @@ Next: [quickstart on docsxai.dev](https://docsxai.dev/getting-started/quickstart
 - [**docs/ci-recipes.md**](docs/ci-recipes.md) — wiring `run` / `baseline` / `diff` into CI
 - [**docs/themed-caption-packs.md**](docs/themed-caption-packs.md) — raw captures to themed, hash-named screenshots with a manifest
 - [**docs/actionability-contract.md**](docs/actionability-contract.md) — the portable `actionable()` predicate contract, for browser-bridge consumers
-- [**docs/browxai-asks.md**](docs/browxai-asks.md) — integration contract with the discovery driver
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes · [`RELEASING.md`](RELEASING.md) — release process
 
 ## Contributing

@@ -2,7 +2,7 @@
 
 Authenticated service that persists doc packs (projects, revisions, flow-files, screenshots, annotations, style artifacts, run history). REST + per-resource endpoints; OAuth 2.1 (authorization-code + PKCE) plus a pre-issued CI bearer token; content-addressed blob storage; immutable finalized revisions.
 
-**Status:** the endpoint shape is what production will be. Storage is in-memory by default and filesystem-backed with a data dir; a hosted multi-tenant deployment (real consent UI, durable token store, DB) is post-MVP and owner-gated.
+**Status:** storage is in-memory by default and filesystem-backed with a data dir. There is no hosted multi-tenant deployment (interactive consent, durable token store, database).
 
 ## Surface
 
@@ -163,9 +163,9 @@ The runner starts every webhook run's engine with `DOCSX_EGRESS_GUARD=1`, which 
 
 The engine CLI is resolved like the engine resolves its viewer bin: `DOCSX_ENGINE_BIN` env override → the installed `@docsxai/engine` package's `docsxai` bin → `docsxai` on `PATH`.
 
-### Owner-gated checklist (App registration)
+### GitHub App registration checklist
 
-Everything below requires owner credentials / a public URL and is **deliberately not automated**:
+Everything below needs admin rights on the GitHub org and a public URL for the backend, and is **deliberately not automated**:
 
 - [ ] Register the GitHub App (org settings → Developer settings → GitHub Apps); permissions: Contents read, Pull requests write, Metadata read; subscribe to `push` + `pull_request`.
 - [ ] Set the App's webhook URL to the deployed backend's `https://<host>/v1/github/webhook`.
