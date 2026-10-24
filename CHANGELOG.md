@@ -49,6 +49,9 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **Viewer links and images for names with `#`, `?` or `%`.** `docsxai render` percent-encodes these characters in the screenshot, flow-card, thumbnail and previous/next flow URLs. A step id such as `a#b` used to point at `a` and show a broken image.
 - **`docsxai render --flow` with repeated or unknown names.** A flow named twice produced two pages and two index cards, and a name with no folder under `docs/` produced an empty page with no message. Each flow now renders once, and an unknown name is skipped with a warning.
 - **`docsxai render` with a directory named like a screenshot.** A directory called `<step>.png` under `screenshots/` crashed the copy. The step now shows the missing-screenshot state.
+- **`docsxai-viewer site` with a damaged `annotations.json`.** A file whose `annotations` is not a list, or a record whose `step` is not a string, crashed the emit. The site now warns with the same reasons `render` shows, skips the bad records and falls back to the screenshots. A directory named like a screenshot counts as a missing screenshot.
+- **`docsxai-viewer site` with names that are not plain path parts.** A step id such as `../../x` or a flow name with `:` or `\` was joined into the output paths, so an image could land outside `src/assets/flows/`. These flows and steps are now skipped with a warning, the same rule `render` applies.
+- **`docsxai-viewer site` warns instead of staying silent.** A `--flow` name the pack lacks, and a `docs/style.json` that is not valid JSON (its accent and logo were dropped without a word), now each produce a `site: warning:` line.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

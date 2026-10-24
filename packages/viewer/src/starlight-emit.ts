@@ -14,12 +14,11 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
 import { mixHex } from "./color.js";
-import { discoverFlows } from "./render.js";
 import { annotatedShotAstro, copyIdAstro } from "./starlight-components.js";
 import { accentContrastWarnings } from "./starlight-contrast.js";
 import { SCROLLBARS_CSS, SCROLLBARS_CSS_PATH } from "./starlight-scrollbars.js";
+import { pickFlows, readStyleVisual, readSteps, type StepPage } from "./starlight-sources.js";
 import { fmt, uiStrings, type UiStrings } from "./ui-strings.js";
 
 /** Exact versions pinned into the emitted site's package.json — verified to install + build. */
@@ -69,13 +68,6 @@ export interface EmitStarlightSiteResult {
 // `exists` is shared with the build half (`starlight-build.ts` imports it from here).
 // ---------------------------------------------------------------------------
 
-async function readJsonIfExists<T>(p: string): Promise<T | null> {
-  try {
-    return JSON.parse(await fs.readFile(p, "utf8")) as T;
-  } catch {
-    return null;
-  }
-}
 async function readTextIfExists(p: string): Promise<string | null> {
   try {
     return await fs.readFile(p, "utf8");
@@ -190,20 +182,6 @@ const yamlQuote = (s: string) =>
 
 /** Backslash-escape the characters MDX would otherwise parse as JSX / expressions. */
 const escapeMdxText = (s: string) => s.replace(/([\\<>{}`])/g, "\\$1");
-
-interface CaptionItem {
-  n: number;
-  copy: string;
-}
-
-interface StepPage {
-  id: string;
-  /** Absolute path of the image to copy in (burned preferred), or null. */
-  imageSrc: string | null;
-  burned: boolean;
-  items: CaptionItem[];
-  md: string | null;
-}
 
 function flowMdx(flow: string, steps: StepPage[], ui: UiStrings): string {
   const imports = [
@@ -359,10 +337,6 @@ const SITE_TSCONFIG = `${JSON.stringify(
 // Emit.
 // ---------------------------------------------------------------------------
 
-interface StyleArtifactLike {
-  visual?: Record<string, unknown>;
-}
-
 function visualString(visual: Record<string, unknown> | undefined, keys: string[]): string | null {
   for (const key of keys) {
     const v = visual?.[key];
@@ -379,15 +353,11 @@ export async function emitStarlightSite(
   const config = opts.config ?? {};
   const warnings: string[] = [];
 
-  const allFlows = await discoverFlows(docsDir);
-  const wanted = config.flows?.length
-    ? allFlows.filter((f) => config.flows!.includes(f))
-    : allFlows;
+  const wanted = await pickFlows(docsDir, config.flows, warnings);
   const flows = await deriveFlowOrder(opts.workspaceDir, wanted);
 
   // Style artifact (docs/style.json, the derived form) → visual keys.
-  const style = await readJsonIfExists<StyleArtifactLike>(path.join(docsDir, "style.json"));
-  const visual = style?.visual;
+  const visual = await readStyleVisual(docsDir, warnings);
 
   let accent: string | null = null;
   if (config.accent !== undefined) {
@@ -417,41 +387,9 @@ export async function emitStarlightSite(
   const ui = uiStrings(config.lang);
   const title = config.title ?? ui.siteTitle;
 
-  // Collect per-flow steps (annotation order first, screenshot-filename fallback — mirrors render.ts).
   const flowPages: Array<{ flow: string; steps: StepPage[] }> = [];
   for (const flow of flows) {
-    const flowSrc = path.join(docsDir, flow);
-    const annFile = await readJsonIfExists<AnnotationsFile>(path.join(flowSrc, "annotations.json"));
-    const annsByStep = new Map<string, AnnotationRecord[]>();
-    for (const a of annFile?.annotations ?? []) {
-      annsByStep.set(a.step, [...(annsByStep.get(a.step) ?? []), a]);
-    }
-    let stepIds = [...new Set((annFile?.annotations ?? []).map((a) => a.step))];
-    if (stepIds.length === 0) {
-      const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
-      stepIds = shots
-        .filter((s) => s.endsWith(".png"))
-        .map((s) => s.replace(/\.png$/, ""))
-        .sort();
-    }
-
-    const steps: StepPage[] = [];
-    for (const id of stepIds) {
-      const burnedPath = path.join(flowSrc, "burned", `${id}.png`);
-      const cleanPath = path.join(flowSrc, "screenshots", `${id}.png`);
-      const burned = await exists(burnedPath);
-      const imageSrc = burned ? burnedPath : (await exists(cleanPath)) ? cleanPath : null;
-      if (imageSrc === null) warnings.push(`flow "${flow}" step "${id}": no screenshot`);
-      const anns = annsByStep.get(id) ?? [];
-      steps.push({
-        id,
-        imageSrc,
-        burned,
-        items: anns.map((a, i) => ({ n: a.index ?? i + 1, copy: a.copy })),
-        md: await readTextIfExists(path.join(flowSrc, `${id}.md`)),
-      });
-    }
-    flowPages.push({ flow, steps });
+    flowPages.push({ flow, steps: await readSteps(docsDir, flow, ui.lang, warnings) });
   }
 
   // Assemble the file tree, then write it in sorted order (deterministic bytes + listing).
