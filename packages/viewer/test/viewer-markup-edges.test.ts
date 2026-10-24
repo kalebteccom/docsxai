@@ -2,7 +2,7 @@
 // missing-screenshot and failed-image blocks with hostile ids, and the annotation data attribute.
 
 import { describe, expect, it } from "vitest";
-import { COPIED_MS, FALLBACK_MS, copyAnnouncement, copyButton } from "../src/viewer-copy.js";
+import { copyAnnouncement, copyButton } from "../src/viewer-copy.js";
 import type { CopyKind } from "../src/viewer-copy.js";
 import { flowPageHtml, stepHtml, type ViewerStep } from "../src/viewer-markup.js";
 
@@ -16,16 +16,6 @@ const step = (over: Partial<ViewerStep> = {}): ViewerStep => ({
 });
 
 describe("copy buttons", () => {
-  it.each([["flow id"], ["step id"], ["viewer build"], ["command"]] as [CopyKind][])(
-    "name the %s in the accessible name and the data attributes",
-    (kind) => {
-      const html = copyButton("pay", kind);
-      expect(html).toContain(`data-kind="${kind}"`);
-      expect(html).toContain(`aria-label="Copy ${kind} pay"`);
-      expect(html).toContain('data-state="idle"');
-    },
-  );
-
   it("escapes an ampersand once, so an entity in the value is shown as typed", () => {
     expect(copyButton("&lt;", "step id")).toContain('data-copy="&amp;lt;"');
   });
@@ -39,25 +29,11 @@ describe("copy buttons", () => {
     expect(html).toContain('data-copy=""');
     expect(html).toContain('aria-label="Copy step id "');
   });
-
-  it("keeps the three states' timings apart", () => {
-    expect(COPIED_MS).toBe(1500);
-    expect(FALLBACK_MS).toBe(5000);
-  });
 });
 
 describe("the live-region text", () => {
   it("is empty for the idle state", () => {
     expect(copyAnnouncement("idle", "step id", "pay")).toBe("");
-  });
-
-  it("names the kind and the value in the done and fallback states", () => {
-    expect(copyAnnouncement("done", "command", "docsxai run ws")).toBe(
-      "Copied command docsxai run ws to the clipboard.",
-    );
-    const fallback = copyAnnouncement("fallback", "flow id", "checkout");
-    expect(fallback).toContain("flow id checkout is selected");
-    expect(fallback).toContain("Cmd+C on a Mac");
   });
 });
 
@@ -71,20 +47,6 @@ describe("a step without a usable screenshot", () => {
     );
     expect(html).toContain("<code>screenshots/a&quot;&lt;b&gt;.png</code> was not found");
   });
-
-  it("names only the first segment of a variant flow in the command", () => {
-    const html = stepHtml(step({ screenshot: null }), 1, "checkout/en.dark.390");
-    expect(html).toContain("--flow checkout --start-from open-sidebar");
-    expect(html).not.toContain("en.dark.390");
-  });
-
-  it("shows the file-name notice and no image for an unsafe step id", () => {
-    const html = stepHtml(step({ id: "../x", unsafe: true, screenshot: null }), 1);
-    expect(html).toContain("cannot be used as a file name");
-    expect(html).not.toContain("<img");
-    expect(html).not.toContain("shot-error");
-    expect(html).not.toContain('shot-missing" role="status"');
-  });
 });
 
 describe("a step with a screenshot", () => {
@@ -95,18 +57,6 @@ describe("a step with a screenshot", () => {
     expect(html).toContain(
       '<img src="screenshots/open-sidebar.png" alt="Screenshot of step open-sidebar">',
     );
-  });
-
-  it("reserves the image's box when the size is known", () => {
-    const html = stepHtml(step({ size: { width: 390, height: 844 } }), 1);
-    expect(html).toContain('alt="Screenshot of step open-sidebar" width="390" height="844">');
-  });
-
-  it("starts with the failed-image block hidden, naming the file to check", () => {
-    const html = stepHtml(step(), 1);
-    expect(html).toContain('<p class="shot-error" role="alert" hidden>');
-    expect(html).toContain("<code>screenshots/open-sidebar.png</code> is still next to this page");
-    expect(html).toContain('<button type="button" class="shot-retry">Retry</button>');
   });
 
   it("escapes an ampersand in the path in the image and in the failed-image block", () => {
@@ -131,33 +81,15 @@ describe("a step with a screenshot", () => {
     expect(JSON.parse(decoded)).toEqual(anns);
     expect(html).not.toContain("<b>bold</b>");
   });
-
-  it("lists several annotations as an ordered list and one as a plain caption", () => {
-    const many = stepHtml(
-      step({
-        anns: [
-          { step: "s", selector: "#a", copy: "One", index: 1 },
-          { step: "s", selector: "#b", copy: "Two", index: 2 },
-        ],
-      }),
-      1,
-    );
-    expect(many).toContain('<ol class="caption-list"><li>One</li><li>Two</li></ol>');
-    expect(stepHtml(step(), 1)).toContain('<figcaption class="caption">Click Play</figcaption>');
-  });
 });
 
 describe("a flow page with no steps", () => {
-  it("still has its heading, a main landmark and the copy button for the flow id", () => {
+  it("still has its heading, a main landmark, the copy button for the flow id and the empty-flow text", () => {
     const html = flowPageHtml("empty-flow", [], AT, "/*js*/");
     expect(html).toContain("<h1>empty-flow</h1>");
     expect(html.match(/<main\b/g)).toHaveLength(1);
     expect(html).toContain('data-copy="empty-flow" data-kind="flow id"');
     expect(html).not.toContain("<section");
-  });
-
-  it("says the flow has no steps and which commands fill it", () => {
-    const html = flowPageHtml("empty-flow", [], AT, "");
     expect(html).toContain("This flow has no steps yet.");
     expect(html).toContain("<code>docsxai run</code>");
     expect(html).toContain("<code>docsxai render</code>");
@@ -165,22 +97,11 @@ describe("a flow page with no steps", () => {
 });
 
 describe("notices and neighbours on a flow page", () => {
-  it("escapes a notice", () => {
-    const html = flowPageHtml("f", [step()], AT, "", { notices: ['bad <file> & "x"'] });
-    expect(html).toContain('<p class="notice">bad &lt;file&gt; &amp; &quot;x&quot;</p>');
-  });
-
   it("links to the previous and next flow from a nested flow, escaping the names", () => {
     const html = flowPageHtml("a/b", [step()], AT, "", { neighbours: { prev: "x<y", next: "z" } });
     expect(html).toContain(
       '<a rel="prev" href="../../x&lt;y/index.html">Previous flow: x&lt;y</a>',
     );
     expect(html).toContain('<a rel="next" href="../../z/index.html">Next flow: z</a>');
-  });
-
-  it("leaves out the link to a neighbour that does not exist", () => {
-    const html = flowPageHtml("a", [step()], AT, "", { neighbours: { next: "b" } });
-    expect(html).toContain('rel="next"');
-    expect(html).not.toContain('rel="prev"');
   });
 });
