@@ -138,6 +138,12 @@ Screenshots narrower than `display_width` keep base size, so one block serves mo
 
 When an annotation carries `obstacles`, the burner scores every callout position and keeps the cheapest. From most to least important: the callout covers no page content, halo, badge or earlier callout; the stem and arrow cross none (each px of stem inside content costs more than a px of callout covering it, and a brush of under 2 px at a box edge does not count); the side named by `arrow_style` or `placement.side` is kept; the stem is short. The side hint outweighs a sliver of overlap, about 2 px of content along the callout's width, and loses to anything deeper or to a side with no room in the image. When no spot is clear at full size the burner retries with the callout's side padding cut by up to 6 px (never below 8 px) and keeps that box if it then fits clear. With `obstacles`, a numbered badge is kept fully inside the screenshot, 2 px from the edge. Annotations without `obstacles` place their badge and callout as before, so a badge on a target at the image edge can still be cut off there.
 
+## Line breaks
+
+A burn with a theme balances the callout's lines. It keeps as many lines as filling each one would give and narrows the box until one more line would be needed, so the lines come out about even and none ends with a single word left over. A one-letter word such as Spanish `a`, `y` or `o`, and the list number in front of the copy, stay on the line of the word after them. A word wider than the line, such as a path or a URL, breaks after `/`, `-`, `_`, `.` or `:` before it breaks between letters.
+
+A burn without a theme fills each line, as it always did.
+
 ## Presets
 
 Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` keep `scale` at 1, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62 and `display_width` at 720.
@@ -264,7 +270,7 @@ burn: warning: burn.theme: ink on callout_background is 2.32:1, WCAG AA needs 4.
 
 The output is still produced.
 
-An arrow or stem over a dark part of a screenshot gets a white outline, as before. A light connector colour (a light `callout_border_color`) mirrors that: it gets a dark outline over light pixels.
+An arrow or stem over a dark part of a screenshot is drawn solid in `callout_background`, so it reads as the callout's tail. Where a tenth or more of the pixels under it are as light as that fill, it keeps the dark ink with a white outline instead. A light connector colour (a light `callout_border_color`) mirrors this: over light pixels it takes a dark `callout_background`, or else gets a dark outline. Burns without a theme keep the outline look.
 
 ## From a script
 

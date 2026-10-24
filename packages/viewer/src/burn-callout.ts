@@ -12,6 +12,7 @@ import { overlapArea, planCallout } from "./obstacle-placement.js";
 import { fitsInside, INSIDE_MARGIN, MIN_INSIDE_WIDTH, planInside } from "./inside-placement.js";
 import { ARROW_LENGTH, arrowGeometry } from "./arrow.js";
 import { measureText, wrapText, type FontMetrics } from "./font-metrics.js";
+import { wrapBalanced } from "./caption-wrap.js";
 import type { AnnotationPlacement, AnnotationRecord, BoundingBox } from "./annotations.js";
 
 export const FONT_SIZE = 14;
@@ -27,6 +28,11 @@ export interface CalloutStyle {
   paddingX: number;
   paddingY: number;
   borderWidth: number;
+  /**
+   * `greedy` fills each line (the look without a theme); `balance` keeps the line count and evens
+   * the lines out, see caption-wrap.ts. Default `greedy`.
+   */
+  wrap?: "greedy" | "balance";
 }
 
 export const DEFAULT_CALLOUT_STYLE: CalloutStyle = {
@@ -111,7 +117,8 @@ export function measureCallout(
 ): { lines: string[]; size: Size } {
   const inset = style.paddingX + style.borderWidth;
   const contentMax = maxWidth - 2 * inset;
-  const lines = wrapText(label, style.fontSize, contentMax, metrics);
+  const wrap = style.wrap === "balance" ? wrapBalanced : wrapText;
+  const lines = wrap(label, style.fontSize, contentMax, metrics);
   const contentWidth = Math.min(
     Math.ceil(Math.max(...lines.map((l) => measureText(l, style.fontSize, metrics)))),
     contentMax,

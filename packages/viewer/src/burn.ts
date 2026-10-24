@@ -123,13 +123,17 @@ const THEME_FONT_NAME = "ThemeFont";
 const effectiveWeight = (theme: BurnTheme): number =>
   theme.fontFile !== null ? theme.fontWeight : 400;
 
-/** What sizes a callout box under `theme`. */
-const calloutStyleOf = (theme: BurnTheme): CalloutStyle => ({
+/**
+ * What sizes a callout box under `theme`. A burn given a theme balances its lines; one without
+ * keeps the greedy wrap it always had, so its bytes do not move.
+ */
+const calloutStyleOf = (theme: BurnTheme, themed: boolean): CalloutStyle => ({
   fontSize: theme.fontSize,
   lineHeight: theme.lineHeight,
   paddingX: theme.paddingX,
   paddingY: theme.paddingY,
   borderWidth: theme.calloutBorderWidth,
+  ...(themed ? { wrap: "balance" as const } : {}),
 });
 
 interface DrawnCallout {
@@ -138,11 +142,15 @@ interface DrawnCallout {
   boxes: Rect[];
 }
 
-/** `layout` and `theme` are in screenshot px, already multiplied by the caption scale `f`. */
+/**
+ * `layout` and `theme` are in screenshot px, already multiplied by the caption scale `f`. With
+ * `themed`, a connector lost on the pixels under it takes the callout's fill (see burn-connector.ts).
+ */
 function calloutNodes(
   layout: CalloutLayout,
   theme: BurnTheme,
   f: number,
+  themed: boolean,
   pixels?: PixelGrid,
 ): DrawnCallout {
   const { lines, size: callout, nudge } = layout;
@@ -151,6 +159,7 @@ function calloutNodes(
     pixels,
     connectorColor(theme),
     CONNECTOR_HALO * f,
+    themed ? theme.calloutBackground : undefined,
   );
   nodes.push(
     div(
@@ -231,7 +240,8 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   // when drawn, so every caption dimension scales together. At 1 nothing is converted.
   const f = captionScale(base, width);
   const theme = scaledTheme(base, f);
-  const style = calloutStyleOf(base);
+  const themed = input.theme !== undefined;
+  const style = calloutStyleOf(base, themed);
   const baseImage = f === 1 ? image : { width: width / f, height: height / f };
   const children: BurnNode[] = [
     {
@@ -302,7 +312,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       });
       placed.push(...layoutBoxes(planned));
       layout = layoutAtScale(planned, f);
-      const drawn = calloutNodes(layout, theme, f, input.pixels);
+      const drawn = calloutNodes(layout, theme, f, themed, input.pixels);
       children.push(...drawn.nodes);
       calloutBox = drawn.boxes[0]!;
     }

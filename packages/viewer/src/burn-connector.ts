@@ -1,13 +1,10 @@
 // The stem and arrow joining a burned callout to its target. Ink on the page as ever; on dark
-// pixels (see connector-contrast.ts) a white outline goes under both so they stay visible.
+// pixels (see connector-contrast.ts) a white outline goes under both so they stay visible. A themed
+// burn passes the callout's fill: on pixels that lose the ink and do not match the fill, the stem
+// and arrow are painted solid in it, so they read as the callout's own tail.
 
 import { arrowGeometry, arrowHaloGeometry, growRect } from "./arrow.js";
-import {
-  CONNECTOR_HALO,
-  needsConnectorHalo,
-  toneOf,
-  type PixelGrid,
-} from "./connector-contrast.js";
+import { CONNECTOR_HALO, connectorPaint, toneOf, type PixelGrid } from "./connector-contrast.js";
 import { layoutBoxes, type CalloutLayout } from "./burn-callout.js";
 import type { BurnNode } from "./burn.js";
 
@@ -43,13 +40,15 @@ function box(
  * background is dark gets its outline nodes first (below both inks). Without `pixels`, or on a
  * light background, the nodes are exactly the plain ink ones. `ink` is the connector colour; a
  * light one is outlined in dark ink on light pixels, the mirror of the default. `haloMargin` is
- * the outline's width in px.
+ * the outline's width in px. `fill`, the callout's background, replaces the outline with a solid
+ * connector in that colour where it contrasts with the pixels (see {@link connectorPaint}).
  */
 export function connectorNodes(
   layout: CalloutLayout,
   pixels?: PixelGrid,
   ink: string = CONNECTOR_INK,
   haloMargin: number = CONNECTOR_HALO,
+  fill?: string,
 ): BurnNode[] {
   const tone = toneOf(ink);
   const haloColor = tone === "dark" ? CONNECTOR_HALO_COLOR : CONNECTOR_INK;
@@ -59,15 +58,19 @@ export function connectorNodes(
       ? arrowGeometry(layout.side, layout.arrow, layout.arrowLength)
       : null;
   if (!stem && !arrow) return [];
-  const halo =
-    pixels !== undefined &&
-    needsConnectorHalo(
-      pixels,
-      layoutBoxes(layout)
-        .slice(1)
-        .map((b) => growRect(b, haloMargin)),
-      tone,
-    );
+  const paint =
+    pixels === undefined
+      ? "ink"
+      : connectorPaint(
+          pixels,
+          layoutBoxes(layout)
+            .slice(1)
+            .map((b) => growRect(b, haloMargin)),
+          tone,
+          fill !== undefined ? toneOf(fill) : undefined,
+        );
+  const halo = paint === "outline";
+  const color = paint === "fill" ? fill! : ink;
   const nodes: BurnNode[] = [];
   if (halo) {
     if (stem) {
@@ -80,7 +83,7 @@ export function connectorNodes(
     }
   }
   if (stem) {
-    nodes.push(box(stem.x + nudge.x, stem.y + nudge.y, stem.width, stem.height, ink));
+    nodes.push(box(stem.x + nudge.x, stem.y + nudge.y, stem.width, stem.height, color));
   }
   if (arrow) {
     nodes.push(
@@ -89,7 +92,7 @@ export function connectorNodes(
         arrow.top + nudge.y,
         arrow.width,
         arrow.height,
-        ink,
+        color,
         arrow.clipPath,
       ),
     );

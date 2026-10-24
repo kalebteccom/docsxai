@@ -90,6 +90,31 @@ export function needsConnectorHalo(
   return total > 0 && dark * DARK_SHARE_DEN >= total * DARK_SHARE_NUM;
 }
 
+/** Share (1/10) of pixels under a connector, at most, that may match the callout fill for the fill to be used. */
+export const FILL_SHARE_NUM = 1;
+export const FILL_SHARE_DEN = 10;
+
+/**
+ * How a connector of tone `tone` is painted over `boxes`: `ink` where it reads as it is, `fill`
+ * (the callout's own colour, of tone `fillTone`) where the ink is lost and almost no pixel under
+ * it matches the fill, `outline` (ink with a contrasting outline) otherwise. Without `fillTone`
+ * the answer is `ink` or `outline`, the look before themes.
+ */
+export function connectorPaint(
+  grid: PixelGrid,
+  boxes: Rect[],
+  tone: ConnectorTone,
+  fillTone?: ConnectorTone,
+): "ink" | "fill" | "outline" {
+  if (!needsConnectorHalo(grid, boxes, tone)) return "ink";
+  if (fillTone === undefined || fillTone === tone) return "outline";
+  const { dark: matching, total } =
+    fillTone === "light"
+      ? sampleLuma(grid, boxes, (luma) => luma >= LIGHT_LUMA)
+      : sampleLuma(grid, boxes, (luma) => luma < DARK_LUMA);
+  return matching * FILL_SHARE_DEN < total * FILL_SHARE_NUM ? "fill" : "outline";
+}
+
 /** `light` for a colour at or above mid luma, `dark` below. */
 export function toneOf(hex: string): ConnectorTone {
   const rgb = parseHexColor(hex);

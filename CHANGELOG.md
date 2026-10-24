@@ -7,6 +7,8 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Changed
 
 - **Landing page first-run section.** docsxai.dev gains a "First run" section after Install: `init`, `doctor`, calibrate through the Claude Code plugin, and `run`, each with a copy button and one line of expected output, then a link to the quickstart. The page now names `0.3.0-rc.4`, the `readable` preset, the second `display_width` for narrow captures and `--lang`.
+- **Themed burns paint the arrow and stem in the callout's fill on dark screenshots.** With a `burn.theme`, a connector over dark pixels is drawn solid in `callout_background`, so it reads as the callout's tail. The dark-ink-with-white-outline look stays where a tenth or more of the pixels under it match the fill, and for burns without a theme, which keep their bytes. A light connector on light pixels mirrors this with a dark callout fill.
+- **Themed burns balance callout lines.** With a `burn.theme`, a callout keeps the number of lines the plain wrap gives and narrows to the smallest width that holds them, so no line ends with one word left over. A one-letter word (Spanish `a`, `y`, `o`) and the list number stay with the word after them, and a path or URL wider than the line breaks after `/`, `-`, `_`, `.` or `:`. Burns without a theme wrap as before.
 
 ### Fixed
 

@@ -204,7 +204,7 @@ describe("the presets side by side", () => {
 });
 
 describe("a light connector", () => {
-  it("is outlined in dark ink over light pixels, and left plain over dark ones", async () => {
+  it("takes the dark callout fill over light pixels, and stays plain over dark ones", async () => {
     const light = themeOf({
       callout_background: "#111111",
       ink: "#ffffff",
@@ -226,9 +226,8 @@ describe("a light connector", () => {
     });
     const arrows = (tree: BurnNode) =>
       (tree.props.children as BurnNode[]).filter((n) => n.props.style?.clipPath);
-    expect(arrows(onWhite)).toHaveLength(2);
-    expect(arrows(onWhite)[0]!.props.style!.backgroundColor).toBe("#1c1c1c");
-    expect(arrows(onWhite)[1]!.props.style!.backgroundColor).toBe("#f5f5f5");
+    expect(arrows(onWhite)).toHaveLength(1);
+    expect(arrows(onWhite)[0]!.props.style!.backgroundColor).toBe("#111111");
     expect(arrows(onBlack)).toHaveLength(1);
     expect(arrows(onBlack)[0]!.props.style!.backgroundColor).toBe("#f5f5f5");
   });
