@@ -60,6 +60,11 @@ async function burn(
   return { png, entry: report[0]!, img: decodePng(png) };
 }
 
+// The unthemed 1200x900 burn is the baseline of three tests; one burn serves them all, and nothing
+// writes to its result.
+let plain1200: ReturnType<typeof burn> | undefined;
+const plainBurn = () => (plain1200 ??= burn(1200, 900));
+
 const sha = (b: Buffer) => createHash("sha256").update(b).digest("hex");
 const near = (px: number[], hex: string, tolerance = 8) =>
   [...parseHexColor(hex)!].every((c, i) => Math.abs(px[i]! - c) <= tolerance);
@@ -99,7 +104,7 @@ describe("captionScale", () => {
 
 describe("scale in a burn", () => {
   it("makes the callout and the halo outline twice as large at scale 2", async () => {
-    const one = await burn(1200, 900);
+    const one = await plainBurn();
     const two = await burn(1200, 900, themeOf({ scale: 2 }));
     expect(two.entry.callout!.width / one.entry.callout!.width).toBeCloseTo(2, 1);
     expect(two.entry.callout!.height / one.entry.callout!.height).toBeCloseTo(2, 1);
@@ -128,7 +133,7 @@ describe("scale in a burn", () => {
   });
 
   it("burns the same bytes at scale 1 as with no theme", async () => {
-    const plain = await burn(1200, 900);
+    const plain = await plainBurn();
     const explicit = await burn(1200, 900, themeOf({ scale: 1 }));
     const defaults = await burn(1200, 900, { ...DEFAULT_BURN_THEME, connectorStyle: "arrow" });
     expect(sha(explicit.png)).toBe(sha(plain.png));
@@ -138,7 +143,7 @@ describe("scale in a burn", () => {
 
 describe("the new sizing keys", () => {
   it("move the callout away from its target with arrow_size", async () => {
-    const one = await burn(1200, 900);
+    const one = await plainBurn();
     const long = await burn(1200, 900, themeOf({ arrow_size: 20 }));
     const gap = (r: { callout: { y: number; height: number } | null }) =>
       BOX.y - (r.callout!.y + r.callout!.height);
