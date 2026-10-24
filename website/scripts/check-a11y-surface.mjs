@@ -18,7 +18,8 @@ import { formatFinding, lintHtml, linkedStylesheets } from "../../packages/viewe
 const site = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(site, "dist");
 const MAX_PAGES = 40;
-// Home (splash), the 404, a hand-written docs page and a page with wide tables.
+// Home (splash), the 404, the three onboarding pages, the CLI reference, a page with wide tables
+// and the two burn guides.
 const PINNED = [
   "index.html",
   "404.html",

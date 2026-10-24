@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Fixed
+
+- **Docs site at 390 px.** The install commands on the landing page have copy buttons that change to "Copied", announce the result and copy no prompt, and the `$ ` transcripts in the CLI and plugins references now copy as commands without prompts or output. The menu, search, theme and copy buttons are 44 px, tables and cards use 16 px text, paragraphs stop at 75 characters, the 404 page links to Installation, and the Quickstart ends with a link to the flow-file format. `check-a11y-surface` checks the copy buttons, table wrappers, step numbers and next links in the build.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
