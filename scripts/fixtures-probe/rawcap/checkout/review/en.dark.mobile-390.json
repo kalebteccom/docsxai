@@ -1,0 +1,16 @@
+{
+  "width": 390,
+  "height": 8,
+  "annotations": [
+    {
+      "index": 1,
+      "copy": "Total",
+      "bbox": {
+        "x": 2,
+        "y": 2,
+        "width": 4,
+        "height": 2
+      }
+    }
+  ]
+}

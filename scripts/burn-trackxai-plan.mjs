@@ -115,7 +115,8 @@ export function mergeManifest(manifest, entries) {
   return { manifest: { ...base, screens }, superseded };
 }
 
-const overlap = (a, b) => {
+/** Px² two boxes share; 0 when they only touch. */
+export const overlap = (a, b) => {
   const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
   const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
   return w > 0 && h > 0 ? w * h : 0;

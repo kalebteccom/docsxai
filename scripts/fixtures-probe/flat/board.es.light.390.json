@@ -1,0 +1,9 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "board",
+  "viewport": {
+    "width": 390,
+    "height": 8
+  },
+  "annotations": []
+}
