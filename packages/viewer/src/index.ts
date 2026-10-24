@@ -460,10 +460,6 @@ export async function runViewerCli(argv: string[]): Promise<number> {
     process.stdout.write(`docsxai-viewer ${viewerVersion()}\n`);
     return 0;
   }
-  if (command === "--help" || command === "-h") {
-    process.stdout.write(USAGE + "\n");
-    return 0;
-  }
   if (["build", "burn", "site", "pack"].includes(command ?? "") && asksHelp(rest)) {
     process.stdout.write(commandHelp(USAGE, command!));
     return 0;
