@@ -306,8 +306,13 @@ export class FsStore implements BackendStore {
   private writeAtomic(target: string, data: Buffer | string): void {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     const tmp = `${target}.tmp-${randomUUID()}`;
-    fs.writeFileSync(tmp, data);
-    fs.renameSync(tmp, target);
+    try {
+      fs.writeFileSync(tmp, data);
+      fs.renameSync(tmp, target);
+    } catch (e) {
+      fs.rmSync(tmp, { force: true });
+      throw e;
+    }
   }
 
   private writeJson(target: string, value: unknown): void {

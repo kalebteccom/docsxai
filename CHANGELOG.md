@@ -92,6 +92,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **`docsxai` and `docsxai-viewer` start through an installed bin symlink.** The entry check compared `import.meta.url` with the path the shell used, so a bin that npm links into `PATH` exited 0 without running. It now also compares the real path, as `docsxai-backend` does.
 - **`HEAD /v1/health` answers 200 (`@docsxai/backend`).** It was a 405, which failed load balancer probes that use HEAD. Other GET routes still answer HEAD with 405.
 - **A revision with a non-string `author` is rejected (`@docsxai/backend`).** `POST .../revisions` stored an object as `[object Object]`; it now answers 400 `author must be a string`. A missing `author` still defaults to `unknown`.
+- **`FsStore` removes its temp file when a write fails (`@docsxai/backend`).** A failed write or rename left `<file>.tmp-<id>` in the data dir.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
