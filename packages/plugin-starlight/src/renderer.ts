@@ -1,7 +1,7 @@
 // The starlight:site renderer — a thin adapter from the engine's RendererPlugin contract onto
 // the viewer's `emitStarlightSite` / `buildStarlightSite`. All emission logic (MDX, config,
 // accent derivation, burned-image preference, determinism) lives in the viewer; this maps the
-// renderer context's `config` keys (title / accent / logo / build) and flow filter through.
+// renderer context's `config` keys (title / accent / logo / lang / build) and flow filter through.
 
 import * as path from "node:path";
 import type { RendererContext, RendererPlugin, RendererResult } from "@docsxai/engine";
@@ -18,10 +18,12 @@ export function createStarlightRenderer(): RendererPlugin {
       const title = stringOpt(ctx.config, "title");
       const accent = stringOpt(ctx.config, "accent");
       const logo = stringOpt(ctx.config, "logo");
+      const lang = stringOpt(ctx.config, "lang");
       const config: StarlightSiteConfig = {
         ...(title !== undefined ? { title } : {}),
         ...(accent !== undefined ? { accent } : {}),
         ...(logo !== undefined ? { logo } : {}),
+        ...(lang !== undefined ? { lang } : {}),
         ...(ctx.flows.length > 0 ? { flows: ctx.flows } : {}),
       };
 
