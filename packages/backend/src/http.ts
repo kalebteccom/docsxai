@@ -46,6 +46,16 @@ export function matchRoute(method: string, pathname: string): Matched | "method_
   return methodMismatch ? "method_mismatch" : null;
 }
 
+/** Methods the route table serves on `pathname`, sorted (the `Allow` header of a 405). */
+export function allowedMethods(pathname: string): string[] {
+  const allowed: string[] = [];
+  for (const method of new Set(ROUTES.map((r) => r.method))) {
+    const m = matchRoute(method, pathname);
+    if (m !== null && m !== "method_mismatch") allowed.push(method);
+  }
+  return allowed.sort();
+}
+
 export function isArtifact(s: string): s is RevisionArtifact {
   return (REVISION_ARTIFACTS as readonly string[]).includes(s);
 }

@@ -26,3 +26,18 @@ describe("request path handling", () => {
     expect(((await r.json()) as { error: string }).error).toBe("bad_request");
   });
 });
+
+describe("405 responses", () => {
+  it("list the served methods in Allow", async () => {
+    const del = await fetch(`${base}/v1/workspaces`, { method: "DELETE", headers: h() });
+    expect(del.status).toBe(405);
+    expect(del.headers.get("allow")).toBe("GET, POST");
+
+    const opt = await fetch(`${base}/v1/workspaces/w/auth-cache/r`, {
+      method: "OPTIONS",
+      headers: h(),
+    });
+    expect(opt.status).toBe(405);
+    expect(opt.headers.get("allow")).toBe("DELETE, GET, PUT");
+  });
+});

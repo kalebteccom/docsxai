@@ -66,6 +66,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **`docsxai-backend` flag parsing.** `--port=` (empty) picked a random port, `--port=70000` crashed with a stack trace, `--port 4000` and `--data-dir <dir>` were ignored, and a mistyped flag such as `--data-dri=` started an in-memory server. The bin now reads both `--flag=value` and `--flag value`, and exits 2 with a usage line for a missing value, a port outside 0-65535 or an unknown argument.
 - **`docsxai-backend` startup errors.** A port already in use, a port the user may not bind, and a `--data-dir` that is a file ended in an unhandled rejection with a stack trace. The bin now prints one line naming the port or the data dir and exits 1.
 - **Backend: a malformed percent-encoding in a path answers 400.** `GET /v1/workspaces/%E0%A4%A` threw out of the route matcher and returned 500 `internal`; it now returns 400 `bad_request`.
+- **Backend: a 405 carries `Allow`.** A method the route does not serve (a `DELETE` on `/v1/workspaces`, any `OPTIONS`) now answers with the methods the path does serve in an `Allow` header, as HTTP requires.
 
 ## [0.3.0-rc.3] - 2026-10-09
 

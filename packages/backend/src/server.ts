@@ -17,6 +17,7 @@ import {
 import { appUrlProblem, denyPrivateAppUrl } from "./app-url.js";
 import { FsStore } from "./fs-store.js";
 import {
+  allowedMethods,
   bearerToken,
   matchRoute,
   PayloadTooLargeError,
@@ -112,11 +113,13 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
         error: "not_found",
         message: `no route for ${method} ${url.pathname}`,
       });
-    if (matched === "method_mismatch")
+    if (matched === "method_mismatch") {
+      res.setHeader("Allow", allowedMethods(url.pathname).join(", "));
       return sendJson(res, 405, {
         error: "method_not_allowed",
         message: `${method} not allowed on ${url.pathname}`,
       });
+    }
 
     // Auth gate (everything except /v1/health, the OAuth endpoints, and the GitHub webhook —
     // the webhook is HMAC-signature-verified instead of bearer-gated).
