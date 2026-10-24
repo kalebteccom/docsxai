@@ -639,7 +639,6 @@ main:has(.docsx-404) > .content-panel {
   padding: 0.8rem 0.85rem 0.7rem;
   background: var(--docsx-glass);
   backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -926,7 +925,6 @@ main:has(.docsx-404) > .content-panel {
   padding: 0.55rem 0.6rem 0.65rem;
   background: var(--docsx-glass);
   backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
   display: flex;
   flex-direction: column;
   gap: 0.18rem;
@@ -1673,21 +1671,30 @@ body::before {
   }
 }
 
-/* Frosted top nav. */
-.header {
+/* Frosted top nav and the sticky "On this page" bar under it. Write backdrop-filter unprefixed
+   only: the build's CSS minifier (Lightning CSS) adds -webkit-backdrop-filter itself, and when
+   both are written it keeps only the prefixed one, which Chromium ignores. */
+.header,
+mobile-starlight-toc nav {
   backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+/* Without backdrop-filter the 70% nav background lets page text show through: go opaque. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
+    --sl-color-bg-nav: var(--sl-color-bg);
+  }
 }
 
-/* Frosted-glass surfaces: cards, the product window, and the sidebar affordance
-   float over the halo wash instead of sitting on a flat panel. */
+/* Frosted-glass surfaces: the cards, the product window and the sidebar llms.txt link float over
+   the halo wash. */
 .docsx-card,
 .docsx-window,
 .docsx-sidebar-llms {
   background: var(--docsx-glass);
   border-color: var(--docsx-glass-border);
   backdrop-filter: blur(16px) saturate(135%);
-  -webkit-backdrop-filter: blur(16px) saturate(135%);
 }
 .docsx-card:hover {
   background: color-mix(in srgb, var(--docsx-amber-500) 9%, var(--docsx-glass));
@@ -1837,7 +1844,6 @@ body::before {
   .dxm-core,
   .dxf-flow {
     backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     break-inside: avoid;
   }
   .sl-markdown-content a[href^="http"]::after {
