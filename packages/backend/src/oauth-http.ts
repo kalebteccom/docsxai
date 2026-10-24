@@ -37,8 +37,7 @@ export function handleAuthorize(
     return bad("redirect_uri must be a loopback http URI (e.g. http://127.0.0.1:<port>/callback)");
   }
   // Stub-grade consent: auto-approve for callers holding the CI bearer token, or when
-  // DOCSX_OAUTH_AUTO_APPROVE=1. A real interactive consent UI is hosted-deployment
-  // scope (owner-gated).
+  // DOCSX_OAUTH_AUTO_APPROVE=1. There is no interactive consent page.
   const token = bearerToken(req);
   const approved =
     (token !== null && isCiToken(token)) || process.env.DOCSX_OAUTH_AUTO_APPROVE === "1";
@@ -46,7 +45,7 @@ export function handleAuthorize(
     return sendJson(res, 403, {
       error: "consent_required",
       message:
-        "auto-approval declined — present Authorization: Bearer <DOCSX_TOKEN> or set DOCSX_OAUTH_AUTO_APPROVE=1 (interactive consent is hosted-deployment scope)",
+        "sign-in needs approval: ask whoever runs this server to turn on sign-in approval, or send Authorization: Bearer <DOCSX_TOKEN>",
     });
   }
   const code = oauth.issueCode({ challenge, redirectUri });

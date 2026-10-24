@@ -84,7 +84,10 @@ describe("authorize endpoint", () => {
     const { challenge } = pkcePair();
     const res = await authorize(challenge);
     expect(res.status).toBe(403);
-    expect(((await res.json()) as { error: string }).error).toBe("consent_required");
+    const body = (await res.json()) as { error: string; message: string };
+    expect(body.error).toBe("consent_required");
+    expect(body.message).toContain("ask whoever runs this server");
+    expect(body.message).not.toMatch(/AUTO_APPROVE|hosted-deployment|—/);
   });
 
   it("403s with a wrong bearer token", async () => {
