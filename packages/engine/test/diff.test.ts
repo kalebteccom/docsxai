@@ -336,6 +336,22 @@ steps:
     expect(report.summary.screenshots_changed).toBe(3);
   });
 
+  it("severity compares the exact changed ratio, not the 4-decimal pct shown in the report", async () => {
+    const base = solidPng(3, 1, WHITE);
+    const a = await makePack({ screenshots: { "pay.png": base } });
+    const b = await makePack({
+      screenshots: { "pay.png": withRect(base, { x: 0, y: 0, width: 2, height: 1 }, RED) },
+    });
+    // 2 of 3 pixels is 66.666...%, shown as 66.6667. A warn threshold of 66.6667 is not reached.
+    const report = await diffDocPacks(a, b, {
+      screenshot_pct_warn: 66.6667,
+      screenshot_pct_fail: 90,
+    });
+    expect(report.flows[0]!.screenshots).toEqual([
+      expect.objectContaining({ step: "pay", pct: 66.6667, severity: "info" }),
+    ]);
+  });
+
   it("ignore_regions exclude a named flow/step rectangle from the pixel diff", async () => {
     const base = solidPng(20, 10, WHITE);
     const a = await makePack({ screenshots: { "pay.png": base } });
