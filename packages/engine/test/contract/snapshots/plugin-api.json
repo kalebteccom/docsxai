@@ -149,9 +149,10 @@
     "LintOptions": {
       "members": {
         "loadFlow": "loadFlow?: (name: string) => Promise<FlowFile> | FlowFile",
-        "extraRules": "extraRules?: LintRule[]"
+        "extraRules": "extraRules?: LintRule[]",
+        "fileName": "fileName?: string"
       },
-      "optional": ["extraRules", "loadFlow"]
+      "optional": ["extraRules", "fileName", "loadFlow"]
     }
   }
 }

@@ -14,6 +14,7 @@ import { expandFlows, type FlowVariant } from "./flow-matrix.js";
 import { runFlow } from "./flow-runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
+import { describeBrowserLaunch } from "./browser-launch-error.js";
 import { fsErrorCode } from "./cli-messages.js";
 
 export interface RunFlowsOptions {
@@ -56,6 +57,8 @@ export interface FlowFailure {
   flow: string;
   step: string | null;
   message: string;
+  /** The command that fixes the failure, when the runtime knows it (a browser that would not start). */
+  next?: string;
 }
 
 export interface RunFlowsResult {
@@ -125,12 +128,15 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
         outputRoot,
       });
     } catch (e) {
-      const msg = (e as Error).message;
-      const reason = /Executable doesn't exist|browserType\.launch|playwright install/i.test(msg)
-        ? "no Chromium binary found.  Install one:  npx playwright-core install chromium  (source checkout: pnpm -C packages/engine exec playwright-core install chromium)"
-        : `failed to launch browser: ${msg}`;
+      const problem = describeBrowserLaunch((e as Error).message, opts.cdpEndpoint);
+      const reason = problem.reason;
       process.stderr.write(`${tag(name)}${reason}\n`);
-      failures.push({ flow: name, step: null, message: reason });
+      failures.push({
+        flow: name,
+        step: null,
+        message: reason,
+        ...(problem.next ? { next: problem.next } : {}),
+      });
       return false;
     }
     try {
@@ -175,11 +181,14 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
       });
       return false;
     } finally {
+      // Cleanup failures never replace the flow's own result or stop the other workers.
       if (pause) {
         say("run: --pause — browser is open at the last step run; close it to exit.\n");
-        await waitForBrowserClose(session.browser);
+        await waitForBrowserClose(session.browser).catch(() => undefined);
       }
-      await session.close();
+      await session.close().catch((e: Error) => {
+        process.stderr.write(`${tag(name)}warning: closing the browser failed: ${e.message}\n`);
+      });
     }
   }
 
@@ -189,7 +198,13 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
   async function worker(): Promise<void> {
     while (idx < units.length) {
       const unit = units[idx++]!;
-      if (await runOne(unit)) okCount++;
+      // A throw that escapes runOne would reject the whole pool and leave the other workers running
+      // unobserved, so it counts as this unit's failure instead.
+      const ok = await runOne(unit).catch((e: Error) => {
+        failures.push({ flow: unitLabel(unit), step: null, message: e.message });
+        return false;
+      });
+      if (ok) okCount++;
     }
   }
   const workers = Math.min(opts.concurrency, units.length);

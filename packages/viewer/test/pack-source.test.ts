@@ -387,6 +387,62 @@ describe("readWorkspace", () => {
     expect((await readWorkspace(ws()))[0]!.steps[0]!.variants[0]!.annotations).toEqual([]);
   });
 
+  it.each<[string, Record<string, unknown>, RegExp]>([
+    [
+      "a bounding_box with a non-numeric x",
+      { bounding_box: { x: "a", y: 1, width: 5, height: 5 } },
+      /docs\/desktop-1280\/annotations\.json: annotation 1 \(step "board"\): bounding_box needs numeric x, y, width and height/,
+    ],
+    [
+      "a placement with an unknown side",
+      { placement: { side: "up" } },
+      /annotations\.json: annotation 1 \(step "board"\): placement\.side must be one of/,
+    ],
+    [
+      "an index that is not a positive integer",
+      { index: "2" },
+      /annotations\.json: annotation 1 \(step "board"\): index must be a positive integer/,
+    ],
+    [
+      "an arrow_style that is not a side",
+      { arrow_style: "diagonal" },
+      /annotations\.json: annotation 1 \(step "board"\): arrow_style must be top, bottom, left or right/,
+    ],
+    [
+      "a nudge without numbers",
+      { nudge: { x: "1" } },
+      /annotations\.json: annotation 1 \(step "board"\): nudge needs numeric x and y/,
+    ],
+    [
+      "obstacles that are not boxes",
+      { obstacles: [5] },
+      /annotations\.json: annotation 1 \(step "board"\): obstacle needs numeric x, y, width and height/,
+    ],
+  ])("names the file, record and field of %s in annotations.json", async (_name, bad, message) => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),
+      shots: { "desktop-1280": shots("board") },
+      annotations: {
+        "desktop-1280": [
+          annotation(1, "Fine", "palette"),
+          { ...annotation(1, "Bad", "board"), ...bad },
+        ],
+      },
+    });
+    await expect(readWorkspace(ws())).rejects.toThrow(message);
+  });
+
+  it("does not check records of steps the pack does not read", async () => {
+    await writeWorkspace(ws(), {
+      config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),
+      shots: { "desktop-1280": shots("board") },
+      annotations: {
+        "desktop-1280": [{ ...annotation(1, "Other", "palette"), placement: { side: "up" } }],
+      },
+    });
+    await expect(readWorkspace(ws())).resolves.toHaveLength(1);
+  });
+
   it("stops on a screenshot with no text in pack.json, and on text with no screenshot", async () => {
     await writeWorkspace(ws(), {
       config: packConfig({ "desktop-1280": "en.dark.1280" }, ["board"]),

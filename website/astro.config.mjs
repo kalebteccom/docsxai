@@ -127,6 +127,15 @@ export default defineConfig({
         // Code blocks take the site-wide scrollbar from brand.css; the theme's own webkit
         // scrollbar rules would override it in Safari with a fainter thumb.
         useThemedScrollbars: false,
+        // Shell commands wrap at phone width, with continuation lines indented, so a long
+        // `docsxai init ... --auth manual-capture` reads without a sideways scroll. The copy
+        // button still copies the command as one line. YAML, JSON and command output keep
+        // their own line breaks and scroll, because wrapping them would break the alignment.
+        defaultProps: {
+          overridesByLang: {
+            "sh,bash,shell,zsh,console,powershell": { wrap: true, preserveIndent: true },
+          },
+        },
         styleOverrides: {
           borderRadius: "0.5rem",
           borderColor: "var(--docsx-code-border)",
@@ -157,6 +166,7 @@ export default defineConfig({
             { label: "CI recipes", slug: "guides/ci-recipes" },
             { label: "Determinism and drift", slug: "guides/determinism-and-drift" },
             { label: "Themeable burned captions", slug: "guides/burn-theming" },
+            { label: "Themed caption packs", slug: "guides/themed-caption-packs" },
             { label: "Placing burned annotations", slug: "guides/annotation-placement" },
             { label: "Writing plugins", slug: "guides/writing-plugins" },
             { label: "Security best practices", slug: "guides/security-best-practices" },

@@ -21,7 +21,7 @@ docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|m
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
 docsxai flow-tree <workspace-dir> [--format text|json]
 docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
-docsxai doctor [<workspace-dir>]
+docsxai doctor [<workspace-dir>] [--offline]
 docsxai style <workspace-dir> [--check] [--format text|json]
 docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
 docsxai baseline <workspace-dir> [--out <dir>]
@@ -52,8 +52,19 @@ burned screenshots keep callouts off them. `--ignore-https-errors` accepts self-
 
 Every command exits 0 on success. Validation problems (a missing argument, a
 bad flag value) exit 2; operational failures (a halt, a lint warning, drift at
-the threshold) exit 1. The transcripts below show representative output; paths
-and counts vary with your workspace.
+the threshold) exit 1. A flag a command does not take exits 2 (`burn` and
+`pack` too), and most commands name the nearest flag when one is close:
+`run --flwo x` prints `unknown flag --flwo, did you mean --flow?`. Giving a
+flag twice exits 2 as well, except `burn --flow`, which repeats. A flag that
+takes no value never reads the next argument, so `run --pause <workspace-dir>`
+keeps the workspace, and `--pause=yes` exits 2. A value flag with no value exits
+2 with `<flag> needs a value`. `doctor` follows the same rules: an unknown flag,
+`--offline` twice and `--offline=yes` all exit 2. Ctrl-C (SIGINT) or SIGTERM
+stops a command with one `docsxai: interrupted` line and a `next:` line, and
+exits 130 (SIGINT) or 143 (SIGTERM). While `render`, `burn` or `pack` runs, the
+signal goes to the viewer child and docsxai waits for it: the child gets SIGKILL
+after 10 seconds, and a second signal exits at once. The transcripts below show
+representative output; paths and counts vary with your workspace.
 
 Reports and data go to stdout. Progress lines and warnings go to stderr where
 a command already splits them, and nothing is coloured. A failing command
@@ -88,7 +99,10 @@ session-cache fallback expiry (`30m`, `1h`); `--capture-trigger` picks
 between the devtools-console capture call and an injected on-page button;
 `--auth-cookie <name>` pins the cache expiry to a named cookie up front. For
 a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
-`--force` re-inits over an existing directory.
+`--force` re-inits over an existing directory. `--app-url` has to be an `http://` or
+`https://` URL, or `init` exits 2 with its usage line. A path that is a file stops with
+`<path> is a file, not a directory`, and a `mkdir` the filesystem refuses points
+`chmod` at the existing parent directory.
 
 ```
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
@@ -102,8 +116,12 @@ init: workspace at ~/docsxai/my-app
 Runs the role's auth strategy (for `manual-capture`: a headed, instrumented
 browser the engineer logs into; `window.__docsxai.capture()` or an injected
 button snapshots the session) and caches it to
-`<workspace-dir>/.auth/<role>.json` for subsequent runs. It prints the
-captured cookie jar so you can identify the app's real auth/session cookie.
+`<workspace-dir>/.auth/<role>.json` for subsequent runs, with file mode 0600
+(owner read and write). A role name with characters outside `A-Za-z0-9_.-`, and
+the role name `backend-token`, gets a hash suffix in its file name, so `a/b` and
+`a_b` never share a session and no role overwrites the OAuth token file. A cache
+that predates the suffix is captured once more. It prints the captured cookie jar
+so you can identify the app's real auth/session cookie.
 
 It keeps a persistent Chrome profile at `<workspace>/.auth/chrome-profile/`
 (gitignored) - re-running it reuses the login; just trigger capture again.
@@ -186,7 +204,22 @@ Chromium; if no browser binary is present, install one with
 `npx playwright-core install chromium` (from a source checkout:
 `pnpm -C packages/engine exec playwright-core install chromium`).
 `--flow <name>` restricts to one flow;
-`--base-url <url>` overrides the workspace's `app_url`.
+`--base-url <url>` overrides the workspace's `app_url`; it has to be an `http://` or
+`https://` URL, or `run` exits 2 with its usage line. An `app_url` in `.docsxai.json`
+that is not one stops with exit 1 and names the file.
+
+Start-up failures print one reason and one `next:` line. A missing Chromium gives the
+install command, a `--cdp` endpoint nobody listens on gives
+`cannot attach to the browser at <endpoint> (ECONNREFUSED)` and the
+`--remote-debugging-port` flag to start Chrome with, and `run --cdp` does not ask for a
+cached session first. `run`, `lint` and `flow-tree` on a workspace whose `flows/` was
+deleted print `mkdir <dir>/flows`; on a non-empty directory with no `.docsxai.json` they
+say it is not a workspace. A cached session that is not valid JSON is reported as
+corrupt, not expired; re-run `capture-auth`. A `.docsxai.json` that exists but cannot be
+read (`EACCES`) prints a `was ignored (it cannot be read, EACCES)` warning with a
+`next:` line, also in `capture-auth`. On Node 18 and older the CLI prints
+`docsxai: Node v18.20.5 is too old to start (the engine requires Node >= 26)` and exits 1
+before Playwright's own text.
 
 - `--stop-after <step-id>` runs only a prefix of the flow (up to and
   including that step); `--pause` keeps the (headed) browser open at the last
@@ -194,6 +227,8 @@ Chromium; if no browser binary is present, install one with
   (pair with `--flow <name>`). For a slow backend op, give a step a
   `wait_for` of the form `{ selector: $x, timeout_ms: 180000 }` - a per-step
   override of the default ~30s selector-wait timeout.
+  A step id that no selected flow has exits 2 before the browser launches,
+  and so does an unknown `--start-from` id.
 - `--start-from <step-id> --flow <name>` SKIPS every step before
   `<step-id>` and starts execution there - the inverse of `--stop-after`.
   Pair with `--cdp` to attach to a Chrome already in the post-prior-steps
@@ -295,7 +330,20 @@ the `@docsxai/viewer` package installed next to the engine, then
 
 Flow names and step ids from the doc pack become file paths and link targets, so
 `render` skips a flow name or step id that holds `..`, `:`, `\` or a control
-character (a step id also `/`), with a warning on stderr.
+character (a step id also `/`), with a warning on stderr. A `docs/` folder that
+does not exist, or a `--flow` name with no folder under `docs/`, also prints a
+warning; the viewer still writes its (empty) page. Each flow renders once, and
+`#`, `?` and `%` in names are percent-encoded in the page's links and images. A step
+with a screenshot and no record in `annotations.json` stays on its page as a plain
+screenshot after the annotated steps, and numbered ids sort by value (`step-2` before
+`step-10`). An `annotations.json` that is not valid JSON prints a warning and the page
+lists the screenshots without callouts; one that cannot be read (permissions, a
+directory in its place) stops `render` with an error that names the file. A page with a
+missing screenshot offers the command that captures it again; a flow name or step id
+with a space, quote or `$` is single-quoted in it, so it pastes as one word. `render`
+takes no flags; `docsxai-viewer build --flow <name>` also renders the variant folders of
+a matrix flow, and `docsxai-viewer build --lang fr` warns that only `en` and `es` have
+text tables and writes English.
 
 ```
 $ docsxai render ~/docsxai/my-app
@@ -318,14 +366,22 @@ JSON placement report (`docsxai/burn-report@1`: callout and badge boxes,
 overlaps, and `unplaceable` for a callout whose best spot still covers more than
 10% of its own area), resolved under the workspace when relative. The report
 threshold (`--max-overlap <ratio>`) is a flag of the viewer's own bin,
-`docsxai-viewer burn`; `docsxai burn` does not forward it. `--no-connector-outline` keeps
-every arrow and stem plain ink; by default one over a dark part of the
-screenshot gets a white outline. Exit 1 when the workspace has no `docs/`
+`docsxai-viewer burn`; `docsxai burn` does not forward it. `--no-connector-outline`
+skips reading the screenshot's pixels: an arrow or stem stays plain ink (by default one over
+a dark part of the screenshot gets a white outline), a themed line keeps the callout's outline
+colour, and no text is estimated from the pixels. Exit 1 when the workspace has no `docs/`
 directory or no flow to burn; exit 2 for a bad flag.
 
-The look of the halo, badge, callout and arrow comes from the `burn.theme` block of
+An annotation whose `bounding_box` lies outside the screenshot, has zero or negative
+size, or holds `NaN` or infinity is skipped with a warning that names its selector and
+step, and `--report` lists it with `skipped` set. A box that only overhangs an edge is
+clipped to the image. A flow whose `annotations.json` is missing, unreadable or not valid
+JSON stops the burn with a message that names the file.
+
+The look of the halo, badge, callout and connector comes from the `burn.theme` block of
 `.docsxai.json`: four presets, an optional tokens file and per-key overrides. A workspace without
-the block burns the original look, byte for byte. New in `0.3.0-rc.4`; see
+the block burns the original look, byte for byte. The block, `connector_style` and `caption_style`
+are new in the next release; see
 [Themeable burned captions](/guides/burn-theming/).
 
 ```
@@ -426,8 +482,11 @@ nothing else in `--out` is touched. Loopback addresses (`localhost`, `127.x.x.x`
 169.254/16), email addresses (the reserved example domains `example.com`,
 `example.org`, `example.net` and the `.test`, `.invalid` and `.example` TLDs pass),
 `Authorization:` headers other than `Bearer`, tokens in a URL query and obvious
-secrets in a title, caption, alt text or callout stop the build, naming the manifest
-path and rule. Exit 1 for a failed build, 2 for a bad flag.
+secrets in a title, caption, alt text, callout or the `--generated-for` text stop the
+build, naming the manifest path and rule. A damaged `annotations.json` record (a
+`bounding_box` with a string for `x`, a `placement.side` that is not a side, a bad
+`nudge`, `obstacles`, `arrow_style` or `index`) stops it with the file, the record's
+position and the field. Exit 1 for a failed build, 2 for a bad flag.
 
 `pack` and `pack --check` read the workspace's `burn.theme` block as well (see
 [Themeable burned captions](/guides/burn-theming/)).
@@ -465,10 +524,14 @@ Pure-static checks across the workspace's flow-files - no Playwright, no
 live page. The core rules cover deep `extends` chains, annotations anchored
 to likely-unmounting click/navigate targets, selector waits with no
 `timeout_ms` on long-async-looking steps, bare `[data-*=...]` selectors
-prone to hidden duplicates, and more - the full R001-R016 table is in
+prone to hidden duplicates, and more - the full R001-R017 table is in
 [Troubleshooting](/guides/troubleshooting/). Workspace plugins can add
 rules. Exit 1 if any warning or error; `--format json` emits
-machine-readable output for tooling.
+machine-readable output for tooling. R017 warns when a flow's `name:` differs
+from its file name (`flows/payment.flow.yaml` with `name: checkout`), because
+`extends`, `--flow` and `docs/<name>/` all use the name; it names both, so lint
+exits 1. Two flow files that share one `name:` stop `lint`, `flow-tree` and `run`
+with exit 1 and name both files.
 
 ```
 $ docsxai lint ~/docsxai/my-app
@@ -553,7 +616,14 @@ offline or with `--offline`), backend reachability and login state when `backend
 is configured, the plugin declarations and lock through the same inspection
 `plugins list` runs - declared/installed/lock/capabilities, with **no plugin
 code executed** - viewer-bin resolution (naming which of the three layers
-hit), and `DOCSX_*` env sanity. Exit 1 on any `fail:` line.
+hit), and `DOCSX_*` env sanity. Exit 1 on any `fail:` line, and 2 on a flag it does not
+know (`doctor --offine` used to probe the network).
+
+The `workspace` and `flows` rows name why a workspace is unusable: a `.docsxai.json` it cannot read
+(`chmod u+r <file>`), one that holds an array, `null`, a string or a number, invalid JSON
+(the position in the file, not `init --force`, which would rewrite it), a path that does
+not exist or is a file, and a deleted `flows/` (`mkdir <dir>/flows`). The `plugins` row
+does not repeat a config failure the `workspace` row already printed.
 
 The env row checks three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
 bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typo; the
@@ -597,7 +667,8 @@ JSON. `--check` additionally scans every `docs/<flow>/<step>.md` user-facing
 write-up for jargon leaks against the style's `pruning_rules` (VERIFY, WAIT,
 `data-testid` leaking into user-facing prose, say). The engine never
 re-shapes prose itself; the agent does that at calibration time - this
-command is the enforcement layer. `--format json` for tooling.
+command is the enforcement layer. `--format json` for tooling. A workspace path
+that is not a directory exits 1 with `<path> is not a directory` and writes nothing.
 
 ```
 $ docsxai style ~/docsxai/my-app --check
@@ -673,7 +744,11 @@ session state), `**/halts/` (debug screenshots), and `.viewer/` by default
 output to `<workspace-name>.zip` in the current dir; override with
 `--out <path>`. Zips in-process (no system `zip` binary needed) and
 deterministically - sorted entries, fixed mtime, fixed compression - so the
-same doc pack always produces a byte-identical archive.
+same doc pack always produces a byte-identical archive. A symlink that points
+outside the workspace is left out, whether it is one of the fixed entries
+(`README.md`, `.docsxai.json`, `auth/strategy.yaml`, `docs/`) or sits below a
+directory. The archive is written atomically, and the output directory is created
+only once there is something to write.
 
 ```
 $ docsxai zip ~/docsxai/my-app
@@ -692,6 +767,11 @@ agent hands these to the Atlassian MCP, or the
 [Confluence publisher plugin](/packages/plugin-confluence/) consumes them -
 all Confluence HTTP lives in that capability-declared plugin, never in the
 engine.
+
+A flow file, step markdown file or screenshot that is a symlink to a file outside
+the workspace is left out of `projection.json` and `attachments.json`, so a
+publisher never uploads it. A symlink to a file inside the workspace still works.
+`export playwright` skips them the same way.
 
 ```
 $ docsxai export adf ~/docsxai/my-app --mode page-tree
@@ -763,6 +843,12 @@ defaults to the OS user. Screenshots and `annotations.json` under
 upload - a sealed, immutable snapshot. The backend URL printed in the summary has no
 query string or fragment.
 
+`push` reads the whole doc pack before it calls the backend. A pack it cannot read
+(an invalid `docs/style.json`, say) exits 1 naming the file, and nothing is created
+on the backend. A flow file, annotations file, screenshot, `style.yaml`, `style.json`
+or `locators.yaml` that is a symlink to a file outside the workspace is left out of
+the pack. The ids `push` records in `.docsxai.json` are written atomically.
+
 ```
 $ docsxai push ~/docsxai/my-app --kind run --author ci
 push: screenshots — 2 blob(s) uploaded, 7 already on the backend
@@ -774,7 +860,14 @@ push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) on http://127.0.0.
 Fetches a revision's artifacts back into the workspace files (default:
 `head`; `--rev <id>` for a named revision). Useful for syncing with a
 different operator's edits or rolling back. Fetched screenshot blobs are
-verified against their sha256 before they touch disk.
+verified against their sha256 before they touch disk. `pull` asks the backend only
+for the artifact names `flows`, `annotations`, `screenshots`, `style` and `locators`
+and prints a warning for any other name in the revision.
+
+The doc pack is written as one transaction. `pull` stages every file next to its
+target first and then renames them all into place; a failure while staging changes
+nothing, and a failed rename puts the files already swapped back. A workspace never
+holds half of the new revision and half of the old.
 
 ```
 $ docsxai pull ~/docsxai/my-app

@@ -8,7 +8,13 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { parseAuthStrategyFile, resolveStateCache, type StorageState } from "./auth.js";
+import {
+  cachedSessionIsCorrupt,
+  parseAuthStrategyFile,
+  resolveStateCache,
+  storageStateFileName,
+  type StorageState,
+} from "./auth.js";
 import { calibrate } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
 import {
@@ -22,7 +28,14 @@ import { assertNoCaseCollision } from "./flow-name-rules.js";
 import { recordRunHistory } from "./backend-client.js";
 import { runFlowsInSessions } from "./run-flows.js";
 import { initWorkspace, loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { flagMissingValue, listFlowFiles, parseFlags } from "./cli-shared.js";
+import {
+  bareValueFlagExit,
+  claimFlowName,
+  flagMissingValue,
+  isHttpUrl,
+  listFlowFiles,
+} from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
@@ -45,7 +58,7 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
   if (!state) {
     throw new Error(
       withNext(
-        `auth/strategy.yaml configures role "${role}" but there is no valid cached session at ${path.join(projectDir, ".auth", role + ".json")} (missing or expired)`,
+        `auth/strategy.yaml configures role "${role}" but there is no valid cached session at ${path.join(projectDir, ".auth", storageStateFileName(role))} (${(await cachedSessionIsCorrupt(resolveWorkspacePath(projectDir, ".auth"), role)) ? "the file is corrupt" : "missing or expired"})`,
         `docsxai capture-auth ${shellQuote(projectDir)}`,
       ),
     );
@@ -65,7 +78,9 @@ const RUN_VALUE_FLAGS = [
 ];
 
 export async function cmdRun(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("run", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("run", "missing <workspace-dir>");
   const projectDir: string = positionals[0];
   const bare = flagMissingValue(flags, RUN_VALUE_FLAGS);
@@ -96,9 +111,21 @@ export async function cmdRun(args: string[]): Promise<number> {
   if (typeof verify === "string") return usageError("run", verify);
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg) await warnUnusableConfig("run", projectDir);
-  const baseURL =
-    (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ??
-    wsCfg?.app_url;
+  const baseUrlFlag =
+    typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined;
+  if (baseUrlFlag !== undefined && !isHttpUrl(baseUrlFlag)) {
+    return usageError("run", "--base-url must be an http:// or https:// URL");
+  }
+  const baseURL = baseUrlFlag ?? wsCfg?.app_url;
+  if (baseUrlFlag === undefined && wsCfg?.app_url !== undefined && !isHttpUrl(wsCfg.app_url)) {
+    const file = resolveWorkspacePath(projectDir, ".docsxai.json");
+    const note = withNext(
+      `app_url in ${file} is not an http:// or https:// URL`,
+      `fix app_url in ${file}, or pass --base-url <url>`,
+    );
+    process.stderr.write(`run: ${note}\n`);
+    return 1;
+  }
   const ignoreHTTPSErrors =
     flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
 
@@ -125,6 +152,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   const units: FlowVariant[] = [];
   const matrixFlows = new Set<string>();
   const knownFlows: string[] = [];
+  const flowOwners = new Map<string, string>();
   let flowCount = 0;
   for (const fp of flowPaths) {
     let flow: FlowFile;
@@ -144,6 +172,13 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
     knownFlows.push(flow.name);
     if (onlyFlow && flow.name !== onlyFlow) continue;
+    const duplicate = claimFlowName(flowOwners, flow.name, fp);
+    if (duplicate) {
+      process.stderr.write(
+        `run: ${withNext(duplicate, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
+      );
+      return 1;
+    }
     flowCount++;
     flows.push(flow);
     if (flow.matrix) matrixFlows.add(flow.name);
@@ -187,6 +222,19 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
     units.splice(0, units.length, ...wanted);
   }
+  // A step id that no selected flow has would only fail after a browser had launched, as a halt.
+  for (const [flag, stepId] of [
+    ["start-from", startFrom],
+    ["stop-after", stopAfter],
+  ] as const) {
+    if (!stepId || units.some((u) => u.flow.steps.some((st) => st.id === stepId))) continue;
+    const have = [...new Set(units.flatMap((u) => u.flow.steps.map((st) => st.id)))];
+    const where = onlyFlow ? `flow "${onlyFlow}"` : "any selected flow";
+    return usageError(
+      "run",
+      `--${flag}: no step "${stepId}" in ${where} (steps: ${have.join(", ")})`,
+    );
+  }
   for (const name of matrixFlows) {
     const stale = resolveWorkspacePath(projectDir, "docs", name, "annotations.json");
     if (
@@ -216,9 +264,10 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
   }
 
+  // An attached browser (--cdp) owns its own login; the cached session is not loaded over it.
   let storageState: StorageState | undefined;
   try {
-    storageState = await loadAuthStorageState(projectDir);
+    storageState = cdpEndpoint ? undefined : await loadAuthStorageState(projectDir);
   } catch (e) {
     process.stderr.write(`run: ${(e as Error).message}\n`);
     return 1;
@@ -293,10 +342,29 @@ export async function cmdRun(args: string[]): Promise<number> {
   return anyFailed ? 1 : 0;
 }
 
+/** The flags of `init` that take a value. */
+const INIT_VALUE_FLAGS = [
+  "app-url",
+  "auth",
+  "role",
+  "ttl",
+  "capture-trigger",
+  "auth-cookie",
+  "persist",
+];
+
 export async function cmdInit(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("init", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const persistTmp = flags.get("persist") === "tmp";
   const dir = positionals[0];
+  const bareInit = bareValueFlagExit("init", flags, INIT_VALUE_FLAGS);
+  if (bareInit !== undefined) return bareInit;
+  const persist = flags.get("persist");
+  if (persist !== undefined && persist !== "tmp") {
+    return usageError("init", `--persist must be "tmp" (got "${String(persist)}")`);
+  }
   if (!persistTmp && !dir)
     return usageError("init", "missing <workspace-dir> (or use --persist tmp)");
   const str = (k: string): string | undefined =>
@@ -312,9 +380,19 @@ export async function cmdInit(args: string[]): Promise<number> {
     return 2;
   }
   const appUrl = str("app-url");
+  if (appUrl !== undefined && !isHttpUrl(appUrl)) {
+    return usageError("init", "--app-url must be an http:// or https:// URL");
+  }
   const role = str("role");
   const ttl = str("ttl");
   const authCookie = str("auth-cookie");
+  if (dir && (await fs.stat(dir).catch(() => null))?.isFile()) {
+    const next = "docsxai init <new-dir>  (a workspace is a directory)";
+    process.stderr.write(
+      `init: ${withNext(`${path.resolve(dir)} is a file, not a directory`, next)}\n`,
+    );
+    return 1;
+  }
   try {
     const r = await initWorkspace({
       ...(dir ? { dir } : {}),
@@ -340,16 +418,20 @@ export async function cmdInit(args: string[]): Promise<number> {
     return 0;
   } catch (e) {
     process.stderr.write(
-      `init: ${describeFsError(e) ?? (e as Error).message.replace(/^init: /, "")}\n`,
+      `init: ${describeFsError(e, { creating: true }) ?? (e as Error).message.replace(/^init: /, "")}\n`,
     );
     return 1;
   }
 }
 
 export async function cmdCalibrate(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("calibrate", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const workspaceDir = positionals[0];
   if (!workspaceDir) return usageError("calibrate", "missing <workspace-dir>");
+  const bareCalibrate = bareValueFlagExit("calibrate", flags, ["from", "name"]);
+  if (bareCalibrate !== undefined) return bareCalibrate;
   const from = typeof flags.get("from") === "string" ? (flags.get("from") as string) : undefined;
   if (!from) {
     return usageError(

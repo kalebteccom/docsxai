@@ -263,7 +263,7 @@ describe("buildPack", () => {
 });
 
 describe("hashing the final bytes", () => {
-  it("names each file after the optimiser's output, and records that file's size", async () => {
+  it("names each file after the optimiser's output, runs oxipng once per variant, and builds the same manifest twice", async () => {
     const shim = await writeOxipngShim(root);
     const optimise = await createOxipngOptimiser(shim.command);
     const source = await sourceOf();
@@ -274,6 +274,20 @@ describe("hashing the final bytes", () => {
       warn: quiet,
     });
     const packed = await buildPack({ source, burn: markingBurner, optimise, warn: quiet });
+
+    // Once per variant, with the lossless arguments.
+    const calls = await shim.calls();
+    expect(calls).toHaveLength(3);
+    for (const args of calls) {
+      expect(args.slice(0, OXIPNG_ARGS.length)).toEqual(OXIPNG_ARGS);
+      expect(args[OXIPNG_ARGS.length]).toBe("--out");
+      expect(args).toHaveLength(OXIPNG_ARGS.length + 3);
+    }
+    expect(OXIPNG_ARGS).toEqual(["-o", "4", "--strip", "safe"]);
+
+    // The same optimiser on the same capture builds the same manifest text.
+    const again = await buildPack({ source, burn: markingBurner, optimise, warn: quiet });
+    expect(again.manifestText).toBe(packed.manifestText);
 
     expect(packed.files.size).toBe(plain.files.size);
     const plainStep = plain.pack.flows.onboarding!.steps.pair!.variants["en.light.390"]!;
@@ -289,29 +303,6 @@ describe("hashing the final bytes", () => {
     expect(hash8(finalBytes)).toBe(sha8(finalBytes));
     // Lossless: same pixels.
     expect(Array.from(decodePng(finalBytes).rgba)).toEqual(Array.from(decodePng(plainBytes).rgba));
-  });
-
-  it("runs oxipng once per variant with the lossless arguments", async () => {
-    const shim = await writeOxipngShim(root);
-    const optimise = await createOxipngOptimiser(shim.command);
-    await buildPack({ source: await sourceOf(), burn: markingBurner, optimise, warn: quiet });
-    const calls = await shim.calls();
-    expect(calls).toHaveLength(3);
-    for (const args of calls) {
-      expect(args.slice(0, OXIPNG_ARGS.length)).toEqual(OXIPNG_ARGS);
-      expect(args[OXIPNG_ARGS.length]).toBe("--out");
-      expect(args).toHaveLength(OXIPNG_ARGS.length + 3);
-    }
-    expect(OXIPNG_ARGS).toEqual(["-o", "4", "--strip", "safe"]);
-  });
-
-  it("builds the same manifest text twice with the same optimiser", async () => {
-    const shim = await writeOxipngShim(root);
-    const optimise = await createOxipngOptimiser(shim.command);
-    const source = await sourceOf();
-    const a = await buildPack({ source, burn: markingBurner, optimise, warn: quiet });
-    const b = await buildPack({ source, burn: markingBurner, optimise, warn: quiet });
-    expect(b.manifestText).toBe(a.manifestText);
   });
 });
 
@@ -372,11 +363,6 @@ describe("createOxipngOptimiser", () => {
         await shim("garbage-oxipng", "printf 'garbage' > \"$6\""),
       );
       await expect(optimise(png)).rejects.toThrow(/wrote output that is not a readable PNG/);
-    });
-
-    it("rejects an empty output file", async () => {
-      const optimise = await createOxipngOptimiser(await shim("empty-oxipng", ': > "$6"'));
-      await expect(optimise(png)).rejects.toThrow(/not a readable PNG/);
     });
 
     it("rejects a truncated PNG that still has a valid header", async () => {

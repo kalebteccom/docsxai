@@ -42,7 +42,7 @@ describe("a step without a usable screenshot", () => {
     expect(html).not.toContain("<b>");
     expect(html).not.toContain("<y>");
     expect(html).toContain(
-      "docsxai run &lt;workspace&gt; --flow x&quot;&lt;y&gt; --start-from a&quot;&lt;b&gt;",
+      "docsxai run &lt;workspace&gt; --flow 'x&quot;&lt;y&gt;' --start-from 'a&quot;&lt;b&gt;'",
     );
     expect(html).toContain("<code>screenshots/a&quot;&lt;b&gt;.png</code> was not found");
   });

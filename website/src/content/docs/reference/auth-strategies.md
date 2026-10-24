@@ -304,8 +304,11 @@ roles:
 The `cache` block on each role controls reuse:
 
 - `enabled` - cache at all (default false).
-- `store: local` (default) caches to `<workspace>/.auth/<role>.json`.
-  Operator-local, gitignored.
+- `store: local` (default) caches to `<workspace>/.auth/<role>.json`, written
+  with file mode 0600. Operator-local, gitignored. A role name with characters
+  outside `A-Za-z0-9_.-`, and the name `backend-token`, gets a hash suffix in its
+  file name, so two roles never share a file and none overwrites the OAuth token
+  file.
 - `store: backend` relays a client-side-encrypted AES-256-GCM envelope
   through the backend so a team can share captured sessions. The encryption
   key comes from `DOCSX_CACHE_KEY` (a base64 32-byte key) and never

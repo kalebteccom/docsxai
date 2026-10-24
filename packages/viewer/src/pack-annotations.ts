@@ -73,6 +73,26 @@ function readPlacement(value: unknown, where: string): AnnotationPlacement {
   return out;
 }
 
+/** The optional burner fields of a record (`arrow_style`, `nudge`, `obstacles`, `placement`), checked. */
+function optionalFields(raw: Obj, where: string): Partial<AnnotationRecord> {
+  const record: Partial<AnnotationRecord> = {};
+  if (raw.arrow_style !== undefined) {
+    if (typeof raw.arrow_style !== "string" || !ARROW_STYLE.test(raw.arrow_style)) {
+      throw new Error(`${where}: arrow_style must be top, bottom, left or right`);
+    }
+    record.arrow_style = raw.arrow_style;
+  }
+  if (raw.nudge !== undefined) record.nudge = readNudge(raw.nudge, where);
+  if (raw.obstacles !== undefined) {
+    if (!Array.isArray(raw.obstacles) || raw.obstacles.length > MAX_OBSTACLES) {
+      throw new Error(`${where}: obstacles must be an array of at most ${MAX_OBSTACLES} boxes`);
+    }
+    record.obstacles = raw.obstacles.map((o: unknown) => readBox(o, `${where}: obstacle`));
+  }
+  if (raw.placement !== undefined) record.placement = readPlacement(raw.placement, where);
+  return record;
+}
+
 /** One sidecar annotation → burner record. `withIndex`: number the badge (steps with 2+ annotations). */
 function toRecord(step: string, raw: unknown, withIndex: boolean, where: string): AnnotationRecord {
   if (!isObj(raw)) throw new Error(`${where}: annotation must be an object`);
@@ -90,21 +110,23 @@ function toRecord(step: string, raw: unknown, withIndex: boolean, where: string)
     bounding_box: readBox(raw.bbox, `${where}: bbox`),
   };
   if (withIndex) record.index = index;
-  if (raw.arrow_style !== undefined) {
-    if (typeof raw.arrow_style !== "string" || !ARROW_STYLE.test(raw.arrow_style)) {
-      throw new Error(`${where}: arrow_style must be top, bottom, left or right`);
-    }
-    record.arrow_style = raw.arrow_style;
-  }
-  if (raw.nudge !== undefined) record.nudge = readNudge(raw.nudge, where);
-  if (raw.obstacles !== undefined) {
-    if (!Array.isArray(raw.obstacles) || raw.obstacles.length > MAX_OBSTACLES) {
-      throw new Error(`${where}: obstacles must be an array of at most ${MAX_OBSTACLES} boxes`);
-    }
-    record.obstacles = raw.obstacles.map((o: unknown) => readBox(o, `${where}: obstacle`));
-  }
-  if (raw.placement !== undefined) record.placement = readPlacement(raw.placement, where);
+  Object.assign(record, optionalFields(raw, where));
   return record;
+}
+
+/**
+ * Checks the fields of one `annotations.json` record that the burner reads, so a bad value stops
+ * the pack with the file, the record's place in it and the field. `where` names file and record.
+ * Only what is present is checked: a record without a box or copy is skipped later, not refused.
+ */
+export function checkEngineRecord(raw: Obj, where: string): void {
+  if (raw.bounding_box !== undefined && raw.bounding_box !== null) {
+    readBox(raw.bounding_box, `${where}: bounding_box`);
+  }
+  if (raw.index !== undefined && (!Number.isInteger(raw.index) || (raw.index as number) < 1)) {
+    throw new Error(`${where}: index must be a positive integer`);
+  }
+  optionalFields(raw, where);
 }
 
 /** A raw sidecar's `annotations` array → burner records, in file order. */

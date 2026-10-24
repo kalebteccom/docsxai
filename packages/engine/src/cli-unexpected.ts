@@ -39,32 +39,54 @@ export function interruptedText(signal: string, argv: string[]): string {
   return `docsxai: ${withNext(`interrupted (${signal}); anything a finished step wrote stays on disk`, `${rerun}  (the same command starts over)`)}\n`;
 }
 
+/** Milliseconds a viewer child gets to end after a signal before it is killed. */
+const KILL_AFTER_MS = 10_000;
+
 /**
  * Run `main` as the bin does: an error it throws becomes exit 1 and {@link unexpectedErrorText}, and
  * Ctrl-C or SIGTERM prints {@link interruptedText} and ends the process with exit 130 or 143. While
- * a viewer child runs, the signal goes to it and the process exits with the child's exit code.
+ * a viewer child runs, the signal goes to it and the process waits for it, then exits with the
+ * child's exit code, or the signal's when the child exited 0 after being told to stop. A child that
+ * has not ended `killAfterMs` later gets SIGKILL, and a second signal ends the process at once.
  */
 export async function runAsBin(
   main: (argv: string[]) => Promise<number>,
   argv: string[],
   env: NodeJS.ProcessEnv = process.env,
+  opts: { killAfterMs?: number } = {},
 ): Promise<number> {
   const signals = { SIGINT: 130, SIGTERM: 143 } as const;
+  let received: keyof typeof signals | undefined;
+  let killTimer: NodeJS.Timeout | undefined;
   const handlers = (Object.keys(signals) as Array<keyof typeof signals>).map((sig) => {
     const handler = () => {
+      if (received) {
+        // The child is slow to stop and the operator asked again: stop waiting for it.
+        forwardSignalToViewer("SIGKILL");
+        process.exit(signals[sig]);
+        return;
+      }
+      received = sig;
       process.stderr.write(interruptedText(sig, argv));
       // A render, burn or pack child gets the signal and ends the run itself, so its writes finish.
       if (!forwardSignalToViewer(sig)) process.exit(signals[sig]);
+      else
+        killTimer = setTimeout(
+          () => forwardSignalToViewer("SIGKILL"),
+          opts.killAfterMs ?? KILL_AFTER_MS,
+        );
     };
-    process.once(sig, handler);
+    process.on(sig, handler);
     return [sig, handler] as const;
   });
   try {
-    return await main(argv);
+    const code = await main(argv);
+    return received && code === 0 ? signals[received] : code;
   } catch (e) {
     process.stderr.write(unexpectedErrorText(e, debugEnabled(env)));
     return 1;
   } finally {
+    clearTimeout(killTimer);
     for (const [sig, handler] of handlers) process.off(sig, handler);
   }
 }

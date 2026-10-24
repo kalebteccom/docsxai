@@ -33,7 +33,7 @@ auth-cache/<wsId>/<role>.json
 webhook-deliveries.json   ← replay guard: last 100 delivery ids
 ```
 
-Each project keeps its newest 1000 run-history records (`RUN_HISTORY_LIMIT`); appending past that drops the oldest. Writes are atomic (tmp file + rename); reads always go to disk, so multiple processes pointed at one data dir stay consistent. Every path join is containment-guarded against the data root — traversal-shaped ids read as not-found and traversal-shaped writes throw.
+Each project keeps its newest 1000 run-history records (`RUN_HISTORY_LIMIT`); appending past that drops the oldest. A webhook run records the revision it executed against, not a `head` that moved while it ran, and a job whose workspace could not be laid out appends a failed record with the reason. Writes are atomic (tmp file + rename); reads always go to disk, so multiple processes pointed at one data dir stay consistent. Every path join is containment-guarded against the data root — traversal-shaped ids read as not-found and traversal-shaped writes throw. `FsStore` and `MemoryStore` list projects in creation order, and a webhook picks the first project whose `repo` matches in that order. A request target the URL parser rejects (`GET //`, `GET //[`) gets `400 bad_request`.
 
 ## Blob protocol
 
@@ -136,7 +136,7 @@ GitHub push/PR ──▶ POST /v1/github/webhook          (no bearer auth; HMAC-
 `POST /v1/github/webhook` — unauthenticated route, strictly verified:
 
 - **401** missing/invalid `X-Hub-Signature-256`, or the configured secret env var is unset (fails closed).
-- **404** the payload's `repository.full_name` maps to no configured project.
+- **404** the payload's `repository.full_name` maps to no configured project. The match ignores case, because GitHub does (`Acme/Docs` finds a project configured as `acme/docs`).
 - **400** unparsable payload, missing `repository.full_name`, or missing `X-GitHub-Delivery`.
 - **200** `{ dispatched: false, reason }` for filtered events / disabled configs; `{ duplicate: true }` for replayed delivery ids (last 100 remembered, store-backed).
 - **202** `{ delivery_id, project_id, dispatched: true }` — job queued; execution happens after the response, serialized per project.

@@ -1,6 +1,6 @@
 # Placing burned annotations
 
-`docsxai burn` and `docsxai pack` put each callout next to its target. This page covers the record fields that steer where it lands, and what to do when it lands badly. Colours, fonts and sizes are in [Theming burned captions](burn-theming.md).
+`docsxai burn` and `docsxai pack` put each callout next to its target and join the two with a connector. This page covers the record fields that steer where it lands, and what to do when it lands badly. Colours, fonts and sizes are in [Theming burned captions](burn-theming.md).
 
 ## What an annotation record holds
 
@@ -11,10 +11,12 @@ Records live in `annotations.json` (`docsxai/annotations@1`), one per annotated 
 | `bounding_box` | The target, in screenshot pixels. Without it the annotation is skipped with a warning.                                             |
 | `copy`         | The callout text. Without it only the halo and badge are drawn.                                                                    |
 | `index`        | 1-based number on the badge. Set only when a screenshot has more than one annotation.                                              |
-| `arrow_style`  | `top`, `bottom`, `left`, `right`, or a corner such as `top-left`. The part before the dash names the preferred side.               |
-| `nudge`        | `{ x, y }` px added to callout and arrow after placement. The halo stays put.                                                      |
+| `arrow_style`  | A soft side hint: `top`, `bottom`, `left`, `right`, or a corner such as `top-left`. The part before the dash names the side.       |
+| `nudge`        | `{ x, y }` px added to callout and connector after placement. The halo stays put.                                                  |
 | `obstacles`    | Up to 40 boxes of page content to keep clear, in screenshot pixels.                                                                |
 | `placement`    | `inside`, `side`, `align`, `pin_arrow` and `max_width` (120 to 560 px). `obstacle_radius` and `obstacle_limit` steer capture only. |
+
+A box that lies off the image, has zero or negative size, or holds `NaN` or infinity is skipped the same way. A box that only overhangs an edge is clipped to the image. A skipped annotation names its selector and step in the warning and appears in `burn --report` with a `skipped` reason.
 
 With `annotations.obstacles` on in `.docsxai.json`, `docsxai run` records `obstacles` for you. A pipeline that knows the layout can write them by hand. The interactive viewer ignores `obstacles` and `placement`.
 
@@ -24,13 +26,13 @@ The preferred side is `placement.side`, else the side in `arrow_style`, else `to
 
 - With no `obstacles` and no `placement` key, the burner puts the callout on the preferred side if it fits inside the image, then tries the others.
 - With `obstacles` or a `placement` key, the burner scores positions on all four sides. Both `arrow_style` and `placement.side` earn a bonus for their side. When that side is clear it wins. A small overlap does not stop it: the bonus outweighs about 2 px of content along the callout's width. A side that covers more than that, or has no room, loses.
-- `placement.side` goes further. The burner tries only that side first, and falls back to the others when nothing fits inside the image.
+- `placement.side` goes further. The burner tries only that side first, and falls back to the others when nothing fits inside the image. A themed burn with the line connector also falls back when that side only offers spots that cover content.
 
 ## Obstacles
 
 List the neighbours of the target: text blocks, logos, icons, other halos. Do not list the target. A box that contains the target cannot be avoided.
 
-The burner moves the callout out along the side, adds a stem back to the arrow, and slides it along the target's edge. With a theme the connector is a thin line instead: the callout moves up to 176 px out to empty space, or docks along the top or bottom edge, and text found in the pixels counts as an obstacle (see [burn-theming.md](burn-theming.md#connectors)). It keeps the spot that covers the least. A stem that crosses content costs more than a callout that covers the same area. Other halos, badges and earlier callouts count as obstacles too.
+The burner moves the callout out along the side, joins it to the target with a stem, and slides it along the target's edge. With a theme the connector is a thin line instead: the callout moves up to 176 px out to empty space, or docks 12 px from the top or bottom edge of the image, and text found in the screenshot's pixels counts as an obstacle (see [Placement with the line](burn-theming.md#placement-with-the-line)). It keeps the spot that covers the least. A stem that crosses content costs more than a callout that covers the same area. Other halos, badges and earlier callouts count as obstacles too.
 
 When no spot is clear:
 
@@ -38,11 +40,15 @@ When no spot is clear:
 2. It cuts the callout's side padding by up to 6 px, never below 8 px, and keeps that box if it fits clear.
 3. Otherwise it draws the spot with the least overlap, the widest among equals.
 
+With the line connector the burner also tries a box up to 560 px wide, and text one step smaller (16 px burned, or 14 px under 900 px wide), before it accepts an overlap.
+
 `docsxai burn <workspace-dir> --report report.json` lists each callout's `overlap_ratio` and flags `unplaceable` above 0.1. `docsxai-viewer burn` takes `--max-overlap` to move that threshold.
 
 ## The badge
 
-A numbered badge sits 8 px up and left of the halo. When the annotation has `obstacles`, the burner also tries the other three corners and offsets of 14, 20 and 26 px, and keeps the one that covers the least content, then the least of the target. With obstacles the badge ends fully inside the image, 2 px from each edge. Without them it is clamped by its 22 px inner circle, so the white border can touch the edge.
+With the line connector, a numbered badge sits 1 px off a corner of the target, as [Clean halo and badge](burn-theming.md#clean-halo-and-badge) describes.
+
+With the `arrow` connector it sits 8 px up and left of the halo. When the annotation has `obstacles`, the burner also tries the other three corners and offsets of 14, 20 and 26 px, and keeps the one that covers the least content, then the least of the target. With obstacles the badge ends fully inside the image, 2 px from each edge. Without them it is clamped by its 22 px inner circle, so the white border can touch the edge.
 
 ## Scale and display_width
 
@@ -54,7 +60,7 @@ on-screen px = fontSize x auto x displayWidth / imageWidth
 
 A 1440 px capture shown at 720 px gets auto 2. With `auto = imageWidth / displayWidth` the text shows at `fontSize`. Set `display_width` to the column width, or to `{ default, narrow, narrow_below }` when narrow images are shown at a different width. Screenshots narrower than it keep base size. The `readable` preset turns on `scale: "auto"`.
 
-## Different themes for wide and narrow images
+## Wide and narrow images in one workspace
 
 A `.docsxai.json` holds one `burn.theme`. Per-flow themes are not supported. For wide and narrow images in one workspace, give `display_width` an object: `"display_width": { "default": 720, "narrow": 358, "narrow_below": 900 }` uses 358 for screenshots narrower than 900 px and 720 for the rest (see [burn-theming.md](burn-theming.md#wide-and-narrow-images)). For other per-image changes, pass `options.theme` per call. It wins over the workspace's block. `burnWithWorkspaceTheme` caches the workspace load, so the base theme is read once.
 
@@ -83,11 +89,12 @@ const png = await burnWithWorkspaceTheme({
 | Symptom                             | Fix                                                                                |
 | ----------------------------------- | ---------------------------------------------------------------------------------- |
 | Callout covers text                 | Add that text's box to `obstacles`, or shorten `copy`.                             |
-| Arrow or stem crosses content       | Give a side hint: `arrow_style` or `placement.side`, on the side with clear space. |
+| Connector crosses content           | Give a side hint: `placement.side` or `arrow_style`, on the side with clear space. |
 | Callout sits on the wrong side      | Set `placement.side` to try only that side first.                                  |
 | Badge covers neighbouring text      | Add those boxes to `obstacles` so the badge can pick another corner.               |
 | Badge touches the image edge        | Add at least one box to `obstacles`. The badge then stays 2 px inside.             |
 | Captions too small on the page      | Set `display_width` to the column width and `scale` to `"auto"`.                   |
 | Callout too wide for a narrow image | Lower `placement.max_width`, or `max_width_ratio` in the theme.                    |
+| No clear spot for a caption         | Set `caption_style` to `auto` (badge when no spot is clear) or `badge`.            |
 
-> **For agents:** to check a side hint against a raw capture before committing it, run `node scripts/burn-probe.mjs --screenshot raw.png --annotations raw.json` from a docsxai checkout after `pnpm --filter @docsxai/viewer build`. It prints, per callout, the side asked for and the side taken, each side's best score, the obstacles the callout, arrow, stem and badge touch, and whether the connector is drawn as ink, fill or outline. `--side 2=bottom` tries a hint without editing the file, `--theme` or `--workspace` burns with a theme, and `--out` writes the burned PNG.
+> **For agents:** to check a side hint against a raw capture before committing it, run `node scripts/burn-probe.mjs --screenshot raw.png --annotations raw.json` from a docsxai checkout after `pnpm --filter @docsxai/viewer build`. It prints, per callout, the side asked for and the side taken, each side's best score, the obstacles the callout, arrow, stem and badge touch, and how the connector is painted: ink, fill or outline for the arrow, the colour for the line. `--side 2=bottom` tries a hint without editing the file, `--theme` or `--workspace` burns with a theme, and `--out` writes the burned PNG.

@@ -51,9 +51,16 @@ export const htmlPages = [
     replace: [
       [
         /(Everything below is opt-in\.\n)/,
-        "$1\n:::note[Availability]\n`burn.theme` is available from `0.3.0-rc.4` (`docsxai@next`). `0.2.0` and `0.3.0-rc.3` do not read it. The surface is experimental, so the preset values and the token mapping can still change.\n:::\n",
+        "$1\n:::note[Availability]\n`burn.theme`, `connector_style`, `caption_style` and the line connector are new in the next release. `0.2.0` and `0.3.0-rc.3` do not read them. The surface is experimental, so the preset values and the token mapping can still change.\n:::\n",
       ],
     ],
+  },
+  {
+    src: "docs/themed-caption-packs.md",
+    out: "guides/themed-caption-packs.md",
+    title: "Themed caption packs",
+    description:
+      "Turn raw captures from docsxai run into themed, hash-named screenshots with a manifest: tokens for light and dark, sizes per width class, badge fallback, reading the burn report and a no-overlap check.",
   },
   {
     src: "docs/annotation-placement.md",

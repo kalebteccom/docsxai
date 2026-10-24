@@ -145,6 +145,7 @@ launches; exit 1 on any warning or error. The rules:
 | R014 | info     | A `wait` step that only sleeps (`wait_for: { timeout_ms: N }`) - use `wait_for: settled`.                    |
 | R015 | info     | The variants a flow's `matrix` expands to, in run order.                                                     |
 | R016 | warning  | A `copy_by_locale` key that no variant locale can use, so it never applies.                                  |
+| R017 | warning  | A flow whose `name:` differs from its file name - `extends`, `--flow` and `docs/<name>/` use the name.       |
 
 Plugins can contribute additional rules; see
 [Writing plugins](/guides/writing-plugins/). For the full calibration

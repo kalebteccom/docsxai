@@ -83,3 +83,70 @@ describe("runAsBin with a viewer child", () => {
     expect(code).toBe(9);
   });
 });
+
+describe("runAsBin after a signal reached a viewer child", () => {
+  /** Send `signal` to the handler runAsBin registered last (its own) once the child is ready. */
+  async function interrupt(signal: "SIGINT" | "SIGTERM", times = 1): Promise<void> {
+    await untilReady();
+    for (let i = 0; i < times; i++) process.listeners(signal).at(-1)!(signal);
+  }
+
+  beforeEach(() => {
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  });
+
+  it("exits 143, not 0, when the child shut down cleanly on SIGTERM", async () => {
+    await stubViewer('process.on("SIGTERM", () => process.exit(0));');
+    vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+    const code = await runAsBin(async () => {
+      const run = runViewerBin("burn", []);
+      await interrupt("SIGTERM");
+      return run;
+    }, []);
+    expect(code).toBe(143);
+  });
+
+  it("exits 130 for SIGINT when the child shut down cleanly", async () => {
+    await stubViewer('process.on("SIGINT", () => process.exit(0));');
+    vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+    const code = await runAsBin(async () => {
+      const run = runViewerBin("burn", []);
+      await interrupt("SIGINT");
+      return run;
+    }, []);
+    expect(code).toBe(130);
+  });
+
+  it("kills a child that ignores the signal once the grace period ends", async () => {
+    await stubViewer('process.on("SIGTERM", () => {});');
+    vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+    const code = await runAsBin(
+      async () => {
+        const run = runViewerBin("burn", []);
+        await interrupt("SIGTERM");
+        return run;
+      },
+      [],
+      process.env,
+      { killAfterMs: 100 },
+    );
+    expect(code).toBe(137);
+  });
+
+  it("a second signal ends the process at once with the signal's code and kills the child", async () => {
+    await stubViewer('process.on("SIGINT", () => {});');
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+    const code = await runAsBin(
+      async () => {
+        const run = runViewerBin("burn", []);
+        await interrupt("SIGINT", 2);
+        return run;
+      },
+      [],
+      process.env,
+      { killAfterMs: 60_000 },
+    );
+    expect(exit).toHaveBeenCalledWith(130);
+    expect(code).toBe(137);
+  });
+});

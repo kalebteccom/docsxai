@@ -29,6 +29,8 @@ export type LintOptions = {
   loadFlow?: (name: string) => Promise<FlowFile> | FlowFile;
   /** Additional rules run after the built-ins (same flow, same options). */
   extraRules?: LintRule[];
+  /** The flow's file name (`checkout.flow.yaml`), for the rules that compare it with the flow's name. */
+  fileName?: string;
 };
 
 /** Heuristic — names that suggest a step kicks off a multi-minute backend op. */
@@ -64,6 +66,20 @@ function waitsFullDefault(step: FlowFile["steps"][number]): boolean {
 
 export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<LintIssue[]> {
   const issues: LintIssue[] = [];
+
+  // R017 — the flow's `name:` is not its file name; `extends:`, `--flow` and docs/<name>/ use the name
+  if (opts.fileName !== undefined) {
+    const stem = opts.fileName.replace(/\.flow\.yaml$/, "");
+    if (stem !== flow.name) {
+      issues.push({
+        code: "R017",
+        severity: "warning",
+        flow: flow.name,
+        message: `flow name \`${flow.name}\` differs from its file name ${opts.fileName}; \`extends\`, \`--flow\` and docs/${flow.name}/ use the name, so the file is easy to miss`,
+        suggestion: `rename the file to flows/${flow.name}.flow.yaml, or set \`name: ${stem}\``,
+      });
+    }
+  }
 
   // R001 — extends chain depth; R005 — extends target missing
   if (opts.loadFlow && flow.extends) {

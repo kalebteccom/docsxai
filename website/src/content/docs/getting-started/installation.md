@@ -70,9 +70,10 @@ for the full workspace setup.
 docsxai doctor
 ```
 
-`doctor` checks the Node version, Chromium, viewer resolution and more. Every
-failing row prints its own one-line fix. Outside a workspace it skips the
-workspace rows, which is fine for now.
+`doctor` checks the Node version, Chromium, viewer resolution and more. Each
+line starts with `ok:` or `fail:`, and a `fail:` line names its fix after
+`next:`. Outside a workspace it skips the workspace lines, which is fine for
+now. The command exits 1 when any line fails.
 
 `docsxai --help` prints the usage block listing `init`, `run`, `render`,
 `capture-auth`, and the rest of the surface in the

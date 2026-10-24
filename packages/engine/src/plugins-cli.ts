@@ -18,7 +18,7 @@ import {
   sha256Hex,
   writePluginsLock,
 } from "./plugins/lock.js";
-import { parseFlags } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import type { PluginRecord } from "./plugins/registry.js";
 import { resolvePlugins, resolvePluginSources } from "./plugins/runtime.js";
 
@@ -123,20 +123,25 @@ async function cmdSync(workspaceDir: string, format: "text" | "json"): Promise<n
   const resolutions = await resolvePluginSources(workspaceDir, cfg.sources);
   const failures: Array<{ source: string; reason: string }> = [];
   const lock: PluginsLockFile = { schema: PLUGINS_LOCK_SCHEMA, plugins: {} };
+  const claimed = new Map<string, string>();
   for (const r of resolutions) {
     if (!r.ok) {
       failures.push({ source: r.record.source, reason: r.record.statusReason ?? "unresolvable" });
       continue;
     }
     const ns = r.candidate.manifest.namespace;
-    if (lock.plugins[ns]) {
-      failures.push({
-        source: r.candidate.source,
-        reason: `namespace "${ns}" is claimed by more than one configured plugin — cannot lock`,
-      });
-      delete lock.plugins[ns];
+    const reason = `namespace "${ns}" is claimed by more than one configured plugin — cannot lock`;
+    const firstSource = claimed.get(ns);
+    if (firstSource !== undefined) {
+      // The first claimant was locked before this one showed up: take it back out, once.
+      if (lock.plugins[ns]) {
+        delete lock.plugins[ns];
+        failures.push({ source: firstSource, reason });
+      }
+      failures.push({ source: r.candidate.source, reason });
       continue;
     }
+    claimed.set(ns, r.candidate.source);
     let bytes: Uint8Array;
     try {
       bytes = await fs.readFile(r.candidate.registerPath);
@@ -181,10 +186,16 @@ export async function pluginsCli(args: string[]): Promise<number> {
     process.stderr.write(`plugins: unknown subcommand "${sub}"\n\n${PLUGINS_USAGE}`);
     return 2;
   }
-  const { positionals, flags } = parseFlags(rest);
+  const parsed = parseCommandFlags(`plugins ${sub}`, rest, "plugins");
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const workspaceDir = positionals[0];
   if (!workspaceDir) {
     process.stderr.write(`plugins ${sub}: missing <workspace-dir>\n\n${PLUGINS_USAGE}`);
+    return 2;
+  }
+  if (flags.get("format") === true) {
+    process.stderr.write(`plugins ${sub}: --format needs a value ("text" or "json")\n`);
     return 2;
   }
   const format = parseFormat(flags);

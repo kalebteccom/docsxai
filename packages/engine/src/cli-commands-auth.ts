@@ -8,17 +8,24 @@ import {
   makeStrategy,
   parseAuthStrategyFile,
   resolveCredsEnv,
+  storageStateFileName,
 } from "./auth.js";
+import { describeBrowserLaunch } from "./browser-launch-error.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import { usageError, withNext } from "./cli-messages.js";
 import { warnUnusableConfig } from "./cli-backend-errors.js";
 
 export async function cmdCaptureAuth(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("capture-auth", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const projectDir = positionals[0];
   if (!projectDir) return usageError("capture-auth", "missing <workspace-dir>");
+  const bare = bareValueFlagExit("capture-auth", flags, ["base-url", "role", "auth-cookie", "cdp"]);
+  if (bare !== undefined) return bare;
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg) await warnUnusableConfig("capture-auth", projectDir);
   const baseURL =
@@ -117,7 +124,7 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
       resolveWorkspacePath(projectDir, ".auth"),
     ).save(role, result, roleAuth, Date.now(), authCookie ? { authCookie } : {});
     process.stdout.write(
-      `capture-auth: cached ${role} → ${path.join(projectDir, ".auth", role + ".json")}\n` +
+      `capture-auth: cached ${role} → ${path.join(projectDir, ".auth", storageStateFileName(role))}\n` +
         `  expires ${new Date(expiresAt).toISOString()}  (from ${source}; re-run when it lapses)\n`,
     );
     if (!/^auth-cookie/.test(source)) {
@@ -128,7 +135,10 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
     }
     return 0;
   } catch (e) {
-    process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
+    const problem = describeBrowserLaunch((e as Error).message, cdp);
+    process.stderr.write(
+      `capture-auth: ${problem.next ? withNext(problem.reason, problem.next) : (e as Error).message}\n`,
+    );
     return 1;
   }
 }

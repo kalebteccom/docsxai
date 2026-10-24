@@ -24,11 +24,14 @@ import { writeFileAtomic } from "./atomic-write.js";
 import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
-import { flagMissingValue, parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit, flagMissingValue } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdRender(args: string[]): Promise<number> {
-  const { positionals } = parseFlags(args);
+  const parsed = parseCommandFlags("render", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals } = parsed;
   const projectDir = positionals[0];
   if (!projectDir) return usageError("render", "missing <workspace-dir>");
   const docsDir = resolveWorkspacePath(projectDir, "docs");
@@ -125,9 +128,13 @@ export async function cmdBurn(args: string[]): Promise<number> {
 }
 
 export async function cmdZip(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("zip", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("zip", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bareZip = bareValueFlagExit("zip", flags, ["out"]);
+  if (bareZip !== undefined) return bareZip;
   const output =
     typeof flags.get("out") === "string"
       ? (flags.get("out") as string)
@@ -174,9 +181,13 @@ export async function cmdExport(args: string[]): Promise<number> {
 }
 
 async function cmdExportAdf(rest: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(rest);
+  const parsed = parseCommandFlags("export adf", rest);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("export adf", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bareAdf = bareValueFlagExit("export adf", flags, ["mode", "flow", "title", "out"]);
+  if (bareAdf !== undefined) return bareAdf;
   const modeFlag = flags.get("mode");
   let mode: AdfExportMode = "single";
   if (typeof modeFlag === "string") {
@@ -225,9 +236,13 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
 }
 
 async function cmdExportPlaywright(rest: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(rest);
+  const parsed = parseCommandFlags("export playwright", rest);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("export playwright", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const barePlaywright = bareValueFlagExit("export playwright", flags, ["flow", "out"]);
+  if (barePlaywright !== undefined) return barePlaywright;
   const flow = flags.get("flow");
   const outFlag = flags.get("out");
   const outDir =
@@ -269,7 +284,9 @@ async function copyIfExists(src: string, dest: string): Promise<number> {
 }
 
 export async function cmdBaseline(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("baseline", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("baseline", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const bare = flagMissingValue(flags, ["out"]);
@@ -351,7 +368,9 @@ export async function cmdBaseline(args: string[]): Promise<number> {
 }
 
 export async function cmdDiff(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("diff", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("diff", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const bare = flagMissingValue(flags, ["against", "format"]);

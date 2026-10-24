@@ -332,6 +332,17 @@ export function uiLang(tag: string | null | undefined): UiLang {
   return primary === "es" ? "es" : "en";
 }
 
+/**
+ * What to tell the operator when a `--lang` tag is set but has no table, so the pages come out in
+ * English. Nothing for a missing or blank tag, or one that selects `en` or `es`.
+ */
+export function langFallbackWarning(tag: string | null | undefined): string | undefined {
+  if (typeof tag !== "string" || tag.trim() === "") return undefined;
+  const primary = tag.trim().toLowerCase().split(/[-_]/, 1)[0];
+  if (primary === "en" || primary === "es") return undefined;
+  return `lang ${JSON.stringify(tag.trim())} has no text table (en and es only), so the pages use English`;
+}
+
 /** The strings for a locale tag (see `uiLang`). */
 export function uiStrings(tag?: string | null): UiStrings {
   return UI_TABLES[uiLang(tag)];
@@ -346,15 +357,30 @@ export function fmt(template: string, vars: Readonly<Record<string, string | num
 
 const VARIANT_LOCALE = /^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8}){0,2}$/;
 
+/** Color scheme names a matrix variant id carries. */
+const SCHEMES = new Set(["light", "dark"]);
+
+/**
+ * Viewport names a matrix variant id carries: the engine's presets and the size tokens `xs` to
+ * `2xl`, each optionally followed by a width (`mobile-390`), plus a bare width (`1280`) or size
+ * (`1440x900`). Several of the size tokens are also language codes, so a segment has to be tried
+ * here before it is taken for a locale.
+ */
+const VIEWPORT_NAME =
+  /^(?:(?:desktop|tablet|mobile|xs|sm|md|lg|xl|2xl)(?:-\d+)?|\d{3,4}|\d+x\d+)$/i;
+
 /**
  * The locale a matrix variant flow name carries. A variant flow is `<flow>/<variant id>` and the
- * id is `<locale>.<color scheme>.<viewport>` with the axes the matrix does not name left out, so
- * the first dotted part is the locale when it looks like a tag. A plain flow has none.
+ * id is `<locale>.<color scheme>.<viewport>` with the axes the matrix does not name left out. The
+ * locale is the first dotted part when it is not a known color scheme or viewport name and looks
+ * like a tag, so `sm` and `light.1280` carry none. Only the last `/` part is the id, which also
+ * reads `<flow>/<step>/<id>`. A plain flow has none.
  */
 export function variantLocale(flow: string): string | undefined {
-  const slash = flow.indexOf("/");
+  const slash = flow.lastIndexOf("/");
   if (slash < 0) return undefined;
   const first = flow.slice(slash + 1).split(".", 1)[0] ?? "";
+  if (SCHEMES.has(first.toLowerCase()) || VIEWPORT_NAME.test(first)) return undefined;
   return VARIANT_LOCALE.test(first) ? first : undefined;
 }
 

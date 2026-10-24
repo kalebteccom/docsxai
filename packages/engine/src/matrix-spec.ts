@@ -10,14 +10,24 @@ import {
   ViewportPreset,
   type ViewportSize,
 } from "./environment-spec.js";
+import { isWindowsDeviceName } from "./flow-name-rules.js";
 
 /** Most variants one flow may expand to. A flow over the cap is rejected at parse time. */
 export const MAX_MATRIX_VARIANTS = 64;
 
-/** A viewport's matrix name: also a directory segment, so no dots, slashes or capitals. */
+/** Directory names a flow already holds, so a variant directory cannot take them. */
+const RESERVED_VARIANT_NAMES: ReadonlySet<string> = new Set(["screenshots", "halts"]);
+
+/**
+ * A viewport's matrix name: also a directory segment, so no dots, slashes or capitals, and not a
+ * name `pull` refuses on the way back (`screenshots`, a Windows device name such as `con`).
+ */
 const ViewportName = z
   .string()
-  .regex(/^[a-z0-9][a-z0-9-]*$/, "must be lowercase letters, digits and dashes (e.g. mobile-390)");
+  .regex(/^[a-z0-9][a-z0-9-]*$/, "must be lowercase letters, digits and dashes (e.g. mobile-390)")
+  .refine((name) => !RESERVED_VARIANT_NAMES.has(name) && !isWindowsDeviceName(name), {
+    error: "is reserved: it names a directory a flow already holds, or a Windows device",
+  });
 
 /** A matrix viewport: a preset name, or a size with an optional name (default `<width>x<height>`). */
 export const MatrixViewport = z.union([

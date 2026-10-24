@@ -4,11 +4,11 @@
 //
 // Library entry (re-exports `buildViewer`, `burnAnnotations`, `burnFlow`, `emitStarlightSite`,
 // `buildStarlightSite`) and bin entry `docsxai-viewer`:
-//   docsxai-viewer build <docs-dir> <out-dir> [--flow <name> ...]
-//   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>] [--report <file>]
-//   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>]
-//   docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise]
-//   docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--threshold <pct>]
+//   docsxai-viewer build <docs-dir> <out-dir> [--flow <name> ...] [--lang <locale>]
+//   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]
+//   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--lang <locale>] [--flow <name> ...]
+//   docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
+//   docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
 // The plugin's `render` command (and `docsxai render`) shell out to `build`.
 
 import { promises as fs } from "node:fs";
@@ -190,12 +190,13 @@ export {
 } from "./pack-drift.js";
 export { diffGrids, diffPngs, type PixelDiff } from "./pack-pixels.js";
 
-import { buildViewer, discoverFlows } from "./render.js";
+import { buildViewer, discoverFlows, selectFlows } from "./render.js";
 import { workspaceTheme } from "./burn-theme-load.js";
 import { burnFlow, burnReport } from "./burn.js";
 import { DEFAULT_UNPLACEABLE_RATIO, type FlowBurnReport } from "./burn-report.js";
 import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
 import { PACK_DETAILS, PACK_SYNOPSIS, runPack } from "./pack-cli.js";
+import { asksHelp, commandHelp, usageLines } from "./viewer-help.js";
 
 const USAGE = `docsxai-viewer — static viewer generator
 
@@ -209,11 +210,14 @@ ${PACK_SYNOPSIS}
     <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md;
                 a flow that ran a matrix holds the same under <flow>/<variant>/, each variant a flow here)
     <out-dir>   where the generated viewer is written
+    --flow      restrict to these flows (default: all flows with annotations.json); a flow that ran a
+                matrix also selects its <flow>/<variant> pages
     --lang      locale of the text the pages add, e.g. es or es-ES (default: en; other tags give en);
                 a matrix variant flow (<flow>/<locale>.<scheme>.<viewport>) uses its own locale
 
   burn — bake annotations into the PNGs (for surfaces that can't run the viewer)
-    <workspace>  a docsxai workspace (reads <workspace>/docs)
+    <workspace>  a docsxai workspace (reads <workspace>/docs; the burn.theme block of
+                 <workspace>/.docsxai.json sets the look, see docs/burn-theming.md)
     --flow       restrict to these flows (default: all flows with annotations.json); a flow that ran a
                  matrix also selects its <flow>/<variant> outputs
     --out        output root (default: docs/<flow>/burned/<step>.png)
@@ -222,8 +226,9 @@ ${PACK_SYNOPSIS}
                  either way
     --max-overlap  share of its own area a callout may cover before the report flags it
                  unplaceable (default ${DEFAULT_UNPLACEABLE_RATIO})
-    --no-connector-outline  keep every arrow and stem plain ink; by default one over a dark
-                 part of the screenshot gets a white outline
+    --no-connector-outline  skip reading the screenshot's pixels: an arrow or stem stays plain ink
+                 (by default one over a dark part gets a white outline), a themed line keeps the
+                 callout's outline colour, and no text is estimated from the pixels
 
   site — emit a production Astro Starlight docs site (burned images preferred)
     <workspace>  a docsxai workspace (reads <workspace>/docs + <workspace>/flows)
@@ -286,12 +291,7 @@ function parseArgs(argv: string[]): ParsedArgs {
 }
 
 /** The `docsxai-viewer <command>` line(s) of the help text. */
-function usageOf(command: string): string {
-  return USAGE.split("\n")
-    .filter((l) => l.startsWith(`  docsxai-viewer ${command} `))
-    .map((l) => l.trim())
-    .join("\n       ");
-}
+const usageOf = (command: string): string => usageLines(USAGE, command).join("\n       ");
 
 /** A usage error shows the failing command's own usage line, not the whole help text. Returns exit code 2. */
 function usageError(command: string, message: string): number {
@@ -344,12 +344,7 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     const theme = await workspaceTheme(workspace, warnTheme("burn"));
     const found = await discoverFlows(docsDir, { variants: true });
     // `--flow <name>` also selects the `<name>/<variant>` outputs of a flow that ran a matrix.
-    const flows = args.flows.length
-      ? args.flows.flatMap((want) => {
-          const variants = found.filter((f) => f.startsWith(`${want}/`));
-          return found.includes(want) ? [want, ...variants] : variants.length ? variants : [want];
-        })
-      : found;
+    const flows = args.flows.length ? selectFlows(found, args.flows) : found;
     if (flows.length === 0) {
       process.stderr.write(`burn: no flows with annotations.json under ${docsDir}\n`);
       return 1;
@@ -425,6 +420,14 @@ async function runSite(args: ParsedArgs): Promise<number> {
 
 export async function runViewerCli(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
+  if (command === "--help" || command === "-h") {
+    process.stdout.write(USAGE + "\n");
+    return 0;
+  }
+  if (["build", "burn", "site", "pack"].includes(command ?? "") && asksHelp(rest)) {
+    process.stdout.write(commandHelp(USAGE, command!));
+    return 0;
+  }
   if (command === "build") return runBuild(parseArgs(rest));
   if (command === "burn") return runBurn(parseArgs(rest));
   if (command === "site") return runSite(parseArgs(rest));

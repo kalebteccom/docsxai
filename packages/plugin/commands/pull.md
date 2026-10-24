@@ -11,10 +11,10 @@ Pass every value as its own single-quoted shell word (an embedded `'` is written
 docsxai pull '<workspace-dir>' [flags]
 ```
 
-It fetches each artifact slot on the named revision and writes it back into the workspace files (`flows/`, `docs/<flow>/annotations.json`, `docs/<flow>/screenshots/`, `docs/style.{yaml,json}`, `docs/locators.yaml`). The last line is `pull: revision <rev_id> … wrote <n> file(s)`. Use it to sync with another operator's edits or to roll back to a named revision.
+It fetches each artifact slot on the named revision and writes it back into the workspace files (`flows/`, `docs/<flow>/annotations.json`, `docs/<flow>/screenshots/`, `docs/style.{yaml,json}`, `docs/locators.yaml`; a matrix flow's files sit under `docs/<flow>/<variant>/`). The last line is `pull: revision <rev_id> … wrote <n> file(s)`. Use it to sync with another operator's edits or to roll back to a named revision.
 
 The workspace must be bound to a backend (`backend_url`, `backend_workspace_id` and `backend_project_id` in `.docsxai.json`), which the first `push` sets up. Otherwise it exits 2 and the `next:` line says how to bind it.
 
-**Warning:** `pull` overwrites local files in the artifact paths it touches. Commit or push in-progress changes before pulling someone else's revision. A revision that names a file a workspace would not produce is refused with nothing written; the `next:` line suggests an older `--rev`.
+**Warning:** `pull` overwrites local files in the artifact paths it touches. Commit or push in-progress changes before pulling someone else's revision. A revision that names a file a workspace would not produce is refused with nothing written; the `next:` line suggests an older `--rev`. The doc pack is written as one transaction: if a file cannot be staged or moved into place, the workspace keeps its previous files. `pull` fetches only the artifact names `flows`, `annotations`, `screenshots`, `style` and `locators` and warns about any other name.
 
 Any other failure: run `docsxai doctor '<workspace-dir>'` and follow the `next:` line of each `fail:` line.

@@ -5,12 +5,12 @@
 //   pull     — fetch a revision's artifacts back into the workspace files
 //   plugins  — forwards to plugins-cli (list | info | sync over the plugin runtime; no plugin code runs)
 
-import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import {
   BackendClient,
   createBackendClient,
   oauthLogin,
+  type RevisionArtifact,
   saveBackendTokenFile,
 } from "./backend-client.js";
 import {
@@ -21,11 +21,14 @@ import {
   uploadScreenshotBlobs,
   writeDocPack,
 } from "./doc-pack-io.js";
+import { writeFileAtomic } from "./atomic-write.js";
 import { pluginsCli } from "./plugins-cli.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit, isHttpUrl } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import { configProblem, explainBackendFailure } from "./cli-backend-errors.js";
 import {
+  describeFsError,
   redactUrl,
   sanitizeForTerminal,
   shellQuote,
@@ -34,11 +37,16 @@ import {
 } from "./cli-messages.js";
 
 export async function cmdLogin(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("login", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const backendUrl =
     typeof flags.get("backend-url") === "string" ? (flags.get("backend-url") as string) : undefined;
   if (!backendUrl) {
     return usageError("login", "--backend-url <url> required");
+  }
+  if (!isHttpUrl(backendUrl)) {
+    return usageError("login", "--backend-url must be an http:// or https:// URL");
   }
   const oauthFlag = flags.get("oauth");
   if (oauthFlag !== undefined) {
@@ -131,9 +139,13 @@ async function ensureBackendBinding(
 }
 
 export async function cmdPush(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("push", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("push", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const barePush = bareValueFlagExit("push", flags, ["kind", "author"]);
+  if (barePush !== undefined) return barePush;
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url) {
     const file = path.join(projectDir, ".docsxai.json");
@@ -163,6 +175,19 @@ export async function cmdPush(args: string[]): Promise<number> {
     return 1;
   }
 
+  // Read the pack first: a file that cannot be read stops the push before the backend gets a
+  // workspace, a project or an unfinalized revision.
+  let payloads: DocPackPayloads;
+  try {
+    payloads = await readDocPack(projectDir);
+  } catch (e) {
+    const next = `fix the file, then docsxai push ${shellQuote(projectDir)}`;
+    process.stderr.write(
+      `push: ${describeFsError(e) ?? withNext(sanitizeForTerminal((e as Error).message), next)}\n`,
+    );
+    return 1;
+  }
+
   try {
     const binding = await ensureBackendBinding(
       client,
@@ -177,7 +202,7 @@ export async function cmdPush(args: string[]): Promise<number> {
         backend_workspace_id: binding.wsId,
         backend_project_id: binding.projectId,
       };
-      await fs.writeFile(
+      await writeFileAtomic(
         resolveWorkspacePath(projectDir, ".docsxai.json"),
         JSON.stringify(updated, null, 2) + "\n",
         "utf8",
@@ -188,7 +213,6 @@ export async function cmdPush(args: string[]): Promise<number> {
       kind: kindArg,
       author,
     });
-    const payloads = await readDocPack(projectDir);
     if (payloads.screenshots) {
       // Screenshot bytes go up as content-addressed blobs (HEAD-probed, so unchanged PNGs are
       // skipped); the artifact slot carries only the sha256 manifest.
@@ -222,10 +246,23 @@ export async function cmdPush(args: string[]): Promise<number> {
   }
 }
 
+/** The artifact slots a revision holds; any other name in a revision is not requested. */
+const KNOWN_ARTIFACTS: readonly RevisionArtifact[] = [
+  "flows",
+  "annotations",
+  "screenshots",
+  "style",
+  "locators",
+];
+
 export async function cmdPull(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("pull", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("pull", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const barePull = bareValueFlagExit("pull", flags, ["rev"]);
+  if (barePull !== undefined) return barePull;
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url || !wsCfg.backend_workspace_id || !wsCfg.backend_project_id) {
     const gap = wsCfg
@@ -258,6 +295,12 @@ export async function cmdPull(args: string[]): Promise<number> {
     );
     const payloads: Partial<DocPackPayloads> = {};
     for (const artifact of rev.artifacts) {
+      if (!KNOWN_ARTIFACTS.includes(artifact)) {
+        process.stderr.write(
+          `pull: warning — revision lists the artifact ${JSON.stringify(sanitizeForTerminal(String(artifact)))}, which this docsxai does not know; skipped\n`,
+        );
+        continue;
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (payloads as any)[artifact] = await client.getArtifact(
         wsCfg.backend_workspace_id,

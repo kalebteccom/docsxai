@@ -105,6 +105,20 @@ export interface BackendStore {
   rememberWebhookDelivery(deliveryId: string): boolean;
 }
 
+/** GitHub treats `owner/name` case-insensitively; a delivery names the repo in its canonical case. */
+export function sameRepo(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+/** Oldest first by `created_at`; the id breaks a same-millisecond tie so the order is stable. */
+export function compareByCreation(
+  a: { created_at: string; id: string },
+  b: { created_at: string; id: string },
+): number {
+  if (a.created_at !== b.created_at) return a.created_at < b.created_at ? -1 : 1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
 export function sha256Hex(data: Buffer): string {
   return createHash("sha256").update(data).digest("hex");
 }
@@ -292,7 +306,7 @@ export class MemoryStore implements BackendStore {
   }
   findWebhookProject(repo: string): WebhookProjectMatch | null {
     for (const p of this.projects.values()) {
-      if (p.webhook_config?.repo === repo) {
+      if (p.webhook_config && sameRepo(p.webhook_config.repo, repo)) {
         return {
           workspace_id: p.workspace_id,
           project_id: p.id,

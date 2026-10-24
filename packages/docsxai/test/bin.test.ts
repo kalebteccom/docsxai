@@ -62,6 +62,9 @@ describe.skipIf(!engineBuilt)("bare `docsxai` bin (meta-package wrapper)", () =>
     expect(r.stdout).toContain("docsxai — deterministic execution CLI");
     expect(r.stdout).toContain("docsxai init <workspace-dir>");
     expect(r.stdout).toContain("docsxai doctor [<workspace-dir>]");
+    expect(r.stdout).toContain(
+      "docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>]",
+    );
   });
 
   it("init + lint round-trip against a fixture workspace", async () => {
@@ -95,13 +98,6 @@ describe.skipIf(!engineBuilt || !viewerBuilt)("`docsxai burn` through the bare b
     await fs.cp(packFixture, path.join(ws, "docs"), { recursive: true });
     return ws;
   }
-
-  it("--help lists burn with its flags", async () => {
-    const r = await docsxai("--help");
-    expect(r.stdout).toContain(
-      "docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>]",
-    );
-  });
 
   it("burns a checked-in pack into docs/<flow>/burned and writes the report", async () => {
     const ws = await workspaceWithPack();
@@ -162,7 +158,7 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
       return ws;
     }
 
-    it("packs a workspace into .screens, then finds no drift against it", async () => {
+    it("packs a workspace, finds no drift, then exits 1 over the threshold and 0 when it allows it", async () => {
       const ws = await workspaceWithPackConfig();
       const packed = await docsxai("pack", ws, "--no-optimise");
       expect(packed.code, packed.stderr).toBe(0);
@@ -184,11 +180,7 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
       const drift = await docsxai("pack", ws, "--check", "--against", path.join(ws, ".screens"));
       expect(drift.code, drift.stderr).toBe(0);
       expect(drift.stdout).toContain("docsxai drift: 1 compared, 0 over threshold (0.5%)");
-    });
 
-    it("exits 1 when a change is over the threshold and 0 when the threshold allows it", async () => {
-      const ws = await workspaceWithPackConfig();
-      expect((await docsxai("pack", ws, "--no-optimise")).code).toBe(0);
       // Move the callout's target: the burned pixels change.
       const annotationsPath = path.join(ws, "docs", "obstacles", "annotations.json");
       const file = JSON.parse(await fs.readFile(annotationsPath, "utf8")) as {

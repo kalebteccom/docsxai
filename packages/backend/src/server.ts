@@ -87,7 +87,15 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
   }
 
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const url = new URL(req.url ?? "/", "http://localhost");
+    let url: URL;
+    try {
+      url = new URL(req.url ?? "/", "http://localhost");
+    } catch {
+      return sendJson(res, 400, {
+        error: "bad_request",
+        message: "the request target is not a valid URL",
+      });
+    }
     const method = (req.method ?? "GET").toUpperCase();
 
     // Version header echo / warn.

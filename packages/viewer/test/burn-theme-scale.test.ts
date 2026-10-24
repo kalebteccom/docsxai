@@ -98,17 +98,14 @@ describe("captionScale", () => {
 });
 
 describe("scale in a burn", () => {
-  it("makes the callout twice as large at scale 2", async () => {
+  it("makes the callout and the halo outline twice as large at scale 2", async () => {
     const one = await burn(1200, 900);
     const two = await burn(1200, 900, themeOf({ scale: 2 }));
     expect(two.entry.callout!.width / one.entry.callout!.width).toBeCloseTo(2, 1);
     expect(two.entry.callout!.height / one.entry.callout!.height).toBeCloseTo(2, 1);
     expect(two.entry.badge!.height / one.entry.badge!.height).toBeCloseTo(2, 1);
-  });
 
-  it("doubles the halo's outline", async () => {
-    const one = await burn(1200, 900);
-    const two = await burn(1200, 900, themeOf({ scale: 2 }));
+    // The halo's outline doubles too.
     const mid = BOX.x + BOX.width / 2;
     // The halo outline is 2 px wide at scale 1 and 4 px at scale 2.
     expect(near(pixelAt(one.img, mid, BOX.y + 3), DEFAULT_BURN_THEME.accent)).toBe(false);

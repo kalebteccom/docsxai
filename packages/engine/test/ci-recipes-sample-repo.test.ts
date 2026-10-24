@@ -161,16 +161,12 @@ describe.skipIf(!viewerBuilt)("pack and pack --check against the sample repo", (
     vi.stubEnv("DOCSX_VIEWER_BIN", viewerBin);
   });
 
-  it("packs the committed doc pack, then finds no drift against the pack it wrote", async () => {
+  it("packs the committed doc pack, finds no drift against it, and fails the check once the doc pack changed", async () => {
     expect(await main(["pack", ws, "--no-optimise"]), err).toBe(0);
     expect(existsSync(path.join(ws, ".screens", "manifest.json"))).toBe(true);
     expect(await main(["pack", ws, "--check", "--against", path.join(ws, ".screens")]), err).toBe(
       0,
     );
-  }, 60_000);
-
-  it("fails the check when the doc pack changed after the pack was written", async () => {
-    expect(await main(["pack", ws, "--no-optimise"]), err).toBe(0);
     const file = path.join(ws, "docs", "obstacles", "annotations.json");
     const annotations = JSON.parse(await fs.readFile(file, "utf8")) as {
       annotations: Array<{ bounding_box: { x: number } }>;

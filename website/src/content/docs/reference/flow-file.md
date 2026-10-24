@@ -216,7 +216,9 @@ The flow runs once per combination: 2 x 2 x 2 = 8 variants here. Each list holds
 1 to 64 unique entries and the product may not pass 64; a bigger matrix is a
 parse error that names the sizes. A viewport is a preset name or
 `{ width, height }`, optionally with a `name` (lowercase letters, digits and
-dashes). Without a name a size is called `<width>x<height>`.
+dashes, and not `screenshots`, `halts` or a Windows device name such as `con`,
+because the name is a directory). Without a name a size is called
+`<width>x<height>`.
 
 Each variant overrides the flow's `environment` on the axes the matrix names and
 keeps the rest, so `clock`, `timezone` and `reduced_motion` apply to every

@@ -47,3 +47,21 @@ export const EnvironmentSpec = z
   })
   .strict();
 export type EnvironmentSpec = z.infer<typeof EnvironmentSpec>;
+
+/**
+ * The stderr line for a CDP attach, which cannot apply context-level settings to a context the
+ * operator owns: names every `environment` field and the `contextOptions` that were skipped.
+ * `undefined` when nothing was skipped. The clock is a page-level install, so it still applies.
+ */
+export function attachSkipNotice(
+  env: EnvironmentSpec | undefined,
+  hasContextOptions: boolean,
+): string | undefined {
+  const fields = (["locale", "timezone", "viewport", "color_scheme", "reduced_motion"] as const)
+    .filter((k) => env?.[k] !== undefined)
+    .map((k) => `environment.${k}`);
+  if (hasContextOptions) fields.push("contextOptions");
+  return fields.length
+    ? `launchPlaywrightSession: attached over CDP — the browser context is externally owned; skipped: ${fields.join(", ")}\n`
+    : undefined;
+}

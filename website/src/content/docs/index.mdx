@@ -24,7 +24,7 @@ import CopyCommand from "../../components/CopyCommand.astro";
     </div>
     <CopyCommand variant="hero" command="pnpm add -g docsxai@next" label="Copy install command" />
     <p class="docsx-install-note">
-      Installs 0.3.0-rc.4, the current prerelease. <code>latest</code> is still 0.2.0.
+      Installs 0.3.0-rc.3, the current prerelease. <code>latest</code> is still 0.2.0.
       <a href="/getting-started/installation/">Install steps</a>
     </p>
   </div>
@@ -186,14 +186,16 @@ import CopyCommand from "../../components/CopyCommand.astro";
       <span class="docsx-card-mark">// captions</span>
       <h3>Themeable burned captions</h3>
       <div class="docsx-card-text">
-        The halo, numbered badge, callout, and arrow follow a
+        The halo, numbered badge, callout, and connector follow a
         <code>burn.theme</code> block: four presets (clean, soft,
         high-contrast, readable), an optional design-tokens file, and per-key
         overrides. The interactive viewer reads the same theme. The
         <code>readable</code> preset scales captions with the screenshot, and
         <code>display_width</code> takes a second width for narrow captures,
-        so a phone variant and a desktop variant both stay legible. In
-        0.3.0-rc.4.
+        so a phone capture and a desktop capture both read at 15 px. A themed
+        burn joins each caption to its target with a 2 px line and can fall back
+        to a numbered badge where no clear spot exists. New in the next
+        release.
         <a href="/guides/burn-theming/">Read the burn theming guide</a>
       </div>
     </div>
@@ -226,8 +228,9 @@ import CopyCommand from "../../components/CopyCommand.astro";
         label="Copy the CLI install commands"
       />
       <div class="docsx-card-text">
-        <code>docsxai@next</code> is 0.3.0-rc.4 today. Without a tag you get 0.2.0, which has no{" "}
-        <code>burn</code>, <code>pack</code>, or matrix flows.
+        <code>docsxai@next</code> is 0.3.0-rc.3 today. Without a tag you get 0.2.0, which has no{" "}
+        <code>burn</code>, <code>pack</code>, or matrix flows. With pnpm, run{" "}
+        <code>pnpm setup</code> once first, or use <code>npm install -g docsxai@next</code>.
       </div>
     </div>
     <div class="docsx-card">
@@ -253,16 +256,22 @@ import CopyCommand from "../../components/CopyCommand.astro";
 <div class="docsx-section not-content" id="first-run">
   <h2 class="docsx-section-title">First run</h2>
   <div class="docsx-section-sub">
-    Four steps, about ten minutes. Each shows a line you should see.
+    Five steps, about ten minutes, against an app running on your machine. Each step shows a line
+    you should see.
   </div>
   <ol class="docsx-steps" role="list">
     <li class="docsx-card docsx-step">
       <span class="docsx-card-mark">// step 1</span>
       <h3>Make a workspace</h3>
-      <CopyCommand command="docsxai init my-docs --auth none" label="Copy the init command" />
+      <CopyCommand
+        command="docsxai init my-docs --app-url http://localhost:3000 --auth none"
+        label="Copy the init command"
+      />
       <div class="docsx-card-text">
-        Creates the folder docsxai writes into. Keep it outside your app's repo. Then set{" "}
-        <code>app_url</code> in <code>my-docs/.docsxai.json</code>.
+        Creates the folder docsxai writes into and saves your app's address in{" "}
+        <code>my-docs/.docsxai.json</code>. Keep it outside your app's repo. If the app needs a
+        login, leave out <code>--auth none</code> and run <code>docsxai capture-auth my-docs</code>{" "}
+        before step 3.
       </div>
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
@@ -294,9 +303,9 @@ import CopyCommand from "../../components/CopyCommand.astro";
         label="Copy the Claude Code plugin commands"
       />
       <div class="docsx-card-text">
-        With the plugin installed, ask Claude Code to calibrate
-        <code>my-docs</code> against your running app. It writes the flow once, and every run after
-        that needs no agent.
+        With the plugin installed and your app running, ask Claude Code in plain words, for example
+        "calibrate my-docs: open the Reports page and show the export button". It writes the flow
+        into <code>my-docs/flows</code> once, and every run after that needs no agent.
       </div>
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
@@ -314,6 +323,19 @@ import CopyCommand from "../../components/CopyCommand.astro";
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
         <code>{"run: 1 of 1 flow ok, outputs in my-docs/docs"}</code>
+      </p>
+    </li>
+    <li class="docsx-card docsx-step">
+      <span class="docsx-card-mark">// step 5</span>
+      <h3>Open the docs</h3>
+      <CopyCommand command="docsxai render my-docs" label="Copy the render command" />
+      <div class="docsx-card-text">
+        Builds the interactive viewer into <code>my-docs/.viewer</code> and prints the page to open
+        in your browser. Hover, tap or tab to a halo to read its callout.
+      </div>
+      <p class="docsx-expect">
+        <span class="docsx-expect-label">Expect</span>
+        <code>{"render: open /path/to/my-docs/.viewer/index.html"}</code>
       </p>
     </li>
   </ol>

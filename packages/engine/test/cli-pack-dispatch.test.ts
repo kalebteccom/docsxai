@@ -143,6 +143,14 @@ describe("pack --check dispatch", () => {
         ["pack", "ws", "--check", "--against", "p", "--threshold", "lots"],
         /--threshold needs a percentage >= 0/,
       ],
+      [
+        ["pack", "ws", "--check", "--against", "p", "--threshold", ""],
+        /--threshold needs a percentage >= 0/,
+      ],
+      [
+        ["pack", "ws", "--check", "--against", "p", "--threshold", "  "],
+        /--threshold needs a percentage >= 0/,
+      ],
       [["pack", "ws", "--check", "--against", "p", "--out", "x"], /unknown flag --out/],
     ];
     for (const [argv, message] of cases) {

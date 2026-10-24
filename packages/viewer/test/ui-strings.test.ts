@@ -9,6 +9,7 @@ import {
   flowUiLang,
   jsConcat,
   jsString,
+  langFallbackWarning,
   retryWidthCh,
   uiLang,
   uiStrings,
@@ -37,6 +38,15 @@ describe("uiLang", () => {
       expect(uiLang(tag)).toBe("en");
   });
 
+  it("warns for a tag with no table, and for nothing else", () => {
+    expect(langFallbackWarning("fr")).toBe(
+      'lang "fr" has no text table (en and es only), so the pages use English',
+    );
+    expect(langFallbackWarning("pt-BR")).toContain('"pt-BR"');
+    for (const tag of ["en", "en-GB", "es", "ES", "es_MX", "", "  ", undefined, null])
+      expect(langFallbackWarning(tag)).toBeUndefined();
+  });
+
   it("selects English when there is no tag", () => {
     expect(uiLang(undefined)).toBe("en");
     expect(uiLang(null)).toBe("en");
@@ -61,6 +71,36 @@ describe("variantLocale and flowUiLang", () => {
     expect(variantLocale("checkout")).toBeUndefined();
     expect(variantLocale("checkout/light.1280")).toBeUndefined();
     expect(variantLocale("checkout/desktop-1280")).toBeUndefined();
+  });
+
+  it("reads the locale of the ids remote tools use, <flow>/<step>/<locale>.<theme>.<viewport>", () => {
+    expect(variantLocale("checkout/pay/es-MX.dark.390")).toBe("es-MX");
+    expect(variantLocale("checkout/pay/en.light.1280")).toBe("en");
+    expect(variantLocale("checkout/pay/pt_BR.light.desktop")).toBe("pt_BR");
+    expect(variantLocale("checkout/pay/light.1280")).toBeUndefined();
+    expect(flowUiLang("checkout/pay/es.light.1280", "en")).toBe("es");
+  });
+
+  it("does not read a viewport or a color scheme as the locale", () => {
+    for (const id of ["sm", "md", "lg", "xl", "xs", "sm.dark", "mobile", "1280", "1440x900"]) {
+      expect(variantLocale(`f/${id}`), id).toBeUndefined();
+    }
+    for (const id of ["light", "dark", "dark.mobile-390", "light.sm", "tablet-834"]) {
+      expect(variantLocale(`f/${id}`), id).toBeUndefined();
+    }
+    expect(variantLocale("f/sm.light.1280")).toBeUndefined();
+  });
+
+  it("falls back to --lang for a viewport-only variant", () => {
+    expect(flowUiLang("f/sm", "es")).toBe("es");
+    expect(flowUiLang("f/sm.dark", "es")).toBe("es");
+    expect(flowUiLang("f/md", "en")).toBe("en");
+  });
+
+  it("still reads a locale with a scheme or a viewport after it", () => {
+    expect(variantLocale("f/es.sm")).toBe("es");
+    expect(variantLocale("f/es.dark")).toBe("es");
+    expect(variantLocale("f/es-419.dark.sm")).toBe("es-419");
   });
 
   it("takes the variant locale over the fallback, and the fallback for a plain flow", () => {

@@ -9,6 +9,7 @@ import { createRequire } from "node:module";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import type { Revision } from "./api.js";
 import { engineRunArgv } from "./engine-argv.js";
 import { denyPrivateAppUrl, isEnvFlagOff } from "./app-url.js";
 import { materializeDocPack } from "./materialize.js";
@@ -107,8 +108,15 @@ export class SpawnRunner {
    * `.docsxai.json`. The dir is removed again when a payload cannot be laid out.
    */
   materializeWorkspace(job: WebhookJob): string {
+    return this.materializeRevision(job, this.resolveRevision(job));
+  }
+
+  private resolveRevision(job: WebhookJob): Revision {
+    return this.opts.store.getRevision(job.workspace_id, job.project_id, job.config.workspace_rev);
+  }
+
+  private materializeRevision(job: WebhookJob, rev: Revision): string {
     const { store, workRoot } = this.opts;
-    const rev = store.getRevision(job.workspace_id, job.project_id, job.config.workspace_rev);
     const { app_url: appUrl } = store.getProject(job.workspace_id, job.project_id);
     const dir = fs.mkdtempSync(path.join(workRoot ?? os.tmpdir(), "docsxai-webhook-"));
     try {
@@ -147,7 +155,19 @@ export class SpawnRunner {
     const bin = this.opts.engineBin ?? resolveEngineBin(env);
     const spawnImpl: SpawnLike = this.opts.spawnImpl ?? nodeSpawn;
 
-    const workspaceDir = this.materializeWorkspace(job);
+    // Resolved once: `head` can move while the engine runs, and the run belongs to this revision.
+    const rev = this.resolveRevision(job);
+    let workspaceDir: string;
+    try {
+      workspaceDir = this.materializeRevision(job, rev);
+    } catch (e) {
+      this.recordFailedRun(
+        job,
+        rev,
+        `workspace could not be materialized: ${(e as Error).message}`,
+      );
+      throw e;
+    }
     const started = Date.now();
     let outcome: RunOutcome;
     try {
@@ -193,7 +213,7 @@ export class SpawnRunner {
 
     try {
       store.appendRun(job.workspace_id, job.project_id, {
-        rev: job.config.workspace_rev,
+        rev: rev.id,
         ok: outcome.ok && strategyResult.ok,
         duration_ms: outcome.duration_ms,
         summary: `[webhook ${job.event} ${job.delivery_id}] ${outcome.summary}; ${strategyResult.strategy}: ${strategyResult.detail}`,
@@ -202,5 +222,19 @@ export class SpawnRunner {
       if (!this.opts.keepWorkspace) fs.rmSync(workspaceDir, { recursive: true, force: true });
     }
     return { ...outcome, strategy: strategyResult };
+  }
+
+  /** Leave a failed row for a job that never reached the engine; a store error here must not mask the cause. */
+  private recordFailedRun(job: WebhookJob, rev: Revision, summary: string): void {
+    try {
+      this.opts.store.appendRun(job.workspace_id, job.project_id, {
+        rev: rev.id,
+        ok: false,
+        duration_ms: 0,
+        summary: `[webhook ${job.event} ${job.delivery_id}] ${summary}`,
+      });
+    } catch {
+      // the original failure is the one to report
+    }
   }
 }

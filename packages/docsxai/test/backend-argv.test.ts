@@ -82,10 +82,11 @@ describe.skipIf(!engineBuilt)("backend engine argv through the bare bin", () => 
     expect(r.stderr).toContain("has no flows/ directory");
   });
 
-  it("the old `run --workspace <dir>` form exits 2 with missing <workspace-dir>", async () => {
+  it("the old `run --workspace <dir>` form exits 2 and names the unknown flag", async () => {
     const r = await docsxai(["run", "--workspace", tmp]);
     expect(r.code).toBe(2);
-    expect(r.stderr).toContain("run: missing <workspace-dir>");
+    expect(r.stderr).toContain("run: unknown flag --workspace");
+    expect(r.stderr).toContain("usage: docsxai run <workspace-dir>");
   });
 
   it.skipIf(!viewerBuilt)("render <dir> passes argument validation", async () => {

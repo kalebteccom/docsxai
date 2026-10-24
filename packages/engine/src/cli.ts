@@ -11,24 +11,21 @@
 //   • cli-shared.ts            — parseFlags + listFlowFiles (the shared leaf)
 //   • cli-commands-session.ts  — init / calibrate / run (live-browser + scaffolding)
 //   • cli-commands-auth.ts     — capture-auth
-//   • cli-commands-authoring.ts — inspect / lint / flow-tree / diagnose / style (calibration aids)
+//   • cli-commands-authoring.ts — inspect / lint / flow-tree / diagnose (calibration aids)
+//   • cli-commands-style.ts    — style (docs/style.yaml + the jargon check)
 //   • cli-commands-docpack.ts  — render / zip / export / baseline / diff (doc-pack ops)
 //   • cli-commands-pack.ts     — pack / pack --check (screenshot pack + drift check, run by the viewer bin)
 //   • cli-commands-backend.ts  — login / push / pull / plugins (backend + sync)
 
+import "./cli-node-guard.js";
 import { runDoctor } from "./doctor.js";
 import { tryHelp, unknownCommand } from "./cli-help.js";
 import { runAsBin } from "./cli-unexpected.js";
 import { isMainModule } from "./main-module.js";
 import { cmdCaptureAuth } from "./cli-commands-auth.js";
 import { cmdCalibrate, cmdInit, cmdRun } from "./cli-commands-session.js";
-import {
-  cmdDiagnose,
-  cmdFlowTree,
-  cmdInspect,
-  cmdLint,
-  cmdStyle,
-} from "./cli-commands-authoring.js";
+import { cmdDiagnose, cmdFlowTree, cmdInspect, cmdLint } from "./cli-commands-authoring.js";
+import { cmdStyle } from "./cli-commands-style.js";
 import {
   cmdBaseline,
   cmdBurn,

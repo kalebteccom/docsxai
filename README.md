@@ -153,6 +153,7 @@ Next: [quickstart on docsxai.dev](https://docsxai.dev/getting-started/quickstart
 - [**docs/agent-guidance.md**](docs/agent-guidance.md) — the reach-for-this-not-that list for agents that write flows
 - [**docs/running-against-an-app-repo.md**](docs/running-against-an-app-repo.md) — human-readable runbook
 - [**docs/ci-recipes.md**](docs/ci-recipes.md) — wiring `run` / `baseline` / `diff` into CI
+- [**docs/themed-caption-packs.md**](docs/themed-caption-packs.md) — raw captures to themed, hash-named screenshots with a manifest
 - [**docs/actionability-contract.md**](docs/actionability-contract.md) — the portable `actionable()` predicate contract, for browser-bridge consumers
 - [**docs/browxai-asks.md**](docs/browxai-asks.md) — integration contract with the discovery driver
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes · [`RELEASING.md`](RELEASING.md) — release process

@@ -201,3 +201,35 @@ export function badgeOnlyFrames(cli, file) {
 /** True when raw `p` (from {@link parseRawName}) is in the badge-only set. */
 export const isBadgeOnly = (set, p) =>
   set.has(`${p.screen}.${p.width}`) || set.has(`${p.screen}.${p.locale}.${p.theme}.${p.width}`);
+
+/** A WebP twin must come in under this many bytes to be kept. */
+export const WEBP_MAX_BYTES = 100_000;
+
+/** `<name>.png` -> `<name>.webp`, in the same directory. */
+export const webpTwinPath = (pngPath) => pngPath.replace(/\.png$/, ".webp");
+
+/** The `cwebp` argv for a lossless twin at the slowest, smallest setting. */
+export const cwebpArgs = (input, output) => ["-lossless", "-z", "9", "-quiet", input, "-o", output];
+
+const kb = (bytes) => `${(bytes / 1000).toFixed(1)} kB`;
+
+/**
+ * Whether a lossless WebP twin of `name` is worth keeping: under {@link WEBP_MAX_BYTES} and smaller
+ * than the PNG. A dropped twin carries a warning that names both sizes.
+ */
+export function webpVerdict(name, pngBytes, webpBytes) {
+  const sizes = `webp ${kb(webpBytes)}, png ${kb(pngBytes)}`;
+  if (webpBytes >= WEBP_MAX_BYTES) {
+    return {
+      keep: false,
+      warning: `${name}: webp twin dropped (${sizes}), needs under ${WEBP_MAX_BYTES / 1000} kB`,
+    };
+  }
+  if (webpBytes >= pngBytes) {
+    return {
+      keep: false,
+      warning: `${name}: webp twin dropped (${sizes}), needs to be smaller than the png`,
+    };
+  }
+  return { keep: true };
+}

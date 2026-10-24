@@ -57,7 +57,9 @@ async function cmdPackCheck(args: string[]): Promise<number> {
   if (against === -1) return usageError(label, "--against <pack-dir> is required");
   const pct = parsed.rest.indexOf("--threshold");
   if (pct !== -1) {
-    const value = Number(parsed.rest[pct + 1]);
+    const raw = parsed.rest[pct + 1] ?? "";
+    // `Number("")` is 0: an empty value would read as a threshold of zero.
+    const value = raw.trim() === "" ? Number.NaN : Number(raw);
     if (!Number.isFinite(value) || value < 0) {
       return usageError(label, "--threshold needs a percentage >= 0");
     }

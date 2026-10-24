@@ -108,7 +108,7 @@ curl -s -X POST $BASE/v1/workspaces/6f51…/projects/a90c…/revisions/1d4f…/f
 | GET    | `/v1/workspaces/:ws/projects/:project/run-history` | List execution-run records (newest first).             |
 | POST   | `/v1/workspaces/:ws/projects/:project/run-history` | Append a record (`{ rev, ok, duration_ms, summary }`). |
 
-A project keeps its newest 1000 records; appending past that drops the oldest. `ok` must be a boolean, `duration_ms` a non-negative number and `summary` a string, or the POST gets 400 `bad_request`.
+A project keeps its newest 1000 records; appending past that drops the oldest. A webhook run records the revision it executed against, not a `head` that moved while it ran, and a job whose workspace could not be laid out appends a failed record with the reason. `ok` must be a boolean, `duration_ms` a non-negative number and `summary` a string, or the POST gets 400 `bad_request`.
 
 ```sh
 curl -s $BASE/v1/workspaces/6f51…/projects/a90c…/run-history -H "$AUTH" -H "$VER"
@@ -196,7 +196,7 @@ refresh, with zero YAML in user repos - everything per-project lives in the
 backend's webhook config (`repo`, `events: push|pull_request`, an output
 `strategy`, the revision to run against, the env var holding the HMAC
 secret). Deliveries are verified with a constant-time `X-Hub-Signature-256`
-check (failing closed if the secret env var is unset), filtered by event,
+check (failing closed if the secret env var is unset), matched to a project by `owner/name` without regard to case, filtered by event,
 replay-guarded by delivery id, then dispatched serially per project: the
 revision's artifacts are materialized into a temp workspace, the engine CLI
 runs them, and the output goes to one of three strategies - `pr-comment`
@@ -220,7 +220,7 @@ curl -s -X PUT $BASE/v1/workspaces/6f51…/projects/a90c…/webhook-config \
 
 JSON bodies are capped at 10 MB and raw blobs at 25 MB; over-limit requests
 get 413 `{ "error": "payload_too_large" }`. Errors are uniform
-`{ error, message }` JSON. A method a path does not serve gets 405 with an `Allow` header. Artifact writes after finalize get 409
+`{ error, message }` JSON. A request target the URL parser rejects (`GET //`, `GET //[`) gets 400 `bad_request`. A method a path does not serve gets 405 with an `Allow` header. Artifact writes after finalize get 409
 `{ "error": "revision-finalized" }`.
 
 ## Persistence

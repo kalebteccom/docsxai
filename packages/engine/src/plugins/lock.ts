@@ -174,7 +174,10 @@ export async function readWorkspacePluginsConfig(
     const detail = result.error.issues
       .map((i) => `${i.path.length ? i.path.join(".") + ": " : ""}${i.message}`)
       .join("; ");
-    throw new PluginsConfigError(`${p}: invalid plugin configuration — ${detail}`);
+    const shapes = result.error.issues.some((i) => i.path[0] === "plugins")
+      ? '; each "plugins" entry is {"package": "<name>"} or {"path": "<dir>"}'
+      : "";
+    throw new PluginsConfigError(`${p}: invalid plugin configuration — ${detail}${shapes}`);
   }
   return { sources: result.data.plugins, capabilities: result.data.plugin_capabilities };
 }

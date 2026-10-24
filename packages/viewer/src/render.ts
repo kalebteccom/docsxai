@@ -15,12 +15,21 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
 import { isSafeFlowName, isSafeStepId, showName } from "./safe-id.js";
+import { readTextIfPresent } from "./safe-read.js";
+import { orderSteps } from "./step-order.js";
 import { viewerStamp } from "./viewer-version.js";
 import { flowPageHtml, indexHtml, type FlowSummary, type ViewerStep } from "./viewer-markup.js";
 import type { BurnTheme } from "./burn-theme.js";
 import { themeStyle } from "./burn-theme-css.js";
 import { loadThemeFont } from "./burn-theme-load.js";
-import { flowUiLang, fmt, uiLang, uiStrings, type UiLang } from "./ui-strings.js";
+import {
+  flowUiLang,
+  fmt,
+  langFallbackWarning,
+  uiLang,
+  uiStrings,
+  type UiLang,
+} from "./ui-strings.js";
 
 export interface BuildViewerOptions {
   /** The doc pack's `docs/` directory. */
@@ -123,6 +132,20 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
+async function isFile(p: string): Promise<boolean> {
+  return fs.stat(p).then(
+    (s) => s.isFile(),
+    () => false,
+  );
+}
+
+async function isDirectory(p: string): Promise<boolean> {
+  return fs.stat(p).then(
+    (s) => s.isDirectory(),
+    () => false,
+  );
+}
+
 /**
  * Flow names under `docsDir` that carry an `annotations.json` (sorted). With `variants`, a flow
  * that ran a matrix also contributes one `<flow>/<variant>` name per subdirectory holding an
@@ -157,6 +180,20 @@ export async function discoverFlows(
   return flows.sort();
 }
 
+/**
+ * The flows a `--flow` list selects among `found` (from `discoverFlows` with `variants`). A name
+ * selects its variants too: `login` gives `login` (when it has its own annotations.json) and every
+ * `login/<variant>`; `login/<variant>` selects one. A name nothing matches stays, so the caller
+ * can say it found nothing. Order follows the list, a flow before its variants.
+ */
+export function selectFlows(found: string[], wanted: string[]): string[] {
+  const picked = wanted.flatMap((want) => {
+    const variants = found.filter((f) => f.startsWith(`${want}/`));
+    return found.includes(want) ? [want, ...variants] : variants.length ? variants : [want];
+  });
+  return [...new Set(picked)];
+}
+
 // The overlay script (halo + badge + hover callout placement) is generated at build time from
 // overlay-runtime.ts so the placement logic is single-sourced in placement.ts. Two candidate
 // locations: ./generated/overlay.js next to the compiled render.js (the published-package case)
@@ -183,15 +220,26 @@ async function loadOverlayJs(): Promise<string> {
 
 /** Build the static viewer. Returns the generated page paths (relative to `outDir`), index first. */
 export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewerResult> {
-  const requested = opts.flows ?? (await discoverFlows(opts.docsDir, { variants: true }));
+  const found = await discoverFlows(opts.docsDir, { variants: true });
+  const requested = opts.flows ? selectFlows(found, opts.flows) : found;
   const warnings: string[] = [];
-  const flows = requested.filter((flow) => {
-    if (isSafeFlowName(flow)) return true;
-    warnings.push(
-      `flow ${showName(flow)} skipped: a flow name cannot hold "..", ":", "\\" or control characters, so rename it and render again`,
-    );
-    return false;
-  });
+  const langWarning = langFallbackWarning(opts.lang);
+  if (langWarning) warnings.push(langWarning);
+  if (!(await isDirectory(opts.docsDir))) {
+    warnings.push(`docs folder ${opts.docsDir} not found, so the viewer lists no flows`);
+  }
+  const flows: string[] = [];
+  for (const flow of requested) {
+    if (!isSafeFlowName(flow)) {
+      warnings.push(
+        `flow ${showName(flow)} skipped: a flow name cannot hold "..", ":", "\\" or control characters, so rename it and render again`,
+      );
+    } else if (opts.flows && !(await isDirectory(path.join(opts.docsDir, flow)))) {
+      warnings.push(
+        `flow ${showName(flow)} skipped: there is no folder for it under ${opts.docsDir}`,
+      );
+    } else flows.push(flow);
+  }
   await fs.mkdir(opts.outDir, { recursive: true });
   const stamp = viewerStamp();
   const overlayJs = flows.length ? await loadOverlayJs() : "";
@@ -207,7 +255,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     const flowSrc = path.join(opts.docsDir, flow);
     const lang = flowUiLang(flow, opts.lang);
     const parsed = parseAnnotations(
-      await readTextIfExists(path.join(flowSrc, "annotations.json")),
+      await readTextIfPresent(path.join(flowSrc, "annotations.json")),
       lang,
     );
     const annsByStep = new Map<string, AnnotationRecord[]>();
@@ -217,16 +265,13 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
       annsByStep.set(a.step, list);
     }
 
-    // Step order: first occurrence of each step in the annotation list (multi-annotation steps appear once);
-    // else fall back to the screenshot filenames.
-    let stepIds = [...new Set(parsed.records.map((a) => a.step))];
-    if (stepIds.length === 0) {
-      const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
-      stepIds = shots
-        .filter((s) => s.endsWith(".png"))
-        .map((s) => s.replace(/\.png$/, ""))
-        .sort();
-    }
+    // Step order: first occurrence of each step in the annotation list (multi-annotation steps appear once),
+    // then the screenshots with no record, by filename.
+    const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
+    const stepIds = orderSteps(
+      parsed.records.map((a) => a.step),
+      shots,
+    );
 
     const steps: ViewerStep[] = [];
     for (const id of stepIds) {
@@ -238,7 +283,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
         continue;
       }
       const shotRel = `screenshots/${id}.png`;
-      const hasShot = await exists(path.join(flowSrc, shotRel));
+      const hasShot = await isFile(path.join(flowSrc, shotRel));
       if (hasShot) {
         await fs.mkdir(path.join(opts.outDir, flow, "screenshots"), { recursive: true });
         await fs.copyFile(path.join(flowSrc, shotRel), path.join(opts.outDir, flow, shotRel));

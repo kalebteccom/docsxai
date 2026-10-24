@@ -173,13 +173,18 @@ describe("English output", () => {
 
 describe("the site command", () => {
   let out = "";
+  let errText = "";
   beforeEach(() => {
     out = "";
+    errText = "";
     vi.spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
       out += String(chunk);
       return true;
     });
-    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk: unknown) => {
+      errText += String(chunk);
+      return true;
+    });
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -191,6 +196,16 @@ describe("the site command", () => {
     expect(await runViewerCli(["site", ws, "--out", site, "--lang", "es-ES"])).toBe(0);
     expect(out).toContain("site: emitted");
     expect(await fs.readFile(path.join(site, "astro.config.mjs"), "utf8")).toContain('lang: "es"');
+  });
+
+  it("warns for a --lang with no text table and writes the English site", async () => {
+    const ws = await makeWorkspace();
+    const site = path.join(ws, "site");
+    expect(await runViewerCli(["site", ws, "--out", site, "--lang", "fr"])).toBe(0);
+    expect(errText).toContain(
+      'site: warning: lang "fr" has no text table (en and es only), so the pages use English',
+    );
+    expect(await fs.readFile(path.join(site, "astro.config.mjs"), "utf8")).not.toContain("locales");
   });
 
   it("asks for a value after --lang", async () => {

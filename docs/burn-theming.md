@@ -1,6 +1,6 @@
 # Theming burned captions
 
-The halo, numbered badge, callout and arrow that `docsxai burn` and `docsxai pack` draw into a screenshot come from one theme. The interactive viewer (`docsxai render`) reads the same values through CSS variables, so a burned image and the live page show the same caption.
+The halo, numbered badge, callout and the connector that joins the callout to its target, as `docsxai burn` and `docsxai pack` draw them into a screenshot, come from one theme. The interactive viewer (`docsxai render`) reads the same values through CSS variables, so a burned image and the live page show the same caption.
 
 A workspace without a theme draws the look docsxai always had, byte for byte. Everything below is opt-in.
 
@@ -23,7 +23,7 @@ The `burn.theme` block of the workspace's `.docsxai.json` is the source of truth
 
 `burn`, `pack`, `pack --check` and `render` read it. `docsxai-viewer site` does not: the Starlight emitter takes its accent from `--accent` or the style artifact.
 
-An optional tokens file fills the block (see [Tokens file](#tokens-file)).
+An optional tokens file fills the block (see [Tokens file](#tokens-file)). For the whole path from raw captures to a hash-named pack, see [Themed caption packs](themed-caption-packs.md).
 
 ## Layering
 
@@ -38,32 +38,32 @@ The callout outline colour follows `ink` until a preset, the tokens file or the 
 
 ## Keys
 
-| Key                    | Type               | Range or values                                 | Default           | What it sets                                                        |
-| ---------------------- | ------------------ | ----------------------------------------------- | ----------------- | ------------------------------------------------------------------- |
-| `preset`               | string             | `clean`, `soft`, `high-contrast`, `readable`    | none              | A built-in look, see [Presets](#presets).                           |
-| `from`                 | string             | path to a `.json` file inside the workspace     | none              | The tokens file.                                                    |
-| `tokens`               | object             | theme key to token path                         | none              | Reads a key from another path, and requires it to exist.            |
-| `accent`               | colour             | `#rgb` or `#rrggbb`                             | `#e8590c`         | Halo outline. Its glow is the same colour at 35% opacity.           |
-| `ink`                  | colour             | `#rgb` or `#rrggbb`                             | `#1c1c1c`         | Callout text.                                                       |
-| `callout_background`   | colour             | `#rgb` or `#rrggbb`                             | `#fff`            | Callout fill.                                                       |
-| `callout_border_color` | colour             | `#rgb` or `#rrggbb`                             | the `ink` colour  | Callout outline, and the arrow and stem that join it to its target. |
-| `callout_border_width` | number             | 0 to 6 px                                       | `1`               | Callout outline width. 0 draws no outline and the arrow uses `ink`. |
-| `radius`               | number             | 0 to 24 px                                      | `7`               | Callout corner radius. The halo's radius is 4/7 of it.              |
-| `shadow`               | string             | CSS `box-shadow`, up to 3 layers, or `none`     | `none`            | Callout shadow. Layers are `<x> <y> [<blur> [<spread>]] <colour>`.  |
-| `badge_shape`          | string             | `circle`, `rounded`, `square`                   | `circle`          | Badge corners: a pill, 6 px, or square.                             |
-| `badge_fill`           | colour             | `#rgb` or `#rrggbb`                             | `#c2410c`         | Badge fill. Its digits and outline are white.                       |
-| `font_size`            | number             | 8 to 32 px                                      | `14`              | Callout text size.                                                  |
-| `line_height`          | number             | 8 to 64 px, at least `font_size`                | `19`              | Callout line pitch.                                                 |
-| `padding_x`            | number             | 0 to 40 px                                      | `11`              | Callout horizontal padding.                                         |
-| `padding_y`            | number             | 0 to 40 px                                      | `8`               | Callout vertical padding.                                           |
-| `font`                 | string             | path to a `.ttf` or `.otf` inside the workspace | the bundled Inter | Callout and badge font, see [Font](#font).                          |
-| `font_weight`          | number             | `400` or `600`                                  | `400`             | Callout text weight. The font file must have it, see [Font](#font). |
-| `connector_style`      | string             | `auto`, `line`, `chevron`, `arrow`              | `auto`            | How a callout joins its target, see [Connectors](#connectors).      |
-| `caption_style`        | string             | `full`, `badge`, `auto`                         | `full`            | Caption, or badge only, see [Badge only](#badge-only).              |
-| `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Arrow length. Its base is 7/4 of that wide.                         |
-| `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, see [Scale](#scale).   |
-| `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | `1`               | Multiplies every caption dimension, see [Scale](#scale).            |
-| `display_width`        | number or object   | 240 to 2400 px, or an object                    | `720`             | CSS px shown at, or a wide and narrow pair, see [Scale](#scale).    |
+| Key                    | Type               | Range or values                                 | Default           | What it sets                                                                  |
+| ---------------------- | ------------------ | ----------------------------------------------- | ----------------- | ----------------------------------------------------------------------------- |
+| `preset`               | string             | `clean`, `soft`, `high-contrast`, `readable`    | none              | A built-in look, see [Presets](#presets).                                     |
+| `from`                 | string             | path to a `.json` file inside the workspace     | none              | The tokens file.                                                              |
+| `tokens`               | object             | theme key to token path                         | none              | Reads a key from another path, and requires it to exist.                      |
+| `accent`               | colour             | `#rgb` or `#rrggbb`                             | `#e8590c`         | Halo outline. Its glow is the same colour at 35% opacity.                     |
+| `ink`                  | colour             | `#rgb` or `#rrggbb`                             | `#1c1c1c`         | Callout text.                                                                 |
+| `callout_background`   | colour             | `#rgb` or `#rrggbb`                             | `#fff`            | Callout fill.                                                                 |
+| `callout_border_color` | colour             | `#rgb` or `#rrggbb`                             | the `ink` colour  | Callout outline, and the connector that joins it to its target.               |
+| `callout_border_width` | number             | 0 to 6 px                                       | `1`               | Callout outline width. 0 draws no outline and the connector uses `ink`.       |
+| `radius`               | number             | 0 to 24 px                                      | `7`               | Callout corner radius. The halo's radius is 4/7 of it.                        |
+| `shadow`               | string             | CSS `box-shadow`, up to 3 layers, or `none`     | `none`            | Callout shadow. Layers are `<x> <y> [<blur> [<spread>]] <colour>`.            |
+| `badge_shape`          | string             | `circle`, `rounded`, `square`                   | `circle`          | Badge corners: a pill, 6 px, or square.                                       |
+| `badge_fill`           | colour             | `#rgb` or `#rrggbb`                             | `#c2410c`         | Badge fill. Its digits and outline are white.                                 |
+| `font_size`            | number             | 8 to 32 px                                      | `14`              | Callout text size.                                                            |
+| `line_height`          | number             | 8 to 64 px, at least `font_size`                | `19`              | Callout line pitch.                                                           |
+| `padding_x`            | number             | 0 to 40 px                                      | `11`              | Callout horizontal padding.                                                   |
+| `padding_y`            | number             | 0 to 40 px                                      | `8`               | Callout vertical padding.                                                     |
+| `font`                 | string             | path to a `.ttf` or `.otf` inside the workspace | the bundled Inter | Callout and badge font, see [Font](#font).                                    |
+| `font_weight`          | number             | `400` or `600`                                  | `400`             | Callout text weight. The font file must have it, see [Font](#font).           |
+| `connector_style`      | string             | `auto`, `line`, `chevron`, `arrow`              | `auto`            | How a callout joins its target, see [Connectors](#connectors).                |
+| `caption_style`        | string             | `full`, `badge`, `auto`                         | `full`            | Caption, or badge only, see [Caption style](#caption-style).                  |
+| `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Triangle length for `connector_style: "arrow"`. Its base is 7/4 of that wide. |
+| `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, see [Scale](#scale).             |
+| `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | `1`               | Multiplies every caption dimension, see [Scale](#scale).                      |
+| `display_width`        | number or object   | 240 to 2400 px, or an object                    | `720`             | CSS px shown at, or a wide and narrow pair, see [Scale](#scale).              |
 
 Numbers are plain values without a unit: px for sizes, a share for `max_width_ratio`, a factor for `scale`. Colours are stored as lowercase `#rrggbb`.
 
@@ -71,7 +71,7 @@ Numbers are plain values without a unit: px for sizes, a share for `max_width_ra
 
 A screenshot wider than the column it is shown in gets scaled down by the page, and the caption drawn into it shrinks with it. A 1440 px screenshot in a 720 px column shows 14 px text at 7 px.
 
-`scale` multiplies every caption dimension: text size, line height, padding, outline, radius, shadow, arrow, badge, halo and the callout's width. The layout (which side the callout takes, where it slides) is decided at base size and then multiplied, so a scaled caption sits where the unscaled one would.
+`scale` multiplies every caption dimension: text size, line height, padding, outline, radius, shadow, connector, badge, halo and the callout's width. The layout (which side the callout takes, where it slides) is decided at base size and then multiplied, so a scaled caption sits where the unscaled one sits.
 
 - A number such as `1.5` or `2` is used as written.
 - `"auto"` uses `max(1, screenshot width / display_width)`, at most 4, so a screenshot wider than its column gets a larger caption and a narrower one keeps base size. A 1440 px screenshot with the default `display_width` of 720 gives 2. A 390 px screenshot gives 1.
@@ -84,15 +84,15 @@ When the page shows the screenshot at `displayWidth` CSS px, a caption length en
 onscreen = fontSize * auto * (displayWidth / imageWidth)
 ```
 
-With `auto = imageWidth / displayWidth` that is `fontSize` itself, so `readable` text is 15 px, badge digits 12 px and the halo outline 2 px. A 1440 px screenshot shown at 720 px gives auto 2 and a display factor of 0.5. A 780 px phone screenshot shown at 358 px needs `display_width: 358`: auto is 2.18 (rounded up to 2 decimals) and the display factor 0.46. With the default 720 that screenshot gets auto 1.08 and 15 px text shows at 7.5 px. The cap of 4 covers a 1440 px screenshot shown at 360 px; a screenshot more than 4 times its display width shows captions under base size.
+With `auto = imageWidth / displayWidth` that is `fontSize` itself, so `readable` text is 15 px, badge digits 12 px and the halo outline 2 px. A 1440 px screenshot shown at 720 px gives auto 2 and a display factor of 0.5. A 780 px phone screenshot shown at 358 px needs `display_width: 358`: auto is 2.18 (rounded up to 2 decimals) and the display factor 0.46. With the default 720 that screenshot gets auto 1.09 and 15 px text shows at 7.5 px. The cap of 4 covers a 1440 px screenshot shown at 360 px; a screenshot more than 4 times its display width shows captions under base size.
 
-`max_width_ratio` limits the callout's outer width to that share of the screenshot. At the default 0.62 it only applies when obstacles limit the callout, and callouts otherwise stop at 280 px at base size. A ratio under 0.62 applies to every callout. The callout sits beside its target and moves along the edge, so it covers the target only when no side of the screenshot has room for it.
+`max_width_ratio` limits the callout's outer width to that share of the screenshot. At the default 0.62 the limit applies to callouts planned around obstacles (242 px on a 390 px screenshot), and other callouts stop at 280 px at base size. A ratio under 0.62 applies to every callout.
 
-`scale`, `arrow_size` and `max_width_ratio` apply to burned images. The interactive viewer shows the screenshot at its own size and keeps its arrow, so it reads `font_weight` and the other keys but not these three.
+`scale`, `display_width`, `arrow_size`, `max_width_ratio`, `connector_style` and `caption_style` apply to burned images only. The interactive viewer shows the screenshot at its own size and keeps its own arrow, so it reads the colour, shape, type and `font_weight` keys and ignores these six.
 
 ## Wide and narrow images
 
-A docs site often shows a wide desktop capture and a phone capture at different widths: 1440 px shown at 720, 780 px shown at 358. One number cannot fit both, and `display_width: 720` gives the phone capture an auto factor of 1.08 and 7.5 px text. `display_width` also takes an object:
+Docs sites show a wide desktop capture and a phone capture at different widths: 1440 px shown at 720, 780 px shown at 358. One number cannot fit both, and `display_width: 720` gives the phone capture an auto factor of 1.09 and 7.5 px text. `display_width` also takes an object:
 
 ```json
 {
@@ -109,7 +109,7 @@ A screenshot narrower than `narrow_below` image pixels (default 900) uses `narro
 
 - `narrow` is required. `default` and `narrow_below` must be positive numbers when written.
 - Unknown keys, a non-number and a non-positive value stop the command and name the key path, such as `display_width.narrow`.
-- The number form is unchanged and has no narrow width. A number written in the block replaces an object from a lower layer.
+- The number form has no narrow width. A number written in the block replaces an object from a lower layer.
 - A tokens file can supply the object through `tokens`, as the value of the mapped token.
 - It only changes `scale: "auto"`. An explicit `scale` ignores it, and the viewer's CSS variables do not read `display_width`.
 - In code the resolved theme carries `displayWidth`, `displayWidthNarrow` and `narrowBelow` (the last two are `null` for the number form), and `captionScale(theme, imageWidth)` picks the width.
@@ -138,56 +138,71 @@ Screenshots narrower than `display_width` keep base size, so one block serves mo
 
 ## Placement priorities
 
-When an annotation carries `obstacles`, the burner scores every callout position and keeps the cheapest. From most to least important: the callout covers no page content, halo, badge or earlier callout; the stem and arrow cross none (each px of stem inside content costs more than a px of callout covering it, and a brush of under 2 px at a box edge does not count); the side named by `arrow_style` or `placement.side` is kept; the stem is short. The side hint outweighs a sliver of overlap, about 2 px of content along the callout's width, and loses to anything deeper or to a side with no room in the image. When no spot is clear at full size the burner retries with the callout's side padding cut by up to 6 px (never below 8 px) and keeps that box if it then fits clear. With `obstacles`, a numbered badge is kept fully inside the screenshot, 2 px from the edge. Annotations without `obstacles` place their badge and callout as before, so a badge on a target at the image edge can still be cut off there.
+When an annotation carries `obstacles`, the burner scores every callout position and keeps the cheapest. A themed burn with the line connector also adds text it finds in the screenshot's pixels, see [Placement with the line](#placement-with-the-line). From most to least important:
+
+1. The callout covers no page content, halo, badge or earlier callout.
+2. The connector crosses none of them. Each px of stem inside content costs more than a px of callout covering it, and a brush of under 2 px at a box edge does not count.
+3. The callout sits on the side named by `placement.side` or `arrow_style`. That outweighs a sliver of overlap, about 2 px of content along the callout's width, and loses to anything deeper or to a side with no room in the image.
+4. The stem is short.
+
+When no spot is clear at full size, the burner retries with the callout's side padding cut by up to 6 px (never below 8 px) and keeps that box if it then fits clear. With `obstacles`, a numbered badge is kept fully inside the screenshot, 2 px from the edge. Without `obstacles`, an `arrow` burn places its badge and callout as before, so a badge on a target at the image edge can still be cut off there.
 
 ## Connectors
 
-`connector_style` sets what joins a callout to its target:
+`connector_style` sets what joins a callout to its target. It is new in the next release. Until then a themed burn draws the `arrow`.
 
-- `line`: a thin line from the middle of the caption edge that faces the target to the outside of the halo ring, ending in a small dot there. It starts on the caption's outer edge, so there is no gap and it does not run under the caption. The start keeps clear of the caption's rounded corners. When the target is off the caption's span the line takes one right-angle elbow halfway.
-- `chevron`: the same line ending in a small open chevron.
-- `arrow`: the filled triangle and stem docsxai always drew.
+- `line`: a 2 px line from the middle of the caption edge that faces the target to the outside of the halo ring, ending in a dot of 2 px radius. It starts on the caption's outer edge, so there is no gap and it does not run under the caption. The start keeps `radius` + 2 px away from the caption's corners. When the target is off the caption's span, the line takes one right-angle elbow halfway.
+- `chevron`: the same line ending in an open chevron with 5 px arms.
+- `arrow`: the filled triangle and stem docsxai always drew, with the halo on the target's edge and the badge placed as before.
 - `auto`, the default: `line` for a burn with a theme, `arrow` for a burn without one.
 
-The line is 2 px wide, the dot 2 px in radius and the chevron arms 5 px, all multiplied by `scale`.
+Line width, dot radius and chevron arms are all multiplied by `scale`.
 
-The line comes with a clean look for the halo and badge. The halo ring is drawn 3 px outside the target, so it never covers text inside it, and the numbered badge sits diagonally off the target's corner, clear of the element.
+### Clean halo and badge
 
-Placement, with the line:
+The line comes with a clean halo and badge. The halo ring is 2 px wide and sits 3 px outside the target, with a 3 px glow, so it never covers text inside the target. Its corner radius is 4/7 of `radius` plus 5 px. The numbered badge sits 1 px off a corner of the target, clear of the element. The burner tries the top-left, top-right, bottom-left and bottom-right corners, then beside the middle of the left and right edges, then inside the target's top-left corner. It takes the first spot inside the image that covers no text or other annotation, else the one that covers least.
 
-- A caption rests 20 px from its target, so 15 px of line show past the ring.
-- The burner estimates text from the screenshot's pixels around the target (dense sharp luminance steps, in 8 px cells) and adds those boxes to the annotation's `obstacles`. A capture sidecar lists at most 40 boxes, and a burn without `obstacles` gets the same protection.
-- A caption that would cover text moves out up to 176 px to empty space. Clear space wins over a short line: a long thin line is fine, a covered label is not.
-- When nothing within 176 px is clear, the caption may dock in a band 12 px from the top or bottom edge of the image, joined by a straight line. A line that crosses text costs more than one through a gutter, so docking takes the gutter when there is one.
-- A pinned arrow (`placement.pin_arrow`) is not capped, since its nudge sets the distance. The side hint in `arrow_style` works as before.
+### Placement with the line
 
-The line takes `callout_border_color`, or `ink` when `callout_border_width` is 0. The burner averages the screenshot under the line and checks that colour against it. Under 3:1 it switches to whichever of `ink` and `callout_background` has the most contrast there. There is no outline.
+- A caption rests 20 px from its target, so 15 px of line show past the 5 px ring.
+- The burner reads text from the screenshot's pixels. It cuts the image into 8 px cells, marks a cell busy when it holds at least 12 luminance steps of 48 or more (at least 4 across and 4 down), and merges busy cells into boxes that join the annotation's `obstacles`. A listed box with nothing drawn in it is dropped. A capture sidecar lists at most 40 boxes, and a burn without `obstacles` gets the same protection.
+- A caption that covers text at its resting spot moves out up to 176 px to empty space. A clear spot 150 px away beats a covered one beside the target.
+- When nothing within 176 px is clear, a caption above or below its target docks in a band 12 px from the top or bottom edge of the image when the band is within 45% of the image height of the target. A connector that crosses text costs more than one through a gap, so docking takes the gap when there is one.
+- When the usual box covers something, the burner tries a box up to 560 px wide (fewer lines), then both again with the text one step smaller: 16 px burned on a screenshot 900 px wide or more, 14 px below that. It keeps the first clear layout, else the one that covers least.
+- A pinned arrow (`placement.pin_arrow`) keeps the distance steps of an `arrow` burn, up to 320 px past the gap, and does not dock. Its nudge sets the distance. Side hints work as before.
+- `docsxai burn --no-connector-outline` skips reading the screenshot's pixels. The line keeps the colour of `callout_border_color`, and the burner finds no text, so it places captions from the listed `obstacles` alone.
+
+The line takes `callout_border_color`, or `ink` when `callout_border_width` is 0. The burner averages the screenshot under the line and checks that colour against it. Under 3:1 it takes whichever of `ink` and `callout_background` has more contrast there, when either beats it. The line has no outline.
 
 A burn without a theme keeps the triangle and its bytes. To keep the triangle in a themed burn, set `connector_style: "arrow"`.
 
-To compare the looks, `node scripts/burn-trackxai-sample.mjs` (after `pnpm --filter @docsxai/viewer build`) burns three synthetic app screens in light and dark with the `examples/burn-theme/trackxai-light.tokens.json` and `trackxai-dark.tokens.json` pair, once with `arrow` and once with the default, and prints the PNG paths under `/tmp/burn-before-after`.
+To compare the looks, run `node scripts/burn-trackxai-sample.mjs` after `pnpm --filter @docsxai/viewer build`. It burns three desktop screens in light and dark and a 390 px phone screen in dark with the `examples/burn-theme/trackxai-light.tokens.json` and `trackxai-dark.tokens.json` pair, once with `arrow` at 14 px and once with the theme as written. It prints the 14 PNG paths under `/tmp/burn-before-after`.
 
-## Badge only
+`node scripts/burn-trackxai.mjs --raw <dir> --out <dir>` burns a directory of trackxai raw captures into a screens pack (its header lists every flag). Add `--webp` to write a lossless `<name>.<hash>.webp` beside each new PNG, made with `cwebp -lossless -z 9`. A twin is kept only when it is under 100 kB and smaller than the PNG; otherwise the script removes it and prints a warning with both sizes. `cwebp` comes from the `webp` package (`brew install webp`, `apt install webp`); without it on `PATH` the run stops before it burns anything.
 
-`caption_style` applies with the line connector (`connector_style` `line` or `chevron`, or `auto` with a theme):
+## Caption style
+
+`caption_style` is new in the next release. It applies with the line connector (`connector_style` `line` or `chevron`, or `auto` with a theme). An `arrow` burn always draws the caption.
 
 - `full`, the default: every annotation gets its caption.
 - `badge`: no caption box and no connector. Each target gets its ring and a numbered badge, numbered by its place in the list when it has no `index`. Use it where the page prints the callout text as a numbered list under the image.
-- `auto`: the caption when a spot clear of text exists and its connector crosses no text, else the badge. The burn report marks each fallback with `"caption_style": "badge"`.
+- `auto`: the caption when a spot clear of text exists and its connector crosses no text, else the badge.
+
+The burn report marks each badge-only annotation with `"caption_style": "badge"`, whether `badge` or the `auto` fallback chose it.
 
 ## Phone captures
 
-A portrait capture under 900 px wide is treated as a phone screen. Its top 56 px (the header), bottom 56 px (the nav bar), the floating action button above the nav bar's right end and a 16 px strip on each side are content: captions stay off them, and badges stay off the header, nav bar and button. A caption docks under the header or above the nav bar, never on them. When no spot is clear, the caption first tries a box as wide as the screen allows, then one text step smaller (14 px burned), with lines 2 px over the text and 4 px of vertical padding.
+A portrait capture under 900 px wide is treated as a phone screen. Its top 56 px (the header), bottom 56 px (the nav bar), the floating action button above the nav bar's right end (76 by 80 px) and a 16 px strip on each side are content. Captions stay off them, and badges stay off the header, nav bar and button. A caption docks 64 px from the top or bottom edge, under the header or above the nav bar. On a screenshot under 900 px wide the smaller text step is compact: 16 px lines for the 14 px text, 4 px of vertical padding and 8 px of horizontal padding.
 
 ## Line breaks
 
-A burn with a theme balances the callout's lines. It keeps as many lines as filling each one would give and narrows the box until one more line would be needed, so the lines come out about even and none ends with a single word left over. A one-letter word such as Spanish `a`, `y` or `o`, and the list number in front of the copy, stay on the line of the word after them. A word wider than the line, such as a path or a URL, breaks after `/`, `-`, `_`, `.` or `:` before it breaks between letters.
+A burn with a theme balances the callout's lines. It keeps the line count that filling each line gives, then narrows the box to the smallest width in whole px that holds that count, so the lines come out about even. A one-letter word such as Spanish `a`, `y` or `o`, and the list number in front of the copy, stay on the line of the word after them. A word wider than the line, such as a path or a URL, breaks after `/`, `-`, `_`, `.` or `:` before it breaks between letters.
 
 A burn without a theme fills each line, as it always did.
 
 ## Presets
 
-Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` keep `scale` at 1, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62 and `display_width` at 720.
+Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` keep `scale` at 1, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62, `display_width` at 720, `connector_style` at `auto` and `caption_style` at `full`.
 
 | Key                    | `clean`                               | `soft`                                  | `high-contrast` |
 | ---------------------- | ------------------------------------- | --------------------------------------- | --------------- |
@@ -207,7 +222,7 @@ Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` k
 
 `high-contrast` is black text on a white callout (21:1) and white digits on a black badge (21:1).
 
-`readable` is for docs sites. It sets `scale` to `"auto"`, `max_width_ratio` to 0.55 (callouts stay under 60% of the screenshot's width) and differs from the others in these keys:
+`readable` is for docs sites. It sets `scale` to `"auto"` and `max_width_ratio` to 0.55, which limits every callout to 55% of the screenshot's width. It differs from the others in these keys:
 
 | Key                    | `readable`                             |
 | ---------------------- | -------------------------------------- |
@@ -227,7 +242,7 @@ Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` k
 | `max_width_ratio`      | 0.55                                   |
 | `scale`                | `auto`                                 |
 
-Ink on the callout is 16:1 and the badge digits are 7:1. All four presets keep both text pairs at WCAG AA (4.5:1) or better, and a test checks that.
+Ink on the callout is 17:1 and the badge digits are 7.3:1. All four presets keep both text pairs at WCAG AA (4.5:1) or better, and a test checks that.
 
 Any key in the block overrides the preset:
 
@@ -266,7 +281,7 @@ Both flatten to dotted paths. Each theme key reads one default path:
 
 A `rem` is 16 px. A key whose default path the file does not define is left at the preset or default.
 
-`max_width_ratio`, `scale` and `display_width` are render settings with no design-token equivalent, so they have no default path. Set them in the `burn.theme` block, or point one at a token with `tokens`.
+`caption_style`, `max_width_ratio`, `scale` and `display_width` are render settings with no design-token equivalent, so they have no default path. Set them in the `burn.theme` block, or point one at a token with `tokens`.
 
 To read a key from a different path, map it in `tokens`:
 
@@ -293,7 +308,7 @@ A tokens file that defines none of the default paths and maps none is an error t
 
 `font` points at a TTF or OTF file inside the workspace. Vendor the file in the workspace, next to the rest of the doc pack, so the output stays byte-stable: the burner reads that file and no system font. Without `font` the bundled Inter Regular is used.
 
-The file is refused when it is missing, a symlink, over 16 MiB, a collection (`.ttc`), a WOFF or WOFF2 file, or lacks the `head`, `hhea`, `hmtx` or `cmap` tables the burner measures with. One weight is used: the file's own. `font_weight` selects 400 or 600 and the file must be that weight, for example a semibold TTF with `font_weight: 600`. The bundled Inter is regular only, so `600` without a `font` prints a warning and the text stays 400.
+The file is refused when it does not exist, is a symlink, is over 16 MiB, is a collection (`.ttc`), is a WOFF or WOFF2 file, or lacks the `head`, `hhea`, `hmtx` or `cmap` tables the burner measures with. One weight is used: the file's own. `font_weight` selects 400 or 600 and the file must be that weight, for example a semibold TTF with `font_weight: 600`. The bundled Inter is regular only, so `600` without a `font` prints a warning and the text stays 400.
 
 In the interactive viewer the font is embedded in each flow page as a `data:` URI, and the page's content security policy gains `font-src data:` and nothing else. A page built without a font file keeps the policy it always had.
 
@@ -312,7 +327,7 @@ burn: warning: burn.theme: ink on callout_background is 2.32:1, WCAG AA needs 4.
 
 The output is still produced.
 
-A line connector picks its colour as [Connectors](#connectors) describes. With `connector_style: "arrow"`, an arrow or stem over a dark part of a screenshot is drawn solid in `callout_background`, so it reads as the callout's tail. Where a tenth or more of the pixels under it are as light as that fill, it keeps the dark ink with a white outline instead. A light connector colour (a light `callout_border_color`) mirrors this: over light pixels it takes a dark `callout_background`, or else gets a dark outline. Burns without a theme keep the outline look.
+A line connector picks its colour as [Placement with the line](#placement-with-the-line) describes. With `connector_style: "arrow"`, an arrow or stem is drawn solid in `callout_background` when a third or more of the pixels under it are dark (luma under 110), so it reads as the callout's tail. Where a tenth or more of the pixels under it are as light as that fill, it keeps the dark ink with a 2 px white outline instead. A light connector colour (a light `callout_border_color`) mirrors this: over pixels with luma 145 or more it takes a dark `callout_background`, or else gets a dark outline. A burn without a theme draws near-black ink (`#1c1c1c`) and adds the 2 px white outline over dark pixels.
 
 ## From a script
 

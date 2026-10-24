@@ -15,7 +15,8 @@
     "R013",
     "R014",
     "R015",
-    "R016"
+    "R016",
+    "R017"
   ],
   "diagnoseKinds": [
     "selector",

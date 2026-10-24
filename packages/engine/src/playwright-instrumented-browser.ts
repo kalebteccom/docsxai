@@ -87,6 +87,8 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
   private context?: BrowserContext;
   private page?: Page;
   private attached = false;
+  /** An attached browser had no context, so this process created one and closes it. */
+  private ownsContext = false;
   private persistent = false;
   private captured: Promise<void> = Promise.resolve();
   private resolveCaptured: () => void = () => {};
@@ -94,6 +96,16 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
   constructor(private readonly opts: PlaywrightInstrumentedBrowserOptions = {}) {}
 
   async open(baseURL: string): Promise<void> {
+    try {
+      await this.openBrowser(baseURL);
+    } catch (e) {
+      // The caller never gets a browser to close, so release whatever was started.
+      await this.close();
+      throw e;
+    }
+  }
+
+  private async openBrowser(baseURL: string): Promise<void> {
     this.captured = new Promise<void>((resolve) => {
       this.resolveCaptured = resolve;
     });
@@ -103,7 +115,11 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
       // in Chrome for discovery). One login, one browser. We never close it.
       this.attached = true;
       this.browser = await chromium.connectOverCDP(this.opts.connectOverCdp);
-      this.context = this.browser.contexts()[0] ?? (await this.browser.newContext());
+      this.context = this.browser.contexts()[0];
+      if (!this.context) {
+        this.context = await this.browser.newContext();
+        this.ownsContext = true;
+      }
       await this.context.exposeFunction(CAPTURE_BINDING, () => {
         this.resolveCaptured();
       });
@@ -213,13 +229,19 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
 
   async close(): Promise<void> {
     if (this.attached) {
-      // Don't touch the engineer's Chrome — just detach. The injected `__docsxai` helper detects
-      // the backing binding is gone on its next invocation, removes its injected button if any,
-      // logs a friendly info message, and self-deletes from `window.__docsxai.capture`. Safe to
-      // share the Chrome with other automation clients.
+      // Don't touch the engineer's Chrome: drop the connection and nothing else (a context this
+      // process created goes first). The injected `__docsxai` helper detects the backing binding
+      // is gone on its next invocation, removes its injected button if any, logs a friendly info
+      // message, and self-deletes from `window.__docsxai.capture`. Safe to share the Chrome with
+      // other automation clients.
+      const { browser, context, ownsContext } = this;
       this.context = undefined;
       this.browser = undefined;
       this.page = undefined;
+      this.attached = false;
+      this.ownsContext = false;
+      if (ownsContext) await context?.close().catch(() => undefined);
+      await browser?.close().catch(() => undefined);
       return;
     }
     // For a persistent context, `context.close()` flushes the profile to disk and closes the browser.

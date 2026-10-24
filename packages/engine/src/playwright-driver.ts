@@ -23,6 +23,7 @@ import {
   type EnvironmentSpec,
   type ViewportSize,
 } from "./doc-pack.js";
+import { attachSkipNotice } from "./environment-spec.js";
 import {
   egressContextOptions,
   installEgressGuard,
@@ -143,6 +144,12 @@ export interface PlaywrightSession {
   close(): Promise<void>;
 }
 
+/** Drop a CDP connection: close the context this process created (if any), then disconnect. Never throws. */
+async function releaseAttached(browser: Browser, ownContext: BrowserContext | undefined) {
+  await ownContext?.close().catch(() => {});
+  await browser.close().catch(() => {});
+}
+
 /** Launch Chromium (or, with `connectOverCdp`, attach to a running one) and return a {@link PlaywrightSession}. */
 export async function launchPlaywrightSession(
   opts: PlaywrightSessionOptions = {},
@@ -150,35 +157,33 @@ export async function launchPlaywrightSession(
   const guard = resolveEgressGuard(opts.egressGuard);
   if (opts.connectOverCdp) {
     const browser = await chromium.connectOverCDP(opts.connectOverCdp);
-    const context = browser.contexts()[0] ?? (await browser.newContext());
-    await installEgressGuard(context as unknown as GuardableContext, guard);
-    const pages = context.pages();
-    const page =
-      pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await context.newPage());
-    // The attached context is externally owned — context-level environment fields can't apply.
-    // The clock is a page-level install, so it still does.
-    const skipped = (
-      ["locale", "timezone", "viewport", "color_scheme", "reduced_motion"] as const
-    ).filter((k) => opts.environment?.[k] !== undefined);
-    if (skipped.length || opts.contextOptions) {
-      process.stderr.write(
-        `launchPlaywrightSession: attached over CDP — the browser context is externally owned; skipped: ${[
-          ...skipped.map((k) => `environment.${k}`),
-          ...(opts.contextOptions ? ["contextOptions"] : []),
-        ].join(", ")}\n`,
-      );
+    // Closing a CDP-attached browser only drops the connection; the operator's Chrome keeps running.
+    // A context made here is ours and goes first; the operator's own context and tabs stay as they are.
+    let ownContext: BrowserContext | undefined;
+    try {
+      const context = browser.contexts()[0] ?? (ownContext = await browser.newContext());
+      await installEgressGuard(context as unknown as GuardableContext, guard);
+      const pages = context.pages();
+      const page =
+        pages.find((p) => /^https?:/.test(p.url())) ?? pages[0] ?? (await context.newPage());
+      const notice = attachSkipNotice(opts.environment, !!opts.contextOptions);
+      if (notice) process.stderr.write(notice);
+      await installClock(page, opts.environment);
+      const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".", opts.outputRoot);
+      let released: Promise<void> | undefined;
+      return {
+        browser,
+        context,
+        page,
+        driver,
+        storageState: () => context.storageState(),
+        close: () => (released ??= releaseAttached(browser, ownContext)),
+      };
+    } catch (e) {
+      // The caller never receives the session, so nothing else would drop this connection.
+      await releaseAttached(browser, ownContext);
+      throw e;
     }
-    await installClock(page, opts.environment);
-    const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".", opts.outputRoot);
-    return {
-      browser,
-      context,
-      page,
-      driver,
-      storageState: () => context.storageState(),
-      // Attached — don't close the browser; just let the connection drop.
-      close: async () => {},
-    };
   }
   const browser = await chromium.launch({
     headless: !opts.headed,

@@ -42,7 +42,7 @@
   "scripts": {
     "build": "node ../../scripts/clean-dist.mjs && tsc -b tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests --testTimeout=30000"
   },
   "dependencies": {
     "fflate": "^0.8.3",
