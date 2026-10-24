@@ -17,12 +17,15 @@ vi.mock("../src/playwright-driver.js", () => ({
     }),
 }));
 vi.mock("../src/flow-runtime.js", () => ({
-  runFlow: () =>
+  runFlow: (_flow: unknown, _driver: unknown, opts: { deviceScaleFactor?: number }) =>
     Promise.resolve({
       steps: [{ id: "b", action: "click" }],
       annotations: {
         schema: "docsxai/annotations@1",
         flow: "f",
+        ...((opts.deviceScaleFactor ?? 1) > 1
+          ? { device_scale_factor: opts.deviceScaleFactor }
+          : {}),
         annotations: [{ step: "b", selector: "#b", copy: "new b" }],
       },
     }),
@@ -43,7 +46,7 @@ afterEach(async () => {
 
 const annotationsFile = () => path.join(ws, "docs", "f", "annotations.json");
 
-async function runFromB(): Promise<void> {
+async function runFromB(deviceScaleFactor?: number): Promise<void> {
   const result = await runFlowsInSessions({
     projectDir: ws,
     outputRoot: ws,
@@ -54,6 +57,7 @@ async function runFromB(): Promise<void> {
     pause: false,
     obstacles: false,
     concurrency: 1,
+    ...(deviceScaleFactor !== undefined ? { deviceScaleFactor } : {}),
     progress: (l) => void lines.push(l),
   });
   expect(result.okCount).toBe(1);
@@ -99,5 +103,43 @@ describe("run --start-from merge", () => {
   it("does not warn when there is no existing file", async () => {
     await runFromB();
     expect(lines.join("")).not.toMatch(/warning/);
+  });
+
+  it.each([
+    ["a 1x file re-run at 2x", undefined, 2],
+    ["a 2x file re-run at 1x", 2, undefined],
+    ["a 2x file re-run at 3x", 2, 3],
+  ])("drops the earlier steps of %s, whose boxes are in other pixels", async (_n, was, now) => {
+    await fs.writeFile(
+      annotationsFile(),
+      JSON.stringify({
+        schema: "docsxai/annotations@1",
+        flow: "f",
+        ...(was ? { device_scale_factor: was } : {}),
+        annotations: [{ step: "a", selector: "#a", copy: "a" }],
+      }),
+      "utf8",
+    );
+    await runFromB(now);
+    expect(lines.join("")).toMatch(/warning: .*device scale.*earlier steps/);
+    const written = JSON.parse(await fs.readFile(annotationsFile(), "utf8"));
+    expect(written.annotations).toHaveLength(1);
+    expect(written.device_scale_factor).toBe(now);
+  });
+
+  it("keeps the earlier steps when both runs used the same scale", async () => {
+    await fs.writeFile(
+      annotationsFile(),
+      JSON.stringify({
+        schema: "docsxai/annotations@1",
+        flow: "f",
+        device_scale_factor: 2,
+        annotations: [{ step: "a", selector: "#a", copy: "a" }],
+      }),
+      "utf8",
+    );
+    await runFromB(2);
+    const written = JSON.parse(await fs.readFile(annotationsFile(), "utf8"));
+    expect(written.annotations).toHaveLength(2);
   });
 });
