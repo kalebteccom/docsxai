@@ -1,0 +1,451 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "waiting",
+  "variant": "en.dark.390",
+  "matrix_id": "en-US.dark.mobile-390",
+  "viewport": {
+    "name": "mobile-390",
+    "width": 390,
+    "height": 844
+  },
+  "annotations": [
+    {
+      "step": "waiting",
+      "selector": "h1.page__title",
+      "bounding_box": {
+        "x": 16,
+        "y": 60,
+        "width": 113.484375,
+        "height": 25.5
+      },
+      "obstacles": [
+        {
+          "x": 16,
+          "y": 5,
+          "width": 48,
+          "height": 33
+        },
+        {
+          "x": 219,
+          "y": 5,
+          "width": 24,
+          "height": 33
+        },
+        {
+          "x": 259,
+          "y": 9,
+          "width": 53,
+          "height": 25
+        },
+        {
+          "x": 320,
+          "y": 9,
+          "width": 54,
+          "height": 25
+        },
+        {
+          "x": 72,
+          "y": 12,
+          "width": 4,
+          "height": 17
+        },
+        {
+          "x": 83,
+          "y": 12,
+          "width": 94,
+          "height": 17
+        },
+        {
+          "x": 16,
+          "y": 90,
+          "width": 332,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 108,
+          "width": 212,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 141,
+          "width": 93,
+          "height": 33
+        },
+        {
+          "x": 124,
+          "y": 141,
+          "width": 93,
+          "height": 33
+        },
+        {
+          "x": 232,
+          "y": 141,
+          "width": 114,
+          "height": 33
+        },
+        {
+          "x": 32,
+          "y": 232,
+          "width": 74,
+          "height": 33
+        },
+        {
+          "x": 56,
+          "y": 265,
+          "width": 40,
+          "height": 26
+        },
+        {
+          "x": 284,
+          "y": 265,
+          "width": 22,
+          "height": 26
+        },
+        {
+          "x": 145,
+          "y": 271,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 24,
+          "y": 290,
+          "width": 342,
+          "height": 20
+        },
+        {
+          "x": 78,
+          "y": 323,
+          "width": 266,
+          "height": 17
+        },
+        {
+          "x": 48,
+          "y": 326,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 61,
+          "y": 326,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 67,
+          "y": 326,
+          "width": 8,
+          "height": 14
+        },
+        {
+          "x": 48,
+          "y": 343,
+          "width": 172,
+          "height": 17
+        },
+        {
+          "x": 48,
+          "y": 366,
+          "width": 73,
+          "height": 14
+        },
+        {
+          "x": 120,
+          "y": 366,
+          "width": 147,
+          "height": 14
+        },
+        {
+          "x": 266,
+          "y": 366,
+          "width": 74,
+          "height": 14
+        },
+        {
+          "x": 48,
+          "y": 383,
+          "width": 126,
+          "height": 14
+        },
+        {
+          "x": 180,
+          "y": 383,
+          "width": 67,
+          "height": 14
+        },
+        {
+          "x": 246,
+          "y": 383,
+          "width": 67,
+          "height": 14
+        },
+        {
+          "x": 108,
+          "y": 402,
+          "width": 78,
+          "height": 26
+        }
+      ],
+      "copy": "Waiting on you lists the tasks blocked on your answer.",
+      "arrow_style": "right",
+      "index": 1
+    },
+    {
+      "step": "waiting",
+      "selector": "button.rowgap__slot >> nth=0",
+      "bounding_box": {
+        "x": 48,
+        "y": 435.59375,
+        "width": 310,
+        "height": 25
+      },
+      "obstacles": [
+        {
+          "x": 32,
+          "y": 232,
+          "width": 74,
+          "height": 33
+        },
+        {
+          "x": 56,
+          "y": 265,
+          "width": 40,
+          "height": 26
+        },
+        {
+          "x": 284,
+          "y": 265,
+          "width": 22,
+          "height": 26
+        },
+        {
+          "x": 145,
+          "y": 271,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 24,
+          "y": 290,
+          "width": 342,
+          "height": 20
+        },
+        {
+          "x": 78,
+          "y": 323,
+          "width": 266,
+          "height": 17
+        },
+        {
+          "x": 48,
+          "y": 326,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 61,
+          "y": 326,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 67,
+          "y": 326,
+          "width": 8,
+          "height": 14
+        },
+        {
+          "x": 48,
+          "y": 343,
+          "width": 172,
+          "height": 17
+        },
+        {
+          "x": 48,
+          "y": 366,
+          "width": 73,
+          "height": 14
+        },
+        {
+          "x": 120,
+          "y": 366,
+          "width": 147,
+          "height": 14
+        },
+        {
+          "x": 266,
+          "y": 366,
+          "width": 74,
+          "height": 14
+        },
+        {
+          "x": 48,
+          "y": 383,
+          "width": 126,
+          "height": 14
+        },
+        {
+          "x": 180,
+          "y": 383,
+          "width": 67,
+          "height": 14
+        },
+        {
+          "x": 246,
+          "y": 383,
+          "width": 67,
+          "height": 14
+        },
+        {
+          "x": 108,
+          "y": 402,
+          "width": 78,
+          "height": 26
+        },
+        {
+          "x": 48,
+          "y": 407,
+          "width": 60,
+          "height": 16
+        },
+        {
+          "x": 56,
+          "y": 469,
+          "width": 40,
+          "height": 26
+        },
+        {
+          "x": 284,
+          "y": 469,
+          "width": 22,
+          "height": 26
+        },
+        {
+          "x": 145,
+          "y": 475,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 24,
+          "y": 494,
+          "width": 342,
+          "height": 21
+        },
+        {
+          "x": 78,
+          "y": 528,
+          "width": 241,
+          "height": 17
+        },
+        {
+          "x": 48,
+          "y": 531,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 61,
+          "y": 531,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 67,
+          "y": 531,
+          "width": 8,
+          "height": 14
+        },
+        {
+          "x": 48,
+          "y": 547,
+          "width": 244,
+          "height": 17
+        },
+        {
+          "x": 48,
+          "y": 571,
+          "width": 73,
+          "height": 14
+        },
+        {
+          "x": 120,
+          "y": 571,
+          "width": 147,
+          "height": 14
+        },
+        {
+          "x": 266,
+          "y": 571,
+          "width": 74,
+          "height": 14
+        },
+        {
+          "x": 48,
+          "y": 587,
+          "width": 126,
+          "height": 14
+        },
+        {
+          "x": 180,
+          "y": 587,
+          "width": 67,
+          "height": 14
+        },
+        {
+          "x": 246,
+          "y": 587,
+          "width": 67,
+          "height": 14
+        },
+        {
+          "x": 108,
+          "y": 607,
+          "width": 78,
+          "height": 26
+        },
+        {
+          "x": 48,
+          "y": 611,
+          "width": 60,
+          "height": 16
+        },
+        {
+          "x": 48,
+          "y": 640,
+          "width": 310,
+          "height": 26
+        },
+        {
+          "x": 56,
+          "y": 674,
+          "width": 40,
+          "height": 26
+        },
+        {
+          "x": 284,
+          "y": 674,
+          "width": 22,
+          "height": 26
+        },
+        {
+          "x": 145,
+          "y": 680,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 24,
+          "y": 699,
+          "width": 342,
+          "height": 20
+        }
+      ],
+      "copy": "Answer an open gap on a row without leaving the list.",
+      "arrow_style": "top",
+      "index": 2
+    }
+  ]
+}

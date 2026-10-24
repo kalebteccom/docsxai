@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   calloutTexts,
+  badgeOnly,
   checkSidecar,
   coverage,
   contentHash,
@@ -148,4 +149,29 @@ test("coverage names what a caption covers", () => {
     "caption 1 overlaps caption 2",
     "caption 1 covers badge of caption 2",
   ]);
+});
+
+test("coverage flags phone chrome and badges on text", () => {
+  const records = [
+    {
+      index: 1,
+      copy: "a",
+      bounding_box: box,
+      obstacles: [{ x: 0, y: 100, width: 50, height: 20 }],
+    },
+  ];
+  const report = [
+    {
+      callout: { x: 10, y: 10, width: 100, height: 30 },
+      badge: { x: 10, y: 105, width: 10, height: 10 },
+    },
+  ];
+  assert.deepEqual(coverage(records, report, { width: 390, height: 844 }), [
+    "badge 1 covers 100 px² of listed text",
+    "caption 1 is on the header",
+  ]);
+  assert.deepEqual(coverage(records, report, { width: 1280, height: 800 }), [
+    "badge 1 covers 100 px² of listed text",
+  ]);
+  assert.deepEqual(badgeOnly([{}, { caption_style: "badge" }]), [2]);
 });

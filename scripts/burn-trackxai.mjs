@@ -17,6 +17,9 @@
 // stops the run with its file name. `--compare` also writes `before-` (no theme, the look burns
 // had before themes) and `after-` PNGs there.
 //
+// Phone captures (under 900 px) burn with `caption_style: "auto"`: an annotation with no caption
+// spot clear of text, header and bottom nav gets its badge only. Desktop captures keep captions.
+//
 // It reads the built viewer, so run `pnpm --filter @docsxai/viewer build` first.
 
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -28,6 +31,7 @@ import {
   calloutTexts,
   checkSidecar,
   coverage,
+  badgeOnly,
   contentHash,
   mergeManifest,
   parseRawName,
@@ -105,12 +109,19 @@ async function main() {
       console.error(`warning: ${name}: annotation ${n} has no bounding_box, skipped`);
     }
     const png = await readFile(join(raw, name));
+    // Phone captures fall back to badges where no caption spot is clear; desktop keeps captions.
+    const captionStyle = parsed.width < 900 ? "auto" : "full";
     const burned = await renderBurn({
       screenshotBuffer: png,
       annotations: records,
-      options: { theme, warn: () => {} },
+      options: { theme: { ...theme, captionStyle }, warn: () => {} },
     });
-    for (const line of coverage(records, burned.report)) console.error(`check: ${name}: ${line}`);
+    const shot = { width: parsed.width, height: doc.viewport?.height ?? 0 };
+    for (const line of coverage(records, burned.report, shot)) {
+      console.error(`check: ${name}: ${line}`);
+    }
+    const fell = badgeOnly(burned.report);
+    if (fell.length > 0) console.error(`badge only: ${name}: annotation ${fell.join(", ")}`);
     const screen = rename.get(parsed.screen) ?? parsed.screen;
     const dir = variantDir(parsed.width);
     const callouts = calloutTexts(records);

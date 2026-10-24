@@ -121,19 +121,44 @@ const overlap = (a, b) => {
   return w > 0 && h > 0 ? w * h : 0;
 };
 
+/** Phone chrome of a capture `size` px: header and bottom nav bands; none from 900 px wide. */
+export function chromeBands({ width, height }) {
+  if (width >= 900) return [];
+  return [
+    { name: "the header", box: { x: 0, y: 0, width, height: 56 } },
+    { name: "the bottom nav", box: { x: 0, y: height - 56, width, height: 56 } },
+  ];
+}
+
 /**
- * What each drawn caption covers, from the burn report: its own listed obstacles, the other
- * annotations' targets, other captions and badges. One line per covered thing, empty when clean.
- * Captions are named by their index, else their position.
+ * What each drawn caption and badge covers, from the burn report: listed text (a caption's own
+ * obstacles, a badge's too), the other annotations' targets, other captions, badges and, on a
+ * phone capture of `size`, the header and bottom nav bands. One line per problem, empty when
+ * clean. Annotations are named by their index, else their position.
  */
-export function coverage(records, report) {
+export function coverage(records, report, size = { width: 1280, height: 800 }) {
   const lines = [];
   const name = (i) => `caption ${records[i].index ?? i + 1}`;
+  const bands = chromeBands(size);
   report.forEach((r, i) => {
+    const b = r.badge;
+    if (b) {
+      const text = (records[i].obstacles ?? []).reduce((n, o) => n + overlap(b, o), 0);
+      if (text > 0)
+        lines.push(
+          `badge ${records[i].index ?? i + 1} covers ${Math.round(text)} px² of listed text`,
+        );
+      for (const band of bands) {
+        if (overlap(b, band.box) > 0)
+          lines.push(`badge ${records[i].index ?? i + 1} is on ${band.name}`);
+      }
+    }
     const c = r.callout;
     if (!c) return;
     const text = (records[i].obstacles ?? []).reduce((n, o) => n + overlap(c, o), 0);
     if (text > 0) lines.push(`${name(i)} covers ${Math.round(text)} px² of listed text`);
+    for (const band of bands)
+      if (overlap(c, band.box) > 0) lines.push(`${name(i)} is on ${band.name}`);
     records.forEach((other, j) => {
       if (j === i) return;
       if (other.bounding_box && overlap(c, other.bounding_box) > 0) {
@@ -148,3 +173,7 @@ export function coverage(records, report) {
   });
   return lines;
 }
+
+/** Positions (1-based) the burn drew as a badge only, from the report. */
+export const badgeOnly = (report) =>
+  report.flatMap((r, i) => (r.caption_style === "badge" ? [i + 1] : []));

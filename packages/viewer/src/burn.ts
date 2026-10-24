@@ -32,14 +32,7 @@ import {
 import { loadThemeFont } from "./burn-theme-load.js";
 import { rgbaOf } from "./color.js";
 import { badgeNode, calloutNodes, calloutStyleOf, div, effectiveWeight } from "./burn-nodes.js";
-import {
-  DOCK_MARGIN,
-  DOCK_MAX_SHARE,
-  cornerBadge,
-  haloBox,
-  withOtherTargets,
-  withPixelObstacles,
-} from "./burn-clean.js";
+import { DOCK_MAX_SHARE, cleanObstacles, cornerBadge, dockMargin, haloBox } from "./burn-clean.js";
 import { planClean } from "./burn-clean-plan.js";
 import { LINE_GAP, LINE_MAX_DISTANCE, drawnStyle } from "./burn-line.js";
 import type { PixelGrid } from "./connector-contrast.js";
@@ -178,12 +171,19 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const clean = connector !== "arrow";
   for (const [i, realAnn] of input.annotations.entries()) {
     const self = baseAnnotations[i]!;
-    const seen =
-      clean && input.pixels && realAnn.bounding_box
-        ? withPixelObstacles(self, realAnn.bounding_box, input.pixels, f)
-        : self;
-    // A clean caption treats every other annotation's target as content.
-    const ann = clean ? withOtherTargets(seen, baseAnnotations, self) : seen;
+    // Clean: text from the pixels, other targets and phone chrome join the obstacles.
+    const prep = clean
+      ? cleanObstacles(
+          self,
+          realAnn.bounding_box,
+          input.pixels,
+          f,
+          baseAnnotations,
+          baseImage,
+          width,
+        )
+      : { ann: self, badgeObstacles: self.obstacles ?? [] };
+    const ann = prep.ann;
     if (!ann.bounding_box) {
       warn(`burn: annotation on step "${ann.step}" has no bounding_box — skipped`);
       input.report?.push(skippedReport(ann, "no bounding_box"));
@@ -215,7 +215,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       size === null
         ? undefined
         : clean
-          ? cornerBadge(t, size, baseImage, [...(ann.obstacles ?? []), ...blockers])
+          ? cornerBadge(t, size, baseImage, [...prep.badgeObstacles, ...blockers])
           : ann.obstacles?.length
             ? planBadge({
                 image: baseImage,
@@ -229,6 +229,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
 
     let layout: CalloutLayout | null = null;
     let calloutBox: Rect | null = null;
+    let badgeOnly = false;
     if (ann.copy) {
       const clear = keepClear(
         baseAnnotations,
@@ -252,28 +253,49 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
           ? {
               gap: LINE_GAP,
               maxDistance: LINE_MAX_DISTANCE,
-              dock: DOCK_MARGIN,
+              dock: dockMargin(f, width, baseImage),
               dockMax: DOCK_MAX_SHARE * baseImage.height,
               forbid: [...captions, ...badges.values()],
             }
           : {}),
       };
-      const plan = clean ? planClean(layoutInput, base, f, width) : null;
-      const planned = plan ? plan.layout : layoutCallout(layoutInput);
-      input.trace?.push({ position: i, input: layoutInput, layout: planned, scale: f });
-      placed.push(...layoutBoxes(planned));
-      captions.push(layoutBoxes(planned)[0]!);
-      layout = layoutAtScale(planned, f);
-      const drawn = calloutNodes(layout, plan?.theme ?? theme, f, themed, connector, input.pixels);
-      children.push(...drawn.nodes);
-      calloutBox = drawn.boxes[0]!;
+      const mode = clean ? base.captionStyle : "full";
+      const plan = clean && mode !== "badge" ? planClean(layoutInput, base, f, width) : null;
+      badgeOnly = mode === "badge" || (mode === "auto" && plan !== null && plan.cover > 0);
+      if (!badgeOnly) {
+        const planned = plan ? plan.layout : layoutCallout(layoutInput);
+        input.trace?.push({ position: i, input: layoutInput, layout: planned, scale: f });
+        placed.push(...layoutBoxes(planned));
+        captions.push(layoutBoxes(planned)[0]!);
+        layout = layoutAtScale(planned, f);
+        const drawn = calloutNodes(
+          layout,
+          plan?.theme ?? theme,
+          f,
+          themed,
+          connector,
+          input.pixels,
+        );
+        children.push(...drawn.nodes);
+        calloutBox = drawn.boxes[0]!;
+      }
     }
 
-    const realBadge = badge ? scaleRect(badge, f) : undefined;
-    if (realBadge && typeof ann.index === "number") {
-      children.push(badgeNode(realBadge, ann.index, theme, f));
-    }
-    input.report?.push(annotationReport(realAnn, layout, calloutBox, realBadge, threshold));
+    // A badge-only annotation is numbered by its place in the list when it has no index of its own.
+    const number = typeof ann.index === "number" ? ann.index : badgeOnly ? i + 1 : null;
+    const ownBadge =
+      badge ??
+      (badgeOnly && number !== null
+        ? cornerBadge(t, badgeSize(number, input.metrics), baseImage, [
+            ...prep.badgeObstacles,
+            ...blockers,
+          ])
+        : undefined);
+    if (ownBadge) badges.set(self, ownBadge);
+    const realBadge = ownBadge ? scaleRect(ownBadge, f) : undefined;
+    if (realBadge && number !== null) children.push(badgeNode(realBadge, number, theme, f));
+    const entry = annotationReport(realAnn, layout, calloutBox, realBadge, threshold);
+    input.report?.push(badgeOnly ? { ...entry, caption_style: "badge" } : entry);
   }
 
   return div(

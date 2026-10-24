@@ -22,6 +22,14 @@ export type BadgeShape = (typeof BADGE_SHAPES)[number];
 export const CONNECTOR_STYLES = ["auto", "arrow", "line", "chevron"] as const;
 export type ConnectorStyle = (typeof CONNECTOR_STYLES)[number];
 
+/**
+ * What a clean burn (line connector) draws for an annotation: `full` the caption, `badge` only the
+ * numbered badge and the ring (the page lists the callout text), `auto` the caption when a spot
+ * clear of text exists, else the badge. The triangle connector always draws the caption.
+ */
+export const CAPTION_STYLES = ["full", "badge", "auto"] as const;
+export type CaptionStyle = (typeof CAPTION_STYLES)[number];
+
 export const THEME_PRESET_NAMES = ["clean", "soft", "high-contrast", "readable"] as const;
 export type ThemePresetName = (typeof THEME_PRESET_NAMES)[number];
 
@@ -57,6 +65,8 @@ export interface BurnTheme {
   fontWeight: FontWeight;
   /** How the callout is joined to its target, see {@link CONNECTOR_STYLES}. */
   connectorStyle: ConnectorStyle;
+  /** Caption or badge only, see {@link CAPTION_STYLES}. */
+  captionStyle: CaptionStyle;
   /** Length of the arrow in px (its base is 7/4 of that wide). The callout keeps 2 px more than that from its target. */
   arrowSize: number;
   /**
@@ -112,6 +122,7 @@ export const DEFAULT_BURN_THEME: BurnTheme = {
   fontFile: null,
   fontWeight: 400,
   connectorStyle: "auto",
+  captionStyle: "full",
   arrowSize: 8,
   maxWidthRatio: 0.62,
   scale: 1,
@@ -126,6 +137,7 @@ export type ThemeLayer = Partial<BurnTheme>;
 const PLAIN_SIZING = {
   fontWeight: 400,
   connectorStyle: "auto",
+  captionStyle: "full",
   arrowSize: 8,
   maxWidthRatio: 0.62,
   scale: 1,

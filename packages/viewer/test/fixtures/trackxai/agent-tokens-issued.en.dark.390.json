@@ -1,0 +1,349 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "agent-tokens-issued",
+  "variant": "en.dark.390",
+  "matrix_id": "en-US.dark.mobile-390",
+  "viewport": {
+    "name": "mobile-390",
+    "width": 390,
+    "height": 844
+  },
+  "annotations": [
+    {
+      "step": "agent-tokens-issued",
+      "selector": "p.plaintext",
+      "bounding_box": {
+        "x": 16,
+        "y": 249.5,
+        "width": 358,
+        "height": 37.5
+      },
+      "obstacles": [
+        {
+          "x": 16,
+          "y": 5,
+          "width": 48,
+          "height": 33
+        },
+        {
+          "x": 259,
+          "y": 9,
+          "width": 53,
+          "height": 25
+        },
+        {
+          "x": 320,
+          "y": 9,
+          "width": 54,
+          "height": 25
+        },
+        {
+          "x": 72,
+          "y": 12,
+          "width": 4,
+          "height": 17
+        },
+        {
+          "x": 83,
+          "y": 12,
+          "width": 85,
+          "height": 17
+        },
+        {
+          "x": 261,
+          "y": 60,
+          "width": 113,
+          "height": 30
+        },
+        {
+          "x": 16,
+          "y": 64,
+          "width": 103,
+          "height": 21
+        },
+        {
+          "x": 16,
+          "y": 95,
+          "width": 356,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 113,
+          "width": 357,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 131,
+          "width": 232,
+          "height": 15
+        },
+        {
+          "x": 250,
+          "y": 131,
+          "width": 106,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 149,
+          "width": 101,
+          "height": 15
+        },
+        {
+          "x": 116,
+          "y": 149,
+          "width": 101,
+          "height": 15
+        },
+        {
+          "x": 216,
+          "y": 149,
+          "width": 4,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 216,
+          "width": 233,
+          "height": 18
+        },
+        {
+          "x": 16,
+          "y": 300,
+          "width": 179,
+          "height": 30
+        },
+        {
+          "x": 16,
+          "y": 339,
+          "width": 345,
+          "height": 13
+        },
+        {
+          "x": 16,
+          "y": 355,
+          "width": 219,
+          "height": 14
+        },
+        {
+          "x": 16,
+          "y": 404,
+          "width": 74,
+          "height": 13
+        },
+        {
+          "x": 16,
+          "y": 428,
+          "width": 68,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 449,
+          "width": 358,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 490,
+          "width": 68,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 511,
+          "width": 358,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 551,
+          "width": 85,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 572,
+          "width": 358,
+          "height": 32
+        }
+      ],
+      "copy": "The token shows once, right after you issue it. Copy it now.",
+      "arrow_style": "right",
+      "index": 1
+    },
+    {
+      "step": "agent-tokens-issued",
+      "selector": "p.token-issued__copy button",
+      "bounding_box": {
+        "x": 16,
+        "y": 300,
+        "width": 178.6875,
+        "height": 30
+      },
+      "obstacles": [
+        {
+          "x": 16,
+          "y": 5,
+          "width": 48,
+          "height": 33
+        },
+        {
+          "x": 259,
+          "y": 9,
+          "width": 53,
+          "height": 25
+        },
+        {
+          "x": 320,
+          "y": 9,
+          "width": 54,
+          "height": 25
+        },
+        {
+          "x": 72,
+          "y": 12,
+          "width": 4,
+          "height": 17
+        },
+        {
+          "x": 83,
+          "y": 12,
+          "width": 85,
+          "height": 17
+        },
+        {
+          "x": 261,
+          "y": 60,
+          "width": 113,
+          "height": 30
+        },
+        {
+          "x": 16,
+          "y": 64,
+          "width": 103,
+          "height": 21
+        },
+        {
+          "x": 16,
+          "y": 95,
+          "width": 356,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 113,
+          "width": 357,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 131,
+          "width": 232,
+          "height": 15
+        },
+        {
+          "x": 250,
+          "y": 131,
+          "width": 106,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 149,
+          "width": 101,
+          "height": 15
+        },
+        {
+          "x": 116,
+          "y": 149,
+          "width": 101,
+          "height": 15
+        },
+        {
+          "x": 216,
+          "y": 149,
+          "width": 4,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 216,
+          "width": 233,
+          "height": 18
+        },
+        {
+          "x": 25,
+          "y": 260,
+          "width": 314,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 339,
+          "width": 345,
+          "height": 13
+        },
+        {
+          "x": 16,
+          "y": 355,
+          "width": 219,
+          "height": 14
+        },
+        {
+          "x": 16,
+          "y": 404,
+          "width": 74,
+          "height": 13
+        },
+        {
+          "x": 16,
+          "y": 428,
+          "width": 68,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 449,
+          "width": 358,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 490,
+          "width": 68,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 511,
+          "width": 358,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 551,
+          "width": 85,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 572,
+          "width": 358,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 633,
+          "width": 148,
+          "height": 17
+        }
+      ],
+      "copy": "Copy the token in one click.",
+      "arrow_style": "right",
+      "index": 2
+    }
+  ]
+}

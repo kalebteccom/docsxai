@@ -6,9 +6,10 @@ import { describe, expect, it } from "vitest";
 import { renderBurn } from "../src/burn.js";
 import { DEFAULT_BURN_THEME, type BurnTheme } from "../src/burn-theme.js";
 import { recordsFromSidecar } from "../src/pack-annotations.js";
+import { parseThemeConfig, resolveBurnTheme } from "../src/burn-theme-config.js";
 import { overlapArea } from "../src/obstacle-placement.js";
 import { busyCells, textBoxes } from "../src/pixel-obstacles.js";
-import { haloBox, withPixelObstacles } from "../src/burn-clean.js";
+import { chromeBoxes, haloBox, withPixelObstacles } from "../src/burn-clean.js";
 import type { PixelGrid } from "../src/connector-contrast.js";
 import type { Rect } from "../src/placement.js";
 import { encodePng } from "./helpers/png.js";
@@ -152,5 +153,67 @@ describe("text estimated from pixels", () => {
       options: { theme: THEME },
     });
     expect(area(report[0]!.callout!, block)).toBe(0);
+  });
+});
+
+describe("caption_style", () => {
+  const target = { x: 150, y: 400, width: 90, height: 30 };
+  const one = [{ step: "s", selector: "#t", copy: "Opens the ledger", bounding_box: target }];
+  const burn = (png: Buffer, captionStyle: BurnTheme["captionStyle"]) =>
+    renderBurn({
+      screenshotBuffer: png,
+      annotations: structuredClone(one),
+      options: { theme: { ...THEME, captionStyle }, warn: () => {} },
+    });
+
+  it("parses full, badge and auto, defaults to full and refuses others", () => {
+    const resolve = (block: unknown) =>
+      resolveBurnTheme(parseThemeConfig(block), { workspace: "/tmp/docsxai-theme-workspace" });
+    expect(resolve({}).captionStyle).toBe("full");
+    expect(resolve({ caption_style: "auto" }).captionStyle).toBe("auto");
+    expect(() => resolve({ caption_style: "none" })).toThrow(/caption_style/);
+  });
+
+  it("badge draws the numbered badge and ring only, numbered by position", async () => {
+    const { report } = await burn(stripedPng(390, 844, []), "badge");
+    expect(report[0]!.callout).toBeNull();
+    expect(report[0]!.caption_style).toBe("badge");
+    expect(report[0]!.badge).not.toBeNull();
+    expect(area(report[0]!.badge!, target)).toBe(0);
+  });
+
+  it("auto keeps the caption where a clear spot exists", async () => {
+    const { report } = await burn(stripedPng(390, 844, []), "auto");
+    expect(report[0]!.callout).not.toBeNull();
+    expect(report[0]!.caption_style).toBeUndefined();
+  });
+
+  it("auto falls back to the badge when text fills every spot", async () => {
+    const page = [
+      { x: 0, y: 0, width: 390, height: target.y - 2 },
+      { x: 0, y: target.y + target.height + 2, width: 390, height: 844 },
+      { x: 0, y: target.y, width: 148, height: target.height },
+      { x: 242, y: target.y, width: 148, height: target.height },
+    ];
+    const { report } = await burn(stripedPng(390, 844, page), "auto");
+    expect(report[0]!.callout).toBeNull();
+    expect(report[0]!.caption_style).toBe("badge");
+  });
+});
+
+describe("phone chrome", () => {
+  it("blocks the header, the bottom nav and the floating button on a portrait phone capture", () => {
+    const boxes = chromeBoxes({ width: 390, height: 844 }, 1, 390, false);
+    expect(boxes).toEqual([
+      { x: 0, y: 0, width: 390, height: 56 },
+      { x: 0, y: 788, width: 390, height: 56 },
+      { x: 314, y: 708, width: 76, height: 80 },
+    ]);
+    expect(chromeBoxes({ width: 390, height: 844 }, 1, 390, true)).toHaveLength(5);
+  });
+
+  it("is absent on a desktop or a landscape capture", () => {
+    expect(chromeBoxes({ width: 1280, height: 800 }, 1, 1280, true)).toEqual([]);
+    expect(chromeBoxes({ width: 400, height: 300 }, 1, 400, true)).toEqual([]);
   });
 });

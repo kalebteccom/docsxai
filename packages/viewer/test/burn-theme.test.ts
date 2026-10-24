@@ -56,6 +56,7 @@ describe("the default theme", () => {
       paddingY: 8,
       fontFile: null,
       fontWeight: 400,
+      captionStyle: "full",
       connectorStyle: "auto",
       arrowSize: 8,
       maxWidthRatio: 0.62,
@@ -231,6 +232,7 @@ describe("validation", () => {
       "font",
       "font_weight",
       "connector_style",
+      "caption_style",
       "arrow_size",
       "max_width_ratio",
       "scale",
@@ -240,7 +242,7 @@ describe("validation", () => {
     const tokens = THEME_KEYS.map((k) => (THEME_FIELDS[k] as { token?: string }).token).filter(
       (t): t is string => t !== undefined,
     );
-    expect(tokens).toHaveLength(THEME_KEYS.length - 3);
+    expect(tokens).toHaveLength(THEME_KEYS.length - 4);
     expect(new Set(tokens).size).toBe(tokens.length);
   });
 });

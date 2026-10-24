@@ -26,6 +26,40 @@ export const MIN_TEXT_WIDE = 16;
 export const WIDE_FROM = 900;
 /** Gap between a clean badge and its target's corner, px. */
 export const BADGE_GAP = 1;
+/** Phone chrome, screenshot px: header and bottom nav height, the floating button's box, side margin. */
+export const CHROME_BAR = 56;
+export const FAB_BOX = { width: 76, height: 80 };
+export const SIDE_MARGIN = 16;
+
+/**
+ * Boxes, at base size, a caption on a phone capture (portrait, under {@link WIDE_FROM} px wide) may not cover:
+ * the header bar, the bottom nav bar, the floating action button above it and, with `margins`, a
+ * {@link SIDE_MARGIN} px strip at each side. Empty for a desktop capture. `f` is the caption scale.
+ */
+export function chromeBoxes(image: Size, f: number, realWidth: number, margins: boolean): Rect[] {
+  if (realWidth >= WIDE_FROM || image.height <= image.width) return [];
+  const bar = CHROME_BAR / f;
+  const { width: W, height: H } = image;
+  const boxes: Rect[] = [
+    { x: 0, y: 0, width: W, height: bar },
+    { x: 0, y: H - bar, width: W, height: bar },
+    {
+      x: W - FAB_BOX.width / f,
+      y: H - bar - FAB_BOX.height / f,
+      width: FAB_BOX.width / f,
+      height: FAB_BOX.height / f,
+    },
+  ];
+  if (margins) {
+    const m = SIDE_MARGIN / f;
+    boxes.push({ x: 0, y: 0, width: m, height: H }, { x: W - m, y: 0, width: m, height: H });
+  }
+  return boxes;
+}
+
+/** Margin of the docking bands, base px: past the phone chrome on a phone capture. */
+export const dockMargin = (f: number, realWidth: number, image: Size): number =>
+  chromeBoxes(image, f, realWidth, false).length === 0 ? DOCK_MARGIN : (CHROME_BAR + 8) / f;
 
 /** The box the halo is drawn on, in screenshot px: the target, or with `clean` the ring outside it. */
 export function haloBox(target: Rect, clean: boolean, f: number): Rect {
@@ -78,10 +112,42 @@ export function withOtherTargets(
 type Size = { width: number; height: number };
 
 /**
+ * The obstacles of a clean annotation (at base size): its listed boxes checked against the pixels,
+ * text found in them, the other annotations' targets and the phone chrome. `badgeObstacles` leaves
+ * out the side margins, so a badge may sit at the image edge next to its target.
+ */
+export function cleanObstacles(
+  self: AnnotationRecord,
+  realTarget: Rect | undefined,
+  pixels: PixelGrid | undefined,
+  f: number,
+  all: AnnotationRecord[],
+  image: Size,
+  realWidth: number,
+): { ann: AnnotationRecord; badgeObstacles: Rect[] } {
+  const seen = pixels && realTarget ? withPixelObstacles(self, realTarget, pixels, f) : self;
+  const ann = withOtherTargets(seen, all, self);
+  const listed = ann.obstacles ?? [];
+  // A badge must not cover text inside its own target either.
+  const inside =
+    pixels && realTarget
+      ? textBoxes(cellsOf(pixels), { x: 0, y: 0, width: 0, height: 0 })
+          .filter((b) => overlapArea(b, realTarget) > 0)
+          .map((b) => ({ x: b.x / f, y: b.y / f, width: b.width / f, height: b.height / f }))
+      : [];
+  const badgeObstacles = [...listed, ...inside, ...chromeBoxes(image, f, realWidth, false)];
+  return {
+    ann: { ...ann, obstacles: [...listed, ...chromeBoxes(image, f, realWidth, true)] },
+    badgeObstacles,
+  };
+}
+
+/**
  * The badge of the clean look: diagonally off one of the target's corners, {@link BADGE_GAP} px
  * from it, never on the target and never detached. Corners are tried top-left, top-right,
- * bottom-left, bottom-right; the first inside the image and clear of `blockers` wins, else the
- * one covering least.
+ * bottom-left, bottom-right, then beside the middle of the left and right edges, then the inside
+ * of the target's top-left corner; the first inside the
+ * image and clear of `blockers` wins, else the one covering least.
  */
 export function cornerBadge(target: Rect, size: Size, image: Size, blockers: Rect[]): Rect {
   const g = BADGE_GAP;
@@ -92,25 +158,32 @@ export function cornerBadge(target: Rect, size: Size, image: Size, blockers: Rec
     { x: xs[1]!, y: ys[0]! },
     { x: xs[0]!, y: ys[1]! },
     { x: xs[1]!, y: ys[1]! },
-  ].map((p) => ({ ...p, ...size }));
+  ].map((p): Rect & { inside?: boolean } => ({ ...p, ...size }));
+  // Then the middle of the left and right edges, outside, for a target whose corners sit on text.
+  const midY = target.y + target.height / 2 - size.height / 2;
+  corners.push({ x: xs[0]!, y: midY, ...size }, { x: xs[1]!, y: midY, ...size });
+  // Last resort: inside the target's top-left padding, when the target is big enough to hold it.
+  if (target.width >= size.width + 8 && target.height >= size.height + 8) {
+    corners.push({ x: target.x + 4, y: target.y + 4, ...size, inside: true });
+  }
   let best: Rect | undefined;
   let bestCost = Infinity;
-  for (const c of corners) {
-    const inside =
-      c.x >= 0 && c.y >= 0 && c.x + c.width <= image.width && c.y + c.height <= image.height;
-    const cost = blockers.reduce((n, b) => n + overlapArea(c, b), 0) + (inside ? 0 : 1e9);
+  for (const { inside, ...raw } of corners) {
+    // A corner past the image edge slides back in along that edge, still next to the target.
+    const c = {
+      ...raw,
+      x: Math.max(0, Math.min(raw.x, image.width - raw.width)),
+      y: Math.max(0, Math.min(raw.y, image.height - raw.height)),
+    };
+    const onTarget = inside ? 0 : overlapArea(c, target);
+    const cost = blockers.reduce((n, b) => n + overlapArea(c, b), 0) + onTarget * 1000;
     if (cost === 0) return c;
     if (cost < bestCost) {
       bestCost = cost;
       best = c;
     }
   }
-  const b = best!;
-  return {
-    ...b,
-    x: Math.max(0, Math.min(b.x, image.width - b.width)),
-    y: Math.max(0, Math.min(b.y, image.height - b.height)),
-  };
+  return best!;
 }
 
 /**

@@ -7,6 +7,7 @@ import { normaliseHex } from "./color.js";
 import {
   AUTO_SCALE_MAX,
   BADGE_SHAPES,
+  CAPTION_STYLES,
   CONNECTOR_STYLES,
   FONT_WEIGHTS,
   NARROW_BELOW_DEFAULT,
@@ -355,6 +356,11 @@ export const THEME_FIELDS = {
     token: "shape.connector",
     kind: "text",
     parse: oneOf(CONNECTOR_STYLES),
+  },
+  caption_style: {
+    prop: "captionStyle",
+    kind: "text",
+    parse: oneOf(CAPTION_STYLES),
   },
   arrow_size: {
     prop: "arrowSize",

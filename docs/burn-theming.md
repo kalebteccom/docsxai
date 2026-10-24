@@ -59,6 +59,7 @@ The callout outline colour follows `ink` until a preset, the tokens file or the 
 | `font`                 | string             | path to a `.ttf` or `.otf` inside the workspace | the bundled Inter | Callout and badge font, see [Font](#font).                          |
 | `font_weight`          | number             | `400` or `600`                                  | `400`             | Callout text weight. The font file must have it, see [Font](#font). |
 | `connector_style`      | string             | `auto`, `line`, `chevron`, `arrow`              | `auto`            | How a callout joins its target, see [Connectors](#connectors).      |
+| `caption_style`        | string             | `full`, `badge`, `auto`                         | `full`            | Caption, or badge only, see [Badge only](#badge-only).              |
 | `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Arrow length. Its base is 7/4 of that wide.                         |
 | `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, see [Scale](#scale).   |
 | `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | `1`               | Multiplies every caption dimension, see [Scale](#scale).            |
@@ -165,6 +166,18 @@ The line takes `callout_border_color`, or `ink` when `callout_border_width` is 0
 A burn without a theme keeps the triangle and its bytes. To keep the triangle in a themed burn, set `connector_style: "arrow"`.
 
 To compare the looks, `node scripts/burn-trackxai-sample.mjs` (after `pnpm --filter @docsxai/viewer build`) burns three synthetic app screens in light and dark with the `examples/burn-theme/trackxai-light.tokens.json` and `trackxai-dark.tokens.json` pair, once with `arrow` and once with the default, and prints the PNG paths under `/tmp/burn-before-after`.
+
+## Badge only
+
+`caption_style` applies with the line connector (`connector_style` `line` or `chevron`, or `auto` with a theme):
+
+- `full`, the default: every annotation gets its caption.
+- `badge`: no caption box and no connector. Each target gets its ring and a numbered badge, numbered by its place in the list when it has no `index`. Use it where the page prints the callout text as a numbered list under the image.
+- `auto`: the caption when a spot clear of text exists, else the badge. The burn report marks each fallback with `"caption_style": "badge"`.
+
+## Phone captures
+
+A portrait capture under 900 px wide is treated as a phone screen. Its top 56 px (the header), bottom 56 px (the nav bar), the floating action button above the nav bar's right end and a 16 px strip on each side are content: captions stay off them, and badges stay off the header, nav bar and button. A caption docks under the header or above the nav bar, never on them. When no spot is clear, the caption first tries a box as wide as the screen allows, then one text step smaller (14 px burned), with lines 2 px over the text and 4 px of vertical padding.
 
 ## Line breaks
 

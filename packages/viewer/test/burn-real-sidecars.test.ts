@@ -1,6 +1,7 @@
 // Captions burned on real capture sidecars (fixtures/trackxai: a dense app at 1280 and 390, the
 // boxes as the capture listed them) must cover no listed text and no other annotation's target,
-// caption or badge, and each badge must sit at its target's corner, outside it and next to it.
+// caption or badge, and on a phone capture neither the header nor the bottom nav. Each badge sits
+// next to its target, off it, off listed text and off the phone chrome.
 // The screenshot is synthetic: dark, with a text-like stripe pattern in every listed box, so the
 // pixel checks see the same text the sidecar names.
 
@@ -53,18 +54,6 @@ function gap(a: Rect, b: Rect): number {
   return Math.hypot(dx, dy);
 }
 
-/**
- * Covers the burner cannot avoid today, listed so a new one fails the test and a fixed one does
- * too (then delete its entry). Both are phone captures where no strip within 45% of the screen
- * height fits the caption, even one-line and one text step smaller.
- */
-const KNOWN: Record<string, string[]> = {
-  // The title sits between the header icons and the tabs; the strip right of it is 57 px tall.
-  "board.en.dark.390.json": ["caption 1 covers 75 px² of listed text"],
-  // Header and title fill the top; the caption docks over the header's edge.
-  "ticket.en.dark.390.json": ["caption 1 covers 116 px² of listed text"],
-};
-
 const files = (await fs.readdir(FIXTURES)).filter((f) => f.endsWith(".json")).sort();
 const theme = await darkTheme();
 
@@ -74,16 +63,28 @@ describe.each(files)("%s", (file) => {
     const records = doc.annotations as AnnotationRecord[];
     const { width, height } = doc.viewport as { width: number; height: number };
     const listed = records.flatMap((r) => r.obstacles ?? []);
+    // As the landing burns them: phone captures fall back to a badge where no caption spot is clear.
+    const captionStyle = width < 900 ? ("auto" as const) : ("full" as const);
     const { report } = await renderBurn({
       screenshotBuffer: screen(width, height, listed),
       annotations: records,
-      options: { theme, warn: () => {} },
+      options: { theme: { ...theme, captionStyle }, warn: () => {} },
     });
+    // The phone header and bottom nav, which captions and badges keep off.
+    const bands =
+      width < 900
+        ? [
+            { name: "the header", box: { x: 0, y: 0, width, height: 56 } },
+            { name: "the bottom nav", box: { x: 0, y: height - 56, width, height: 56 } },
+          ]
+        : [];
     const problems: string[] = [];
     report.forEach((r, i) => {
       const c = r.callout;
       if (!c) return;
       const name = `caption ${records[i]!.index ?? i + 1}`;
+      for (const b of bands)
+        if (overlapArea(c, b.box) > 0) problems.push(`${name} is on ${b.name}`);
       const text = (records[i]!.obstacles ?? []).reduce((n, o) => n + overlapArea(c, o), 0);
       if (text > 0) problems.push(`${name} covers ${Math.round(text)} px² of listed text`);
       records.forEach((other, j) => {
@@ -102,9 +103,14 @@ describe.each(files)("%s", (file) => {
       const t = records[i]!.bounding_box;
       if (!r.badge || !t) return;
       if (overlapArea(r.badge, t) > 0) problems.push(`badge ${i + 1} is on its target`);
+      for (const b of bands) {
+        if (overlapArea(r.badge, b.box) > 0) problems.push(`badge ${i + 1} is on ${b.name}`);
+      }
+      const text = (records[i]!.obstacles ?? []).reduce((n, o) => n + overlapArea(r.badge!, o), 0);
+      if (text > 0) problems.push(`badge ${i + 1} covers ${Math.round(text)} px² of listed text`);
       if (gap(r.badge, t) > 6)
         problems.push(`badge ${i + 1} is ${gap(r.badge, t)} px from its target`);
     });
-    expect(problems).toEqual(KNOWN[file] ?? []);
+    expect(problems).toEqual([]);
   });
 });

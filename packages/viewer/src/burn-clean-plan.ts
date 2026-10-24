@@ -11,7 +11,7 @@ import {
 import { scaledTheme, type BurnTheme } from "./burn-theme.js";
 import { calloutStyleOf } from "./burn-nodes.js";
 import { overlapArea } from "./obstacle-placement.js";
-import { shrinkSteps } from "./burn-clean.js";
+import { MIN_TEXT_NARROW, SIDE_MARGIN, WIDE_FROM, shrinkSteps } from "./burn-clean.js";
 
 /** Px² of the caption box itself on the annotation's obstacles (content and other targets). */
 export function captionCover(inp: LayoutInput, l: CalloutLayout): number {
@@ -25,6 +25,18 @@ export interface CleanPlan {
   k: number;
   /** The theme the caption is drawn with, in screenshot px (caption scale times `k`). */
   theme: BurnTheme;
+  /** Px² the caption still covers; 0 when a clear spot was found. */
+  cover: number;
+}
+
+/**
+ * The theme one text step smaller: on a phone capture also compact, with lines 2 px over the text
+ * and 4 px of vertical padding, so a two-line caption fits a strip about 42 px tall.
+ */
+function smaller(base: BurnTheme, k: number, f: number, narrow: boolean): BurnTheme {
+  const t = scaledTheme(base, k);
+  if (!narrow) return t;
+  return { ...t, lineHeight: (MIN_TEXT_NARROW + 2) / f, paddingY: 4 / f, paddingX: 8 / f };
 }
 
 /** Outer width, base px, of the one-line caption tried when the usual box finds no clear spot. */
@@ -41,19 +53,24 @@ export function planClean(
   f: number,
   imageWidth: number,
 ): CleanPlan {
+  const narrow = imageWidth < WIDE_FROM;
   let best: { layout: CalloutLayout; k: number; cover: number } | undefined;
-  const wide = { ...inp.ann, placement: { ...inp.ann.placement, max_width: WIDE_CAPTION } };
+  // The wide box: as wide as the screenshot allows, side margins kept.
+  const span = Math.min(WIDE_CAPTION, Math.floor(inp.image.width - (2 * SIDE_MARGIN) / f));
+  const wide = { ...inp.ann, placement: { ...inp.ann.placement, max_width: span } };
   const keepsWidth = inp.ann.placement?.max_width !== undefined;
+  const themeAt = (k: number) => (k === 1 ? base : smaller(base, k, f, narrow));
   for (const k of shrinkSteps(base.fontSize, f, imageWidth)) {
-    const style = calloutStyleOf(k === 1 ? base : scaledTheme(base, k), true);
+    const style = calloutStyleOf(themeAt(k), true);
     for (const ann of keepsWidth ? [inp.ann] : [inp.ann, wide]) {
       const tried = { ...inp, ann };
       const layout = layoutCallout({ ...tried, style, strict: true });
       const cover = captionCover(tried, layout);
       if (best === undefined || cover < best.cover) best = { layout, k, cover };
-      if (cover === 0) return { layout, k, theme: scaledTheme(base, f * k) };
+      if (cover === 0) break;
     }
+    if (best!.cover === 0) break;
   }
-  const { layout, k } = best!;
-  return { layout, k, theme: scaledTheme(base, f * k) };
+  const { layout, k, cover } = best!;
+  return { layout, k, cover, theme: scaledTheme(themeAt(k), f) };
 }
