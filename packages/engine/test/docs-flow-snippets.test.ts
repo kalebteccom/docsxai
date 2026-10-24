@@ -55,6 +55,26 @@ describe("flow files in the docs", () => {
     ).toBe(1);
   });
 
+  it("lints the quickstart flow with no warning, so a newcomer's `docsxai lint` exits 0", async () => {
+    const [flow] = flowsIn(
+      readFileSync(
+        path.join(repo, "website/src/content/docs/getting-started/quickstart.md"),
+        "utf8",
+      ),
+    );
+    const issues = await lintFlow(parseFlowFile(flow!.yaml, "quickstart"));
+    expect(issues.filter((i) => i.severity !== "info")).toEqual([]);
+  });
+
+  it("shows the quickstart's run lines in the format `run` prints", () => {
+    const md = readFileSync(
+      path.join(repo, "website/src/content/docs/getting-started/quickstart.md"),
+      "utf8",
+    );
+    expect(md).toContain("run: open-reports, starting\n");
+    expect(md).not.toMatch(/^run: .* — /m);
+  });
+
   for (const file of FILES) {
     const flows = flowsIn(readFileSync(path.join(repo, file), "utf8"));
     for (const { line, yaml } of flows) {
