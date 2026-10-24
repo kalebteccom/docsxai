@@ -44,6 +44,14 @@ Checked on every screen, sheet and component.
 - Lists and rows keep the title readable on mobile. No row action truncates it.
 - Onboarding and first-run paths are tested end to end with real commands in a clean environment.
 
+## 4b. States, status lines and pending actions
+
+- Status, helper, error and progress lines never shift layout: reserve the space before the line appears (fixed-height slot or in-container overlay). Proof: element top and height are identical across idle, pending, slow, failed and done.
+- While one action is pending, conflicting actions are disabled and the inputs it uses are read-only. One pending action at a time, no double submit, state restores on failure.
+- Reserve the space with a fixed-height slot, a fixed or `ch` width for a label that swaps, every label of a control stacked in one grid cell with only `visibility` toggled, or an overlay inside a box that already has its size. Never insert a line, toggle `display` on a sibling in the flow, or let a spinner add width.
+- An image that can fail keeps its box with `width`, `height` and an explicit `aspect-ratio`; a broken `<img alt>` can otherwise render as one line of text.
+- Mark a pending control with `aria-busy="true"` or `aria-disabled="true"` and ignore clicks on it while it is set; clear it when the action settles, success or failure, and put the label and inputs back as they were.
+
 ## 5. Proof before push
 
 - Real screenshots at 390 and 1280 before each push, with before and after pairs for UI changes.
@@ -70,6 +78,7 @@ Checked on every screen, sheet and component.
 ## Project notes
 
 - Guard: `packages/engine/test/public-copy-lint.test.ts` fails on environment-variable-like tokens, internal hostnames and ticket ids in public output (landing and getting-started pages, emitted viewer UI, CLI error and help strings). The documented `DOCSX_*` names are allowed on reference pages and in self-host error messages only.
+- States: `node scripts/layout-audit.mjs --mode states --config scripts/layout-audit.states.json` loads each page once per state (idle, pending, slow, failed, done) and fails when an element's top or height moves by more than 1 px. Unit tests pin the reserved space in emitted markup and CSS: `packages/viewer/test/viewer-style.test.ts` ("no layout shift between states"), `packages/viewer/test/starlight.test.ts` and `website/scripts/check-copy-states.test.mjs`. The screenshot error line is an overlay inside `.shot` and `.annotated-shot-frame`; copy buttons carry `aria-busy` while the clipboard write is pending.
 - Burned captions: the viewer's burn code keeps badges 6 CSS px inside the image edge and uses badge-only captions on phone captures where a boxed caption would cover text. See `docs/burn-theming.md`.
 
 ## Rules log
@@ -83,3 +92,5 @@ Checked on every screen, sheet and component.
 - 2026-10-24: no ticket or decision-record ids in tool descriptions, refusal text or error messages.
 - 2026-10-24: lazy chunks have a stale-build path (reload once, no late focus steal).
 - 2026-10-24: audits read `git archive refs/remotes/origin/main` after a fetch (a stale snapshot hid missing Spanish copy).
+- 2026-10-24: status, helper, error and progress lines never shift layout (the screenshot error line was inserted under the image).
+- 2026-10-24: one pending action at a time, conflicting actions disabled, state restored on failure (copy buttons accepted a second click mid-write).
