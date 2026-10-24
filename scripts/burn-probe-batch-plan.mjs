@@ -72,6 +72,30 @@ export function listFrames(files) {
   return frames.sort((a, b) => a.label.localeCompare(b.label));
 }
 
+/**
+ * Device pixels per CSS pixel of a frame: the sidecar's `device_scale_factor` (a number from 1 to
+ * 4, else an error naming the frame), else 2 to 4 when the PNG is exactly that many times the
+ * width in its file name, else 1. A PNG at no whole multiple burns at 1, as the probe always did.
+ */
+export function probeRatio(doc, frame, pngWidth) {
+  const declared = isObj(doc) ? doc.device_scale_factor : undefined;
+  if (declared !== undefined) {
+    if (
+      typeof declared !== "number" ||
+      !Number.isFinite(declared) ||
+      declared < 1 ||
+      declared > 4
+    ) {
+      throw new Error(
+        `${frame.label}: device_scale_factor must be a number from 1 to 4 (got ${JSON.stringify(declared)})`,
+      );
+    }
+    return declared;
+  }
+  for (const k of [2, 3, 4]) if (pngWidth === frame.width * k) return k;
+  return 1;
+}
+
 /** `flat`, `rawcap`, `mixed` (both kinds of frame) or `none`. */
 export function detectLayout(frames) {
   const kinds = new Set(frames.map((f) => f.layout));
@@ -164,7 +188,7 @@ const own = /(px² of listed text|is on the (?:header|bottom nav))$/;
  */
 export function frameRows(frame, records, report, connectors, size) {
   const bands = chromeBands(size);
-  const phone = size.width < 900;
+  const phone = size.width / (size.dpr ?? 1) < 900;
   const lines = coverage(records, report, size);
   return records.map((record, i) => {
     const r = report[i];

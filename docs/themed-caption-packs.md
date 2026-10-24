@@ -238,6 +238,7 @@ badge only: board.en.dark.390.png: annotation 1, 2
 - `callout` and `badge` are boxes in screenshot pixels. `callout` is `null` when no caption was drawn.
 - `obstacle_overlap` is the px² the caption, arrow and line cover of listed text, and `other_overlap` the px² on other halos, badges and captions. `overlap_ratio` is both as a share of the caption's area, and `unplaceable` is `true` above 0.1. `docsxai-viewer burn --max-overlap <ratio>` moves the threshold.
 - A fallback shows as `"mode": "none"`, `"callout": null` and `"caption_style": "badge"`. It doesn't count as `unplaceable`, so a build that only watches that count misses it.
+- `route` (line connector only) is `straight`, `elbow` or `none`, and `connector_crossings` counts the boxes the drawn line still crosses (0 once routed). This is on main.
 
 In a themed burn the burner checks each listed box against the pixels first and drops a box with nothing drawn in it. A sidecar that lists a collapsed menu doesn't push captions around.
 

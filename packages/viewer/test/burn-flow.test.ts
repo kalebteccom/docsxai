@@ -43,7 +43,7 @@ afterEach(async () => {
 });
 
 describe("burnFlow", () => {
-  it("writes the full screenshot set: annotated steps burned, plain steps copied unchanged", async () => {
+  it("writes the full screenshot set: annotated steps burned, plain steps copied unchanged, and warns about a step with no screenshot", async () => {
     const warnings: string[] = [];
     const r = await burnFlow({ docsDir, flow: "recap-open", warn: (m) => void warnings.push(m) });
     expect(r.written).toEqual(["open-sidebar.png", "plain-step.png"]);
@@ -54,11 +54,7 @@ describe("burnFlow", () => {
     expect(burned.equals(clean)).toBe(false); // overlays baked in
     const copied = await fs.readFile(path.join(outDir, "plain-step.png"));
     expect(copied.equals(clean)).toBe(true); // no annotations → byte-identical copy
-  });
 
-  it("warns about annotation steps that have no screenshot", async () => {
-    const warnings: string[] = [];
-    await burnFlow({ docsDir, flow: "recap-open", warn: (m) => void warnings.push(m) });
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain("ghost-step");
   });
@@ -146,18 +142,15 @@ describe("burnFlow, device_scale_factor", () => {
     };
   }
 
-  it("reads the pixel ratio from annotations.json", async () => {
+  it("reads the pixel ratio from annotations.json, and an explicit pixelRatio wins over the file", async () => {
     const fromFile = await burn(withField(2));
     const fromOption = await burn(withField(undefined), { pixelRatio: 2 });
     const neither = await burn(withField(undefined));
     expect(fromFile.png.equals(fromOption.png)).toBe(true);
     expect(fromFile.report).toEqual(fromOption.report);
     expect(fromFile.png.equals(neither.png)).toBe(false);
-  });
 
-  it("lets an explicit pixelRatio win over the file", async () => {
     const forced = await burn(withField(2), { pixelRatio: 1 });
-    const neither = await burn(withField(undefined));
     expect(forced.png.equals(neither.png)).toBe(true);
   });
 

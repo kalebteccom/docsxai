@@ -50,9 +50,21 @@ describe("viewer usage errors", () => {
     [["burn", "ws", "--flow"], "burn: --flow needs a value"],
     [["burn", "ws", "--out", "--flow", "a"], "burn: --out needs a value"],
     [["site", "ws", "--title"], "site: --title needs a value"],
+    [["burn", "ws", "--out", ""], "burn: --out needs a value"],
+    [["burn", "ws", "--flow="], "burn: --flow needs a value"],
+    [["burn", "ws", "--max-overlap", ""], "burn: --max-overlap needs a value"],
+    [["burn", "ws", "--out", "a", "--out", "b"], "burn: --out given more than once"],
+    [["site", "ws", "--title=a", "--title", "b"], "site: --title given more than once"],
   ])("%j exits 2 with %s", async (argv, message) => {
     expect(await runViewerCli(argv)).toBe(2);
     expect(err.split("\n")[0]).toBe(message);
+  });
+});
+
+describe("viewer --flag=value", () => {
+  it("is read as the flag and its value, not an unknown flag", async () => {
+    await runViewerCli(["burn", path.join(os.tmpdir(), "no-such-ws"), "--flow=a", "--out=b"]);
+    expect(err).not.toContain("unknown flag");
   });
 });
 

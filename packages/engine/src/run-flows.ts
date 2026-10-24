@@ -97,6 +97,14 @@ async function mergeAnnotations(
     warn(`${annotationsPath} is not an annotations file, the earlier steps are dropped`);
     return fresh;
   }
+  // Boxes are in screenshot pixels: earlier steps captured at another scale would be mislabelled.
+  const scaleOf = (f: { device_scale_factor?: number }) => f.device_scale_factor ?? 1;
+  if (scaleOf(existing) !== scaleOf(fresh)) {
+    warn(
+      `${annotationsPath} was captured at device scale ${scaleOf(existing)}, this run at ${scaleOf(fresh)}, the earlier steps are dropped`,
+    );
+    return fresh;
+  }
   const newStepIds = new Set(fresh.annotations.map((a) => a.step));
   const merged = [
     ...existing.annotations.filter((a) => !newStepIds.has(a.step)),

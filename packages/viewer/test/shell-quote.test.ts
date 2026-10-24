@@ -18,8 +18,11 @@ const NAMES = [
   "-x",
 ];
 
-const viaShell = (word: string) =>
-  execFileSync("sh", ["-c", `printf %s ${word}`], { encoding: "utf8" });
+/** One `sh` reads every quoted word and prints each as one NUL-terminated field. */
+const viaShell = (words: string[]): string[] =>
+  execFileSync("sh", ["-c", `printf '%s\\0' ${words.join(" ")}`], { encoding: "utf8" })
+    .split("\0")
+    .slice(0, -1);
 
 describe("shellQuote", () => {
   it("leaves a plain name bare", () => {
@@ -33,8 +36,8 @@ describe("shellQuote", () => {
     expect(shellQuote("")).toBe("''");
   });
 
-  it.each(NAMES)("round-trips %j through sh as one word", (name) => {
-    expect(viaShell(shellQuote(name))).toBe(name);
+  it("round-trips every name through sh as one word each", () => {
+    expect(viaShell(NAMES.map(shellQuote))).toEqual(NAMES);
   });
 
   it("the source emitted into the Astro component behaves the same", () => {

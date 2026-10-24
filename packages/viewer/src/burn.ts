@@ -38,7 +38,7 @@ import { LINE_GAP, LINE_MAX_DISTANCE, drawnStyle } from "./burn-line.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
 import { parseFontMetrics, type FontMetrics } from "./font-metrics.js";
-import { atBaseSize, layoutAtScale, scaleRect } from "./burn-scale.js";
+import { atBaseSize, checkPixelRatio, layoutAtScale, scaleRect } from "./burn-scale.js";
 import { badgeBox, badgeSize, keepClear, otherHalos, OUTSIDE_HALO_MARGIN } from "./burn-badge.js";
 import {
   layoutBoxes,
@@ -152,7 +152,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const base = input.theme ?? DEFAULT_BURN_THEME;
   // Layout runs at base size on an image shrunk by `f`; what it decides is multiplied back by `f`
   // when drawn, so every caption dimension scales together. At 1 nothing is converted.
-  const pr = input.pixelRatio ?? 1;
+  const pr = checkPixelRatio(input.pixelRatio ?? 1);
   // Width classes (phone, desktop, `display_width`) are CSS px: a 2x phone capture is 780 px wide.
   const cssWidth = width / pr;
   const f = captionScale(base, width, cssWidth);

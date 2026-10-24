@@ -70,6 +70,8 @@ on-screen px = fontSize x auto x displayWidth / imageWidth
 
 A 1440 px capture shown at 720 px gets auto 2. With `auto = imageWidth / displayWidth` the text shows at `fontSize`. Set `display_width` to the column width, or to `{ default, narrow, narrow_below }` when narrow images are shown at a different width. Screenshots narrower than it keep base size. The `readable` preset turns on `scale: "auto"`.
 
+`device_scale_factor` in `annotations.json` feeds the burn pixel ratio, so `docsxai burn` needs no flag for a 2x workspace; [Phone captures](burn-theming.md#phone-captures) explains how the ratio sets the sizes.
+
 ## Wide and narrow images in one workspace
 
 A `.docsxai.json` holds one `burn.theme`. Per-flow themes are not supported. For wide and narrow images in one workspace, give `display_width` an object: `"display_width": { "default": 720, "narrow": 358, "narrow_below": 900 }` uses 358 for screenshots narrower than 900 px and 720 for the rest (see [burn-theming.md](burn-theming.md#wide-and-narrow-images)). For other per-image changes, pass `options.theme` per call. It wins over the workspace's block. `burnWithWorkspaceTheme` caches the workspace load, so the base theme is read once.

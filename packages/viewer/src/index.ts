@@ -237,12 +237,24 @@ const VALUED_FLAGS = [
 
 function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = { positional: [], flows: [], plainConnectors: false, build: false };
+  const seen = new Set<string>();
   for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]!;
+    let a = argv[i]!;
+    let inline: string | undefined;
+    const eq = a.indexOf("=");
+    if (a.startsWith("--") && eq > 2 && VALUED_FLAGS.includes(a.slice(0, eq))) {
+      inline = a.slice(eq + 1);
+      a = a.slice(0, eq);
+    }
     if (VALUED_FLAGS.includes(a)) {
-      const value = argv[++i];
-      if (value === undefined || value.startsWith("--"))
+      const value = inline ?? argv[++i];
+      // An empty string is no value: `--out ""` would otherwise fall back to the default.
+      if (value === undefined || value === "" || value.startsWith("--"))
         return { ...parsed, error: `${a} needs a value` };
+      if (a !== "--flow") {
+        if (seen.has(a)) return { ...parsed, error: `${a} given more than once` };
+        seen.add(a);
+      }
       if (a === "--flow") parsed.flows.push(value);
       else if (a === "--out") parsed.out = value;
       else if (a === "--title") parsed.title = value;

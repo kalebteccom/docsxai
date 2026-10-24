@@ -28,12 +28,18 @@ export type Burner = (
   png: Buffer,
   records: AnnotationRecord[],
   warn: Warn,
+  /** Device pixels per CSS pixel of the screenshot; absent means 1. */
+  pixelRatio?: number,
 ) => Promise<{ png: Buffer; unplaceable: number }>;
 
 /** The viewer's burner drawing with `theme` (today's look when unset): halo, badge, callout and arrow, with obstacles and placement as the records carry them. */
 export function themedBurner(theme?: BurnTheme): Burner {
-  return async (png, records, warn) => {
-    const options = { warn, ...(theme ? { theme } : {}) };
+  return async (png, records, warn, pixelRatio) => {
+    const options = {
+      warn,
+      ...(theme ? { theme } : {}),
+      ...(pixelRatio !== undefined ? { pixelRatio } : {}),
+    };
     const r = await renderBurn({ screenshotBuffer: png, annotations: records, options });
     return { png: r.png, unplaceable: r.report.filter((a) => a.unplaceable).length };
   };
@@ -87,7 +93,12 @@ async function renderVariant(
   let burned = variant.png;
   let unplaceable = 0;
   if (variant.annotations.length > 0) {
-    const r = await opts.burn(variant.png, variant.annotations, (m) => opts.warn(`${label}: ${m}`));
+    const r = await opts.burn(
+      variant.png,
+      variant.annotations,
+      (m) => opts.warn(`${label}: ${m}`),
+      variant.pixelRatio,
+    );
     burned = r.png;
     unplaceable = r.unplaceable;
   }

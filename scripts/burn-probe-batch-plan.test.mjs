@@ -11,6 +11,7 @@ import {
   gap,
   listFrames,
   previewName,
+  probeRatio,
   readSidecar,
   selectFrames,
   summarize,
@@ -369,4 +370,21 @@ test("--project picks the default tokens file and both projects ship one per the
   for (const project of PROJECTS)
     for (const theme of ["dark", "light"])
       assert.ok(files.includes(defaultTokensName(project, theme)));
+});
+
+test("probeRatio takes the sidecar's device_scale_factor, else an exact 2 to 4 multiple of the width", () => {
+  const frame = { width: 390, label: "x.en.dark.390" };
+  assert.equal(probeRatio({ device_scale_factor: 2 }, frame, 780), 2);
+  assert.equal(probeRatio({}, frame, 780), 2);
+  assert.equal(probeRatio({}, frame, 1170), 3);
+  assert.equal(probeRatio({}, frame, 390), 1);
+  assert.equal(probeRatio({}, frame, 400), 1, "a PNG that is no whole multiple burns at 1");
+  assert.equal(probeRatio({}, frame, 1950), 1, "five times is past the 1 to 4 range");
+  assert.equal(probeRatio(null, frame, 780), 2);
+  for (const bad of [0, 5, "2", NaN, null]) {
+    assert.throws(
+      () => probeRatio({ device_scale_factor: bad }, frame, 780),
+      /x\.en\.dark\.390: device_scale_factor must be a number from 1 to 4/,
+    );
+  }
 });

@@ -38,3 +38,11 @@ export function layoutAtScale(l: CalloutLayout, f: number): CalloutLayout {
     otherOverlap: Math.round(l.otherOverlap * f * f),
   };
 }
+
+/** `ratio` when it is a number from 1 to 4 (device pixels per CSS pixel), else an error that says so. */
+export function checkPixelRatio(ratio: number): number {
+  if (!Number.isFinite(ratio) || ratio < 1 || ratio > 4) {
+    throw new Error(`burn: pixelRatio must be a number from 1 to 4 (got ${String(ratio)})`);
+  }
+  return ratio;
+}

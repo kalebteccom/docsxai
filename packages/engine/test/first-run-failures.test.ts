@@ -143,7 +143,17 @@ describe("run start-up", () => {
 
   it("a file:// --base-url passes URL validation", async () => {
     const ws = await workspace("--auth", "none");
-    await main(["run", ws, "--base-url", "file:///nonexistent/site/index.html"]);
+    // `--flow` names no flow, so the run stops right after validation and never starts a browser.
+    const code = await main([
+      "run",
+      ws,
+      "--flow",
+      "no-such-flow",
+      "--base-url",
+      "file:///nonexistent/site/index.html",
+    ]);
+    expect(code).toBe(1);
+    expect(err).toContain('no flow named "no-such-flow"');
     expect(err).not.toContain("--base-url must be");
   });
 
