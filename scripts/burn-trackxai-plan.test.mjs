@@ -7,6 +7,9 @@ import {
   checkSidecar,
   isBadgeOnly,
   coverage,
+  captureRatio,
+  chromeBands,
+  variantValue,
   contentHash,
   mergeManifest,
   parseRawName,
@@ -233,4 +236,52 @@ test("a WebP twin no smaller than the PNG is dropped", () => {
   assert.match(v.warning, /webp 62\.3 kB/);
   assert.match(v.warning, /png 50\.0 kB/);
   assert.match(v.warning, /smaller than the png/);
+});
+
+test("the capture ratio comes from the flag, the sidecar or the PNG width", () => {
+  const base = { cssWidth: 390, pngWidth: 780, file: "a.png" };
+  assert.equal(captureRatio({ ...base, doc: {} }), 2);
+  assert.equal(captureRatio({ ...base, doc: { device_scale_factor: 2 } }), 2);
+  assert.equal(captureRatio({ ...base, flag: "2", doc: {} }), 2);
+  assert.equal(captureRatio({ cssWidth: 390, pngWidth: 390, file: "a.png" }), 1);
+  assert.throws(() => captureRatio({ ...base, flag: "1", doc: {} }), /780 px wide, not 390/);
+  assert.throws(() => captureRatio({ ...base, flag: "5", doc: {} }), /between 1 and 4/);
+});
+
+test("phone chrome bands grow with the ratio and a 2x desktop has none", () => {
+  assert.deepEqual(
+    chromeBands({ width: 780, height: 1688, dpr: 2 }).map((b) => b.box),
+    [
+      { x: 0, y: 0, width: 780, height: 112 },
+      { x: 0, y: 1576, width: 780, height: 112 },
+    ],
+  );
+  assert.deepEqual(chromeBands({ width: 2560, height: 1600, dpr: 2 }), []);
+  assert.equal(chromeBands({ width: 390, height: 844 })[0].box.height, 56);
+  const records = [{ index: 1, copy: "a", bounding_box: { x: 0, y: 0, width: 5, height: 5 } }];
+  const report = [{ callout: { x: 10, y: 80, width: 100, height: 40 } }];
+  assert.deepEqual(coverage(records, report, { width: 780, height: 1688, dpr: 2 }), [
+    "caption 1 is on the header",
+  ]);
+  assert.deepEqual(coverage(records, report, { width: 780, height: 1688 }), []);
+});
+
+test("manifest variants keep CSS size and add the PNG size only at 2x", () => {
+  const common = { src: "/screens/m/a.png", bytes: 9, callouts: ["x"] };
+  assert.deepEqual(variantValue({ ...common, png: { width: 780, height: 1688 }, dpr: 2 }), {
+    src: "/screens/m/a.png",
+    width: 390,
+    height: 844,
+    png_width: 780,
+    png_height: 1688,
+    bytes: 9,
+    callouts: ["x"],
+  });
+  assert.deepEqual(variantValue({ ...common, png: { width: 390, height: 844 }, dpr: 1 }), {
+    src: "/screens/m/a.png",
+    width: 390,
+    height: 844,
+    bytes: 9,
+    callouts: ["x"],
+  });
 });

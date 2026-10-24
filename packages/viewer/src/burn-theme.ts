@@ -236,9 +236,10 @@ export function displayWidthFor(theme: BurnTheme, imageWidth: number): number {
 }
 
 /** The factor `theme.scale` gives a screenshot `imageWidth` px wide: 1 for a screenshot at or under its display width. */
-export function captionScale(theme: BurnTheme, imageWidth: number): number {
+export function captionScale(theme: BurnTheme, imageWidth: number, cssWidth = imageWidth): number {
   if (theme.scale !== "auto") return theme.scale;
-  const factor = imageWidth / displayWidthFor(theme, imageWidth);
+  // The wide or narrow display width is picked by CSS width, so a 2x phone capture still counts as narrow.
+  const factor = imageWidth / displayWidthFor(theme, cssWidth);
   // Rounded up to 2 decimals, so on-screen sizes are never a hair under their base size.
   return Math.min(AUTO_SCALE_MAX, Math.max(1, Math.ceil(factor * 100 - 1e-9) / 100));
 }

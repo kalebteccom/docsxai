@@ -11,7 +11,7 @@ import { recordsFromSidecar } from "../src/pack-annotations.js";
 import { parseThemeConfig, resolveBurnTheme } from "../src/burn-theme-config.js";
 import { overlapArea } from "../src/obstacle-placement.js";
 import { busyCells, textBoxes } from "../src/pixel-obstacles.js";
-import { chromeBoxes, haloBox, withPixelObstacles } from "../src/burn-clean.js";
+import { chromeBoxes, haloBox, shrinkSteps, withPixelObstacles } from "../src/burn-clean.js";
 import type { PixelGrid } from "../src/connector-contrast.js";
 import type { Rect } from "../src/placement.js";
 import { encodePng } from "./helpers/png.js";
@@ -214,6 +214,26 @@ describe("phone chrome", () => {
     expect(chromeBoxes({ width: 390, height: 844 }, 1, 390, true)).toHaveLength(5);
   });
 
+  it("scales the bands, the button and the side margins with the pixel ratio of a 2x capture", () => {
+    expect(chromeBoxes({ width: 780, height: 1688 }, 1, 390, true, 2)).toEqual([
+      { x: 0, y: 0, width: 780, height: 112 },
+      { x: 0, y: 1576, width: 780, height: 112 },
+      { x: 628, y: 1416, width: 152, height: 160 },
+      { x: 0, y: 0, width: 32, height: 1688 },
+      { x: 748, y: 0, width: 32, height: 1688 },
+    ]);
+  });
+
+  it("still counts a 2x phone capture as a phone by its CSS width", () => {
+    expect(chromeBoxes({ width: 780, height: 1688 }, 1, 390, false, 2)).toHaveLength(3);
+    expect(chromeBoxes({ width: 2560, height: 1600 }, 1, 1280, false, 2)).toEqual([]);
+  });
+
+  it("doubles the smallest text a 2x caption shrinks to", () => {
+    expect(shrinkSteps(15, 2.23, 390)[1]).toBeCloseTo(14 / (15 * 2.23));
+    expect(shrinkSteps(15, 4.46, 390, 2)[1]).toBeCloseTo(28 / (15 * 4.46));
+  });
+
   it("is absent on a desktop or a landscape capture", () => {
     expect(chromeBoxes({ width: 1280, height: 800 }, 1, 1280, true)).toEqual([]);
     expect(chromeBoxes({ width: 400, height: 300 }, 1, 400, true)).toEqual([]);
@@ -235,5 +255,77 @@ describe("text found in a real capture", () => {
     const label = { x: 16, y: 12, width: 74, height: 13 };
     const covered = boxes.reduce((n, b) => n + area(b, label), 0);
     expect(covered / (label.width * label.height)).toBeGreaterThan(0.6);
+  });
+});
+
+describe("a 2x phone capture", () => {
+  const auto: BurnTheme = {
+    ...THEME,
+    scale: "auto",
+    displayWidth: 1100,
+    displayWidthNarrow: 350,
+    narrowBelow: 900,
+    captionStyle: "auto",
+  };
+  // 780 x 1688 device px for a 390 x 844 CSS viewport; target 180 x 60 px in the middle.
+  const target = { x: 300, y: 800, width: 180, height: 60 };
+  const run = (pixelRatio: number | undefined) =>
+    renderBurn({
+      screenshotBuffer: stripedPng(780, 1688, []),
+      annotations: [
+        { step: "s", selector: "#t", index: 1, copy: "Opens the ledger", bounding_box: target },
+      ],
+      options: { theme: auto, warn: () => {}, ...(pixelRatio ? { pixelRatio } : {}) },
+    });
+
+  it("keeps the caption off the header, the nav and the button bands at pixelRatio 2", async () => {
+    const { report } = await run(2);
+    const bands = chromeBoxes({ width: 780, height: 1688 }, 1, 390, false, 2);
+    for (const b of bands) {
+      expect(area(report[0]!.callout!, b)).toBe(0);
+      expect(area(report[0]!.badge!, b)).toBe(0);
+    }
+  });
+
+  it("draws a caption about 2.23 times the base size, as at 1x with the same display width", async () => {
+    const { report } = await run(2);
+    const one = await renderBurn({
+      screenshotBuffer: stripedPng(390, 844, []),
+      annotations: [
+        {
+          step: "s",
+          selector: "#t",
+          index: 1,
+          copy: "Opens the ledger",
+          bounding_box: { x: 150, y: 400, width: 90, height: 30 },
+        },
+      ],
+      options: { theme: auto, warn: () => {} },
+    });
+    const ratio = report[0]!.callout!.height / one.report[0]!.callout!.height;
+    expect(ratio).toBeGreaterThan(1.8);
+    expect(ratio).toBeLessThan(2.2);
+  });
+});
+
+describe("text estimated from a 2x capture", () => {
+  it("finds the same boxes as the 1x capture, in twice the pixels", () => {
+    const text = { x: 200, y: 64, width: 160, height: 16 };
+    const small = striped(400, 300, text);
+    // Every pixel drawn as a 2 x 2 block: the same page at a pixel ratio of 2.
+    const rgba = new Uint8Array(800 * 600 * 4);
+    for (let y = 0; y < 600; y++) {
+      for (let x = 0; x < 800; x++) {
+        const from = ((y >> 1) * 400 + (x >> 1)) * 4;
+        rgba.set(small.rgba.subarray(from, from + 4), (y * 800 + x) * 4);
+      }
+    }
+    const none = { x: 0, y: 0, width: 0, height: 0 };
+    const one = textBoxes(busyCells(small), none);
+    const two = textBoxes(busyCells({ width: 800, height: 600, rgba }, 2), none);
+    expect(one.length).toBeGreaterThan(0);
+    expect(two).toEqual(
+      one.map((b) => ({ x: b.x * 2, y: b.y * 2, width: b.width * 2, height: b.height * 2 })),
+    );
   });
 });

@@ -33,6 +33,15 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Everything the landing generator writes under /showcase is named by content
+# hash (<shot>-<theme>-<width>.<hash8>.png|webp), so it never changes either.
+# The only unhashed file there is manifest.json, read at build time, never
+# fetched by the page.
+[[headers]]
+  for = "/showcase/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 # Baseline security headers for every response.
 [[headers]]
   for = "/*"

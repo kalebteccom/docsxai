@@ -25,20 +25,29 @@ export const TEXT_PAD_Y = 2;
 
 /** Which cells of an image are busy: `busy[row * cols + col]` is 1 for a busy cell. */
 export interface BusyCells {
+  /** Cell edge in px: {@link TEXT_CELL} times the capture's pixel ratio. */
+  cell: number;
+  /** Device pixels per CSS pixel the cells were cut at. */
+  pr: number;
   cols: number;
   rows: number;
   busy: Uint8Array;
 }
 
-/** The busy cells of the whole image. Cells cut off at the right or bottom edge are left out. */
-export function busyCells(grid: PixelGrid): BusyCells {
-  const cols = Math.floor(grid.width / TEXT_CELL);
-  const rows = Math.floor(grid.height / TEXT_CELL);
+/**
+ * The busy cells of the whole image. Cells cut off at the right or bottom edge are left out. On a
+ * `pr` times capture (device pixels per CSS pixel) the cell and the edge counts grow by `pr`, so a
+ * 2x capture finds the same text boxes as its 1x twin.
+ */
+export function busyCells(grid: PixelGrid, pr = 1): BusyCells {
+  const cell = TEXT_CELL * pr;
+  const cols = Math.floor(grid.width / cell);
+  const rows = Math.floor(grid.height / cell);
   const busy = new Uint8Array(cols * rows);
   for (let cy = 0; cy < rows; cy++) {
-    for (let cx = 0; cx < cols; cx++) busy[cy * cols + cx] = isBusy(grid, cx, cy) ? 1 : 0;
+    for (let cx = 0; cx < cols; cx++) busy[cy * cols + cx] = isBusy(grid, cx, cy, cell, pr) ? 1 : 0;
   }
-  return { cols, rows, busy };
+  return { cell, pr, cols, rows, busy };
 }
 
 /**
@@ -51,7 +60,8 @@ export function textBoxes(cells: BusyCells, exclude: Rect): Rect[] {
   for (let cy = 0; cy < cells.rows; cy++) {
     let start = -1;
     for (let cx = 0; cx <= cells.cols; cx++) {
-      const cell = { x: cx * TEXT_CELL, y: cy * TEXT_CELL, width: TEXT_CELL, height: TEXT_CELL };
+      const size = cells.cell;
+      const cell = { x: cx * size, y: cy * size, width: size, height: size };
       const busy =
         cx < cells.cols &&
         cells.busy[cy * cells.cols + cx] === 1 &&
@@ -59,40 +69,41 @@ export function textBoxes(cells: BusyCells, exclude: Rect): Rect[] {
       if (busy && start < 0) start = cx;
       if (!busy && start >= 0) {
         runs.push({
-          x: start * TEXT_CELL,
-          y: cy * TEXT_CELL,
-          width: (cx - start) * TEXT_CELL,
-          height: TEXT_CELL,
+          x: start * cells.cell,
+          y: cy * cells.cell,
+          width: (cx - start) * cells.cell,
+          height: cells.cell,
         });
         start = -1;
       }
     }
   }
   return mergeRows(runs).map((b) => ({
-    x: b.x - TEXT_PAD_X,
-    y: b.y - TEXT_PAD_Y,
-    width: b.width + 2 * TEXT_PAD_X,
-    height: b.height + 2 * TEXT_PAD_Y,
+    x: b.x - TEXT_PAD_X * cells.pr,
+    y: b.y - TEXT_PAD_Y * cells.pr,
+    width: b.width + 2 * TEXT_PAD_X * cells.pr,
+    height: b.height + 2 * TEXT_PAD_Y * cells.pr,
   }));
 }
 
 /** True when any busy cell touches `box` (image px): something is drawn there. */
 export function showsText(cells: BusyCells, box: Rect): boolean {
-  const x0 = Math.max(0, Math.floor(box.x / TEXT_CELL));
-  const y0 = Math.max(0, Math.floor(box.y / TEXT_CELL));
-  const x1 = Math.min(cells.cols, Math.ceil((box.x + box.width) / TEXT_CELL));
-  const y1 = Math.min(cells.rows, Math.ceil((box.y + box.height) / TEXT_CELL));
+  const size = cells.cell;
+  const x0 = Math.max(0, Math.floor(box.x / size));
+  const y0 = Math.max(0, Math.floor(box.y / size));
+  const x1 = Math.min(cells.cols, Math.ceil((box.x + box.width) / size));
+  const y1 = Math.min(cells.rows, Math.ceil((box.y + box.height) / size));
   for (let cy = y0; cy < y1; cy++) {
     for (let cx = x0; cx < x1; cx++) if (cells.busy[cy * cells.cols + cx] === 1) return true;
   }
   return false;
 }
 
-function isBusy(grid: PixelGrid, cx: number, cy: number): boolean {
+function isBusy(grid: PixelGrid, cx: number, cy: number, cell: number, pr: number): boolean {
   let across = 0;
   let down = 0;
-  for (let y = cy * TEXT_CELL; y < (cy + 1) * TEXT_CELL; y++) {
-    for (let x = cx * TEXT_CELL; x < (cx + 1) * TEXT_CELL; x++) {
+  for (let y = cy * cell; y < (cy + 1) * cell; y++) {
+    for (let x = cx * cell; x < (cx + 1) * cell; x++) {
       const here = lumaAt(grid, x, y)!;
       const right = lumaAt(grid, x + 1, y);
       const below = lumaAt(grid, x, y + 1);
@@ -100,7 +111,7 @@ function isBusy(grid: PixelGrid, cx: number, cy: number): boolean {
       if (below !== undefined && Math.abs(here - below) >= EDGE_STEP) down++;
     }
   }
-  return across >= BUSY_EACH && down >= BUSY_EACH && across + down >= BUSY_EDGES;
+  return across >= BUSY_EACH * pr && down >= BUSY_EACH * pr && across + down >= BUSY_EDGES * pr;
 }
 
 /** Runs with the same x span in consecutive rows become one box. Input is in row order. */

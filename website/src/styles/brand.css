@@ -955,7 +955,7 @@ main:has(.docsx-404) > .content-panel {
   font-weight: 600;
 }
 .dxf-flow code.muted {
-  opacity: 0.6;
+  opacity: 0.85;
 }
 .dxf-mid-tag {
   margin: 0.55rem 0 0;

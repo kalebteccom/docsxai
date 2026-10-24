@@ -26,7 +26,7 @@ export const MIN_TEXT_WIDE = 16;
 export const WIDE_FROM = 900;
 /** Gap between a clean badge and its target's corner, px. */
 export const BADGE_GAP = 1;
-/** Phone chrome, screenshot px: header and bottom nav height, the floating button's box, side margin. */
+/** Phone chrome, CSS px (times the pixel ratio `pr` on a 2x capture): header and bottom nav height, the floating button's box, side margin. */
 export const CHROME_BAR = 56;
 export const FAB_BOX = { width: 76, height: 80 };
 export const SIDE_MARGIN = 16;
@@ -34,32 +34,41 @@ export const SIDE_MARGIN = 16;
 /**
  * Boxes, at base size, a caption on a phone capture (portrait, under {@link WIDE_FROM} px wide) may not cover:
  * the header bar, the bottom nav bar, the floating action button above it and, with `margins`, a
- * {@link SIDE_MARGIN} px strip at each side. Empty for a desktop capture. `f` is the caption scale.
+ * {@link SIDE_MARGIN} px strip at each side. Empty for a desktop capture. `f` is the caption scale,
+ * `realWidth` the capture's CSS width and `pr` its device pixel ratio (1 when `image` is in CSS px).
  */
-export function chromeBoxes(image: Size, f: number, realWidth: number, margins: boolean): Rect[] {
+export function chromeBoxes(
+  image: Size,
+  f: number,
+  realWidth: number,
+  margins: boolean,
+  pr = 1,
+): Rect[] {
   if (realWidth >= WIDE_FROM || image.height <= image.width) return [];
-  const bar = CHROME_BAR / f;
+  const bar = (CHROME_BAR * pr) / f;
   const { width: W, height: H } = image;
   const boxes: Rect[] = [
     { x: 0, y: 0, width: W, height: bar },
     { x: 0, y: H - bar, width: W, height: bar },
     {
-      x: W - FAB_BOX.width / f,
-      y: H - bar - FAB_BOX.height / f,
-      width: FAB_BOX.width / f,
-      height: FAB_BOX.height / f,
+      x: W - (FAB_BOX.width * pr) / f,
+      y: H - bar - (FAB_BOX.height * pr) / f,
+      width: (FAB_BOX.width * pr) / f,
+      height: (FAB_BOX.height * pr) / f,
     },
   ];
   if (margins) {
-    const m = SIDE_MARGIN / f;
+    const m = (SIDE_MARGIN * pr) / f;
     boxes.push({ x: 0, y: 0, width: m, height: H }, { x: W - m, y: 0, width: m, height: H });
   }
   return boxes;
 }
 
 /** Margin of the docking bands, base px: past the phone chrome on a phone capture. */
-export const dockMargin = (f: number, realWidth: number, image: Size): number =>
-  chromeBoxes(image, f, realWidth, false).length === 0 ? DOCK_MARGIN : (CHROME_BAR + 8) / f;
+export const dockMargin = (f: number, realWidth: number, image: Size, pr = 1): number =>
+  chromeBoxes(image, f, realWidth, false, pr).length === 0
+    ? DOCK_MARGIN
+    : ((CHROME_BAR + 8) * pr) / f;
 
 /** The box the halo is drawn on, in screenshot px: the target, or with `clean` the ring outside it. */
 export function haloBox(target: Rect, clean: boolean, f: number): Rect {
@@ -67,10 +76,10 @@ export function haloBox(target: Rect, clean: boolean, f: number): Rect {
 }
 
 const cellCache = new WeakMap<PixelGrid, BusyCells>();
-const cellsOf = (pixels: PixelGrid): BusyCells => {
+const cellsOf = (pixels: PixelGrid, pr: number): BusyCells => {
   let cells = cellCache.get(pixels);
   if (!cells) {
-    cells = busyCells(pixels);
+    cells = busyCells(pixels, pr);
     cellCache.set(pixels, cells);
   }
   return cells;
@@ -88,8 +97,9 @@ export function withPixelObstacles(
   real: Rect,
   pixels: PixelGrid,
   f: number,
+  pr = 1,
 ): AnnotationRecord {
-  const cells = cellsOf(pixels);
+  const cells = cellsOf(pixels, pr);
   const listed = (ann.obstacles ?? []).filter((o) =>
     showsText(cells, { x: o.x * f, y: o.y * f, width: o.width * f, height: o.height * f }),
   );
@@ -124,20 +134,21 @@ export function cleanObstacles(
   all: AnnotationRecord[],
   image: Size,
   realWidth: number,
+  pr = 1,
 ): { ann: AnnotationRecord; badgeObstacles: Rect[] } {
-  const seen = pixels && realTarget ? withPixelObstacles(self, realTarget, pixels, f) : self;
+  const seen = pixels && realTarget ? withPixelObstacles(self, realTarget, pixels, f, pr) : self;
   const ann = withOtherTargets(seen, all, self);
   const listed = ann.obstacles ?? [];
   // A badge must not cover text inside its own target either.
   const inside =
     pixels && realTarget
-      ? textBoxes(cellsOf(pixels), { x: 0, y: 0, width: 0, height: 0 })
+      ? textBoxes(cellsOf(pixels, pr), { x: 0, y: 0, width: 0, height: 0 })
           .filter((b) => overlapArea(b, realTarget) > 0)
           .map((b) => ({ x: b.x / f, y: b.y / f, width: b.width / f, height: b.height / f }))
       : [];
-  const badgeObstacles = [...listed, ...inside, ...chromeBoxes(image, f, realWidth, false)];
+  const badgeObstacles = [...listed, ...inside, ...chromeBoxes(image, f, realWidth, false, pr)];
   return {
-    ann: { ...ann, obstacles: [...listed, ...chromeBoxes(image, f, realWidth, true)] },
+    ann: { ...ann, obstacles: [...listed, ...chromeBoxes(image, f, realWidth, true, pr)] },
     badgeObstacles,
   };
 }
@@ -191,8 +202,8 @@ export function cornerBadge(target: Rect, size: Size, image: Size, blockers: Rec
  * screenshot `imageWidth` px wide: 1, then one smaller step down to the floor of its width class,
  * when the floor is under the current size.
  */
-export function shrinkSteps(fontSize: number, f: number, imageWidth: number): number[] {
-  const floor = imageWidth >= WIDE_FROM ? MIN_TEXT_WIDE : MIN_TEXT_NARROW;
+export function shrinkSteps(fontSize: number, f: number, imageWidth: number, pr = 1): number[] {
+  const floor = (imageWidth >= WIDE_FROM ? MIN_TEXT_WIDE : MIN_TEXT_NARROW) * pr;
   const burned = fontSize * f;
   return burned > floor ? [1, floor / burned] : [1];
 }

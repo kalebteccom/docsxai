@@ -215,6 +215,8 @@ A row is CHECK when the caption covers listed text or the phone header or nav, t
 
 A portrait capture under 900 px wide is treated as a phone screen. Its top 56 px (the header), bottom 56 px (the nav bar), the floating action button above the nav bar's right end (76 by 80 px) and a 16 px strip on each side are content. Captions stay off them, and badges stay off the header, nav bar and button. A caption docks 64 px from the top or bottom edge, under the header or above the nav bar. On a screenshot under 900 px wide the smaller text step is compact: 16 px lines for the 14 px text, 4 px of vertical padding and 8 px of horizontal padding.
 
+Those sizes are CSS px. A 2x capture (780 by 1688 px for a 390 by 844 viewport) is burned with the `pixelRatio` option set to 2 (`scripts/burn-trackxai.mjs --dpr 2`): the width classes and `display_width` read the CSS width (`780 / 2`), the bands, margins, text floors and the pixel text search double, and `scale: "auto"` still gives `780 / display_width`. Sidecar boxes are in the PNG's own pixels.
+
 ## Line breaks
 
 A burn with a theme balances the callout's lines. It keeps the line count that filling each line gives, then narrows the box to the smallest width in whole px that holds that count, so the lines come out about even. A one-letter word such as Spanish `a`, `y` or `o`, and the list number in front of the copy, stay on the line of the word after them. A word wider than the line, such as a path or a URL, breaks after `/`, `-`, `_`, `.` or `:` before it breaks between letters.
