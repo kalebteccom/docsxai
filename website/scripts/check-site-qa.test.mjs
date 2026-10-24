@@ -151,3 +151,16 @@ describe("edge fade on sideways scrollers (QA #10, #11)", () => {
     assert.match(valueOf(".docsx-table-scroll:focus-visible", "outline-offset") ?? "", /^-/);
   });
 });
+
+describe("menu button (QA #2, #6)", () => {
+  it("centres its icon in the 44 px circle", () => {
+    assert.equal(valueOf("starlight-menu-button button", "justify-content"), "center");
+    assert.equal(valueOf("starlight-menu-button button", "align-items"), "center");
+    assert.equal(valueOf("starlight-menu-button button", "padding"), "0");
+  });
+  it("uses the header palette, never a white disc", () => {
+    const bg = valueOf("starlight-menu-button button", "background-color") ?? "";
+    assert.match(bg, /var\(--sl-color-bg-sidebar\)/);
+    assert.match(valueOf("starlight-menu-button button", "color") ?? "", /var\(--sl-color-white\)/);
+  });
+});

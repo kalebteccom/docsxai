@@ -1902,6 +1902,22 @@ mobile-starlight-toc nav {
     align-items: center;
     justify-content: center;
   }
+  /* Starlight's menu button is a flex box with 0.5rem padding sized for a 2rem circle, so at
+     2.75rem its 16 px icon sat 6 px up and left of centre. Centre the icon, and draw the button
+     in the header's palette: Starlight paints it --sl-color-white, a bright disc in dark mode. */
+  starlight-menu-button button {
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    border: 1px solid var(--sl-color-hairline-shade);
+    background-color: var(--sl-color-bg-sidebar);
+    color: var(--sl-color-white);
+    box-shadow: none;
+  }
+  starlight-menu-button[aria-expanded="true"] button {
+    background-color: var(--sl-color-accent-low);
+    border-color: var(--sl-color-accent);
+  }
   /* The "On this page" dropdown's links are about 41 px tall by default. */
   mobile-starlight-toc a {
     min-height: var(--docsx-tap);
