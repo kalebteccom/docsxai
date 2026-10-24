@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Fixed
+
+- **Emitted output accessibility.** Viewer print keeps a step heading row with its figure, and long ids and code in write-ups and placeholders wrap at 390 px. The Starlight copy and Retry focus ring uses the theme text colour (17:1 or more on both themes) in place of the accent, which a custom accent could push under 3:1, and the step image alt reads "Screenshot of step <id>".
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

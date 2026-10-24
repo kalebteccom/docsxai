@@ -58,7 +58,7 @@ const { value, kind = "id" } = Astro.props;
     background: var(--sl-color-gray-6);
   }
   .docsx-copy:focus-visible {
-    outline: 3px solid var(--sl-color-text-accent);
+    outline: 3px solid var(--sl-color-white);
     outline-offset: 2px;
   }
   .docsx-copy[data-state="done"] {
@@ -176,7 +176,7 @@ const command = \`docsxai run <workspace>\${flow ? \` --flow \${flow.split("/")[
       <>
         <img
           src={resolved}
-          alt={alt}
+          alt={\`Screenshot of step \${alt}\`}
           width={width}
           height={height}
           loading="lazy"
@@ -261,7 +261,7 @@ const command = \`docsxai run <workspace>\${flow ? \` --flow \${flow.split("/")[
     cursor: progress;
   }
   .annotated-shot-retry:focus-visible {
-    outline: 3px solid var(--sl-color-text-accent);
+    outline: 3px solid var(--sl-color-white);
     outline-offset: 2px;
   }
   .annotated-shot figcaption {
