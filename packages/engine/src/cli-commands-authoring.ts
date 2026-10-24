@@ -39,7 +39,7 @@ import { readPluginsLock, readWorkspacePluginsConfig } from "./plugins/lock.js";
 import { resolvePlugins } from "./plugins/runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { listFlowFiles, parseFlags } from "./cli-shared.js";
+import { claimFlowName, listFlowFiles, parseFlags } from "./cli-shared.js";
 import { shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdInspect(args: string[]): Promise<number> {
@@ -197,10 +197,13 @@ export async function cmdLint(args: string[]): Promise<number> {
   }
 
   const flowsByName = new Map<string, FlowFile>();
+  const owners = new Map<string, string>();
   for (const p of flowPaths) {
     try {
       const text = await fs.readFile(p, "utf8");
       const flow = parseFlowFile(text, path.basename(p));
+      const duplicate = claimFlowName(owners, flow.name, p);
+      if (duplicate) throw new FlowFileError(duplicate);
       flowsByName.set(flow.name, flow);
     } catch (e) {
       const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
@@ -280,10 +283,13 @@ export async function cmdFlowTree(args: string[]): Promise<number> {
   }
 
   const flowsByName = new Map<string, FlowFile>();
+  const owners = new Map<string, string>();
   for (const p of flowPaths) {
     try {
       const text = await fs.readFile(p, "utf8");
       const flow = parseFlowFile(text, path.basename(p));
+      const duplicate = claimFlowName(owners, flow.name, p);
+      if (duplicate) throw new FlowFileError(duplicate);
       flowsByName.set(flow.name, flow);
     } catch (e) {
       const msg = e instanceof FlowFileError ? e.message : (e as Error).message;

@@ -22,7 +22,7 @@ import { assertNoCaseCollision } from "./flow-name-rules.js";
 import { recordRunHistory } from "./backend-client.js";
 import { runFlowsInSessions } from "./run-flows.js";
 import { initWorkspace, loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { flagMissingValue, listFlowFiles, parseFlags } from "./cli-shared.js";
+import { claimFlowName, flagMissingValue, listFlowFiles, parseFlags } from "./cli-shared.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
@@ -125,6 +125,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   const units: FlowVariant[] = [];
   const matrixFlows = new Set<string>();
   const knownFlows: string[] = [];
+  const flowOwners = new Map<string, string>();
   let flowCount = 0;
   for (const fp of flowPaths) {
     let flow: FlowFile;
@@ -144,6 +145,13 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
     knownFlows.push(flow.name);
     if (onlyFlow && flow.name !== onlyFlow) continue;
+    const duplicate = claimFlowName(flowOwners, flow.name, fp);
+    if (duplicate) {
+      process.stderr.write(
+        `run: ${withNext(duplicate, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
+      );
+      return 1;
+    }
     flowCount++;
     flows.push(flow);
     if (flow.matrix) matrixFlows.add(flow.name);

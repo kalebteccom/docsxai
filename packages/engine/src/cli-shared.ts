@@ -2,6 +2,7 @@
 // the command clusters (and of cli.ts) so it can be imported anywhere without a cycle: the clusters
 // import from here; this file imports only from the engine's lower-level modules.
 //   • parseFlags    — the argv → { positionals, flags } parser every command opens with
+//   • claimFlowName — reject two flow files that declare one `name:`
 //   • listFlowFiles — enumerate the workspace's flows/*.flow.yaml (run / lint / flow-tree)
 
 import { promises as fs } from "node:fs";
@@ -47,6 +48,23 @@ export function flagMissingValue(
   names: readonly string[],
 ): string | undefined {
   return names.find((n) => flags.get(n) === true);
+}
+
+/**
+ * Record that `file` declares the flow `name` in `owners`. Returns the error text when an earlier
+ * file already declared it: two files with one `name:` write to one `docs/<name>/` directory.
+ */
+export function claimFlowName(
+  owners: Map<string, string>,
+  name: string,
+  file: string,
+): string | undefined {
+  const first = owners.get(name);
+  if (first === undefined) {
+    owners.set(name, file);
+    return undefined;
+  }
+  return `flow name "${name}" is declared by both ${first} and ${file}; each flow needs its own name`;
 }
 
 export async function listFlowFiles(projectDir: string): Promise<string[]> {

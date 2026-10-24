@@ -18,6 +18,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Fixed
 
 - **`plugins sync` with three plugins on one namespace.** It locked the last of them and named only the second as not locked. It now locks none of them and names every claimant.
+- **Two flow files with one `name:`.** `run` started both and let them overwrite one `docs/<name>/`, and `lint` and `flow-tree` kept only the last. All three now stop with exit 1 and name both files.
 
 ## [0.3.0-rc.4] - 2026-10-24
 
