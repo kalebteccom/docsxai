@@ -9,7 +9,7 @@ next:
 This page takes you from nothing to a rendered doc pack against your own app.
 It assumes `docsxai` and Chromium are installed ([Installation](/getting-started/installation/);
 `docsxai doctor` checks both) and your app is running somewhere reachable, say
-`https://localhost:3000`. Want to try it first without an app? The
+`http://localhost:3000`. Want to try it first without an app? The
 [README walkthrough](https://github.com/kalebteccom/docsxai#first-run-in-10-minutes)
 documents `example.com`.
 
@@ -25,7 +25,7 @@ source repo - docsxai documents a running app from the outside and never
 writes into the app's checkout:
 
 ```sh
-docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
+docsxai init ~/docsxai/my-app --app-url http://localhost:3000 --auth manual-capture --ttl 1h
 ```
 
 `--auth manual-capture` means you log in by hand once in step 2. `--ttl 1h` is
@@ -55,7 +55,11 @@ re-auth, is in [Auth strategies](/reference/auth-strategies/).
 ## 3. Author a first flow
 
 A flow-file is YAML: named locators, ordered steps, optional waits and
-success checks. Write `~/docsxai/my-app/flows/open-reports.flow.yaml`:
+success checks. `init` left a commented example in
+`flows/example.flow.yaml.sample`, which `run` ignores until
+`docsxai calibrate ~/docsxai/my-app --from ~/docsxai/my-app/flows/example.flow.yaml.sample`
+turns it into `flows/example.flow.yaml`. For your own first flow, write
+`~/docsxai/my-app/flows/open-reports.flow.yaml`:
 
 ```yaml
 name: open-reports
@@ -93,9 +97,10 @@ docsxai run ~/docsxai/my-app --flow open-reports
 
 Headless Chromium loads the cached session, replays the steps, and writes
 `docs/open-reports/annotations.json` plus a clean screenshot per annotated
-step. A successful run prints one line per flow:
+step. A successful run prints a starting line and a result line per flow:
 
 ```text
+run: open-reports — starting
 run: open-reports — 2 step(s) executed, 1 annotation(s) written
 ```
 
@@ -115,9 +120,10 @@ docsxai render ~/docsxai/my-app
 open ~/docsxai/my-app/.viewer/index.html
 ```
 
-`render` prints the path to open. `open` is the macOS command; on Linux use
-`xdg-open`, on Windows `start`. The viewer index links each flow; every flow
-page shows the screenshots with pulsing halos - hover one to read its callout.
+`render` prints the path to open, as `render: open <path>/.viewer/index.html`.
+`open` is the macOS command; on Linux use `xdg-open`, on Windows `start`. The
+viewer index links each flow; every flow page shows the screenshots with
+pulsing halos. Hover, tap or tab to a halo to read its callout.
 
 ## Where to next
 

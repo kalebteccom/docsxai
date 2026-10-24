@@ -17,9 +17,9 @@ npm install -g docsxai@next
 `pnpm add -g docsxai@next` works too. Run `pnpm setup` once first, or pnpm has no global bin
 directory on your PATH.
 
-`next` is the 0.3.x line, currently `0.3.0-rc.3` (`burn`, `pack`, `run --verify-determinism` and
+`next` is the 0.3.x line, currently `0.3.0-rc.4` (`burn`, `pack`, `run --verify-determinism` and
 matrix flows). `latest` is 0.2.0 and has none of those, so a plain `pnpm add -g docsxai` installs the
-older release. To pin the prerelease, name the version: `pnpm add -g docsxai@0.3.0-rc.3`. When 0.3
+older release. To pin the prerelease, name the version: `pnpm add -g docsxai@0.3.0-rc.4`. When 0.3
 ships stable, `latest` moves and the `@next` suffix is no longer needed.
 
 `docsxai` is the batteries-included meta-package - its bin runs
@@ -70,9 +70,10 @@ for the full workspace setup.
 docsxai doctor
 ```
 
-`doctor` checks the Node version, Chromium, viewer resolution and more. Every
-failing row prints its own one-line fix. Outside a workspace it skips the
-workspace rows, which is fine for now.
+`doctor` checks the Node version, Chromium, viewer resolution and more. Each
+line starts with `ok:` or `fail:`, and a `fail:` line names its fix after
+`next:`. Outside a workspace it skips the workspace lines, which is fine for
+now. The command exits 1 when any line fails.
 
 `docsxai --help` prints the usage block listing `init`, `run`, `render`,
 `capture-auth`, and the rest of the surface in the
