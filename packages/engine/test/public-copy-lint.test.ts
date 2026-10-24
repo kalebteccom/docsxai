@@ -1,11 +1,14 @@
-// Public copy lint. Three surfaces a reader of docsxai sees: the docs site pages and components
-// that are not reference pages (scope `site`), the text the viewer emits into pages (scope `ui`,
-// the `en` and `es` tables of ui-strings.ts), and the user-facing CLI messages (scope `cli`, the
-// string literals passed to `throw new Error`, `process.stderr.write` and `console.error` in the
-// engine, viewer and mcp sources, found with the TypeScript AST). Each scope is checked for environment-variable-like tokens, internal
-// hostnames and paths, private IPs and ticket ids. `DOCSX_*` variables are product surface, but a
-// landing page or the emitted UI has no reason to name one, so each scope has its own allowlist
-// below, with a reason per entry. A planted bad string for each rule is in the matcher tests.
+// Public copy lint. Four surfaces a reader of docsxai sees: the landing, getting-started and
+// concepts pages, llms.txt and the site components (scope `site`), the text the viewer emits into
+// pages (scope `ui`, the `en` and `es` tables of ui-strings.ts), the user-facing CLI messages
+// (scope `cli`) and the MCP messages (scope `mcp`). The last two are the string literals passed to
+// `throw new Error`, `process.stderr.write` and `console.error`, found with the TypeScript AST.
+// Each scope is checked for environment-variable-like tokens, internal hostnames and paths,
+// private IPs and ticket or spec ids. `DOCSX_*` variables are product surface, but a landing page
+// or the emitted UI has no reason to name one, so each scope has its own allowlist below, with a
+// reason per entry. Allowed tokens are matched one by one, so a forbidden name on the same line as
+// an allowed one still fails. A planted bad string for each rule is in the matcher tests. A second
+// pass over mirrored docs, CHANGELOG and package READMEs only prints its hits.
 
 import { readdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";
