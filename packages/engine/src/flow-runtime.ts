@@ -372,6 +372,7 @@ export async function runFlow(
         process.stderr.write(
           `runFlow: optional step "${step.id}" (${step.action}) skipped — ${(e as Error).message}\n`,
         );
+        if (opts.stopAfter && step.id === opts.stopAfter) break;
         continue;
       }
       // Halt: dump a screenshot for triage (best-effort), prepend a 1-line inferred cause
