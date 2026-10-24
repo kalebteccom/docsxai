@@ -154,6 +154,22 @@ describe("captionScale at the edges", () => {
   });
 });
 
+describe("captionScale with a CSS width", () => {
+  const theme = {
+    ...DEFAULT_BURN_THEME,
+    scale: "auto" as const,
+    displayWidth: 1100,
+    displayWidthNarrow: 350,
+    narrowBelow: 900,
+  };
+
+  it("takes the display width from the CSS width, so a 2x phone capture uses the narrow one", () => {
+    expect(captionScale(theme, 780, 390)).toBe(2.23);
+    expect(captionScale(theme, 2560, 1280)).toBe(2.33);
+    expect(captionScale(theme, 1000, 500)).toBe(2.86);
+  });
+});
+
 describe("scaledTheme", () => {
   const shadowed: BurnTheme = {
     ...DEFAULT_BURN_THEME,

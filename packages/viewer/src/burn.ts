@@ -100,6 +100,11 @@ export interface BurnTreeInput {
   /** `overlap_ratio` above which a report entry is `unplaceable`. Default {@link DEFAULT_UNPLACEABLE_RATIO}. */
   unplaceableRatio?: number;
   /**
+   * Device pixels per CSS pixel of the screenshot (default 1). A 2x capture passes 2, so the phone
+   * chrome bands, side margins and text floors, which are CSS px, grow with it.
+   */
+  pixelRatio?: number;
+  /**
    * The screenshot's pixels. With them, an arrow or stem over a dark background gets a white
    * outline. Without them every connector is plain ink.
    */
@@ -145,7 +150,10 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const base = input.theme ?? DEFAULT_BURN_THEME;
   // Layout runs at base size on an image shrunk by `f`; what it decides is multiplied back by `f`
   // when drawn, so every caption dimension scales together. At 1 nothing is converted.
-  const f = captionScale(base, width);
+  const pr = input.pixelRatio ?? 1;
+  // Width classes (phone, desktop, `display_width`) are CSS px: a 2x phone capture is 780 px wide.
+  const cssWidth = width / pr;
+  const f = captionScale(base, width, cssWidth);
   const theme = scaledTheme(base, f);
   const themed = input.theme !== undefined;
   const style = calloutStyleOf(base, themed);
@@ -202,7 +210,8 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
           f,
           baseAnnotations,
           baseImage,
-          width,
+          cssWidth,
+          pr,
         )
       : { ann: self, badgeObstacles: self.obstacles ?? [] };
     const ann = prep.ann;
@@ -270,7 +279,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
           ? {
               gap: LINE_GAP,
               maxDistance: LINE_MAX_DISTANCE,
-              dock: dockMargin(f, width, baseImage),
+              dock: dockMargin(f, cssWidth, baseImage, pr),
               dockMax: DOCK_MAX_SHARE * baseImage.height,
               forbid: [...captions, ...badges.values()],
             }
@@ -278,7 +287,9 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       };
       const mode = clean ? base.captionStyle : "full";
       const plan =
-        clean && mode !== "badge" ? planClean(layoutInput, base, f, width, mode === "auto") : null;
+        clean && mode !== "badge"
+          ? planClean(layoutInput, base, f, cssWidth, mode === "auto", pr)
+          : null;
       badgeOnly = mode === "badge" || (mode === "auto" && plan !== null && plan.cover > 0);
       if (!badgeOnly) {
         const planned = plan ? plan.layout : layoutCallout(layoutInput);
@@ -348,6 +359,8 @@ export interface BurnOptions {
    * (default {@link DEFAULT_UNPLACEABLE_RATIO}). Reporting only: every callout is drawn either way.
    */
   unplaceableRatio?: number;
+  /** Device pixels per CSS pixel of the screenshot, default 1; see {@link BurnTreeInput.pixelRatio}. */
+  pixelRatio?: number;
   /**
    * Outline the arrow and stem in white where the screenshot under them is dark (default
    * `"auto"`; `"off"` always draws plain ink). Screenshots that are light under the connector
@@ -400,6 +413,7 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
     ...(input.options?.unplaceableRatio !== undefined
       ? { unplaceableRatio: input.options.unplaceableRatio }
       : {}),
+    ...(input.options?.pixelRatio !== undefined ? { pixelRatio: input.options.pixelRatio } : {}),
   });
   const svg = await satori(withBorderBox(tree), {
     width,

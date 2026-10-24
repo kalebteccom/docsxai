@@ -40,10 +40,15 @@ export interface CleanPlan {
  * The theme one text step smaller: on a phone capture also compact, with lines 2 px over the text
  * and 4 px of vertical padding, so a two-line caption fits a strip about 42 px tall.
  */
-function smaller(base: BurnTheme, k: number, f: number, narrow: boolean): BurnTheme {
+function smaller(base: BurnTheme, k: number, f: number, narrow: boolean, pr: number): BurnTheme {
   const t = scaledTheme(base, k);
   if (!narrow) return t;
-  return { ...t, lineHeight: (MIN_TEXT_NARROW + 2) / f, paddingY: 4 / f, paddingX: 8 / f };
+  return {
+    ...t,
+    lineHeight: ((MIN_TEXT_NARROW + 2) * pr) / f,
+    paddingY: (4 * pr) / f,
+    paddingX: (8 * pr) / f,
+  };
 }
 
 /** Outer width, base px, of the one-line caption tried when the usual box finds no clear spot. */
@@ -61,15 +66,16 @@ export function planClean(
   f: number,
   imageWidth: number,
   lineCounts = false,
+  pr = 1,
 ): CleanPlan {
   const narrow = imageWidth < WIDE_FROM;
   let best: { layout: CalloutLayout; k: number; cover: number } | undefined;
   // The wide box: as wide as the screenshot allows, side margins kept.
-  const span = Math.min(WIDE_CAPTION, Math.floor(inp.image.width - (2 * SIDE_MARGIN) / f));
+  const span = Math.min(WIDE_CAPTION, Math.floor(inp.image.width - (2 * SIDE_MARGIN * pr) / f));
   const wide = { ...inp.ann, placement: { ...inp.ann.placement, max_width: span } };
   const keepsWidth = inp.ann.placement?.max_width !== undefined;
-  const themeAt = (k: number) => (k === 1 ? base : smaller(base, k, f, narrow));
-  for (const k of shrinkSteps(base.fontSize, f, imageWidth)) {
+  const themeAt = (k: number) => (k === 1 ? base : smaller(base, k, f, narrow, pr));
+  for (const k of shrinkSteps(base.fontSize, f, imageWidth, pr)) {
     const style = calloutStyleOf(themeAt(k), true);
     for (const ann of keepsWidth ? [inp.ann] : [inp.ann, wide]) {
       const tried = { ...inp, ann };

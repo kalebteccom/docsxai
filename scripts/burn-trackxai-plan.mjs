@@ -122,12 +122,50 @@ export const overlap = (a, b) => {
   return w > 0 && h > 0 ? w * h : 0;
 };
 
-/** Phone chrome of a capture `size` px: header and bottom nav bands; none from 900 px wide. */
-export function chromeBands({ width, height }) {
-  if (width >= 900) return [];
+/**
+ * Device pixel ratio of a capture: `--dpr` (`flag`), else the sidecar's `device_scale_factor`, else
+ * the PNG width over the CSS width of its file name. Throws when the PNG is not that many times
+ * wider than its CSS width, or the ratio is outside 1 to 4.
+ */
+export function captureRatio({ flag, doc, cssWidth, pngWidth, file }) {
+  const raw = flag ?? doc?.device_scale_factor ?? pngWidth / cssWidth;
+  const dpr = Number(raw);
+  if (!Number.isFinite(dpr) || dpr < 1 || dpr > 4) {
+    throw new Error(`${file}: device pixel ratio ${raw} is not between 1 and 4`);
+  }
+  if (Math.abs(pngWidth - cssWidth * dpr) > 0.5) {
+    throw new Error(
+      `${file}: PNG is ${pngWidth} px wide, not ${cssWidth} CSS px at ratio ${dpr} (${cssWidth * dpr})`,
+    );
+  }
+  return dpr;
+}
+
+/**
+ * The manifest variant for a burned PNG: `width` and `height` in CSS px, plus `png_width` and
+ * `png_height` in device px when the ratio is not 1.
+ */
+export function variantValue({ src, png, bytes, callouts, dpr }) {
+  const css = { width: Math.round(png.width / dpr), height: Math.round(png.height / dpr) };
+  return {
+    src,
+    ...css,
+    ...(dpr === 1 ? {} : { png_width: png.width, png_height: png.height }),
+    bytes,
+    callouts,
+  };
+}
+
+/**
+ * Phone chrome of a capture `size` (device px, `dpr` device px per CSS px, default 1): header and
+ * bottom nav bands of 56 CSS px; none from 900 CSS px wide.
+ */
+export function chromeBands({ width, height, dpr = 1 }) {
+  if (width / dpr >= 900) return [];
+  const bar = 56 * dpr;
   return [
-    { name: "the header", box: { x: 0, y: 0, width, height: 56 } },
-    { name: "the bottom nav", box: { x: 0, y: height - 56, width, height: 56 } },
+    { name: "the header", box: { x: 0, y: 0, width, height: bar } },
+    { name: "the bottom nav", box: { x: 0, y: height - bar, width, height: bar } },
   ];
 }
 
@@ -137,7 +175,7 @@ export function chromeBands({ width, height }) {
  * phone capture of `size`, the header and bottom nav bands. One line per problem, empty when
  * clean. Annotations are named by their index, else their position.
  */
-export function coverage(records, report, size = { width: 1280, height: 800 }) {
+export function coverage(records, report, size = { width: 1280, height: 800, dpr: 1 }) {
   const lines = [];
   const name = (i) => `caption ${records[i].index ?? i + 1}`;
   const bands = chromeBands(size);

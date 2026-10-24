@@ -3,7 +3,7 @@
 //
 //   node scripts/burn-trackxai.mjs --raw <dir> --out <dir> [--theme dark|light] [--locale en]
 //     [--widths 1280,390] [--screens progress,board] [--rename tokens=agent-tokens,...]
-//     [--manifest-in <manifest.json>] [--compare <dir>] [--webp]
+//     [--manifest-in <manifest.json>] [--compare <dir>] [--webp] [--dpr 2]
 //
 // `--raw` holds `<screen>.<locale>.<theme>.<width>.png` with a `.json` sidecar beside each
 // (schema trackxai/raw-capture-sidecar@1: `annotations[]` of burner records with `bounding_box`
@@ -28,6 +28,12 @@
 // 100 kB and smaller than the PNG; otherwise it removes the twin and prints a warning with both
 // sizes. Without `cwebp` on PATH the run stops before burning anything.
 //
+// `--dpr <n>` says the raws are device pixels (default: the sidecar's `device_scale_factor`, else
+// PNG width over the file name's CSS width). Sidecar boxes are read as PNG pixels, `display_width`
+// stays in CSS px (so `scale: "auto"` gives 2560/1100 and 780/350), the phone chrome bands grow
+// with the ratio, and a manifest entry keeps `width` and `height` in CSS px and adds
+// `png_width` and `png_height`.
+//
 // It reads the built viewer, so run `pnpm --filter @docsxai/viewer build` first.
 
 import { execFile, spawnSync } from "node:child_process";
@@ -49,6 +55,8 @@ import {
   parseRename,
   variantDir,
   cwebpArgs,
+  captureRatio,
+  variantValue,
   webpTwinPath,
   webpVerdict,
 } from "./burn-trackxai-plan.mjs";
@@ -107,6 +115,7 @@ async function main() {
       overrides: { type: "string" },
       "keep-superseded": { type: "boolean", default: false },
       webp: { type: "boolean", default: false },
+      dpr: { type: "string" },
     },
   });
   if (!values.raw || !values.out)
@@ -160,12 +169,21 @@ async function main() {
       : parsed.width < 900
         ? "auto"
         : "full";
+    const { pngDimensions } = await viewer("burn.js");
+    const dims = pngDimensions(png);
+    const dpr = captureRatio({
+      flag: values.dpr,
+      doc,
+      cssWidth: parsed.width,
+      pngWidth: dims.width,
+      file: name,
+    });
     const burned = await renderBurn({
       screenshotBuffer: png,
       annotations: records,
-      options: { theme: { ...theme, captionStyle }, warn: () => {} },
+      options: { theme: { ...theme, captionStyle }, pixelRatio: dpr, warn: () => {} },
     });
-    const shot = { width: parsed.width, height: doc.viewport?.height ?? 0 };
+    const shot = { width: dims.width, height: dims.height, dpr };
     for (const line of coverage(records, burned.report, shot)) {
       console.error(`check: ${name}: ${line}`);
     }
@@ -187,18 +205,16 @@ async function main() {
         if (twin) written.push(twin);
       }
     }
-    const { pngDimensions } = await viewer("burn.js");
-    const size = pngDimensions(burned.png);
     entries.push({
       screen,
       variant: `${parsed.locale}.${parsed.theme}.${parsed.width}`,
-      value: {
+      value: variantValue({
         src: `/screens/${dir}/${file}`,
-        width: size.width,
-        height: size.height,
+        png: pngDimensions(burned.png),
         bytes: burned.png.length,
         callouts,
-      },
+        dpr,
+      }),
     });
     if (values.compare) {
       const cmp = resolve(values.compare);
@@ -206,7 +222,7 @@ async function main() {
       const before = await renderBurn({
         screenshotBuffer: png,
         annotations: records,
-        options: { warn: () => {} },
+        options: { pixelRatio: dpr, warn: () => {} },
       });
       const stem = name.replace(/\.png$/, "");
       await writeFile(join(cmp, `before-${stem}.png`), before.png);
