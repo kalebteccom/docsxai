@@ -99,6 +99,15 @@ export async function buildStarlightSite(
 ): Promise<BuildStarlightSiteResult> {
   const astroBin = opts.astroBin ?? resolveAstroBin();
   const distDir = path.join(opts.siteDir, "dist");
+  if (!(await exists(opts.siteDir))) {
+    return {
+      ok: false,
+      distDir,
+      durationMs: 0,
+      stdout: "",
+      stderr: `site directory ${opts.siteDir} does not exist, so there is nothing to build; emit the site first\n`,
+    };
+  }
 
   // astro + @astrojs/starlight must resolve from siteDir; link our own installs when absent.
   const siteModules = path.join(opts.siteDir, "node_modules");
@@ -126,16 +135,19 @@ export async function buildStarlightSite(
   child.stdout.on("data", (d: Buffer) => (stdout += d.toString("utf8")));
   child.stderr.on("data", (d: Buffer) => (stderr += d.toString("utf8")));
 
+  const timeoutMs = opts.timeoutMs ?? 600_000;
   const code = await new Promise<number>((resolve) => {
     const timer = setTimeout(() => {
+      stderr += `astro build timed out after ${String(timeoutMs)} ms and was stopped\n`;
       child.kill("SIGKILL");
-    }, opts.timeoutMs ?? 600_000);
+    }, timeoutMs);
     child.on("close", (c) => {
       clearTimeout(timer);
       resolve(c ?? 1);
     });
-    child.on("error", () => {
+    child.on("error", (e) => {
       clearTimeout(timer);
+      stderr += `astro build could not start: ${e.message}\n`;
       resolve(1);
     });
   });
