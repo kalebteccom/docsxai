@@ -119,8 +119,26 @@ export function measureText(text: string, fontSize: number, metrics: FontMetrics
   return (units * fontSize) / metrics.unitsPerEm;
 }
 
+const GRAPHEMES = new Intl.Segmenter("und", { granularity: "grapheme" });
+/** Thai, Lao, Khmer and Myanmar write words without spaces; ICU's dictionary finds the breaks. */
+const NO_SPACES = /[\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+const WORDS = new Intl.Segmenter("th", { granularity: "word" });
+
 /**
- * Greedy word wrap to `maxWidth` px; words wider than the line are hard-broken by code point
+ * Pieces a word wider than the line may break between: dictionary words for scripts written
+ * without spaces, else user-perceived characters, so a vowel sign or a combining mark stays on its
+ * letter. A dictionary word that does not fit on its own splits into characters too.
+ */
+export function breakPieces(word: string, fits: (s: string) => boolean): string[] {
+  const graphemes = (s: string) => [...GRAPHEMES.segment(s)].map((g) => g.segment);
+  if (!NO_SPACES.test(word)) return graphemes(word);
+  return [...WORDS.segment(word)].flatMap((w) =>
+    fits(w.segment) ? [w.segment] : graphemes(w.segment),
+  );
+}
+
+/**
+ * Greedy word wrap to `maxWidth` px; words wider than the line are hard-broken by character
  * (the burner's analog of the overlay CSS `overflow-wrap: anywhere`). Whitespace collapses.
  */
 export function wrapText(
@@ -147,7 +165,7 @@ export function wrapText(
       continue;
     }
     let chunk = "";
-    for (const ch of word) {
+    for (const ch of breakPieces(word, fits)) {
       if (chunk && !fits(chunk + ch)) {
         lines.push(chunk);
         chunk = ch;

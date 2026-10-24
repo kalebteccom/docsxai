@@ -192,6 +192,15 @@ export function resolveBurnTheme(
     if (file === null) problems.push(`font: "${merged.fontFile}" is outside the workspace`);
     else merged.fontFile = file;
   }
+  if (merged.fontFallback !== undefined) {
+    merged.fontFallback = merged.fontFallback.flatMap((relative, i) => {
+      const file = workspaceFile(ctx.workspace, relative);
+      if (file === null)
+        problems.push(`font_fallback[${i}]: "${relative}" is outside the workspace`);
+      return file === null ? [] : [file];
+    });
+    if (merged.fontFallback.length === 0) delete merged.fontFallback;
+  }
   if (problems.length > 0) throw new BurnThemeError(source, problems);
   return merged;
 }

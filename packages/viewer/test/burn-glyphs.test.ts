@@ -136,13 +136,13 @@ describe("docsxai-viewer burn --strict-glyphs", () => {
   });
 
   it("burns and exits 0 with a warning without the flag", async () => {
-    await write("שלום עולם");
+    await write("ログインを押す");
     expect(await runViewerCli(["burn", tmp])).toBe(0);
-    expect(err).toMatch(/Hebrew/);
+    expect(err).toMatch(/Katakana/);
   });
 
   it("exits 1 with the flag and says how many captions", async () => {
-    await write("שלום עולם");
+    await write("ログインを押す");
     expect(await runViewerCli(["burn", tmp, "--strict-glyphs"])).toBe(1);
     expect(err).toMatch(/1 caption has characters the font can't draw/);
   });

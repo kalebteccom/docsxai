@@ -6,9 +6,9 @@
 // the Satori tree as a data-URI <img>, so the whole frame rasterises in a single resvg pass —
 // one encoder produces every output byte, there is no separate composite/re-encode step, and the
 // output is byte-stable across runs: Satori layout and resvg rasterisation are pure functions of
-// their inputs, the only font is the vendored Inter or the theme's own font file (system fonts are
-// not loaded), text becomes glyph paths inside the SVG, and resvg's PNG encoder writes no
-// timestamps.
+// their inputs, the fonts are the vendored Inter or the theme's own font file plus the fallback
+// chain of burn-fonts.ts (system fonts are not loaded), text becomes glyph paths inside the SVG, and
+// resvg's PNG encoder writes no timestamps.
 //
 // Placement reuses the interactive overlay's `placeCallout` (placement.ts) in screenshot pixel
 // space; text sizing uses the vendored font's own metrics (font-metrics.ts) instead of the
@@ -29,18 +29,25 @@ import {
   scaledTheme,
   type BurnTheme,
 } from "./burn-theme.js";
-import { loadThemeFont } from "./burn-theme-load.js";
 import { rgbaOf } from "./color.js";
-import { badgeNode, calloutNodes, calloutStyleOf, div, effectiveWeight } from "./burn-nodes.js";
+import { badgeNode, calloutNodes, calloutStyleOf, div } from "./burn-nodes.js";
 import { DOCK_MAX_SHARE, cleanObstacles, cornerBadge, dockMargin, haloBox } from "./burn-clean.js";
 import { planClean } from "./burn-clean-plan.js";
 import { LINE_GAP, LINE_MAX_DISTANCE, drawnStyle } from "./burn-line.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
-import { parseFontMetrics, type FontMetrics } from "./font-metrics.js";
+import type { FontMetrics } from "./font-metrics.js";
 import { glyphReport } from "./burn-glyphs.js";
+import { THEME_FONT_NAME, burnFonts } from "./burn-fonts.js";
 import { atBaseSize, checkPixelRatio, layoutAtScale, scaleRect } from "./burn-scale.js";
-import { badgeBox, badgeSize, keepClear, otherHalos, OUTSIDE_HALO_MARGIN } from "./burn-badge.js";
+import {
+  badgeBox,
+  badgeSize,
+  keepClear,
+  otherHalos,
+  OUTSIDE_HALO_MARGIN,
+  rtlCaption,
+} from "./burn-badge.js";
 import {
   layoutBoxes,
   layoutCallout,
@@ -125,9 +132,6 @@ export interface CalloutTrace {
   layout: CalloutLayout;
   scale: number;
 }
-
-/** Family name the theme's own font file is registered under in Satori. */
-const THEME_FONT_NAME = "ThemeFont";
 
 /**
  * Satori 0.62 sizes a box by its content (CSS `content-box`), where 0.33 sized it by its border box.
@@ -239,11 +243,12 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       ...badges.values(),
     ];
     const size = typeof ann.index === "number" ? badgeSize(ann.index, input.metrics) : null;
+    const rtl = rtlCaption(ann);
     const badge =
       size === null
         ? undefined
         : clean
-          ? cornerBadge(t, size, baseImage, blockers, prep)
+          ? cornerBadge(t, size, baseImage, blockers, prep, rtl)
           : ann.obstacles?.length
             ? planBadge({
                 image: baseImage,
@@ -251,8 +256,9 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
                 size,
                 obstacles: ann.obstacles,
                 avoid: blockers,
+                ...(rtl ? { rtl } : {}),
               })
-            : badgeBox(t, ann.index!, baseImage, input.metrics);
+            : badgeBox(t, ann.index!, baseImage, input.metrics, false, rtl);
     if (badge) badges.set(self, badge);
 
     let layout: CalloutLayout | null = null;
@@ -326,7 +332,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     const ownBadge =
       badge ??
       (badgeOnly && number !== null
-        ? cornerBadge(t, badgeSize(number, input.metrics), baseImage, blockers, prep)
+        ? cornerBadge(t, badgeSize(number, input.metrics), baseImage, blockers, prep, rtl)
         : undefined);
     if (ownBadge) badges.set(self, ownBadge);
     const realBadge = ownBadge ? scaleRect(ownBadge, f) : undefined;
@@ -356,16 +362,6 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     },
     children,
   );
-}
-
-const FONT_URL = new URL("../assets/fonts/inter-regular.ttf", import.meta.url);
-let fontCache: { data: Buffer; metrics: FontMetrics } | undefined;
-async function loadFont(): Promise<{ data: Buffer; metrics: FontMetrics }> {
-  if (!fontCache) {
-    const data = await fs.readFile(FONT_URL);
-    fontCache = { data, metrics: parseFontMetrics(data) };
-  }
-  return fontCache;
 }
 
 export interface BurnOptions {
@@ -412,9 +408,11 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
   }
   const { width, height } = pngDimensions(screenshot);
   const theme = input.options?.theme;
-  const themed = theme ? await loadThemeFont(theme) : undefined;
-  const font = themed ?? (await loadFont());
-  const fontName = themed ? THEME_FONT_NAME : "Inter";
+  // Only the fallbacks some caption draws with go to Satori, so a Latin burn keeps its bytes.
+  const { metrics, fonts } = await burnFonts(
+    theme,
+    input.annotations.map((a) => a.copy ?? ""),
+  );
   const report: AnnotationReport[] = [];
   const hasConnector = input.annotations.some((a) => a.copy && a.bounding_box);
   const pixels =
@@ -424,7 +422,7 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
   const tree = buildBurnTree({
     image: { width, height, dataUri: `data:image/png;base64,${screenshot.toString("base64")}` },
     annotations: input.annotations,
-    metrics: font.metrics,
+    metrics,
     report,
     ...(theme ? { theme } : {}),
     ...(pixels ? { pixels } : {}),
@@ -437,14 +435,7 @@ export async function renderBurn(input: BurnInput): Promise<BurnRender> {
   const svg = await satori(withBorderBox(tree), {
     width,
     height,
-    fonts: [
-      {
-        name: fontName,
-        data: font.data,
-        weight: (theme ? effectiveWeight(theme) : 400) as 400 | 600,
-        style: "normal",
-      },
-    ],
+    fonts,
   });
   const png = new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng();
   return { png, report };

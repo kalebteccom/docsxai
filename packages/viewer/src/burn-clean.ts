@@ -242,7 +242,8 @@ export function cleanObstacles(
  * The badge of the clean look: diagonally off one of the target's corners, {@link BADGE_GAP} px
  * from it, never on the target and never detached. Corners are tried top-left, top-right,
  * bottom-left, bottom-right, then beside the middle of the left and right edges, then inside the
- * target's top-left corner; the first inside the image and clear of `blockers` wins, else
+ * target's top-left corner, with left and right swapped when `rtl` (a right-to-left caption); the
+ * first inside the image and clear of `blockers` wins, else
  * the one covering least. The badge stays fully inside the image, `insets` px from its edges: a
  * corner past them slides back in along that edge, still next to the target.
  */
@@ -252,11 +253,13 @@ export function cornerBadge(
   image: Size,
   blockers: Rect[],
   prep: Pick<CleanPrep, "badgeObstacles" | "insets"> = { badgeObstacles: [] },
+  rtl = false,
 ): Rect {
   const all = [...prep.badgeObstacles, ...blockers];
   const insets = prep.insets ?? { side: 0, edge: 0 };
   const g = BADGE_GAP;
   const xs = [target.x - size.width - g, target.x + target.width + g];
+  if (rtl) xs.reverse();
   const ys = [target.y - size.height - g, target.y + target.height + g];
   const corners = [
     { x: xs[0]!, y: ys[0]! },
@@ -269,7 +272,8 @@ export function cornerBadge(
   corners.push({ x: xs[0]!, y: midY, ...size }, { x: xs[1]!, y: midY, ...size });
   // Last resort: inside the target's top-left padding, when the target is big enough to hold it.
   if (target.width >= size.width + 8 && target.height >= size.height + 8) {
-    corners.push({ x: target.x + 4, y: target.y + 4, ...size, inside: true });
+    const x = rtl ? target.x + target.width - size.width - 4 : target.x + 4;
+    corners.push({ x, y: target.y + 4, ...size, inside: true });
   }
   const within = (v: number, lo: number, hi: number) =>
     lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v));

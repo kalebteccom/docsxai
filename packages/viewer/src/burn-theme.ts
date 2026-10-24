@@ -59,6 +59,11 @@ export interface BurnTheme {
   /** Absolute path of a TTF or OTF the callout text uses; null selects the bundled Inter. */
   fontFile: string | null;
   /**
+   * Absolute paths of TTF or OTF files tried, in order, for characters `fontFile` (or the bundled
+   * Inter) lacks, before the bundled Noto Sans Arabic, Hebrew, Thai and Devanagari. Absent: none.
+   */
+  fontFallback?: string[];
+  /**
    * Weight the callout text is set in, 400 or 600. The weight comes from the font file: the
    * bundled Inter ships regular only, so 600 needs a semibold `fontFile`.
    */
@@ -93,6 +98,10 @@ export interface BurnTheme {
   /** Screenshot width in px under which `displayWidthNarrow` applies; null means {@link NARROW_BELOW_DEFAULT}. */
   narrowBelow: number | null;
 }
+
+/** Weight the callout text is drawn in: the theme's, when its own font file can supply it. */
+export const effectiveWeight = (theme: BurnTheme): FontWeight =>
+  theme.fontFile !== null ? theme.fontWeight : 400;
 
 /** Screenshot width in px under which `displayWidthNarrow` applies when the config names no threshold. */
 export const NARROW_BELOW_DEFAULT = 900;
@@ -149,8 +158,11 @@ const PLAIN_SIZING = {
   narrowBelow: null,
 } as const;
 
-/** Every preset sets every field except `fontFile`, so a preset never inherits the default look. */
-export const THEME_PRESETS: Record<ThemePresetName, Required<Omit<BurnTheme, "fontFile">>> = {
+/** Every preset sets every field except `fontFile` and `fontFallback`, so a preset never inherits the default look. */
+export const THEME_PRESETS: Record<
+  ThemePresetName,
+  Required<Omit<BurnTheme, "fontFile" | "fontFallback">>
+> = {
   clean: {
     accent: "#2563eb",
     ink: "#111827",

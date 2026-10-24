@@ -232,6 +232,12 @@ describe("the mapping table", () => {
 
   it("leaves render settings with no default token path", () => {
     const bare = THEME_KEYS.filter((k) => (THEME_FIELDS[k] as ThemeField).token === undefined);
-    expect(bare).toEqual(["caption_style", "max_width_ratio", "scale", "display_width"]);
+    expect(bare).toEqual([
+      "font_fallback",
+      "caption_style",
+      "max_width_ratio",
+      "scale",
+      "display_width",
+    ]);
   });
 });

@@ -230,6 +230,7 @@ describe("validation", () => {
       "padding_x",
       "padding_y",
       "font",
+      "font_fallback",
       "font_weight",
       "connector_style",
       "caption_style",
@@ -238,11 +239,12 @@ describe("validation", () => {
       "scale",
       "display_width",
     ]);
-    // render-only keys (max_width_ratio, scale, display_width) have no default token path
+    // font_fallback and the render-only keys (caption_style, max_width_ratio, scale,
+    // display_width) have no default token path
     const tokens = THEME_KEYS.map((k) => (THEME_FIELDS[k] as { token?: string }).token).filter(
       (t): t is string => t !== undefined,
     );
-    expect(tokens).toHaveLength(THEME_KEYS.length - 4);
+    expect(tokens).toHaveLength(THEME_KEYS.length - 5);
     expect(new Set(tokens).size).toBe(tokens.length);
   });
 });

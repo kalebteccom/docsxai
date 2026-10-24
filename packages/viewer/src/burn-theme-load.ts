@@ -27,10 +27,8 @@ export interface ThemeFont {
   metrics: FontMetrics;
 }
 
-/** The theme's font file, read and measured; undefined when the theme uses the bundled Inter. */
-export async function loadThemeFont(theme: BurnTheme): Promise<ThemeFont | undefined> {
-  const file = theme.fontFile;
-  if (file === null) return undefined;
+/** Reads and measures a TTF or OTF the theme names under `key` (`font`, `font_fallback`). */
+export async function readFontFile(file: string, key = "font"): Promise<ThemeFont> {
   let data: Buffer;
   try {
     data = await readRegularFile(file, MAX_FONT_BYTES);
@@ -38,20 +36,25 @@ export async function loadThemeFont(theme: BurnTheme): Promise<ThemeFont | undef
     const missing = (e as NodeJS.ErrnoException).code === "ENOENT";
     throw new Error(
       missing
-        ? `burn.theme font ${file} does not exist`
-        : `burn.theme font: ${(e as Error).message}`,
+        ? `burn.theme ${key} ${file} does not exist`
+        : `burn.theme ${key}: ${(e as Error).message}`,
     );
   }
   if (data.length < 12 || !SFNT_VERSIONS.has(data.readUInt32BE(0))) {
     throw new Error(
-      `burn.theme font ${file} is not a TrueType or OpenType font (collections and WOFF files are not supported)`,
+      `burn.theme ${key} ${file} is not a TrueType or OpenType font (collections and WOFF files are not supported)`,
     );
   }
   try {
     return { data, metrics: parseFontMetrics(data) };
   } catch (e) {
-    throw new Error(`burn.theme font ${file} cannot be measured: ${(e as Error).message}`);
+    throw new Error(`burn.theme ${key} ${file} cannot be measured: ${(e as Error).message}`);
   }
+}
+
+/** The theme's font file, read and measured; undefined when the theme uses the bundled Inter. */
+export async function loadThemeFont(theme: BurnTheme): Promise<ThemeFont | undefined> {
+  return theme.fontFile === null ? undefined : readFontFile(theme.fontFile);
 }
 
 async function readTokens(workspace: string, from: string): Promise<TokenLeaves> {
@@ -123,6 +126,7 @@ export async function loadBurnTheme(workspace: string): Promise<LoadedTheme | un
   const tokens = parsed.from !== undefined ? await readTokens(workspace, parsed.from) : undefined;
   const theme = resolveBurnTheme(parsed, { workspace, ...(tokens ? { tokens } : {}) }, SOURCE);
   await loadThemeFont(theme);
+  for (const file of theme.fontFallback ?? []) await readFontFile(file, "font_fallback");
   return { theme, warnings: [...contrastWarnings(theme), ...weightWarnings(theme)] };
 }
 
