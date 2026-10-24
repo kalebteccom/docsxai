@@ -6,6 +6,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Added
 
+- **`docsxai run --device-scale-factor <1-4>` captures at 2x or more.** Also read from `DOCSX_DEVICE_SCALE_FACTOR` when the flag is absent; default 1 leaves output byte-identical. `annotations.json` gets `device_scale_factor` above 1, its boxes and obstacles are in the PNG's device pixels, and `docsxai burn` takes its pixel ratio from the file
 - **`scripts/burn-trackxai.mjs --dpr` burns 2x captures; the viewer burn takes `pixelRatio`.** Raws in device pixels (ratio from `--dpr`, the sidecar's `device_scale_factor`, or PNG width over file-name width) burn with `display_width` in CSS px, so `scale: "auto"` gives 2.33 at 2560 px and 2.23 at 780 px. The phone header, bottom nav and floating button bands, side margins, text floors and the pixel text search scale with the ratio, and manifest entries keep `width` and `height` in CSS px and add `png_width` and `png_height`
 - **`docsxai-viewer <command> --help` and `-h` print that command's usage.** `build`, `burn`, `site` and `pack` show their usage lines and flag notes and exit 0, as `docsxai help <command>` does; `docsxai-viewer --help` and `-h` print the full help and exit 0. An unknown flag still exits 2
 - **`scripts/burn-trackxai.mjs --webp` writes a lossless WebP twin beside each new PNG.** It runs `cwebp -lossless -z 9`, keeps a twin only when it is under 100 kB and smaller than the PNG, and prints a warning with both sizes when it drops one. Without `cwebp` on `PATH` it stops with an install hint

@@ -215,7 +215,7 @@ A row is CHECK when the caption covers listed text or the phone header or nav, t
 
 A portrait capture under 900 px wide is treated as a phone screen. Its top 56 px (the header), bottom 56 px (the nav bar), the floating action button above the nav bar's right end (76 by 80 px) and a 16 px strip on each side are content. Captions stay off them, and badges stay off the header, nav bar and button. A caption docks 64 px from the top or bottom edge, under the header or above the nav bar. On a screenshot under 900 px wide the smaller text step is compact: 16 px lines for the 14 px text, 4 px of vertical padding and 8 px of horizontal padding.
 
-Those sizes are CSS px. A 2x capture (780 by 1688 px for a 390 by 844 viewport) is burned with the `pixelRatio` option set to 2 (`scripts/burn-trackxai.mjs --dpr 2`): the width classes and `display_width` read the CSS width (`780 / 2`), the bands, margins, text floors and the pixel text search double, and `scale: "auto"` still gives `780 / display_width`. Sidecar boxes are in the PNG's own pixels.
+Those sizes are CSS px. A 2x capture (780 by 1688 px for a 390 by 844 viewport) is burned with the `pixelRatio` option set to 2 (`scripts/burn-trackxai.mjs --dpr 2`): the width classes and `display_width` read the CSS width (`780 / 2`), the bands, margins, text floors and the pixel text search double, and `scale: "auto"` still gives `780 / display_width`. Sidecar boxes are in the PNG's own pixels. `docsxai burn` sets `pixelRatio` from the `device_scale_factor` that `docsxai run --device-scale-factor` writes into `annotations.json`, so a workspace captured at 2x needs no flag.
 
 ## Line breaks
 
