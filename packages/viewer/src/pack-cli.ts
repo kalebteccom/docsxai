@@ -17,7 +17,7 @@ import { reportFailure, withNext } from "./cli-failure.js";
 export const PACK_SYNOPSIS = `  docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
   docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]`;
 
-export const PACK_DETAILS = `  pack — build the screenshot pack: burn annotations, optimise losslessly, hash-name, write manifest.json
+export const PACK_DETAILS = `  pack, build the screenshot pack: burn annotations, optimise losslessly, hash-name, write manifest.json
     <dir>            a workspace (has docs/ and pack.json) or a raw capture directory
                      (<flow>/<step>/<locale>.<theme>.<viewport>.png + .json, step.json, flow.json)
     --from-raw       read <dir> as a raw capture even when it has a docs/ directory
@@ -26,7 +26,7 @@ export const PACK_DETAILS = `  pack — build the screenshot pack: burn annotati
     --no-optimise    skip oxipng; without this flag oxipng must be installed
     --generated-for  free text recorded as generated_for (a commit sha, a build id); omitted when unset
 
-  pack --check — rebuild in memory and compare with a committed pack
+  pack --check: rebuild in memory and compare with a committed pack
     --against        the committed pack directory (manifest.json and the PNGs)
     --threshold      percent of changed pixels a variant may differ by (default ${DEFAULT_THRESHOLD_PCT});
                      a resized, new or missing variant always fails

@@ -134,7 +134,7 @@ describe("--concurrency worker pool", () => {
 
   it("records a throw that escapes a flow as that flow's failure and finishes the rest", async () => {
     const r = await run(["a", "b", "c"], 2, false, (line) => {
-      if (line.includes("b — starting")) throw new Error("progress sink closed");
+      if (line.includes("b, starting")) throw new Error("progress sink closed");
     });
     expect(r.okCount).toBe(2);
     expect(r.failures).toEqual([{ flow: "b", step: null, message: "progress sink closed" }]);

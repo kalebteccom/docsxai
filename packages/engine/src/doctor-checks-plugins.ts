@@ -67,7 +67,7 @@ export async function checkPlugins(workspaceDir: string): Promise<DoctorCheck[]>
     checks.push({
       name: "plugins",
       ok: false,
-      detail: `${PLUGINS_LOCK_FILE} missing (${cfg.sources.length} plugin(s) configured — no reproducibility pin)`,
+      detail: `${PLUGINS_LOCK_FILE} missing (${cfg.sources.length} plugin(s) configured, no reproducibility pin)`,
       fix: `docsxai plugins sync ${shellQuote(workspaceDir)}`,
     });
   }
@@ -98,7 +98,7 @@ export async function checkPlugins(workspaceDir: string): Promise<DoctorCheck[]>
     const prior = namespaceOwner.get(ns);
     if (prior) {
       issues.push({
-        detail: `${c.name} namespace "${ns}" already claimed by ${prior} — neither will load`,
+        detail: `${c.name} namespace "${ns}" already claimed by ${prior}, neither will load`,
         fix: "namespaces are unique across the configured set; rename one",
       });
     } else {

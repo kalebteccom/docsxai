@@ -186,7 +186,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       warn(
         original.bounding_box
           ? `burn: annotation "${original.selector}" on step "${original.step}": ${fit.skip}, skipped`
-          : `burn: annotation on step "${original.step}" has no bounding_box — skipped`,
+          : `burn: annotation on step "${original.step}" has no bounding_box, skipped`,
       );
       input.report?.push(skippedReport(original, fit.skip));
       continue;

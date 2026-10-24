@@ -18,7 +18,9 @@ vi.mock("../src/playwright-driver.js", () => ({
       page: {
         goto: () =>
           Promise.reject(
-            new Error("page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:"),
+            new Error(
+              "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:",
+            ),
           ),
         url: () => "chrome-error://chromewebdata/",
         title: () => Promise.resolve(""),
@@ -54,7 +56,9 @@ afterEach(async () => {
 describe("inspect when the page does not load", () => {
   it("exits 1 and names the URL and the next step", async () => {
     const ws = path.join(tmp, "ws");
-    expect(await main(["init", ws, "--app-url", "http://localhost:3000", "--auth", "none"])).toBe(0);
+    expect(await main(["init", ws, "--app-url", "http://localhost:3000", "--auth", "none"])).toBe(
+      0,
+    );
     out = "";
     err = "";
     expect(await main(["inspect", ws])).toBe(1);

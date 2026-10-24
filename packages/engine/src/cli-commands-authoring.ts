@@ -137,7 +137,7 @@ export async function cmdInspect(args: string[]): Promise<number> {
       if (loadError) {
         process.stderr.write(
           `inspect: ${withNext(
-            describePageLoad((loadError as Error).message, url),
+            describePageLoad(loadError.message, url),
             `start the app, then docsxai inspect ${shellQuote(workspaceDir)}`,
           )}\n`,
         );
@@ -175,7 +175,7 @@ export async function cmdInspect(args: string[]): Promise<number> {
         )
         .catch(() => [] as Array<{ testid: string; tag: string; text: string; visible: boolean }>);
       process.stdout.write(
-        `  ${items.length} [data-testid] element(s) (✓ = visible) — pin these as locators:\n`,
+        `  ${items.length} [data-testid] element(s) (✓ = visible), pin these as locators:\n`,
       );
       for (const it of items) {
         process.stdout.write(
@@ -187,7 +187,7 @@ export async function cmdInspect(args: string[]): Promise<number> {
       );
     }
     if (headed && !cdp) {
-      process.stdout.write("inspect: browser is open — close it to exit.\n");
+      process.stdout.write("inspect: browser is open, close it to exit.\n");
       await waitForBrowserClose(session.browser);
     }
     return 0;

@@ -51,7 +51,7 @@ export async function cmdRender(args: string[]): Promise<number> {
   const code = await runViewerBin("render", ["build", docsDir, outDir]);
   if (code === 0) {
     process.stdout.write(
-      `render: open ${path.join(outDir, "index.html")}  (the index links the flows; each flow page shows the screenshots — hover a pulsing halo to read its callout)\n`,
+      `render: open ${path.join(outDir, "index.html")}  (the index links the flows; each flow page shows the screenshots, hover a pulsing halo to read its callout)\n`,
     );
   }
   return code;

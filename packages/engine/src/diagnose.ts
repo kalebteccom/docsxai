@@ -75,7 +75,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
         {
           kind: "selector",
           rationale:
-            "Selector matches 0 elements on the live page — the element was renamed, moved, or removed.",
+            "Selector matches 0 elements on the live page, the element was renamed, moved, or removed.",
           suggestion:
             "Re-discover the element via the calibration loop (browxai's `find()`, or `docsxai inspect`). Pick a new canonical locator and commit it as the step's `target` (or update the named entry in the flow's `locators:` block). If the element is only sometimes there, declare that instead: `optional: true` with a short `timeout_ms` (e.g. 1500) skips a miss in seconds, not after the full 30 s default.",
         },
@@ -85,9 +85,9 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
         {
           kind: "selector",
           rationale:
-            "Selector matches multiple DOM nodes — strict-mode violation territory; one of them is likely a hidden duplicate.",
+            "Selector matches multiple DOM nodes, strict-mode violation territory; one of them is likely a hidden duplicate.",
           suggestion:
-            "Scope the selector: append `:visible`, use `:nth-match(<sel>, 1)`, or add a stable qualifier (parent class, `:has-text(...)`). Avoid silently picking one — the duplicate signal usually means the locator isn't specific enough.",
+            "Scope the selector: append `:visible`, use `:nth-match(<sel>, 1)`, or add a stable qualifier (parent class, `:has-text(...)`). Avoid silently picking one, the duplicate signal usually means the locator isn't specific enough.",
         },
       ];
     case "disabled":
@@ -96,7 +96,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
           kind: "investigate",
           rationale: "Selector resolves to a single visible element that is `disabled`.",
           suggestion:
-            "Check whether the action is appropriate for the target state — sometimes a UI element is intentionally disabled (clip-driven inputs, gated controls). The doc may need to describe the disabled-state behaviour rather than trying to act on the element. If unexpected, the disabled state itself is a product-side question.",
+            "Check whether the action is appropriate for the target state, sometimes a UI element is intentionally disabled (clip-driven inputs, gated controls). The doc may need to describe the disabled-state behaviour rather than trying to act on the element. If unexpected, the disabled state itself is a product-side question.",
         },
       ];
     case "detached":
@@ -104,7 +104,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
         {
           kind: "annotation_target",
           rationale:
-            "Selector resolved but the element isn't attached to the DOM any more — usually unmounted by the action itself (the step's action transitions the UI, and the original target is gone in the post-action state).",
+            "Selector resolved but the element isn't attached to the DOM any more, usually unmounted by the action itself (the step's action transitions the UI, and the original target is gone in the post-action state).",
           suggestion:
             "Set the annotation's `target` to a different element that survives the transition (an element in the resulting state). The action's `target` stays the same; only the annotation anchor moves.",
         },
@@ -116,7 +116,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
           rationale:
             "Selector resolves to a single element but it's hidden (`display: none` / `visibility: hidden` / zero-size).",
           suggestion:
-            "Add (or strengthen) `wait_for: { selector: <sel>, timeout_ms: <ms> }` to give the element time to become visible. If it's permanently hidden, the locator probably moved — re-discover.",
+            "Add (or strengthen) `wait_for: { selector: <sel>, timeout_ms: <ms> }` to give the element time to become visible. If it's permanently hidden, the locator probably moved, re-discover.",
         },
       ];
     case "off-screen":
@@ -126,7 +126,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
           rationale:
             "Selector resolves to a CSS-visible element but it's outside the viewport, and Playwright's auto-scroll didn't reach it.",
           suggestion:
-            "Insert a scroll-into-view step before the action (or pick a parent element that's in the viewport). Off-screen elements inside `overflow: auto` containers are usually fine — this state means the page scroll is the issue, not a scroller.",
+            "Insert a scroll-into-view step before the action (or pick a parent element that's in the viewport). Off-screen elements inside `overflow: auto` containers are usually fine, this state means the page scroll is the issue, not a scroller.",
         },
       ];
     case "covered":
@@ -134,7 +134,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
         {
           kind: "split_step",
           rationale:
-            "Another element receives clicks at this element's center — likely a modal, overlay, or tooltip covering the target.",
+            "Another element receives clicks at this element's center, likely a modal, overlay, or tooltip covering the target.",
           suggestion:
             "Insert a step to dismiss the covering element (close button, click outside, ESC key), then act on the original target.",
         },
@@ -151,7 +151,7 @@ export function recommendStatic(
   if (halt.screenshotRelPath) {
     recs.push({
       kind: "investigate",
-      rationale: `A halt screenshot exists at \`${halt.screenshotRelPath}\` — read it first; on most halts the visual state shows the issue immediately.`,
+      rationale: `A halt screenshot exists at \`${halt.screenshotRelPath}\`, read it first; on most halts the visual state shows the issue immediately.`,
       suggestion: "Open the screenshot; compare the visual state to what the step expects.",
     });
   }
@@ -169,7 +169,7 @@ export function recommendStatic(
     recs.push({
       kind: "success",
       rationale:
-        "Success criterion uses `text_contains` — fragile against UI copy changes / localisation drift.",
+        "Success criterion uses `text_contains`, fragile against UI copy changes / localisation drift.",
       suggestion:
         "Verify the expected text still appears in the post-action state. If the text changed, update it; if the text shifted to a different element, change the success selector. Where stable, a structural criterion (visible/hidden element, url_matches) is more drift-resistant.",
     });
@@ -320,7 +320,7 @@ export function formatReportText(r: DiagnoseReport): string {
   if (r.halt.screenshotRelPath) {
     out += `Halt artifacts:\n  screenshot: ${r.halt.screenshotRelPath}\n\n`;
   } else {
-    out += `Halt artifacts:\n  (no halt screenshot found at the expected path — run hasn't halted on this step recently, or screenshots are disabled)\n\n`;
+    out += `Halt artifacts:\n  (no halt screenshot found at the expected path, run hasn't halted on this step recently, or screenshots are disabled)\n\n`;
   }
   if (r.live) {
     out += `Live probe (via ${r.live.cdpEndpoint}):\n`;

@@ -110,7 +110,7 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
 
   try {
     process.stdout.write(
-      `capture-auth: launching browser for role "${role}" (${roleAuth.strategy})${cdp ? ` — attaching to ${cdp}` : profileDir ? " — reusing saved profile if present" : " — fresh profile"}; log in if prompted, then trigger capture…\n`,
+      `capture-auth: launching browser for role "${role}" (${roleAuth.strategy})${cdp ? `, attaching to ${cdp}` : profileDir ? ", reusing saved profile if present" : ", fresh profile"}; log in if prompted, then trigger capture…\n`,
     );
     const result = await strategy.authenticate({ creds, options: roleAuth.options, baseURL, role });
 

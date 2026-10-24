@@ -33,7 +33,7 @@ export interface ReadmeOptions {
 export function workspaceReadme(cfg: WorkspaceConfig, opts: ReadmeOptions): string {
   const login = opts.auth === "manual-capture";
   const authLine = login
-    ? "- `auth/strategy.yaml` — how execution authenticates to the app\n- `.auth/<role>.json` — captured session(s) (gitignored; never committed; never leaves this machine)"
+    ? "- `auth/strategy.yaml`, how execution authenticates to the app\n- `.auth/<role>.json`, captured session(s) (gitignored; never committed; never leaves this machine)"
     : "- no `auth/` descriptor: this workspace was made with `--auth none`, so flows run without a login";
   const steps = [
     "docsxai doctor .           # check Node, Chromium, this config and app_url reachability",
@@ -48,14 +48,14 @@ export function workspaceReadme(cfg: WorkspaceConfig, opts: ReadmeOptions): stri
   ];
   return `# docsxai workspace
 
-This directory is a **docsxai workspace** — it holds the doc pack for one running app:
+This directory is a **docsxai workspace**, it holds the doc pack for one running app:
 
-- \`flows/<flow>.flow.yaml\` — hand-editable flow-files (the source of truth for execution)
+- \`flows/<flow>.flow.yaml\`, hand-editable flow-files (the source of truth for execution)
 - \`${SAMPLE_FLOW_PATH}\`: a sample flow-file to copy from (ignored until calibrated)
-- \`docs/<flow>/{annotations.json, screenshots/, <step>.md}\`, \`docs/{style.yaml, locators.yaml}\` — the generated docs
+- \`docs/<flow>/{annotations.json, screenshots/, <step>.md}\`, \`docs/{style.yaml, locators.yaml}\`, the generated docs
 ${authLine}
-- \`.viewer/\` — the generated interactive viewer (gitignored)
-- \`${opts.configFile}\` — workspace config (\`app_url${cfg.app_url ? ` = ${cfg.app_url}` : ""}\`, \`ignore_https_errors = ${!!cfg.ignore_https_errors}\`)
+- \`.viewer/\`, the generated interactive viewer (gitignored)
+- \`${opts.configFile}\`, workspace config (\`app_url${cfg.app_url ? ` = ${cfg.app_url}` : ""}\`, \`ignore_https_errors = ${!!cfg.ignore_https_errors}\`)
 
 **Do NOT place this directory inside the app's source repo.** docsxai documents the *running* app from outside;
 keeping the workspace separate is what guarantees zero traces in the app repo.

@@ -14,11 +14,11 @@ export function usageLines(usage: string, command: string): string[] {
     .map((l) => l.trim());
 }
 
-/** The flag notes of `command` in `usage`: the blocks that open `  <command> — ` or `  <command> --`. */
+/** The flag notes of `command` in `usage`: the blocks that open `  <command>: ` or `  <command> --`. */
 function notes(usage: string, command: string): string[] {
   return usage
     .split("\n\n")
-    .filter((b) => b.startsWith(`  ${command} — `) || b.startsWith(`  ${command} --`))
+    .filter((b) => b.startsWith(`  ${command}: `) || b.startsWith(`  ${command} --`))
     .map((b) => b.trimEnd());
 }
 

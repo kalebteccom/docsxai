@@ -227,7 +227,7 @@ export async function cmdPush(args: string[]): Promise<number> {
         client,
       );
       process.stdout.write(
-        `push: screenshots — ${uploaded} blob(s) uploaded, ${skipped} already on the backend\n`,
+        `push: screenshots, ${uploaded} blob(s) uploaded, ${skipped} already on the backend\n`,
       );
     }
     let pushed = 0;
@@ -240,7 +240,7 @@ export async function cmdPush(args: string[]): Promise<number> {
     }
     await client.finalizeRevision(binding.wsId, binding.projectId, rev.id);
     process.stdout.write(
-      `push: revision ${sanitizeForTerminal(rev.id)} (${kindArg}, ${sanitizeForTerminal(author)}) on ${redactUrl(wsCfg.backend_url)} — ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded, finalized\n`,
+      `push: revision ${sanitizeForTerminal(rev.id)} (${kindArg}, ${sanitizeForTerminal(author)}) on ${redactUrl(wsCfg.backend_url)}, ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded, finalized\n`,
     );
     return 0;
   } catch (e) {
@@ -307,7 +307,7 @@ export async function cmdPull(args: string[]): Promise<number> {
     for (const artifact of rev.artifacts) {
       if (!KNOWN_ARTIFACTS.includes(artifact)) {
         process.stderr.write(
-          `pull: warning — revision lists the artifact ${JSON.stringify(sanitizeForTerminal(String(artifact)))}, which this docsxai does not know; skipped\n`,
+          `pull: warning, revision lists the artifact ${JSON.stringify(sanitizeForTerminal(String(artifact)))}, which this docsxai does not know; skipped\n`,
         );
         continue;
       }
@@ -325,7 +325,7 @@ export async function cmdPull(args: string[]): Promise<number> {
       : undefined;
     const r = await writeDocPack(projectDir, payloads, screenshotBytes ? { screenshotBytes } : {});
     process.stdout.write(
-      `pull: revision ${sanitizeForTerminal(rev.id)} (${sanitizeForTerminal(rev.kind)}, ${sanitizeForTerminal(rev.author)}) — wrote ${r.filesWritten} file(s) to ${sanitizeForTerminal(projectDir)}\n`,
+      `pull: revision ${sanitizeForTerminal(rev.id)} (${sanitizeForTerminal(rev.kind)}, ${sanitizeForTerminal(rev.author)}), wrote ${r.filesWritten} file(s) to ${sanitizeForTerminal(projectDir)}\n`,
     );
     return 0;
   } catch (e) {

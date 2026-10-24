@@ -23,7 +23,7 @@ import { parseCommandFlags } from "./cli-flags.js";
 import type { PluginRecord } from "./plugins/registry.js";
 import { resolvePlugins, resolvePluginSources } from "./plugins/runtime.js";
 
-const PLUGINS_USAGE = `docsxai plugins — workspace plugin runtime
+const PLUGINS_USAGE = `docsxai plugins: workspace plugin runtime
 
 Usage:
   docsxai plugins list <workspace-dir> [--format text|json]
@@ -37,7 +37,7 @@ Notes:
   • list resolves and loads the declared set, then prints every plugin's status (loaded, or the
     disabled/error reason). Exit 1 if any declared plugin is not loaded.
   • sync pins each plugin's register-module sha256 into ${PLUGINS_LOCK_FILE} next to the config.
-    When the lock exists, every resolve verifies the bytes before importing — a changed module
+    When the lock exists, every resolve verifies the bytes before importing, a changed module
     fails closed until you re-run sync. sync itself never executes plugin code.
 `;
 
@@ -131,7 +131,7 @@ async function cmdSync(workspaceDir: string, format: "text" | "json"): Promise<n
       continue;
     }
     const ns = r.candidate.manifest.namespace;
-    const reason = `namespace "${ns}" is claimed by more than one configured plugin — cannot lock`;
+    const reason = `namespace "${ns}" is claimed by more than one configured plugin, so it cannot be locked`;
     const firstSource = claimed.get(ns);
     if (firstSource !== undefined) {
       // The first claimant was locked before this one showed up: take it back out, once.

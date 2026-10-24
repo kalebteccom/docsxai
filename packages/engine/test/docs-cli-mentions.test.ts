@@ -163,7 +163,7 @@ describe("the extractor", () => {
     "",
     "```",
     "$ docsxai run ws --flow a",
-    "docsxai doctor — environment & workspace health",
+    "docsxai doctor: environment & workspace health",
     "```",
     "",
     "```json",

@@ -42,7 +42,7 @@ export async function oauthLogin(opts: OAuthLoginOptions): Promise<BackendTokenF
       return;
     }
     res.writeHead(200, { "content-type": "text/plain" });
-    res.end("docsxai login complete — you can close this tab.\n");
+    res.end("docsxai login complete, you can close this tab.\n");
     resolveCode(gotCode);
   });
 
