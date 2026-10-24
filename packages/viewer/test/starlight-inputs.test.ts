@@ -118,3 +118,21 @@ describe("what the site is asked to include", () => {
     expect(r.warnings).toContain('flow "a" step "s": no screenshot');
   });
 });
+
+describe("the site title", () => {
+  it("falls back to the default for a blank title", async () => {
+    await flow("a", [ann("s")], ["s.png"]);
+    const r = await emit({ title: "   " });
+    expect(r.title).toBe("Documentation");
+    expect(await fs.readFile(path.join(site(), "src/content/docs/index.mdx"), "utf8")).toContain(
+      'title: "Documentation"',
+    );
+  });
+
+  it("turns line breaks and other control characters into spaces in the front matter", async () => {
+    await flow("a", [ann("s")], ["s.png"]);
+    await emit({ title: "One\r\nTwo Three\u0007" });
+    const index = await fs.readFile(path.join(site(), "src/content/docs/index.mdx"), "utf8");
+    expect(index).toContain('title: "One Two Three"');
+  });
+});

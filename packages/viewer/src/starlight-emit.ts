@@ -398,7 +398,8 @@ export async function emitStarlightSite(
   const logoRel = logoSrc !== null ? `src/assets/logo${path.extname(logoSrc) || ".png"}` : null;
 
   const ui = uiStrings(config.lang);
-  const title = config.title ?? ui.siteTitle;
+  // Line breaks and other control characters would break the front matter; a blank title is none.
+  const title = (config.title ?? "").replace(/[\p{Cc}\u2028\u2029]+/gu, " ").trim() || ui.siteTitle;
 
   const slugs = flowSlugs(flows, warnings);
   const flowPages: Array<{ flow: string; slug: string; steps: StepPage[] }> = [];
