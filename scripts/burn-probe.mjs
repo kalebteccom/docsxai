@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Burn one raw screenshot with its annotations and print where each callout went and why: the side
 // asked for and the side taken, every side's best score, the obstacles the callout, arrow, stem
-// and badge touch, and how the connector is painted. For checking side hints against a real
+// and badge touch, and how the connector is painted (triangle ink, fill or outline, or the line and its colour). For checking side hints against a real
 // capture before committing them.
 //
 //   node scripts/burn-probe.mjs --screenshot raw.png --annotations raw.json \
@@ -69,14 +69,25 @@ async function metricsFor(theme) {
   return parseFontMetrics(await readFile(resolve(DIST, "../assets/fonts/inter-regular.ttf")));
 }
 
-/** How the connector of a real-size layout is painted on these pixels: ink, fill or outline. */
+/**
+ * How the connector of a real-size layout is painted on these pixels: ink, fill or outline for the
+ * triangle, `line <colour>` or `chevron <colour>` for the thin line.
+ */
 function paintOf(layout, pixels, theme, mods, themed) {
   const { layoutBoxes } = mods.callout;
-  const { connectorPaint, toneOf, CONNECTOR_HALO } = mods.contrast;
+  const { connectorPaint, toneOf, CONNECTOR_HALO, averageHex } = mods.contrast;
   const { connectorColor, DEFAULT_BURN_THEME } = mods.theme;
   const boxes = layoutBoxes(layout).slice(1);
   if (boxes.length === 0) return "none";
   const t = theme ?? DEFAULT_BURN_THEME;
+  const style = mods.line.drawnStyle(t.connectorStyle, themed);
+  if (style !== "arrow") {
+    const stroke = mods.line.LINE_STROKE * mods.scale;
+    const path = mods.line.linePath(layout, t.radius * mods.scale + stroke);
+    if (!path) return "none";
+    const under = averageHex(pixels, mods.line.pathBoxes(path, stroke));
+    return `${style} ${mods.line.lineColor(mods.theme.scaledTheme(t, mods.scale), under)}`;
+  }
   const grow = CONNECTOR_HALO * mods.scale;
   const grown = boxes.map((b) => ({
     x: b.x - grow,
@@ -119,6 +130,7 @@ async function main() {
   const mods = {
     callout: await viewer("burn-callout.js"),
     contrast: await viewer("connector-contrast.js"),
+    line: await viewer("burn-line.js"),
     theme: await viewer("burn-theme.js"),
   };
   const { layoutAtScale } = await viewer("burn-scale.js");
