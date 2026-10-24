@@ -12,26 +12,36 @@ export const THEMES = ["dark", "light"];
 export const WIDTHS = [1280, 390];
 /** Viewports up to this width get the 390 px files. Matches brand.css's phone breakpoint. */
 export const PHONE_MEDIA = "(max-width: 34rem)";
+/** Pixel density of each width's files: phones get 2x files, shown at the CSS width. */
+export const DENSITY = { 1280: 1, 390: 2 };
 /** Lossless WebP twins must stay under this, and under their PNG. */
 export const MAX_BYTES = 100_000;
 
-const NAME = /^(pipeline|terminal)-(dark|light)-(\d+)\.([0-9a-f]{8})\.(png|webp)$/;
+const NAME = /^(pipeline|terminal)-(dark|light)-(\d+)(x2)?\.([0-9a-f]{8})\.(png|webp)$/;
 
-/** `<shot>-<theme>-<width>.<hash8>.<ext>`. */
-export function assetName(shot, theme, width, hash, ext) {
+/** `<shot>-<theme>-<width>.<hash8>.<ext>`; a 2x file is `<width>x2`, `width` its CSS width. */
+export function assetName(shot, theme, width, hash, ext, density = 1) {
   if (!SHOTS.includes(shot)) throw new Error(`unknown shot "${shot}"`);
   if (!THEMES.includes(theme)) throw new Error(`unknown theme "${theme}"`);
   if (!WIDTHS.includes(width)) throw new Error(`unknown width ${width}`);
   if (!/^[0-9a-f]{8}$/.test(hash)) throw new Error(`hash must be 8 hex digits, got "${hash}"`);
   if (ext !== "png" && ext !== "webp") throw new Error(`ext must be png or webp, got "${ext}"`);
-  return `${shot}-${theme}-${width}.${hash}.${ext}`;
+  if (density !== 1 && density !== 2) throw new Error(`density must be 1 or 2, got ${density}`);
+  return `${shot}-${theme}-${width}${density === 2 ? "x2" : ""}.${hash}.${ext}`;
 }
 
 /** An asset name split up; null for any other file. */
 export function parseAssetName(name) {
   const m = NAME.exec(name);
   if (!m) return null;
-  return { shot: m[1], theme: m[2], width: Number(m[3]), hash: m[4], ext: m[5] };
+  return {
+    shot: m[1],
+    theme: m[2],
+    width: Number(m[3]),
+    density: m[4] ? 2 : 1,
+    hash: m[5],
+    ext: m[6],
+  };
 }
 
 /** Files in the output folder that look like ours but are not in `keep`: the previous run's. */
@@ -125,6 +135,29 @@ export function runTranscript(workspace, units) {
 }
 
 /**
+ * The same facts as runTranscript on one row per unit, for a phone: no `run:` prefix, no flow
+ * name, no starting lines, and a variant id such as `en-US.dark.mobile-390` as `en-US dark 390`.
+ */
+export function compactTranscript(workspace, units) {
+  if (units.length === 0) throw new Error("compactTranscript needs at least one unit");
+  const lines = units.map((u) => {
+    const name = u.variant ? shortVariant(u.variant) : u.flow;
+    return `ok ${name} — ${u.steps} steps, ${u.annotations} annotations`;
+  });
+  const noun = units.some((u) => u.variant) ? "flow variants" : "flows";
+  const unit = units.length === 1 ? noun.replace(/s$/, "") : noun;
+  lines.push(`${units.length} of ${units.length} ${unit} ok`);
+  lines.push(`outputs in ${workspace.replace(/\/+$/, "")}/docs`);
+  return lines;
+}
+
+/** `en-US.dark.mobile-390` as `en-US dark 390`; an id of another shape is returned as it is. */
+export function shortVariant(id) {
+  const m = /^([^.]+)\.([^.]+)\.[^.]*?-?(\d+)$/.exec(id);
+  return m ? `${m[1]} ${m[2]} ${m[3]}` : id;
+}
+
+/**
  * `line` cut into rows of at most `cols` characters for a monospace font, breaking at spaces
  * where it can; continuation rows start with `indent` spaces. A word longer than a row is cut.
  */
@@ -149,13 +182,16 @@ export function wrapMono(line, cols, indent = 2) {
  * The <picture> of one shot in one theme: a phone WebP and PNG under PHONE_MEDIA, then the
  * desktop WebP, then the desktop PNG as the <img>. Each source carries its own width and height
  * so the browser reserves the right box before the file arrives. `files` maps `<width>.<ext>` to
- * `{ name, width, height }`; `base` is the public URL folder.
+ * `{ name, width, height, density? }`, `width` and `height` in CSS pixels; a file of density 2 gets
+ * a `2x` descriptor. `base` is the public URL folder.
  */
 export function pictureFor(files, base) {
   const at = (key) => {
     const f = files[key];
     if (!f) throw new Error(`pictureFor: no ${key} file`);
-    return { srcset: `${base}/${f.name}`, width: f.width, height: f.height };
+    const url = `${base}/${f.name}`;
+    const srcset = f.density > 1 ? `${url} ${f.density}x` : url;
+    return { srcset, width: f.width, height: f.height };
   };
   return {
     sources: [

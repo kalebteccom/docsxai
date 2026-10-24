@@ -13,10 +13,15 @@
 // landing-showcase-plan.mjs); the step counts come from the expanded flow files and the
 // annotation counts from each variant's docs/<flow>/<variant>/annotations.json.
 //
+// The 1280 files are 1x. The 390 files are 2x: 780 px wide, shown at 390 CSS px, named
+// `<shot>-<theme>-390x2.<hash8>.<ext>` and offered with a `2x` srcset descriptor. The 390 pipeline
+// enlarges a 390 px capture, so its screenshots are softer than its labels; the terminal is
+// vector text. At 390 the terminal prints one short row per variant (compactTranscript).
+//
 // Each picture is drawn with satori and resvg (the viewer's dependencies), reduced to a 256-colour
 // palette with sharp (the website's), and twinned with `cwebp -lossless -z 9`. A PNG or WebP of
 // 100 kB or more, or a WebP no smaller than its PNG, stops the run. The files are named
-// `<shot>-<theme>-<width>.<hash8>.<ext>`, `<hash8>` from the PNG's SHA-256; files of an earlier
+// `<shot>-<theme>-<width>[x2].<hash8>.<ext>`, `<hash8>` from the PNG's SHA-256; files of an earlier
 // run that the new one does not write are removed. `<out>/manifest.json` lists each shot's
 // <picture> sources for website/src/components/ShowcaseShot.astro.
 //
@@ -33,10 +38,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 import { cwebpArgs } from "./burn-trackxai-plan.mjs";
 import {
+  DENSITY,
   MAX_BYTES,
   THEMES,
   WIDTHS,
   assetName,
+  compactTranscript,
   contentHash,
   pictureFor,
   pipelineLayout,
@@ -191,7 +198,7 @@ function pipelineTree({ width, theme, raw, burned, rawSize }) {
 function terminalTree({ width, theme, command, lines }) {
   const c = TERM[theme];
   const wide = width === 1280;
-  const fontSize = wide ? 19 : 11;
+  const fontSize = wide ? 19 : 13;
   const lineHeight = Math.round(fontSize * 1.6);
   const pad = wide ? 28 : 14;
   const bar = wide ? 46 : 32;
@@ -273,7 +280,7 @@ function terminalTree({ width, theme, command, lines }) {
               alignItems: "center",
               justifyContent: "center",
               color: c.muted,
-              fontSize: wide ? 15 : 11,
+              fontSize: wide ? 15 : 12,
             },
             "docsxai run",
           ),
@@ -334,7 +341,10 @@ async function main() {
   const fontList = await fonts();
   const units = await runUnits(workspace);
   const command = `docsxai run ${basename(workspace)}`;
-  const lines = runTranscript(basename(workspace), units);
+  const lines = {
+    1280: runTranscript(basename(workspace), units),
+    390: compactTranscript(basename(workspace), units),
+  };
 
   const tmp = await mkdtemp(join(tmpdir(), "landing-showcase-"));
   const written = [];
@@ -346,14 +356,20 @@ async function main() {
     await mkdir(out, { recursive: true });
 
     const draw = async (shot, theme, width, { size, tree }) => {
+      const density = DENSITY[width];
       const svg = await satori(tree, { ...size, fonts: fontList });
-      const rendered = new Resvg(svg, { font: { loadSystemFonts: false } }).render().asPng();
+      const rendered = new Resvg(svg, {
+        font: { loadSystemFonts: false },
+        fitTo: { mode: "width", value: size.width * density },
+      })
+        .render()
+        .asPng();
       const png = await sharp(rendered)
         .png({ palette: true, colors: 256, dither: 0.6, effort: 10, compressionLevel: 9 })
         .toBuffer();
       const hash = contentHash(png);
-      const pngName = assetName(shot, theme, width, hash, "png");
-      const webpName = assetName(shot, theme, width, hash, "webp");
+      const pngName = assetName(shot, theme, width, hash, "png", density);
+      const webpName = assetName(shot, theme, width, hash, "webp", density);
       await writeFile(join(out, pngName), png);
       await promisify(execFile)("cwebp", cwebpArgs(join(out, pngName), join(out, webpName)));
       const webp = await readFile(join(out, webpName));
@@ -372,8 +388,9 @@ async function main() {
       written.push(pngName, webpName);
       const files = (manifest.shots[shot] ??= {});
       const entry = (files[theme] ??= {});
-      entry[`${width}.png`] = { name: pngName, ...size, bytes: png.length };
-      entry[`${width}.webp`] = { name: webpName, ...size, bytes: webp.length };
+      const pixels = { pixelWidth: size.width * density, pixelHeight: size.height * density };
+      entry[`${width}.png`] = { name: pngName, ...size, density, ...pixels, bytes: png.length };
+      entry[`${width}.webp`] = { name: webpName, ...size, density, ...pixels, bytes: webp.length };
     };
 
     for (const theme of THEMES) {
@@ -390,7 +407,12 @@ async function main() {
           width,
           pipelineTree({ width, theme, raw: rawPng, burned, rawSize }),
         );
-        await draw("terminal", theme, width, terminalTree({ width, theme, command, lines }));
+        await draw(
+          "terminal",
+          theme,
+          width,
+          terminalTree({ width, theme, command, lines: lines[width] }),
+        );
       }
     }
   } finally {

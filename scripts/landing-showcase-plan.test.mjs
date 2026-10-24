@@ -4,11 +4,13 @@ import { test } from "node:test";
 import {
   PHONE_MEDIA,
   assetName,
+  compactTranscript,
   contentHash,
   parseAssetName,
   pictureFor,
   pipelineLayout,
   runTranscript,
+  shortVariant,
   staleFiles,
   wrapMono,
 } from "./landing-showcase-plan.mjs";
@@ -20,9 +22,21 @@ test("asset names round-trip and reject anything off-plan", () => {
     shot: "pipeline",
     theme: "dark",
     width: 1280,
+    density: 1,
     hash: "0a1b2c3d",
     ext: "png",
   });
+  const phone = assetName("terminal", "light", 390, "0a1b2c3d", "webp", 2);
+  assert.equal(phone, "terminal-light-390x2.0a1b2c3d.webp");
+  assert.deepEqual(parseAssetName(phone), {
+    shot: "terminal",
+    theme: "light",
+    width: 390,
+    density: 2,
+    hash: "0a1b2c3d",
+    ext: "webp",
+  });
+  assert.throws(() => assetName("terminal", "light", 390, "0a1b2c3d", "webp", 3), /density/);
   assert.equal(parseAssetName("og.png"), null);
   assert.equal(parseAssetName("pipeline-dark-1280.0A1B2C3D.png"), null);
   assert.throws(() => assetName("hero", "dark", 1280, "0a1b2c3d", "png"), /unknown shot/);
@@ -91,6 +105,27 @@ test("the run transcript matches the engine's progress and summary lines", () =>
   assert.throws(() => runTranscript("w", []), /at least one/);
 });
 
+test("the compact transcript keeps the facts on one short row per variant", () => {
+  assert.equal(shortVariant("en-US.dark.mobile-390"), "en-US dark 390");
+  assert.equal(shortVariant("es-ES.light.desktop-1280"), "es-ES light 1280");
+  assert.equal(shortVariant("odd"), "odd");
+  const lines = compactTranscript("workspace/", [
+    { flow: "screens", variant: "en-US.dark.desktop-1280", steps: 61, annotations: 29 },
+    { flow: "screens", variant: "en-US.dark.mobile-390", steps: 53, annotations: 18 },
+  ]);
+  assert.deepEqual(lines, [
+    "ok en-US dark 1280 — 61 steps, 29 annotations",
+    "ok en-US dark 390 — 53 steps, 18 annotations",
+    "2 of 2 flow variants ok",
+    "outputs in workspace/docs",
+  ]);
+  assert.equal(
+    compactTranscript("w", [{ flow: "publish", variant: null, steps: 4, annotations: 3 }])[1],
+    "1 of 1 flow ok",
+  );
+  assert.throws(() => compactTranscript("w", []), /at least one/);
+});
+
 test("wrapMono breaks at spaces, indents continuations and keeps every character", () => {
   const line =
     "run: screens/en-US.light.desktop-1280 — 61 step(s) executed, 29 annotation(s) written";
@@ -103,14 +138,14 @@ test("wrapMono breaks at spaces, indents continuations and keeps every character
   assert.throws(() => wrapMono("x", 2, 2), /no room/);
 });
 
-test("pictureFor gives phones the 390 files and everyone else the 1280 ones", () => {
-  const f = (name, width, height) => ({ name, width, height });
+test("pictureFor gives phones the 2x 390 files and everyone else the 1280 ones", () => {
+  const f = (name, width, height, density = 1) => ({ name, width, height, density });
   const pic = pictureFor(
     {
       "1280.png": f("a-1280.png", 1280, 518),
       "1280.webp": f("a-1280.webp", 1280, 518),
-      "390.png": f("a-390.png", 390, 760),
-      "390.webp": f("a-390.webp", 390, 760),
+      "390.png": f("a-390x2.png", 390, 760, 2),
+      "390.webp": f("a-390x2.webp", 390, 760, 2),
     },
     "/showcase",
   );
@@ -118,14 +153,14 @@ test("pictureFor gives phones the 390 files and everyone else the 1280 ones", ()
     {
       media: PHONE_MEDIA,
       type: "image/webp",
-      srcset: "/showcase/a-390.webp",
+      srcset: "/showcase/a-390x2.webp 2x",
       width: 390,
       height: 760,
     },
     {
       media: PHONE_MEDIA,
       type: "image/png",
-      srcset: "/showcase/a-390.png",
+      srcset: "/showcase/a-390x2.png 2x",
       width: 390,
       height: 760,
     },

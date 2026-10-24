@@ -8,25 +8,37 @@
             "name": "pipeline-dark-1280.7eda72cb.png",
             "width": 1280,
             "height": 518,
+            "density": 1,
+            "pixelWidth": 1280,
+            "pixelHeight": 518,
             "bytes": 43393
           },
           "1280.webp": {
             "name": "pipeline-dark-1280.7eda72cb.webp",
             "width": 1280,
             "height": 518,
+            "density": 1,
+            "pixelWidth": 1280,
+            "pixelHeight": 518,
             "bytes": 36236
           },
           "390.png": {
-            "name": "pipeline-dark-390.6c366578.png",
+            "name": "pipeline-dark-390x2.8ca36bce.png",
             "width": 390,
             "height": 764,
-            "bytes": 27868
+            "density": 2,
+            "pixelWidth": 780,
+            "pixelHeight": 1528,
+            "bytes": 91782
           },
           "390.webp": {
-            "name": "pipeline-dark-390.6c366578.webp",
+            "name": "pipeline-dark-390x2.8ca36bce.webp",
             "width": 390,
             "height": 764,
-            "bytes": 13442
+            "density": 2,
+            "pixelWidth": 780,
+            "pixelHeight": 1528,
+            "bytes": 42300
           }
         },
         "picture": {
@@ -34,14 +46,14 @@
             {
               "media": "(max-width: 34rem)",
               "type": "image/webp",
-              "srcset": "/showcase/pipeline-dark-390.6c366578.webp",
+              "srcset": "/showcase/pipeline-dark-390x2.8ca36bce.webp 2x",
               "width": 390,
               "height": 764
             },
             {
               "media": "(max-width: 34rem)",
               "type": "image/png",
-              "srcset": "/showcase/pipeline-dark-390.6c366578.png",
+              "srcset": "/showcase/pipeline-dark-390x2.8ca36bce.png 2x",
               "width": 390,
               "height": 764
             },
@@ -65,25 +77,37 @@
             "name": "pipeline-light-1280.72f95ce5.png",
             "width": 1280,
             "height": 518,
+            "density": 1,
+            "pixelWidth": 1280,
+            "pixelHeight": 518,
             "bytes": 44777
           },
           "1280.webp": {
             "name": "pipeline-light-1280.72f95ce5.webp",
             "width": 1280,
             "height": 518,
+            "density": 1,
+            "pixelWidth": 1280,
+            "pixelHeight": 518,
             "bytes": 36738
           },
           "390.png": {
-            "name": "pipeline-light-390.e514c1ac.png",
+            "name": "pipeline-light-390x2.1d2ca556.png",
             "width": 390,
             "height": 764,
-            "bytes": 28477
+            "density": 2,
+            "pixelWidth": 780,
+            "pixelHeight": 1528,
+            "bytes": 92630
           },
           "390.webp": {
-            "name": "pipeline-light-390.e514c1ac.webp",
+            "name": "pipeline-light-390x2.1d2ca556.webp",
             "width": 390,
             "height": 764,
-            "bytes": 13730
+            "density": 2,
+            "pixelWidth": 780,
+            "pixelHeight": 1528,
+            "bytes": 42488
           }
         },
         "picture": {
@@ -91,14 +115,14 @@
             {
               "media": "(max-width: 34rem)",
               "type": "image/webp",
-              "srcset": "/showcase/pipeline-light-390.e514c1ac.webp",
+              "srcset": "/showcase/pipeline-light-390x2.1d2ca556.webp 2x",
               "width": 390,
               "height": 764
             },
             {
               "media": "(max-width: 34rem)",
               "type": "image/png",
-              "srcset": "/showcase/pipeline-light-390.e514c1ac.png",
+              "srcset": "/showcase/pipeline-light-390x2.1d2ca556.png 2x",
               "width": 390,
               "height": 764
             },
@@ -124,25 +148,37 @@
             "name": "terminal-dark-1280.75cd0a6b.png",
             "width": 1280,
             "height": 644,
+            "density": 1,
+            "pixelWidth": 1280,
+            "pixelHeight": 644,
             "bytes": 48181
           },
           "1280.webp": {
             "name": "terminal-dark-1280.75cd0a6b.webp",
             "width": 1280,
             "height": 644,
+            "density": 1,
+            "pixelWidth": 1280,
+            "pixelHeight": 644,
             "bytes": 14826
           },
           "390.png": {
-            "name": "terminal-dark-390.67786859.png",
+            "name": "terminal-dark-390x2.48b08401.png",
             "width": 390,
-            "height": 548,
-            "bytes": 10689
+            "height": 293,
+            "density": 2,
+            "pixelWidth": 780,
+            "pixelHeight": 586,
+            "bytes": 27429
           },
           "390.webp": {
-            "name": "terminal-dark-390.67786859.webp",
+            "name": "terminal-dark-390x2.48b08401.webp",
             "width": 390,
-            "height": 548,
-            "bytes": 6040
+            "height": 293,
+            "density": 2,
+            "pixelWidth": 780,
+            "pixelHeight": 586,
+            "bytes": 12412
           }
         },
         "picture": {
@@ -150,16 +186,16 @@
             {
               "media": "(max-width: 34rem)",
               "type": "image/webp",
-              "srcset": "/showcase/terminal-dark-390.67786859.webp",
+              "srcset": "/showcase/terminal-dark-390x2.48b08401.webp 2x",
               "width": 390,
-              "height": 548
+              "height": 293
             },
             {
               "media": "(max-width: 34rem)",
               "type": "image/png",
-              "srcset": "/showcase/terminal-dark-390.67786859.png",
+              "srcset": "/showcase/terminal-dark-390x2.48b08401.png 2x",
               "width": 390,
-              "height": 548
+              "height": 293
             },
             {
               "type": "image/webp",
@@ -181,25 +217,37 @@
             "name": "terminal-light-1280.f767c171.png",
             "width": 1280,
             "height": 644,
+            "density": 1,
+            "pixelWidth": 1280,
+            "pixelHeight": 644,
             "bytes": 48200
           },
           "1280.webp": {
             "name": "terminal-light-1280.f767c171.webp",
             "width": 1280,
             "height": 644,
+            "density": 1,
+            "pixelWidth": 1280,
+            "pixelHeight": 644,
             "bytes": 14856
           },
           "390.png": {
-            "name": "terminal-light-390.916ddb22.png",
+            "name": "terminal-light-390x2.d0b74724.png",
             "width": 390,
-            "height": 548,
-            "bytes": 10683
+            "height": 293,
+            "density": 2,
+            "pixelWidth": 780,
+            "pixelHeight": 586,
+            "bytes": 27440
           },
           "390.webp": {
-            "name": "terminal-light-390.916ddb22.webp",
+            "name": "terminal-light-390x2.d0b74724.webp",
             "width": 390,
-            "height": 548,
-            "bytes": 6042
+            "height": 293,
+            "density": 2,
+            "pixelWidth": 780,
+            "pixelHeight": 586,
+            "bytes": 12376
           }
         },
         "picture": {
@@ -207,16 +255,16 @@
             {
               "media": "(max-width: 34rem)",
               "type": "image/webp",
-              "srcset": "/showcase/terminal-light-390.916ddb22.webp",
+              "srcset": "/showcase/terminal-light-390x2.d0b74724.webp 2x",
               "width": 390,
-              "height": 548
+              "height": 293
             },
             {
               "media": "(max-width: 34rem)",
               "type": "image/png",
-              "srcset": "/showcase/terminal-light-390.916ddb22.png",
+              "srcset": "/showcase/terminal-light-390x2.d0b74724.png 2x",
               "width": 390,
-              "height": 548
+              "height": 293
             },
             {
               "type": "image/webp",

@@ -142,14 +142,16 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       shot="pipeline"
       alt="The same screenshot of the trackxai Progress page twice. The copy labelled raw is the plain capture. The copy labelled burned adds violet halos and numbered badges and, on wider screens, three callouts joined to their targets by thin lines: the bar splits every task by phase, open tasks group by epic, and a question waiting on you shows up in the task's timeline."
     >
-      The same capture, raw and burned with a caption theme. Caption themes are new in the next
-      release.
+      The same capture, raw and burned with a caption theme. Caption themes are on main and not in
+      0.3.0-rc.3.
     </ShowcaseShot>
     <ShowcaseShot
       shot="terminal"
-      alt="A terminal window titled docsxai run. The command docsxai run workspace replays the screens flow in eight variants: en-US and es-ES, light and dark, desktop 1280 and mobile 390. Each variant prints a starting line, then 61 or 53 steps executed and 29 or 18 annotations written. The last line reads: run: 8 of 8 flow variants ok, outputs in workspace/docs."
+      alt="A terminal window titled docsxai run, composed from the engine's real output format and the real trackxai flow counts, not a recorded session. The command docsxai run workspace replays the screens flow in eight variants: en-US and es-ES, light and dark, desktop 1280 and mobile 390. Each variant reports 61 or 53 steps and 29 or 18 annotations. The last lines say 8 of 8 flow variants ok, with outputs in workspace/docs. On phones the lines are shortened to one per variant."
     >
-      One flow file with a matrix, replayed in eight variants with no agent in the loop.
+      One flow file with a matrix, replayed in eight variants with no agent in the loop. The
+      terminal is composed from the engine's real output format and the real trackxai flow counts,
+      not a recorded session.
     </ShowcaseShot>
   </div>
 </div>
@@ -218,8 +220,8 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
         <code>display_width</code> takes a second width for narrow captures,
         so a phone capture and a desktop capture both read at 15 px. A themed
         burn joins each caption to its target with a 2 px line and can fall back
-        to a numbered badge where no clear spot exists. New in the next
-        release.
+        to a numbered badge where no clear spot exists. On main, coming in
+        the next prerelease.
         <a href="/guides/burn-theming/">Read the burn theming guide</a>
       </div>
     </div>
