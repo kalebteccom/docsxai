@@ -471,6 +471,28 @@ steps:
     expect(d.calls).toContain("click #after");
   });
 
+  it("stopAfter naming an optional step that fails still ends the run there", async () => {
+    const d = new FakeDriver();
+    d.visible.add("#after");
+    const flow = parseFlowFile(`
+name: f
+locators: { maybe_modal_ok: '#modal-ok', after: '#after' }
+steps:
+  - id: dismiss-optional-modal
+    action: click
+    target: $maybe_modal_ok
+    success: { visible: $maybe_modal_ok }
+    optional: true
+  - id: continue
+    action: click
+    target: $after
+    success: { visible: $after }
+`);
+    const r = await runFlow(flow, d, { captureDocs: false, stopAfter: "dismiss-optional-modal" });
+    expect(r.steps).toEqual([]);
+    expect(d.calls).not.toContain("click #after");
+  });
+
   it("an `upload` step calls driver.upload(selector, filePath) and requires `value`", async () => {
     const d = new FakeDriver();
     const flow = parseFlowFile(`

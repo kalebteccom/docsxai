@@ -200,15 +200,17 @@ import { PACK_DETAILS, PACK_SYNOPSIS, runPack } from "./pack-cli.js";
 const USAGE = `docsxai-viewer — static viewer generator
 
 Usage:
-  docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]...
+  docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]... [--lang <locale>]
   docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]
-  docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--flow <name>]...
+  docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--lang <locale>] [--flow <name>]...
 ${PACK_SYNOPSIS}
 
   build — emit the interactive HTML viewer
     <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md;
                 a flow that ran a matrix holds the same under <flow>/<variant>/, each variant a flow here)
     <out-dir>   where the generated viewer is written
+    --lang      locale of the text the pages add, e.g. es or es-ES (default: en; other tags give en);
+                a matrix variant flow (<flow>/<locale>.<scheme>.<viewport>) uses its own locale
 
   burn — bake annotations into the PNGs (for surfaces that can't run the viewer)
     <workspace>  a docsxai workspace (reads <workspace>/docs)
@@ -229,6 +231,8 @@ ${PACK_SYNOPSIS}
     --build      also run astro build (writes <out>/dist)
     --title      site title (default: "Documentation")
     --accent     accent hex color (overrides the style artifact's visual keys)
+    --lang       locale of the site, e.g. es or es-ES (default: en; other tags give en); sets
+                 Starlight's language and the text of the copy and retry components
     --flow       restrict to these flows (default: all flows with annotations.json)
 
 ${PACK_DETAILS}`;
@@ -239,6 +243,7 @@ interface ParsedArgs {
   out?: string;
   title?: string;
   accent?: string;
+  lang?: string;
   report?: string;
   maxOverlap?: number;
   plainConnectors: boolean;
@@ -247,7 +252,15 @@ interface ParsedArgs {
   error?: string;
 }
 
-const VALUED_FLAGS = ["--flow", "--out", "--title", "--accent", "--report", "--max-overlap"];
+const VALUED_FLAGS = [
+  "--flow",
+  "--out",
+  "--title",
+  "--accent",
+  "--lang",
+  "--report",
+  "--max-overlap",
+];
 
 function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = { positional: [], flows: [], plainConnectors: false, build: false };
@@ -261,6 +274,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       else if (a === "--out") parsed.out = value;
       else if (a === "--title") parsed.title = value;
       else if (a === "--accent") parsed.accent = value;
+      else if (a === "--lang") parsed.lang = value;
       else if (a === "--report") parsed.report = value;
       else parsed.maxOverlap = Number(value);
     } else if (a === "--no-connector-outline") parsed.plainConnectors = true;
@@ -305,6 +319,7 @@ async function runBuild(args: ParsedArgs): Promise<number> {
       docsDir,
       outDir,
       ...(args.flows.length ? { flows: args.flows } : {}),
+      ...(args.lang !== undefined ? { lang: args.lang } : {}),
       ...(theme ? { theme } : {}),
     });
     for (const w of r.warnings) process.stderr.write(`viewer: warning: ${w}\n`);
@@ -387,6 +402,7 @@ async function runSite(args: ParsedArgs): Promise<number> {
       config: {
         ...(args.title !== undefined ? { title: args.title } : {}),
         ...(args.accent !== undefined ? { accent: args.accent } : {}),
+        ...(args.lang !== undefined ? { lang: args.lang } : {}),
         ...(args.flows.length ? { flows: args.flows } : {}),
       },
     });

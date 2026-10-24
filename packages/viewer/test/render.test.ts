@@ -118,14 +118,15 @@ describe("buildViewer", () => {
     );
     const outDir = path.join(tmp, "out-unsafe-steps");
     const r = await buildViewer({ docsDir: docs, outDir });
-    expect(r.warnings).toHaveLength(5);
-    expect(r.warnings[0]).toBe(
-      'recap-open: step "../../secret" skipped: a step id cannot hold "/", "\\", "..", ":" or control characters, so rename it in the flow file and render again',
-    );
-    expect(r.warnings[4]).toContain('step "e\\u001bf" skipped');
+    const tail = `skipped: a step id cannot hold "/", "\\", "..", ":" or control characters, so rename it in the flow file and render again`;
+    const shown = ['"../../secret"', '"a/b"', '"c\\\\d"', '"x:y"', '"e\\u001bf"'];
+    expect(r.warnings).toEqual(shown.map((id) => `recap-open: step ${id} ${tail}`));
     const html = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
     expect(html).toContain('src="screenshots/open-sidebar.png"');
-    expect(html.match(/cannot be used as a file name/g)).toHaveLength(5);
+    // The notice text also sits once in the inlined UI string table, so count the rendered notices.
+    expect(
+      html.match(/class="shot-missing"[^>]*>This step's name cannot be used as a file name/g),
+    ).toHaveLength(5);
     expect(html).not.toContain("TOPSECRET");
     expect(html).not.toContain("secret.png");
     expect(html).not.toContain("copy for ../../secret");

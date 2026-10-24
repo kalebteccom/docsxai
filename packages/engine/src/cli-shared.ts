@@ -16,7 +16,16 @@ export function parseFlags(args: string[]): {
   const flags = new Map<string, string | true>();
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
+    if (a === "--") {
+      positionals.push(...args.slice(i + 1));
+      break;
+    }
     if (a.startsWith("--")) {
+      const eq = a.indexOf("=");
+      if (eq > 2) {
+        flags.set(a.slice(2, eq), a.slice(eq + 1));
+        continue;
+      }
       const key = a.slice(2);
       const next = args[i + 1];
       if (next !== undefined && !next.startsWith("--")) {
@@ -30,6 +39,14 @@ export function parseFlags(args: string[]): {
     }
   }
   return { positionals, flags };
+}
+
+/** The first of `names` given as a bare flag (`--flow` with nothing after it), or `undefined`. */
+export function flagMissingValue(
+  flags: Map<string, string | true>,
+  names: readonly string[],
+): string | undefined {
+  return names.find((n) => flags.get(n) === true);
 }
 
 export async function listFlowFiles(projectDir: string): Promise<string[]> {

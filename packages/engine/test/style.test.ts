@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_STYLE,
   formatJargonHitsText,
@@ -133,6 +133,30 @@ describe("scanWorkspaceForJargon", () => {
       path.join("docs", "f1", "verify.md"),
       path.join("docs", "f2", "close.md"),
     ]);
+  });
+
+  it("reports hits in flow and file name order whatever order the disk lists them in", async () => {
+    for (const flow of ["f2", "f1"]) {
+      await fs.mkdir(path.join(tmp, "docs", flow), { recursive: true });
+      await fs.writeFile(path.join(tmp, "docs", flow, "b.md"), "VERIFY it.\n", "utf8");
+      await fs.writeFile(path.join(tmp, "docs", flow, "a.md"), "VERIFY it.\n", "utf8");
+    }
+    const real = fs.readdir.bind(fs) as (...args: unknown[]) => Promise<unknown[]>;
+    const spy = vi
+      .spyOn(fs, "readdir")
+      .mockImplementation((async (...args: unknown[]) =>
+        [...(await real(...args))].reverse()) as never);
+    try {
+      const hits = await scanWorkspaceForJargon(tmp, DEFAULT_STYLE);
+      expect(hits.map((h) => h.file)).toEqual([
+        path.join("docs", "f1", "a.md"),
+        path.join("docs", "f1", "b.md"),
+        path.join("docs", "f2", "a.md"),
+        path.join("docs", "f2", "b.md"),
+      ]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("ignores non-.md files and non-directory entries", async () => {

@@ -195,6 +195,15 @@ describe("diffDocPacks", () => {
     });
   });
 
+  it("an unreadable screenshot is reported by its path", async () => {
+    const good = solidPng(10, 10, WHITE);
+    const a = await makePack({ screenshots: { "pay.png": good } });
+    const b = await makePack({ screenshots: { "pay.png": Buffer.from("not a png") } });
+    await expect(diffDocPacks(a, b)).rejects.toThrow(
+      /docs\/checkout\/screenshots\/pay\.png: not a readable PNG/,
+    );
+  });
+
   it("step add/remove/field-change matrix (id-keyed deltas)", async () => {
     const a = await makePack({});
     const b = await makePack({
@@ -550,5 +559,13 @@ describe("baseline + diff CLI", () => {
     out = "";
     expect(await main(["diff", ws, "--against", outDir])).toBe(0);
     expect(out).toMatch(/no drift detected/);
+  });
+
+  it("baseline --out pointing at the workspace is refused and leaves flows/ and docs/ alone", async () => {
+    const ws = await makePack({ prose: { "pay.md": "Pay.\n" } });
+    expect(await main(["baseline", ws, "--out", ws])).toBe(2);
+    expect(err).toMatch(/--out cannot be the workspace itself/);
+    await fs.access(path.join(ws, "flows", "checkout.flow.yaml"));
+    await fs.access(path.join(ws, "docs", "checkout", "pay.md"));
   });
 });

@@ -6,8 +6,6 @@
 // (or DOCSX_DATA_DIR) persists to disk via `FsStore`. Auth accepts the pre-issued bearer token
 // (DOCSX_TOKEN) and OAuth-2.1-issued access tokens (authorization-code + PKCE; see /v1/oauth/*).
 
-import { pathToFileURL } from "node:url";
-
 export * from "./api.js";
 export * from "./app-url.js";
 export * from "./store.js";
@@ -18,26 +16,43 @@ export * from "./runner.js";
 export * from "./strategy.js";
 export { createBackendStub, type BackendStubOptions } from "./server.js";
 
+import { CLI_USAGE, parseCliArgs } from "./cli-args.js";
+import { isMainModule } from "./main-module.js";
 import { createBackendStub } from "./server.js";
 
+const errorText = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
 export async function runBackendStubCli(argv: string[]): Promise<number> {
-  const portArg = argv.find((a) => /^--port=/.test(a))?.split("=")[1] ?? process.env.PORT ?? "4477";
-  const port = Number(portArg);
-  if (!Number.isInteger(port) || port < 0) {
-    process.stderr.write(`docsxai-backend: invalid port "${portArg}"\n`);
+  const parsed = parseCliArgs(argv, process.env);
+  if (!parsed.ok) {
+    process.stderr.write(`docsxai-backend: ${parsed.message}\n${CLI_USAGE}\n`);
     return 2;
   }
-  const dataDir =
-    argv
-      .find((a) => /^--data-dir=/.test(a))
-      ?.split("=")
-      .slice(1)
-      .join("=") ?? process.env.DOCSX_DATA_DIR;
-  const stub = createBackendStub({
-    ...(process.env.DOCSX_TOKEN ? { token: process.env.DOCSX_TOKEN } : {}),
-    ...(dataDir ? { dataDir } : {}),
-  });
-  const url = await stub.listen(port);
+  const { port, dataDir } = parsed;
+  let stub: ReturnType<typeof createBackendStub>;
+  try {
+    stub = createBackendStub({
+      ...(process.env.DOCSX_TOKEN ? { token: process.env.DOCSX_TOKEN } : {}),
+      ...(dataDir ? { dataDir } : {}),
+    });
+  } catch (e) {
+    process.stderr.write(`docsxai-backend: cannot use data dir "${dataDir}": ${errorText(e)}\n`);
+    return 1;
+  }
+  let url: string;
+  try {
+    url = await stub.listen(port);
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    const why =
+      code === "EADDRINUSE"
+        ? "the port is already in use, pick another with --port=<n>"
+        : code === "EACCES"
+          ? "permission denied for that port"
+          : errorText(e);
+    process.stderr.write(`docsxai-backend: cannot listen on 127.0.0.1:${port}: ${why}\n`);
+    return 1;
+  }
   process.stdout.write(
     `docsxai-backend listening on ${url}  (${dataDir ? `data dir: ${dataDir}` : "in-memory; not for production"})\n`,
   );
@@ -49,7 +64,7 @@ export async function runBackendStubCli(argv: string[]): Promise<number> {
   return 0; // long-lived
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   void runBackendStubCli(process.argv.slice(2)).then((code) => {
     if (code !== 0) process.exit(code);
   });

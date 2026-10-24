@@ -17,17 +17,24 @@ import * as path from "node:path";
 import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
 import { mixHex } from "./color.js";
 import { discoverFlows } from "./render.js";
-import { ANNOTATED_SHOT_ASTRO, COPY_ID_ASTRO } from "./starlight-components.js";
+import { annotatedShotAstro, copyIdAstro } from "./starlight-components.js";
 import { accentContrastWarnings } from "./starlight-contrast.js";
 import { SCROLLBARS_CSS, SCROLLBARS_CSS_PATH } from "./starlight-scrollbars.js";
+import { fmt, uiStrings, type UiStrings } from "./ui-strings.js";
 
 /** Exact versions pinned into the emitted site's package.json — verified to install + build. */
 export const ASTRO_VERSION = "7.3.5";
 export const STARLIGHT_VERSION = "0.41.2";
 
 export interface StarlightSiteConfig {
-  /** Site title. Default: `"Documentation"`. */
+  /** Site title. Default: `"Documentation"` (`"Documentación"` for a Spanish site). */
   title?: string;
+  /**
+   * Locale tag of the site (`es`, `es-ES`; unknown tags give English). It sets Starlight's own
+   * language, so its built-in labels follow, and the language of the text the components add.
+   * Default: English.
+   */
+  lang?: string;
   /** Accent color (`#rrggbb`); overrides the style artifact's `visual` accent keys. */
   accent?: string;
   /** Logo image path (absolute, or relative to the workspace); overrides `visual.logo`. */
@@ -198,7 +205,7 @@ interface StepPage {
   md: string | null;
 }
 
-function flowMdx(flow: string, steps: StepPage[]): string {
+function flowMdx(flow: string, steps: StepPage[], ui: UiStrings): string {
   const imports = [
     'import AnnotatedShot from "../../../components/AnnotatedShot.astro";',
     'import CopyId from "../../../components/CopyId.astro";',
@@ -228,7 +235,7 @@ title: ${yamlQuote(flow)}
 
 ${imports.join("\n")}
 
-<CopyId value={${JSON.stringify(flow)}} kind="flow id" />
+<CopyId value={${JSON.stringify(flow)}} kind="${ui.kinds["flow id"]}" />
 
 ${sections.join("\n\n")}
 `;
@@ -237,23 +244,23 @@ ${sections.join("\n\n")}
 function indexMdx(
   title: string,
   flows: Array<{ flow: string; steps: number; annotations: number }>,
+  ui: UiStrings,
 ): string {
+  const t = ui.index;
   const cards = flows
     .map((f) => {
-      const sub = `${String(f.steps)} step${f.steps === 1 ? "" : "s"}${
-        f.annotations
-          ? `, ${String(f.annotations)} annotation${f.annotations === 1 ? "" : "s"}`
-          : ""
-      }`;
+      const steps = fmt(f.steps === 1 ? t.stepOne : t.stepMany, { n: f.steps });
+      const anns = f.annotations
+        ? `, ${fmt(f.annotations === 1 ? t.annOne : t.annMany, { n: f.annotations })}`
+        : "";
+      const sub = steps + anns;
       return `  <LinkCard title=${JSON.stringify(f.flow)} href=${JSON.stringify(`/flows/${f.flow.toLowerCase()}/`)} description=${JSON.stringify(sub)} />`;
     })
     .join("\n");
-  const grid = flows.length
-    ? `<CardGrid>\n${cards}\n</CardGrid>`
-    : "_(no flows yet — run `docsxai run`, then re-emit the site)_";
+  const grid = flows.length ? `<CardGrid>\n${cards}\n</CardGrid>` : ui.site.noFlows;
   return `---
 title: ${yamlQuote(title)}
-description: ${yamlQuote("Step-by-step flows with annotated screenshots.")}
+description: ${yamlQuote(ui.site.description)}
 ---
 
 import { CardGrid, LinkCard } from "@astrojs/starlight/components";
@@ -267,9 +274,15 @@ function astroConfigMjs(opts: {
   accent: string | null;
   logoRel: string | null;
   flows: string[];
+  ui: UiStrings;
 }): string {
   const lines: string[] = [];
   lines.push(`      title: ${JSON.stringify(opts.title)},`);
+  // Starlight translates its own labels (skip link, search, table of contents) from the root locale's lang.
+  if (opts.ui.lang !== "en") {
+    const root = `{ label: ${JSON.stringify(opts.ui.langLabel)}, lang: ${JSON.stringify(opts.ui.lang)} }`;
+    lines.push(`      defaultLocale: "root",`, `      locales: { root: ${root} },`);
+  }
   if (opts.logoRel !== null) {
     lines.push(`      logo: { src: ${JSON.stringify(`./${opts.logoRel}`)} },`);
   }
@@ -285,7 +298,7 @@ function astroConfigMjs(opts: {
       )
       .join("\n");
     lines.push(
-      `      sidebar: [\n        {\n          label: "Flows",\n          items: [\n${items}\n          ],\n        },\n      ],`,
+      `      sidebar: [\n        {\n          label: ${JSON.stringify(opts.ui.site.flowsLabel)},\n          items: [\n${items}\n          ],\n        },\n      ],`,
     );
   }
   return `// @ts-check
@@ -401,7 +414,8 @@ export async function emitStarlightSite(
   }
   const logoRel = logoSrc !== null ? `src/assets/logo${path.extname(logoSrc) || ".png"}` : null;
 
-  const title = config.title ?? "Documentation";
+  const ui = uiStrings(config.lang);
+  const title = config.title ?? ui.siteTitle;
 
   // Collect per-flow steps (annotation order first, screenshot-filename fallback — mirrors render.ts).
   const flowPages: Array<{ flow: string; steps: StepPage[] }> = [];
@@ -445,10 +459,10 @@ export async function emitStarlightSite(
   textFiles.set("package.json", sitePackageJson());
   textFiles.set("tsconfig.json", SITE_TSCONFIG);
   textFiles.set(".gitignore", GITIGNORE);
-  textFiles.set("astro.config.mjs", astroConfigMjs({ title, accent, logoRel, flows }));
+  textFiles.set("astro.config.mjs", astroConfigMjs({ title, accent, logoRel, flows, ui }));
   textFiles.set("src/content.config.ts", CONTENT_CONFIG_TS);
-  textFiles.set("src/components/AnnotatedShot.astro", ANNOTATED_SHOT_ASTRO);
-  textFiles.set("src/components/CopyId.astro", COPY_ID_ASTRO);
+  textFiles.set("src/components/AnnotatedShot.astro", annotatedShotAstro(ui));
+  textFiles.set("src/components/CopyId.astro", copyIdAstro(ui));
   textFiles.set("public/favicon.svg", FAVICON_SVG);
   textFiles.set(SCROLLBARS_CSS_PATH, SCROLLBARS_CSS);
   if (accent !== null) textFiles.set("src/styles/theme.css", themeCss(accent));
@@ -461,10 +475,11 @@ export async function emitStarlightSite(
         steps: p.steps.length,
         annotations: p.steps.reduce((n, s) => n + s.items.length, 0),
       })),
+      ui,
     ),
   );
   for (const page of flowPages) {
-    textFiles.set(`src/content/docs/flows/${page.flow}.mdx`, flowMdx(page.flow, page.steps));
+    textFiles.set(`src/content/docs/flows/${page.flow}.mdx`, flowMdx(page.flow, page.steps, ui));
   }
 
   const copies = new Map<string, string>(); // rel dest → abs source

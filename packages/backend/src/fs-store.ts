@@ -32,6 +32,7 @@ import {
   type BackendStore,
   NotFoundError,
   RevisionFinalizedError,
+  RUN_HISTORY_LIMIT,
   type RunInput,
   sha256Hex,
   WEBHOOK_DELIVERY_MEMORY,
@@ -200,7 +201,10 @@ export class FsStore implements BackendStore {
       created_at: now(),
     };
     const runsPath = this.resolve("projects", projectId, "runs.json");
-    this.writeJson(runsPath, [...(this.readJson<RunRecord[]>(runsPath) ?? []), run]);
+    this.writeJson(
+      runsPath,
+      [...(this.readJson<RunRecord[]>(runsPath) ?? []), run].slice(-RUN_HISTORY_LIMIT),
+    );
     return run;
   }
   listRuns(wsId: string, projectId: string): RunRecord[] {
@@ -318,7 +322,11 @@ export class FsStore implements BackendStore {
     } catch {
       return undefined;
     }
-    return JSON.parse(text) as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch (e) {
+      throw new Error(`data file ${path.relative(this.root, p)} is not valid JSON`, { cause: e });
+    }
   }
 
   private readWorkspaces(): Workspace[] {

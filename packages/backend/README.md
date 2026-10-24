@@ -9,7 +9,7 @@ Authenticated service that persists doc packs (projects, revisions, flow-files, 
 - **`ROUTES`** in `src/api.ts` — the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators}`, plus run history, blobs, the auth-cache relay, and the OAuth endpoints. Versioned via the `Docsxai-Api-Version` header.
 - **Linear immutable revisions** — every `calibrate` / `run` / human edit creates a new revision with `id` / `parent_revision_id` / `kind` / `author` / `created_at`. No branches; concurrent-edit conflicts surface as failed pushes resolved via re-pull + re-edit.
 - **`createBackendStub({ token?, store?, dataDir? })`** — starts the server bound to loopback; used by the engine's integration tests and as the local dev backend.
-- **`docsxai-backend`** bin — the same server as a standalone process: `docsxai-backend --port=4477 --data-dir=~/.docsxai-data`.
+- **`docsxai-backend`** bin — the same server as a standalone process: `docsxai-backend --port=4477 --data-dir=~/.docsxai-data` (`--port 4477` works too). A missing flag value, a port outside 0-65535 or an unknown argument exits 2 with a usage line; a port already in use or an unusable data dir exits 1 with one line naming it.
 
 ## Persistence modes
 
@@ -33,7 +33,7 @@ auth-cache/<wsId>/<role>.json
 webhook-deliveries.json   ← replay guard: last 100 delivery ids
 ```
 
-Writes are atomic (tmp file + rename); reads always go to disk, so multiple processes pointed at one data dir stay consistent. Every path join is containment-guarded against the data root — traversal-shaped ids read as not-found and traversal-shaped writes throw.
+Each project keeps its newest 1000 run-history records (`RUN_HISTORY_LIMIT`); appending past that drops the oldest. Writes are atomic (tmp file + rename); reads always go to disk, so multiple processes pointed at one data dir stay consistent. Every path join is containment-guarded against the data root — traversal-shaped ids read as not-found and traversal-shaped writes throw.
 
 ## Blob protocol
 

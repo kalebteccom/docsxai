@@ -20,12 +20,13 @@ No egress: the manifest declares zero capabilities. Emission is deterministic an
 
 Passed as the renderer's `config`:
 
-| Key      | Required | Meaning                                                                            |
-| -------- | -------- | ---------------------------------------------------------------------------------- |
-| `title`  | no       | Site title. Default `"Documentation"`.                                             |
-| `accent` | no       | Accent hex color (`#rrggbb`); overrides the style artifact's `visual` accent keys. |
-| `logo`   | no       | Logo path (absolute, or relative to the workspace); overrides `visual.logo`.       |
-| `build`  | no       | `true` also runs `astro build` (writes `<outDir>/dist`); default emit-only.        |
+| Key      | Required | Meaning                                                                                               |
+| -------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| `title`  | no       | Site title. Default `"Documentation"`.                                                                |
+| `accent` | no       | Accent hex color (`#rrggbb`); overrides the style artifact's `visual` accent keys.                    |
+| `logo`   | no       | Logo path (absolute, or relative to the workspace); overrides `visual.logo`.                          |
+| `lang`   | no       | Site language, a locale tag: `es`, `es-ES` and `es_MX` give Spanish, any other tag English (default). |
+| `build`  | no       | `true` also runs `astro build` (writes `<outDir>/dist`); default emit-only.                           |
 
 The context's `flows` filter restricts the site to those flows; empty means all flows under `docs/`.
 

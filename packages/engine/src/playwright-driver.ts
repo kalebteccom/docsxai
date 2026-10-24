@@ -184,30 +184,36 @@ export async function launchPlaywrightSession(
     headless: !opts.headed,
     ...(opts.chromiumArgs ? { args: opts.chromiumArgs } : {}),
   });
-  // Playwright's `newContext({ storageState })` accepts the `{ cookies, origins }` object directly.
-  const context = await browser.newContext({
-    ...(opts.baseURL ? { baseURL: opts.baseURL } : {}),
-    ...(opts.storageState ? { storageState: opts.storageState } : {}),
-    ...(opts.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
-    ...(opts.environment ? environmentContextOptions(opts.environment) : {}),
-    ...((opts.contextOptions ?? {}) as BrowserContextOptions),
-    ...egressContextOptions(guard),
-  });
-  await installEgressGuard(context as unknown as GuardableContext, guard);
-  const page = await context.newPage();
-  await installClock(page, opts.environment);
-  const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".", opts.outputRoot);
-  return {
-    browser,
-    context,
-    page,
-    driver,
-    storageState: () => context.storageState(),
-    close: async () => {
-      await context.close().catch(() => {});
-      await browser.close().catch(() => {});
-    },
-  };
+  try {
+    // Playwright's `newContext({ storageState })` accepts the `{ cookies, origins }` object directly.
+    const context = await browser.newContext({
+      ...(opts.baseURL ? { baseURL: opts.baseURL } : {}),
+      ...(opts.storageState ? { storageState: opts.storageState } : {}),
+      ...(opts.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
+      ...(opts.environment ? environmentContextOptions(opts.environment) : {}),
+      ...((opts.contextOptions ?? {}) as BrowserContextOptions),
+      ...egressContextOptions(guard),
+    });
+    await installEgressGuard(context as unknown as GuardableContext, guard);
+    const page = await context.newPage();
+    await installClock(page, opts.environment);
+    const driver = new PlaywrightDriver(page, opts.docPackRoot ?? ".", opts.outputRoot);
+    return {
+      browser,
+      context,
+      page,
+      driver,
+      storageState: () => context.storageState(),
+      close: async () => {
+        await context.close().catch(() => {});
+        await browser.close().catch(() => {});
+      },
+    };
+  } catch (e) {
+    // The caller never receives the session, so nothing else would close this browser.
+    await browser.close().catch(() => {});
+    throw e;
+  }
 }
 
 export class PlaywrightDriver implements BrowserDriver {

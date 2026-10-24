@@ -18,6 +18,10 @@ import {
   type StepMove,
   type ViewerAction,
 } from "./viewer-keys.js";
+import { fmt, uiStrings } from "./ui-strings.js";
+
+// The page's own text in its language: markup and runtime pick the table from the same <html lang>.
+const ui = uiStrings(document.documentElement.lang);
 
 const SIDES: readonly string[] = ["top", "bottom", "left", "right"];
 
@@ -242,11 +246,14 @@ function watchShot(shot: HTMLElement): void {
     if (error) error.hidden = false;
     if (retry) {
       retry.removeAttribute("aria-disabled");
-      retry.textContent = "Retry";
+      retry.textContent = ui.shot.retry;
     }
     if (msg && tries > 0)
       msg.textContent =
-        "Still not loading after " + tries + (tries === 1 ? " try. " : " tries. ") + baseMsg;
+        ui.shot.stillPrefix +
+        tries +
+        (tries === 1 ? ui.shot.stillOne : ui.shot.stillMany) +
+        baseMsg;
   };
   img.addEventListener("load", () => {
     shot.classList.remove("is-loading", "is-broken");
@@ -257,9 +264,9 @@ function watchShot(shot: HTMLElement): void {
       if (msg) msg.textContent = baseMsg;
       if (retry) {
         retry.removeAttribute("aria-disabled");
-        retry.textContent = "Retry";
+        retry.textContent = ui.shot.retry;
       }
-      announce((img.getAttribute("alt") ?? "Screenshot") + " loaded.");
+      announce(fmt(ui.step.shotLoaded, { name: img.getAttribute("alt") ?? ui.step.shotName }));
       const step = shot.closest<HTMLElement>("section.step");
       if (hadFocus && step) step.focus({ preventScroll: true });
     }
@@ -272,7 +279,7 @@ function watchShot(shot: HTMLElement): void {
       retrying = true;
       tries += 1;
       retry.setAttribute("aria-disabled", "true");
-      retry.textContent = "Retrying\u2026";
+      retry.textContent = ui.shot.retrying;
       shot.classList.add("is-loading");
       img.src = src + (src.indexOf("?") >= 0 ? "&" : "?") + "retry=" + tries;
     });
@@ -288,7 +295,7 @@ function watchThumb(img: HTMLImageElement): void {
   const fail = () => {
     const box = document.createElement("div");
     box.className = "thumb-missing";
-    box.textContent = "This thumbnail could not be loaded. Open the flow to retry.";
+    box.textContent = ui.shot.thumbFailed;
     img.replaceWith(box);
   };
   img.addEventListener("error", fail);
@@ -297,7 +304,8 @@ function watchThumb(img: HTMLImageElement): void {
 
 // Copy buttons. The value is the button's data-copy. Without navigator.clipboard (an insecure
 // context, an old browser) or when the browser refuses, the id's text is selected and the button
-// reads "Press Ctrl+C". All three labels sit in one grid cell, so no state changes the width.
+// reads "Press Ctrl+C" (or the page language's label). All three labels sit in one grid cell, so no
+// state changes the width.
 const copyTimers = new Map<HTMLElement, number>();
 
 function selectText(el: unknown): void {
@@ -313,7 +321,7 @@ function showCopy(btn: HTMLElement, state: CopyState, ms: number): void {
   const kind = btn.getAttribute("data-kind") ?? "value";
   const value = btn.getAttribute("data-copy") ?? "";
   btn.setAttribute("data-state", state);
-  announce(copyAnnouncement(state, kind, value));
+  announce(copyAnnouncement(state, kind, value, ui));
   const old = copyTimers.get(btn);
   if (old !== undefined) window.clearTimeout(old);
   copyTimers.set(
@@ -355,7 +363,7 @@ function openShortcuts(): boolean {
   }
   d.open = true;
   if (summary) summary.focus();
-  announce("Keyboard shortcuts opened.");
+  announce(ui.shortcuts.opened);
   return true;
 }
 
@@ -389,7 +397,7 @@ function moveTo(move: StepMove): boolean {
   const live = document.getElementById("sd-live");
   const heading = el.querySelector("h2");
   if (live && heading)
-    live.textContent = stepAnnouncement(to, items.length, heading.textContent ?? "");
+    live.textContent = stepAnnouncement(to, items.length, heading.textContent ?? "", ui);
   return true;
 }
 

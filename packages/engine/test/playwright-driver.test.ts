@@ -11,7 +11,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { PNG } from "pngjs";
 import { chromium, type Page } from "playwright-core";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { launchPlaywrightSession, PlaywrightDriver } from "../src/playwright-driver.js";
 
 let chromiumAvailable = false;
@@ -39,6 +39,25 @@ describe("PlaywrightDriver.screenshot — capture options (bug 3: mid-transition
       expect(String(calls[0]!.path)).toMatch(/docs\/f\/screenshots\/s\.png$/);
     } finally {
       await fs.rm(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("launchPlaywrightSession, setup failure", () => {
+  it("closes the launched browser when the context cannot be created", async () => {
+    const close = vi.fn(async () => undefined);
+    const browser = {
+      newContext: async () => {
+        throw new Error("context refused");
+      },
+      close,
+    };
+    const launch = vi.spyOn(chromium, "launch").mockResolvedValue(browser as never);
+    try {
+      await expect(launchPlaywrightSession({})).rejects.toThrow("context refused");
+      expect(close).toHaveBeenCalledTimes(1);
+    } finally {
+      launch.mockRestore();
     }
   });
 });

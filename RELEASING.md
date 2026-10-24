@@ -78,7 +78,16 @@ If a run dies midway, approve or reject what it staged, then run the manual pipe
 
 `.woodpecker/release.yaml` sets `RELEASE_PUBLISH_MODE=stage`. The script runs `npm stage publish` (needs npm >= 11.15.0 and Node >= 22.14.0), which uploads each version without making it live. The secret `npm_publish_token` is a stage-only granular token ("Read and write (stage only)"); npm rejects a direct publish with it.
 
-After a run, the owner promotes each staged version from a machine with 2FA: `npm stage list <package>` for the ids, `npm stage approve <stage-id> --otp <code>` to go live, `npm stage reject <stage-id>` to drop one. A staged version is not on the registry, so a rerun with the same `RELEASE_TAG` tries to stage it again and npm refuses: approve or reject the earlier stage first.
+After a run, the owner promotes each staged version from a machine with 2FA: `npm stage list <package>` for the ids, `npm stage approve <stage-id> --otp <code>` to go live, `npm stage reject <stage-id>` to drop one.
+
+`scripts/release-approve.mjs` does the seven approvals in one command. Run it from a checkout on a machine logged into npm. It reads the package list and order from `scripts/release-publish.sh`, runs `npm stage list <package> --json` for each, and prints a table of package, version, stage id and status. It refuses to continue when a stage is missing, duplicated, on the wrong dist-tag or not `ready` (a stage still `validating`: wait and rerun). The default is a dry run that prints the `npm stage approve <stage-id> --otp <code>` commands in order and changes nothing:
+
+```sh
+node scripts/release-approve.mjs v0.3.0-rc.4
+node scripts/release-approve.mjs v0.3.0-rc.4 --approve
+```
+
+With `--approve` it asks for a fresh 2FA code before each package and passes it to npm through the child process environment, so it is not on a command line that `ps` shows. `--otp <code>` (repeatable, used in order, the last one reused) is the non-interactive form and does put the code in shell history and `ps`. It stops at the first failed approval and prints what is live and what is still staged; rerunning skips packages already live. At the end it checks `npm view <package>@<version> version` and the dist-tag for all seven. The script never reads or prints a token, never publishes, and never approves without a code. The manual commands above remain the fallback. A staged version is not on the registry, so a rerun with the same `RELEASE_TAG` tries to stage it again and npm refuses: approve or reject the earlier stage first.
 
 ## The bare `docsxai` package (meta-package)
 

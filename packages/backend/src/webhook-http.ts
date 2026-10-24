@@ -41,7 +41,7 @@ export async function handleGitHubWebhook(
   } catch {
     return sendJson(res, 400, { error: "bad_request", message: "invalid JSON payload" });
   }
-  const repo = (payload as { repository?: { full_name?: unknown } }).repository?.full_name;
+  const repo = (payload as { repository?: { full_name?: unknown } } | null)?.repository?.full_name;
   if (typeof repo !== "string" || !repo) {
     return sendJson(res, 400, {
       error: "bad_request",

@@ -21,7 +21,7 @@ export type SpawnLike = (
   options: { env?: NodeJS.ProcessEnv; cwd?: string },
 ) => Pick<ChildProcess, "stdout" | "stderr" | "on">;
 
-/** Spawn a process and capture exit code + combined output (capped at 64 KiB). */
+/** Spawn a process and capture exit code + combined output (the last 64 KiB). */
 export function spawnCapture(
   spawnImpl: SpawnLike,
   command: string,
@@ -41,8 +41,9 @@ export function spawnCapture(
     );
     let output = "";
     const cap = 64 * 1024;
+    // Keep the tail: the last line (the engine's summary) is the one callers read.
     const sink = (chunk: Buffer) => {
-      if (output.length < cap) output += chunk.toString("utf8");
+      output = (output + chunk.toString("utf8")).slice(-cap);
     };
     child.stdout?.on("data", sink);
     child.stderr?.on("data", sink);

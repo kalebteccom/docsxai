@@ -22,7 +22,7 @@ import { exportWorkspaceFlowsAsPlaywrightTests } from "./export/playwright-test.
 import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
-import { parseFlags } from "./cli-shared.js";
+import { flagMissingValue, parseFlags } from "./cli-shared.js";
 import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdRender(args: string[]): Promise<number> {
@@ -270,11 +270,19 @@ export async function cmdBaseline(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("baseline", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bare = flagMissingValue(flags, ["out"]);
+  if (bare) return usageError("baseline", `--${bare} needs a value`);
   const outFlag = flags.get("out");
   const outDir =
     typeof outFlag === "string"
       ? path.resolve(outFlag)
       : resolveWorkspacePath(projectDir, ".baseline");
+  if (outDir === path.resolve(projectDir)) {
+    return usageError(
+      "baseline",
+      "--out cannot be the workspace itself: a refresh clears <out>/flows and <out>/docs first",
+    );
+  }
 
   try {
     // Refresh = replace: a baseline is a derived snapshot, so the previous one is dropped whole
@@ -335,6 +343,8 @@ export async function cmdDiff(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("diff", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bare = flagMissingValue(flags, ["against", "format"]);
+  if (bare) return usageError("diff", `--${bare} needs a value`);
   const againstFlag = flags.get("against");
   const againstDir =
     typeof againstFlag === "string"

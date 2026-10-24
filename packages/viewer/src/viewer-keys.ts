@@ -1,6 +1,9 @@
 // Keyboard model for the interactive viewer, as pure functions. overlay-runtime.ts wires them to
 // the DOM; viewer-markup.ts renders the shortcut list from SHORTCUTS so the documented keys and
 // the handled keys come from one table. No DOM access here, so tests run without a browser.
+// `description` is the English text and the key into the translated descriptions (ui-strings.ts).
+
+import { fmt, uiStrings, type UiStrings } from "./ui-strings.js";
 
 export type StepMove = "next" | "prev" | "first" | "last";
 
@@ -123,8 +126,13 @@ export function stepInView(bottoms: readonly number[]): number {
 }
 
 /** Text for the live region after a step change. */
-export function stepAnnouncement(index: number, count: number, title: string): string {
-  return `Step ${index + 1} of ${count}: ${title}`;
+export function stepAnnouncement(
+  index: number,
+  count: number,
+  title: string,
+  ui: UiStrings = uiStrings(),
+): string {
+  return fmt(ui.step.position, { n: index + 1, total: count, title });
 }
 
 /** True for a focus target whose keys belong to it (text fields, select, contenteditable). */

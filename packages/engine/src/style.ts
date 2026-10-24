@@ -152,7 +152,9 @@ export async function scanWorkspaceForJargon(
   style: StyleArtifact,
 ): Promise<JargonHit[]> {
   const docsRoot = resolveWorkspacePath(workspace, "docs");
-  const flows = await fs.readdir(docsRoot, { withFileTypes: true }).catch(() => []);
+  const flows = [...(await fs.readdir(docsRoot, { withFileTypes: true }).catch(() => []))].sort(
+    (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+  );
   const categories = style.pruning_rules ?? [];
   if (categories.length === 0) return [];
 
@@ -161,7 +163,7 @@ export async function scanWorkspaceForJargon(
     if (!ent.isDirectory()) continue;
     const flowDir = resolveWorkspacePath(workspace, "docs", ent.name);
     const files = await fs.readdir(flowDir).catch(() => []);
-    for (const f of files) {
+    for (const f of [...files].sort()) {
       if (!f.endsWith(".md")) continue;
       const abs = resolveWorkspacePath(workspace, "docs", ent.name, f);
       const rel = path.relative(path.resolve(workspace), abs);

@@ -20,6 +20,7 @@ import { flowPageHtml, indexHtml, type FlowSummary, type ViewerStep } from "./vi
 import type { BurnTheme } from "./burn-theme.js";
 import { themeStyle } from "./burn-theme-css.js";
 import { loadThemeFont } from "./burn-theme-load.js";
+import { flowUiLang, fmt, uiLang, uiStrings, type UiLang } from "./ui-strings.js";
 
 export interface BuildViewerOptions {
   /** The doc pack's `docs/` directory. */
@@ -30,6 +31,12 @@ export interface BuildViewerOptions {
   flows?: string[];
   /** The caption look the overlay shows (see burn-theme.ts). Default: the viewer's own. */
   theme?: BurnTheme;
+  /**
+   * Locale tag for the pages' own text (`es`, `es-ES`; unknown tags give English). A matrix variant
+   * flow (`<flow>/<locale>.<scheme>.<viewport>`) takes its own locale instead; this is the language
+   * of every other flow and of the index when the flows disagree. Default: English.
+   */
+  lang?: string;
 }
 
 export interface BuildViewerResult {
@@ -52,25 +59,24 @@ export interface ParsedAnnotations {
   notices: string[];
 }
 
-const NO_CALLOUTS =
-  "so this page shows the screenshots without call-outs. Fix the file, then run docsxai render again.";
-
 /**
  * The usable records of an `annotations.json` text (null when the file is absent). A damaged
  * file or record does not stop the render: what can be shown is shown, and the page says what
- * was left out. A record needs a non-empty `step` and a string `copy`.
+ * was left out, in the page language (`lang`, default English). A record needs a non-empty
+ * `step` and a string `copy`.
  */
-export function parseAnnotations(text: string | null): ParsedAnnotations {
+export function parseAnnotations(text: string | null, lang?: string): ParsedAnnotations {
   if (text === null) return { records: [], notices: [] };
+  const msgs = uiStrings(lang).notices;
+  const tail = { tail: msgs.noCallouts };
   let doc: unknown;
   try {
     doc = JSON.parse(text);
   } catch {
-    return { records: [], notices: [`annotations.json could not be parsed, ${NO_CALLOUTS}`] };
+    return { records: [], notices: [fmt(msgs.unparsable, tail)] };
   }
   const list = (doc as { annotations?: unknown } | null)?.annotations;
-  if (!Array.isArray(list))
-    return { records: [], notices: [`annotations.json has no annotations list, ${NO_CALLOUTS}`] };
+  if (!Array.isArray(list)) return { records: [], notices: [fmt(msgs.noList, tail)] };
   const records = list.filter(
     (a): a is AnnotationRecord =>
       typeof a === "object" &&
@@ -81,9 +87,7 @@ export function parseAnnotations(text: string | null): ParsedAnnotations {
   );
   const skipped = list.length - records.length;
   const notices = skipped
-    ? [
-        `${skipped} annotation record${skipped === 1 ? " was" : "s were"} skipped: each needs a step name and copy text. Fix them in annotations.json, then run docsxai render again.`,
-      ]
+    ? [fmt(skipped === 1 ? msgs.skippedOne : msgs.skippedMany, { n: skipped })]
     : [];
   return { records, notices };
 }
@@ -195,10 +199,17 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
   const theme = opts.theme ? themeStyle(opts.theme, themed?.data) : undefined;
   const pages: string[] = ["index.html"];
   const flowSummaries: FlowSummary[] = [];
+  const langs = new Set<UiLang>(flows.map((f) => flowUiLang(f, opts.lang)));
+  // The index speaks the flows' language when they share one, else the default.
+  const indexLang = langs.size === 1 ? [...langs][0]! : uiLang(opts.lang);
 
   for (const [i, flow] of flows.entries()) {
     const flowSrc = path.join(opts.docsDir, flow);
-    const parsed = parseAnnotations(await readTextIfExists(path.join(flowSrc, "annotations.json")));
+    const lang = flowUiLang(flow, opts.lang);
+    const parsed = parseAnnotations(
+      await readTextIfExists(path.join(flowSrc, "annotations.json")),
+      lang,
+    );
     const annsByStep = new Map<string, AnnotationRecord[]>();
     for (const a of parsed.records) {
       const list = annsByStep.get(a.step) ?? [];
@@ -247,6 +258,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
       flowPageHtml(flow, steps, stamp, overlayJs, {
         neighbours: { prev: flows[i - 1], next: flows[i + 1] },
         notices: parsed.notices,
+        lang,
         ...(theme ? { theme } : {}),
       }),
       "utf8",
@@ -264,7 +276,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
 
   await fs.writeFile(
     path.join(opts.outDir, "index.html"),
-    indexHtml(flowSummaries, stamp, overlayJs),
+    indexHtml(flowSummaries, stamp, overlayJs, indexLang),
     "utf8",
   );
   return { pages, warnings };
