@@ -169,6 +169,7 @@ The line comes with a clean halo and badge. The halo ring is 2 px wide and sits 
 - A caption that covers text at its resting spot moves out up to 176 px to empty space. A clear spot 150 px away beats a covered one beside the target.
 - When nothing within 176 px is clear, a caption above or below its target docks in a band 12 px from the top or bottom edge of the image when the band is within 45% of the image height of the target. A connector that crosses text costs more than one through a gap, so docking takes the gap when there is one.
 - When the usual box covers something, the burner tries a box up to 560 px wide (fewer lines), then both again with the text one step smaller: 16 px burned on a screenshot 900 px wide or more, 14 px below that. It keeps the first clear layout, else the one that covers least.
+- When the caption is clear but its line still crosses text, another halo, badge or caption, the burner looks for a spot with a straight line that crosses nothing, then for a line with one right-angle elbow, as [Routing the line](annotation-placement.md#routing-the-line) describes. The report records `route` and `connector_crossings` per annotation.
 - A pinned arrow (`placement.pin_arrow`) keeps the distance steps of an `arrow` burn, up to 320 px past the gap, and does not dock. Its nudge sets the distance. Side hints work as before.
 - `docsxai burn --no-connector-outline` skips reading the screenshot's pixels. The line keeps the colour of `callout_border_color`, and the burner finds no text, so it places captions from the listed `obstacles` alone.
 
@@ -188,7 +189,7 @@ To compare the looks, run `node scripts/burn-trackxai-sample.mjs` after `pnpm --
 
 - `full`, the default: every annotation gets its caption.
 - `badge`: no caption box and no connector. Each target gets its ring and a numbered badge, numbered by its place in the list when it has no `index`. Use it where the page prints the callout text as a numbered list under the image.
-- `auto`: the caption when a spot clear of text exists and its connector crosses no text, else the badge.
+- `auto`: the caption when a spot clear of text exists and its connector, straight or with one elbow, crosses no text, else the badge.
 
 The burn report marks each badge-only annotation with `"caption_style": "badge"`, whether `badge` or the `auto` fallback chose it.
 

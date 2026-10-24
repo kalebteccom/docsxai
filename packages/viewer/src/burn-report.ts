@@ -39,7 +39,20 @@ export interface AnnotationReport {
   skipped?: string;
   /** `badge`: a clean burn drew only the numbered badge and ring, no caption (`caption_style`). */
   caption_style?: "badge";
+  /**
+   * Line connector only: `straight`, `elbow` (one right angle, routed around content) or `none`
+   * (no line drawn: badge only, inside the target, no copy).
+   */
+  route?: "straight" | "elbow" | "none";
+  /**
+   * Line connector only: how many boxes of page content, other halos, badges and earlier captions
+   * the drawn line crosses. 0 once routed.
+   */
+  connector_crossings?: number;
 }
+
+/** What a line-connector burn adds to a report entry. */
+export type RouteReport = Required<Pick<AnnotationReport, "route" | "connector_crossings">>;
 
 export interface FlowBurnReport {
   flow: string;
@@ -95,6 +108,7 @@ export function annotationReport(
   box: Rect | null,
   badge: Rect | undefined,
   threshold: number,
+  route?: RouteReport,
 ): AnnotationReport {
   const badgeBox = badge ? roundRect(badge) : null;
   if (!layout || !box) {
@@ -108,6 +122,7 @@ export function annotationReport(
       other_overlap: 0,
       overlap_ratio: 0,
       unplaceable: false,
+      ...(route ? { route: "none" as const, connector_crossings: 0 } : {}),
     };
   }
   const ratio = (layout.obstacleOverlap + layout.otherOverlap) / (box.width * box.height);
@@ -121,5 +136,6 @@ export function annotationReport(
     other_overlap: layout.otherOverlap,
     overlap_ratio: round(ratio, 3),
     unplaceable: ratio > threshold,
+    ...route,
   };
 }

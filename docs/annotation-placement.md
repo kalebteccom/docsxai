@@ -44,6 +44,16 @@ With the line connector the burner also tries a box up to 560 px wide, and text 
 
 `docsxai burn <workspace-dir> --report report.json` lists each callout's `overlap_ratio` and flags `unplaceable` above 0.1. `docsxai-viewer burn` takes `--max-overlap` to move that threshold.
 
+## Routing the line
+
+With the line connector, a caption that covers nothing can still have a line that crosses text when every side of the target is crowded. The burner then reroutes it:
+
+1. It looks for a caption spot whose straight line crosses no obstacle, other halo, badge or earlier caption, on every side, distance and slide along the target's edge. A clean spot on the hinted side (`placement.side` or `arrow_style`) wins, with `nudge` applied and `placement.align` as the resting point. Otherwise the shortest line wins.
+2. Otherwise it draws the line with one right-angle elbow: out from one edge of the target, then along to the caption, both legs clear. The shortest such line wins. An elbow ignores `nudge`. Its own badge may sit on it.
+3. Otherwise the line stays where the planner put it, and `caption_style: "auto"` falls back to the badge as before.
+
+A rerouted caption is kept only when it covers no more than the first one did. The burn report gives each annotation of a line burn `route` (`straight`, `elbow`, or `none` when no line is drawn) and `connector_crossings`, the number of boxes the drawn line still crosses (0 once routed). A burn without a theme draws the triangle and is not rerouted.
+
 ## The badge
 
 With the line connector, a numbered badge sits 1 px off a corner of the target, as [Clean halo and badge](burn-theming.md#clean-halo-and-badge) describes.
@@ -86,15 +96,15 @@ const png = await burnWithWorkspaceTheme({
 
 ## Troubleshooting
 
-| Symptom                             | Fix                                                                                |
-| ----------------------------------- | ---------------------------------------------------------------------------------- |
-| Callout covers text                 | Add that text's box to `obstacles`, or shorten `copy`.                             |
-| Connector crosses content           | Give a side hint: `placement.side` or `arrow_style`, on the side with clear space. |
-| Callout sits on the wrong side      | Set `placement.side` to try only that side first.                                  |
-| Badge covers neighbouring text      | Add those boxes to `obstacles` so the badge can pick another corner.               |
-| Badge touches the image edge        | Add at least one box to `obstacles`. The badge then stays 2 px inside.             |
-| Captions too small on the page      | Set `display_width` to the column width and `scale` to `"auto"`.                   |
-| Callout too wide for a narrow image | Lower `placement.max_width`, or `max_width_ratio` in the theme.                    |
-| No clear spot for a caption         | Set `caption_style` to `auto` (badge when no spot is clear) or `badge`.            |
+| Symptom                             | Fix                                                                               |
+| ----------------------------------- | --------------------------------------------------------------------------------- |
+| Callout covers text                 | Add that text's box to `obstacles`, or shorten `copy`.                            |
+| Connector crosses content           | Check `connector_crossings` in the report, then give a side hint on a clear side. |
+| Callout sits on the wrong side      | Set `placement.side` to try only that side first.                                 |
+| Badge covers neighbouring text      | Add those boxes to `obstacles` so the badge can pick another corner.              |
+| Badge touches the image edge        | Add at least one box to `obstacles`. The badge then stays 2 px inside.            |
+| Captions too small on the page      | Set `display_width` to the column width and `scale` to `"auto"`.                  |
+| Callout too wide for a narrow image | Lower `placement.max_width`, or `max_width_ratio` in the theme.                   |
+| No clear spot for a caption         | Set `caption_style` to `auto` (badge when no spot is clear) or `badge`.           |
 
 > **For agents:** to check a side hint against a raw capture before committing it, run `node scripts/burn-probe.mjs --screenshot raw.png --annotations raw.json` from a docsxai checkout after `pnpm --filter @docsxai/viewer build`. It prints, per callout, the side asked for and the side taken, each side's best score, the obstacles the callout, arrow, stem and badge touch, and how the connector is painted: ink, fill or outline for the arrow, the colour for the line. `--side 2=bottom` tries a hint without editing the file, `--theme` or `--workspace` burns with a theme, and `--out` writes the burned PNG.

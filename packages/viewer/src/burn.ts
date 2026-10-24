@@ -54,7 +54,9 @@ import {
   type AnnotationReport,
   type BurnReport,
   type FlowBurnReport,
+  type RouteReport,
 } from "./burn-report.js";
+import { routeClean } from "./burn-route.js";
 import type { AnnotationRecord } from "./annotations.js";
 import { fitAnnotation } from "./burn-fit.js";
 import { readAnnotationList, readDeviceScaleFactor } from "./burn-annotations-file.js";
@@ -256,6 +258,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     let layout: CalloutLayout | null = null;
     let calloutBox: Rect | null = null;
     let badgeOnly = false;
+    let route: RouteReport = { route: "none", connector_crossings: 0 };
     if (ann.copy) {
       const clear = keepClear(
         baseAnnotations,
@@ -286,11 +289,19 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
           : {}),
       };
       const mode = clean ? base.captionStyle : "full";
-      const plan =
+      const routed =
         clean && mode !== "badge"
-          ? planClean(layoutInput, base, f, cssWidth, mode === "auto", pr)
+          ? routeClean(
+              layoutInput,
+              planClean(layoutInput, base, f, cssWidth, mode === "auto", pr),
+              f,
+              badge,
+            )
           : null;
+      const plan = routed?.plan ?? null;
       badgeOnly = mode === "badge" || (mode === "auto" && plan !== null && plan.cover > 0);
+      if (routed && !badgeOnly)
+        route = { route: routed.route, connector_crossings: routed.crossings };
       if (!badgeOnly) {
         const planned = plan ? plan.layout : layoutCallout(layoutInput);
         input.trace?.push({ position: i, input: layoutInput, layout: planned, scale: f });
@@ -323,7 +334,14 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     if (ownBadge) badges.set(self, ownBadge);
     const realBadge = ownBadge ? scaleRect(ownBadge, f) : undefined;
     if (realBadge && number !== null) children.push(badgeNode(realBadge, number, theme, f));
-    const entry = annotationReport(realAnn, layout, calloutBox, realBadge, threshold);
+    const entry = annotationReport(
+      realAnn,
+      layout,
+      calloutBox,
+      realBadge,
+      threshold,
+      clean ? route : undefined,
+    );
     input.report?.push(badgeOnly ? { ...entry, caption_style: "badge" } : entry);
   }
 
