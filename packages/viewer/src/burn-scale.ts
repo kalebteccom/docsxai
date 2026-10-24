@@ -31,6 +31,7 @@ export function layoutAtScale(l: CalloutLayout, f: number): CalloutLayout {
     callout: scalePoint(l.callout, f),
     arrow: l.arrow ? scalePoint(l.arrow, f) : null,
     stem: l.stem ? scaleRect(l.stem, f) : null,
+    ...(l.elbow ? { elbow: scalePoint(l.elbow, f) } : {}),
     nudge: scalePoint(l.nudge, f),
     arrowLength: l.arrowLength * f,
     obstacleOverlap: Math.round(l.obstacleOverlap * f * f),

@@ -19,6 +19,7 @@ import { fitsInside, INSIDE_MARGIN, MIN_INSIDE_WIDTH, planInside } from "./insid
 import { ARROW_LENGTH, arrowGeometry } from "./arrow.js";
 import { measureText, wrapText, type FontMetrics } from "./font-metrics.js";
 import { wrapBalanced } from "./caption-wrap.js";
+import { elbowPoints, segmentRect } from "./line-elbow.js";
 import type { AnnotationPlacement, AnnotationRecord, BoundingBox } from "./annotations.js";
 
 export const FONT_SIZE = 14;
@@ -77,6 +78,11 @@ export interface CalloutLayout {
   arrow: Point | null;
   /** Bar from the arrow to a detached callout, before `nudge`. */
   stem: Rect | null;
+  /**
+   * Corner of a line connector with one elbow, before `nudge`: the line leaves the target on
+   * `side`, turns here and runs to the caption (see line-elbow.ts). Absent for a straight line.
+   */
+  elbow?: Point;
   /** Arrow length in px, for the boxes {@link layoutBoxes} gives. */
   arrowLength: number;
   /** Side padding the box was laid out with; set only when it is squeezed below the theme's. */
@@ -202,7 +208,10 @@ const shift = (r: Rect, d: Point): Rect => ({ ...r, x: r.x + d.x, y: r.y + d.y }
 /** Boxes a laid-out callout paints, nudge applied: the callout first, then arrow and stem. */
 export function layoutBoxes(l: CalloutLayout): Rect[] {
   const boxes: Rect[] = [{ x: l.callout.x, y: l.callout.y, ...l.size }];
-  if (l.side && l.arrow) {
+  const bent = elbowPoints({ ...l, nudge: { x: 0, y: 0 } }, 0);
+  if (bent) {
+    boxes.push(segmentRect(bent[0], bent[1], 1), segmentRect(bent[1], bent[2], 1));
+  } else if (l.side && l.arrow) {
     const a = arrowGeometry(l.side, l.arrow, l.arrowLength);
     boxes.push({ x: a.left, y: a.top, width: a.width, height: a.height });
   }

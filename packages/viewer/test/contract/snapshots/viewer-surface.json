@@ -45,9 +45,11 @@
           "overlap_ratio": "overlap_ratio: number",
           "unplaceable": "unplaceable: boolean",
           "skipped": "skipped?: string",
-          "caption_style": "caption_style?: \"badge\""
+          "caption_style": "caption_style?: \"badge\"",
+          "route": "route?: \"straight\" | \"elbow\" | \"none\"",
+          "connector_crossings": "connector_crossings?: number"
         },
-        "optional": ["caption_style", "skipped"]
+        "optional": ["caption_style", "connector_crossings", "route", "skipped"]
       }
     }
   },

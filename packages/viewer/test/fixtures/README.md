@@ -16,3 +16,7 @@ A workspace laid out as `docsxai run` writes a flow with a `matrix:` block: `doc
 ## `trackxai/`
 
 Capture sidecars (`trackxai/raw-capture-sidecar@1`) of a dense app, copied unchanged from a real `docsxai run` at 1280x800 and 390x844, English and dark: each annotation's target box, copy, side hint and up to 40 boxes of the text-bearing elements near it. `../burn-real-sidecars.test.ts` burns them on a synthetic screen that draws a text-like pattern in every listed box, and checks that no caption covers listed text, another target, another caption or a badge, and that every badge sits next to its target. The screenshots are not checked in. `issue-label-crop.png` is a 200 x 40 px cut (x 0, y 392) of the same app's 390 px dark capture, holding the grey `Issue a token` form label; `../burn-clean.test.ts` checks the pixel text finder sees it.
+
+## `remotxai/`
+
+Target and obstacle boxes of one annotation from a real remotxai capture at 1280x800 (`yolo-mode/yolo-enabled`, English and Spanish, dark), converted to annotation records (`bbox` renamed `bounding_box`, `step` and `selector` filled in). The target is a 64 by 16 px pill with a title above it, a status label to its right, an icon to its left and a chip row below, so every straight line from it crosses text. `../burn-route.test.ts` burns them on a synthetic screen with a text-like pattern in every listed box and checks that the drawn line crosses none of them. The screenshots are not checked in.

@@ -11,6 +11,7 @@ import { connectorColor } from "./burn-theme.js";
 import { contrastRatio } from "./color.js";
 import { averageHex, type PixelGrid } from "./connector-contrast.js";
 import { RING_OUTSET } from "./burn-clean.js";
+import { elbowPoints, type ElbowLayout } from "./line-elbow.js";
 
 /** Line width at caption scale 1, px. */
 export const LINE_STROKE = 2;
@@ -52,18 +53,21 @@ const clamp = (v: number, lo: number, hi: number) =>
   lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v));
 
 /** The caption rect a layout draws, nudge applied. */
-export function captionRect(l: CalloutLayout): Rect {
+export function captionRect(l: ElbowLayout): Rect {
   return { x: l.callout.x + l.nudge.x, y: l.callout.y + l.nudge.y, ...l.size };
 }
 
 /**
  * Path from the caption edge nearest the target to the arrow tip, nudge applied. The start keeps
  * `inset` px from the caption's corners so it never lands on a rounded corner. Straight when the
- * tip faces the caption, else one elbow halfway. `endOffset` stops the line that far short of the
- * target edge, on the outside of a halo ring drawn around it. `null` inside the target.
+ * tip faces the caption, else one elbow halfway. A routed layout with an `elbow` turns there once
+ * instead. `endOffset` stops the line that far short of the target edge, on the outside of a halo
+ * ring drawn around it. `null` inside the target.
  */
-export function linePath(l: CalloutLayout, inset: number, endOffset = 0): LinePath | null {
+export function linePath(l: ElbowLayout, inset: number, endOffset = 0): LinePath | null {
   if (!l.side || !l.arrow) return null;
+  const bent = elbowPoints(l, endOffset);
+  if (bent) return { side: l.side, start: bent[0], end: bent[2], points: bent };
   const c = captionRect(l);
   const out = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] }[l.side];
   const end = {
