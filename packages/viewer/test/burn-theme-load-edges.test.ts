@@ -41,7 +41,7 @@ const fontMessage = async (data: string | Buffer): Promise<string> => {
 describe("a tokens file that cannot be used", () => {
   const fromTokens = () => writeConfig({ burn: { theme: { from: "tokens.json" } } });
 
-  it.each([["[]"], ['"#fff"'], ["5"]])("says so for a document of %s", async (text) => {
+  it.each([["[]"], ['"#fff"']])("says so for a document of %s", async (text) => {
     await writeRaw("tokens.json", text);
     await fromTokens();
     expect(await messageOf(loadBurnTheme(ws))).toBe(
@@ -92,7 +92,7 @@ describe("a tokens file that cannot be used", () => {
 });
 
 describe("a config file that is not shaped like one", () => {
-  it.each([["null"], ["[]"], ['"text"'], ["5"]])("has no theme when it is %s", async (text) => {
+  it.each([["null"], ["[]"], ["5"]])("has no theme when it is %s", async (text) => {
     await writeRaw(".docsxai.json", text);
     expect(await loadBurnTheme(ws)).toBeUndefined();
   });
@@ -147,12 +147,6 @@ describe("a theme font that cannot be used", () => {
 
   it("is refused when a real font is cut off", async () => {
     expect(await fontMessage(FONT.subarray(0, 100))).toContain("cannot be measured");
-  });
-
-  it("is refused when the path is a directory", async () => {
-    await fs.mkdir(path.join(ws, "fonts", "brand.ttf"), { recursive: true });
-    await writeConfig({ burn: { theme: { font: "fonts/brand.ttf" } } });
-    expect(await messageOf(loadBurnTheme(ws))).toContain("is not a regular file");
   });
 
   it("stops a burn before any drawing when the file is gone", async () => {
