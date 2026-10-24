@@ -8,6 +8,7 @@ import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
 import { discoverFlows, parseAnnotations } from "./render.js";
 import { compareNatural } from "./natural-order.js";
+import { nameList } from "./pack-paths.js";
 import { isSafeFlowName, isSafeStepId, showName } from "./safe-id.js";
 
 export interface CaptionItem {
@@ -41,6 +42,18 @@ async function isFile(p: string): Promise<boolean> {
   );
 }
 
+/** `<flow>/<variant>` names grouped by flow: the variant ids of each flow that ran a matrix. */
+function variantFolders(names: string[]): Map<string, string[]> {
+  const byFlow = new Map<string, string[]>();
+  for (const name of names) {
+    const slash = name.indexOf("/");
+    if (slash < 0) continue;
+    const flow = name.slice(0, slash);
+    byFlow.set(flow, [...(byFlow.get(flow) ?? []), name.slice(slash + 1)]);
+  }
+  return byFlow;
+}
+
 /**
  * The flows to include: those under `docsDir` (all, or the ones `wanted` names). A flow name that
  * is not a plain path part, or that `wanted` names and the pack lacks, is left out with a warning.
@@ -59,6 +72,13 @@ export async function pickFlows(
   ) {
     warnings.push(`docs folder ${docsDir} not found, so the site lists no flows`);
   }
+  const variants = variantFolders(await discoverFlows(docsDir, { variants: true }));
+  for (const [flow, ids] of variants) {
+    if (wanted?.length && !wanted.includes(flow)) continue;
+    warnings.push(
+      `flow ${showName(flow)} has ${ids.length} matrix variant folder${ids.length === 1 ? "" : "s"} (${nameList(ids)}) that the site does not include; docsxai render does`,
+    );
+  }
   const chosen = wanted?.length ? [...new Set(wanted)] : found;
   const picked: string[] = [];
   for (const flow of chosen) {
@@ -67,7 +87,11 @@ export async function pickFlows(
         `flow ${showName(flow)} skipped: a flow name cannot hold "/", "..", ":", "\\" or control characters, so rename it and emit again`,
       );
     } else if (!found.includes(flow)) {
-      warnings.push(`flow ${showName(flow)} skipped: no ${flow}/annotations.json under ${docsDir}`);
+      // A flow that only has variant folders was explained above.
+      if (!variants.has(flow))
+        warnings.push(
+          `flow ${showName(flow)} skipped: no ${flow}/annotations.json under ${docsDir}`,
+        );
     } else picked.push(flow);
   }
   return picked;

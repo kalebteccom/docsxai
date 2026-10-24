@@ -136,3 +136,37 @@ describe("the site title", () => {
     expect(index).toContain('title: "One Two Three"');
   });
 });
+
+describe("a flow that ran a matrix", () => {
+  it("warns that the site leaves its variant folders out, instead of listing no flows silently", async () => {
+    await flow("login/en.light.desktop", [ann("s")], ["s.png"]);
+    await flow("login/es.dark.mobile", [ann("s")], ["s.png"]);
+    const r = await emit();
+    expect(r.flows).toEqual([]);
+    expect(r.warnings).toContain(
+      'flow "login" has 2 matrix variant folders (en.light.desktop, es.dark.mobile) that the site does not include; docsxai render does',
+    );
+  });
+
+  it("says so for a requested flow instead of claiming it has no annotations.json", async () => {
+    await flow("login/en.light.desktop", [ann("s")], ["s.png"]);
+    const r = await emit({ flows: ["login"] });
+    expect(r.warnings.some((w) => w.includes("no login/annotations.json"))).toBe(false);
+    expect(r.warnings.some((w) => w.includes("1 matrix variant folder (en.light.desktop)"))).toBe(
+      true,
+    );
+  });
+
+  it("keeps the flow's own page when the flow also has a plain annotations.json", async () => {
+    await flow("login", [ann("s")], ["s.png"]);
+    await flow("login/en.light.desktop", [ann("s")], ["s.png"]);
+    const r = await emit();
+    expect(r.flows).toEqual(["login"]);
+    expect(r.warnings.some((w) => w.includes("matrix variant folder"))).toBe(true);
+  });
+
+  it("is quiet for a flow without variant folders", async () => {
+    await flow("plain", [ann("s")], ["s.png"]);
+    expect((await emit()).warnings.some((w) => w.includes("matrix"))).toBe(false);
+  });
+});
