@@ -35,7 +35,7 @@ Usage:
   docsxai pull <workspace-dir> [--rev <id>]
   docsxai render <workspace-dir>
   docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>]
-      [--no-connector-outline]
+      [--no-connector-outline] [--strict-glyphs]
   docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>]
       [--no-optimise] [--generated-for <text>]
   docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw]
@@ -172,7 +172,9 @@ Notes:
     unplaceable), resolved under the workspace when relative. The workspace's burn.theme block (.docsxai.json)
     sets the look; see docs/burn-theming.md. --no-connector-outline skips reading the screenshot's pixels: an
     arrow or stem stays plain ink (by default one over a dark part gets a white outline), a themed line keeps
-    the callout's outline colour, and no text is estimated from the pixels.
+    the callout's outline colour, and no text is estimated from the pixels. A caption with characters the
+    font can't draw (Japanese, Arabic, Hebrew, Thai with the bundled Inter) prints a warning naming the
+    annotation and script and gets missing_glyphs in the report; --strict-glyphs makes it exit 1.
   • pack builds the screenshot pack a docs site or README ships: it burns each step's annotations into its
     clean screenshot, optimises the PNG losslessly with the external \`oxipng\` binary (on PATH, or
     $DOCSX_OXIPNG_BIN; \`brew install oxipng\`; --no-optimise skips it), names it

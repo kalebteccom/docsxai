@@ -66,6 +66,7 @@ interface BurnArgs {
   out?: string;
   report?: string;
   plainConnectors: boolean;
+  strictGlyphs?: boolean;
 }
 
 /** Parse `burn`'s argv. Returns the usage-error message when the argv is malformed. */
@@ -76,6 +77,8 @@ function parseBurnArgs(args: string[]): BurnArgs | string {
     const a = args[i]!;
     if (a === "--no-connector-outline") {
       parsed.plainConnectors = true;
+    } else if (a === "--strict-glyphs") {
+      parsed.strictGlyphs = true;
     } else if (a === "--flow" || a === "--out" || a === "--report") {
       const value = args[++i];
       if (value === undefined || value.startsWith("--")) return `${a} needs a value`;
@@ -124,6 +127,7 @@ export async function cmdBurn(args: string[]): Promise<number> {
     ...(parsed.out !== undefined ? ["--out", parsed.out] : []),
     ...(parsed.report !== undefined ? ["--report", parsed.report] : []),
     ...(parsed.plainConnectors ? ["--no-connector-outline"] : []),
+    ...(parsed.strictGlyphs ? ["--strict-glyphs"] : []),
   ]);
 }
 

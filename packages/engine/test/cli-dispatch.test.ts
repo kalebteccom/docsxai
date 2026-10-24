@@ -196,7 +196,7 @@ describe("burn dispatch", () => {
     expect(await argvOf(argvFile)).toEqual(["burn", ws, "--flow", "a.b-c_d", "--flow", "7-up"]);
   });
 
-  it("passes --flow (repeated), --out, --report and --no-connector-outline through", async () => {
+  it("passes --flow (repeated), --out, --report, --no-connector-outline and --strict-glyphs through", async () => {
     const ws = await makeWorkspace();
     const { argvFile } = await fakeViewer();
     const argv = [
@@ -211,6 +211,7 @@ describe("burn dispatch", () => {
       path.join(tmp, "out"),
       "--report",
       "report.json",
+      "--strict-glyphs",
     ];
     expect(await main(argv)).toBe(0);
     expect(await argvOf(argvFile)).toEqual([
@@ -225,6 +226,7 @@ describe("burn dispatch", () => {
       "--report",
       "report.json",
       "--no-connector-outline",
+      "--strict-glyphs",
     ]);
   });
 
