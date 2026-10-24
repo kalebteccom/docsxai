@@ -125,12 +125,27 @@ For a new agent session in this repo, read in order:
 
 1. `README.md` — substrate at a glance + install + quick start + package map.
 2. This file (`AGENTS.md`) — operating rules + repo map + trust posture.
+   Before you touch UI or any user-facing text, read the "UI and copy rules" section below and `docs/ui-rules.md`.
 3. `docs/ai-context/README.md` — agent-facing routing layer; points at the right subdir for the area you're touching. For any change that moves a boundary, adds a world-touching surface, or sits on a hot path, read `docs/ai-context/architecture/architecture-principles.md` (the Kalebtec architecture doctrine) alongside `docs/ai-context/agent-process/code-quality.md`. For where new code goes and what to call it, read `docs/ai-context/architecture/hexagonal-and-ddd.md` (the layer map + ubiquitous language); for the one-reason-to-change file/module size budget, `docs/ai-context/architecture/module-and-file-size.md`; for what is mechanically enforced, `docs/ai-context/architecture/fitness-functions.md`. The standing _why_ behind the engine's shape lives in these architecture docs.
 4. For tests, read the testing doctrine trio: `docs/ai-context/testing/tdd-and-test-strategy.md` (test-first workflow + the layers), `docs/ai-context/testing/qa-patterns.md` (the QA playbook), and `docs/ai-context/testing/unit-vs-keystone.md` (why boundary behavior is keystone-tested against a real browser). The keystone test is the regression gate; these docs govern what to test, at which layer, and why.
 5. `docs/agent-runbook.md` — the hand-to-an-agent workflow for calibration.
 6. The package READMEs under `packages/*/README.md` for the area you're touching.
 7. `docs/actionability-contract.md` + `docs/browxai-asks.md` for browser-bridge work.
 8. `docs/archive/phase-plans/PHASE-1.md` — recorded decision history; consult when you need the rationale behind a fixed boundary, not as primary onboarding.
+
+## UI and copy rules
+
+Full detail in `docs/ui-rules.md`. These apply to every feature, fix and copy change, in every locale and both themes.
+
+- Copy: no operator or private information on any user-visible surface (environment variable names a user doesn't set, config keys, internal ids, hostnames, ticket ids, procedures, infrastructure detail, internal tool names). Documented variables, flags and tool names a user is meant to set stay in reference pages. Empty states and errors say what the user does next. Cut words by about 50%, plain language, no filler, no heading restated in the next line. Never change a published promise, price or legal text.
+- Design system: one spacing, radius and type scale. One component per pattern; a pattern in two places is a shared component. No raw padding, margin or font classes outside the primitives. Touch targets at least 44 px, visible focus, reduced motion respected. One floating action at most.
+- Geometry: icons centred in buttons, equal left and right insets, no block flush to the screen edge, no horizontal scroll, clipped or covered content. Check 320, 360, 390, 430, 768, 1024, 1280 and 1920, portrait and landscape, keyboard open, safe areas, long strings and large text.
+- Mobile-native controls ship with every pattern: swipe (snap, keyboard arrows, counter inside the frame) on carousels, galleries, lightboxes, tab strips and steppers; drag down to dismiss on sheets, drawers and modals; scrollable chip and tab rows with an edge fade; swipe or long-press row actions and a touch equivalent for every hover-only affordance; pull to refresh where data refreshes; the composer flush above the keyboard.
+- Proof before push: real screenshots at 390 and 1280, before and after pairs for UI changes, one gate per batch. Every UI or copy pull request says `ui-rules checked: yes, <what was checked>`; reviewers reject it without that line.
+- Strings shown to users or models (error messages, tool descriptions, refusal text) never cite ticket, decision-record or other internal ids.
+- Lazy-loaded chunks need a stale-build path: a dead hashed chunk after a deploy reloads once and never retries forever, and a chunk that lands late never steals focus.
+- Audits and sweeps read real main with `git archive refs/remotes/origin/main` after a fetch, never a working tree or a bare `origin/main`, which can resolve to a stale local ref.
+- Learning loop: a correction, an audit finding or a repeating bug class becomes a rule in `docs/ui-rules.md`, `AGENTS.md` and `CLAUDE.md` in the same pull request. Builder and sub-agent briefs say "follow CLAUDE.md and docs/ui-rules.md".
 
 ## Multi-harness auto-discovery
 
