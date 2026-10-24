@@ -149,6 +149,22 @@ describe("run start-up", () => {
     expect(err).toContain("(missing or expired)");
   });
 
+  it.skipIf(isRoot)(
+    "an unreadable .docsxai.json is a warning that names EACCES, not silence",
+    async () => {
+      const ws = await workspace("--auth", "none");
+      const file = path.join(ws, ".docsxai.json");
+      await fs.chmod(file, 0o000);
+      try {
+        expect(await main(["run", ws])).toBe(1);
+        expect(err).toContain(`run: warning, ${file} was ignored (it cannot be read, EACCES)`);
+        expect(err).toContain(`next: fix ${file}, then docsxai run ${ws}`);
+      } finally {
+        await fs.chmod(file, 0o644);
+      }
+    },
+  );
+
   it("a plugins entry of the wrong shape shows the two shapes that work", async () => {
     const ws = await workspace("--auth", "none");
     const file = path.join(ws, ".docsxai.json");

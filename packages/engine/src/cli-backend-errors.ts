@@ -82,8 +82,11 @@ export async function configProblem(workspaceDir: string): Promise<string> {
   let text: string;
   try {
     text = await fs.readFile(resolveWorkspacePath(workspaceDir, WORKSPACE_CONFIG_FILE), "utf8");
-  } catch {
-    return "the file does not exist";
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    return code === "ENOENT" || code === "ENOTDIR"
+      ? "the file does not exist"
+      : `it cannot be read, ${code ?? "unreadable"}`;
   }
   try {
     JSON.parse(text);
