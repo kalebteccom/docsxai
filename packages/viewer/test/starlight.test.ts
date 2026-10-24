@@ -252,6 +252,7 @@ describe("emitStarlightSite — file tree golden", () => {
       "src/assets/logo.png",
       "src/components/AnnotatedShot.astro",
       "src/components/CopyId.astro",
+      "src/components/ShotLightbox.astro",
       "src/content.config.ts",
       "src/content/docs/flows/checkout.mdx",
       "src/content/docs/flows/login.mdx",

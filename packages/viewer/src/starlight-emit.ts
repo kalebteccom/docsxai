@@ -16,6 +16,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { mixHex } from "./color.js";
 import { annotatedShotAstro, copyIdAstro } from "./starlight-components.js";
+import { shotLightboxAstro } from "./starlight-lightbox.js";
 import { accentContrastWarnings } from "./starlight-contrast.js";
 import { pruneStale } from "./starlight-prune.js";
 import { SCROLLBARS_CSS, SCROLLBARS_CSS_PATH } from "./starlight-scrollbars.js";
@@ -423,6 +424,7 @@ export async function emitStarlightSite(
   textFiles.set("src/content.config.ts", CONTENT_CONFIG_TS);
   textFiles.set("src/components/AnnotatedShot.astro", annotatedShotAstro(ui));
   textFiles.set("src/components/CopyId.astro", copyIdAstro(ui));
+  textFiles.set("src/components/ShotLightbox.astro", shotLightboxAstro(ui));
   textFiles.set("public/favicon.svg", FAVICON_SVG);
   textFiles.set(SCROLLBARS_CSS_PATH, SCROLLBARS_CSS);
   if (accent !== null) textFiles.set("src/styles/theme.css", themeCss(accent));
