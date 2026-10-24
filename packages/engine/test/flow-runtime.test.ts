@@ -1023,3 +1023,35 @@ steps:
     expect(d.calls).toEqual(["waitSelector #banner (1500ms)", "waitSelector #late (90000ms)"]);
   });
 });
+
+describe("runFlow, deviceScaleFactor", () => {
+  const FLOW = `name: dsf
+steps:
+  - id: open
+    action: navigate
+    value: https://app.example/
+  - id: go
+    action: click
+    target: "#go"
+    annotation:
+      copy: Go
+`;
+  const driver = () => {
+    const d = new FakeDriver();
+    d.visible.add("#go");
+    d.boxes.set("#go", { x: 20, y: 20, width: 100, height: 40 });
+    return d;
+  };
+
+  it("records device_scale_factor in annotations.json above 1", async () => {
+    const r = await runFlow(parseFlowFile(FLOW), driver(), { deviceScaleFactor: 2 });
+    expect(r.annotations.device_scale_factor).toBe(2);
+  });
+
+  it("leaves the file exactly as before when unset or 1", async () => {
+    const plain = await runFlow(parseFlowFile(FLOW), driver());
+    const one = await runFlow(parseFlowFile(FLOW), driver(), { deviceScaleFactor: 1 });
+    expect(plain.annotations).not.toHaveProperty("device_scale_factor");
+    expect(JSON.stringify(one.annotations)).toBe(JSON.stringify(plain.annotations));
+  });
+});

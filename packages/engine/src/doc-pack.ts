@@ -406,6 +406,13 @@ export const AnnotationsFile = z
     flow: z.string().min(1),
     /** The matrix variant these annotations belong to. Absent for a flow without a `matrix`. */
     variant: VariantInfo.optional(),
+    /**
+     * Device pixels per CSS pixel the screenshots were captured at (1 to 4, one decimal). Written by
+     * `docsxai run --device-scale-factor` above 1; absent means 1. Every `bounding_box` and `obstacle`
+     * in the file is in the screenshot's own device pixels, so the PNG is this many times its CSS
+     * viewport. The burner reads it as its pixel ratio.
+     */
+    device_scale_factor: z.number().min(1).max(4).optional(),
     annotations: z.array(AnnotationRecord),
   })
   .strict();

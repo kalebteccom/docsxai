@@ -65,3 +65,23 @@ export function attachSkipNotice(
     ? `launchPlaywrightSession: attached over CDP, where the browser context is externally owned; skipped: ${fields.join(", ")}\n`
     : undefined;
 }
+
+/** Map an {@link EnvironmentSpec} to the Playwright context options it pins (clock excluded — that's a page-level install). */
+export function environmentContextOptions(env: EnvironmentSpec): {
+  locale?: string;
+  timezoneId?: string;
+  viewport?: ViewportSize;
+  colorScheme?: "light" | "dark";
+  reducedMotion?: "reduce" | "no-preference";
+} {
+  const viewport = typeof env.viewport === "string" ? VIEWPORT_PRESETS[env.viewport] : env.viewport;
+  return {
+    ...(env.locale ? { locale: env.locale } : {}),
+    ...(env.timezone ? { timezoneId: env.timezone } : {}),
+    ...(viewport ? { viewport } : {}),
+    ...(env.color_scheme ? { colorScheme: env.color_scheme } : {}),
+    ...(env.reduced_motion !== undefined
+      ? { reducedMotion: env.reduced_motion ? ("reduce" as const) : ("no-preference" as const) }
+      : {}),
+  };
+}

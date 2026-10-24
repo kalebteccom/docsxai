@@ -13,9 +13,15 @@ const fake = vi.hoisted(() => ({
   /** Per flow: how its run goes. Default: finishes at once. */
   plan: {},
   closed: [] as string[],
+  sessionOpts: [] as Array<{ deviceScaleFactor?: number }>,
+  runOpts: [] as Array<{ deviceScaleFactor?: number }>,
 }));
 vi.mock("../src/playwright-driver.js", () => ({
-  launchPlaywrightSession: async (opts: { environment?: { locale?: string } }) => {
+  launchPlaywrightSession: async (opts: {
+    environment?: { locale?: string };
+    deviceScaleFactor?: number;
+  }) => {
+    fake.sessionOpts.push(opts);
     const name = opts.environment?.locale ?? "";
     const plan = fake.plan[name] ?? {};
     if (plan.launch) throw plan.launch;
@@ -35,7 +41,8 @@ vi.mock("../src/playwright-driver.js", () => ({
   },
 }));
 vi.mock("../src/flow-runtime.js", () => ({
-  runFlow: async (flow: { name: string }) => {
+  runFlow: async (flow: { name: string }, _driver: unknown, runOpts?: object) => {
+    fake.runOpts.push(runOpts ?? {});
     const plan = fake.plan[flow.name] ?? {};
     if (plan.delayMs) await new Promise((r) => setTimeout(r, plan.delayMs));
     if (plan.halt) throw plan.halt;
@@ -52,6 +59,8 @@ beforeEach(async () => {
   ws = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-pool-"));
   fake.plan = {};
   fake.closed = [];
+  fake.sessionOpts = [];
+  fake.runOpts = [];
   vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 });
 afterEach(async () => {
@@ -65,6 +74,7 @@ function run(
   concurrency: number,
   pause = false,
   progress: (line: string) => void = () => undefined,
+  deviceScaleFactor?: number,
 ) {
   const flows = names.map(
     (name) =>
@@ -81,6 +91,7 @@ function run(
       obstacles: false,
       concurrency,
       progress,
+      ...(deviceScaleFactor !== undefined ? { deviceScaleFactor } : {}),
     }),
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error("pool hung")), 3000)),
   ]);
@@ -138,5 +149,19 @@ describe("--concurrency worker pool", () => {
     });
     expect(r.okCount).toBe(2);
     expect(r.failures).toEqual([{ flow: "b", step: null, message: "progress sink closed" }]);
+  });
+});
+
+describe("deviceScaleFactor", () => {
+  it("reaches the session and the runtime", async () => {
+    await run(["a"], 1, false, () => undefined, 2);
+    expect(fake.sessionOpts[0]!.deviceScaleFactor).toBe(2);
+    expect(fake.runOpts[0]!.deviceScaleFactor).toBe(2);
+  });
+
+  it("is absent from both when unset", async () => {
+    await run(["a"], 1);
+    expect(fake.sessionOpts[0]).not.toHaveProperty("deviceScaleFactor");
+    expect(fake.runOpts[0]).not.toHaveProperty("deviceScaleFactor");
   });
 });

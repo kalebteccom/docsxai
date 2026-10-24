@@ -62,6 +62,39 @@ describe("launchPlaywrightSession, setup failure", () => {
   });
 });
 
+describe("launchPlaywrightSession, deviceScaleFactor", () => {
+  async function contextOptionsFor(opts: { deviceScaleFactor?: number }) {
+    let seen: Record<string, unknown> | undefined;
+    const browser = {
+      newContext: async (o: Record<string, unknown>) => {
+        seen = o;
+        throw new Error("stop here");
+      },
+      close: async () => undefined,
+    };
+    const launch = vi.spyOn(chromium, "launch").mockResolvedValue(browser as never);
+    try {
+      await launchPlaywrightSession(opts).catch(() => undefined);
+    } finally {
+      launch.mockRestore();
+    }
+    return seen!;
+  }
+
+  it("passes deviceScaleFactor to the browser context", async () => {
+    expect(await contextOptionsFor({ deviceScaleFactor: 2 })).toMatchObject({
+      deviceScaleFactor: 2,
+    });
+  });
+
+  it("passes no deviceScaleFactor when unset, or 1", async () => {
+    expect(await contextOptionsFor({})).not.toHaveProperty("deviceScaleFactor");
+    expect(await contextOptionsFor({ deviceScaleFactor: 1 })).not.toHaveProperty(
+      "deviceScaleFactor",
+    );
+  });
+});
+
 /** A fake CDP-attached browser: records which handles were released, in order. */
 function fakeCdpBrowser(opts: {
   contexts?: unknown[];

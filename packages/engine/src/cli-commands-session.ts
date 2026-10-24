@@ -26,6 +26,7 @@ import {
 import { type FlowVariant } from "./flow-matrix.js";
 import { assertNoCaseCollision } from "./flow-name-rules.js";
 import { recordRunHistory } from "./backend-client.js";
+import { resolveDeviceScaleFactor } from "./device-scale-factor.js";
 import { runFlowsInSessions } from "./run-flows.js";
 import { initWorkspace, loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import {
@@ -48,6 +49,7 @@ import {
   withNext,
 } from "./cli-messages.js";
 import { reportRun } from "./cli-run-summary.js";
+import { warnStaleMatrixOutputs } from "./cli-run-stale.js";
 import { warnUnusableConfig } from "./cli-backend-errors.js";
 
 async function loadAuthStorageState(projectDir: string): Promise<StorageState | undefined> {
@@ -82,6 +84,7 @@ const RUN_VALUE_FLAGS = [
   "cdp",
   "base-url",
   "concurrency",
+  "device-scale-factor",
 ];
 
 export async function cmdRun(args: string[]): Promise<number> {
@@ -99,6 +102,12 @@ export async function cmdRun(args: string[]): Promise<number> {
       `--concurrency must be a whole number of 1 or more (got "${concurrencyFlag}")`,
     );
   }
+  const dsf = resolveDeviceScaleFactor(
+    flags.get("device-scale-factor"),
+    process.env,
+    typeof flags.get("cdp") === "string",
+  );
+  if ("error" in dsf) return usageError("run", dsf.error);
   const onlyFlow =
     typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const stopAfter =
@@ -241,19 +250,7 @@ export async function cmdRun(args: string[]): Promise<number> {
       `--${flag}: no step "${stepId}" in ${where} (steps: ${have.join(", ")})`,
     );
   }
-  for (const name of matrixFlows) {
-    const stale = resolveWorkspacePath(projectDir, "docs", name, "annotations.json");
-    if (
-      await fs.access(stale).then(
-        () => true,
-        () => false,
-      )
-    ) {
-      process.stderr.write(
-        `run: warning: docs/${name}/annotations.json is from before ${name} had a matrix; its variants write to docs/${name}/<variant>/, so remove the old docs/${name}/ outputs\n`,
-      );
-    }
-  }
+  await warnStaleMatrixOutputs(projectDir, matrixFlows);
 
   if (!baseURL && !cdpEndpoint) {
     const relative = units.some((u) =>
@@ -304,6 +301,7 @@ export async function cmdRun(args: string[]): Promise<number> {
     startFrom,
     obstacles: wsCfg?.annotations?.obstacles === true,
     concurrency,
+    ...(dsf.factor !== undefined ? { deviceScaleFactor: dsf.factor } : {}),
   };
 
   // Verification runs the same loop N times into isolated roots and prints the report on stdout, so
