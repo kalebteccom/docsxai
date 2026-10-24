@@ -1,12 +1,12 @@
 // The help surface at its edges: `help` followed by words, command names that are close to a real
 // one or spelled with other dashes and cases, usage lookups for dashed names, and the usage
-// error for a label that has no usage entry. The CLI has no "did you mean" hint, so a typo of any
-// edit distance prints the same two lines.
+// error for a label that has no usage entry. A typo within edit distance 2 of a command also gets a
+// "did you mean" line between the unknown-command line and the pointer.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { main } from "../src/cli.js";
 import { commandUsage, usageError } from "../src/cli-messages.js";
-import { USAGE } from "../src/cli-usage.js";
+import { fullHelp } from "../src/cli-help.js";
 
 let out = "";
 let err = "";
@@ -30,14 +30,27 @@ afterEach(() => {
 const POINTER = "run `docsxai --help` to list the commands\n";
 
 describe("help followed by words", () => {
-  it.each([[[]], [["frobnicate"]], [["run"]], [["run", "--flow", "x"]], [["--help"]]])(
-    "prints the whole usage text and exits 0 for help %j",
+  it("prints the whole help and exits 0 for a bare help", async () => {
+    expect(await main(["help"])).toBe(0);
+    expect(out).toBe(fullHelp());
+    expect(err).toBe("");
+  });
+
+  it.each([[["run"]], [["run", "--flow", "x"]]])(
+    "prints only that command's usage and exits 0 for help %j",
     async (rest) => {
       expect(await main(["help", ...rest])).toBe(0);
-      expect(out).toBe(`${USAGE}\n`);
+      expect(out).toContain("usage:   docsxai run ");
+      expect(out).not.toContain("docsxai init ");
       expect(err).toBe("");
     },
   );
+
+  it("exits 2 for help about a name that is not a command", async () => {
+    expect(await main(["help", "frobnicate"])).toBe(2);
+    expect(out).toBe("");
+    expect(err).toContain("unknown command: frobnicate");
+  });
 
   it("treats -h and --help the same way", async () => {
     expect(await main(["-h"])).toBe(0);
@@ -68,15 +81,25 @@ describe("a command name that is not one", () => {
     ["__proto__"],
     ["toString"],
     ["hasOwnProperty"],
-  ])("exits 2 for %j with the pointer and no suggestion", async (cmd) => {
+  ])("exits 2 for %j and ends with the pointer", async (cmd) => {
     expect(await main([cmd])).toBe(2);
-    expect(err).toBe(`unknown command: ${cmd}\n${POINTER}`);
+    expect(err.startsWith(`unknown command: ${cmd}\n`)).toBe(true);
+    expect(err.endsWith(POINTER)).toBe(true);
     expect(out).toBe("");
+  });
+
+  it("suggests the nearest command within edit distance 2 and nothing beyond it", async () => {
+    expect(await main(["runn"])).toBe(2);
+    expect(err).toContain("did you mean `docsxai run`?");
+    err = "";
+    expect(await main(["frobnicate"])).toBe(2);
+    expect(err).toBe(`unknown command: frobnicate\n${POINTER}`);
   });
 
   it("exits 2 for an empty command name", async () => {
     expect(await main([""])).toBe(2);
-    expect(err).toBe(`unknown command: \n${POINTER}`);
+    expect(err.startsWith("unknown command: \n")).toBe(true);
+    expect(err.endsWith(POINTER)).toBe(true);
   });
 
   it("does not look at the arguments after an unknown command", async () => {
