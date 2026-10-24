@@ -8,7 +8,12 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { parseAuthStrategyFile, resolveStateCache, type StorageState } from "./auth.js";
+import {
+  parseAuthStrategyFile,
+  resolveStateCache,
+  storageStateFileName,
+  type StorageState,
+} from "./auth.js";
 import { calibrate } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
 import {
@@ -51,7 +56,7 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
   if (!state) {
     throw new Error(
       withNext(
-        `auth/strategy.yaml configures role "${role}" but there is no valid cached session at ${path.join(projectDir, ".auth", role + ".json")} (missing or expired)`,
+        `auth/strategy.yaml configures role "${role}" but there is no valid cached session at ${path.join(projectDir, ".auth", storageStateFileName(role))} (missing or expired)`,
         `docsxai capture-auth ${shellQuote(projectDir)}`,
       ),
     );

@@ -8,6 +8,7 @@ import {
   makeStrategy,
   parseAuthStrategyFile,
   resolveCredsEnv,
+  storageStateFileName,
 } from "./auth.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
@@ -119,7 +120,7 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
       resolveWorkspacePath(projectDir, ".auth"),
     ).save(role, result, roleAuth, Date.now(), authCookie ? { authCookie } : {});
     process.stdout.write(
-      `capture-auth: cached ${role} → ${path.join(projectDir, ".auth", role + ".json")}\n` +
+      `capture-auth: cached ${role} → ${path.join(projectDir, ".auth", storageStateFileName(role))}\n` +
         `  expires ${new Date(expiresAt).toISOString()}  (from ${source}; re-run when it lapses)\n`,
     );
     if (!/^auth-cookie/.test(source)) {

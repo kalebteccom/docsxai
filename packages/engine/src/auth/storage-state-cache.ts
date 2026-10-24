@@ -1,5 +1,6 @@
 // Local storageState cache (`.auth/<role>.json`) — used by expensive strategies (manual-capture, ui-form, ...).
 
+import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import { z } from "zod";
 import { BackendStateCache, resolveBackendToken } from "../backend-client.js";
@@ -51,14 +52,27 @@ function ttlToMs(ttl: RoleAuth["cache"]["ttl"]): number | "session" {
   }
 }
 
+/** Files in `.auth/` that hold something other than a role's session. */
+const RESERVED_AUTH_FILES: ReadonlySet<string> = new Set(["backend-token"]);
+
+/**
+ * The file name (under `.auth/`) that holds a role's session. A role made of safe characters keeps
+ * its own name. Any other role gets its unsafe characters replaced and a short hash of the exact
+ * role appended, so `a/b` and `a_b` never share a file, and no role lands on the OAuth token file.
+ */
+export function storageStateFileName(role: string): string {
+  const safe = role.replace(/[^A-Za-z0-9_.-]/g, "_");
+  if (safe === role && !RESERVED_AUTH_FILES.has(role)) return `${role}.json`;
+  const hash = createHash("sha256").update(role).digest("hex").slice(0, 8);
+  return `${safe}-${hash}.json`;
+}
+
 export class LocalStorageStateCache {
   /** @param dir the `.auth/` directory (relative paths resolved against cwd). */
   constructor(private readonly dir = ".auth") {}
 
   private fileName(role: string): string {
-    // role names are simple identifiers in practice; still, keep the filename safe.
-    const safe = role.replace(/[^A-Za-z0-9_.-]/g, "_");
-    return `${safe}.json`;
+    return storageStateFileName(role);
   }
 
   private file(role: string): string {
@@ -133,7 +147,12 @@ export class LocalStorageStateCache {
     await fs.mkdir(resolveWorkspacePath(this.dir), { recursive: true });
     // Role names are operator-influenced — resolve with the symlink-aware variant before writing.
     const target = await resolveWorkspacePathReal(this.dir, this.fileName(role));
-    await fs.writeFile(target, JSON.stringify(entry, null, 2) + "\n", "utf8");
+    // The jar holds live session cookies: owner-only, also when an older copy was group-readable.
+    await fs.writeFile(target, JSON.stringify(entry, null, 2) + "\n", {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    await fs.chmod(target, 0o600);
     return { expiresAt, source };
   }
 
