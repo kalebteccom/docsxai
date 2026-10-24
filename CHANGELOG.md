@@ -16,6 +16,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`run --concurrency` rejects a value that is not a whole number of 1 or more.** `abc`, `0`, `-2` and `1.5` fell back to 1 without a message. They now exit 2 with `--concurrency must be a whole number of 1 or more`.
 - **`zip` keeps the outputs of a flow named `halts`.** Every path segment named `halts` was excluded, so `docs/halts/` vanished from the archive. Only `halts/` directories below `docs/<flow>/` are left out now.
 - **`diff` screenshot severity compares the exact changed ratio.** The warn and fail thresholds were compared with `pct` after it was rounded to 4 decimals, so 0.99996% counted as 1% and tripped a `screenshot_pct_warn` of 1. The reported `pct` is unchanged.
+- **`push` names the file when `docs/style.json` is not valid JSON.** It failed with a bare `SyntaxError` that carried no file name. The message is now `<path>/docs/style.json: invalid JSON, ...`.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

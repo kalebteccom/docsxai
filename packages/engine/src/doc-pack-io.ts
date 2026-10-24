@@ -168,7 +168,14 @@ async function readStyle(workspace: string): Promise<StylePayload | null> {
   const yaml = await fs.readFile(yamlPath, "utf8").catch(() => null);
   const jsonText = await fs.readFile(jsonPath, "utf8").catch(() => null);
   if (yaml === null && jsonText === null) return null;
-  const json = jsonText ? JSON.parse(jsonText) : null;
+  let json: unknown = null;
+  if (jsonText) {
+    try {
+      json = JSON.parse(jsonText);
+    } catch (e) {
+      throw new Error(`${jsonPath}: invalid JSON, ${(e as Error).message}`, { cause: e });
+    }
+  }
   return { schema: "docsxai/style-bundle@1", yaml, json };
 }
 
