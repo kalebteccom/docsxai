@@ -6,7 +6,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { AnnotationRecord } from "../src/annotations.js";
-import { buildBurnTree, type BurnNode } from "../src/burn.js";
+import { buildBurnTree, pngDimensions, renderBurn, type BurnNode } from "../src/burn.js";
 import type { CalloutLayout } from "../src/burn-callout.js";
 import type { AnnotationReport } from "../src/burn-report.js";
 import { atBaseSize, layoutAtScale, scalePoint, scaleRect } from "../src/burn-scale.js";
@@ -18,6 +18,7 @@ import {
 } from "../src/burn-theme.js";
 import { BurnThemeError, parseThemeConfig, resolveBurnTheme } from "../src/burn-theme-config.js";
 import { parseFontMetrics } from "../src/font-metrics.js";
+import { solidPng } from "./helpers/png.js";
 
 const METRICS = parseFontMetrics(
   await fs.readFile(new URL("../assets/fonts/inter-regular.ttf", import.meta.url)),
@@ -348,5 +349,28 @@ describe("the tree at the scale limits", () => {
     expect(styleOf(t)).toMatchObject({ width: 1, height: 1 });
     expect(report).toHaveLength(1);
     expect(report[0]!.callout).not.toBeNull();
+  });
+});
+
+describe("a one-pixel screenshot, rendered", () => {
+  const annotation = ann({ bounding_box: { x: 0, y: 0, width: 1, height: 1 }, index: 1 });
+
+  it("comes back as a one-pixel PNG with one report entry", async () => {
+    const { png, report } = await renderBurn({
+      screenshotBuffer: solidPng(1, 1),
+      annotations: [annotation],
+    });
+    expect(pngDimensions(png)).toEqual({ width: 1, height: 1 });
+    expect(report).toHaveLength(1);
+    expect(report[0]!.mode).toBe("outside");
+  });
+
+  it("does the same at scale 4", async () => {
+    const { png } = await renderBurn({
+      screenshotBuffer: solidPng(1, 1),
+      annotations: [annotation],
+      options: { theme: { ...DEFAULT_BURN_THEME, scale: 4 } },
+    });
+    expect(pngDimensions(png)).toEqual({ width: 1, height: 1 });
   });
 });
