@@ -7,7 +7,6 @@
 
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
-import * as path from "node:path";
 import type {
   AnnotationsPayload,
   BlobRef,
@@ -16,7 +15,7 @@ import type {
   ScreenshotsPayload,
   StylePayload,
 } from "./backend-client.js";
-import { writeFileAtomic } from "./atomic-write.js";
+import { writeFilesTransactional, type StagedFile } from "./atomic-write.js";
 import { FlowName } from "./doc-pack.js";
 import { findCaseCollision, hasTrailingDot, isWindowsDeviceName } from "./flow-name-rules.js";
 import {
@@ -329,54 +328,46 @@ export async function writeDocPack(
     screenshotBytes?: Record<string, Uint8Array>;
   } = {},
 ): Promise<{ filesWritten: number }> {
-  let n = 0;
   // Pulled payload file names come from the backend: check every one before the first write, then
-  // resolve with the symlink-aware variant.
+  // resolve with the symlink-aware variant. The files go to disk in one transaction, so a pull that
+  // fails partway leaves the workspace as it was.
   assertSafePackNames(payloads);
+  const files: StagedFile[] = [];
   if (payloads.flows) {
-    await fs.mkdir(resolveWorkspacePath(workspace, "flows"), { recursive: true });
     for (const [f, text] of Object.entries(payloads.flows.files)) {
-      await writeFileAtomic(await resolveWorkspacePathReal(workspace, "flows", f), text, "utf8");
-      n++;
+      const target = await resolveWorkspacePathReal(workspace, "flows", f);
+      files.push({ target, data: text, encoding: "utf8" });
     }
   }
   if (payloads.annotations) {
     for (const [rel, json] of Object.entries(payloads.annotations.files)) {
-      const abs = await resolveWorkspacePathReal(workspace, "docs", rel);
-      await fs.mkdir(path.dirname(abs), { recursive: true });
-      await writeFileAtomic(abs, JSON.stringify(json, null, 2) + "\n", "utf8");
-      n++;
+      const target = await resolveWorkspacePathReal(workspace, "docs", rel);
+      files.push({ target, data: JSON.stringify(json, null, 2) + "\n", encoding: "utf8" });
     }
   }
   if (payloads.screenshots && extras.screenshotBytes) {
     for (const rel of Object.keys(payloads.screenshots.files)) {
       const data = extras.screenshotBytes[rel];
       if (!data) continue;
-      const abs = await resolveWorkspacePathReal(workspace, "docs", rel);
-      await fs.mkdir(path.dirname(abs), { recursive: true });
-      await writeFileAtomic(abs, data);
-      n++;
+      files.push({ target: await resolveWorkspacePathReal(workspace, "docs", rel), data });
     }
   }
-  if (payloads.style) {
-    if (payloads.style.yaml !== null) {
-      const p = resolveWorkspacePath(workspace, "docs", "style.yaml");
-      await fs.mkdir(path.dirname(p), { recursive: true });
-      await writeFileAtomic(p, payloads.style.yaml, "utf8");
-      n++;
-    }
-    if (payloads.style.json !== null) {
-      const p = resolveWorkspacePath(workspace, "docs", "style.json");
-      await fs.mkdir(path.dirname(p), { recursive: true });
-      await writeFileAtomic(p, JSON.stringify(payloads.style.json, null, 2) + "\n", "utf8");
-      n++;
-    }
+  if (payloads.style?.yaml != null) {
+    const target = resolveWorkspacePath(workspace, "docs", "style.yaml");
+    files.push({ target, data: payloads.style.yaml, encoding: "utf8" });
+  }
+  if (payloads.style?.json != null) {
+    const target = resolveWorkspacePath(workspace, "docs", "style.json");
+    files.push({
+      target,
+      data: JSON.stringify(payloads.style.json, null, 2) + "\n",
+      encoding: "utf8",
+    });
   }
   if (payloads.locators?.yaml) {
-    const p = resolveWorkspacePath(workspace, "docs", "locators.yaml");
-    await fs.mkdir(path.dirname(p), { recursive: true });
-    await writeFileAtomic(p, payloads.locators.yaml, "utf8");
-    n++;
+    const target = resolveWorkspacePath(workspace, "docs", "locators.yaml");
+    files.push({ target, data: payloads.locators.yaml, encoding: "utf8" });
   }
-  return { filesWritten: n };
+  await writeFilesTransactional(files);
+  return { filesWritten: files.length };
 }

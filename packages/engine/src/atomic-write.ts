@@ -41,3 +41,100 @@ export async function writeFileAtomic(
     await fs.rm(tmp, { force: true });
   }
 }
+
+export interface StagedFile {
+  target: string;
+  data: string | Uint8Array;
+  encoding?: BufferEncoding;
+}
+
+interface Staged {
+  tmp: string;
+  dest: string;
+  /** The old file, kept under this name until the whole set is in place. `undefined` for a new file. */
+  backup?: string;
+  swapped: boolean;
+}
+
+function siblingTemp(target: string, tag: string): string {
+  return path.join(
+    path.dirname(target),
+    `.${path.basename(target)}.${process.pid}.${randomBytes(4).toString("hex")}.${tag}`,
+  );
+}
+
+/** Keep the old bytes of `dest` under `backup`: a hard link when the file system has them, else a copy. */
+async function keepBackup(dest: string, backup: string): Promise<void> {
+  try {
+    await fs.link(dest, backup);
+  } catch {
+    await fs.copyFile(dest, backup);
+  }
+}
+
+/**
+ * Write several files all or nothing. Every file is first written to a temp file next to its
+ * target (any failure here removes the temp files and the directories created for them, and
+ * touches no target). Then each temp file is renamed over its target, the old file kept aside; if a
+ * rename fails, the files already swapped are put back. Targets that are symlinks keep the link:
+ * the file behind it is replaced. When two entries name one target, the last wins.
+ */
+export async function writeFilesTransactional(files: StagedFile[]): Promise<void> {
+  const staged: Staged[] = [];
+  const createdDirs: string[] = [];
+  const cleanup = async (): Promise<void> => {
+    for (const s of staged) {
+      await fs.rm(s.tmp, { force: true });
+      if (s.backup) await fs.rm(s.backup, { force: true });
+    }
+  };
+  try {
+    const byDest = new Map<string, StagedFile>();
+    for (const f of files) {
+      const existing = await fs.lstat(f.target).catch(() => null);
+      const dest = existing?.isSymbolicLink()
+        ? await fs.realpath(f.target).catch(() => f.target)
+        : f.target;
+      byDest.set(dest, f);
+    }
+    for (const [dest, f] of byDest) {
+      const made = await fs.mkdir(path.dirname(dest), { recursive: true });
+      if (made !== undefined) createdDirs.push(made);
+      const tmp = siblingTemp(dest, "tmp");
+      staged.push({ tmp, dest, swapped: false });
+      await fs.writeFile(tmp, f.data, f.encoding);
+      const old = await fs.stat(dest).catch(() => null);
+      if (old?.isFile()) await fs.chmod(tmp, old.mode & 0o7777);
+    }
+  } catch (e) {
+    await cleanup();
+    for (const d of createdDirs) await fs.rm(d, { recursive: true, force: true });
+    throw e;
+  }
+
+  try {
+    for (const s of staged) {
+      if (
+        await fs.lstat(s.dest).then(
+          () => true,
+          () => false,
+        )
+      ) {
+        s.backup = siblingTemp(s.dest, "bak");
+        await keepBackup(s.dest, s.backup);
+      }
+      await fs.rename(s.tmp, s.dest);
+      s.swapped = true;
+    }
+  } catch (e) {
+    for (const s of [...staged].reverse()) {
+      if (!s.swapped) continue;
+      if (s.backup) await fs.rename(s.backup, s.dest).catch(() => undefined);
+      else await fs.rm(s.dest, { force: true });
+    }
+    await cleanup();
+    for (const d of createdDirs) await fs.rm(d, { recursive: true, force: true });
+    throw e;
+  }
+  await cleanup();
+}
