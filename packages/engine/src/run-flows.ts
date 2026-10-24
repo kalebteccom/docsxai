@@ -175,11 +175,14 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
       });
       return false;
     } finally {
+      // Cleanup failures never replace the flow's own result or stop the other workers.
       if (pause) {
         say("run: --pause — browser is open at the last step run; close it to exit.\n");
-        await waitForBrowserClose(session.browser);
+        await waitForBrowserClose(session.browser).catch(() => undefined);
       }
-      await session.close();
+      await session.close().catch((e: Error) => {
+        process.stderr.write(`${tag(name)}warning: closing the browser failed: ${e.message}\n`);
+      });
     }
   }
 
@@ -189,7 +192,13 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
   async function worker(): Promise<void> {
     while (idx < units.length) {
       const unit = units[idx++]!;
-      if (await runOne(unit)) okCount++;
+      // A throw that escapes runOne would reject the whole pool and leave the other workers running
+      // unobserved, so it counts as this unit's failure instead.
+      const ok = await runOne(unit).catch((e: Error) => {
+        failures.push({ flow: unitLabel(unit), step: null, message: e.message });
+        return false;
+      });
+      if (ok) okCount++;
     }
   }
   const workers = Math.min(opts.concurrency, units.length);
