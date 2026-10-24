@@ -332,6 +332,17 @@ export function uiLang(tag: string | null | undefined): UiLang {
   return primary === "es" ? "es" : "en";
 }
 
+/**
+ * What to tell the operator when a `--lang` tag is set but has no table, so the pages come out in
+ * English. Nothing for a missing or blank tag, or one that selects `en` or `es`.
+ */
+export function langFallbackWarning(tag: string | null | undefined): string | undefined {
+  if (typeof tag !== "string" || tag.trim() === "") return undefined;
+  const primary = tag.trim().toLowerCase().split(/[-_]/, 1)[0];
+  if (primary === "en" || primary === "es") return undefined;
+  return `lang ${JSON.stringify(tag.trim())} has no text table (en and es only), so the pages use English`;
+}
+
 /** The strings for a locale tag (see `uiLang`). */
 export function uiStrings(tag?: string | null): UiStrings {
   return UI_TABLES[uiLang(tag)];

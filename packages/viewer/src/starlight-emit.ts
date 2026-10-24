@@ -26,7 +26,7 @@ import {
   readSteps,
   type StepPage,
 } from "./starlight-sources.js";
-import { fmt, uiStrings, type UiStrings } from "./ui-strings.js";
+import { fmt, langFallbackWarning, uiStrings, type UiStrings } from "./ui-strings.js";
 
 /** Exact versions pinned into the emitted site's package.json — verified to install + build. */
 export const ASTRO_VERSION = "7.3.5";
@@ -399,6 +399,8 @@ export async function emitStarlightSite(
   const logoRel = logoSrc !== null ? `src/assets/logo${path.extname(logoSrc) || ".png"}` : null;
 
   const ui = uiStrings(config.lang);
+  const langWarning = langFallbackWarning(config.lang);
+  if (langWarning) warnings.push(langWarning);
   // Line breaks and other control characters would break the front matter; a blank title is none.
   const title = (config.title ?? "").replace(/[\p{Cc}\u2028\u2029]+/gu, " ").trim() || ui.siteTitle;
 

@@ -60,6 +60,17 @@ describe("buildViewer with unusual inputs", () => {
     expect(r.warnings).toEqual([]);
   });
 
+  it("warns once when --lang names a language with no text table, and still renders", async () => {
+    await flow("a", ["s"], { "s.png": "x" });
+    const r = await buildViewer({ docsDir: docs(), outDir: out(), lang: "fr" });
+    expect(r.pages).toEqual(["index.html", "a/index.html"]);
+    expect(r.warnings).toEqual([
+      'lang "fr" has no text table (en and es only), so the pages use English',
+    ]);
+    const quiet = await buildViewer({ docsDir: docs(), outDir: out(), lang: "es-ES" });
+    expect(quiet.warnings).toEqual([]);
+  });
+
   it("warns, and still writes the empty index, when the docs folder does not exist", async () => {
     const r = await buildViewer({ docsDir: path.join(tmp, "dcos"), outDir: out() });
     expect(r.pages).toEqual(["index.html"]);

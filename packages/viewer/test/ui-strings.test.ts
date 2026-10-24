@@ -9,6 +9,7 @@ import {
   flowUiLang,
   jsConcat,
   jsString,
+  langFallbackWarning,
   retryWidthCh,
   uiLang,
   uiStrings,
@@ -35,6 +36,15 @@ describe("uiLang", () => {
   it("selects English for en, regional English and everything unknown", () => {
     for (const tag of ["en", "en-GB", "en_US", "fr", "pt-BR", "esp", "e", "", "zz-ES"])
       expect(uiLang(tag)).toBe("en");
+  });
+
+  it("warns for a tag with no table, and for nothing else", () => {
+    expect(langFallbackWarning("fr")).toBe(
+      'lang "fr" has no text table (en and es only), so the pages use English',
+    );
+    expect(langFallbackWarning("pt-BR")).toContain('"pt-BR"');
+    for (const tag of ["en", "en-GB", "es", "ES", "es_MX", "", "  ", undefined, null])
+      expect(langFallbackWarning(tag)).toBeUndefined();
   });
 
   it("selects English when there is no tag", () => {

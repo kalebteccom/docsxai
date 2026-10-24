@@ -21,7 +21,14 @@ import { flowPageHtml, indexHtml, type FlowSummary, type ViewerStep } from "./vi
 import type { BurnTheme } from "./burn-theme.js";
 import { themeStyle } from "./burn-theme-css.js";
 import { loadThemeFont } from "./burn-theme-load.js";
-import { flowUiLang, fmt, uiLang, uiStrings, type UiLang } from "./ui-strings.js";
+import {
+  flowUiLang,
+  fmt,
+  langFallbackWarning,
+  uiLang,
+  uiStrings,
+  type UiLang,
+} from "./ui-strings.js";
 
 export interface BuildViewerOptions {
   /** The doc pack's `docs/` directory. */
@@ -215,6 +222,8 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
   const found = await discoverFlows(opts.docsDir, { variants: true });
   const requested = opts.flows ? selectFlows(found, opts.flows) : found;
   const warnings: string[] = [];
+  const langWarning = langFallbackWarning(opts.lang);
+  if (langWarning) warnings.push(langWarning);
   if (!(await isDirectory(opts.docsDir))) {
     warnings.push(`docs folder ${opts.docsDir} not found, so the viewer lists no flows`);
   }
