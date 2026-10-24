@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **Spanish text for the pages docsxai emits (`@docsxai/viewer`).** The labels, empty and error states, notices, keyboard shortcut list, `aria-label` names and `aria-live` announcements that the interactive viewer and the Starlight site add now come from one `en` and `es` table (`ui-strings.ts`). A locale tag picks the language by its primary subtag: `es`, `es-ES` and `es_MX` give Spanish, any other tag gives English, and the page gets a matching `lang`. A matrix variant flow (`<flow>/<locale>.<scheme>.<viewport>`) takes the locale of its variant id; `docsxai-viewer build --lang <locale>` sets the rest, and `docsxai-viewer site --lang <locale>` (also `buildViewer({ lang })`, `config.lang` and the `lang` key of the `starlight:site` renderer) sets the site language, including Starlight's own labels. The Retry button reserves the longer of its two labels in each language. English output is unchanged. Guide: `packages/viewer/README.md`, Page language.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
