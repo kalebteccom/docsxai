@@ -58,8 +58,12 @@ the threshold) exit 1. A flag a command does not take exits 2 (`burn` and
 flag twice exits 2 as well, except `burn --flow`, which repeats. A flag that
 takes no value never reads the next argument, so `run --pause <workspace-dir>`
 keeps the workspace, and `--pause=yes` exits 2. A value flag with no value exits
-2 with `<flag> needs a value`. `doctor` is the exception: it ignores a flag it
-does not know. The transcripts below show
+2 with `<flag> needs a value`. `doctor` follows the same rules: an unknown flag,
+`--offline` twice and `--offline=yes` all exit 2. Ctrl-C (SIGINT) or SIGTERM
+stops a command with one `docsxai: interrupted` line and a `next:` line, and
+exits 130 (SIGINT) or 143 (SIGTERM). While `render`, `burn` or `pack` runs, the
+signal goes to the viewer child and docsxai waits for it: the child gets SIGKILL
+after 10 seconds, and a second signal exits at once. The transcripts below show
 representative output; paths and counts vary with your workspace.
 
 Reports and data go to stdout. Progress lines and warnings go to stderr where
@@ -205,6 +209,8 @@ Chromium; if no browser binary is present, install one with
   (pair with `--flow <name>`). For a slow backend op, give a step a
   `wait_for` of the form `{ selector: $x, timeout_ms: 180000 }` - a per-step
   override of the default ~30s selector-wait timeout.
+  A step id that no selected flow has exits 2 before the browser launches,
+  and so does an unknown `--start-from` id.
 - `--start-from <step-id> --flow <name>` SKIPS every step before
   `<step-id>` and starts execution there - the inverse of `--stop-after`.
   Pair with `--cdp` to attach to a Chrome already in the post-prior-steps
@@ -306,7 +312,10 @@ the `@docsxai/viewer` package installed next to the engine, then
 
 Flow names and step ids from the doc pack become file paths and link targets, so
 `render` skips a flow name or step id that holds `..`, `:`, `\` or a control
-character (a step id also `/`), with a warning on stderr.
+character (a step id also `/`), with a warning on stderr. A `docs/` folder that
+does not exist, or a `--flow` name with no folder under `docs/`, also prints a
+warning; the viewer still writes its (empty) page. Each flow renders once, and
+`#`, `?` and `%` in names are percent-encoded in the page's links and images.
 
 ```
 $ docsxai render ~/docsxai/my-app
@@ -437,8 +446,8 @@ nothing else in `--out` is touched. Loopback addresses (`localhost`, `127.x.x.x`
 169.254/16), email addresses (the reserved example domains `example.com`,
 `example.org`, `example.net` and the `.test`, `.invalid` and `.example` TLDs pass),
 `Authorization:` headers other than `Bearer`, tokens in a URL query and obvious
-secrets in a title, caption, alt text or callout stop the build, naming the manifest
-path and rule. Exit 1 for a failed build, 2 for a bad flag.
+secrets in a title, caption, alt text, callout or the `--generated-for` text stop the
+build, naming the manifest path and rule. Exit 1 for a failed build, 2 for a bad flag.
 
 `pack` and `pack --check` read the workspace's `burn.theme` block as well (see
 [Themeable burned captions](/guides/burn-theming/)).
