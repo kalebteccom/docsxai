@@ -24,7 +24,7 @@ import {
 import { writeFileAtomic } from "./atomic-write.js";
 import { pluginsCli } from "./plugins-cli.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { bareValueFlagExit, isHttpUrl } from "./cli-shared.js";
+import { bareValueFlagExit, isHttpUrl, workspaceDirProblem } from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
 import { configProblem, explainBackendFailure } from "./cli-backend-errors.js";
 import {
@@ -146,6 +146,11 @@ export async function cmdPush(args: string[]): Promise<number> {
   const projectDir = positionals[0];
   const barePush = bareValueFlagExit("push", flags, ["kind", "author"]);
   if (barePush !== undefined) return barePush;
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`push: ${problem}\n`);
+    return 1;
+  }
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url) {
     const file = path.join(projectDir, ".docsxai.json");
@@ -263,6 +268,11 @@ export async function cmdPull(args: string[]): Promise<number> {
   const projectDir = positionals[0];
   const barePull = bareValueFlagExit("pull", flags, ["rev"]);
   if (barePull !== undefined) return barePull;
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`pull: ${problem}\n`);
+    return 1;
+  }
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url || !wsCfg.backend_workspace_id || !wsCfg.backend_project_id) {
     const gap = wsCfg

@@ -175,7 +175,11 @@ export function describeFsProblem(
   const code = fsErrorCode(e);
   if (code === undefined) return undefined;
   const where = target ? ` ${redactUrlsIn(target)}` : "";
-  const parent = opts.creating && target && (code === "EACCES" || code === "EPERM");
+  // A real error carries the failing `syscall`; a path that is not there yet means the denied
+  // directory is its parent, which is where the chmod has to go.
+  const creating =
+    opts.creating || ((e as NodeJS.ErrnoException).syscall && !existsSync(target ?? ""));
+  const parent = creating && target && (code === "EACCES" || code === "EPERM");
   const next = parent
     ? `chmod u+rwx ${shellQuote(nearestExisting(target))}  (or pick another directory), then rerun the command`
     : fsNext(code, target);
@@ -185,8 +189,8 @@ export function describeFsProblem(
 /**
  * A line for a file operation that failed with {@link fsErrorCode}, or with `ENOTDIR`: what failed,
  * why, and the next command. `undefined` for any other error, so the caller keeps its own wording.
- * With `creating`, a refused `mkdir` names the nearest existing parent in the chmod, because the path
- * that failed is not there to change.
+ * A refused create (`creating`, or a failing call on a path that does not exist yet) names the nearest
+ * existing parent in the chmod, because the path that failed is not there to change.
  */
 export function describeFsError(e: unknown, opts: { creating?: boolean } = {}): string | undefined {
   const problem = describeFsProblem(e, opts);

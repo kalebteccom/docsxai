@@ -29,8 +29,14 @@ export async function writeFileAtomic(
     `.${path.basename(target)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`,
   );
   try {
-    await fs.writeFile(tmp, data, encoding);
-    if (existing) await fs.chmod(tmp, existing.mode & 0o7777);
+    try {
+      await fs.writeFile(tmp, data, encoding);
+      if (existing) await fs.chmod(tmp, existing.mode & 0o7777);
+    } catch (e) {
+      // The temp file's name is an implementation detail; report the file the caller asked for.
+      if ((e as NodeJS.ErrnoException).path === tmp) (e as NodeJS.ErrnoException).path = target;
+      throw e;
+    }
     try {
       await fs.rename(tmp, target);
     } catch (e) {

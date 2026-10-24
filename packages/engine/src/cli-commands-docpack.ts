@@ -24,7 +24,7 @@ import { writeFileAtomic } from "./atomic-write.js";
 import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
-import { bareValueFlagExit, flagMissingValue } from "./cli-shared.js";
+import { bareValueFlagExit, flagMissingValue, workspaceDirProblem } from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
 import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 
@@ -198,6 +198,11 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
   }
   const flow = flags.get("flow");
   const title = flags.get("title");
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`export adf: ${problem}\n`);
+    return 1;
+  }
 
   try {
     const projection = await projectDocPackToAdf({
@@ -249,6 +254,11 @@ async function cmdExportPlaywright(rest: string[]): Promise<number> {
     typeof outFlag === "string"
       ? path.resolve(outFlag)
       : resolveWorkspacePath(projectDir, ".export", "tests");
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`export playwright: ${problem}\n`);
+    return 1;
+  }
 
   try {
     const specs = await exportWorkspaceFlowsAsPlaywrightTests({
@@ -301,6 +311,11 @@ export async function cmdBaseline(args: string[]): Promise<number> {
       "baseline",
       "--out cannot be the workspace itself: a refresh clears <out>/flows and <out>/docs first",
     );
+  }
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`baseline: ${problem}\n`);
+    return 1;
   }
 
   let stage = "";
@@ -360,10 +375,13 @@ export async function cmdBaseline(args: string[]): Promise<number> {
     }
     return 0;
   } catch (e) {
+    // The staging directory is an implementation detail; report the output directory instead.
+    const err = e as NodeJS.ErrnoException;
+    if (stage && err.path?.startsWith(stage)) err.path = outDir;
     process.stderr.write(`baseline: ${describeFsError(e) ?? (e as Error).message}\n`);
     return 1;
   } finally {
-    if (stage) await fs.rm(stage, { recursive: true, force: true });
+    if (stage) await fs.rm(stage, { recursive: true, force: true }).catch(() => undefined);
   }
 }
 
