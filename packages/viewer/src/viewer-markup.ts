@@ -7,6 +7,7 @@ import { micromark } from "micromark";
 import type { AnnotationRecord } from "./annotations.js";
 import { SHORTCUTS } from "./viewer-keys.js";
 import { copyButton } from "./viewer-copy.js";
+import { recaptureCommand } from "./shell-quote.js";
 import { fmt, retryWidthCh, uiStrings, type UiStrings } from "./ui-strings.js";
 import { VIEWER_STYLE } from "./viewer-style.js";
 import type { ThemeStyle } from "./burn-theme-css.js";
@@ -113,7 +114,7 @@ function shotError(id: string, rel: string, ui: UiStrings): string {
 
 // A step whose screenshot file does not exist: the reason and the command that captures it again.
 function missingShot(id: string, flow: string | undefined, ui: UiStrings): string {
-  const cmd = `docsxai run <workspace>${flow ? ` --flow ${flow.split("/")[0]}` : ""} --start-from ${id}`;
+  const cmd = recaptureCommand(flow, id);
   const why = fmt(ui.shot.missingWhy, { file: code(`screenshots/${esc(id)}.png`) });
   const copyable = `<span class="sd-copyable"><code class="sd-id">${esc(cmd)}</code> ${copyButton(cmd, "command", ui)}</span>`;
   const how = fmt(ui.shot.missingHow, {

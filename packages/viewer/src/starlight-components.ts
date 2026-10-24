@@ -5,6 +5,7 @@
 // before the tables existed.
 
 import { fmt, jsConcat, jsString, retryWidthCh, type UiStrings } from "./ui-strings.js";
+import { SHELL_QUOTE_SRC } from "./shell-quote.js";
 
 /** `${name}` as text, for a placeholder that the emitted Astro source evaluates itself. */
 const tplVar = (name: string) => "$" + "{" + name + "}";
@@ -172,7 +173,8 @@ const { src, alt, items = [], burned = false, missing = false, flow = "" } = Ast
 const resolved = src === undefined ? "" : typeof src === "string" ? src : src.src;
 const width = src && typeof src === "object" ? src.width : undefined;
 const height = src && typeof src === "object" ? src.height : undefined;
-const command = \`docsxai run <workspace>\${flow ? \` --flow \${flow.split("/")[0]}\` : ""} --start-from \${alt}\`;
+${SHELL_QUOTE_SRC}
+const command = \`docsxai run <workspace>\${flow ? \` --flow \${shellQuote(flow.split("/")[0])}\` : ""} --start-from \${shellQuote(alt)}\`;
 ---
 
 <figure class="annotated-shot" data-burned={burned ? "true" : "false"}>

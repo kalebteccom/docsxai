@@ -57,6 +57,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`docsxai pack` guard scans `generated_for`.** The publish guard checked titles, captions, alt text and callout copy but not `--generated-for`, which lands in the public manifest. A token or email pasted there now stops the build like any other leak.
 - **`docsxai-viewer site` with names that are not plain path parts.** A step id such as `../../x` or a flow name with `:` or `\` was joined into the output paths, so an image could land outside `src/assets/flows/`. These flows and steps are now skipped with a warning, the same rule `render` applies.
 - **`docsxai-viewer site` warns instead of staying silent.** A `--flow` name the pack lacks, and a `docs/style.json` that is not valid JSON (its accent and logo were dropped without a word), now each produce a `site: warning:` line.
+- **Copyable capture commands quote odd names.** The `docsxai run --flow ... --start-from ...` command that `render` and `docsxai-viewer site` offer for a missing screenshot was pasted as written, so a step id or flow name with a space, quote or `$` split into several shell words or ran as code. Both pages now single-quote such names the POSIX way; plain names stay bare.
 
 ## [0.3.0-rc.4] - 2026-10-24
 
