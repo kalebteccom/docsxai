@@ -1,7 +1,7 @@
 // Starlight site emitter (pure emission) — `emitStarlightSite` writes a complete, buildable Astro
-// Starlight project from a doc pack: one MDX page per flow (H2 per step, the step's .md prose
-// verbatim, and an `<AnnotatedShot>` figure preferring the burned PNG over the clean screenshot), a
-// landing page of flow cards, a sidebar ordered by the workspace's `extends` graph (alphabetical
+// Starlight project from a doc pack: one MDX page per flow (H2 per step, the step's .md prose with
+// MDX code turned into plain text, and an `<AnnotatedShot>` figure preferring the burned PNG over
+// the clean screenshot), a landing page of flow cards, a sidebar ordered by the workspace's `extends` graph (alphabetical
 // fallback), and theme accents derived from the style artifact's `visual` section.
 //
 // The emitted project is standalone (its own package.json with exact-pinned astro +
@@ -15,6 +15,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { mixHex } from "./color.js";
+import { inertMdx } from "./mdx-inert.js";
 import { annotatedShotAstro, copyIdAstro } from "./starlight-components.js";
 import { shotLightboxAstro } from "./starlight-lightbox.js";
 import { accentContrastWarnings } from "./starlight-contrast.js";
@@ -206,7 +207,7 @@ function flowMdx(flow: string, slug: string, steps: StepPage[], ui: UiStrings): 
   const sections: string[] = [];
   steps.forEach((step, i) => {
     const parts = [`## ${escapeMdxText(step.id)}`];
-    if (step.md !== null && step.md.trim() !== "") parts.push(step.md.trim());
+    if (step.md !== null && step.md.trim() !== "") parts.push(inertMdx(step.md.trim()));
     if (step.imageSrc !== null) {
       const ident = `shot${String(i)}`;
       imports.push(
