@@ -71,6 +71,15 @@ export function isHttpUrl(value: string): boolean {
   }
 }
 
+/** A URL `docsxai run` can open: http(s), or file: for a local static site. */
+export function isRunnableUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === "file:" || isHttpUrl(value);
+  } catch {
+    return false;
+  }
+}
+
 /** The first of `names` given as a bare flag (`--flow` with nothing after it), or `undefined`. */
 export function flagMissingValue(
   flags: Map<string, string | true>,

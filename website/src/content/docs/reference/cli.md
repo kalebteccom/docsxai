@@ -204,8 +204,8 @@ Chromium; if no browser binary is present, install one with
 `npx playwright-core install chromium` (from a source checkout:
 `pnpm -C packages/engine exec playwright-core install chromium`).
 `--flow <name>` restricts to one flow;
-`--base-url <url>` overrides the workspace's `app_url`; it has to be an `http://` or
-`https://` URL, or `run` exits 2 with its usage line. An `app_url` in `.docsxai.json`
+`--base-url <url>` overrides the workspace's `app_url`; it has to be an `http://`, `https://` or
+`file://` URL, or `run` exits 2 with its usage line. An `app_url` in `.docsxai.json`
 that is not one stops with exit 1 and names the file.
 
 Start-up failures print one reason and one `next:` line. A missing Chromium gives the
