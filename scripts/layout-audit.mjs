@@ -10,12 +10,22 @@
 //     the parent's centre on both axes, and the left and right insets must differ by at most 1 px.
 // It prints one table and exits 1 when it finds anything, 2 on a usage error.
 //
+// `--mode states` checks that status, helper, error and progress lines never shift layout. For each
+// entry in the config's "states" list it loads the page once per state, runs that state's steps
+// (set or remove an attribute, run a snippet, click, wait), records the box of every element the
+// entry's selector matches, and reports any element whose top or height differs from the first
+// state's by more than 1 px. An entry whose selector matches nothing on a page is skipped there.
+//
 //   node scripts/layout-audit.mjs --url https://docsxai.dev/ [--path /getting-started/quickstart/]...
 //   node scripts/layout-audit.mjs --dir website/dist [--path /]... [--config layout.json]
+//   node scripts/layout-audit.mjs --mode states --dir website/dist --config scripts/layout-audit.states.json
 //
 // The config is JSON: { "paths": ["/"], "center": [{ "parent": "css", "child": "css" }],
-// "ignore": ["css"] }. Paths given with --path win over the config's. Playwright comes from
-// @docsxai/engine's playwright-core, like scripts/visual-capture.mjs.
+// "ignore": ["css"], "states": [{ "element": "css", "states": [{ "name": "idle", "steps": [] },
+// { "name": "copied", "steps": [{ "set": "css", "attr": "data-state", "value": "copied" }] }] }] }.
+// A step is one of { "set", "attr", "value" }, { "remove", "attr" }, { "eval": "js" },
+// { "click": "css" } or { "wait": ms }. Paths given with --path win over the config's. Playwright
+// comes from @docsxai/engine's playwright-core, like scripts/visual-capture.mjs.
 
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
@@ -90,6 +100,33 @@ export function formatTable(rows) {
   return [line(head), line(widths.map((w) => "-".repeat(w))), ...body.map(line)].join("\n");
 }
 
+/** True for a well-formed state step (see the header comment). */
+export function isStep(step) {
+  if (!step || typeof step !== "object") return false;
+  if (typeof step.set === "string")
+    return typeof step.attr === "string" && typeof step.value === "string";
+  if (typeof step.remove === "string") return typeof step.attr === "string";
+  if (typeof step.eval === "string" || typeof step.click === "string") return true;
+  return Number.isFinite(step.wait) && step.wait >= 0;
+}
+
+/** The "states" entries with a selector and at least two named states of well-formed steps. */
+function readStates(v) {
+  if (!Array.isArray(v)) return [];
+  const out = [];
+  for (const entry of v) {
+    if (!entry || typeof entry.element !== "string" || !Array.isArray(entry.states)) continue;
+    const states = entry.states
+      .filter((st) => st && typeof st.name === "string")
+      .map((st) => ({
+        name: st.name,
+        steps: Array.isArray(st.steps) ? st.steps.filter(isStep) : [],
+      }));
+    if (states.length >= 2) out.push({ element: entry.element, states });
+  }
+  return out;
+}
+
 /** Normalise a parsed config file; unknown keys are ignored. */
 export function readConfig(raw) {
   const cfg = raw && typeof raw === "object" ? raw : {};
@@ -97,7 +134,68 @@ export function readConfig(raw) {
   const center = Array.isArray(cfg.center)
     ? cfg.center.filter((c) => c && typeof c.parent === "string" && typeof c.child === "string")
     : [];
-  return { paths: list(cfg.paths), center, ignore: list(cfg.ignore) };
+  return {
+    paths: list(cfg.paths),
+    center,
+    ignore: list(cfg.ignore),
+    states: readStates(cfg.states),
+  };
+}
+
+/**
+ * How each state's box moved against the first state's, for one element. `boxes` is
+ * [{ state, box: { y, height } }] in state order; the first is the reference. Returns one row per
+ * later state with dTop and dHeight rounded to 0.1 px and `ok` when both are within `tol`.
+ */
+export function stateShifts(boxes, tol = 1) {
+  if (boxes.length < 2) return [];
+  const r = (n) => Math.round(n * 10) / 10;
+  const ref = boxes[0];
+  return boxes.slice(1).map(({ state, box }) => {
+    const dTop = r(box.y - ref.box.y);
+    const dHeight = r(box.height - ref.box.height);
+    return {
+      state,
+      against: ref.state,
+      dTop,
+      dHeight,
+      ok: Math.abs(dTop) <= tol && Math.abs(dHeight) <= tol,
+    };
+  });
+}
+
+/**
+ * Findings for one page at one viewport in states mode. `measured` is
+ * [{ name, boxes: [{ state, box }] }], one entry per matched element; an element whose state count
+ * differs from `expected` (it vanished in some state) is reported as missing.
+ */
+export function stateFindingsFor(page, viewport, measured, expected) {
+  const vp = `${viewport.width}x${viewport.height} ${viewport.orientation}`;
+  const out = [];
+  for (const el of measured) {
+    if (el.boxes.length !== expected) {
+      const seen = new Set(el.boxes.map((b) => b.state));
+      out.push({
+        page,
+        viewport: vp,
+        kind: "state-missing",
+        element: el.name,
+        detail: `not found in ${expected - seen.size} state(s)`,
+      });
+      continue;
+    }
+    for (const s of stateShifts(el.boxes)) {
+      if (s.ok) continue;
+      out.push({
+        page,
+        viewport: vp,
+        kind: "state-shift",
+        element: el.name,
+        detail: `${s.state} vs ${s.against}: top ${s.dTop} height ${s.dHeight}`,
+      });
+    }
+  }
+  return out;
 }
 
 const TYPES = {
@@ -188,6 +286,47 @@ function collect({ center, ignore }) {
   return { scrollWidth: se.scrollWidth, clientWidth: se.clientWidth, elements, pairs };
 }
 
+// Runs in the page: apply one set or remove step. Kept free of closures over Node code.
+function applyStep(step) {
+  const { document } = globalThis;
+  if (typeof step.set === "string")
+    for (const el of document.querySelectorAll(step.set)) el.setAttribute(step.attr, step.value);
+  else if (typeof step.remove === "string")
+    for (const el of document.querySelectorAll(step.remove)) el.removeAttribute(step.attr);
+}
+
+// Runs in the page: document-relative boxes of every element the selector matches.
+function boxesOf(selector) {
+  const { document, scrollY } = globalThis;
+  return [...document.querySelectorAll(selector)].map((el, i) => {
+    const r = el.getBoundingClientRect();
+    const id = el.id ? `#${el.id}` : "";
+    return {
+      name: `${selector}[${i}]${id}`,
+      box: { x: r.x, y: r.y + scrollY, width: r.width, height: r.height },
+    };
+  });
+}
+
+/** Boxes per state for one config entry on the open page; reloads the page for every state. */
+async function measureStates(page, url, entry) {
+  const byName = new Map();
+  for (const st of entry.states) {
+    await page.goto(url, { waitUntil: "load" });
+    for (const step of st.steps) {
+      if (typeof step.click === "string") await page.click(step.click);
+      else if (Number.isFinite(step.wait)) await page.waitForTimeout(step.wait);
+      else if (typeof step.eval === "string") await page.evaluate(step.eval);
+      else await page.evaluate(applyStep, step);
+    }
+    for (const { name, box } of await page.evaluate(boxesOf, entry.element)) {
+      if (!byName.has(name)) byName.set(name, { name, boxes: [] });
+      byName.get(name).boxes.push({ state: st.name, box });
+    }
+  }
+  return [...byName.values()];
+}
+
 /** Findings for one page at one viewport, from the boxes `collect` returned. */
 export function findingsFor(page, viewport, data) {
   const vp = `${viewport.width}x${viewport.height} ${viewport.orientation}`;
@@ -235,14 +374,23 @@ async function main() {
       dir: { type: "string" },
       path: { type: "string", multiple: true },
       config: { type: "string" },
+      mode: { type: "string", default: "layout" },
     },
   });
+  if (values.mode !== "layout" && values.mode !== "states") {
+    console.error("layout-audit: --mode is layout or states");
+    return 2;
+  }
   if (!values.url === !values.dir) {
     console.error("layout-audit: pass exactly one of --url <origin> or --dir <built-dir>");
     return 2;
   }
   const config = readConfig(values.config ? JSON.parse(await readFile(values.config, "utf8")) : {});
   const paths = values.path?.length ? values.path : config.paths.length ? config.paths : ["/"];
+  if (values.mode === "states" && config.states.length === 0) {
+    console.error('layout-audit: --mode states needs a config with a "states" list');
+    return 2;
+  }
 
   const engineRequire = createRequire(new URL("../packages/engine/package.json", import.meta.url));
   const { chromium } = engineRequire("playwright-core");
@@ -260,6 +408,13 @@ async function main() {
       });
       const page = await context.newPage();
       for (const p of paths) {
+        if (values.mode === "states") {
+          for (const entry of config.states) {
+            const measured = await measureStates(page, `${origin}${p}`, entry);
+            findings.push(...stateFindingsFor(p, viewport, measured, entry.states.length));
+          }
+          continue;
+        }
         await page.goto(`${origin}${p}`, { waitUntil: "load" });
         const data = await page.evaluate(collect, { center: config.center, ignore: config.ignore });
         findings.push(...findingsFor(p, viewport, data));

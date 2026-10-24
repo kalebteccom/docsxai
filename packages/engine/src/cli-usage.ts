@@ -78,8 +78,8 @@ Notes:
     prints them, diagnose --variant <id> picks one. --cdp cannot run a matrix flow.
   • run --cdp <endpoint> attaches to a running Chrome (start it with --remote-debugging-port=N) instead of
     launching one. docsxai won't close that Chrome. When --cdp is set, the cached storageState is NOT
-    loaded into the context, the operator's Chrome owns its auth state. Useful with --start-from for the
-    sub-3-sec iteration loop on long-async flows.
+    loaded into the context, the attached Chrome keeps its own auth state. Useful with --start-from for a
+    fast iteration loop on long-async flows.
   • run --verify-determinism runs the selected flows N times (--runs, 2 to 5, default 2), each into its own
     root under <ws>/.docsxai-verify/run-<k>/, then byte-compares every artefact: annotations.json, screenshots,
     step markdown, locators, halt context. The workspace output is written only when every run agrees (run 1's
@@ -88,16 +88,16 @@ Notes:
     stderr) and names the first differing artefact by path with a cause: the JSON key path, the changed-pixel
     region of a PNG, the first differing line of text, or the sizes. Exit 0 identical, 1 differing or a flow
     halted, 2 bad flags. Not combinable with --pause / --stop-after / --start-from / --cdp.
-  • capture-auth runs the role's auth strategy (MVP: manual-capture, a headed, instrumented browser the
-    engineer logs into; window.__docsxai.capture() or an injected button snapshots the session) and caches
+  • capture-auth runs the role's auth strategy (manual-capture: a headed, instrumented browser you log
+    into; window.__docsxai.capture() or an injected button snapshots the session) and caches
     it to <workspace-dir>/.auth/<role>.json for subsequent \`run\`s. It prints the captured cookie jar so you
     can identify the app's real auth/session cookie.
   • capture-auth keeps a persistent Chrome profile at <workspace>/.auth/chrome-profile/ (gitignored), re-running
     it reuses the login (just trigger capture again). Use --fresh for a clean profile (forces a fresh login).
   • --cdp <endpoint> makes capture-auth *attach to an already-running Chrome* (start it with
     --remote-debugging-port=N --disable-web-security --user-data-dir=<dir>) instead of launching a fresh one,
-    use this to capture from the same Chrome the engineer is already logged into (and that Claude in Chrome is
-    driving for discovery), so they don't log in twice. docsxai won't close that Chrome. (--cdp ignores --fresh.)
+    use this to capture from the Chrome you are already logged into (and that a browser agent may be
+    driving for discovery), so you don't log in twice. docsxai won't close that Chrome. (--cdp ignores --fresh.)
   • auth_cookie (set via \`init --auth-cookie\`, \`capture-auth --auth-cookie\`, or hand-edited into
     auth/strategy.yaml) names that cookie; when set, the cached session's expiry tracks *that* cookie's
     expiry rather than the \`ttl\` guess (an interactive SSO login leaves ephemeral IdP scratch cookies, so
@@ -143,7 +143,7 @@ Notes:
     output for tooling.
   • zip packages the workspace's doc pack into a single archive for hand-off. Includes flows/, docs/,
     .docsxai.json, auth/strategy.yaml (env-var names only, no creds), README.md. Excludes .auth/
-    (operator-local session state), **/halts/ (debug screenshots), .viewer/ by default (re-renderable
+    (local session state), **/halts/ (debug screenshots), .viewer/ by default (re-renderable
     from the doc pack; pass --include-viewer to bundle it). Defaults output to <workspace-name>.zip
     in the current dir; override with --out <path>. Zips in-process (no system 'zip' binary needed)
     and deterministically, sorted entries, fixed mtime, fixed compression, so the same doc pack
@@ -201,7 +201,7 @@ Notes:
     optionally backend_workspace_id / backend_project_id; created on first push if absent and
     persisted to the config). --kind defaults to "calibrate"; --author defaults to the OS user.
   • pull fetches a revision's artifacts back into the workspace files (default: HEAD). Useful for
-    syncing with a different operator's edits or rolling back to a named revision.
+    syncing with someone else's edits or rolling back to a named revision.
   • A command that works on a workspace takes its directory as the first argument. Reports and data go to
     stdout; progress lines and warnings go to stderr where a command already splits them. Output has no
     colour. An error prints \`<command>: what failed\`, then \`next: <command to run>\` when there is one.

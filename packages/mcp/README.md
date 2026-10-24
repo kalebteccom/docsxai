@@ -9,7 +9,7 @@ the CLI wraps; behaviour is identical by construction.
 
 This server exposes **calibration meta-orchestration + read-only doc-pack introspection only**.
 It deliberately exposes **no browser primitives** — no click/fill/inspect on an arbitrary live
-page. Live-page discovery during calibration is [browxai](../../docs/browxai-asks.md)'s surface;
+page. Live-page discovery during calibration is browxai's surface;
 docsxai-mcp orchestrates the deterministic engine around it. Keeping the two surfaces disjoint is
 what keeps `docsxai run` agent-free and reproducible.
 
@@ -167,7 +167,7 @@ Chromium and are skipped when no Chromium binary is installed
 Adding a tool? Follow the numbered checklist in
 [`docs/ai-context/tool-registration/mcp-tool-registry.md`](../../docs/ai-context/tool-registration/mcp-tool-registry.md).
 
-## Deferred
+## Limitations
 
-The package is `private: true` and not on npm; run it from a source checkout. The HTTP transport has
+Not on npm yet: run it from a source checkout. The HTTP transport has
 no rate limiting on failed tokens and no TLS of its own.

@@ -21,7 +21,7 @@ commit, `zip`, or `push` to the backend.
   docs/style.yaml + style.json    style artifact (canonical + derived)
   docs/locators.yaml              locator manifest (one canonical locator per step)
   auth/strategy.yaml              target-site auth-strategy descriptor
-  .auth/                          cached sessions (operator-local, gitignored)
+  .auth/                          cached sessions (local, gitignored)
   .viewer/                        rendered viewer (re-derivable, gitignored)
   .baseline/                      drift baseline (commit it; see below)
   .docsxai.json                   workspace config (app_url, plugins, backend binding, burn.theme)

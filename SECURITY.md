@@ -141,8 +141,7 @@ point the engine at.
 (`docsxa`, `dcosxai`, `docsx-ai`, `site-doc`, etc.) instead of
 `docsxai` / `@docsxai/*`, our defenses do not apply. Verify
 the package name and scope before install; verify registry signatures
-after install. See `docs/security-best-practices-for-adopters.md` (lands
-with the launch-gate phase).
+after install. See `docs/security-best-practices-for-adopters.md`.
 
 **The MCP HTTP transport.** `docsxai-mcp serve --http` is opt-in; the default transport is stdio.
 It requires a bearer token of at least 32 characters, taken from the environment or a file and never
@@ -192,6 +191,6 @@ rationale: each installed App expands the trusted-write surface to a
 third party whose own compromise becomes our compromise, and the
 findings these tools surface are already covered by first-party CI
 (`pnpm audit`, trufflehog secret scanning, license-checker, lockfile
-lint). Once the bot allowlist artifact lands in `.github/`, that file
-holds the canonical policy. Adding a new App that requires write
-access requires explicit owner approval and a rationale entry there.
+lint). `.github/BOT_ALLOWLIST.md` holds the canonical policy. Adding a new
+App that requires write access needs maintainer approval and a
+rationale entry there.

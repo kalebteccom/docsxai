@@ -406,6 +406,27 @@ describe("emitStarlightSite micro-states", () => {
     expect(shot).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
   });
 
+  it("CopyId and AnnotatedShot keep their box across states and run one action at a time", async () => {
+    const ws = await makeWorkspace(goldenSpec());
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const copy = await read(out, "src/components/CopyId.astro");
+    expect(copy).toContain('if (!btn || btn.getAttribute("aria-busy") === "true") return;');
+    expect(copy).toContain('btn.setAttribute("aria-busy", "true");');
+    expect(copy.match(/btn\.removeAttribute\("aria-busy"\)/g)).toHaveLength(2);
+    const shot = await read(out, "src/components/AnnotatedShot.astro");
+    // the error line is an overlay inside the image frame, not a line inserted below it
+    expect(shot).toMatch(
+      /<div class="annotated-shot-frame">\s*<img[^>]*\/>\s*<p class="annotated-shot-error"[^]*?<\/p>\s*<\/div>/,
+    );
+    expect(shot).toMatch(/\.annotated-shot-frame \{\s*position: relative;/);
+    expect(shot).toMatch(/\.annotated-shot-error \{\s*position: absolute;\s*inset: 1px;/);
+    expect(shot).toContain(
+      "style={width && height ? `aspect-ratio: ${width} / ${height}` : undefined}",
+    );
+    expect(shot).toMatch(/\.annotated-shot-retry \{[^}]*width: \d+ch;/);
+  });
+
   it("builds the landing page from one LinkCard per flow with step/annotation counts", async () => {
     const ws = await makeWorkspace(goldenSpec());
     const out = await outDir();

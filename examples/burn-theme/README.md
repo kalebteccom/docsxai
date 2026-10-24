@@ -30,9 +30,9 @@ docsxai pack ./docs-workspace --out ./docs-workspace/.screens
 
 Expect `burned/<flow>/<step>.png` for every flow with an `annotations.json`, and `.screens/manifest.json` from `pack`, with a halo in `#0b6e4f`, a numbered badge and a callout in the `readable` look on each. A bad key or value stops the command and lists each problem with its key. Text colours under WCAG AA print a warning.
 
-## trackxai tokens pair
+## Violet tokens pair
 
-`trackxai-light.tokens.json` and `trackxai-dark.tokens.json` are W3C tokens files for a light and a dark app: Kalebtec violet on paper, and light violet on ink. Each sets the callout, badge and halo colours, 15 px text, `shape.connector: "line"`, and under `render` a `scale` of `auto` with a `display_width` of 1100 (350 under 900 px), the widths the landing shows its captures at. That gives 17.6 px burned text on a 1280 capture and 16.8 px on a 390 one, 15 px on the page for both. `render` has no default token path, so map it:
+`trackxai-light.tokens.json` and `trackxai-dark.tokens.json` are W3C tokens files for a light and a dark app: violet on paper, and light violet on ink. Each sets the callout, badge and halo colours, 15 px text, `shape.connector: "line"`, and under `render` a `scale` of `auto` with a `display_width` of 1100 (350 under 900 px), for a page that shows desktop captures at about 1100 px and phone captures at about 350. That gives 17.6 px burned text on a 1280 capture and 16.8 px on a 390 one, 15 px on the page for both. `render` has no default token path, so map it:
 
 ```json
 {

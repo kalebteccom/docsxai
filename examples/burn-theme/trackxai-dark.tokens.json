@@ -1,5 +1,5 @@
 {
-  "$description": "trackxai caption theme, dark. Colours from the Kalebtec brand tokens: brand.light violet on ink.soft.",
+  "$description": "Violet caption theme, dark: light violet on ink.",
   "color": {
     "accent": {
       "$type": "color",

@@ -144,12 +144,20 @@ const { value, kind = "id" } = Astro.props;
   document.addEventListener("click", (e) => {
     const target = e.target;
     const btn = target && target.closest ? target.closest("button.docsx-copy") : null;
-    if (!btn) return;
+    if (!btn || btn.getAttribute("aria-busy") === "true") return;
     const clip = navigator.clipboard;
     if (!clip || typeof clip.writeText !== "function") return fallback(btn);
+    // One write at a time per button: a click while one is pending does nothing.
+    btn.setAttribute("aria-busy", "true");
     clip.writeText(btn.getAttribute("data-copy") || "").then(
-      () => show(btn, "done", COPIED_MS),
-      () => fallback(btn),
+      () => {
+        btn.removeAttribute("aria-busy");
+        show(btn, "done", COPIED_MS);
+      },
+      () => {
+        btn.removeAttribute("aria-busy");
+        fallback(btn);
+      },
     );
   });
 </script>
@@ -159,8 +167,10 @@ const { value, kind = "id" } = Astro.props;
 // The caption list is numbered to match the badge numbers burned into the image (`item.n` is the
 // annotation's 1-based badge index), so <li value> carries the explicit number. The image carries
 // its intrinsic width and height (Astro reads them from the imported file), so its box is reserved
-// before it loads. A failed load shows a message with Retry (a fresh query string defeats a cached
-// failure), and a step with no image shows why and the command that captures it.
+// before it loads, and an explicit aspect-ratio keeps that box when the load fails. A failed load
+// shows a message with Retry (a fresh query string defeats a cached failure) as an overlay inside
+// the image's box, so it never moves the page. A step with no image shows why and the command that
+// captures it.
 export function annotatedShotAstro(ui: UiStrings): string {
   const alt = tplVar("alt");
   const kinds = ui.kinds;
@@ -189,12 +199,13 @@ const command = \`docsxai run <workspace>\${flow ? \` --flow \${shellQuote(flow.
         </p>
       </div>
     ) : (
-      <>
+      <div class="annotated-shot-frame">
         <img
           src={resolved}
           alt={\`${fmt(ui.step.shotAlt, { id: alt })}\`}
           width={width}
           height={height}
+          style={width && height ? \`aspect-ratio: \${width} / \${height}\` : undefined}
           loading="lazy"
           decoding="async"
         />
@@ -204,7 +215,7 @@ const command = \`docsxai run <workspace>\${flow ? \` --flow \${shellQuote(flow.
           </span>
           <button type="button" class="annotated-shot-retry">${ui.shot.retry}</button>
         </p>
-      </>
+      </div>
     )
   }
   {items.length === 1 && <figcaption>{items[0].copy}</figcaption>}
@@ -237,6 +248,14 @@ const command = \`docsxai run <workspace>\${flow ? \` --flow \${shellQuote(flow.
   .annotated-shot img.is-broken {
     border-color: var(--sl-color-text-accent);
   }
+  .annotated-shot img.is-broken:not([height]) {
+    min-height: 160px;
+  }
+  .annotated-shot-frame {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+  }
   .annotated-shot-missing {
     box-sizing: border-box;
     min-height: 160px;
@@ -253,8 +272,20 @@ const command = \`docsxai run <workspace>\${flow ? \` --flow \${shellQuote(flow.
     margin: 0.25rem 0;
   }
   .annotated-shot-error {
-    margin: 0.5rem 0 0;
+    position: absolute;
+    inset: 1px;
+    box-sizing: border-box;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 1rem;
+    overflow: auto;
+    text-align: center;
     color: var(--sl-color-text);
+    background: var(--sl-color-bg);
+    border-radius: 0.5rem;
   }
   .annotated-shot-error[hidden] {
     display: none;

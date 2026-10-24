@@ -4,7 +4,7 @@ docsxai **publisher plugin** for SharePoint Online. Registers `sharepoint:push`,
 
 The engine emits projections only and performs no wiki egress. This plugin is the SharePoint egress path. Its manifest declares one capability per host the code can reach: `egress:graph.microsoft.com`, `egress:graph.microsoft.us`, `egress:microsoftgraph.chinacloudapi.cn` and `egress:graph.microsoft.de` (the API), and `egress:*.sharepoint.com`, `egress:*.sharepoint.us`, `egress:*.sharepoint.cn` and `egress:*.sharepoint.de` (the pre-authenticated download URL Graph redirects a file read to). The runtime loads a plugin only when every declared capability is enabled, so the workspace's `plugin_capabilities` has to list all eight, whichever cloud the tenant is in. All HTTP uses the built-in `fetch`.
 
-> **Experimental.** `@docsxai/plugin-sharepoint` is published to npm as an experimental package (row PLUG-13 of `docs/public-surface.md` in the repository). Graph behaviour has only been tested against an in-process fake server. No live SharePoint tenant has been run, and the folder layout can still move.
+> **Experimental.** `@docsxai/plugin-sharepoint` is published to npm under the `next` dist-tag as an experimental package. Graph behaviour has only been tested against an in-process fake server. No live SharePoint tenant has been run, and the folder layout can still move.
 
 ## Install
 

@@ -30,7 +30,7 @@ claude plugin install docsxai@docsxai
 
 The marketplace entry points at `./packages/plugin`, which holds `.claude-plugin/plugin.json`. Both manifests pass `claude plugin validate`.
 
-**Verified:** adding a local checkout as a marketplace (`claude plugin marketplace add /path/to/docsxai`) and installing `docsxai@docsxai` from it, in an isolated Claude Code config directory. **Unverified:** the `kalebteccom/docsxai` GitHub shorthand, which resolves only once the manifest is on the default branch.
+**Verified:** adding a local checkout as a marketplace (`claude plugin marketplace add /path/to/docsxai`) and installing `docsxai@docsxai` from it, in an isolated Claude Code config directory. **Unverified:** the `kalebteccom/docsxai` GitHub shorthand.
 
 ### Local development
 

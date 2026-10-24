@@ -4,9 +4,9 @@ Thanks for your interest. docsxai is Apache-2.0 licensed; contributions are welc
 
 ## Where the design lives
 
-The docs in this repo are the public source of truth: `AGENTS.md` (operating rules + repo map), the runbooks under `docs/`, and the design rationale under `docs/ai-context/`. Read those first if you're changing scope or design shape, and update them in lockstep with implementation changes. (Pre-public planning history lives in the maintainer's internal planning archive; nothing contributors need is kept there.)
+The docs in this repo are the public source of truth: `AGENTS.md` (operating rules + repo map), the runbooks under `docs/`, and the design rationale under `docs/ai-context/`. Read those first if you're changing scope or design shape, and update them in lockstep with implementation changes.
 
-For browser-bridge / discovery-driver concerns, the cross-repo contract is at [`docs/browxai-asks.md`](docs/browxai-asks.md); the portable actionability predicate is at [`docs/actionability-contract.md`](docs/actionability-contract.md).
+For browser-bridge / discovery-driver concerns, the portable actionability predicate is at [`docs/actionability-contract.md`](docs/actionability-contract.md).
 
 ## Development setup
 
@@ -89,7 +89,7 @@ We require contributors to sign off on commits with `git commit -s`. This adds a
 ## Branch model
 
 - Feature branches off `main`: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`, `docs/<slug>`, `test/<slug>`, `refactor/<slug>`.
-- Open a PR against `main`. One maintainer review is required (enforced by CODEOWNERS once the CODEOWNERS file lands).
+- Open a PR against `main`. One maintainer review is required.
 - Squash-merge is the default. Keep the subject conformant — it becomes the squashed-commit subject.
 - Draft PRs are welcome for in-flight design conversation.
 
@@ -139,7 +139,7 @@ For security-sensitive reports, please follow [`SECURITY.md`](SECURITY.md) rathe
 
 ## Workspace-rooted paths
 
-Every transient path docsxai writes lives under the workspace directory the operator passes to the CLI (e.g. `~/docsxai/my-app`). Code never writes to `$HOME`, `cwd`, or `/tmp` directly. Internal Kalebtec paths do not appear in code, comments, tests, or public docs.
+Every transient path docsxai writes lives under the workspace directory you pass to the CLI (e.g. `~/docsxai/my-app`). Code never writes to `$HOME`, `cwd`, or `/tmp` directly. Machine-specific paths do not appear in code, comments, tests, or public docs.
 
 ## Issue label conventions
 
@@ -152,7 +152,7 @@ We use these label families on issues and PRs:
 
 ## Bot allowlist
 
-See `.github/BOT_ALLOWLIST.md` (lands with the launch-gate phase). New GitHub Apps that require write access require owner approval and a rationale entry in `SECURITY.md`.
+See `.github/BOT_ALLOWLIST.md`. New GitHub Apps that require write access need maintainer approval and a rationale entry in `SECURITY.md`.
 
 ## License
 

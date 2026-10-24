@@ -4,7 +4,8 @@
 // in the hero variant is drawn beside the text and is not selectable.
 //
 // The button keeps one accessible name. A visually hidden status region announces the result, and
-// the "Copy" and "Copied" labels share one grid cell, so the button never changes width.
+// the "Copy", "Copied" and "Ctrl+C" labels share one grid cell, so the button never changes width.
+// A click while a copy is pending does nothing (aria-busy).
 interface Props {
   /** One command per line. Copied as written. */
   command: string;
@@ -22,6 +23,7 @@ const { command, label, variant = "card" } = Astro.props;
   <button type="button" class="docsx-copy" data-copy={command} aria-label={label}>
     <span class="docsx-copy-idle" aria-hidden="true">Copy</span>
     <span class="docsx-copy-done" aria-hidden="true">Copied</span>
+    <span class="docsx-copy-manual" aria-hidden="true">Ctrl+C</span>
   </button>
   <span class="docsx-sr" role="status" aria-live="polite" data-copy-status></span>
 </div>
@@ -49,14 +51,17 @@ const { command, label, variant = "card" } = Astro.props;
     selection?.addRange(range);
   }
 
+  const keys = /Mac|iPhone|iPad/.test(navigator.platform) ? "Cmd+C" : "Ctrl+C";
+
   async function onClick(button: HTMLButtonElement): Promise<void> {
+    if (button.getAttribute("aria-busy") === "true") return;
     const root = button.closest(".docsx-cmd");
     const status = root?.querySelector("[data-copy-status]") ?? null;
-    const done = button.querySelector(".docsx-copy-done");
     const text = button.dataset.copy ?? "";
     const previous = timers.get(button);
     if (previous !== undefined) window.clearTimeout(previous);
 
+    button.setAttribute("aria-busy", "true");
     let state = "copied";
     try {
       await navigator.clipboard.writeText(text);
@@ -64,10 +69,8 @@ const { command, label, variant = "card" } = Astro.props;
       state = "manual";
       selectText(root?.querySelector("code") ?? null);
     }
+    button.removeAttribute("aria-busy");
 
-    const mac = /Mac|iPhone|iPad/.test(navigator.platform);
-    const keys = mac ? "Cmd+C" : "Ctrl+C";
-    if (done) done.textContent = state === "copied" ? "Copied" : keys;
     button.dataset.state = state;
     announce(status, state === "copied" ? "Copied to clipboard" : `Press ${keys} to copy`);
 
@@ -75,12 +78,12 @@ const { command, label, variant = "card" } = Astro.props;
       button,
       window.setTimeout(() => {
         delete button.dataset.state;
-        if (done) done.textContent = "Copied";
         if (status) status.textContent = "";
       }, RESET_MS),
     );
   }
 
+  for (const label of document.querySelectorAll(".docsx-copy-manual")) label.textContent = keys;
   for (const button of document.querySelectorAll<HTMLButtonElement>("button[data-copy]")) {
     button.addEventListener("click", () => {
       void onClick(button);

@@ -69,7 +69,7 @@ export interface StrategyResult {
 export interface StrategyDeps {
   fetchImpl?: typeof fetch;
   spawnImpl?: SpawnLike;
-  /** GitHub token source — installation-token wiring goes here (owner-gated). Default: `GITHUB_APP_TOKEN` env. */
+  /** GitHub token source — installation-token wiring goes here (set up by hand). Default: `GITHUB_APP_TOKEN` env. */
   tokenProvider?: () => Promise<string>;
   /** Engine bin for `viewer-refresh` (SpawnRunner threads its resolved bin through). */
   engineBin?: string;

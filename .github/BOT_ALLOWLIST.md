@@ -1,6 +1,6 @@
 # Bot allowlist
 
-Stub. Authoritative rationale lives in `SECURITY.md` (D2b). This file is
+The rationale lives in `SECURITY.md`. This file is
 the at-a-glance list maintainers consult before installing any GitHub App
 or Action with broad scope.
 
@@ -14,7 +14,7 @@ or Action with broad scope.
 - **GitHub Secret Scanning + push protection** — free for public repos;
   enable both.
 
-## Forbidden (no exceptions without an explicit decisions-log entry)
+## Forbidden (no exceptions without a written justification)
 
 - **Snyk** — installs as a GitHub App requiring org-wide write; rotates PR
   author identity onto humans without consent (the "escalate to a bad
@@ -36,6 +36,6 @@ or Action with broad scope.
   Claude Code GitHub Action (CVE 2026, prompt-injection-via-comments →
   OIDC token theft, patched but the class persists).
 
-See `SECURITY.md` (D2b) for the rationale and the disclosure channel.
+See `SECURITY.md` for the rationale and the disclosure channel.
 Anything outside this list requires a written justification logged there
 before install.

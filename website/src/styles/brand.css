@@ -342,8 +342,8 @@ main:has(.docsx-404) > .content-panel {
 
 /* Command blocks with a copy button: the install one-liner under the CTAs (hero) and the install
    cards (card). Markup and script: src/components/CopyCommand.astro. The text wraps and never
-   scrolls, so nothing overflows a phone. The "Copy" and "Copied" labels share one grid cell, so
-   the button keeps its width when the label changes. */
+   scrolls, so nothing overflows a phone. The "Copy", "Copied" and "Ctrl+C" labels share one grid
+   cell and only toggle visibility, so the button keeps its width in every state. */
 .docsx-cmd {
   display: flex;
   align-items: center;
@@ -397,13 +397,15 @@ main:has(.docsx-404) > .content-panel {
 .docsx-copy > span {
   grid-area: 1 / 1;
 }
-.docsx-copy-done {
+.docsx-copy-done,
+.docsx-copy-manual {
   visibility: hidden;
 }
 .docsx-copy[data-state] .docsx-copy-idle {
   visibility: hidden;
 }
-.docsx-copy[data-state] .docsx-copy-done {
+.docsx-copy[data-state="copied"] .docsx-copy-done,
+.docsx-copy[data-state="manual"] .docsx-copy-manual {
   visibility: visible;
 }
 .docsx-copy:hover {

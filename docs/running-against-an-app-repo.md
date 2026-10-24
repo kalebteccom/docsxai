@@ -2,7 +2,7 @@
 
 > This is the conceptual overview. The one-command setup is `docsxai init`.
 
-> **For agents:** The step-by-step that's kept current (incl. field notes from real test drives — `auth_cookie` pinning,
+> **For agents:** The step-by-step that's kept current (incl. `auth_cookie` pinning,
 > copying gitignored `.env`/dev-cert into the worktree, dev-server port collisions, the `pnpm link` gotcha,
 > loose-prose/test-guides needing hand-authoring) lives in **[`agent-runbook.md`](./agent-runbook.md)**. Where the two
 > differ, the agent runbook wins.
@@ -48,9 +48,8 @@ pnpm -C "$TOOL_REPO/packages/backend" link --global   # → `docsxai-backend` (o
 they're on `PATH`.)
 
 The Claude Code **plugin** (`$TOOL_REPO/packages/plugin`) is the first-class surface for the _calibration_
-skills — `claude plugin install` it if you want `/docsxai:calibrate` etc. (The exact install incantation for
-a plugin living in a monorepo subdirectory still needs validating against current Claude Code plugin docs — see
-`docs/archive/phase-plans/PHASE-0.md`; until then, the calibration playbook in `packages/plugin/skills/calibrate/SKILL.md` is the script.)
+skills — `claude plugin install` it if you want `/docsxai:calibrate` etc. The calibration playbook it follows is
+`packages/plugin/skills/calibrate/SKILL.md`.
 
 > **Heads-up on calibration:** the _deterministic_ side (`run`, `render`, `capture-auth`) is a plain CLI. Agent-driven
 > calibration runs through the plugin's `calibrate` and `diagnose` skills (or any MCP host driving the `@docsxai/mcp`
@@ -161,8 +160,8 @@ git -C "$APP_REPO" status                                # should be clean — y
 
 ## Caveats / known gaps
 
-- **No one-command calibration** — agent-driven calibration is the plugin's `calibrate` skill (or the `@docsxai/mcp` tools) following the playbook. `docsxai calibrate --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / the first-consumer testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
-- **Plugin install from a monorepo subdir** isn't validated yet (`docs/archive/phase-plans/PHASE-0.md` "Plugin install end-to-end validation"). If `claude plugin install` doesn't pick up `packages/plugin/`, copy that dir somewhere installable, or just use the playbook + CLIs.
+- **No one-command calibration** — agent-driven calibration is the plugin's `calibrate` skill (or the `@docsxai/mcp` tools) following the playbook. `docsxai calibrate --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / a prose testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
+- **Plugin install from a monorepo subdir** isn't validated yet. If `claude plugin install` doesn't pick up `packages/plugin/`, copy that dir somewhere installable, or just use the playbook + CLIs.
 - **`--persist tmp`** is implemented for `init` (an ephemeral workspace in a temp dir); `rm -rf` it when done.
 - **HTTPS dev certs:** pass `--ignore-https-errors` (or bake it into `.docsxai.json` via `init`). The `manual-capture` browser also runs security-lowered so the injected capture helper works across SSO-redirect origins. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot.
 - **Session expiry:** `manual-capture` sessions last ≈ the app's auth-cookie lifetime. Pin `cache.auth_cookie` (`capture-auth` prints the jar; or `init --auth-cookie` / `--auth-cookie`) so the cache tracks the real cookie, not a `ttl` guess. `run` fails fast with "no valid cached session … (missing or expired)" and a `next: docsxai capture-auth` line, so re-run `capture-auth` (re-login). A callable login / test-only login endpoint on the app would make it unattended; if there isn't one, expect periodic re-capture.

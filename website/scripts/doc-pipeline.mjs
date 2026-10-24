@@ -30,10 +30,6 @@ export const htmlPages = [
     title: "Running against an app repo",
     description:
       "The conceptual overview of documenting an app that's built and served from a local repo, without leaving a trace: throwaway worktree, separate workspace, deterministic replay.",
-    replace: [
-      [/— see\n`docs\/archive\/phase-plans\/PHASE-0\.md`; until then,/, "- until then,"],
-      [/ \(`docs\/archive\/phase-plans\/PHASE-0\.md` "plugin packaging prototype"\)/, ""],
-    ],
   },
   {
     src: "docs/ci-recipes.md",
@@ -115,7 +111,6 @@ export const htmlPages = [
         /\nAdding a tool\? Follow the numbered checklist in\n\[`docs\/ai-context\/tool-registration\/mcp-tool-registry\.md`\]\(\.\.\/\.\.\/docs\/ai-context\/tool-registration\/mcp-tool-registry\.md\)\.\n/,
         "\n",
       ],
-      [/ The package is\n`private: true` until the go-public flip\./, ""],
     ],
   },
   {
@@ -145,7 +140,6 @@ export const htmlPages = [
     title: "@docsxai/plugin-confluence",
     description:
       "Publisher plugin for Confluence Cloud: pushes the engine's ADF doc-pack projection through the REST v2 API, idempotently.",
-    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
   },
   {
     src: "packages/plugin-gitbook/README.md",
@@ -153,7 +147,6 @@ export const htmlPages = [
     title: "@docsxai/plugin-gitbook",
     description:
       "Publisher plugin for GitBook: pushes a doc pack as markdown pages and images into a space through a change request, idempotently.",
-    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
   },
   {
     src: "packages/plugin-guru/README.md",
@@ -161,7 +154,6 @@ export const htmlPages = [
     title: "@docsxai/plugin-guru",
     description:
       "Publisher plugin for Guru: pushes a doc pack as cards with attached images into a collection through the Guru public API, idempotently.",
-    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
   },
   {
     src: "packages/plugin-notion/README.md",
@@ -169,7 +161,6 @@ export const htmlPages = [
     title: "@docsxai/plugin-notion",
     description:
       "Publisher plugin for Notion: pushes a doc pack as pages with uploaded images under a page or into a database through the Notion public API, idempotently.",
-    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
   },
   {
     src: "packages/plugin-sharepoint/README.md",
@@ -190,7 +181,6 @@ export const htmlPages = [
     title: "@docsxai/plugin-starlight",
     description:
       "Renderer plugin that emits a production Astro Starlight docs site from a doc pack, wrapping the viewer's Starlight emitter and builder.",
-    replace: [[/\n*$/, "\n\nRepo-only today; npm publication is decided at the public flip.\n"]],
   },
   {
     src: "CHANGELOG.md",

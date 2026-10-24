@@ -2,7 +2,7 @@
 
 Authenticated service that persists doc packs (projects, revisions, flow-files, screenshots, annotations, style artifacts, run history). REST + per-resource endpoints; OAuth 2.1 (authorization-code + PKCE) plus a pre-issued CI bearer token; content-addressed blob storage; immutable finalized revisions.
 
-**Status:** the endpoint shape is what production will be. Storage is in-memory by default and filesystem-backed with a data dir; a hosted multi-tenant deployment (real consent UI, durable token store, DB) is post-MVP and owner-gated.
+**Status:** storage is in-memory by default and filesystem-backed with a data dir. There is no hosted multi-tenant deployment (interactive consent, durable token store, database).
 
 ## Surface
 
@@ -66,7 +66,7 @@ The backend is its own minimal authorization server:
 - `GET /v1/oauth/authorize?client_id=docsxai-cli&code_challenge=<S256>&code_challenge_method=S256&redirect_uri=http://127.0.0.1:<port>/callback&state=…` → **302** to the redirect URI with `code` + `state`. Codes are single-use, 5-minute TTL, bound to the challenge + redirect URI. Only loopback redirect URIs are accepted; only `S256`.
 - `POST /v1/oauth/token` (form-encoded) — `grant_type=authorization_code` (+ `code`, `code_verifier`) → `{ access_token, token_type: "Bearer", expires_in: 3600, refresh_token }`; `grant_type=refresh_token` rotates (the presented refresh token is invalidated).
 
-Consent is stub-grade by design: the authorize request is auto-approved when it carries `Authorization: Bearer <DOCSX_TOKEN>` **or** when `DOCSX_OAUTH_AUTO_APPROVE=1`. A real interactive consent UI is hosted-deployment scope (owner-gated). Tokens are random 32-byte values; the server stores only their sha256 hashes (with expiry + workspace scope; `null` scope = all workspaces, matching today's stub semantics). Issued tokens live in process memory — they don't survive a restart; the CI-token path does.
+Consent is stub-grade by design: the authorize request is auto-approved when it carries `Authorization: Bearer <DOCSX_TOKEN>` **or** when `DOCSX_OAUTH_AUTO_APPROVE=1`. There is no interactive consent page: without either, the authorize request answers 403 `consent_required` and the message tells the user to ask whoever runs the server. Tokens are random 32-byte values; the server stores only their sha256 hashes (with expiry + workspace scope; `null` scope = all workspaces, matching today's stub semantics). Issued tokens live in process memory — they don't survive a restart; the CI-token path does.
 
 `docsxai login --backend-url <url> --oauth <workspace>` drives the full handshake from the CLI and stores the tokens at `<workspace>/.auth/backend-token.json` (mode 0600).
 
@@ -163,9 +163,9 @@ The runner starts every webhook run's engine with `DOCSX_EGRESS_GUARD=1`, which 
 
 The engine CLI is resolved like the engine resolves its viewer bin: `DOCSX_ENGINE_BIN` env override → the installed `@docsxai/engine` package's `docsxai` bin → `docsxai` on `PATH`.
 
-### Owner-gated checklist (App registration)
+### GitHub App registration checklist
 
-Everything below requires owner credentials / a public URL and is **deliberately not automated**:
+Everything below needs admin rights on the GitHub org and a public URL for the backend, and is **deliberately not automated**:
 
 - [ ] Register the GitHub App (org settings → Developer settings → GitHub Apps); permissions: Contents read, Pull requests write, Metadata read; subscribe to `push` + `pull_request`.
 - [ ] Set the App's webhook URL to the deployed backend's `https://<host>/v1/github/webhook`.

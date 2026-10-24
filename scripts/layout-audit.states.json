@@ -1,0 +1,90 @@
+{
+  "paths": ["/"],
+  "states": [
+    {
+      "element": ".docsx-cmd, .docsx-cmd .docsx-copy",
+      "states": [
+        { "name": "idle", "steps": [] },
+        {
+          "name": "pending",
+          "steps": [{ "set": ".docsx-cmd .docsx-copy", "attr": "aria-busy", "value": "true" }]
+        },
+        {
+          "name": "done",
+          "steps": [{ "set": ".docsx-cmd .docsx-copy", "attr": "data-state", "value": "copied" }]
+        },
+        {
+          "name": "failed",
+          "steps": [{ "set": ".docsx-cmd .docsx-copy", "attr": "data-state", "value": "manual" }]
+        }
+      ]
+    },
+    {
+      "element": ".id-row, .sd-copyable, .sd-copy, .docsx-copyable, .docsx-copy",
+      "states": [
+        { "name": "idle", "steps": [] },
+        {
+          "name": "pending",
+          "steps": [{ "set": ".sd-copy, .docsx-copy", "attr": "aria-busy", "value": "true" }]
+        },
+        {
+          "name": "done",
+          "steps": [{ "set": ".sd-copy, .docsx-copy", "attr": "data-state", "value": "done" }]
+        },
+        {
+          "name": "failed",
+          "steps": [{ "set": ".sd-copy, .docsx-copy", "attr": "data-state", "value": "fallback" }]
+        }
+      ]
+    },
+    {
+      "element": "section.step, .shot-figure, .annotated-shot",
+      "states": [
+        { "name": "idle", "steps": [{ "wait": 300 }] },
+        {
+          "name": "slow",
+          "steps": [
+            {
+              "eval": "document.querySelectorAll('.shot').forEach((s) => s.classList.add('is-loading'))"
+            }
+          ]
+        },
+        {
+          "name": "failed",
+          "steps": [
+            {
+              "eval": "document.querySelectorAll('.shot img, .annotated-shot img').forEach((i) => { i.src = 'data:,'; })"
+            },
+            { "wait": 300 }
+          ]
+        },
+        {
+          "name": "pending",
+          "steps": [
+            {
+              "eval": "document.querySelectorAll('.shot img, .annotated-shot img').forEach((i) => { i.src = 'data:,'; })"
+            },
+            { "wait": 300 },
+            {
+              "set": ".shot-retry, .annotated-shot-retry",
+              "attr": "aria-disabled",
+              "value": "true"
+            },
+            {
+              "eval": "document.querySelectorAll('.shot-retry, .annotated-shot-retry').forEach((b) => { b.textContent = b.closest('[lang]')?.lang === 'es' ? 'Cargando…' : 'Retrying…'; })"
+            }
+          ]
+        },
+        {
+          "name": "done",
+          "steps": [
+            {
+              "eval": "document.querySelectorAll('.shot img, .annotated-shot img').forEach((i) => { const src = i.src; i.src = 'data:,'; setTimeout(() => { i.src = src; }, 100); })"
+            },
+            { "wait": 600 }
+          ]
+        }
+      ]
+    }
+  ]
+}

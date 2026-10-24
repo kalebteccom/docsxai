@@ -106,7 +106,8 @@ function stepCaption(anns: AnnotationRecord[]): string {
 }
 
 // Shown by the runtime when the <img> fires `error`; Retry reloads it. The runtime rewrites the
-// message while a retry runs and when it fails again.
+// message while a retry runs and when it fails again. The line is an overlay inside the .shot box,
+// so showing it never moves the page.
 function shotError(id: string, rel: string, ui: UiStrings): string {
   const msg = fmt(ui.shot.errorMsg, { id: esc(id), file: code(esc(rel)) });
   return `<p class="shot-error" role="alert" hidden><span class="shot-error-msg">${msg}</span> <button type="button" class="shot-retry">${ui.shot.retry}</button></p>`;
@@ -128,10 +129,14 @@ function stepShot(s: ViewerStep, flow: string | undefined, ui: UiStrings): strin
   if (s.unsafe)
     return `<p class="shot-missing" role="alert">${fmt(ui.shot.unsafe, { run: RUN, render: RENDER })}</p>`;
   if (!s.screenshot) return missingShot(s.id, flow, ui);
-  const dims = s.size ? ` width="${s.size.width}" height="${s.size.height}"` : "";
+  // An explicit aspect-ratio keeps the reserved box when the file fails to load: a broken <img alt>
+  // may otherwise render as a line of text and collapse the step.
+  const dims = s.size
+    ? ` width="${s.size.width}" height="${s.size.height}" style="aspect-ratio: ${s.size.width} / ${s.size.height}"`
+    : "";
   const data = s.anns.length ? ` data-anns='${escAttrSingle(JSON.stringify(s.anns))}'` : "";
   const alt = fmt(ui.step.shotAlt, { id: esc(s.id) });
-  return `<div class="shot"${data}><img src="${urlPath(s.screenshot)}" alt="${alt}"${dims}></div>${shotError(s.id, s.screenshot, ui)}`;
+  return `<div class="shot"${data}><img src="${urlPath(s.screenshot)}" alt="${alt}"${dims}>${shotError(s.id, s.screenshot, ui)}</div>`;
 }
 
 function stepSection(s: ViewerStep, n: number, flow: string | undefined, ui: UiStrings): string {
