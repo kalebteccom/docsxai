@@ -95,6 +95,11 @@ describe("docsxai CLI — main()", () => {
     expect(err).toMatch(/--start-from requires --flow/);
   });
 
+  it("treats everything after a bare -- as a positional", async () => {
+    expect(await main(["run", "--", "/definitely/not/a/real/dir"])).toBe(1);
+    expect(err).toMatch(/has no flows\/ directory/);
+  });
+
   it("init requires a workspace dir (unless --persist tmp) and validates enums", async () => {
     expect(await main(["init"])).toBe(2);
     expect(err).toMatch(/missing <workspace-dir>/);

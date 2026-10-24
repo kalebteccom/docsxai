@@ -16,6 +16,10 @@ export function parseFlags(args: string[]): {
   const flags = new Map<string, string | true>();
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
+    if (a === "--") {
+      positionals.push(...args.slice(i + 1));
+      break;
+    }
     if (a.startsWith("--")) {
       const eq = a.indexOf("=");
       if (eq > 2) {
