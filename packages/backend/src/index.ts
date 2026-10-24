@@ -6,8 +6,6 @@
 // (or DOCSX_DATA_DIR) persists to disk via `FsStore`. Auth accepts the pre-issued bearer token
 // (DOCSX_TOKEN) and OAuth-2.1-issued access tokens (authorization-code + PKCE; see /v1/oauth/*).
 
-import { pathToFileURL } from "node:url";
-
 export * from "./api.js";
 export * from "./app-url.js";
 export * from "./store.js";
@@ -18,6 +16,7 @@ export * from "./runner.js";
 export * from "./strategy.js";
 export { createBackendStub, type BackendStubOptions } from "./server.js";
 
+import { isMainModule } from "./main-module.js";
 import { createBackendStub } from "./server.js";
 
 export async function runBackendStubCli(argv: string[]): Promise<number> {
@@ -49,7 +48,7 @@ export async function runBackendStubCli(argv: string[]): Promise<number> {
   return 0; // long-lived
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   void runBackendStubCli(process.argv.slice(2)).then((code) => {
     if (code !== 0) process.exit(code);
   });

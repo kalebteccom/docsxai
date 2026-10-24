@@ -4,18 +4,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Fixed
-
-- **`--stop-after` on an optional step.** When the step named by `--stop-after` was `optional: true` and failed, it was skipped and the run went on to the end of the flow; the run now stops there.
-- **Browser left running after a failed launch step.** When Chromium started but creating the context or page failed (a bad `environment` value, a rejected `storageState`), the browser process was never closed, so the command hung until it was killed. The browser is now closed before the error is reported.
-- **Flags without a value were ignored.** `docsxai run <ws> --flow` (or `--variant`, `--stop-after`, `--start-from`, `--cdp`, `--base-url`, `--concurrency`) ran every flow as if the flag was absent, and `diff --against`, `diff --format` and `baseline --out` fell back to their defaults. Each now exits 2 with `--<flag> needs a value`.
-- **`--flag=value` was ignored.** `docsxai run <ws> --flow=tour` read `flow=tour` as an unknown boolean flag and ran every flow. Every command now reads `--flag=value` the same as `--flag value`.
-- **A bare `--` took the next argument as its value.** `docsxai run -- <ws>` reported a missing workspace directory. A bare `--` now ends flag parsing and the rest are positional arguments.
-- **`baseline --out <workspace>` deleted the workspace's `flows/` and `docs/`.** A refresh clears `<out>/flows` and `<out>/docs` before copying, so an `--out` equal to the workspace removed the sources it was about to snapshot. The command now exits 2 and touches nothing.
-- **`push` payload order followed the disk.** The flows, annotations and screenshots entries of a pushed doc pack were added in the order the file system listed them, which differs between machines. They are now sorted, so the same workspace produces the same payload everywhere.
-- **`style --check` listed jargon hits in disk order.** The hits were reported flow by flow and file by file in the order the file system listed them, so the output differed between machines. They are now in name order.
-- **`diff` named no file for an unreadable screenshot.** A screenshot that was cut short or not a PNG (an interrupted run, a failed copy) made `diff` print the PNG decoder's own message, such as `Invalid file signature`, with no hint of which file. The error now starts with `docs/<flow>/screenshots/<file>`.
-
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
@@ -65,6 +53,16 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Emitted output accessibility.** Viewer print keeps a step heading row with its figure, and long ids and code in write-ups and placeholders wrap at 390 px. The Starlight copy and Retry focus ring uses the theme text colour (17:1 or more on both themes) in place of the accent, which a custom accent could push under 3:1, and the step image alt reads "Screenshot of step <id>".
 - **`docsxai doctor` URL lines show host and path.** The `login` next-step command, the `backend` line and the `app_url` line now print `backend_url` and `app_url` as host and path only, like the other doctor lines.
 - **Docs site at 390 px.** The install commands on the landing page have copy buttons that change to "Copied", announce the result and copy no prompt, and the `$ ` transcripts in the CLI and plugins references now copy as commands without prompts or output. The menu, search, theme and copy buttons are 44 px, tables and cards use 16 px text, paragraphs stop at 75 characters, the 404 page links to Installation, and the Quickstart ends with a link to the flow-file format. `check-a11y-surface` checks the copy buttons, table wrappers, step numbers and next links in the build.
+- **`--stop-after` on an optional step.** When the step named by `--stop-after` was `optional: true` and failed, it was skipped and the run went on to the end of the flow; the run now stops there.
+- **Browser left running after a failed launch step.** When Chromium started but creating the context or page failed (a bad `environment` value, a rejected `storageState`), the browser process was never closed, so the command hung until it was killed. The browser is now closed before the error is reported.
+- **Flags without a value were ignored.** `docsxai run <ws> --flow` (or `--variant`, `--stop-after`, `--start-from`, `--cdp`, `--base-url`, `--concurrency`) ran every flow as if the flag was absent, and `diff --against`, `diff --format` and `baseline --out` fell back to their defaults. Each now exits 2 with `--<flag> needs a value`.
+- **`--flag=value` was ignored.** `docsxai run <ws> --flow=tour` read `flow=tour` as an unknown boolean flag and ran every flow. Every command now reads `--flag=value` the same as `--flag value`.
+- **A bare `--` took the next argument as its value.** `docsxai run -- <ws>` reported a missing workspace directory. A bare `--` now ends flag parsing and the rest are positional arguments.
+- **`baseline --out <workspace>` deleted the workspace's `flows/` and `docs/`.** A refresh clears `<out>/flows` and `<out>/docs` before copying, so an `--out` equal to the workspace removed the sources it was about to snapshot. The command now exits 2 and touches nothing.
+- **`push` payload order followed the disk.** The flows, annotations and screenshots entries of a pushed doc pack were added in the order the file system listed them, which differs between machines. They are now sorted, so the same workspace produces the same payload everywhere.
+- **`style --check` listed jargon hits in disk order.** The hits were reported flow by flow and file by file in the order the file system listed them, so the output differed between machines. They are now in name order.
+- **`diff` named no file for an unreadable screenshot.** A screenshot that was cut short or not a PNG (an interrupted run, a failed copy) made `diff` print the PNG decoder's own message, such as `Invalid file signature`, with no hint of which file. The error now starts with `docs/<flow>/screenshots/<file>`.
+- **`docsxai-backend` starts through an installed symlink.** The bin compared `process.argv[1]` with the module URL, which differ when npm or pnpm links the bin, so the command exited without starting a server. It now compares the real path too.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
