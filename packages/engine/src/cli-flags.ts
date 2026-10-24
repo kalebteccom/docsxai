@@ -1,7 +1,7 @@
 // The flags each command accepts, and the parse that holds argv to them. An unknown flag is a usage
 // error with a "did you mean" when one is close, a flag given twice is a usage error, and a boolean
 // flag never takes the next argument as its value (`run --pause ws` keeps `ws` as the workspace).
-// Commands with their own argv loop (`burn`, `pack`) check their flags there.
+// Commands with their own argv loop (`burn`, `pack`, `site`) check their flags there.
 // Leaf module: imports only the help and message helpers.
 
 import { nearestName } from "./cli-help.js";
@@ -57,7 +57,7 @@ export const COMMAND_FLAGS: Readonly<Record<string, CommandFlags>> = {
   "export playwright": { value: ["flow", "out"], bool: [] },
   plugins: { value: ["format"], bool: [] },
   doctor: { value: ["format"], bool: ["offline"] },
-  render: { value: [], bool: ["open"] },
+  render: { value: ["lang"], bool: ["open"] },
   login: { value: ["backend-url"], bool: [], loose: ["oauth"] },
   push: { value: ["kind", "author"], bool: [] },
   pull: { value: ["rev"], bool: [] },

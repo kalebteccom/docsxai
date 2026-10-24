@@ -34,10 +34,12 @@
     }
   },
   "bin": {
-    "docsxai": "./bin.mjs"
+    "docsxai": "./bin.mjs",
+    "docsxai-viewer": "./viewer-bin.mjs"
   },
   "files": [
     "bin.mjs",
+    "viewer-bin.mjs",
     "index.mjs",
     "index.d.mts",
     "README.md"

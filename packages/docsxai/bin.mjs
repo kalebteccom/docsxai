@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // `docsxai` — the batteries-included CLI (meta-package bin). Resolves @docsxai/engine's
 // compiled CLI entry and runs it in-process (no child process). One global install of
-// `docsxai` puts this bin *and* the viewer's `docsxai-viewer` bin on the path, so
-// `docsxai render` and `docsxai burn` work out of the box.
+// `docsxai` puts this bin and `docsxai-viewer` (viewer-bin.mjs, a shim to the viewer's CLI) on
+// the path, so `docsxai render`, `docsxai burn` and `docsxai site` work out of the box.
 //
 // The engine finds the viewer next to itself, which a nested layout (pnpm's virtual store, a
 // workspace checkout) doesn't give it: the viewer is this package's dependency, not the engine's.

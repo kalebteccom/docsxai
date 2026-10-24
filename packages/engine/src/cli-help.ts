@@ -41,6 +41,7 @@ export const COMMAND_GROUPS: ReadonlyArray<{
     commands: [
       ["render", "build the static viewer"],
       ["burn", "bake annotations into copies of the screenshots"],
+      ["site", "write a Starlight docs site from the doc pack"],
       ["zip", "package the doc pack as one archive"],
       ["export", "write the flows as ADF or Playwright specs"],
       ["push", "upload the doc pack as a backend revision"],

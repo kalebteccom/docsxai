@@ -76,10 +76,14 @@ const COMMANDS: Record<string, { flags: string[]; files: string[] }> = {
   login: { flags: ["backend-url", "oauth"], files: ["cli-commands-backend.ts"] },
   push: { flags: ["kind", "author"], files: ["cli-commands-backend.ts"] },
   pull: { flags: ["rev"], files: ["cli-commands-backend.ts"] },
-  render: { flags: ["open"], files: ["cli-commands-docpack.ts"] },
+  render: { flags: ["lang", "open"], files: ["cli-commands-docpack.ts"] },
   burn: {
     flags: ["flow", "out", "report", "no-connector-outline", "strict-glyphs"],
     files: ["cli-commands-docpack.ts"],
+  },
+  site: {
+    flags: ["out", "build", "title", "accent", "lang", "flow"],
+    files: ["cli-commands-site.ts"],
   },
   pack: {
     flags: [

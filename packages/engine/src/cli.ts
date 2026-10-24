@@ -17,6 +17,7 @@
 //   • cli-commands-style.ts    — style (docs/style.yaml + the jargon check)
 //   • cli-commands-docpack.ts  — render / zip / export / baseline / diff (doc-pack ops)
 //   • cli-commands-pack.ts     — pack / pack --check (screenshot pack + drift check, run by the viewer bin)
+//   • cli-commands-site.ts     — site (Starlight docs site, run by the viewer bin)
 //   • cli-commands-backend.ts  — login / push / pull / plugins (backend + sync)
 
 import "./cli-node-guard.js";
@@ -42,6 +43,7 @@ import {
 } from "./cli-commands-docpack.js";
 import { cmdLogin, cmdPlugins, cmdPull, cmdPush } from "./cli-commands-backend.js";
 import { cmdPack } from "./cli-commands-pack.js";
+import { cmdSite } from "./cli-commands-site.js";
 import { RETIRED_COMMANDS } from "./cli-retired.js";
 import { findRetired, warnDeprecated } from "./deprecation.js";
 
@@ -79,6 +81,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdRender(rest);
     case "burn":
       return cmdBurn(rest);
+    case "site":
+      return cmdSite(rest);
     case "pack":
       return cmdPack(rest);
     case "capture-auth":

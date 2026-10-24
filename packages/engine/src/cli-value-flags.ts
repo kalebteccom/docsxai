@@ -14,6 +14,7 @@ const VALUE_FLAGS: Readonly<Record<string, readonly string[]>> = {
   style: ["format"],
   doctor: ["format"],
   zip: ["out"],
+  render: ["lang"],
   "export adf": ["flow", "mode", "title", "out"],
   "export playwright": ["flow", "out"],
   login: ["backend-url"],

@@ -33,9 +33,11 @@ Usage:
   docsxai login --backend-url <url> [--oauth <workspace-dir>]
   docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
   docsxai pull <workspace-dir> [--rev <id>]
-  docsxai render <workspace-dir> [--open]
+  docsxai render <workspace-dir> [--lang <locale>] [--open]
   docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>]
       [--no-connector-outline] [--strict-glyphs]
+  docsxai site <workspace-dir> [--out <dir>] [--build] [--title <text>] [--accent <hex>]
+      [--lang <locale>] [--flow <name>]
   docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>]
       [--no-optimise] [--generated-for <text>]
   docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw]
@@ -169,8 +171,9 @@ Notes:
     files say so in a header: regenerate, don't hand-edit.
   • render builds the static viewer by spawning the docsxai-viewer bin, resolved in order: the
     DOCSX_VIEWER_BIN env var (path to the viewer's bin script), the @docsxai/viewer
-    package installed next to the engine, then \`docsxai-viewer\` on PATH. --open then opens
-    .viewer/index.html in the default browser; where none can be opened it prints the path instead.
+    package installed next to the engine, then \`docsxai-viewer\` on PATH. --lang sets the language of the
+    text the viewer adds, e.g. es or es-ES (default en; a tag with no translation gives en). --open then
+    opens .viewer/index.html in the default browser; where none can be opened it prints the path instead.
   • burn bakes each flow's annotations (halo, badge, callout) into copies of its clean screenshots, for
     surfaces that can't run the interactive viewer, via the same viewer bin as render. Reads
     <ws>/docs/<flow>/annotations.json and writes docs/<flow>/burned/<step>.png (or <out>/<flow>/<step>.png
@@ -182,6 +185,11 @@ Notes:
     the callout's outline colour, and no text is estimated from the pixels. A caption with characters the
     font can't draw (Japanese, Arabic, Hebrew, Thai with the bundled Inter) prints a warning naming the
     annotation and script and gets missing_glyphs in the report; --strict-glyphs makes it exit 1.
+  • site writes an Astro Starlight docs site project from <ws>/docs and <ws>/flows into --out (default
+    <ws>/site), preferring burned images. --build also runs the Astro build into <out>/dist. --title names
+    the site (default "Documentation"), --accent sets the accent colour as a hex value, --lang sets the
+    site's language (same rule as render), --flow limits it to named flows (repeatable). Runs the viewer's
+    \`site\` through the same bin resolution as render; its exit code is the command's.
   • pack builds the screenshot pack a docs site or README ships: it burns each step's annotations into its
     clean screenshot, optimises the PNG losslessly with the external \`oxipng\` binary (on PATH, or
     $DOCSX_OXIPNG_BIN; \`brew install oxipng\`; --no-optimise skips it), names it
@@ -241,7 +249,9 @@ Examples:
   docsxai plugins list ~/docsxai/my-app
   docsxai login --backend-url https://docsxai.example.com
   docsxai render ~/docsxai/my-app
+  docsxai render ~/docsxai/my-app --lang es
   docsxai burn ~/docsxai/my-app --flow login --out ~/docsxai/my-app/burned
+  docsxai site ~/docsxai/my-app --title "Help centre" --build
   docsxai pack ~/docsxai/my-app --out ~/docsxai/my-app/.screens
   docsxai pack ~/docsxai/my-app --check --against ./public/screens
   docsxai baseline ~/docsxai/my-app
