@@ -142,8 +142,10 @@ describe("scanWorkspaceForJargon", () => {
       await fs.writeFile(path.join(tmp, "docs", flow, "a.md"), "VERIFY it.\n", "utf8");
     }
     const real = fs.readdir.bind(fs) as (...args: unknown[]) => Promise<unknown[]>;
-    const spy = vi.spyOn(fs, "readdir").mockImplementation((async (...args: unknown[]) =>
-      [...(await real(...args))].reverse()) as never);
+    const spy = vi
+      .spyOn(fs, "readdir")
+      .mockImplementation((async (...args: unknown[]) =>
+        [...(await real(...args))].reverse()) as never);
     try {
       const hits = await scanWorkspaceForJargon(tmp, DEFAULT_STYLE);
       expect(hits.map((h) => h.file)).toEqual([
