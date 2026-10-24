@@ -119,11 +119,15 @@ describe("text estimated from pixels", () => {
     expect(covered).toBe(text.width * text.height);
   });
 
-  it("is used only when the annotation lists no obstacles", () => {
+  it("adds to the obstacles an annotation lists", () => {
     const ann = { step: "s", selector: "#t", copy: "x", bounding_box: target };
-    expect(withPixelObstacles(ann, target, grid, 1).obstacles?.length).toBeGreaterThan(0);
+    const found = withPixelObstacles(ann, target, grid, 1).obstacles!;
+    expect(found.length).toBeGreaterThan(0);
     const listed = { ...ann, obstacles: [{ x: 0, y: 0, width: 1, height: 1 }] };
-    expect(withPixelObstacles(listed, target, grid, 1)).toBe(listed);
+    expect(withPixelObstacles(listed, target, grid, 1).obstacles).toEqual([
+      { x: 0, y: 0, width: 1, height: 1 },
+      ...found,
+    ]);
   });
 
   it("keeps a themed caption off the text in a pixel-only burn", async () => {

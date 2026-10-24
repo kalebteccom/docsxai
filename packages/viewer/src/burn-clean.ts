@@ -1,6 +1,6 @@
 // The clean look that goes with the line connector: the halo ring drawn outside its target with a
-// gap, so it never covers text inside the target, and text areas estimated from the pixels for an
-// annotation that lists no obstacles. Pure.
+// gap, so it never covers text inside the target, and text areas estimated from the pixels on top of
+// the obstacles an annotation lists. Pure.
 
 import { growRect } from "./arrow.js";
 import { textBoxes } from "./pixel-obstacles.js";
@@ -25,9 +25,10 @@ export function haloBox(target: Rect, clean: boolean, f: number): Rect {
 }
 
 /**
- * `ann` (at base size) with `obstacles` estimated from the pixels when it has none, so the planner
- * keeps the caption off text. `real` is the target in screenshot px and `f` the caption scale.
- * Unchanged when the annotation lists obstacles or pins its callout with `placement`.
+ * `ann` (at base size) with text boxes estimated from the pixels added to its `obstacles`, so the
+ * planner keeps the caption off text a capture sidecar did not list (sidecars cap their list).
+ * `real` is the target in screenshot px and `f` the caption scale. Unchanged for a callout placed
+ * inside its target.
  */
 export function withPixelObstacles(
   ann: AnnotationRecord,
@@ -35,12 +36,12 @@ export function withPixelObstacles(
   pixels: PixelGrid,
   f: number,
 ): AnnotationRecord {
-  if ((ann.obstacles?.length ?? 0) > 0 || ann.placement?.inside === true) return ann;
+  if (ann.placement?.inside === true) return ann;
   const boxes = textBoxes(pixels, real, TEXT_REACH * f, growRect(real, 2 * f));
   if (boxes.length === 0) return ann;
   const base =
     f === 1
       ? boxes
       : boxes.map((b) => ({ x: b.x / f, y: b.y / f, width: b.width / f, height: b.height / f }));
-  return { ...ann, obstacles: base };
+  return { ...ann, obstacles: [...(ann.obstacles ?? []), ...base] };
 }
