@@ -155,7 +155,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const pr = checkPixelRatio(input.pixelRatio ?? 1);
   // Width classes (phone, desktop, `display_width`) are CSS px: a 2x phone capture is 780 px wide.
   const cssWidth = width / pr;
-  const f = captionScale(base, width, cssWidth);
+  const f = captionScale(base, width, pr);
   const theme = scaledTheme(base, f);
   const themed = input.theme !== undefined;
   const style = calloutStyleOf(base, themed);

@@ -60,7 +60,7 @@ describe("the default theme", () => {
       connectorStyle: "auto",
       arrowSize: 8,
       maxWidthRatio: 0.62,
-      scale: 1,
+      scale: null,
       displayWidth: 720,
       displayWidthNarrow: null,
       narrowBelow: null,
