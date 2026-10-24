@@ -51,6 +51,7 @@ const COMMANDS: Record<string, { flags: string[]; files: string[] }> = {
       "cdp",
       "pause",
       "concurrency",
+      "device-scale-factor",
       "verify-determinism",
       "runs",
       "format",

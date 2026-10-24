@@ -35,3 +35,20 @@ export function readAnnotationList(raw: string, file: string): AnnotationRecord[
   });
   return list as AnnotationRecord[];
 }
+
+/**
+ * The `device_scale_factor` of an `annotations.json` text (device pixels per CSS pixel the engine
+ * captured at), or `undefined` when the file has none, which means 1. A value that is not a number
+ * from 1 to 4 is an {@link AnnotationsFileError}. Expects text that {@link readAnnotationList} accepted.
+ */
+export function readDeviceScaleFactor(raw: string, file: string): number | undefined {
+  const value = (JSON.parse(raw) as { device_scale_factor?: unknown } | null)?.device_scale_factor;
+  if (value === undefined) return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 1 || value > 4) {
+    throw new AnnotationsFileError(
+      file,
+      `"device_scale_factor" must be a number from 1 to 4 (got ${JSON.stringify(value)})`,
+    );
+  }
+  return value;
+}

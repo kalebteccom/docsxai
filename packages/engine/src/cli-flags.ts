@@ -27,6 +27,7 @@ const RUN_VALUE = [
   "concurrency",
   "runs",
   "format",
+  "device-scale-factor",
 ];
 
 /** Every command that reads its argv through {@link parseCommandFlags}, with the flags in `--help`. */

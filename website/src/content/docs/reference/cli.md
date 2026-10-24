@@ -16,7 +16,7 @@ docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--r
                                [--persist tmp] [--force]
 docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
 docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
-docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>] [--device-scale-factor <1-4>]
 docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|md|json] [--flow <name>] [--base-url <url>] [--concurrency <N>]
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
 docsxai flow-tree <workspace-dir> [--format text|json]
@@ -250,6 +250,15 @@ before Playwright's own text.
   Force-clamped to 1 when `--pause`, `--stop-after`, `--start-from`, or
   `--cdp` is set. The target app must tolerate multiple sessions from one
   user.
+- `--device-scale-factor <1-4>` captures at that many device pixels per CSS
+  pixel: a whole number or one decimal, default 1. At 2, a 1280 by 800
+  viewport gives a 2560 by 1600 PNG. A value outside 1 to 4 exits 2.
+  `DOCSX_DEVICE_SCALE_FACTOR` sets it when the flag is absent, and the flag
+  wins. It cannot be combined with `--cdp`, since the attached browser owns
+  its scale. Above 1, `annotations.json` carries `device_scale_factor`;
+  `bounding_box` and `obstacles` are in the PNG's own pixels, so nothing
+  needs converting, and `docsxai burn` reads the factor from the file.
+  Without the flag the output is unchanged.
 
 - `--verify-determinism` runs the selected flows more than once and compares
   the bytes; see [Verifying determinism](#verifying-determinism) below.
@@ -630,7 +639,8 @@ bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typ
 names it knows are `DOCSX_TOKEN`, `DOCSX_CACHE_KEY`, `DOCSX_VIEWER_BIN`,
 `DOCSX_ENGINE_BIN`, `DOCSX_DATA_DIR`, `DOCSX_OAUTH_AUTO_APPROVE`,
 `DOCSX_WEBHOOK_SECRET`, `DOCSX_OXIPNG_BIN`, `DOCSX_BACKEND_DENY_PRIVATE_APP_URL`,
-`DOCSX_EGRESS_GUARD`, `DOCSX_EGRESS_DENY_PRIVATE`, `DOCSX_MCP_TOKEN` and `DOCSX_DEBUG`. And the
+`DOCSX_EGRESS_GUARD`, `DOCSX_EGRESS_DENY_PRIVATE`, `DOCSX_MCP_TOKEN`, `DOCSX_DEBUG` and
+`DOCSX_DEVICE_SCALE_FACTOR`. And the
 three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD`,
 `DOCSX_EGRESS_DENY_PRIVATE`) fail the row when set to something other than `1`, `true`,
 `yes`, `0`, `false` or `no` (any case), because any other value reads as off.

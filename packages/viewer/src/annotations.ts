@@ -60,5 +60,7 @@ export interface AnnotationRecord {
 export interface AnnotationsFile {
   schema: string;
   flow: string;
+  /** Device pixels per CSS pixel the screenshots were captured at; absent means 1. Boxes are in screenshot pixels. */
+  device_scale_factor?: number;
   annotations: AnnotationRecord[];
 }

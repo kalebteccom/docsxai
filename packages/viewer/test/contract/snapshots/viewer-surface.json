@@ -56,9 +56,10 @@
       "members": {
         "schema": "schema: string",
         "flow": "flow: string",
-        "annotations": "annotations: AnnotationRecord[]"
+        "annotations": "annotations: AnnotationRecord[]",
+        "device_scale_factor": "device_scale_factor?: number"
       },
-      "optional": []
+      "optional": ["device_scale_factor"]
     },
     "AnnotationRecord": {
       "members": {

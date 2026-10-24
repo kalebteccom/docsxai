@@ -37,6 +37,11 @@ export interface RunFlowsOptions {
   /** `annotations.obstacles` from the workspace config. */
   obstacles: boolean;
   concurrency: number;
+  /**
+   * Device pixels per CSS pixel (1 to 4). Absent: the browser default of 1 and an annotations.json
+   * with no `device_scale_factor`. Ignored with `cdpEndpoint`.
+   */
+  deviceScaleFactor?: number | undefined;
   /** Progress lines (`run: …`). stdout for `run`; stderr in verify mode so stdout stays the report. */
   progress: (line: string) => void;
 }
@@ -124,6 +129,9 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
           ? { connectOverCdp: opts.cdpEndpoint }
           : { storageState: opts.storageState }),
         ...(flow.environment ? { environment: flow.environment } : {}),
+        ...(opts.deviceScaleFactor !== undefined
+          ? { deviceScaleFactor: opts.deviceScaleFactor }
+          : {}),
         docPackRoot: projectDir,
         outputRoot,
       });
@@ -146,6 +154,9 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
         ...(stopAfter ? { stopAfter } : {}),
         ...(startFrom ? { startFrom } : {}),
         ...(opts.obstacles ? { obstacles: true } : {}),
+        ...(opts.deviceScaleFactor !== undefined
+          ? { deviceScaleFactor: opts.deviceScaleFactor }
+          : {}),
       });
       const docSegments = ["docs", flow.name, ...(unit.id ? [unit.id] : [])];
       await fs.mkdir(resolveWorkspacePath(outputRoot, ...docSegments), { recursive: true });

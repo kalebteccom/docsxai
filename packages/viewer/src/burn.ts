@@ -57,7 +57,7 @@ import {
 } from "./burn-report.js";
 import type { AnnotationRecord } from "./annotations.js";
 import { fitAnnotation } from "./burn-fit.js";
-import { readAnnotationList } from "./burn-annotations-file.js";
+import { readAnnotationList, readDeviceScaleFactor } from "./burn-annotations-file.js";
 import { readTextIfPresent } from "./safe-read.js";
 
 export { arrowGeometry, type ArrowGeometry };
@@ -449,6 +449,11 @@ export interface BurnFlowOptions {
   connector?: "auto" | "off";
   /** See {@link BurnOptions.theme}. */
   theme?: BurnTheme;
+  /**
+   * See {@link BurnOptions.pixelRatio}. Default: the `device_scale_factor` of the flow's
+   * `annotations.json`, else 1.
+   */
+  pixelRatio?: number;
 }
 
 export interface BurnFlowResult {
@@ -483,7 +488,9 @@ export async function burnFlow(opts: BurnFlowOptions): Promise<BurnFlowResult> {
   const raw = await readTextIfPresent(annPath);
   if (raw === null) throw new Error(`burnFlow: no annotations.json under ${flowDir}`);
   const byStep = new Map<string, AnnotationRecord[]>();
-  for (const ann of readAnnotationList(raw, annPath)) {
+  const annotationList = readAnnotationList(raw, annPath);
+  const pixelRatio = opts.pixelRatio ?? readDeviceScaleFactor(raw, annPath);
+  for (const ann of annotationList) {
     const list = byStep.get(ann.step) ?? [];
     list.push(ann);
     byStep.set(ann.step, list);
@@ -517,6 +524,7 @@ export async function burnFlow(opts: BurnFlowOptions): Promise<BurnFlowResult> {
             : {}),
           ...(opts.connector ? { connector: opts.connector } : {}),
           ...(opts.theme ? { theme: opts.theme } : {}),
+          ...(pixelRatio !== undefined ? { pixelRatio } : {}),
         },
       });
       await fs.writeFile(dest, burned.png);

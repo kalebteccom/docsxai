@@ -17,13 +17,10 @@ import {
   type BrowserContextOptions,
   type Page,
 } from "playwright-core";
-import {
-  VIEWPORT_PRESETS,
-  type BoundingBox,
-  type EnvironmentSpec,
-  type ViewportSize,
-} from "./doc-pack.js";
-import { attachSkipNotice } from "./environment-spec.js";
+import { type BoundingBox, type EnvironmentSpec } from "./doc-pack.js";
+import { attachSkipNotice, environmentContextOptions } from "./environment-spec.js";
+
+export { environmentContextOptions };
 import {
   egressContextOptions,
   installEgressGuard,
@@ -97,30 +94,12 @@ export interface PlaywrightSessionOptions {
    * externally owned — only the clock applies; the rest is skipped with one stderr warning.
    */
   environment?: EnvironmentSpec;
+  /** Device pixels per CSS pixel of the context (screenshots come out that many times larger). Absent or 1: the browser default. Ignored with `connectOverCdp`. */
+  deviceScaleFactor?: number;
   /** Extra `browser.newContext` options — see {@link SessionContextOptions}. Ignored with `connectOverCdp`. */
   contextOptions?: SessionContextOptions;
   /** Refuse requests to link-local and metadata addresses (see `egress-guard.ts`). Default: `DOCSX_EGRESS_GUARD` in the environment decides. */
   egressGuard?: EgressGuardOptions;
-}
-
-/** Map an {@link EnvironmentSpec} to the Playwright context options it pins (clock excluded — that's a page-level install). */
-export function environmentContextOptions(env: EnvironmentSpec): {
-  locale?: string;
-  timezoneId?: string;
-  viewport?: ViewportSize;
-  colorScheme?: "light" | "dark";
-  reducedMotion?: "reduce" | "no-preference";
-} {
-  const viewport = typeof env.viewport === "string" ? VIEWPORT_PRESETS[env.viewport] : env.viewport;
-  return {
-    ...(env.locale ? { locale: env.locale } : {}),
-    ...(env.timezone ? { timezoneId: env.timezone } : {}),
-    ...(viewport ? { viewport } : {}),
-    ...(env.color_scheme ? { colorScheme: env.color_scheme } : {}),
-    ...(env.reduced_motion !== undefined
-      ? { reducedMotion: env.reduced_motion ? ("reduce" as const) : ("no-preference" as const) }
-      : {}),
-  };
 }
 
 async function installClock(page: Page, env: EnvironmentSpec | undefined): Promise<void> {
@@ -196,6 +175,7 @@ export async function launchPlaywrightSession(
       ...(opts.storageState ? { storageState: opts.storageState } : {}),
       ...(opts.ignoreHTTPSErrors ? { ignoreHTTPSErrors: true } : {}),
       ...(opts.environment ? environmentContextOptions(opts.environment) : {}),
+      ...((opts.deviceScaleFactor ?? 1) > 1 ? { deviceScaleFactor: opts.deviceScaleFactor } : {}),
       ...((opts.contextOptions ?? {}) as BrowserContextOptions),
       ...egressContextOptions(guard),
     });

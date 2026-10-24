@@ -14,6 +14,7 @@ Usage:
   docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed]
       [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>]
       [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+      [--device-scale-factor <1-4>]
   docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|md|json]
       [--flow <name>] [--base-url <url>] [--concurrency <N>]
   docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
@@ -61,6 +62,10 @@ Notes:
   • run --concurrency <N> runs up to N flows in parallel (each its own Chromium session, isolated; default 1).
     Useful when several flows share a long preamble, total wall time = max(per-flow), not sum. Force-clamped
     to 1 when --pause / --stop-after / --start-from / --cdp is set. The target app must tolerate multiple sessions from one user.
+  • run --device-scale-factor <1-4> captures at that many device pixels per CSS pixel (a whole number or one
+    decimal, default 1): at 2 a 1280 by 800 viewport gives a 2560 by 1600 PNG. DOCSX_DEVICE_SCALE_FACTOR sets it
+    when the flag is absent. annotations.json records device_scale_factor above 1; its boxes are in the PNG's
+    own pixels, and burn reads the factor from it. Not combinable with --cdp (the attached browser owns its scale).
   • run --start-from <step-id> --flow <name> SKIPS every step before <step-id> and starts execution there,
     the inverse of --stop-after. Pair with --cdp to attach to a Chrome that's already in the post-prior-steps
     state (e.g. left over from a paused previous run) and iterate on the new tail step in seconds rather

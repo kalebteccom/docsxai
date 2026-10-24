@@ -187,6 +187,12 @@ export interface RunFlowOptions {
    * false: records are then exactly what they were before the field existed.
    */
   obstacles?: boolean;
+  /**
+   * Device pixels per CSS pixel of the session the driver runs in. Above 1 it is recorded as
+   * `device_scale_factor` in the returned annotations, so a reader of the file knows the screenshot
+   * and every box in it are that many times the CSS size. The driver already works in device pixels.
+   */
+  deviceScaleFactor?: number;
 }
 
 export interface ExecutedStep {
@@ -495,6 +501,9 @@ export async function runFlow(
       schema: "docsxai/annotations@1",
       flow: flow.name,
       ...(opts.variant ? { variant: opts.variant } : {}),
+      ...(opts.deviceScaleFactor !== undefined && opts.deviceScaleFactor > 1
+        ? { device_scale_factor: opts.deviceScaleFactor }
+        : {}),
       annotations,
     },
   };
