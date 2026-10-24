@@ -1405,12 +1405,115 @@ main:has(.docsx-404) > .content-panel {
   overflow: visible;
   margin-block: 0;
 }
+/* Edge fade on sideways scrollers: tables, code blocks and the hero transcript. A scroll-driven
+   animation moves two mask stops, so the right edge fades while more content sits past it and
+   the left edge fades once scrolled. A box that does not overflow has an inactive timeline, so
+   it gets no mask. Browsers without scroll-driven animations keep the plain scroller. */
+@property --docsx-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --docsx-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes docsx-edge-fade {
+  0% {
+    --docsx-fade-start: 0px;
+    --docsx-fade-end: 2rem;
+  }
+  8%,
+  92% {
+    --docsx-fade-start: 2rem;
+    --docsx-fade-end: 2rem;
+  }
+  100% {
+    --docsx-fade-start: 2rem;
+    --docsx-fade-end: 0px;
+  }
+}
+@supports (animation-timeline: scroll()) {
+  .sl-markdown-content .docsx-table-scroll,
+  .expressive-code pre,
+  .docsx-snap {
+    animation: docsx-edge-fade linear both;
+    animation-timeline: scroll(self inline);
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--docsx-fade-start),
+      #000 calc(100% - var(--docsx-fade-end)),
+      transparent
+    );
+  }
+}
+/* Inside the box: the edge-fade mask clips anything drawn outside it. */
 .docsx-table-scroll:focus-visible {
   outline: 2px solid var(--sl-color-text-accent);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 .sl-markdown-content table :is(th, td) {
   vertical-align: top;
+}
+/* Code in a cell breaks only at its own punctuation, never mid-word: `overflow-wrap: anywhere`
+   (set for prose code above) lets the table squeeze a column to a few characters wide. The first
+   column holds the key or name the row is about, so it keeps a minimum width. */
+.sl-markdown-content table :not(pre) > code {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.sl-markdown-content table :is(th, td):first-child {
+  min-width: 7rem;
+}
+
+/* Phone width: a table of four or more columns (the docsx-table--stack class from
+   plugins/rehype-wrap-tables.mjs) stacks each row as a card. The first cell is the card title,
+   every other cell sits under its column name from data-label. The header row stays for screen
+   readers, which read the explicit table roles. */
+@media (max-width: 48rem) {
+  .sl-markdown-content .docsx-table-scroll > table.docsx-table--stack,
+  .docsx-table--stack :is(tbody, tr, td) {
+    display: block;
+  }
+  .docsx-table--stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .docsx-table--stack tr {
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+  .docsx-table--stack tr:nth-child(2n) {
+    background: none;
+  }
+  .sl-markdown-content .docsx-table--stack td {
+    display: grid;
+    grid-template-columns: minmax(6rem, 35%) minmax(0, 1fr);
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.2rem 0;
+    border: 0;
+  }
+  .docsx-table--stack td::before {
+    content: attr(data-label);
+    color: var(--sl-color-gray-3);
+    font-size: 0.875rem;
+  }
+  .sl-markdown-content .docsx-table--stack td:first-child {
+    display: block;
+    padding-bottom: 0.4rem;
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+  .docsx-table--stack td:first-child::before {
+    content: none;
+  }
 }
 /* Phone width: body copy is 16px. Wide tables already scroll inside their wrapper. */
 @media (max-width: 40rem) {
