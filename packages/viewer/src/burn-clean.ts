@@ -3,7 +3,13 @@
 // the obstacles an annotation lists. Pure.
 
 import { growRect } from "./arrow.js";
-import { busyCells, showsText, textBoxes, type BusyCells } from "./pixel-obstacles.js";
+import {
+  busyCells,
+  fullHeightDividers,
+  showsText,
+  textBoxes,
+  type BusyCells,
+} from "./pixel-obstacles.js";
 import { overlapArea } from "./obstacle-placement.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import type { Rect } from "./placement.js";
@@ -30,6 +36,44 @@ export const BADGE_GAP = 1;
 export const CHROME_BAR = 56;
 export const FAB_BOX = { width: 76, height: 80 };
 export const SIDE_MARGIN = 16;
+/** CSS px a badge keeps off every image edge. */
+export const BADGE_EDGE_MARGIN = 6;
+/** CSS px a caption or badge keeps off the left and right edge of a desktop capture. */
+export const DESKTOP_SIDE_MARGIN = 12;
+/** CSS px a badge keeps off a full-height page divider such as a sidebar's edge. */
+export const DIVIDER_MARGIN = 6;
+
+/** How far a badge stays from the image edges, base px: `side` left and right, `edge` top and bottom. */
+export interface BadgeInsets {
+  side: number;
+  edge: number;
+}
+
+/**
+ * The badge insets for a capture: {@link BADGE_EDGE_MARGIN} CSS px all round, and
+ * {@link DESKTOP_SIDE_MARGIN} at the sides of a desktop capture (`realWidth` from {@link WIDE_FROM}).
+ * `f` is the caption scale and `pr` the capture's device pixel ratio.
+ */
+export function badgeInsets(f: number, realWidth: number, pr = 1): BadgeInsets {
+  const wide = realWidth >= WIDE_FROM;
+  return {
+    side: ((wide ? DESKTOP_SIDE_MARGIN : BADGE_EDGE_MARGIN) * pr) / f,
+    edge: (BADGE_EDGE_MARGIN * pr) / f,
+  };
+}
+
+/**
+ * Strips, at base size, a caption on a desktop capture keeps out of: {@link DESKTOP_SIDE_MARGIN} CSS
+ * px at the left and right edge. Empty for a phone capture, which has {@link chromeBoxes}.
+ */
+export function desktopSideBoxes(image: Size, f: number, realWidth: number, pr = 1): Rect[] {
+  if (realWidth < WIDE_FROM) return [];
+  const m = (DESKTOP_SIDE_MARGIN * pr) / f;
+  return [
+    { x: 0, y: 0, width: m, height: image.height },
+    { x: image.width - m, y: 0, width: m, height: image.height },
+  ];
+}
 
 /**
  * Boxes, at base size, a caption on a phone capture (portrait, under {@link WIDE_FROM} px wide) may not cover:
@@ -73,6 +117,28 @@ export const dockMargin = (f: number, realWidth: number, image: Size, pr = 1): n
 /** The box the halo is drawn on, in screenshot px: the target, or with `clean` the ring outside it. */
 export function haloBox(target: Rect, clean: boolean, f: number): Rect {
   return clean ? growRect(target, RING_OUTSET * f) : target;
+}
+
+const dividerCache = new WeakMap<PixelGrid, Rect[]>();
+
+/**
+ * Full-height page dividers of the screenshot, grown by {@link DIVIDER_MARGIN} CSS px at each side,
+ * at base size. A badge keeps out of them: next to a sidebar's edge it would read as part of the
+ * sidebar rather than its target.
+ */
+function dividerBoxes(pixels: PixelGrid, f: number, pr: number): Rect[] {
+  let found = dividerCache.get(pixels);
+  if (!found) {
+    found = fullHeightDividers(pixels);
+    dividerCache.set(pixels, found);
+  }
+  const m = DIVIDER_MARGIN * pr;
+  return found.map((d) => ({
+    x: (d.x - m) / f,
+    y: d.y / f,
+    width: (d.width + 2 * m) / f,
+    height: d.height / f,
+  }));
 }
 
 const cellCache = new WeakMap<PixelGrid, BusyCells>();
@@ -121,6 +187,14 @@ export function withOtherTargets(
 
 type Size = { width: number; height: number };
 
+/** What a clean annotation is laid out against, see {@link cleanObstacles}. */
+export interface CleanPrep {
+  ann: AnnotationRecord;
+  badgeObstacles: Rect[];
+  /** Left empty for the look without the clean badge. */
+  insets?: BadgeInsets;
+}
+
 /**
  * The obstacles of a clean annotation (at base size): its listed boxes checked against the pixels,
  * text found in them, the other annotations' targets and the phone chrome. `badgeObstacles` leaves
@@ -135,7 +209,7 @@ export function cleanObstacles(
   image: Size,
   realWidth: number,
   pr = 1,
-): { ann: AnnotationRecord; badgeObstacles: Rect[] } {
+): CleanPrep {
   const seen = pixels && realTarget ? withPixelObstacles(self, realTarget, pixels, f, pr) : self;
   const ann = withOtherTargets(seen, all, self);
   const listed = ann.obstacles ?? [];
@@ -146,21 +220,41 @@ export function cleanObstacles(
           .filter((b) => overlapArea(b, realTarget) > 0)
           .map((b) => ({ x: b.x / f, y: b.y / f, width: b.width / f, height: b.height / f }))
       : [];
-  const badgeObstacles = [...listed, ...inside, ...chromeBoxes(image, f, realWidth, false, pr)];
+  const dividers = pixels ? dividerBoxes(pixels, f, pr) : [];
+  const badgeObstacles = [
+    ...listed,
+    ...inside,
+    ...chromeBoxes(image, f, realWidth, false, pr),
+    ...dividers,
+  ];
+  const sides = [
+    ...chromeBoxes(image, f, realWidth, true, pr),
+    ...desktopSideBoxes(image, f, realWidth, pr),
+  ];
   return {
-    ann: { ...ann, obstacles: [...listed, ...chromeBoxes(image, f, realWidth, true, pr)] },
+    ann: { ...ann, obstacles: [...listed, ...sides] },
     badgeObstacles,
+    insets: badgeInsets(f, realWidth, pr),
   };
 }
 
 /**
  * The badge of the clean look: diagonally off one of the target's corners, {@link BADGE_GAP} px
  * from it, never on the target and never detached. Corners are tried top-left, top-right,
- * bottom-left, bottom-right, then beside the middle of the left and right edges, then the inside
- * of the target's top-left corner; the first inside the
- * image and clear of `blockers` wins, else the one covering least.
+ * bottom-left, bottom-right, then beside the middle of the left and right edges, then inside the
+ * target's top-left corner; the first inside the image and clear of `blockers` wins, else
+ * the one covering least. The badge stays fully inside the image, `insets` px from its edges: a
+ * corner past them slides back in along that edge, still next to the target.
  */
-export function cornerBadge(target: Rect, size: Size, image: Size, blockers: Rect[]): Rect {
+export function cornerBadge(
+  target: Rect,
+  size: Size,
+  image: Size,
+  blockers: Rect[],
+  prep: Pick<CleanPrep, "badgeObstacles" | "insets"> = { badgeObstacles: [] },
+): Rect {
+  const all = [...prep.badgeObstacles, ...blockers];
+  const insets = prep.insets ?? { side: 0, edge: 0 };
   const g = BADGE_GAP;
   const xs = [target.x - size.width - g, target.x + target.width + g];
   const ys = [target.y - size.height - g, target.y + target.height + g];
@@ -177,17 +271,18 @@ export function cornerBadge(target: Rect, size: Size, image: Size, blockers: Rec
   if (target.width >= size.width + 8 && target.height >= size.height + 8) {
     corners.push({ x: target.x + 4, y: target.y + 4, ...size, inside: true });
   }
+  const within = (v: number, lo: number, hi: number) =>
+    lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v));
   let best: Rect | undefined;
   let bestCost = Infinity;
   for (const { inside, ...raw } of corners) {
-    // A corner past the image edge slides back in along that edge, still next to the target.
     const c = {
       ...raw,
-      x: Math.max(0, Math.min(raw.x, image.width - raw.width)),
-      y: Math.max(0, Math.min(raw.y, image.height - raw.height)),
+      x: within(raw.x, insets.side, image.width - raw.width - insets.side),
+      y: within(raw.y, insets.edge, image.height - raw.height - insets.edge),
     };
     const onTarget = inside ? 0 : overlapArea(c, target);
-    const cost = blockers.reduce((n, b) => n + overlapArea(c, b), 0) + onTarget * 1000;
+    const cost = all.reduce((n, b) => n + overlapArea(c, b), 0) + onTarget * 1000;
     if (cost === 0) return c;
     if (cost < bestCost) {
       bestCost = cost;

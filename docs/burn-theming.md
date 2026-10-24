@@ -163,6 +163,8 @@ Line width, dot radius and chevron arms are all multiplied by `scale`.
 
 The line comes with a clean halo and badge. The halo ring is 2 px wide and sits 3 px outside the target, with a 3 px glow, so it never covers text inside the target. Its corner radius is 4/7 of `radius` plus 5 px. The numbered badge sits 1 px off a corner of the target, clear of the element. The burner tries the top-left, top-right, bottom-left and bottom-right corners, then beside the middle of the left and right edges, then inside the target's top-left corner. It takes the first spot inside the image that covers no text or other annotation, else the one that covers least.
 
+The badge stays fully inside the image, 6 CSS px from every edge and 12 from the left and right edge of a desktop capture, so a badge at the image edge slides back in along it. It also keeps 6 px off a full-height page divider, a sidebar's edge found in the pixels, so it never reads as part of the sidebar. A desktop caption keeps 12 px off the left and right edge. When no line crosses nothing, the burner still picks a caption spot and line end that run beside every caption and badge placed before, even if the line then crosses a halo.
+
 ### Placement with the line
 
 - A caption rests 20 px from its target, so 15 px of line show past the 5 px ring.

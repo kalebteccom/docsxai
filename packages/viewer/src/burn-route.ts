@@ -38,6 +38,8 @@ const CLEARANCE = 4;
 /** Added to a line that runs under its own badge: any clean route without that wins. */
 const BADGE_COST = 1000;
 const SLIDE_COST = 0.5;
+/** Cost per px a line's end sits from the caption's middle, so a centred line wins a tie. */
+const TIP_COST = 0.1;
 const SIDES: readonly Side[] = ["top", "bottom", "right", "left"];
 
 export interface RouteInput {
@@ -47,6 +49,12 @@ export interface RouteInput {
   size: Size;
   /** Boxes neither line nor caption may touch: page content, other halos, badges and captions. */
   blockers: Rect[];
+  /**
+   * Boxes the line alone may not cross, when fewer than `blockers`. Such a route is the last
+   * resort: the caption keeps off the blockers without {@link CLEARANCE}, and the line's end may
+   * slide along the target's edge.
+   */
+  lineBlockers?: Rect[];
   /** Further boxes the caption may not cover. */
   forbid: Rect[];
   /** The annotation's own badge: the line may pass under it, at {@link BADGE_COST}. */
@@ -93,7 +101,8 @@ interface Ctx {
   captionBlocks: Rect[];
 }
 
-const lineCrosses = (ctx: Ctx, seg: Rect) => crossingLength(seg, ctx.inp.blockers) > 0;
+const lineCrosses = (ctx: Ctx, seg: Rect) =>
+  crossingLength(seg, ctx.inp.lineBlockers ?? ctx.inp.blockers) > 0;
 const badgeCost = (ctx: Ctx, segs: Rect[]) =>
   ctx.inp.ownBadge && segs.some((s) => overlapArea(s, ctx.inp.ownBadge!) > 0) ? BADGE_COST : 0;
 
@@ -121,6 +130,21 @@ interface Best {
   route: Route;
 }
 
+/**
+ * Where along the edge a straight line may end for a caption slid to one spot: the point nearest
+ * the caption's middle. A route held to fewer blockers (`lineBlockers`) also tries points further
+ * along, so its line can pass beside a caption drawn before it.
+ */
+function tipsFor(ctx: Ctx, mid: number, lo: number, hi: number): number[] {
+  const tips = [mid];
+  if (!ctx.inp.lineBlockers) return tips;
+  for (let s = LEG_STEP; mid - s >= lo || mid + s <= hi; s += LEG_STEP) {
+    if (mid - s >= lo) tips.push(mid - s);
+    if (mid + s <= hi) tips.push(mid + s);
+  }
+  return tips;
+}
+
 /** Straight candidates on one side, scored by line length and slide. */
 function straightOn(ctx: Ctx, side: Side, best: Best | undefined): Best | undefined {
   const { target: t, size, image, nudge, inset } = ctx.inp;
@@ -143,26 +167,38 @@ function straightOn(ctx: Ctx, side: Side, best: Best | undefined): Best | undefi
       const lo = Math.max(e.lo, start + inset);
       const hi = Math.min(e.hi, start + len - inset);
       if (lo > hi) continue;
-      const tip = e.tip(clamp(start + len / 2, lo, hi));
-      const edgePt = add(tip, out, d);
-      const callout = e.horizontal
-        ? { x: start, y: side === "top" ? edgePt.y - size.height : edgePt.y }
-        : { x: side === "left" ? edgePt.x - size.width : edgePt.x, y: start };
-      const box = { ...callout, ...size, x: callout.x + nudge.x, y: callout.y + nudge.y };
-      if (!captionClear(ctx, box)) continue;
-      const seg = segmentRect(
-        add(add(tip, out, RING_OUTSET), nudge),
-        add(edgePt, nudge),
-        LINE_STROKE / 2,
-      );
-      if (lineCrosses(ctx, seg)) continue;
-      const cost = d - RING_OUTSET + SLIDE_COST * Math.abs(start - rest) + badgeCost(ctx, [seg]);
-      if (best !== undefined && cost >= best.cost) continue;
-      const stem = segmentRect(tip, edgePt, LINE_STROKE / 2);
-      best = {
-        cost,
-        route: { kind: "straight", side, layout: { side, callout, arrow: tip, stem, size, nudge } },
-      };
+      const mid = clamp(start + len / 2, lo, hi);
+      for (const along of tipsFor(ctx, mid, lo, hi)) {
+        const tip = e.tip(along);
+        const edgePt = add(tip, out, d);
+        const callout = e.horizontal
+          ? { x: start, y: side === "top" ? edgePt.y - size.height : edgePt.y }
+          : { x: side === "left" ? edgePt.x - size.width : edgePt.x, y: start };
+        const spot = { ...callout, ...size, x: callout.x + nudge.x, y: callout.y + nudge.y };
+        if (!captionClear(ctx, spot)) break;
+        const seg = segmentRect(
+          add(add(tip, out, RING_OUTSET), nudge),
+          add(edgePt, nudge),
+          LINE_STROKE / 2,
+        );
+        if (lineCrosses(ctx, seg)) continue;
+        const cost =
+          d -
+          RING_OUTSET +
+          SLIDE_COST * Math.abs(start - rest) +
+          TIP_COST * Math.abs(along - mid) +
+          badgeCost(ctx, [seg]);
+        if (best !== undefined && cost >= best.cost) continue;
+        const stem = segmentRect(tip, edgePt, LINE_STROKE / 2);
+        best = {
+          cost,
+          route: {
+            kind: "straight",
+            side,
+            layout: { side, callout, arrow: tip, stem, size, nudge },
+          },
+        };
+      }
     }
   }
   return best;
@@ -245,7 +281,7 @@ function elbowFrom(ctx: Ctx, side: Side, best: Best | undefined): Best | undefin
 export function routeLine(inp: RouteInput): Route | null {
   const halo = inflate(inp.target, RING_OUTSET + 3);
   const captionBlocks = [
-    ...inp.blockers.map((b) => inflate(b, CLEARANCE)),
+    ...inp.blockers.map((b) => inflate(b, inp.lineBlockers ? 0 : CLEARANCE)),
     ...inp.forbid,
     ...(inp.ownBadge ? [inp.ownBadge] : []),
     halo,
@@ -303,30 +339,44 @@ export function routeClean(
   const placement = inp.ann.placement;
   const styled = (inp.ann.arrow_style ?? "").split("-")[0] as Side;
   const hint = placement?.side ?? (SIDES.includes(styled) ? styled : undefined);
-  const found = routeLine({
-    target: inp.target,
-    image: inp.image,
-    size: l.size,
-    blockers,
-    forbid: inp.forbid ?? [],
-    ...(ownBadge ? { ownBadge } : {}),
-    preferred: hint ?? l.side,
-    hinted: hint !== undefined,
-    ...(placement?.align ? { align: placement.align } : {}),
-    nudge: l.nudge,
-    inset,
-  });
-  if (!found) return kept;
-  const { elbow: _straight, ...rest } = l;
-  const spot = { ...rest, ...found.layout };
-  const boxes = layoutBoxes(spot);
-  const layout: CalloutLayout = {
-    ...spot,
-    obstacleOverlap: Math.round(covered(boxes, obstacles)),
-    otherOverlap: Math.round(covered(boxes, inp.clear)),
+  const reroute = (lineBlockers: Rect[] | undefined): RoutedPlan | null => {
+    const found = routeLine({
+      target: inp.target,
+      image: inp.image,
+      size: l.size,
+      blockers,
+      ...(lineBlockers ? { lineBlockers } : {}),
+      forbid: inp.forbid ?? [],
+      ...(ownBadge ? { ownBadge } : {}),
+      preferred: hint ?? l.side!,
+      hinted: hint !== undefined,
+      ...(placement?.align ? { align: placement.align } : {}),
+      nudge: l.nudge,
+      inset,
+    });
+    if (!found) return null;
+    const { elbow: _straight, ...rest } = l;
+    const spot = { ...rest, ...found.layout };
+    const boxes = layoutBoxes(spot);
+    const layout: CalloutLayout = {
+      ...spot,
+      obstacleOverlap: Math.round(covered(boxes, obstacles)),
+      otherOverlap: Math.round(covered(boxes, inp.clear)),
+    };
+    if (layout.obstacleOverlap + layout.otherOverlap > l.obstacleOverlap + l.otherOverlap) {
+      return null;
+    }
+    return {
+      plan: { ...plan, layout, cover: 0 },
+      route: found.kind,
+      crossings: lineBlockers ? lineCrossings(layout, blockers, inset) : 0,
+    };
   };
-  if (layout.obstacleOverlap + layout.otherOverlap > l.obstacleOverlap + l.otherOverlap) {
-    return kept;
-  }
-  return { plan: { ...plan, layout, cover: 0 }, route: found.kind, crossings: 0 };
+  const clean = reroute(undefined);
+  if (clean) return clean;
+  // No route crosses nothing. A line may still cross content or a halo, but never runs behind a
+  // caption or badge drawn before it.
+  const behind = (inp.forbid ?? []).map((b) => inflate(b, LINE_STROKE));
+  if (behind.length === 0 || lineCrossings(l, behind, inset) === 0) return kept;
+  return reroute(behind) ?? kept;
 }

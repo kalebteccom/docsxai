@@ -10,8 +10,16 @@ import { DEFAULT_BURN_THEME, type BurnTheme } from "../src/burn-theme.js";
 import { recordsFromSidecar } from "../src/pack-annotations.js";
 import { parseThemeConfig, resolveBurnTheme } from "../src/burn-theme-config.js";
 import { overlapArea } from "../src/obstacle-placement.js";
-import { busyCells, textBoxes } from "../src/pixel-obstacles.js";
-import { chromeBoxes, haloBox, shrinkSteps, withPixelObstacles } from "../src/burn-clean.js";
+import { busyCells, fullHeightDividers, textBoxes } from "../src/pixel-obstacles.js";
+import {
+  badgeInsets,
+  chromeBoxes,
+  cornerBadge,
+  desktopSideBoxes,
+  haloBox,
+  shrinkSteps,
+  withPixelObstacles,
+} from "../src/burn-clean.js";
 import type { PixelGrid } from "../src/connector-contrast.js";
 import type { Rect } from "../src/placement.js";
 import { encodePng } from "./helpers/png.js";
@@ -327,5 +335,73 @@ describe("text estimated from a 2x capture", () => {
     expect(two).toEqual(
       one.map((b) => ({ x: b.x * 2, y: b.y * 2, width: b.width * 2, height: b.height * 2 })),
     );
+  });
+});
+
+describe("badge margins", () => {
+  const size = { width: 30, height: 30 };
+  const image = { width: 400, height: 800 };
+
+  it("keeps a badge 6 CSS px off every edge of a phone capture, 12 off the sides of a desktop one", () => {
+    expect(badgeInsets(1, 390)).toEqual({ side: 6, edge: 6 });
+    expect(badgeInsets(1, 1280)).toEqual({ side: 12, edge: 6 });
+    expect(badgeInsets(2, 390, 2)).toEqual({ side: 6, edge: 6 });
+    expect(badgeInsets(1, 390, 2)).toEqual({ side: 12, edge: 12 });
+  });
+
+  it("slides a corner badge back in along the edge, still next to its target", () => {
+    const target = { x: 8, y: 300, width: 200, height: 60 };
+    const badge = cornerBadge(target, size, image, [], {
+      badgeObstacles: [],
+      insets: { side: 6, edge: 6 },
+    });
+    expect(badge.x).toBe(6);
+    expect(badge.y).toBe(target.y - size.height - 1);
+    const low = cornerBadge({ x: 150, y: 770, width: 100, height: 20 }, size, image, [], {
+      badgeObstacles: [],
+      insets: { side: 6, edge: 6 },
+    });
+    expect(low.y + low.height).toBeLessThanOrEqual(800 - 6);
+  });
+
+  it("keeps the desktop side strips and nothing on a phone", () => {
+    expect(desktopSideBoxes({ width: 1100, height: 700 }, 1280 / 1100, 1280)).toEqual([
+      { x: 0, y: 0, width: 12 / (1280 / 1100), height: 700 },
+      { x: 1100 - 12 / (1280 / 1100), y: 0, width: 12 / (1280 / 1100), height: 700 },
+    ]);
+    expect(desktopSideBoxes({ width: 390, height: 844 }, 1, 390)).toEqual([]);
+  });
+});
+
+describe("full-height dividers", () => {
+  const grid = (
+    width: number,
+    height: number,
+    paint: (x: number, y: number) => number,
+  ): PixelGrid => {
+    const rgba = new Uint8Array(width * height * 4);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        rgba[i] = rgba[i + 1] = rgba[i + 2] = paint(x, y);
+        rgba[i + 3] = 255;
+      }
+    }
+    return { width, height, rgba };
+  };
+
+  it("finds a sidebar's 1 px border as one box the height of the page", () => {
+    const g = grid(300, 200, (x) => (x < 100 ? 14 : x === 100 ? 60 : 22));
+    expect(fullHeightDividers(g)).toEqual([{ x: 100, y: 0, width: 2, height: 200 }]);
+  });
+
+  it("finds a plain step between a sidebar and the page", () => {
+    const g = grid(300, 200, (x) => (x < 100 ? 14 : 40));
+    expect(fullHeightDividers(g)).toEqual([{ x: 100, y: 0, width: 1, height: 200 }]);
+  });
+
+  it("ignores a card border that does not run the page", () => {
+    const g = grid(300, 200, (x, y) => (x === 100 && y > 60 && y < 140 ? 80 : 14));
+    expect(fullHeightDividers(g)).toEqual([]);
   });
 });

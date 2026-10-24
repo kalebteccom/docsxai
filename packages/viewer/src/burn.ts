@@ -243,7 +243,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       size === null
         ? undefined
         : clean
-          ? cornerBadge(t, size, baseImage, [...prep.badgeObstacles, ...blockers])
+          ? cornerBadge(t, size, baseImage, blockers, prep)
           : ann.obstacles?.length
             ? planBadge({
                 image: baseImage,
@@ -326,10 +326,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     const ownBadge =
       badge ??
       (badgeOnly && number !== null
-        ? cornerBadge(t, badgeSize(number, input.metrics), baseImage, [
-            ...prep.badgeObstacles,
-            ...blockers,
-          ])
+        ? cornerBadge(t, badgeSize(number, input.metrics), baseImage, blockers, prep)
         : undefined);
     if (ownBadge) badges.set(self, ownBadge);
     const realBadge = ownBadge ? scaleRect(ownBadge, f) : undefined;
