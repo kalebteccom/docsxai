@@ -73,15 +73,12 @@ describe("the cache ttl, a union of three shapes", () => {
     expect(cacheOf(`    cache: { ttl: ${JSON.stringify(ttl)} }\n`).ttl).toBe(ttl);
   });
 
-  it.each([["1d"], [""], [0], [1.5], [true]])(
-    "names roles.editor.cache.ttl for %j",
-    (ttl) => {
-      const lines = messageOf(role(`    cache: { ttl: ${JSON.stringify(ttl)} }\n`)).split("\n");
-      expect(lines[0]).toBe("strategy.yaml: invalid auth-strategy descriptor:");
-      expect(lines.slice(1)).toHaveLength(1);
-      expect(lines[1]).toMatch(/^ {2}• roles\.editor\.cache\.ttl: /);
-    },
-  );
+  it.each([["1d"], [""], [0], [1.5], [true]])("names roles.editor.cache.ttl for %j", (ttl) => {
+    const lines = messageOf(role(`    cache: { ttl: ${JSON.stringify(ttl)} }\n`)).split("\n");
+    expect(lines[0]).toBe("strategy.yaml: invalid auth-strategy descriptor:");
+    expect(lines.slice(1)).toHaveLength(1);
+    expect(lines[1]).toMatch(/^ {2}• roles\.editor\.cache\.ttl: /);
+  });
 });
 
 describe("keys, records and the root", () => {

@@ -201,7 +201,6 @@ describe("a tokens file that does not fit", () => {
     expect(() => flattenTokens([])).toThrow(/must be a JSON object/);
     expect(() => flattenTokens("#fff")).toThrow(/must be a JSON object/);
   });
-
 });
 
 describe("the mapping table", () => {
