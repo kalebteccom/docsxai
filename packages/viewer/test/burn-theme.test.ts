@@ -60,6 +60,8 @@ describe("the default theme", () => {
       maxWidthRatio: 0.62,
       scale: 1,
       displayWidth: 720,
+      displayWidthNarrow: null,
+      narrowBelow: null,
     });
   });
 
