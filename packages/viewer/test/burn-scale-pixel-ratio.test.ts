@@ -59,9 +59,12 @@ describe("an unthemed burn and the pixel ratio", () => {
       ...(f === 1 ? {} : { options: { pixelRatio: f } }),
     });
 
+  // The bytes depend on the satori version: this hash is the locked satori 0.63.2, the same at
+  // origin/main and after the themed margin and connector rules. A stale install with satori 0.33.5
+  // renders 569d254d…. On a mismatch, reinstall from the lockfile and run again.
   it("leaves a 1x burn byte for byte as it was", async () => {
     const { png, report } = await burn(1);
-    expect(sha(png)).toBe("569d254d655da867d5a23980663701f0ee0469f2e4ecbae633207fc7bf5a50f6");
+    expect(sha(png)).toBe("8071634bcd28cdfac0adc9767fc9a41e13db7b0582f1240dee2a32c99dcd0a06");
     expect(report[0]!.callout).toEqual({ x: 131.5, y: 313, width: 277, height: 37 });
   });
 
