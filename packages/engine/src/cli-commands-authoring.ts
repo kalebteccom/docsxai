@@ -210,6 +210,7 @@ export async function cmdLint(args: string[]): Promise<number> {
   }
 
   const flowsByName = new Map<string, FlowFile>();
+  const fileNames = new Map<string, string>();
   const owners = new Map<string, string>();
   for (const p of flowPaths) {
     try {
@@ -218,6 +219,7 @@ export async function cmdLint(args: string[]): Promise<number> {
       const duplicate = claimFlowName(owners, flow.name, p);
       if (duplicate) throw new FlowFileError(duplicate);
       flowsByName.set(flow.name, flow);
+      fileNames.set(flow.name, path.basename(p));
     } catch (e) {
       const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
       process.stderr.write(
@@ -265,7 +267,11 @@ export async function cmdLint(args: string[]): Promise<number> {
 
   const issues: LintIssue[] = [];
   for (const flow of targets) {
-    const result = await lintFlow(flow, { loadFlow, extraRules });
+    const result = await lintFlow(flow, {
+      loadFlow,
+      extraRules,
+      fileName: fileNames.get(flow.name),
+    });
     issues.push(...result);
   }
 

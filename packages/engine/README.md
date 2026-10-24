@@ -28,7 +28,7 @@ run            execute flows headless; emit annotations + screenshots (`--verify
 render         build the static viewer (spawns the @docsxai/viewer bin)
 burn           bake annotations into PNG copies (spawns the same bin's `burn`)
 pack           build the screenshot pack: burn, optimise, hash-name, manifest; `--check` compares a rebuild with the committed pack (spawns the viewer bin's `pack`)
-lint           static checks across flow-files (R001-R016; `extraRules` injectable via `lintFlow`)
+lint           static checks across flow-files (R001-R017; `extraRules` injectable via `lintFlow`)
 flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt
 doctor         environment + workspace health-check (one ok:/fail: line per check, each with a next: step; no plugin code runs)
