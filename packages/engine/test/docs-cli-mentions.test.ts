@@ -19,15 +19,26 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "../../..");
 const docsDir = "website/src/content/docs";
 
-/** The README, the getting-started and reference pages, and the determinism guide. */
+/** Markdown outside the docs site that a new user copies from: the guides and the examples. */
+const COPIED_DOCS = [
+  "docs/annotation-placement.md",
+  "docs/burn-theming.md",
+  "docs/ci-recipes.md",
+  "docs/pack-manifest.md",
+  "examples/burn-theme/README.md",
+  "examples/ci/README.md",
+  "examples/ci/sample-repo/README.md",
+];
+
+/** The README, every docs-site page, and the guides and examples a new user copies from. */
 function checkedFiles(): string[] {
-  const pages = ["getting-started", "reference"].flatMap((dir) =>
+  const pages = ["getting-started", "concepts", "guides", "reference"].flatMap((dir) =>
     readdirSync(path.join(repo, docsDir, dir))
       .filter((f) => f.endsWith(".md"))
       .sort()
       .map((f) => `${docsDir}/${dir}/${f}`),
   );
-  return ["README.md", ...pages, `${docsDir}/guides/determinism-and-drift.md`];
+  return ["README.md", ...pages, ...COPIED_DOCS];
 }
 
 /** Fewest mentions a file must yield: a guard against an extractor that quietly finds nothing. */
@@ -226,7 +237,7 @@ describe("the checker", () => {
   });
 });
 
-describe("README.md and the docs site pages", () => {
+describe("README.md, the docs site pages and the copied guides", () => {
   const files = checkedFiles();
 
   it("cover the README, the quickstart and the CLI reference", () => {
