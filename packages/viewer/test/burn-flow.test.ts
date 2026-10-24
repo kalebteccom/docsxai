@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { burnFlow } from "../src/burn.js";
+import { DEFAULT_BURN_THEME, type BurnTheme } from "../src/burn-theme.js";
 import { runViewerCli } from "../src/index.js";
 import { solidPng } from "./helpers/png.js";
 
@@ -108,5 +109,60 @@ describe("docsxai-viewer burn (CLI)", () => {
   it("keeps the existing default behavior: no args prints usage and exits 0", async () => {
     expect(await runViewerCli([])).toBe(0);
     expect(await runViewerCli(["bogus"])).toBe(2);
+  });
+});
+
+describe("burnFlow, device_scale_factor", () => {
+  const theme: BurnTheme = {
+    ...DEFAULT_BURN_THEME,
+    scale: "auto",
+    displayWidth: 1100,
+    displayWidthNarrow: 350,
+    narrowBelow: 900,
+    captionStyle: "auto",
+  };
+  const withField = (factor: number | undefined) => ({
+    ...ANNOTATIONS,
+    ...(factor !== undefined ? { device_scale_factor: factor } : {}),
+    annotations: [
+      {
+        step: "open-sidebar",
+        selector: "#play",
+        index: 1,
+        bounding_box: { x: 300, y: 140, width: 180, height: 60 },
+        copy: "Opens the ledger",
+      },
+    ],
+  });
+  /** Burns a 780 x 1688 capture with `annotations.json` as written and returns the burned bytes. */
+  async function burn(file: object, extra: { pixelRatio?: number } = {}) {
+    const flowDir = path.join(docsDir, "recap-open");
+    await fs.writeFile(path.join(flowDir, "annotations.json"), JSON.stringify(file));
+    await fs.writeFile(path.join(flowDir, "screenshots", "open-sidebar.png"), solidPng(780, 1688));
+    const r = await burnFlow({ docsDir, flow: "recap-open", theme, warn: () => {}, ...extra });
+    return {
+      png: await fs.readFile(path.join(flowDir, "burned", "open-sidebar.png")),
+      report: r.report,
+    };
+  }
+
+  it("reads the pixel ratio from annotations.json", async () => {
+    const fromFile = await burn(withField(2));
+    const fromOption = await burn(withField(undefined), { pixelRatio: 2 });
+    const neither = await burn(withField(undefined));
+    expect(fromFile.png.equals(fromOption.png)).toBe(true);
+    expect(fromFile.report).toEqual(fromOption.report);
+    expect(fromFile.png.equals(neither.png)).toBe(false);
+  });
+
+  it("lets an explicit pixelRatio win over the file", async () => {
+    const forced = await burn(withField(2), { pixelRatio: 1 });
+    const neither = await burn(withField(undefined));
+    expect(forced.png.equals(neither.png)).toBe(true);
+  });
+
+  it("stops with a message naming the file for a value outside 1 to 4", async () => {
+    await expect(burn(withField(7))).rejects.toThrow(/annotations\.json.*device_scale_factor/);
+    await expect(burn(withField("2" as unknown as number))).rejects.toThrow(/device_scale_factor/);
   });
 });
