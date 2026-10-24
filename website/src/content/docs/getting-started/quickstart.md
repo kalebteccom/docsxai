@@ -133,6 +133,10 @@ open ~/docsxai/my-app/.viewer/index.html
 viewer index links each flow; every flow page shows the screenshots with
 pulsing halos. Hover, tap or tab to a halo to read its callout.
 
+Add `--lang es` for Spanish page text. For a docs site you can host, run
+`docsxai site ~/docsxai/my-app --build`. It writes an Astro Starlight project to
+`~/docsxai/my-app/site` and builds it into `site/dist`.
+
 ## Where to next
 
 - [Agent runbook](https://github.com/kalebteccom/docsxai/blob/main/docs/agent-runbook.md) - hand calibration to a coding agent end to end.

@@ -32,8 +32,9 @@ docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|js
 docsxai login --backend-url <url> [--oauth <workspace-dir>]
 docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 docsxai pull <workspace-dir> [--rev <id>]
-docsxai render <workspace-dir> [--open]
+docsxai render <workspace-dir> [--lang <locale>] [--open]
 docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline] [--strict-glyphs]
+docsxai site <workspace-dir> [--out <dir>] [--build] [--title <text>] [--accent <hex>] [--lang <locale>] [--flow <name>]
 docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
 docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
 docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
@@ -56,13 +57,13 @@ bad flag value) exit 2; operational failures (a halt, a lint warning, drift at
 the threshold) exit 1. A flag a command does not take exits 2 (`burn` and
 `pack` too), and most commands name the nearest flag when one is close:
 `run --flwo x` prints `unknown flag --flwo, did you mean --flow?`. Giving a
-flag twice exits 2 as well, except `burn --flow`, which repeats. A flag that
+flag twice exits 2 as well, except `burn --flow` and `site --flow`, which repeat. A flag that
 takes no value never reads the next argument, so `run --pause <workspace-dir>`
 keeps the workspace, and `--pause=yes` exits 2. A value flag with no value exits
 2 with `<flag> needs a value`. `doctor` follows the same rules: an unknown flag,
 `--offline` twice and `--offline=yes` all exit 2. Ctrl-C (SIGINT) or SIGTERM
 stops a command with one `docsxai: interrupted` line and a `next:` line, and
-exits 130 (SIGINT) or 143 (SIGTERM). While `render`, `burn` or `pack` runs, the
+exits 130 (SIGINT) or 143 (SIGTERM). While `render`, `burn`, `site` or `pack` runs, the
 signal goes to the viewer child and docsxai waits for it: the child gets SIGKILL
 after 10 seconds, and a second signal exits at once. The transcripts below show
 representative output; paths and counts vary with your workspace.
@@ -365,12 +366,15 @@ screenshot after the annotated steps, and numbered ids sort by value (`step-2` b
 lists the screenshots without callouts; one that cannot be read (permissions, a
 directory in its place) stops `render` with an error that names the file. A page with a
 missing screenshot offers the command that captures it again; a flow name or step id
-with a space, quote or `$` is single-quoted in it, so it pastes as one word. `--open`
-opens `.viewer/index.html` in the default browser after a good build (`open` on macOS,
-`xdg-open` on Linux, Explorer on Windows); where none can be opened, such as a server
-with no display, it prints the path and still exits 0. `docsxai-viewer build --flow <name>` also renders the variant folders of
-a matrix flow, and `docsxai-viewer build --lang fr` warns that only `en` and `es` have
-text tables and writes English.
+with a space, quote or `$` is single-quoted in it, so it pastes as one word.
+
+`--lang <locale>` sets the language of the text the viewer adds: `es` or `es-ES` gives
+Spanish, the default is `en`. A tag with no text table, `fr` say, prints a warning and
+writes English. A matrix variant flow uses the locale in its own variant id.
+`--open` opens `.viewer/index.html` in the default browser after a good build (`open` on
+macOS, `xdg-open` on Linux, Explorer on Windows); where none can be opened, such as a
+server with no display, it prints the path and still exits 0.
+`docsxai-viewer build --flow <name>` also renders the variant folders of a matrix flow.
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai render ~/docsxai/my-app
@@ -421,6 +425,26 @@ are new in the next release; see
 $ docsxai burn ~/docsxai/my-app --report burn-report.json
 burn: wrote 6 image(s) to ~/docsxai/my-app/docs/publish-post/burned
 burn: wrote report to ~/docsxai/my-app/burn-report.json (0 unplaceable)
+```
+
+### `docsxai site`
+
+Writes an Astro Starlight docs site project from `<workspace>/docs` and
+`<workspace>/flows`, preferring burned images. It runs the viewer's `site`
+through the same bin resolution as `render`, and its exit code is the command's.
+`--out <dir>` is the project directory (default `<workspace>/site`). `--build`
+also runs the Astro build into `<out>/dist`. `--title <text>` names the site
+(default `Documentation`). `--accent <hex>` sets the accent colour, `#2563eb`
+say, over the style artifact's colours. `--lang <locale>` sets the site's
+language, with the same rule as `render --lang`. `--flow <name>` limits it to
+named flows and can be repeated. `site` doesn't read the `burn.theme` block.
+Exit 1 when the workspace or its `docs/` folder is missing or the build fails;
+exit 2 for a bad flag or an `--accent` that isn't a hex colour.
+
+```
+$ docsxai site ~/docsxai/my-app --lang es --build
+site: emitted 9 file(s) to ~/docsxai/my-app/site
+site: built ~/docsxai/my-app/site/dist in 4210ms
 ```
 
 ### `docsxai pack`
