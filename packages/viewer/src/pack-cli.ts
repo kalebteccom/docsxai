@@ -12,6 +12,7 @@ import { DEFAULT_PUBLIC_PREFIX } from "./pack-schema.js";
 import { readRawCapture, type PackSource } from "./pack-source.js";
 import { PACK_CONFIG_FILE, readWorkspace } from "./pack-workspace.js";
 import { writePack } from "./pack-write.js";
+import { reportFailure } from "./cli-failure.js";
 
 export const PACK_SYNOPSIS = `  docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
   docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]`;
@@ -140,8 +141,7 @@ export async function runPack(argv: string[]): Promise<number> {
     }
     return 0;
   } catch (e) {
-    process.stderr.write(`pack: ${(e as Error).message}\n`);
-    return 1;
+    return reportFailure("pack", e);
   }
 }
 
@@ -176,7 +176,6 @@ export async function runDrift(argv: string[]): Promise<number> {
     process.stdout.write(`${report.text}\n`);
     return report.failing > 0 ? 1 : 0;
   } catch (e) {
-    process.stderr.write(`pack --check: ${(e as Error).message}\n`);
-    return 1;
+    return reportFailure("pack --check", e);
   }
 }

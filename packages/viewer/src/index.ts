@@ -13,6 +13,7 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
+import { isDirectory, reportFailure, requireInputDir, withNext } from "./cli-failure.js";
 import { isMainModule } from "./main-module.js";
 
 export {
@@ -323,11 +324,18 @@ async function runBuild(args: ParsedArgs): Promise<number> {
       ...(theme ? { theme } : {}),
     });
     for (const w of r.warnings) process.stderr.write(`viewer: warning: ${w}\n`);
+    if (r.pages.length === 1 && !args.flows.length) {
+      const cause = (await isDirectory(docsDir))
+        ? "no flows with annotations.json under"
+        : "no docs directory at";
+      process.stderr.write(
+        `viewer: warning: ${withNext(`${cause} ${docsDir}, so the index is empty`, "docsxai run <workspace-dir>, or fix the path")}\n`,
+      );
+    }
     process.stdout.write(`viewer: wrote ${r.pages.length} page(s) to ${outDir}\n`);
     return 0;
   } catch (e) {
-    process.stderr.write(`build: ${(e as Error).message}\n`);
-    return 1;
+    return reportFailure("build", e);
   }
 }
 
@@ -346,7 +354,11 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     // `--flow <name>` also selects the `<name>/<variant>` outputs of a flow that ran a matrix.
     const flows = args.flows.length ? selectFlows(found, args.flows) : found;
     if (flows.length === 0) {
-      process.stderr.write(`burn: no flows with annotations.json under ${docsDir}\n`);
+      const note = withNext(
+        `no flows with annotations.json under ${docsDir}`,
+        "docsxai run <workspace-dir>",
+      );
+      process.stderr.write(`burn: ${note}\n`);
       return 1;
     }
     const reports: FlowBurnReport[] = [];
@@ -380,8 +392,7 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     }
     return 0;
   } catch (e) {
-    process.stderr.write(`burn: ${(e as Error).message}\n`);
-    return 1;
+    return reportFailure("burn", e);
   }
 }
 
@@ -390,6 +401,24 @@ async function runSite(args: ParsedArgs): Promise<number> {
   const [workspace] = args.positional;
   if (!workspace) return usageError("site", "requires <workspace>");
   const outDir = args.out ?? path.join(workspace, "site");
+  if (
+    !(await requireInputDir(
+      "site",
+      workspace,
+      "workspace",
+      "docsxai init <workspace-dir>, or fix the path",
+    ))
+  )
+    return 1;
+  if (
+    !(await requireInputDir(
+      "site",
+      path.join(workspace, "docs"),
+      "docs directory",
+      "docsxai run <workspace-dir>, or fix the path",
+    ))
+  )
+    return 1;
   try {
     const r = await emitStarlightSite({
       workspaceDir: workspace,
@@ -413,8 +442,7 @@ async function runSite(args: ParsedArgs): Promise<number> {
     }
     return 0;
   } catch (e) {
-    process.stderr.write(`site: ${(e as Error).message}\n`);
-    return 1;
+    return reportFailure("site", e);
   }
 }
 
