@@ -56,6 +56,12 @@ export const FORBIDDEN_PATTERNS = [
   { pattern: /(^|\/)\.auth(\/|$)/, why: ".auth directory carries session state" },
 ];
 
+/** The JSON Schema files `@docsxai/viewer` ships under `schemas/`, linked from docs/pack-manifest.md. */
+export const VIEWER_SCHEMA_FILES = [
+  "schemas/screens-pack-2.schema.json",
+  "schemas/pack-config-1.schema.json",
+];
+
 const stripDot = (p) => p.replace(/^\.\//, "");
 
 function listDir(dir) {
@@ -65,7 +71,8 @@ function listDir(dir) {
 /**
  * The tarball-relative paths the package at `cwd` must contain: its `main` and every `bin` target,
  * plus, for the plugin, `.claude-plugin/plugin.json` and every `commands/*.md` and
- * `skills/<name>/SKILL.md` in the source tree, and for the skill bundle `skill/docsxai/SKILL.md`.
+ * `skills/<name>/SKILL.md` in the source tree, for the skill bundle `skill/docsxai/SKILL.md`, and
+ * for the viewer its two JSON Schema files.
  * @param {string} cwd package directory
  * @param {{ name?: string, main?: string, bin?: string | Record<string, string> }} pkg parsed package.json
  * @returns {string[]}
@@ -88,6 +95,7 @@ export function requiredPaths(cwd, pkg) {
     }
   }
   if (pkg.name === "@docsxai/skill") required.push("skill/docsxai/SKILL.md");
+  if (pkg.name === "@docsxai/viewer") required.push(...VIEWER_SCHEMA_FILES);
   return [...new Set(required)];
 }
 

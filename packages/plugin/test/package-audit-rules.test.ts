@@ -15,6 +15,7 @@ import { listCommands, listSkills, pluginDir } from "../src/index.js";
 
 const skillDir = path.resolve(pluginDir, "..", "skill");
 const sharepointDir = path.resolve(pluginDir, "..", "plugin-sharepoint");
+const viewerDir = path.resolve(pluginDir, "..", "viewer");
 const readPkg = async (dir: string) =>
   JSON.parse(await fs.readFile(path.join(dir, "package.json"), "utf8")) as {
     name: string;
@@ -43,6 +44,22 @@ describe("required tarball paths", () => {
     await expect(fs.access(path.join(skillDir, "skill", "docsxai", "SKILL.md"))).resolves.toBe(
       undefined,
     );
+  });
+
+  it("the viewer needs its two JSON Schema files, which its files list ships", async () => {
+    const pkg = await readPkg(viewerDir);
+    const required = requiredPaths(viewerDir, pkg);
+    expect(required).toEqual(
+      expect.arrayContaining([
+        "schemas/screens-pack-2.schema.json",
+        "schemas/pack-config-1.schema.json",
+      ]),
+    );
+    expect(pkg.files).toContain("schemas");
+    for (const file of required.filter((p) => p.startsWith("schemas/"))) {
+      await expect(fs.access(path.join(viewerDir, file))).resolves.toBeUndefined();
+      expect(forbidden(file), file).toEqual([]);
+    }
   });
 
   it("the SharePoint plugin needs its built entry point and nothing else", async () => {
