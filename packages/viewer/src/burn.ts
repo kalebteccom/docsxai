@@ -38,6 +38,7 @@ import { LINE_GAP, LINE_MAX_DISTANCE, drawnStyle } from "./burn-line.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
 import { parseFontMetrics, type FontMetrics } from "./font-metrics.js";
+import { glyphReport } from "./burn-glyphs.js";
 import { atBaseSize, checkPixelRatio, layoutAtScale, scaleRect } from "./burn-scale.js";
 import { badgeBox, badgeSize, keepClear, otherHalos, OUTSIDE_HALO_MARGIN } from "./burn-badge.js";
 import {
@@ -49,10 +50,8 @@ import {
 import {
   annotationReport,
   skippedReport,
-  BURN_REPORT_SCHEMA,
   DEFAULT_UNPLACEABLE_RATIO,
   type AnnotationReport,
-  type BurnReport,
   type FlowBurnReport,
   type RouteReport,
 } from "./burn-report.js";
@@ -63,6 +62,7 @@ import { readAnnotationList, readDeviceScaleFactor } from "./burn-annotations-fi
 import { readTextIfPresent } from "./safe-read.js";
 
 export { arrowGeometry, type ArrowGeometry };
+export { burnReport } from "./burn-report.js";
 
 type Warn = (message: string) => void;
 const defaultWarn: Warn = (message) => console.warn(message);
@@ -342,7 +342,11 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       threshold,
       clean ? route : undefined,
     );
-    input.report?.push(badgeOnly ? { ...entry, caption_style: "badge" } : entry);
+    input.report?.push({
+      ...entry,
+      ...(badgeOnly ? { caption_style: "badge" as const } : {}),
+      ...(layout ? glyphReport(ann, input.metrics, warn) : {}),
+    });
   }
 
   return div(
@@ -479,19 +483,6 @@ export interface BurnFlowResult {
   written: string[];
   /** Per-annotation placement report for the flow: screenshots in name order, then steps with no screenshot. */
   report: FlowBurnReport;
-}
-
-/** Wraps flow reports into the document `burn --report` writes. */
-export function burnReport(
-  flows: FlowBurnReport[],
-  threshold: number = DEFAULT_UNPLACEABLE_RATIO,
-): BurnReport {
-  return {
-    schema: BURN_REPORT_SCHEMA,
-    threshold,
-    flows,
-    unplaceable: flows.reduce((n, f) => n + f.annotations.filter((a) => a.unplaceable).length, 0),
-  };
 }
 
 /**

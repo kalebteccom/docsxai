@@ -8,6 +8,8 @@ export interface FontMetrics {
   unitsPerEm: number;
   /** Advance width in font units for a code point (the .notdef advance for unmapped ones). */
   advanceWidth(codePoint: number): number;
+  /** Whether the font maps the code point to a glyph. Absent: unknown, and nothing is checked. */
+  hasGlyph?(codePoint: number): boolean;
 }
 
 function tableDirectory(view: DataView): Map<string, number> {
@@ -106,6 +108,7 @@ export function parseFontMetrics(data: Uint8Array): FontMetrics {
   return {
     unitsPerEm,
     advanceWidth: (codePoint) => advanceOfGlyph(toGlyph(codePoint)),
+    hasGlyph: (codePoint) => toGlyph(codePoint) !== 0,
   };
 }
 

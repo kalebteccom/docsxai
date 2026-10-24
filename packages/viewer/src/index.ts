@@ -5,7 +5,7 @@
 // Library entry (re-exports `buildViewer`, `burnAnnotations`, `burnFlow`, `emitStarlightSite`,
 // `buildStarlightSite`) and bin entry `docsxai-viewer`:
 //   docsxai-viewer build <docs-dir> <out-dir> [--flow <name> ...] [--lang <locale>]
-//   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]
+//   docsxai-viewer burn <workspace> [--flow <name> ...] [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline] [--strict-glyphs]
 //   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--lang <locale>] [--flow <name> ...]
 //   docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
 //   docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
@@ -202,6 +202,7 @@ export { diffGrids, diffPngs, type PixelDiff } from "./pack-pixels.js";
 import { buildViewer, discoverFlows, selectFlows } from "./render.js";
 import { workspaceTheme } from "./burn-theme-load.js";
 import { burnFlow, burnReport } from "./burn.js";
+import { strictGlyphsNote } from "./burn-glyphs.js";
 import { AnnotationsFileError } from "./burn-annotations-file.js";
 import type { FlowBurnReport } from "./burn-report.js";
 import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
@@ -220,6 +221,7 @@ interface ParsedArgs {
   report?: string;
   maxOverlap?: number;
   plainConnectors: boolean;
+  strictGlyphs?: boolean;
   build: boolean;
   /** The usage-error message when the argv names an unknown flag or leaves a flag without its value. */
   error?: string;
@@ -263,6 +265,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       else if (a === "--report") parsed.report = value;
       else parsed.maxOverlap = Number(value);
     } else if (a === "--no-connector-outline") parsed.plainConnectors = true;
+    else if (a === "--strict-glyphs") parsed.strictGlyphs = true;
     else if (a === "--build") parsed.build = true;
     else if (a.startsWith("--")) return { ...parsed, error: `unknown flag ${a}` };
     else parsed.positional.push(a);
@@ -374,7 +377,9 @@ async function runBurn(args: ParsedArgs): Promise<number> {
         `burn: wrote report to ${reportPath} (${report.unplaceable} unplaceable)\n`,
       );
     }
-    return 0;
+    const tofu = args.strictGlyphs ? strictGlyphsNote(reports) : null;
+    if (tofu) process.stderr.write(`burn: ${tofu}\n`);
+    return tofu ? 1 : 0;
   } catch (e) {
     if (e instanceof AnnotationsFileError) {
       const note = withNext(
