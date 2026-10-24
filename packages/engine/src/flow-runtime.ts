@@ -333,6 +333,10 @@ export async function runFlow(
   if (opts.startFrom && !flow.steps.some((s) => s.id === opts.startFrom)) {
     throw new Error(`startFrom: no step with id "${opts.startFrom}" in flow "${flow.name}"`);
   }
+  // Same for stopAfter: a typo would otherwise run the whole flow and overwrite its outputs.
+  if (opts.stopAfter && !flow.steps.some((s) => s.id === opts.stopAfter)) {
+    throw new Error(`stopAfter: no step with id "${opts.stopAfter}" in flow "${flow.name}"`);
+  }
   let skipping = !!opts.startFrom;
 
   // Flow-level redactions apply to every screenshot; per-step ones are additive. Resolved up
