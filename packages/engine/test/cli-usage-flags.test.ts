@@ -64,7 +64,7 @@ const COMMANDS: Record<string, { flags: string[]; files: string[] }> = {
     flags: ["flow", "step", "variant", "cdp", "format"],
     files: ["cli-commands-authoring.ts"],
   },
-  doctor: { flags: ["offline"], files: ["doctor.ts"] },
+  doctor: { flags: ["offline", "format"], files: ["doctor.ts"] },
   style: { flags: ["check", "format"], files: ["cli-commands-style.ts"] },
   zip: { flags: ["out", "include-viewer"], files: ["cli-commands-docpack.ts"] },
   baseline: { flags: ["out"], files: ["cli-commands-docpack.ts"] },

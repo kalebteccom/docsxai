@@ -21,7 +21,7 @@ Usage:
   docsxai flow-tree <workspace-dir> [--format text|json]
   docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>]
       [--cdp <endpoint>] [--format text|json]
-  docsxai doctor [<workspace-dir>] [--offline]
+  docsxai doctor [<workspace-dir>] [--offline] [--format text|json]
   docsxai style <workspace-dir> [--check] [--format text|json]
   docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
   docsxai baseline <workspace-dir> [--out <dir>]
@@ -133,8 +133,10 @@ Notes:
     its output dirs, flow-file parses, auth descriptor + cached-session freshness, a short HEAD to
     app_url (--offline skips it), backend reachability and login state (when backend_url is set), the
     plugin declarations and lock (same inspection as \`plugins list\`, no plugin code is executed),
-    viewer-bin resolution (which of the three layers hit), and DOCSX_* env sanity. One \`ok:\` or
-    \`fail:\` line per check, with a \`next:\` step. Exit 1 if any line is \`fail:\`.
+    where the viewer was found, and environment settings. The first line is the docsxai version; one
+    \`ok:\` or \`fail:\` line per check follows, and the last line names the next command for the
+    workspace's state (init --example, calibrate, run or render --open). --format json prints one
+    document (schema docsxai/doctor@1). Exit 1 if any line is \`fail:\`.
   • style initialises docs/style.yaml + derived docs/style.json if absent (otherwise validates the
     existing YAML against the schema and rederives the JSON). --check additionally scans every
     docs/<flow>/<step>.md user-facing write-up for jargon leaks against the style's pruning_rules
@@ -212,7 +214,7 @@ Notes:
     exits 130. An error no command handled is a bug: it prints one \`docsxai: unexpected error\` line; set
     DOCSX_DEBUG=1 to print its stack trace.
   • --version (or -v) prints \`docsxai <version>\` and exits 0.
-  • --format json (lint, flow-tree, diagnose, style, diff, plugins, run --verify-determinism) is the
+  • --format json (lint, flow-tree, diagnose, style, diff, plugins, doctor, run --verify-determinism) is the
     machine-readable output; the text formats are for people and may change.
   • run, calibrate, burn, pack, zip, baseline, push, pull and doctor end with one line,
     \`<command>: <result> …\`, naming the counts and where the output went (run --verify-determinism

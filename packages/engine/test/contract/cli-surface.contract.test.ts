@@ -11,7 +11,8 @@
 //   4. Run the file again without the variable.
 //
 // Also pinned here: the dispatch table in cli.ts names exactly the commands the help lists, and
-// the exit-code contract (0 ok, 1 runtime failure, 2 usage error) on paths that touch no browser.
+// the exit-code contract (0 ok, 1 runtime failure, 2 usage error) on paths that touch no browser,
+// and the keys of `doctor --format json`.
 
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,6 +22,7 @@ import { main } from "../../src/cli.js";
 import { USAGE } from "../../src/cli-usage.js";
 import { fullHelp, startScreen } from "../../src/cli-help.js";
 import { RETIRED_COMMANDS } from "../../src/cli-retired.js";
+import { DOCTOR_JSON_SCHEMA, doctorReport } from "../../src/doctor.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const snapshots = path.join(here, "snapshots");
@@ -143,5 +145,17 @@ describe("CLI exit-code contract", () => {
   it("exits 2 on an unknown `burn` flag", async () => {
     expect(await main(["burn", "some-workspace", "--no-such-flag"])).toBe(2);
     expect(err).toMatch(/unknown flag --no-such-flag/);
+  });
+});
+
+describe("doctor --format json contract", () => {
+  it("keeps its schema id and its keys, in order", () => {
+    const report = doctorReport([{ name: "node", ok: false, detail: "v20", fix: "upgrade Node" }], {
+      version: "0.0.0",
+      next: "docsxai run .",
+    });
+    expect(DOCTOR_JSON_SCHEMA).toBe("docsxai/doctor@1");
+    expect(Object.keys(report)).toEqual(["schema", "version", "ok", "checks", "next"]);
+    expect(Object.keys(report.checks[0]!)).toEqual(["name", "ok", "info", "detail", "next"]);
   });
 });

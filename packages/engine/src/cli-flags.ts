@@ -56,7 +56,7 @@ export const COMMAND_FLAGS: Readonly<Record<string, CommandFlags>> = {
   "export adf": { value: ["mode", "flow", "title", "out"], bool: [] },
   "export playwright": { value: ["flow", "out"], bool: [] },
   plugins: { value: ["format"], bool: [] },
-  doctor: { value: [], bool: ["offline"] },
+  doctor: { value: ["format"], bool: ["offline"] },
   render: { value: [], bool: [] },
   login: { value: ["backend-url"], bool: [], loose: ["oauth"] },
   push: { value: ["kind", "author"], bool: [] },

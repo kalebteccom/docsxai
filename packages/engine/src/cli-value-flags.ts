@@ -12,6 +12,7 @@ const VALUE_FLAGS: Readonly<Record<string, readonly string[]>> = {
   "flow-tree": ["format"],
   diagnose: ["flow", "step", "variant", "cdp", "format"],
   style: ["format"],
+  doctor: ["format"],
   zip: ["out"],
   "export adf": ["flow", "mode", "title", "out"],
   "export playwright": ["flow", "out"],

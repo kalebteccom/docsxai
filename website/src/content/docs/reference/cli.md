@@ -21,7 +21,7 @@ docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|m
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
 docsxai flow-tree <workspace-dir> [--format text|json]
 docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
-docsxai doctor [<workspace-dir>] [--offline]
+docsxai doctor [<workspace-dir>] [--offline] [--format text|json]
 docsxai style <workspace-dir> [--check] [--format text|json]
 docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
 docsxai baseline <workspace-dir> [--out <dir>]
@@ -630,9 +630,16 @@ freshness, a HEAD to `app_url` with a 3 s timeout (skipped with a clear line whe
 offline or with `--offline`), backend reachability and login state when `backend_url`
 is configured, the plugin declarations and lock through the same inspection
 `plugins list` runs - declared/installed/lock/capabilities, with **no plugin
-code executed** - viewer-bin resolution (naming which of the three layers
-hit), and `DOCSX_*` env sanity. Exit 1 on any `fail:` line, and 2 on a flag it does not
-know (`doctor --offine` used to probe the network).
+code executed** - where the viewer was found, and environment settings. Exit 1 on any
+`fail:` line, and 2 on a flag it does not know (`doctor --offine` used to probe the network).
+
+The first line is the docsxai version. When every check passes, the last line names the
+next command for the workspace: `init <workspace-dir> --example` outside a workspace,
+`calibrate` with an empty `flows/`, `run` with flows and nothing captured, and
+`render --open` once `docs/` holds annotations. `--format json` prints one document instead
+of the lines: `schema` (`docsxai/doctor@1`), `version`, `ok`, `checks` (each with `name`,
+`ok`, `info`, `detail` and `next`, which is `null` without a follow-up) and `next`. Every
+key is always present.
 
 The `workspace` and `flows` rows name why a workspace is unusable: a `.docsxai.json` it cannot read
 (`chmod u+r <file>`), one that holds an array, `null`, a string or a number, invalid JSON
@@ -640,7 +647,8 @@ The `workspace` and `flows` rows name why a workspace is unusable: a `.docsxai.j
 not exist or is a file, and a deleted `flows/` (`mkdir <dir>/flows`). The `plugins` row
 does not repeat a config failure the `workspace` row already printed.
 
-The env row checks three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
+The env row counts the docsxai variables you set and names none of them; the viewer path
+the `docsxai` bin sets for itself isn't counted. It fails on three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
 bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typo; the
 names it knows are `DOCSX_TOKEN`, `DOCSX_CACHE_KEY`, `DOCSX_VIEWER_BIN`,
 `DOCSX_ENGINE_BIN`, `DOCSX_DATA_DIR`, `DOCSX_OAUTH_AUTO_APPROVE`,
@@ -654,6 +662,7 @@ three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai doctor ~/docsxai/my-app
+ok: version: docsxai 0.3.0-rc.4
 ok: node: v26.1.0 (>= 26 required)
 ok: chromium: ~/Library/Caches/ms-playwright/chromium-1223/…/Google Chrome for Testing
 ok: workspace: ~/docsxai/my-app/.docsxai.json (docsxai/workspace@1, app_url https://localhost:3000)
@@ -666,8 +675,8 @@ ok: app_url: https://localhost:3000/ answered HTTP 200
 ok: backend: no backend_url configured, the workspace operates fully locally
 ok: login: no backend_url, so no backend login is needed
 ok: plugins: no plugins configured (add a "plugins" array to .docsxai.json)
-ok: viewer: @docsxai/viewer installed next to the engine → …/dist/index.js (layer 2: installed package)
-ok: env: no DOCSX_* variables set (defaults apply)
+ok: viewer: found at …/@docsxai/viewer/dist/index.js
+ok: env: no docsxai variables set, defaults apply
 fail: doctor: 1 of 10 checks failed next: fix the fail lines above, then run docsxai doctor again
 ```
 

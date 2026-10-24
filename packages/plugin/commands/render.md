@@ -15,6 +15,6 @@ It reads `<workspace-dir>/docs`, writes `<workspace-dir>/.viewer`, and prints a 
 
 - `docs/` missing: the viewer comes out empty. Run `docsxai run '<workspace-dir>'` first.
 - Page text is English by default and `render` has no language flag. For Spanish labels and notices, run the viewer bin yourself: `docsxai-viewer build '<workspace-dir>/docs' '<workspace-dir>/.viewer' --lang es`. A matrix variant flow uses the locale in its variant id.
-- The viewer bin isn't found: run `docsxai doctor '<workspace-dir>'`. It shows which of the three lookups hit (`DOCSX_VIEWER_BIN`, the `@docsxai/viewer` package next to the engine, `docsxai-viewer` on PATH).
+- The viewer bin isn't found: run `docsxai doctor '<workspace-dir>'`. Its `viewer` line shows where the viewer was found, or how to install it.
 
 For delivery without the interactive viewer, the CLI has `docsxai burn` (annotations baked into PNG copies) and `docsxai pack` (the screenshot pack a docs site ships). Neither has a slash command; see `docsxai --help`.
