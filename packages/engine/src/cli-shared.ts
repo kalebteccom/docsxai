@@ -17,6 +17,11 @@ export function parseFlags(args: string[]): {
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
     if (a.startsWith("--")) {
+      const eq = a.indexOf("=");
+      if (eq > 2) {
+        flags.set(a.slice(2, eq), a.slice(eq + 1));
+        continue;
+      }
       const key = a.slice(2);
       const next = args[i + 1];
       if (next !== undefined && !next.startsWith("--")) {

@@ -90,6 +90,11 @@ describe("docsxai CLI — main()", () => {
     expect(err).toContain(`${cmd}: ${flag} needs a value`);
   });
 
+  it("reads --flag=value like --flag value", async () => {
+    expect(await main(["run", "/some/ws", "--start-from=edit-timing"])).toBe(2);
+    expect(err).toMatch(/--start-from requires --flow/);
+  });
+
   it("init requires a workspace dir (unless --persist tmp) and validates enums", async () => {
     expect(await main(["init"])).toBe(2);
     expect(err).toMatch(/missing <workspace-dir>/);
