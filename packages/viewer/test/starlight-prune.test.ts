@@ -55,6 +55,8 @@ describe("emitting a site over an earlier one", () => {
     );
     await emitStarlightSite({ workspaceDir: tmp, outDir: site() });
     expect(await exists("src/assets/flows/a/t.png")).toBe(true);
+    // A screenshot with no record would stay as a plain screenshot, so the step leaves with its file.
+    await fs.rm(path.join(tmp, "docs", "a", "screenshots", "t.png"));
     await fs.writeFile(path.join(site(), "notes.md"), "mine");
     await fs.mkdir(path.join(site(), "src/pages"), { recursive: true });
     await fs.writeFile(path.join(site(), "src/pages/own.astro"), "mine");

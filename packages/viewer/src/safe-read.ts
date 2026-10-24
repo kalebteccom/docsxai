@@ -73,3 +73,17 @@ export async function readRegularFile(file: string, maxBytes: number): Promise<B
     await handle.close();
   }
 }
+
+/**
+ * The text of a file, or `null` when it is not there (`ENOENT`, or a parent that is a file).
+ * Any other failure (permissions, a directory in its place) rejects with an error that names the file.
+ */
+export async function readTextIfPresent(file: string): Promise<string | null> {
+  try {
+    return await fs.readFile(file, "utf8");
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") return null;
+    throw new Error(`cannot read ${file} (${code ?? "unknown error"})`, { cause: e });
+  }
+}

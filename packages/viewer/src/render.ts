@@ -14,8 +14,9 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
-import { compareNatural } from "./natural-order.js";
 import { isSafeFlowName, isSafeStepId, showName } from "./safe-id.js";
+import { readTextIfPresent } from "./safe-read.js";
+import { orderSteps } from "./step-order.js";
 import { viewerStamp } from "./viewer-version.js";
 import { flowPageHtml, indexHtml, type FlowSummary, type ViewerStep } from "./viewer-markup.js";
 import type { BurnTheme } from "./burn-theme.js";
@@ -254,7 +255,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     const flowSrc = path.join(opts.docsDir, flow);
     const lang = flowUiLang(flow, opts.lang);
     const parsed = parseAnnotations(
-      await readTextIfExists(path.join(flowSrc, "annotations.json")),
+      await readTextIfPresent(path.join(flowSrc, "annotations.json")),
       lang,
     );
     const annsByStep = new Map<string, AnnotationRecord[]>();
@@ -264,16 +265,13 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
       annsByStep.set(a.step, list);
     }
 
-    // Step order: first occurrence of each step in the annotation list (multi-annotation steps appear once);
-    // else fall back to the screenshot filenames.
-    let stepIds = [...new Set(parsed.records.map((a) => a.step))];
-    if (stepIds.length === 0) {
-      const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
-      stepIds = shots
-        .filter((s) => s.endsWith(".png"))
-        .map((s) => s.replace(/\.png$/, ""))
-        .sort(compareNatural);
-    }
+    // Step order: first occurrence of each step in the annotation list (multi-annotation steps appear once),
+    // then the screenshots with no record, by filename.
+    const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
+    const stepIds = orderSteps(
+      parsed.records.map((a) => a.step),
+      shots,
+    );
 
     const steps: ViewerStep[] = [];
     for (const id of stepIds) {

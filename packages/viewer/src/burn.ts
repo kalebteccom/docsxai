@@ -55,8 +55,9 @@ import {
   type BurnReport,
   type FlowBurnReport,
 } from "./burn-report.js";
-import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
+import type { AnnotationRecord } from "./annotations.js";
 import { fitAnnotation } from "./burn-fit.js";
+import { readBurnAnnotations } from "./burn-read.js";
 
 export { arrowGeometry, type ArrowGeometry };
 
@@ -463,13 +464,7 @@ export function burnReport(
 export async function burnFlow(opts: BurnFlowOptions): Promise<BurnFlowResult> {
   const warn = opts.warn ?? defaultWarn;
   const flowDir = path.join(opts.docsDir, opts.flow);
-  let raw: string;
-  try {
-    raw = await fs.readFile(path.join(flowDir, "annotations.json"), "utf8");
-  } catch {
-    throw new Error(`burnFlow: no annotations.json under ${flowDir}`);
-  }
-  const annFile = JSON.parse(raw) as AnnotationsFile;
+  const annFile = await readBurnAnnotations(flowDir);
   const byStep = new Map<string, AnnotationRecord[]>();
   for (const ann of annFile.annotations) {
     const list = byStep.get(ann.step) ?? [];

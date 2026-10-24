@@ -7,9 +7,10 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
 import { discoverFlows, parseAnnotations } from "./render.js";
-import { compareNatural } from "./natural-order.js";
 import { nameList } from "./pack-paths.js";
 import { isSafeFlowName, isSafeStepId, showName } from "./safe-id.js";
+import { readTextIfPresent } from "./safe-read.js";
+import { orderSteps } from "./step-order.js";
 
 export interface CaptionItem {
   n: number;
@@ -117,9 +118,10 @@ export async function readStyleVisual(
 }
 
 /**
- * One flow's steps: annotation order first, then the screenshot file names when the flow has no
- * usable annotation (mirrors render.ts). A damaged annotations file warns and the page still gets
- * its screenshots.
+ * One flow's steps: annotation order first, then the screenshots with no record in natural file
+ * name order (mirrors render.ts). An annotations file that is not valid JSON warns and the page
+ * still gets its screenshots; one that cannot be read (permissions, a directory) stops the emit
+ * with an error naming the file.
  */
 export async function readSteps(
   docsDir: string,
@@ -128,18 +130,15 @@ export async function readSteps(
   warnings: string[],
 ): Promise<StepPage[]> {
   const flowSrc = path.join(docsDir, flow);
-  const parsed = parseAnnotations(await readText(path.join(flowSrc, "annotations.json")), lang);
+  const parsed = parseAnnotations(
+    await readTextIfPresent(path.join(flowSrc, "annotations.json")),
+    lang,
+  );
   for (const notice of parsed.notices) warnings.push(`flow ${showName(flow)}: ${notice}`);
   const annsByStep = new Map<string, AnnotationRecord[]>();
   for (const a of parsed.records) annsByStep.set(a.step, [...(annsByStep.get(a.step) ?? []), a]);
-  let stepIds = [...annsByStep.keys()];
-  if (stepIds.length === 0) {
-    const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
-    stepIds = shots
-      .filter((s) => s.endsWith(".png"))
-      .map((s) => s.replace(/\.png$/, ""))
-      .sort(compareNatural);
-  }
+  const shots = await fs.readdir(path.join(flowSrc, "screenshots")).catch(() => [] as string[]);
+  const stepIds = orderSteps([...annsByStep.keys()], shots);
 
   const steps: StepPage[] = [];
   for (const id of stepIds) {
