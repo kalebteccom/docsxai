@@ -14,6 +14,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **An unresolved locator ref halts as a step failure.** With a custom `resolveLocator`, a `target` or redaction `$ref` that resolved to nothing threw a plain error with no step id and no halt screenshot. It now halts as a `FlowExecutionError` that names the step. When a redaction cannot be resolved, no halt screenshot is taken, since it would go out unmasked.
 - **`run --start-from` warns when it cannot merge into the existing `annotations.json`.** A file that was unreadable, invalid JSON or not an annotations file was replaced by the fresh annotations without a word, dropping the earlier steps. The run now prints a `warning:` line naming the file.
 - **`run --concurrency` rejects a value that is not a whole number of 1 or more.** `abc`, `0`, `-2` and `1.5` fell back to 1 without a message. They now exit 2 with `--concurrency must be a whole number of 1 or more`.
+- **`zip` keeps the outputs of a flow named `halts`.** Every path segment named `halts` was excluded, so `docs/halts/` vanished from the archive. Only `halts/` directories below `docs/<flow>/` are left out now.
 
 ## [0.3.0-rc.4] - 2026-10-24
 
