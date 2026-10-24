@@ -31,6 +31,7 @@ import {
   frameRows,
   listFrames,
   previewName,
+  probeRatio,
   readSidecar,
   selectFrames,
 } from "./burn-probe-batch-plan.mjs";
@@ -68,7 +69,8 @@ async function burnFrame(frame, raw, theme, mods) {
   const { records } = readSidecar(doc, frame.json, frame);
   const png = await readFile(join(raw, frame.png));
   const { width, height } = mods.burn.pngDimensions(png);
-  const themed = { ...theme, captionStyle: width < 900 ? "auto" : "full" };
+  const pixelRatio = probeRatio(doc, frame, width);
+  const themed = { ...theme, captionStyle: width / pixelRatio < 900 ? "auto" : "full" };
   const font = await mods.load.loadThemeFont(themed);
   const metrics = font ? font.metrics : mods.defaultMetrics;
   const pixels = mods.pixels.decodeScreenshot(png, width, height);
@@ -80,6 +82,7 @@ async function burnFrame(frame, raw, theme, mods) {
     metrics,
     theme: themed,
     pixels,
+    pixelRatio,
     report,
     trace,
     warn: () => {},
@@ -87,7 +90,7 @@ async function burnFrame(frame, raw, theme, mods) {
   const rendered = await mods.burn.renderBurn({
     screenshotBuffer: png,
     annotations: records,
-    options: { theme: themed, warn: () => {} },
+    options: { theme: themed, pixelRatio, warn: () => {} },
   });
   const connectors = records.map((record, i) => {
     const t = trace.find((e) => e.position === i);
@@ -100,7 +103,7 @@ async function burnFrame(frame, raw, theme, mods) {
   });
   return {
     png: rendered.png,
-    rows: frameRows(frame, records, report, connectors, { width, height }),
+    rows: frameRows(frame, records, report, connectors, { width, height, dpr: pixelRatio }),
   };
 }
 
