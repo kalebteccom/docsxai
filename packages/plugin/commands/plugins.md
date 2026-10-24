@@ -14,3 +14,5 @@ docsxai plugins <list|info|sync> '<workspace-dir>' ['<namespace>']
 `list` prints the status table (loaded, or why not: capability mismatch, cycle, dependency missing, namespace conflict, or a load error such as a lock mismatch) and exits 1 if any plugin isn't `loaded`. `info '<workspace-dir>' '<namespace>'` prints the manifest and the registered artifact names. `sync` (re)writes `plugins-lock.json` (sha256 pins, verified before any plugin code runs; it never executes plugins). `--format json` gives the machine-readable form.
 
 Plugins are declared in `.docsxai.json` under `plugins` (`{ "package": … }` or `{ "path": … }` sources), with `plugin_capabilities` granting e.g. `egress:*.atlassian.net`. The first-party publisher and renderer plugins live in the docsxai repository. Only `@docsxai/plugin-sharepoint` is on npm; the others are declared with a `path` source from a checkout. Report the table verbatim. On a lock mismatch suggest `sync` only after the operator confirms the plugin change was intentional.
+
+Any other failure: run `docsxai doctor '<workspace-dir>'` and follow the `next:` line of each `fail:` line.
