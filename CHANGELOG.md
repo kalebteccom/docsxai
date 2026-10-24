@@ -4,9 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- **Landing page and burn theming guide no longer name `0.3.0-rc.4` as the installable prerelease.** The install note and the CLI card said `docsxai@next` is `0.3.0-rc.4`, and the availability note on the burn theming guide said `burn.theme` is available from it through `docsxai@next`; `next` is `0.3.0-rc.3`, as the README and Installation page say. They now name `0.3.0-rc.3` for `next` and say `burn.theme` is new in the next release. New tests load every `burn` block in `docs/burn-theming.md` and the burn-theme example through the real theme loader, validate the manifest in `docs/pack-manifest.md`, parse the flow files in the README, quickstart and flow-file reference, and check the `docsxai` commands and flags of the guides and example READMEs against `docsxai --help`.
+- **`docsxai-viewer <command> --help` and `-h` print that command's usage.** `build`, `burn`, `site` and `pack` show their usage lines and flag notes and exit 0, as `docsxai help <command>` does; `docsxai-viewer --help` and `-h` print the full help and exit 0. An unknown flag still exits 2
+- **`scripts/burn-trackxai.mjs --webp` writes a lossless WebP twin beside each new PNG.** It runs `cwebp -lossless -z 9`, keeps a twin only when it is under 100 kB and smaller than the PNG, and prints a warning with both sizes when it drops one. Without `cwebp` on `PATH` it stops with an install hint
 
 ### Changed
 
@@ -19,6 +20,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Fixed
 
+- **Landing page and burn theming guide no longer name `0.3.0-rc.4` as the installable prerelease.** The install note and the CLI card said `docsxai@next` is `0.3.0-rc.4`, and the availability note on the burn theming guide said `burn.theme` is available from it through `docsxai@next`; `next` is `0.3.0-rc.3`, as the README and Installation page say. They now name `0.3.0-rc.3` for `next` and say `burn.theme` is new in the next release. New tests load every `burn` block in `docs/burn-theming.md` and the burn-theme example through the real theme loader, validate the manifest in `docs/pack-manifest.md`, parse the flow files in the README, quickstart and flow-file reference, and check the `docsxai` commands and flags of the guides and example READMEs against `docsxai --help`.
 - **Burn help and guides match the code.** `docsxai burn --help` and `docsxai-viewer burn --help` say that `--no-connector-outline` skips reading the screenshot's pixels, so a themed line keeps the callout's outline colour and no text is estimated, and that `burn.theme` sets the look. The theming guide covers `caption_style`, the clean halo and badge and the phone chrome numbers, and gives the auto factor of a 780 px capture at the default `display_width` as 1.09 (it said 1.08). The landing page no longer says `docsxai@next` is `0.3.0-rc.4`.
 - **A side hint no longer pulls a short callout onto a neighbour.** The bonus `arrow_style` or `placement.side` gives its side now outweighs at most a 2 px strip of content along the callout's width. A 60 px label on a phone screenshot used to keep its hinted side over 6 px of a neighbouring control. Callouts 200 px wide or more score as before.
 - **`plugins sync` with three plugins on one namespace.** It locked the last of them and named only the second as not locked. It now locks none of them and names every claimant.
@@ -49,9 +51,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`run --concurrency` lost results when one flow's cleanup threw.** A browser that failed to close, or a `--pause` wait that threw, rejected the whole worker pool: `run` ended with an unhandled error and no summary while the other workers kept writing. A close failure is now a warning on stderr, the browser is closed even when the pause wait throws, and any other throw that escapes a flow is recorded as that flow's failure, so every flow still gets its line in the summary.
 - **Ctrl-C and SIGTERM during `render`, `burn` or `pack`.** The signal went to the viewer child and docsxai waited for it with no limit: a child that ignored the signal hung the command, a second Ctrl-C did nothing, and a child that exited 0 on the signal made docsxai exit 0 after printing `interrupted`. The child now gets SIGKILL 10 s after the first signal, a second signal ends docsxai at once with 130 or 143, and an exit 0 after a signal becomes 130 or 143.
 - **`run --start-from` or `--stop-after` with a step id that does not exist.** The browser launched first and the run then ended as a failed flow, exit 1 with a `doctor` hint. Both flags now check the id against the selected flows before anything launches, exit 2 and list the steps the flow has. `--stop-after` still runs when at least one selected flow has the step.
-
-### Fixed
-
 - **Viewer links and images for names with `#`, `?` or `%`.** `docsxai render` percent-encodes these characters in the screenshot, flow-card, thumbnail and previous/next flow URLs. A step id such as `a#b` used to point at `a` and show a broken image.
 - **`docsxai render --flow` with repeated or unknown names.** A flow named twice produced two pages and two index cards, and a name with no folder under `docs/` produced an empty page with no message. Each flow now renders once, and an unknown name is skipped with a warning.
 - **`docsxai render` with a directory named like a screenshot.** A directory called `<step>.png` under `screenshots/` crashed the copy. The step now shows the missing-screenshot state.

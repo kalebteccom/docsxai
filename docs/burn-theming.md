@@ -178,6 +178,8 @@ A burn without a theme keeps the triangle and its bytes. To keep the triangle in
 
 To compare the looks, run `node scripts/burn-trackxai-sample.mjs` after `pnpm --filter @docsxai/viewer build`. It burns three desktop screens in light and dark and a 390 px phone screen in dark with the `examples/burn-theme/trackxai-light.tokens.json` and `trackxai-dark.tokens.json` pair, once with `arrow` at 14 px and once with the theme as written. It prints the 14 PNG paths under `/tmp/burn-before-after`.
 
+`node scripts/burn-trackxai.mjs --raw <dir> --out <dir>` burns a directory of trackxai raw captures into a screens pack (its header lists every flag). Add `--webp` to write a lossless `<name>.<hash>.webp` beside each new PNG, made with `cwebp -lossless -z 9`. A twin is kept only when it is under 100 kB and smaller than the PNG; otherwise the script removes it and prints a warning with both sizes. `cwebp` comes from the `webp` package (`brew install webp`, `apt install webp`); without it on `PATH` the run stops before it burns anything.
+
 ## Caption style
 
 `caption_style` is new in the next release. It applies with the line connector (`connector_style` `line` or `chevron`, or `auto` with a theme). An `arrow` burn always draws the caption.

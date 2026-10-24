@@ -3,7 +3,7 @@
 //
 //   node scripts/burn-trackxai.mjs --raw <dir> --out <dir> [--theme dark|light] [--locale en]
 //     [--widths 1280,390] [--screens progress,board] [--rename tokens=agent-tokens,...]
-//     [--manifest-in <manifest.json>] [--compare <dir>]
+//     [--manifest-in <manifest.json>] [--compare <dir>] [--webp]
 //
 // `--raw` holds `<screen>.<locale>.<theme>.<width>.png` with a `.json` sidecar beside each
 // (schema trackxai/raw-capture-sidecar@1: `annotations[]` of burner records with `bounding_box`
@@ -23,13 +23,19 @@
 // Phone captures (under 900 px) burn with `caption_style: "auto"`: an annotation with no caption
 // spot clear of text, header and bottom nav gets its badge only. Desktop captures keep captions.
 //
+// `--webp` also writes `<name>.<hash>.webp` beside each new PNG with `cwebp -lossless -z 9` (the
+// `webp` package: `brew install webp`, `apt install webp`), and keeps it only when it is under
+// 100 kB and smaller than the PNG; otherwise it removes the twin and prints a warning with both
+// sizes. Without `cwebp` on PATH the run stops before burning anything.
+//
 // It reads the built viewer, so run `pnpm --filter @docsxai/viewer build` first.
 
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { execFile, spawnSync } from "node:child_process";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { parseArgs } from "node:util";
+import { parseArgs, promisify } from "node:util";
 import {
   calloutTexts,
   checkSidecar,
@@ -42,6 +48,9 @@ import {
   parseRawName,
   parseRename,
   variantDir,
+  cwebpArgs,
+  webpTwinPath,
+  webpVerdict,
 } from "./burn-trackxai-plan.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -63,6 +72,25 @@ async function themeFor(mode) {
   );
 }
 
+function requireCwebp() {
+  if (spawnSync("cwebp", ["-version"], { stdio: "ignore" }).status !== 0) {
+    throw new Error(
+      "--webp needs `cwebp` on PATH (the webp package: `brew install webp` or `apt install webp`)",
+    );
+  }
+}
+
+/** Write `<png>`'s lossless WebP twin; keep it only if it is small enough. Returns its path or null. */
+async function writeWebpTwin(pngPath, pngBytes) {
+  const twin = webpTwinPath(pngPath);
+  await promisify(execFile)("cwebp", cwebpArgs(pngPath, twin));
+  const verdict = webpVerdict(basename(pngPath), pngBytes, (await stat(twin)).size);
+  if (verdict.keep) return twin;
+  console.error(`warning: ${verdict.warning}`);
+  await rm(twin, { force: true });
+  return null;
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -78,11 +106,13 @@ async function main() {
       "badge-only": { type: "string" },
       overrides: { type: "string" },
       "keep-superseded": { type: "boolean", default: false },
+      webp: { type: "boolean", default: false },
     },
   });
   if (!values.raw || !values.out)
     throw new Error("usage: --raw <dir> --out <dir> (see the header)");
   if (!["dark", "light"].includes(values.theme)) throw new Error("--theme must be dark or light");
+  if (values.webp) requireCwebp();
   const raw = resolve(values.raw);
   const out = resolve(values.out);
   const widths = values.widths.split(",").map(Number);
@@ -152,6 +182,10 @@ async function main() {
       await mkdir(join(out, dir), { recursive: true });
       await writeFile(join(out, dir, file), burned.png);
       written.push(join(out, dir, file));
+      if (values.webp) {
+        const twin = await writeWebpTwin(join(out, dir, file), burned.png.length);
+        if (twin) written.push(twin);
+      }
     }
     const { pngDimensions } = await viewer("burn.js");
     const size = pngDimensions(burned.png);

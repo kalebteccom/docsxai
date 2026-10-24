@@ -12,6 +12,10 @@ import {
   parseRawName,
   parseRename,
   variantDir,
+  WEBP_MAX_BYTES,
+  cwebpArgs,
+  webpTwinPath,
+  webpVerdict,
 } from "./burn-trackxai-plan.mjs";
 
 test("raw names split into screen, locale, theme and width", () => {
@@ -186,4 +190,47 @@ test("badge-only frames come from the flag and the overrides file", () => {
   assert.equal(isBadgeOnly(set, p("agent-tokens-issued", "en", 390)), true);
   assert.equal(isBadgeOnly(set, p("agent-tokens-issued", "es", 390)), false);
   assert.throws(() => badgeOnlyFrames("board", null), /badge-only: "board"/);
+});
+
+test("the WebP twin sits next to the PNG with the same stem", () => {
+  assert.equal(
+    webpTwinPath("/o/desktop-1280/board.ab12cd34.png"),
+    "/o/desktop-1280/board.ab12cd34.webp",
+  );
+});
+
+test("cwebp runs lossless at the slowest, smallest setting", () => {
+  assert.deepEqual(cwebpArgs("in.png", "out.webp"), [
+    "-lossless",
+    "-z",
+    "9",
+    "-quiet",
+    "in.png",
+    "-o",
+    "out.webp",
+  ]);
+});
+
+test("a WebP twin is kept under 100 kB and smaller than the PNG", () => {
+  assert.equal(WEBP_MAX_BYTES, 100_000);
+  assert.deepEqual(webpVerdict("board.png", 180_000, 60_000), { keep: true });
+  assert.deepEqual(webpVerdict("board.png", 99_999, 99_998), { keep: true });
+});
+
+test("a WebP twin of 100 kB or more is dropped with both sizes in the warning", () => {
+  const v = webpVerdict("board.png", 400_000, 100_000);
+  assert.equal(v.keep, false);
+  assert.match(v.warning, /board\.png/);
+  assert.match(v.warning, /webp 100\.0 kB/);
+  assert.match(v.warning, /png 400\.0 kB/);
+  assert.match(v.warning, /under 100 kB/);
+});
+
+test("a WebP twin no smaller than the PNG is dropped", () => {
+  assert.equal(webpVerdict("a.png", 50_000, 50_000).keep, false);
+  const v = webpVerdict("a.png", 50_000, 62_340);
+  assert.equal(v.keep, false);
+  assert.match(v.warning, /webp 62\.3 kB/);
+  assert.match(v.warning, /png 50\.0 kB/);
+  assert.match(v.warning, /smaller than the png/);
 });
