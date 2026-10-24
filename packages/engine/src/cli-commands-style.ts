@@ -1,6 +1,7 @@
 // style — init/validate docs/style.yaml and rederive style.json; --check scans prose for jargon leaks.
 // Split from cli-commands-authoring.ts to keep both files under the max-lines ceiling.
 
+import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import {
   formatJargonHitsText,
@@ -23,6 +24,19 @@ export async function cmdStyle(args: string[]): Promise<number> {
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
   if (format !== "text" && format !== "json") {
     return usageError("style", '--format must be "text" or "json"');
+  }
+
+  const isDir = await fs.stat(projectDir).then(
+    (st) => st.isDirectory(),
+    () => false,
+  );
+  if (!isDir) {
+    const note = withNext(
+      `${projectDir} is not a directory`,
+      `docsxai init ${shellQuote(projectDir)}  (or fix the path)`,
+    );
+    process.stderr.write(`style: ${note}\n`);
+    return 1;
   }
 
   // init-if-absent (idempotent); then load + validate; then rederive JSON; then optional jargon check.
