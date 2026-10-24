@@ -19,6 +19,7 @@ import {
 } from "./diff.js";
 import { projectDocPackToAdf, type AdfExportMode } from "./export/adf.js";
 import { exportWorkspaceFlowsAsPlaywrightTests } from "./export/playwright-test.js";
+import { writeFileAtomic } from "./atomic-write.js";
 import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
@@ -203,11 +204,11 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
     await fs.mkdir(outDir, { recursive: true });
     const projectionPath = path.join(outDir, "projection.json");
     const attachmentsPath = path.join(outDir, "attachments.json");
-    await fs.writeFile(projectionPath, JSON.stringify(projection, null, 2) + "\n", "utf8");
+    await writeFileAtomic(projectionPath, JSON.stringify(projection, null, 2) + "\n", "utf8");
     const manifest = projection.documents.flatMap((d) =>
       d.attachments.map((a) => ({ section: d.section, ...a })),
     );
-    await fs.writeFile(attachmentsPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
+    await writeFileAtomic(attachmentsPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
 
     process.stdout.write(
       `export adf: wrote ${projectionPath} (${projection.documents.length} document${projection.documents.length === 1 ? "" : "s"}, mode ${projection.mode}) + ${attachmentsPath} (${manifest.length} attachment${manifest.length === 1 ? "" : "s"})\n`,

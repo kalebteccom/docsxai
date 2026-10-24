@@ -9,6 +9,7 @@
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { writeFileAtomic } from "./atomic-write.js";
 import { runFlowsInSessions, type FlowFailure, type RunFlowsOptions } from "./run-flows.js";
 import { compareRuns } from "./verify-compare.js";
 import { buildVerifyReport, type VerifyHalt, type VerifyReport } from "./verify-report.js";
@@ -45,7 +46,7 @@ async function writeHaltContext(root: string, failure: FlowFailure): Promise<voi
     step: failure.step,
     message: failure.message,
   };
-  await fs.writeFile(abs, JSON.stringify(body, null, 2) + "\n", "utf8");
+  await writeFileAtomic(abs, JSON.stringify(body, null, 2) + "\n", "utf8");
 }
 
 async function cleanUp(projectDir: string, runs: number): Promise<void> {

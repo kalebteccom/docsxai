@@ -7,6 +7,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { writeFileAtomic } from "./atomic-write.js";
 import { StyleArtifact } from "./doc-pack.js";
 import { resolveWorkspacePath } from "./workspace.js";
 
@@ -107,8 +108,8 @@ export async function loadStyle(workspace: string): Promise<StyleArtifact | null
 export async function writeStyle(workspace: string, style: StyleArtifact): Promise<StylePaths> {
   const paths = stylePathsFor(workspace);
   await fs.mkdir(path.dirname(paths.yamlPath), { recursive: true });
-  await fs.writeFile(paths.yamlPath, stringifyYaml(style, { lineWidth: 100 }), "utf8");
-  await fs.writeFile(paths.jsonPath, JSON.stringify(style, null, 2) + "\n", "utf8");
+  await writeFileAtomic(paths.yamlPath, stringifyYaml(style, { lineWidth: 100 }), "utf8");
+  await writeFileAtomic(paths.jsonPath, JSON.stringify(style, null, 2) + "\n", "utf8");
   return paths;
 }
 

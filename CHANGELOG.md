@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Fixed
+
+- **Doc pack, annotation, style and export writes are atomic.** `run`, `pull`, `style`, `run --verify-determinism` and `export adf` write to a temp file in the same directory and rename it over the target, so an interrupted write leaves the previous file instead of a truncated `annotations.json`. An existing file keeps its mode, and where the rename is refused (Windows) the write falls back to a plain overwrite.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

@@ -5,6 +5,7 @@
 // an isolated output root instead of the workspace.
 
 import { promises as fs } from "node:fs";
+import { writeFileAtomic } from "./atomic-write.js";
 import { type StorageState } from "./auth.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowExecutionError } from "./flow-halt.js";
@@ -138,7 +139,7 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
       const toWrite = startFrom
         ? await mergeAnnotations(annotationsPath, result.annotations)
         : result.annotations;
-      await fs.writeFile(annotationsPath, JSON.stringify(toWrite, null, 2) + "\n", "utf8");
+      await writeFileAtomic(annotationsPath, JSON.stringify(toWrite, null, 2) + "\n", "utf8");
       say(
         `${tag(name)}${name} — ${result.steps.length} step(s) executed, ${result.annotations.annotations.length} annotation(s) ${startFrom ? "merged" : "written"}\n`,
       );
