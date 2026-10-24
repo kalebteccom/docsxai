@@ -11,6 +11,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **Flags without a value were ignored.** `docsxai run <ws> --flow` (or `--variant`, `--stop-after`, `--start-from`, `--cdp`, `--base-url`, `--concurrency`) ran every flow as if the flag was absent, and `diff --against`, `diff --format` and `baseline --out` fell back to their defaults. Each now exits 2 with `--<flag> needs a value`.
 - **`--flag=value` was ignored.** `docsxai run <ws> --flow=tour` read `flow=tour` as an unknown boolean flag and ran every flow. Every command now reads `--flag=value` the same as `--flag value`.
 - **A bare `--` took the next argument as its value.** `docsxai run -- <ws>` reported a missing workspace directory. A bare `--` now ends flag parsing and the rest are positional arguments.
+- **`baseline --out <workspace>` deleted the workspace's `flows/` and `docs/`.** A refresh clears `<out>/flows` and `<out>/docs` before copying, so an `--out` equal to the workspace removed the sources it was about to snapshot. The command now exits 2 and touches nothing.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

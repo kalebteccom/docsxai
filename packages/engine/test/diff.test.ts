@@ -551,4 +551,12 @@ describe("baseline + diff CLI", () => {
     expect(await main(["diff", ws, "--against", outDir])).toBe(0);
     expect(out).toMatch(/no drift detected/);
   });
+
+  it("baseline --out pointing at the workspace is refused and leaves flows/ and docs/ alone", async () => {
+    const ws = await makePack({ prose: { "pay.md": "Pay.\n" } });
+    expect(await main(["baseline", ws, "--out", ws])).toBe(2);
+    expect(err).toMatch(/--out cannot be the workspace itself/);
+    await fs.access(path.join(ws, "flows", "checkout.flow.yaml"));
+    await fs.access(path.join(ws, "docs", "checkout", "pay.md"));
+  });
 });

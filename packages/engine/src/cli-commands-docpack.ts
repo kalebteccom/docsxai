@@ -277,6 +277,12 @@ export async function cmdBaseline(args: string[]): Promise<number> {
     typeof outFlag === "string"
       ? path.resolve(outFlag)
       : resolveWorkspacePath(projectDir, ".baseline");
+  if (outDir === path.resolve(projectDir)) {
+    return usageError(
+      "baseline",
+      "--out cannot be the workspace itself: a refresh clears <out>/flows and <out>/docs first",
+    );
+  }
 
   try {
     // Refresh = replace: a baseline is a derived snapshot, so the previous one is dropped whole
