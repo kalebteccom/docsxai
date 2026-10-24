@@ -80,7 +80,9 @@ function surfaceChecks(page, html) {
   if (page === "index.html") {
     const steps = (html.match(/<li\b[^>]*class="[^"]*\bdocsx-step\b/g) ?? []).length;
     if (steps !== LANDING_FIRST_RUN_STEPS)
-      out.push(`first run: ${steps} steps on the landing page, expected ${LANDING_FIRST_RUN_STEPS}`);
+      out.push(
+        `first run: ${steps} steps on the landing page, expected ${LANDING_FIRST_RUN_STEPS}`,
+      );
     const afterFirstRun = html.split('id="first-run"')[1] ?? "";
     if (!/<a\b[^>]*\shref="\/getting-started\/quickstart\/"/.test(afterFirstRun))
       out.push("first run: no link to the quickstart after the first-run section");

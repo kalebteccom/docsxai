@@ -261,12 +261,16 @@ import CopyCommand from "../../components/CopyCommand.astro";
       <h3>Make a workspace</h3>
       <CopyCommand command="docsxai init my-docs --auth none" label="Copy the init command" />
       <div class="docsx-card-text">
-        Creates the folder docsxai writes into. Keep it outside your app's
-        repo. Then set <code>app_url</code> in <code>my-docs/.docsxai.json</code>.
+        Creates the folder docsxai writes into. Keep it outside your app's repo. Then set{" "}
+        <code>app_url</code> in <code>my-docs/.docsxai.json</code>.
       </div>
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
-        <code>{"created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, flows/example.flow.yaml.sample, README.md"}</code>
+        <code>
+          {
+            "created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, flows/example.flow.yaml.sample, README.md"
+          }
+        </code>
       </p>
     </li>
     <li class="docsx-card docsx-step">
@@ -274,8 +278,8 @@ import CopyCommand from "../../components/CopyCommand.astro";
       <h3>Check the setup</h3>
       <CopyCommand command="docsxai doctor my-docs" label="Copy the doctor command" />
       <div class="docsx-card-text">
-        Checks Node, Chromium, the config, write access and <code>app_url</code>.
-        A failing line names its fix after <code>next:</code>.
+        Checks Node, Chromium, the config, write access and <code>app_url</code>. A failing line
+        names its fix after <code>next:</code>.
       </div>
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
@@ -291,8 +295,8 @@ import CopyCommand from "../../components/CopyCommand.astro";
       />
       <div class="docsx-card-text">
         With the plugin installed, ask Claude Code to calibrate
-        <code>my-docs</code> against your running app. It writes the flow
-        once, and every run after that needs no agent.
+        <code>my-docs</code> against your running app. It writes the flow once, and every run after
+        that needs no agent.
       </div>
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
@@ -304,8 +308,8 @@ import CopyCommand from "../../components/CopyCommand.astro";
       <h3>Run it</h3>
       <CopyCommand command="docsxai run my-docs" label="Copy the run command" />
       <div class="docsx-card-text">
-        Replays the flow in headless Chromium and writes annotations and
-        screenshots under <code>my-docs/docs</code>.
+        Replays the flow in headless Chromium and writes annotations and screenshots under{" "}
+        <code>my-docs/docs</code>.
       </div>
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
