@@ -5,32 +5,42 @@
 export const USAGE = `docsxai — deterministic execution CLI
 
 Usage:
-  docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>] [--ttl <dur>]
-                                 [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
-                                 [--persist tmp] [--force]
+  docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>]
+      [--ttl <dur>] [--capture-trigger console|button] [--auth-cookie <name>]
+      [--ignore-https-errors] [--persist tmp] [--force]
   docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
-  docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
-  docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
-  docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|md|json] [--flow <name>] [--base-url <url>] [--concurrency <N>]
+  docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>]
+      [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
+  docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed]
+      [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>]
+      [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>]
+  docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|md|json]
+      [--flow <name>] [--base-url <url>] [--concurrency <N>]
   docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
   docsxai flow-tree <workspace-dir> [--format text|json]
-  docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
+  docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>]
+      [--cdp <endpoint>] [--format text|json]
   docsxai doctor [<workspace-dir>]
   docsxai style <workspace-dir> [--check] [--format text|json]
   docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
   docsxai baseline <workspace-dir> [--out <dir>]
   docsxai diff <workspace-dir> [--against <dir>] [--format text|md|json] [--fail-on warn|fail]
-  docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree] [--title <text>] [--out <dir>]
+  docsxai export adf <workspace-dir> [--flow <name>] [--mode single|page-tree]
+      [--title <text>] [--out <dir>]
   docsxai export playwright <workspace-dir> [--flow <name>] [--out <dir>]
   docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|json]
   docsxai login --backend-url <url> [--oauth <workspace-dir>]
   docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
   docsxai pull <workspace-dir> [--rev <id>]
   docsxai render <workspace-dir>
-  docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
-  docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
-  docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
-  docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
+  docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>]
+      [--no-connector-outline]
+  docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>]
+      [--no-optimise] [--generated-for <text>]
+  docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw]
+      [--threshold <pct>]
+  docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>]
+      [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   docsxai --help
 
 Notes:
@@ -201,9 +211,18 @@ Examples:
   docsxai init ~/docsxai/my-app --app-url https://app.example.com
   docsxai capture-auth ~/docsxai/my-app
   docsxai calibrate ~/docsxai/my-app --from login.flow.yaml
+  docsxai inspect ~/docsxai/my-app --url https://app.example.com/login
   docsxai run ~/docsxai/my-app --flow login
   docsxai run ~/docsxai/my-app --verify-determinism --runs 3 --format md
   docsxai lint ~/docsxai/my-app --format json
+  docsxai flow-tree ~/docsxai/my-app
+  docsxai diagnose ~/docsxai/my-app --flow login --step submit
+  docsxai style ~/docsxai/my-app --check
+  docsxai zip ~/docsxai/my-app --out my-app.zip
+  docsxai export adf ~/docsxai/my-app --flow login --mode single
+  docsxai export playwright ~/docsxai/my-app --out ./e2e
+  docsxai plugins list ~/docsxai/my-app
+  docsxai login --backend-url https://docsxai.example.com
   docsxai render ~/docsxai/my-app
   docsxai burn ~/docsxai/my-app --flow login --out ~/docsxai/my-app/burned
   docsxai pack ~/docsxai/my-app --out ~/docsxai/my-app/.screens
@@ -211,4 +230,5 @@ Examples:
   docsxai baseline ~/docsxai/my-app
   docsxai diff ~/docsxai/my-app --fail-on warn
   docsxai doctor ~/docsxai/my-app
-  docsxai push ~/docsxai/my-app --kind run`;
+  docsxai push ~/docsxai/my-app --kind run
+  docsxai pull ~/docsxai/my-app --rev r12`;
