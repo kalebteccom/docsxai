@@ -11,11 +11,14 @@ import {
   StyleError,
   writeStyle,
 } from "./style.js";
-import { bareValueFlagExit, parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import { shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdStyle(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("style", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("style", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const bareStyle = bareValueFlagExit("style", flags, ["format"]);

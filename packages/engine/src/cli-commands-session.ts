@@ -27,13 +27,8 @@ import { assertNoCaseCollision } from "./flow-name-rules.js";
 import { recordRunHistory } from "./backend-client.js";
 import { runFlowsInSessions } from "./run-flows.js";
 import { initWorkspace, loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import {
-  bareValueFlagExit,
-  claimFlowName,
-  flagMissingValue,
-  listFlowFiles,
-  parseFlags,
-} from "./cli-shared.js";
+import { bareValueFlagExit, claimFlowName, flagMissingValue, listFlowFiles } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
@@ -76,7 +71,9 @@ const RUN_VALUE_FLAGS = [
 ];
 
 export async function cmdRun(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("run", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("run", "missing <workspace-dir>");
   const projectDir: string = positionals[0];
   const bare = flagMissingValue(flags, RUN_VALUE_FLAGS);
@@ -324,7 +321,9 @@ const INIT_VALUE_FLAGS = [
 ];
 
 export async function cmdInit(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("init", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const persistTmp = flags.get("persist") === "tmp";
   const dir = positionals[0];
   const bareInit = bareValueFlagExit("init", flags, INIT_VALUE_FLAGS);
@@ -383,7 +382,9 @@ export async function cmdInit(args: string[]): Promise<number> {
 }
 
 export async function cmdCalibrate(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("calibrate", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const workspaceDir = positionals[0];
   if (!workspaceDir) return usageError("calibrate", "missing <workspace-dir>");
   const bareCalibrate = bareValueFlagExit("calibrate", flags, ["from", "name"]);

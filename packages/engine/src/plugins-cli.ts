@@ -18,7 +18,7 @@ import {
   sha256Hex,
   writePluginsLock,
 } from "./plugins/lock.js";
-import { parseFlags } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import type { PluginRecord } from "./plugins/registry.js";
 import { resolvePlugins, resolvePluginSources } from "./plugins/runtime.js";
 
@@ -186,7 +186,9 @@ export async function pluginsCli(args: string[]): Promise<number> {
     process.stderr.write(`plugins: unknown subcommand "${sub}"\n\n${PLUGINS_USAGE}`);
     return 2;
   }
-  const { positionals, flags } = parseFlags(rest);
+  const parsed = parseCommandFlags(`plugins ${sub}`, rest, "plugins");
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const workspaceDir = positionals[0];
   if (!workspaceDir) {
     process.stderr.write(`plugins ${sub}: missing <workspace-dir>\n\n${PLUGINS_USAGE}`);

@@ -30,11 +30,14 @@ import { readPluginsLock, readWorkspacePluginsConfig } from "./plugins/lock.js";
 import { resolvePlugins } from "./plugins/runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { bareValueFlagExit, claimFlowName, listFlowFiles, parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit, claimFlowName, listFlowFiles } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import { shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdInspect(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("inspect", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const workspaceDir = positionals[0];
   if (!workspaceDir) return usageError("inspect", "missing <workspace-dir>");
   const bare = bareValueFlagExit("inspect", flags, [
@@ -184,7 +187,9 @@ export async function cmdInspect(args: string[]): Promise<number> {
 }
 
 export async function cmdLint(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("lint", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("lint", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const bareLint = bareValueFlagExit("lint", flags, ["flow", "format"]);
@@ -274,7 +279,9 @@ export async function cmdLint(args: string[]): Promise<number> {
 }
 
 export async function cmdFlowTree(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("flow-tree", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("flow-tree", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const bareTree = bareValueFlagExit("flow-tree", flags, ["format"]);
@@ -322,7 +329,9 @@ export async function cmdFlowTree(args: string[]): Promise<number> {
 }
 
 export async function cmdDiagnose(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("diagnose", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("diagnose", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const bareDiagnose = bareValueFlagExit("diagnose", flags, [

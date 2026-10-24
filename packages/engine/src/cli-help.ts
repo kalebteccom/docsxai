@@ -116,11 +116,11 @@ export function editDistance(a: string, b: string): number {
   return prev[b.length]!;
 }
 
-/** The command closest to `input` within edit distance 2, or `undefined`. The first listed wins a tie. */
-export function suggestCommand(input: string): string | undefined {
+/** The name in `names` closest to `input` within edit distance 2, or `undefined`. The first listed wins a tie. */
+export function nearestName(input: string, names: readonly string[]): string | undefined {
   let best: string | undefined;
   let bestDistance = 3;
-  for (const name of commandNames()) {
+  for (const name of names) {
     const d = editDistance(input.toLowerCase(), name);
     if (d < bestDistance) {
       best = name;
@@ -128,6 +128,11 @@ export function suggestCommand(input: string): string | undefined {
     }
   }
   return best;
+}
+
+/** The command closest to `input` within edit distance 2, or `undefined`. */
+export function suggestCommand(input: string): string | undefined {
+  return nearestName(input, commandNames());
 }
 
 /** The usage lines and one example of `command`, or `undefined` for a name that is not a command. */

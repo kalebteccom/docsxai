@@ -9,12 +9,28 @@ import { promises as fs } from "node:fs";
 import { shellQuote, usageError, withNext } from "./cli-messages.js";
 import { resolveWorkspacePath } from "./workspace.js";
 
-export function parseFlags(args: string[]): {
+/**
+ * Split argv into positionals and `--flag [value]` / `--flag=value` pairs. A flag in `bool` never
+ * takes the next argument as its value. `repeated` lists the flags given more than once and
+ * `boolWithValue` the `bool` flags given as `--flag=value`; the caller turns either into a usage error.
+ */
+export function parseFlags(
+  args: string[],
+  bool: readonly string[] = [],
+): {
   positionals: string[];
   flags: Map<string, string | true>;
+  repeated: string[];
+  boolWithValue: string[];
 } {
   const positionals: string[] = [];
   const flags = new Map<string, string | true>();
+  const repeated: string[] = [];
+  const boolWithValue: string[] = [];
+  const set = (key: string, value: string | true): void => {
+    if (flags.has(key) && !repeated.includes(key)) repeated.push(key);
+    flags.set(key, value);
+  };
   for (let i = 0; i < args.length; i++) {
     const a = args[i]!;
     if (a === "--") {
@@ -24,22 +40,24 @@ export function parseFlags(args: string[]): {
     if (a.startsWith("--")) {
       const eq = a.indexOf("=");
       if (eq > 2) {
-        flags.set(a.slice(2, eq), a.slice(eq + 1));
+        const key = a.slice(2, eq);
+        if (bool.includes(key)) boolWithValue.push(key);
+        set(key, a.slice(eq + 1));
         continue;
       }
       const key = a.slice(2);
       const next = args[i + 1];
-      if (next !== undefined && !next.startsWith("--")) {
-        flags.set(key, next);
+      if (!bool.includes(key) && next !== undefined && !next.startsWith("--")) {
+        set(key, next);
         i++;
       } else {
-        flags.set(key, true);
+        set(key, true);
       }
     } else {
       positionals.push(a);
     }
   }
-  return { positionals, flags };
+  return { positionals, flags, repeated, boolWithValue };
 }
 
 /** The first of `names` given as a bare flag (`--flow` with nothing after it), or `undefined`. */

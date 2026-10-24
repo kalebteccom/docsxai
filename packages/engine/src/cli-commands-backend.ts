@@ -24,7 +24,8 @@ import {
 import { writeFileAtomic } from "./atomic-write.js";
 import { pluginsCli } from "./plugins-cli.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { bareValueFlagExit, parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import { configProblem, explainBackendFailure } from "./cli-backend-errors.js";
 import {
   describeFsError,
@@ -36,7 +37,9 @@ import {
 } from "./cli-messages.js";
 
 export async function cmdLogin(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("login", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const backendUrl =
     typeof flags.get("backend-url") === "string" ? (flags.get("backend-url") as string) : undefined;
   if (!backendUrl) {
@@ -133,7 +136,9 @@ async function ensureBackendBinding(
 }
 
 export async function cmdPush(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("push", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("push", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const barePush = bareValueFlagExit("push", flags, ["kind", "author"]);
@@ -248,7 +253,9 @@ const KNOWN_ARTIFACTS: readonly RevisionArtifact[] = [
 ];
 
 export async function cmdPull(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("pull", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   if (!positionals[0]) return usageError("pull", "missing <workspace-dir>");
   const projectDir = positionals[0];
   const barePull = bareValueFlagExit("pull", flags, ["rev"]);

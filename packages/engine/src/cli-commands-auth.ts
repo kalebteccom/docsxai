@@ -12,12 +12,15 @@ import {
 } from "./auth.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { bareValueFlagExit, parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
 import { usageError, withNext } from "./cli-messages.js";
 import { warnUnusableConfig } from "./cli-backend-errors.js";
 
 export async function cmdCaptureAuth(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
+  const parsed = parseCommandFlags("capture-auth", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const projectDir = positionals[0];
   if (!projectDir) return usageError("capture-auth", "missing <workspace-dir>");
   const bare = bareValueFlagExit("capture-auth", flags, ["base-url", "role", "auth-cookie", "cdp"]);
