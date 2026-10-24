@@ -379,7 +379,7 @@ JSON stops the burn with a message that names the file.
 
 The look of the halo, badge, callout and arrow comes from the `burn.theme` block of
 `.docsxai.json`: four presets, an optional tokens file and per-key overrides. A workspace without
-the block burns the original look, byte for byte. New in `0.3.0-rc.4`; see
+the block burns the original look, byte for byte. New in the next release; see
 [Themeable burned captions](/guides/burn-theming/).
 
 ```
