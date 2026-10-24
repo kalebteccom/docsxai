@@ -2,7 +2,15 @@
 
 `docsxai pack` writes `manifest.json` next to the hash-named PNGs it produces, and `docsxai pack --check` reads one back. This page is the reference for that file (`docsxai/screens-pack@2`) and for the `pack.json` that feeds it. Available from `0.3.0-rc.1` (`docsxai@next`).
 
-The validator is the contract. `validatePack(value)` in `@docsxai/viewer` returns every problem with a path-prefixed message, and `pack` runs it before anything is written. There is no separate JSON Schema file; the field tables below are checked against the validator's source (`pack-schema.ts`, `pack-validate.ts`).
+The validator is the contract. `validatePack(value)` in `@docsxai/viewer` returns every problem with a path-prefixed message, and `pack` runs it before anything is written. JSON Schema (draft 2020-12) for editors and CI: [`screens-pack-2.schema.json`](../packages/viewer/schemas/screens-pack-2.schema.json) for `manifest.json` and [`pack-config-1.schema.json`](../packages/viewer/schemas/pack-config-1.schema.json) for `pack.json`. Both ship in `@docsxai/viewer` under `schemas/` (import path `@docsxai/viewer/schemas/<file>`), and a test checks each against the validator on the same documents. The `$id` URLs name the schemas and are not served.
+
+A JSON Schema cannot say these rules, so only the validator enforces them:
+
+- A variant's `src` must carry the flow and step id of the keys around it, and the public prefix the caller passes to `validatePack`.
+- `alt` must have every locale that one of the step's variants uses.
+- `index` is unique within a variant.
+- Text length counts UTF-16 units in the validator and code points in the schema, so a string of emoji can pass the schema and fail the validator.
+- In `pack.json`: two `sources` names that differ only by case, and the match between screenshots on disk and `steps` entries.
 
 ## Shape
 
