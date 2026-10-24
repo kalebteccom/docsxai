@@ -417,6 +417,12 @@ main:has(.docsx-404) > .content-panel {
   margin-top: 2rem;
   padding-inline-start: 0.85rem;
 }
+/* One column: the box fills it, so both gutters match the text above. */
+@media (max-width: 52rem) {
+  .docsx-cmd--hero {
+    width: 100%;
+  }
+}
 .docsx-cmd--hero .docsx-copy {
   align-self: stretch;
   border-inline-start: 1px solid var(--sl-color-hairline-shade);
@@ -456,6 +462,14 @@ main:has(.docsx-404) > .content-panel {
   font-size: 0.9rem;
   line-height: 1.5;
   color: var(--sl-color-gray-3);
+}
+/* Links in the landing's prose blocks sit in .not-content, outside Starlight's link colour. */
+.docsx-install-note a,
+.docsx-card-text a,
+.docsx-section-sub a,
+.docsx-lede a {
+  color: var(--sl-color-text-accent);
+  text-underline-offset: 0.18em;
 }
 .docsx-install-note code {
   font-family: var(--docsx-font-mono);
@@ -514,9 +528,14 @@ main:has(.docsx-404) > .content-panel {
 }
 .docsx-snap .row {
   display: grid;
-  grid-template-columns: 5.2rem 8.4rem 1fr;
+  grid-template-columns: 5.2rem 8.4rem minmax(0, 1fr);
   gap: 0.5rem;
   white-space: nowrap;
+}
+/* The result column wraps at every width: in a two-column hero on a landscape phone (844 px) the
+   window is about 370 px wide, and "4 steps, 4 annotations" on one line needs about 344 px. */
+.docsx-snap .t-body {
+  white-space: normal;
 }
 .docsx-snap .t-time {
   color: var(--sl-color-gray-3);
@@ -537,12 +556,8 @@ main:has(.docsx-404) > .content-panel {
     padding: 0.9rem 1rem 1rem;
   }
   .docsx-snap .row {
-    grid-template-columns: 3.8rem 5.6rem 1fr;
+    grid-template-columns: 3.8rem 5.6rem minmax(0, 1fr);
     gap: 0.3rem;
-  }
-  /* "4 steps, 4 annotations" on one line needs about 344px, wider than a 320 or 360 px phone. */
-  .docsx-snap .t-body {
-    white-space: normal;
   }
 }
 
@@ -1528,6 +1543,14 @@ main:has(.docsx-404) > .content-panel {
   }
 }
 
+/* Note asides take the ember palette. Starlight draws them in its blue, periwinkle on the cream
+   page. Title on fill: 7.7:1 dark, 6.1:1 light. */
+.starlight-aside--note {
+  --sl-color-asides-text-accent: var(--sl-color-text-accent);
+  --sl-color-asides-border: var(--sl-color-accent);
+  background-color: var(--sl-color-accent-low);
+}
+
 /* ---- browxai / docsxai boundary diagram (ecosystem page) ---------------- */
 /* Two side cards split by a dashed seam carrying the shared actionability
    contract. HTML+CSS throughout (label-heavy); the seam is a CSS rail, no SVG
@@ -1881,6 +1904,18 @@ mobile-starlight-toc nav {
   .expressive-code .frame .copy button::after {
     margin: 0.6rem;
   }
+  /* The header logo link is 32 px tall; the header has room for 44. */
+  .site-title {
+    min-height: var(--docsx-tap);
+  }
+  /* Heading anchors: padding grows the box to 44 px and the same negative margin takes it back,
+     so the icon and the heading line stay where they were. Starlight's own start margin
+     (minus the icon size) moves the link over the heading's end padding. */
+  .sl-markdown-content .sl-anchor-link {
+    padding: 0.75rem 1rem;
+    margin-block: -0.75rem;
+    margin-inline: calc(-1 * var(--sl-anchor-icon-size) - 1rem) -1rem;
+  }
 }
 @media (max-width: 49.99rem) {
   /* The menu button is Starlight's 2rem circle; the header reserves room for it from this token. */
@@ -1905,7 +1940,7 @@ mobile-starlight-toc nav {
   /* Starlight's menu button is a flex box with 0.5rem padding sized for a 2rem circle, so at
      2.75rem its 16 px icon sat 6 px up and left of centre. Centre the icon, and draw the button
      in the header's palette: Starlight paints it --sl-color-white, a bright disc in dark mode. */
-  starlight-menu-button button {
+  .sl-menu-button {
     justify-content: center;
     align-items: center;
     padding: 0;
@@ -1914,7 +1949,7 @@ mobile-starlight-toc nav {
     color: var(--sl-color-white);
     box-shadow: none;
   }
-  starlight-menu-button[aria-expanded="true"] button {
+  .sl-menu-button:has(~ :popover-open) {
     background-color: var(--sl-color-accent-low);
     border-color: var(--sl-color-accent);
   }
@@ -1922,6 +1957,46 @@ mobile-starlight-toc nav {
   mobile-starlight-toc a {
     min-height: var(--docsx-tap);
     align-items: center;
+  }
+  /* One column: the text column fills the width, so both insets are the 1rem content padding.
+     Starlight caps it at 45rem and centres it only from 72rem, so at 721 to 799 px it sat left. */
+  .sl-container {
+    max-width: none;
+  }
+  /* Pages without a sidebar (the landing and the 404) have no menu, so the theme switch and the
+     GitHub link stay in the header as two 44 px icon buttons. */
+  :root:not([data-has-sidebar]) .header .right-group {
+    display: flex;
+    gap: 0.25rem;
+  }
+  :root:not([data-has-sidebar]) .header .social-icons::after {
+    content: none;
+  }
+  :root:not([data-has-sidebar]) .header starlight-theme-select label {
+    width: var(--docsx-tap);
+    height: var(--docsx-tap);
+  }
+  :root:not([data-has-sidebar]) .header starlight-theme-select select {
+    width: var(--docsx-tap);
+    padding: 0;
+    margin: 0;
+    color: transparent;
+  }
+  :root:not([data-has-sidebar]) .header starlight-theme-select .label-icon {
+    inset-inline-start: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1rem;
+  }
+  :root:not([data-has-sidebar]) .header starlight-theme-select .caret {
+    display: none;
+  }
+}
+
+/* Landscape phones: the fixed header and the sticky "On this page" bar took 29% of a 390 px tall
+   window. The bar scrolls away with the page; the header stays. */
+@media (max-width: 71.99rem) and (max-height: 30rem) and (orientation: landscape) {
+  mobile-starlight-toc nav {
+    position: absolute;
   }
 }
 
@@ -1935,7 +2010,7 @@ mobile-starlight-toc nav {
   .sidebar-pane,
   .right-sidebar,
   mobile-starlight-toc,
-  starlight-menu-button,
+  .sl-menu-button,
   .pagination-links,
   .docsx-sidebar-llms,
   .docsx-hero::before,

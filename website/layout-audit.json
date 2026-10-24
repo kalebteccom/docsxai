@@ -1,0 +1,16 @@
+{
+  "paths": [
+    "/",
+    "/getting-started/installation/",
+    "/getting-started/quickstart/",
+    "/reference/cli/",
+    "/guides/burn-theming/"
+  ],
+  "center": [
+    { "parent": "button.sl-menu-button", "child": "svg.open-menu" },
+    { "parent": "button.sl-menu-button", "child": "svg.close-menu" },
+    { "parent": "starlight-theme-select label", "child": "svg" },
+    { "parent": ".expressive-code .copy button", "child": "div" }
+  ],
+  "ignore": [".sr-only", "starlight-theme-select select", ".sidebar-pane"]
+}

@@ -154,14 +154,14 @@ describe("edge fade on sideways scrollers (QA #10, #11)", () => {
 
 describe("menu button (QA #2, #6)", () => {
   it("centres its icon in the 44 px circle", () => {
-    assert.equal(valueOf("starlight-menu-button button", "justify-content"), "center");
-    assert.equal(valueOf("starlight-menu-button button", "align-items"), "center");
-    assert.equal(valueOf("starlight-menu-button button", "padding"), "0");
+    assert.equal(valueOf(".sl-menu-button", "justify-content"), "center");
+    assert.equal(valueOf(".sl-menu-button", "align-items"), "center");
+    assert.equal(valueOf(".sl-menu-button", "padding"), "0");
   });
   it("uses the header palette, never a white disc", () => {
-    const bg = valueOf("starlight-menu-button button", "background-color") ?? "";
+    const bg = valueOf(".sl-menu-button", "background-color") ?? "";
     assert.match(bg, /var\(--sl-color-bg-sidebar\)/);
-    assert.match(valueOf("starlight-menu-button button", "color") ?? "", /var\(--sl-color-white\)/);
+    assert.match(valueOf(".sl-menu-button", "color") ?? "", /var\(--sl-color-white\)/);
   });
 });
 
@@ -176,5 +176,78 @@ describe("CLI reference code blocks (QA #4)", () => {
       open = !open;
     });
     assert.deepEqual(bare, [], `fences without wrap at lines ${bare.join(", ")}`);
+  });
+});
+
+describe("menu button open state (QA #6)", () => {
+  it("follows Starlight's popover, not a removed aria-expanded attribute", () => {
+    const bg = valueOf(".sl-menu-button:has(~ :popover-open)", "background-color") ?? "";
+    assert.match(bg, /var\(--sl-color-accent-low\)/);
+  });
+});
+
+describe("single column width (QA #5)", () => {
+  it("lets the text column fill the width so both insets match", () => {
+    assert.equal(valueOf(".sl-container", "max-width"), "none");
+  });
+});
+
+describe("landing header on phones (QA #7)", () => {
+  const bar = ":root:not([data-has-sidebar]) .header";
+  it("keeps the theme switch and the GitHub link as 44 px buttons", () => {
+    assert.equal(valueOf(`${bar} .right-group`, "display"), "flex");
+    assert.equal(valueOf(`${bar} starlight-theme-select label`, "width"), "var(--docsx-tap)");
+    assert.equal(valueOf(`${bar} starlight-theme-select label`, "height"), "var(--docsx-tap)");
+    assert.equal(valueOf(`${bar} starlight-theme-select select`, "width"), "var(--docsx-tap)");
+  });
+});
+
+describe("hero install box (QA #8)", () => {
+  it("fills the column at one-column widths", () => {
+    assert.match(css, /@media \(max-width: 52rem\)\s*\{\s*\.docsx-cmd--hero\s*\{\s*width: 100%;/);
+  });
+});
+
+describe("touch targets (QA #9)", () => {
+  it("grows the logo link to 44 px", () => {
+    assert.equal(valueOf(".site-title", "min-height"), "var(--docsx-tap)");
+  });
+  it("pads heading anchors to 44 px and takes it back with a negative margin", () => {
+    assert.equal(valueOf(".sl-markdown-content .sl-anchor-link", "padding"), "0.75rem 1rem");
+    assert.equal(valueOf(".sl-markdown-content .sl-anchor-link", "margin-block"), "-0.75rem");
+  });
+});
+
+describe("hero transcript (QA #10)", () => {
+  it("lets the result column shrink and wrap at every width", () => {
+    assert.equal(valueOf(".docsx-snap .t-body", "white-space"), "normal");
+    assert.match(valueOf(".docsx-snap .row", "grid-template-columns") ?? "", /minmax\(0, 1fr\)$/);
+  });
+});
+
+describe("landscape phone chrome (QA #12)", () => {
+  it("lets the sticky TOC bar scroll away", () => {
+    assert.match(
+      css,
+      /@media \(max-width: 71\.99rem\) and \(max-height: 30rem\) and \(orientation: landscape\)\s*\{\s*mobile-starlight-toc nav\s*\{\s*position: absolute;/,
+    );
+  });
+});
+
+describe("palette (QA #13, #14)", () => {
+  it("colours links in the landing's prose blocks with the accent text colour", () => {
+    for (const sel of [".docsx-install-note a", ".docsx-lede a"]) {
+      assert.equal(valueOf(sel, "color"), "var(--sl-color-text-accent)", sel);
+    }
+  });
+  it("draws note asides in the ember palette", () => {
+    assert.equal(
+      valueOf(".starlight-aside--note", "--sl-color-asides-border"),
+      "var(--sl-color-accent)",
+    );
+    assert.equal(
+      valueOf(".starlight-aside--note", "background-color"),
+      "var(--sl-color-accent-low)",
+    );
   });
 });
