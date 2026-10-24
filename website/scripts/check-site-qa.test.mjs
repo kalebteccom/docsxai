@@ -164,3 +164,17 @@ describe("menu button (QA #2, #6)", () => {
     assert.match(valueOf("starlight-menu-button button", "color") ?? "", /var\(--sl-color-white\)/);
   });
 });
+
+describe("CLI reference code blocks (QA #4)", () => {
+  it("wraps every usage and output block instead of scrolling 2000 px sideways", () => {
+    const md = readFileSync(join(site, "src", "content", "docs", "reference", "cli.md"), "utf8");
+    let open = false;
+    const bare = [];
+    md.split("\n").forEach((line, i) => {
+      if (!line.startsWith("```")) return;
+      if (!open && !/^```json\b/.test(line) && !/\bwrap\b/.test(line)) bare.push(i + 1);
+      open = !open;
+    });
+    assert.deepEqual(bare, [], `fences without wrap at lines ${bare.join(", ")}`);
+  });
+});
