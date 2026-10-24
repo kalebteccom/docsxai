@@ -9,6 +9,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { zipSync, type Zippable } from "fflate";
+import { writeFileAtomic } from "./atomic-write.js";
 import {
   resolveWorkspacePath,
   resolveWorkspacePathReal,
@@ -99,7 +100,6 @@ export async function zipDocPack(opts: ZipOptions): Promise<ZipResult> {
   }
 
   const outAbs = path.resolve(output);
-  await fs.mkdir(path.dirname(outAbs), { recursive: true });
 
   const includesAll = includeViewer ? [...DEFAULT_INCLUDES, ".viewer/"] : DEFAULT_INCLUDES;
   const files: string[] = [];
@@ -111,6 +111,13 @@ export async function zipDocPack(opts: ZipOptions): Promise<ZipResult> {
       stat = await fs.stat(resolveWorkspacePath(workspace, rel));
     } catch {
       continue; // skip absent
+    }
+    try {
+      // A top-level entry that is a link out of the workspace is left out, like one found below it.
+      await resolveWorkspacePathReal(workspace, rel);
+    } catch (e) {
+      if (e instanceof WorkspacePathEscapeError) continue;
+      throw e;
     }
     anyIncludePresent = true;
     if (stat.isDirectory()) await collectFiles(workspace, rel, includeViewer, files);
@@ -133,6 +140,7 @@ export async function zipDocPack(opts: ZipOptions): Promise<ZipResult> {
   } catch (e) {
     throw new ZipError(`failed to build archive: ${(e as Error).message}`, e);
   }
-  await fs.writeFile(outAbs, bytes);
+  await fs.mkdir(path.dirname(outAbs), { recursive: true });
+  await writeFileAtomic(outAbs, bytes);
   return { output: outAbs, bytes: bytes.length, entries: files };
 }
