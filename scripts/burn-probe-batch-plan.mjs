@@ -19,6 +19,16 @@ const RAWCAP_PNG = new RegExp(
   `^(${SEGMENT})/(${SEGMENT})/(${LOCALE})\\.(light|dark)\\.(?:[A-Za-z][A-Za-z0-9]*-)?(\\d+)\\.png$`,
 );
 
+export const PROJECTS = ["trackxai", "remotxai"];
+
+/** Name of the default tokens file under examples/burn-theme for a project and theme. */
+export function defaultTokensName(project, theme) {
+  if (!PROJECTS.includes(project)) {
+    throw new Error(`--project must be one of ${PROJECTS.join(", ")} (got ${project})`);
+  }
+  return `${project}-${theme}.tokens.json`;
+}
+
 /** A badge farther than this from its target is not next to it. */
 export const BADGE_REACH = 6;
 

@@ -3,7 +3,7 @@
 // plus a markdown report of how each caption, connector and badge landed.
 //
 //   node scripts/burn-probe-batch.mjs --raw <dir> --out <dir> [--tokens-dark <file>]
-//     [--tokens-light <file>] [--theme dark|light] [--locale en|es] [--widths 1280,390]
+//     [--tokens-light <file>] [--project trackxai|remotxai] [--theme dark|light] [--locale en|es] [--widths 1280,390]
 //
 // `--raw` is read in either layout, detected from the file names (anything else is ignored):
 //   flat     <screen>.<locale>.<theme>.<width>.png with a .json sidecar beside it
@@ -11,7 +11,8 @@
 //   rawcap   <flow>/<step>/<locale>.<theme>.<viewport>.png with a .json sidecar beside it
 //            ({ width, height, annotations: [{ index, copy, bbox, obstacles, ... }] })
 // Frames are those of `--theme` (default dark), `--locale` (default en) and `--widths` (default
-// 1280,390). The tokens file is `--tokens-<theme>`, else examples/burn-theme/trackxai-<theme>.tokens.json.
+// 1280,390). The tokens file is `--tokens-<theme>`, else examples/burn-theme/<project>-<theme>.tokens.json
+// (`--project`, default trackxai).
 // Captures under 900 px burn with `caption_style: "auto"`, the others with `full`, as
 // burn-trackxai.mjs does.
 //
@@ -24,6 +25,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import {
+  defaultTokensName,
   detectLayout,
   formatReport,
   frameRows,
@@ -109,6 +111,7 @@ async function main() {
       out: { type: "string" },
       "tokens-dark": { type: "string" },
       "tokens-light": { type: "string" },
+      project: { type: "string", default: "trackxai" },
       theme: { type: "string", default: "dark" },
       locale: { type: "string", default: "en" },
       widths: { type: "string", default: "1280,390" },
@@ -123,7 +126,8 @@ async function main() {
   const raw = resolve(values.raw);
   const out = resolve(values.out);
   const tokensFile = resolve(
-    values[`tokens-${values.theme}`] ?? join(EXAMPLES, `trackxai-${values.theme}.tokens.json`),
+    values[`tokens-${values.theme}`] ??
+      join(EXAMPLES, defaultTokensName(values.project, values.theme)),
   );
 
   const files = (await readdir(raw, { recursive: true })).map((f) => f.split("\\").join("/"));

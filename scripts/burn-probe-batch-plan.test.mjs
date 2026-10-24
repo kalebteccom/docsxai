@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import {
   BADGE_REACH,
+  PROJECTS,
+  defaultTokensName,
   detectLayout,
   formatReport,
   frameRows,
@@ -354,4 +356,17 @@ test("the report lists CHECK rows before the full table and escapes pipes", () =
   });
   assert.match(clean, /## CHECK\n\nNone\./);
   assert.doesNotMatch(clean, /Frames that failed/);
+});
+
+test("--project picks the default tokens file and both projects ship one per theme", async () => {
+  assert.equal(defaultTokensName("trackxai", "dark"), "trackxai-dark.tokens.json");
+  assert.equal(defaultTokensName("remotxai", "light"), "remotxai-light.tokens.json");
+  assert.throws(
+    () => defaultTokensName("other", "dark"),
+    /--project must be one of trackxai, remotxai/,
+  );
+  const files = await readdir(new URL("../examples/burn-theme/", import.meta.url));
+  for (const project of PROJECTS)
+    for (const theme of ["dark", "light"])
+      assert.ok(files.includes(defaultTokensName(project, theme)));
 });
