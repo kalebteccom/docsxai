@@ -124,6 +124,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **`FsStore` lists projects in creation order.** It listed them, and picked the project for a webhook repo, in id order; `MemoryStore` used creation order. Both stores now agree.
 - **Docs site at 390 px, round two.** Shell commands in code blocks wrap with an indented continuation line, where they used to scroll sideways, and the copy button still copies one command. The "On this page" dropdown links are 44 px tall. The landing diagram's 10 px labels grow to 12 px once the panels stack.
 - **Installation and Quickstart match the CLI.** Installation names `0.3.0-rc.4` and doctor's `ok:`, `fail:` and `next:` lines. The Quickstart shows the starting line `run` prints for each flow, points at the `flows/example.flow.yaml.sample` that `init` writes and how `calibrate --from` turns it into a flow, uses `http://localhost:3000`, and says a callout opens on hover, tap or Tab.
+- **`docsxai doctor` usage lists `--offline`.** The `Usage:` line in `docsxai --help`, `docsxai help doctor` and the CLI reference now show `docsxai doctor [<workspace-dir>] [--offline]`, the flag the handler already read. A new test pins the flags of every command against its usage text, its `help` screen and the flags its handler reads, so a flag added to one without the other fails the suite. The header comment of `docsxai-viewer` lists the flags its usage text shows.
 
 ## [0.3.0-rc.3] - 2026-10-09
 

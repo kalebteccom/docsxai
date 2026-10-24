@@ -20,7 +20,7 @@ Usage:
   docsxai flow-tree <workspace-dir> [--format text|json]
   docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>]
       [--cdp <endpoint>] [--format text|json]
-  docsxai doctor [<workspace-dir>]
+  docsxai doctor [<workspace-dir>] [--offline]
   docsxai style <workspace-dir> [--check] [--format text|json]
   docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
   docsxai baseline <workspace-dir> [--out <dir>]

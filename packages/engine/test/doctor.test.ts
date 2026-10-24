@@ -650,7 +650,7 @@ describe("doctor CLI dispatch", () => {
     for (const flag of ["--help", "-h"]) {
       out = "";
       expect(await main(["doctor", flag])).toBe(0);
-      expect(out).toContain("usage: docsxai doctor [<workspace-dir>]\n");
+      expect(out).toContain("usage: docsxai doctor [<workspace-dir>] [--offline]\n");
       expect(out).toContain("Exit 0 when no line starts with fail:, 1 otherwise.");
       expect(out).toContain("--offline");
       expect(out).not.toMatch(/^(ok|fail): doctor:/m);
