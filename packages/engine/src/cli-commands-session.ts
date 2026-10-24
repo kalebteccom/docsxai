@@ -203,6 +203,19 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
     units.splice(0, units.length, ...wanted);
   }
+  // A step id that no selected flow has would only fail after a browser had launched, as a halt.
+  for (const [flag, stepId] of [
+    ["start-from", startFrom],
+    ["stop-after", stopAfter],
+  ] as const) {
+    if (!stepId || units.some((u) => u.flow.steps.some((st) => st.id === stepId))) continue;
+    const have = [...new Set(units.flatMap((u) => u.flow.steps.map((st) => st.id)))];
+    const where = onlyFlow ? `flow "${onlyFlow}"` : "any selected flow";
+    return usageError(
+      "run",
+      `--${flag}: no step "${stepId}" in ${where} (steps: ${have.join(", ")})`,
+    );
+  }
   for (const name of matrixFlows) {
     const stale = resolveWorkspacePath(projectDir, "docs", name, "annotations.json");
     if (
