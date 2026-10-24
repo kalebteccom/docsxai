@@ -73,6 +73,7 @@ afterAll(async () => {
 async function makeWorkspace(spec: WorkspaceSpec): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-starlight-test-"));
   tempDirs.push(dir);
+  await fs.mkdir(path.join(dir, "docs"), { recursive: true });
   for (const flow of spec.flows) {
     const flowDir = path.join(dir, "docs", flow.name);
     await fs.mkdir(path.join(flowDir, "screenshots"), { recursive: true });

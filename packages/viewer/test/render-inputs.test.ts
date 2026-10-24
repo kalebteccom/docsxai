@@ -60,6 +60,19 @@ describe("buildViewer with unusual inputs", () => {
     expect(r.warnings).toEqual([]);
   });
 
+  it("warns, and still writes the empty index, when the docs folder does not exist", async () => {
+    const r = await buildViewer({ docsDir: path.join(tmp, "dcos"), outDir: out() });
+    expect(r.pages).toEqual(["index.html"]);
+    expect(r.warnings).toHaveLength(1);
+    expect(r.warnings[0]).toContain("dcos");
+  });
+
+  it("does not warn about a docs folder that exists and is empty", async () => {
+    await fs.mkdir(docs(), { recursive: true });
+    const r = await buildViewer({ docsDir: docs(), outDir: out() });
+    expect(r.warnings).toEqual([]);
+  });
+
   it("serves a step id with non-ASCII and right-to-left letters", async () => {
     await flow("a", ["paso-ñ", "שלום"], { "paso-ñ.png": "x", "שלום.png": "x" });
     const r = await buildViewer({ docsDir: docs(), outDir: out() });

@@ -93,6 +93,14 @@ describe("what the site is asked to include", () => {
     expect(r.warnings.filter((w) => w.includes('"typo"'))).toHaveLength(1);
   });
 
+  it("warns, and still emits an empty site, when the workspace has no docs folder", async () => {
+    await fs.mkdir(ws(), { recursive: true });
+    const r = await emit();
+    expect(r.flows).toEqual([]);
+    expect(r.warnings).toHaveLength(1);
+    expect(r.warnings[0]).toContain("docs");
+  });
+
   it("warns when docs/style.json is not JSON", async () => {
     await flow("a", [ann("s")], ["s.png"]);
     await fs.writeFile(path.join(ws(), "docs", "style.json"), "{oops");

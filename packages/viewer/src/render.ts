@@ -201,6 +201,9 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
     ...new Set(opts.flows ?? (await discoverFlows(opts.docsDir, { variants: true }))),
   ];
   const warnings: string[] = [];
+  if (!(await isDirectory(opts.docsDir))) {
+    warnings.push(`docs folder ${opts.docsDir} not found, so the viewer lists no flows`);
+  }
   const flows: string[] = [];
   for (const flow of requested) {
     if (!isSafeFlowName(flow)) {

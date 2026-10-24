@@ -50,6 +50,14 @@ export async function pickFlows(
   warnings: string[],
 ): Promise<string[]> {
   const found = await discoverFlows(docsDir);
+  if (
+    !(await fs.stat(docsDir).then(
+      (d) => d.isDirectory(),
+      () => false,
+    ))
+  ) {
+    warnings.push(`docs folder ${docsDir} not found, so the site lists no flows`);
+  }
   const chosen = wanted?.length ? [...new Set(wanted)] : found;
   const picked: string[] = [];
   for (const flow of chosen) {
