@@ -108,6 +108,8 @@ curl -s -X POST $BASE/v1/workspaces/6f51…/projects/a90c…/revisions/1d4f…/f
 | GET    | `/v1/workspaces/:ws/projects/:project/run-history` | List execution-run records (newest first).             |
 | POST   | `/v1/workspaces/:ws/projects/:project/run-history` | Append a record (`{ rev, ok, duration_ms, summary }`). |
 
+A project keeps its newest 1000 records; appending past that drops the oldest. `ok` must be a boolean, `duration_ms` a non-negative number and `summary` a string, or the POST gets 400 `bad_request`.
+
 ```sh
 curl -s $BASE/v1/workspaces/6f51…/projects/a90c…/run-history -H "$AUTH" -H "$VER"
 # [{"id":"…","project_id":"a90c…","revision_id":"1d4f…","ok":true,"duration_ms":48211,"summary":"3/3 flows ok","created_at":"…"}]

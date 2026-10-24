@@ -19,6 +19,9 @@ import {
 /** How many recent webhook delivery ids the replay guard remembers. */
 export const WEBHOOK_DELIVERY_MEMORY = 100;
 
+/** How many run-history records a project keeps; appending past it drops the oldest. */
+export const RUN_HISTORY_LIMIT = 1000;
+
 /** Result of mapping an incoming webhook repo to a configured project. */
 export interface WebhookProjectMatch {
   workspace_id: string;
@@ -237,6 +240,7 @@ export class MemoryStore implements BackendStore {
       created_at: now(),
     };
     p.runs.push(run);
+    if (p.runs.length > RUN_HISTORY_LIMIT) p.runs.splice(0, p.runs.length - RUN_HISTORY_LIMIT);
     return run;
   }
   listRuns(wsId: string, projectId: string): RunRecord[] {

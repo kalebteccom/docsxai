@@ -33,7 +33,7 @@ auth-cache/<wsId>/<role>.json
 webhook-deliveries.json   ← replay guard: last 100 delivery ids
 ```
 
-Writes are atomic (tmp file + rename); reads always go to disk, so multiple processes pointed at one data dir stay consistent. Every path join is containment-guarded against the data root — traversal-shaped ids read as not-found and traversal-shaped writes throw.
+Each project keeps its newest 1000 run-history records (`RUN_HISTORY_LIMIT`); appending past that drops the oldest. Writes are atomic (tmp file + rename); reads always go to disk, so multiple processes pointed at one data dir stay consistent. Every path join is containment-guarded against the data root — traversal-shaped ids read as not-found and traversal-shaped writes throw.
 
 ## Blob protocol
 

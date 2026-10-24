@@ -71,6 +71,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Backend: 400 only for a bad request.** A missing `name` came back as `invalid JSON body: body requires a non-empty { name }`, and a damaged file in the data dir came back as a 400 with the same prefix. The first now reports the missing field alone, and the second answers 500 with the file name.
 - **Backend: a webhook body of `null` answers 400.** `POST /v1/github/webhook` with the JSON body `null` threw and returned 500; it now returns 400 `payload missing repository.full_name`, like any other payload without a repository.
 - **Backend: run-history bodies are type-checked.** `POST .../run-history` stored `"ok": "false"` as `true` and a text `duration_ms` as `null`. It now returns 400 `bad_request` naming the field unless `ok` is a boolean, `duration_ms` is a non-negative number (default 0) and `summary` is a string (default empty).
+- **Backend: run history is capped at 1000 records per project.** `runs.json` and the in-memory list grew with every run, and each append rewrote the whole file. Appending past 1000 now drops the oldest record.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
