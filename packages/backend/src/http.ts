@@ -11,6 +11,7 @@ import {
   ROUTES,
   type RevisionArtifact,
 } from "./api.js";
+import { type RunInput } from "./store.js";
 
 export { BLOB_BODY_LIMIT_BYTES, JSON_BODY_LIMIT_BYTES };
 
@@ -44,6 +45,21 @@ export function matchRoute(method: string, pathname: string): Matched | "method_
     return { route, params };
   }
   return methodMismatch ? "method_mismatch" : null;
+}
+
+/** Validate a run-history body. Returns the record to append, or the problem as a message. */
+export function parseRunInput(v: unknown): RunInput | string {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return "body must be a JSON object";
+  const b = v as Record<string, unknown>;
+  if (typeof b.rev !== "string" || b.rev.length === 0) return "rev must be a revision id or 'head'";
+  if (typeof b.ok !== "boolean") return "ok must be a boolean";
+  const duration = b.duration_ms ?? 0;
+  if (typeof duration !== "number" || !Number.isFinite(duration) || duration < 0) {
+    return "duration_ms must be a non-negative number";
+  }
+  const summary = b.summary ?? "";
+  if (typeof summary !== "string") return "summary must be a string";
+  return { rev: b.rev, ok: b.ok, duration_ms: duration, summary };
 }
 
 /** Methods the route table serves on `pathname`, sorted (the `Allow` header of a 405). */

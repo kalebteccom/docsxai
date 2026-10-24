@@ -21,6 +21,7 @@ import {
   BadRequestError,
   bearerToken,
   matchRoute,
+  parseRunInput,
   PayloadTooLargeError,
   readBody,
   readJsonBody,
@@ -257,23 +258,14 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
         case "/v1/workspaces/:ws/projects/:project/run-history":
           if (method === "GET") return sendJson(res, 200, store.listRuns(ws!, project!));
           {
-            const b = (await readJsonBody(req)) as
-              { rev?: string; ok?: boolean; duration_ms?: number; summary?: string } | undefined;
-            if (!b || typeof b.rev !== "string")
+            const input = parseRunInput(await readJsonBody(req));
+            if (typeof input === "string") {
               return sendJson(res, 400, {
                 error: "bad_request",
-                message: "body requires { rev, ok, duration_ms, summary }",
+                message: `body requires { rev, ok, duration_ms, summary }: ${input}`,
               });
-            return sendJson(
-              res,
-              201,
-              store.appendRun(ws!, project!, {
-                rev: b.rev,
-                ok: !!b.ok,
-                duration_ms: Number(b.duration_ms ?? 0),
-                summary: String(b.summary ?? ""),
-              }),
-            );
+            }
+            return sendJson(res, 201, store.appendRun(ws!, project!, input));
           }
         case "/v1/workspaces/:ws/projects/:project/webhook-config": {
           if (method === "GET") return sendJson(res, 200, store.getWebhookConfig(ws!, project!));
