@@ -340,28 +340,118 @@ main:has(.docsx-404) > .content-panel {
   transform: translateY(-2px);
 }
 
-/* Install one-liner under the CTAs. */
-.docsx-install {
-  margin-top: 2rem;
-  display: inline-flex;
+/* Command blocks with a copy button: the install one-liner under the CTAs (hero) and the install
+   cards (card). Markup and script: src/components/CopyCommand.astro. The text wraps and never
+   scrolls, so nothing overflows a phone. The "Copy" and "Copied" labels share one grid cell, so
+   the button keeps its width when the label changes. */
+.docsx-cmd {
+  display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: var(--docsx-font-mono);
-  font-size: 0.85rem;
-  color: var(--sl-color-gray-2);
   border: 1px solid var(--sl-color-hairline-shade);
   border-radius: 0.5rem;
-  padding: 0.55rem 0.85rem;
   background: color-mix(in srgb, var(--sl-color-bg-sidebar) 60%, transparent);
+  font-family: var(--docsx-font-mono);
+  color: var(--sl-color-gray-2);
 }
-.docsx-install .pfx {
+.docsx-cmd .pfx {
   color: var(--sl-color-text-accent);
   user-select: none;
+  -webkit-user-select: none;
+}
+.docsx-cmd-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.docsx-cmd-text code {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.docsx-copy {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 4.75rem;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border: 0;
+  background: transparent;
+  color: var(--sl-color-text-accent);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.docsx-copy > span {
+  grid-area: 1 / 1;
+}
+.docsx-copy-done {
+  visibility: hidden;
+}
+.docsx-copy[data-state] .docsx-copy-idle {
+  visibility: hidden;
+}
+.docsx-copy[data-state] .docsx-copy-done {
+  visibility: visible;
+}
+.docsx-copy:hover {
+  background: color-mix(in srgb, var(--sl-color-text-accent) 12%, transparent);
+}
+.docsx-cmd--hero {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 2rem;
+  padding-inline-start: 0.85rem;
+}
+.docsx-cmd--hero .docsx-copy {
+  align-self: stretch;
+  border-inline-start: 1px solid var(--sl-color-hairline-shade);
+  border-radius: 0 0.45rem 0.45rem 0;
+}
+.docsx-cmd--card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  margin: 0 0 1rem;
+  color: var(--sl-color-white);
+}
+.docsx-cmd--card .docsx-cmd-text {
+  padding: 0.75rem 0.9rem 0.5rem;
+}
+.docsx-cmd--card .docsx-copy {
+  align-self: flex-end;
+  margin: 0 0.4rem 0.4rem;
+  border: 1px solid var(--sl-color-hairline-shade);
+  border-radius: 0.4rem;
+}
+/* Text for screen readers only (the copy status line). */
+.docsx-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 .docsx-install-note {
   margin: 0.75rem 0 0;
   max-width: 42ch;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   line-height: 1.5;
   color: var(--sl-color-gray-3);
 }
@@ -988,30 +1078,9 @@ main:has(.docsx-404) > .content-panel {
   color: inherit;
   max-width: inherit;
 }
-/* Install blocks on the landing page: a short shell transcript inside a card. It wraps
-   and never scrolls, so nothing overflows on a phone and no scroller needs a label. */
+/* Install blocks on the landing page: the card grid. The blocks are .docsx-cmd--card above. */
 .docsx-grid--install {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
-}
-.docsx-code {
-  margin: 0 0 1rem;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid var(--sl-color-hairline-shade);
-  border-radius: 0.5rem;
-  background: color-mix(in srgb, var(--sl-color-bg) 55%, transparent);
-  font-family: var(--docsx-font-mono);
-  font-size: 0.82rem;
-  line-height: 1.7;
-  color: var(--sl-color-white);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.docsx-code code {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: 0;
-  padding: 0;
 }
 .docsx-card .docsx-card-mark {
   font-family: var(--docsx-font-mono);
@@ -1538,12 +1607,16 @@ body::before {
 /* A visible focus ring on every hand-built control, in the accent colour
    (11.5:1 on the dark canvas, 6.9:1 on the light one). */
 .docsx-btn:focus-visible,
+.docsx-copy:focus-visible,
 .docsx-install-note a:focus-visible,
 .docsx-card-text a:focus-visible,
 .docsx-sidebar-llms:focus-visible,
 .docsx-credit a:focus-visible {
   outline: 2px solid var(--sl-color-text-accent);
   outline-offset: 3px;
+}
+.docsx-copy:focus-visible {
+  outline-offset: -4px;
 }
 /* Sidebar links sit flush with a scrolling container, so the ring goes
    inside the link where the container cannot clip it. */

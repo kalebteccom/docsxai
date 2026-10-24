@@ -1,0 +1,89 @@
+---
+// A shell command with a copy button, for the landing page (the install one-liner and the install
+// cards). The copied text is exactly `command`, one command per line and never a prompt. The `$`
+// in the hero variant is drawn beside the text and is not selectable.
+//
+// The button keeps one accessible name. A visually hidden status region announces the result, and
+// the "Copy" and "Copied" labels share one grid cell, so the button never changes width.
+interface Props {
+  /** One command per line. Copied as written. */
+  command: string;
+  /** Accessible name of the button, for example "Copy install command". */
+  label: string;
+  /** `hero` is the one-line pill under the call to action. `card` is a block inside a card. */
+  variant?: "hero" | "card";
+}
+const { command, label, variant = "card" } = Astro.props;
+---
+
+<div class={`docsx-cmd docsx-cmd--${variant}`}>
+  {variant === "hero" && <span class="pfx" aria-hidden="true">$</span>}
+  <pre class="docsx-cmd-text"><code>{command}</code></pre>
+  <button type="button" class="docsx-copy" data-copy={command} aria-label={label}>
+    <span class="docsx-copy-idle" aria-hidden="true">Copy</span>
+    <span class="docsx-copy-done" aria-hidden="true">Copied</span>
+  </button>
+  <span class="docsx-sr" role="status" aria-live="polite" data-copy-status></span>
+</div>
+
+<script>
+  // Confirmation lasts 1.5 s. Where the Clipboard API is missing or refuses (an insecure page,
+  // a locked-down webview), the command text is selected and the button says which keys to press.
+  const RESET_MS = 1500;
+  const timers = new WeakMap<HTMLElement, number>();
+
+  function announce(status: Element | null, text: string): void {
+    if (!status) return;
+    status.textContent = "";
+    requestAnimationFrame(() => {
+      status.textContent = text;
+    });
+  }
+
+  function selectText(node: Element | null): void {
+    if (!node) return;
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }
+
+  async function onClick(button: HTMLButtonElement): Promise<void> {
+    const root = button.closest(".docsx-cmd");
+    const status = root?.querySelector("[data-copy-status]") ?? null;
+    const done = button.querySelector(".docsx-copy-done");
+    const text = button.dataset.copy ?? "";
+    const previous = timers.get(button);
+    if (previous !== undefined) window.clearTimeout(previous);
+
+    let state = "copied";
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      state = "manual";
+      selectText(root?.querySelector("code") ?? null);
+    }
+
+    const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+    const keys = mac ? "Cmd+C" : "Ctrl+C";
+    if (done) done.textContent = state === "copied" ? "Copied" : keys;
+    button.dataset.state = state;
+    announce(status, state === "copied" ? "Copied to clipboard" : `Press ${keys} to copy`);
+
+    timers.set(
+      button,
+      window.setTimeout(() => {
+        delete button.dataset.state;
+        if (done) done.textContent = "Copied";
+        if (status) status.textContent = "";
+      }, RESET_MS),
+    );
+  }
+
+  for (const button of document.querySelectorAll<HTMLButtonElement>("button[data-copy]")) {
+    button.addEventListener("click", () => {
+      void onClick(button);
+    });
+  }
+</script>
