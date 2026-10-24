@@ -23,21 +23,47 @@ export function badgeSize(index: number, metrics: FontMetrics): Size {
   };
 }
 
-/** Default box of the numbered badge: top-left of the halo, pulled slightly outside it, clamped to the image. */
-export function badgeBox(t: BoundingBox, index: number, image: Size, metrics: FontMetrics): Rect {
-  return anchorBadge(t, "top-left", BADGE_DEFAULT_OFFSET, badgeSize(index, metrics), image);
+/**
+ * The box a badge of `size` is anchored to: the target itself, or with `outside` the target grown
+ * so the badge's box ends 1 px short of the target at a corner, clear of the element and its text.
+ */
+export function badgeAnchor(t: BoundingBox, size: Size, outside = false): Rect {
+  return outside ? growRect(t, size.width - BADGE_DEFAULT_OFFSET + 1) : t;
 }
 
-/** Keep-clear boxes around every other annotation's halo. */
-export function otherHalos(annotations: AnnotationRecord[], self: AnnotationRecord): Rect[] {
+/**
+ * Default box of the numbered badge: top-left of the halo, pulled slightly outside it, clamped to
+ * the image. With `outside`, diagonally off the target's top-left corner (see {@link badgeAnchor}).
+ */
+export function badgeBox(
+  t: BoundingBox,
+  index: number,
+  image: Size,
+  metrics: FontMetrics,
+  outside = false,
+): Rect {
+  const size = badgeSize(index, metrics);
+  return anchorBadge(badgeAnchor(t, size, outside), "top-left", BADGE_DEFAULT_OFFSET, size, image);
+}
+
+/** Margin around a halo drawn outside its target (gap, ring and glow, plus slack). */
+export const OUTSIDE_HALO_MARGIN = 10;
+
+/** Keep-clear boxes around every other annotation's halo, `margin` px out. */
+export function otherHalos(
+  annotations: AnnotationRecord[],
+  self: AnnotationRecord,
+  margin: number = HALO_MARGIN,
+): Rect[] {
   return annotations.flatMap((other) =>
-    other !== self && other.bounding_box ? [growRect(other.bounding_box, HALO_MARGIN)] : [],
+    other !== self && other.bounding_box ? [growRect(other.bounding_box, margin)] : [],
   );
 }
 
 /**
  * What an annotation's callout must stay clear of besides page content: halos, badges, earlier
  * callouts. Badges already planned stand where they were put; the rest at their default spot.
+ * `outside`: halos and badges sit outside their targets (the line connector's look).
  */
 export function keepClear(
   annotations: AnnotationRecord[],
@@ -46,14 +72,15 @@ export function keepClear(
   metrics: FontMetrics,
   placed: Rect[],
   badges: Map<AnnotationRecord, Rect>,
+  outside = false,
 ): Rect[] {
   const clear: Rect[] = [];
   for (const other of annotations) {
     const box = other.bounding_box;
     if (!box) continue;
-    if (other !== self) clear.push(growRect(box, HALO_MARGIN));
+    if (other !== self) clear.push(growRect(box, outside ? OUTSIDE_HALO_MARGIN : HALO_MARGIN));
     if (typeof other.index === "number") {
-      clear.push(badges.get(other) ?? badgeBox(box, other.index, image, metrics));
+      clear.push(badges.get(other) ?? badgeBox(box, other.index, image, metrics, outside));
     }
   }
   return [...clear, ...placed];

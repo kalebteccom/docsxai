@@ -104,6 +104,8 @@ export interface LayoutInput {
   gap?: number;
   /** Longest gap the obstacle planner may detach the callout to, see `PlanInput.maxDistance`. */
   maxDistance?: number;
+  /** Margin of the top and bottom docking bands, see `PlanInput.dock`. */
+  dock?: number;
   /** Widest callout as a share of the image's width when obstacles limit it. Default {@link ADAPTIVE_WIDTH_RATIO}. */
   maxWidthRatio?: number;
 }
@@ -239,6 +241,7 @@ function planInput(inp: LayoutInput, size: Size): PlanInput {
     ...(placement?.pin_arrow ? { pinArrow: true } : {}),
     arrowLength,
     ...(inp.maxDistance !== undefined ? { maxDistance: inp.maxDistance } : {}),
+    ...(inp.dock !== undefined ? { dock: inp.dock } : {}),
   };
 }
 

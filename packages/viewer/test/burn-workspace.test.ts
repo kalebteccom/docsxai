@@ -61,7 +61,7 @@ describe("burnWithWorkspaceTheme", () => {
   it("changes pixels when the workspace has a theme", async () => {
     await writeConfig({ burn: { theme: { preset: "high-contrast" } } });
     const img = decodePng(await burn());
-    expect(isColour(pixelAt(img, 215, 121), "#d10000")).toBe(true);
+    expect(isColour(pixelAt(img, 215, 116), "#d10000")).toBe(true);
   });
 
   it("loads once per workspace and warns once per load", async () => {

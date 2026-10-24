@@ -10,15 +10,19 @@ import type { BurnTheme, ConnectorStyle } from "./burn-theme.js";
 import { connectorColor } from "./burn-theme.js";
 import { contrastRatio } from "./color.js";
 import { averageHex, type PixelGrid } from "./connector-contrast.js";
+import { RING_OUTSET } from "./burn-clean.js";
 
 /** Line width at caption scale 1, px. */
 export const LINE_STROKE = 2;
-/** Gap between target and caption at rest, base px: the visible line. */
-export const LINE_GAP = 14;
-/** Longest gap the planner may move a line-joined caption out to, base px. */
-export const LINE_MAX_DISTANCE = 64;
+/** Gap between target and caption at rest, base px. The halo ring takes the first 5 px of it. */
+export const LINE_GAP = 20;
+/**
+ * Longest gap the planner moves a line-joined caption out to while looking for empty space, base
+ * px. Beyond it only the docking bands at the image's top and bottom are tried.
+ */
+export const LINE_MAX_DISTANCE = 176;
 /** End dot radius, base px. */
-export const LINE_DOT_RADIUS = 3;
+export const LINE_DOT_RADIUS = 2;
 /** Chevron arm length, base px. */
 export const LINE_CHEVRON_ARM = 5;
 /** WCAG non-text contrast a line needs against the pixels under it before another colour is tried. */
@@ -38,7 +42,7 @@ export interface LinePath {
   side: Side;
   /** On the caption rect's edge facing the target. */
   start: Pt;
-  /** On the target's edge: the layout's arrow tip. */
+  /** The layout's arrow tip on the target's edge, moved `endOffset` px out towards the caption. */
   end: Pt;
   /** Start, any elbow corners, end. */
   points: Pt[];
@@ -55,12 +59,17 @@ export function captionRect(l: CalloutLayout): Rect {
 /**
  * Path from the caption edge nearest the target to the arrow tip, nudge applied. The start keeps
  * `inset` px from the caption's corners so it never lands on a rounded corner. Straight when the
- * tip faces the caption, else one elbow halfway. `null` inside the target.
+ * tip faces the caption, else one elbow halfway. `endOffset` stops the line that far short of the
+ * target edge, on the outside of a halo ring drawn around it. `null` inside the target.
  */
-export function linePath(l: CalloutLayout, inset: number): LinePath | null {
+export function linePath(l: CalloutLayout, inset: number, endOffset = 0): LinePath | null {
   if (!l.side || !l.arrow) return null;
   const c = captionRect(l);
-  const end = { x: l.arrow.x + l.nudge.x, y: l.arrow.y + l.nudge.y };
+  const out = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] }[l.side];
+  const end = {
+    x: l.arrow.x + l.nudge.x + out[0]! * endOffset,
+    y: l.arrow.y + l.nudge.y + out[1]! * endOffset,
+  };
   const vertical = l.side === "top" || l.side === "bottom";
   let start: Pt;
   if (vertical) {
@@ -188,7 +197,7 @@ export function lineNodes(
   pixels?: PixelGrid,
 ): BurnNode[] {
   const stroke = LINE_STROKE * f;
-  const path = linePath(layout, theme.radius + stroke);
+  const path = linePath(layout, theme.radius + stroke, RING_OUTSET * f);
   if (!path) return [];
   const background = pixels ? averageHex(pixels, pathBoxes(path, stroke)) : null;
   const drawn = lineSvg(path, {

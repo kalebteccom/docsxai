@@ -1,29 +1,95 @@
 {
   "$description": "trackxai caption theme, light. Colours from the Kalebtec brand tokens: brand.dark violet on paper.",
   "color": {
-    "accent": { "$type": "color", "$value": "#5c00b8" },
-    "ink": { "$type": "color", "$value": "#080f11" },
-    "callout": {
-      "background": { "$type": "color", "$value": "#fafaf5" },
-      "border": { "$type": "color", "$value": "#5c00b8" }
+    "accent": {
+      "$type": "color",
+      "$value": "#5c00b8"
     },
-    "badge": { "background": { "$type": "color", "$value": "#5c00b8" } }
+    "ink": {
+      "$type": "color",
+      "$value": "#080f11"
+    },
+    "callout": {
+      "background": {
+        "$type": "color",
+        "$value": "#fafaf5"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "#5c00b8"
+      }
+    },
+    "badge": {
+      "background": {
+        "$type": "color",
+        "$value": "#5c00b8"
+      }
+    }
   },
-  "border": { "callout": { "width": { "$type": "dimension", "$value": "1px" } } },
-  "radius": { "callout": { "$type": "dimension", "$value": "8px" } },
-  "shadow": { "callout": { "$value": "0px 4px 14px 0px rgba(8,15,17,0.16)" } },
+  "border": {
+    "callout": {
+      "width": {
+        "$type": "dimension",
+        "$value": "1px"
+      }
+    }
+  },
+  "radius": {
+    "callout": {
+      "$type": "dimension",
+      "$value": "8px"
+    }
+  },
+  "shadow": {
+    "callout": {
+      "$value": "0px 4px 14px 0px rgba(8,15,17,0.16)"
+    }
+  },
   "shape": {
-    "badge": { "$value": "circle" },
-    "connector": { "$value": "line" }
+    "badge": {
+      "$value": "circle"
+    },
+    "connector": {
+      "$value": "line"
+    }
   },
   "font": {
-    "size": { "caption": { "$type": "dimension", "$value": "14px" } },
-    "line-height": { "caption": { "$type": "dimension", "$value": "20px" } }
+    "size": {
+      "caption": {
+        "$type": "dimension",
+        "$value": "15px"
+      }
+    },
+    "line-height": {
+      "caption": {
+        "$type": "dimension",
+        "$value": "21px"
+      }
+    }
   },
   "space": {
     "callout": {
-      "x": { "$type": "dimension", "$value": "12px" },
-      "y": { "$type": "dimension", "$value": "8px" }
+      "x": {
+        "$type": "dimension",
+        "$value": "13px"
+      },
+      "y": {
+        "$type": "dimension",
+        "$value": "9px"
+      }
+    }
+  },
+  "render": {
+    "$description": "Render settings with no default token path: map them with burn.theme.tokens (scale to render.scale, display_width to render.display-width). The landing shows 1280 px captures at 1100 CSS px and 390 px captures at 350.",
+    "scale": {
+      "$value": "auto"
+    },
+    "display-width": {
+      "$value": {
+        "default": 1100,
+        "narrow": 350,
+        "narrow_below": 900
+      }
     }
   }
 }

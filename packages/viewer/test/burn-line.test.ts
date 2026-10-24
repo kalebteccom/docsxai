@@ -125,6 +125,13 @@ describe("linePath", () => {
     expect(p.end).toEqual({ x: l.arrow!.x + 5, y: l.arrow!.y + 7 });
   });
 
+  it("stops endOffset px short of the target, outside a halo ring", () => {
+    const l = layoutOn("top", LINE_GAP);
+    const p = linePath(l, 10, 5)!;
+    expect(p.end).toEqual({ x: l.arrow!.x, y: l.arrow!.y - 5 });
+    expect(pathLength(p)).toBeCloseTo(LINE_GAP - 5, 5);
+  });
+
   it("is null for a callout inside its target", () => {
     expect(linePath({ ...layoutOn("top", 10), side: null, arrow: null }, 10)).toBeNull();
   });
@@ -181,10 +188,43 @@ describe("line length", () => {
       obstacles: crowd,
       gap: LINE_GAP,
     };
-    expect(planCallout(base).distance).toBeGreaterThan(LINE_MAX_DISTANCE);
-    expect(planCallout({ ...base, maxDistance: LINE_MAX_DISTANCE }).distance).toBeLessThanOrEqual(
-      LINE_MAX_DISTANCE,
-    );
+    expect(planCallout(base).distance).toBeGreaterThan(64);
+    expect(planCallout({ ...base, maxDistance: 64 }).distance).toBeLessThanOrEqual(64);
+  });
+
+  it("docks a caption in the bottom band when nothing nearer is clear", () => {
+    const plan = planCallout({
+      image: { width: 800, height: 600 },
+      target: TARGET,
+      callout: { width: 200, height: 40 },
+      // Content everywhere but a strip along the bottom edge and a gutter below the target.
+      obstacles: [
+        { x: 0, y: 0, width: 800, height: 270 },
+        { x: 0, y: 320, width: 340, height: 230 },
+        { x: 460, y: 320, width: 340, height: 230 },
+        { x: 0, y: 270, width: 350, height: 50 },
+        { x: 450, y: 270, width: 350, height: 50 },
+      ],
+      gap: LINE_GAP,
+      maxDistance: 64,
+      dock: 8,
+    });
+    expect(plan.side).toBe("bottom");
+    expect(plan.callout.y).toBe(600 - 8 - 40);
+    expect(plan.overlap).toBe(0);
+  });
+
+  it("does not dock when a near spot is clear", () => {
+    const near = planCallout({
+      image: { width: 800, height: 600 },
+      target: TARGET,
+      callout: { width: 200, height: 40 },
+      obstacles: [{ x: 0, y: 0, width: 800, height: 100 }],
+      gap: LINE_GAP,
+      maxDistance: 64,
+      dock: 8,
+    });
+    expect(near.distance).toBe(LINE_GAP);
   });
 
   it("keeps a themed burn's drawn line within the cap", () => {

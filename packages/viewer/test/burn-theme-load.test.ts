@@ -133,7 +133,8 @@ describe("a theme font", () => {
       options: { theme },
     });
     const img = decodePng(png);
-    expect(isColour(pixelAt(img, 215, 121), "#e8590c")).toBe(true);
+    // A themed burn draws the halo ring 3 px outside the target.
+    expect(isColour(pixelAt(img, 215, 116), "#e8590c")).toBe(true);
   });
 
   it("is refused when it is missing, not a font or a symlink", async () => {
@@ -188,7 +189,7 @@ describe("docsxai-viewer burn with a theme in the workspace", () => {
     expect(await runViewerCli(["burn", ws])).toBe(0);
     expect(out).toContain("burn: wrote 1 image(s)");
     const img = decodePng(await fs.readFile(path.join(ws, "docs/flow/burned/open-sidebar.png")));
-    expect(isColour(pixelAt(img, 215, 121), "#d10000")).toBe(true);
+    expect(isColour(pixelAt(img, 215, 116), "#d10000")).toBe(true);
   });
 
   it("burns today's look when the workspace has no theme", async () => {

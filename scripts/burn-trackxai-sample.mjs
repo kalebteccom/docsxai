@@ -3,8 +3,10 @@
 // screenshots (header, sidebar, a progress ledger table, cards, an issue detail) in light and dark,
 // burns the same annotations on each twice with the trackxai tokens, and writes the PNGs:
 //
-//   before-<mode>-<n>.png  connector_style "arrow": the triangle and stem themed burns drew before
-//   after-<mode>-<n>.png   the theme as written: the thin line connector, now the themed default
+//   before-<mode>-<n>.png  connector_style "arrow" at 14 px: the triangle and stem themed burns drew
+//   after-<mode>-<n>.png   the theme as written: the thin line connector, scale auto
+//
+// Shot 4 (dark only) is a 390 px phone capture.
 //
 //   node scripts/burn-trackxai-sample.mjs [--out /tmp/burn-before-after]
 //
@@ -22,6 +24,9 @@ const EXAMPLES = join(ROOT, "examples/burn-theme");
 const FONT = join(VIEWER, "assets/fonts/inter-regular.ttf");
 const W = 1280;
 const H = 800;
+
+/** The render settings the tokens files carry outside the default token paths. */
+export const TOKEN_MAP = { scale: "render.scale", display_width: "render.display-width" };
 
 const viewer = (file) => import(pathToFileURL(join(VIEWER, "dist", file)).href);
 const { Resvg } = createRequire(join(VIEWER, "package.json"))("@resvg/resvg-js");
@@ -57,8 +62,10 @@ const PALETTES = {
 
 /** A synthetic screen: SVG markup plus the boxes of everything drawn, for annotations to aim at. */
 class Screen {
-  constructor(p) {
+  constructor(p, width = W, height = H) {
     this.p = p;
+    this.width = width;
+    this.height = height;
     this.parts = [];
     this.boxes = new Map();
   }
@@ -83,7 +90,7 @@ class Screen {
     return box;
   }
   svg() {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${this.parts.join("")}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}">${this.parts.join("")}</svg>`;
   }
 }
 
@@ -269,6 +276,55 @@ function detail(p) {
   };
 }
 
+/** A 390 px phone capture of the ledger: app bar, a list of task cards, a tab bar. */
+function mobile(p) {
+  const s = new Screen(p, 390, 844);
+  s.rect(0, 0, 390, 844, p.bg);
+  s.rect(0, 56, 390, 1, p.line);
+  s.text(16, 36, "Progress ledger", { size: 17, weight: 600, name: "m:title" });
+  s.rect(334, 14, 40, 28, p.accent, 'rx="6"');
+  s.text(347, 34, "+", { size: 18, fill: "#ffffff", weight: 600 });
+  s.mark("m:add", { x: 334, y: 14, width: 40, height: 28 });
+  const tasks = [
+    "Import bank statements",
+    "Reconcile March ledger",
+    "Approve vendor invoices",
+    "Close payroll period",
+    "Export tax summary",
+    "Archive Q1 receipts",
+    "Review open disputes",
+  ];
+  tasks.forEach((t, i) => {
+    const y = 72 + i * 96;
+    s.rect(12, y, 366, 84, p.panel, `rx="10" stroke="${p.line}"`);
+    s.text(28, y + 28, t, { size: 15, name: `m:task:${i}` });
+    const [label, tone] = STATUS[i % STATUS.length];
+    const pw = label.length * 7 + 20;
+    s.rect(28, y + 44, pw, 22, p[tone], 'rx="11" fill-opacity="0.18"');
+    s.text(38, y + 59, label, { size: 12, fill: p[tone] });
+    s.mark(`m:status:${i}`, { x: 28, y: y + 44, width: pw, height: 22 });
+    s.rect(220, y + 52, 110, 6, p.line, 'rx="3"');
+    s.rect(220, y + 52, (110 * [100, 55, 25, 70, 100, 0, 40][i]) / 100, 6, p.accent, 'rx="3"');
+    s.mark(`m:progress:${i}`, { x: 220, y: y + 48, width: 110, height: 14 });
+  });
+  s.rect(0, 772, 390, 72, p.side);
+  s.rect(0, 772, 390, 1, p.line);
+  ["Inbox", "Ledger", "Cycles", "Me"].forEach((label, i) => {
+    const x = 24 + i * 96;
+    s.rect(x + 14, 786, 20, 20, i === 1 ? p.accent : p.fg2, 'rx="5"');
+    s.text(x + (i === 1 ? 4 : 8), 826, label, { size: 12, fill: i === 1 ? p.fg : p.fg2 });
+    s.mark(`m:tab:${label}`, { x: x, y: 782, width: 48, height: 52 });
+  });
+  return {
+    s,
+    targets: [
+      ["m:status:2", "Blocked tasks stay red until an owner unblocks them", "right"],
+      ["m:tab:Cycles", "Cycles group the work you plan to finish together", "top"],
+      ["m:add", "Add a task from any screen", "bottom"],
+    ],
+  };
+}
+
 /** Annotations for a screen: each target's neighbours (every other drawn box) are its obstacles. */
 function annotationsOf({ s, targets }) {
   const all = [...s.boxes.entries()];
@@ -293,7 +349,7 @@ async function themeFor(mode) {
   const { flattenTokens } = await viewer("burn-theme-tokens.js");
   const from = `trackxai-${mode}.tokens.json`;
   const tokens = flattenTokens(JSON.parse(await readFile(join(EXAMPLES, from), "utf8")));
-  const config = parseThemeConfig({ from }, from);
+  const config = parseThemeConfig({ from, tokens: TOKEN_MAP }, from);
   return resolveBurnTheme(config, { workspace: EXAMPLES, tokens }, from);
 }
 
@@ -303,9 +359,12 @@ async function main() {
   await mkdir(out, { recursive: true });
   const { burnAnnotations } = await viewer("burn.js");
   const written = [];
-  for (const mode of ["light", "dark"]) {
+  const shots = [
+    ["light", [ledger, cards, detail]],
+    ["dark", [ledger, cards, detail, mobile]],
+  ];
+  for (const [mode, builds] of shots) {
     const theme = await themeFor(mode);
-    const builds = [ledger, cards, detail];
     for (const [i, build] of builds.entries()) {
       const screen = build(PALETTES[mode]);
       const png = new Resvg(screen.s.svg(), {
@@ -314,8 +373,18 @@ async function main() {
         .render()
         .asPng();
       const annotations = annotationsOf(screen);
+      // Before: the triangle and stem, at the old fixed 14 px size.
+      const before = {
+        ...theme,
+        connectorStyle: "arrow",
+        scale: 1,
+        fontSize: 14,
+        lineHeight: 20,
+        paddingX: 12,
+        paddingY: 8,
+      };
       for (const [label, t] of [
-        ["before", { ...theme, connectorStyle: "arrow" }],
+        ["before", before],
         ["after", theme],
       ]) {
         const burned = await burnAnnotations({

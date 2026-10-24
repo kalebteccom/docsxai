@@ -51,6 +51,13 @@ export interface PlanInput extends PlaceInput {
    * pinned arrow ignores it, since the author's nudge sets the distance.
    */
   maxDistance?: number;
+  /**
+   * Also try the callout docked in the band along the image's top or bottom edge, this many px
+   * from it, beyond `maxDistance`: a dense screen with no clear spot near the target gets a long
+   * connector to an empty strip. Scored like any other spot, so it wins only when nearer spots
+   * cover content.
+   */
+  dock?: number;
 }
 
 export interface PlannedPlacement extends Placement {
@@ -259,6 +266,27 @@ function pinnedOffsets(side: Side, nudge: { x: number; y: number }) {
   }
 }
 
+/**
+ * Extra distances to try on `side`: {@link EXTRA_DISTANCES} within `maxDistance`, then the docked
+ * spot when `dock` is set and it lies farther out.
+ */
+function extrasFor(inp: PlanInput, side: Side, gap: number): number[] {
+  const t = inp.target;
+  const c = inp.callout;
+  const capped = EXTRA_DISTANCES.filter(
+    (e) => e === 0 || inp.maxDistance === undefined || gap + e <= inp.maxDistance,
+  );
+  if (inp.dock === undefined || inp.pinArrow || (side !== "top" && side !== "bottom")) {
+    return capped;
+  }
+  const room =
+    side === "top"
+      ? t.y - c.height - inp.dock
+      : inp.image.height - inp.dock - c.height - (t.y + t.height);
+  const extra = Math.floor(room - gap);
+  return extra > capped[capped.length - 1]! ? [...capped, extra] : capped;
+}
+
 function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scored> {
   const { image, target: t, callout: c } = inp;
   const nudge = inp.nudge ?? { x: 0, y: 0 };
@@ -278,12 +306,9 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
     const { starts } = slide;
     const centred = starts[0] ?? 0;
     const offsets = pin ? pinnedOffsets(side, nudge) : { across: 0, along: 0 };
-    for (const extra of EXTRA_DISTANCES) {
+    for (const extra of pin ? EXTRA_DISTANCES : extrasFor(inp, side, gap)) {
       for (const baseStart of starts) {
         const distance = pin ? Math.max(arrowLength, gap + extra + offsets.across) : gap + extra;
-        if (!pin && extra > 0 && inp.maxDistance !== undefined && distance > inp.maxDistance) {
-          continue;
-        }
         const start = pin ? clamp(baseStart + offsets.along, slide.lo, slide.hi) : baseStart;
         const l = layout(side, inp, distance, start);
         const rect = { x: l.x, y: l.y, width: c.width, height: c.height };

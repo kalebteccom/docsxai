@@ -58,8 +58,13 @@ async function sample(theme: BurnTheme | undefined) {
     img,
     callout,
     badge,
-    // Right of the centre, clear of the dot a line connector ends in.
-    halo: pixelAt(img, BOX.x + 65, BOX.y + 1),
+    // Right of the centre, clear of the connector. A themed burn draws the ring 3 px outside the
+    // target (the line connector's look); the triangle look draws it on the target's edge.
+    halo: pixelAt(
+      img,
+      BOX.x + 65,
+      theme && theme.connectorStyle !== "arrow" ? BOX.y - 4 : BOX.y + 1,
+    ),
     calloutBackground: pixelAt(img, cx + 6, Math.round(callout.y) + 6),
     calloutBorder: pixelAt(img, cx + Math.floor(callout.width / 2), Math.round(callout.y)),
     badgeFill: pixelAt(img, Math.round(badge.x) + 4, Math.round(badge.y + badge.height / 2)),
