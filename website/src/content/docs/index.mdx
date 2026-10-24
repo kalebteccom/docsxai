@@ -24,7 +24,7 @@ import CopyCommand from "../../components/CopyCommand.astro";
     </div>
     <CopyCommand variant="hero" command="pnpm add -g docsxai@next" label="Copy install command" />
     <p class="docsx-install-note">
-      Installs 0.3.0-rc.3, the current prerelease. <code>latest</code> is still 0.2.0.
+      Installs 0.3.0-rc.4, the current prerelease. <code>latest</code> is still 0.2.0.
       <a href="/getting-started/installation/">Install steps</a>
     </p>
   </div>
@@ -178,7 +178,8 @@ import CopyCommand from "../../components/CopyCommand.astro";
         An interactive viewer with halos and callouts, an Astro Starlight
         site, or burned captions in plain PNGs for places that cannot run
         the viewer. Redactions mask sensitive UI before any pixel hits
-        disk.
+        disk. The text the viewer and the site add comes in English or
+        Spanish, set with <code>--lang</code>.
       </div>
     </div>
     <div class="docsx-card">
@@ -188,8 +189,11 @@ import CopyCommand from "../../components/CopyCommand.astro";
         The halo, numbered badge, callout, and arrow follow a
         <code>burn.theme</code> block: four presets (clean, soft,
         high-contrast, readable), an optional design-tokens file, and per-key
-        overrides. The interactive viewer reads the same theme. Lands after
-        0.3.0-rc.3.
+        overrides. The interactive viewer reads the same theme. The
+        <code>readable</code> preset scales captions with the screenshot, and
+        <code>display_width</code> takes a second width for narrow captures,
+        so a phone variant and a desktop variant both stay legible. In
+        0.3.0-rc.4.
         <a href="/guides/burn-theming/">Read the burn theming guide</a>
       </div>
     </div>
@@ -222,7 +226,7 @@ import CopyCommand from "../../components/CopyCommand.astro";
         label="Copy the CLI install commands"
       />
       <div class="docsx-card-text">
-        <code>docsxai@next</code> is 0.3.0-rc.3 today. Without a tag you get 0.2.0, which has no{" "}
+        <code>docsxai@next</code> is 0.3.0-rc.4 today. Without a tag you get 0.2.0, which has no{" "}
         <code>burn</code>, <code>pack</code>, or matrix flows.
       </div>
     </div>
