@@ -92,7 +92,7 @@ steps:
       - /srv/trackxai-gate-locks:/srv/trackxai-gate-locks
     commands:
       # One slot for all three checks. The last is the page plan of the screenshot scripts; scripts/visual-*.mjs are kept without a runner.
-      - bash scripts/gate-slot.sh bash -ec 'pnpm depcruise && pnpm jscpd:check && node --test scripts/visual-plan.test.mjs'
+      - bash scripts/gate-slot.sh bash -ec 'pnpm depcruise && pnpm jscpd:check && node --test scripts/visual-plan.test.mjs scripts/release-approve.test.mjs'
 
   # Runs after build: the docsxai meta-package test spawns the built dist/ output.
   # The keystone suite inside this step skips itself when the image has no Chromium binary.
