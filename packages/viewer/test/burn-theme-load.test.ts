@@ -133,7 +133,7 @@ describe("a theme font", () => {
       options: { theme },
     });
     const img = decodePng(png);
-    expect(isColour(pixelAt(img, 190, 121), "#e8590c")).toBe(true);
+    expect(isColour(pixelAt(img, 215, 121), "#e8590c")).toBe(true);
   });
 
   it("is refused when it is missing, not a font or a symlink", async () => {
@@ -188,14 +188,14 @@ describe("docsxai-viewer burn with a theme in the workspace", () => {
     expect(await runViewerCli(["burn", ws])).toBe(0);
     expect(out).toContain("burn: wrote 1 image(s)");
     const img = decodePng(await fs.readFile(path.join(ws, "docs/flow/burned/open-sidebar.png")));
-    expect(isColour(pixelAt(img, 190, 121), "#d10000")).toBe(true);
+    expect(isColour(pixelAt(img, 215, 121), "#d10000")).toBe(true);
   });
 
   it("burns today's look when the workspace has no theme", async () => {
     await scaffold({ schema: "docsxai/workspace@1" });
     expect(await runViewerCli(["burn", ws])).toBe(0);
     const img = decodePng(await fs.readFile(path.join(ws, "docs/flow/burned/open-sidebar.png")));
-    expect(isColour(pixelAt(img, 190, 121), "#e8590c")).toBe(true);
+    expect(isColour(pixelAt(img, 215, 121), "#e8590c")).toBe(true);
   });
 
   it("exits 1 and names the key when the block is wrong", async () => {

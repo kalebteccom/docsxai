@@ -225,6 +225,7 @@ describe("the mapping table", () => {
       ["padding_y", "space.callout.y"],
       ["font", "font.file"],
       ["font_weight", "font.weight.caption"],
+      ["connector_style", "shape.connector"],
       ["arrow_size", "size.callout.arrow"],
     ]);
   });

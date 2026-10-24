@@ -57,12 +57,15 @@ const connectors = (t: BurnNode) =>
       (style(n).height as number) <= 6,
   );
 
+// These tests are about the triangle connector, which a themed burn draws when it asks for it.
+const ARROW_THEME: BurnTheme = { ...DEFAULT_BURN_THEME, connectorStyle: "arrow" };
+
 function treeWith(shot: Buffer | undefined, theme?: BurnTheme, anns = [annotation()]) {
   return buildBurnTree({
     image: IMAGE,
     annotations: anns,
     metrics: METRICS,
-    ...(theme ? { theme } : {}),
+    ...(theme ? { theme: { ...theme, connectorStyle: "arrow" as const } } : {}),
     ...(shot ? { pixels: decodeScreenshot(shot, W, H) } : {}),
   });
 }
@@ -87,7 +90,7 @@ describe("a themed burn on a dark screenshot", () => {
       await burnAnnotations({
         screenshotBuffer: darkShot(),
         annotations: [annotation()],
-        options: { theme: DEFAULT_BURN_THEME },
+        options: { theme: ARROW_THEME },
       }),
     );
     const stem = connectors(treeWith(darkShot(), DEFAULT_BURN_THEME)).find(
@@ -134,7 +137,7 @@ describe("a themed burn on a dark screenshot", () => {
         annotations: [annotation()],
         options: { connector: "off", ...(theme ? { theme } : {}) },
       });
-    const off = decodePng(await run(DEFAULT_BURN_THEME));
+    const off = decodePng(await run(ARROW_THEME));
     const s = rectOf(
       connectors(treeWith(darkShot(), DEFAULT_BURN_THEME)).find(
         (n) => style(n).clipPath === undefined,

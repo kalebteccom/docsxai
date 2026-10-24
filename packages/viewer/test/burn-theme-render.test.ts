@@ -58,7 +58,8 @@ async function sample(theme: BurnTheme | undefined) {
     img,
     callout,
     badge,
-    halo: pixelAt(img, BOX.x + 40, BOX.y + 1),
+    // Right of the centre, clear of the dot a line connector ends in.
+    halo: pixelAt(img, BOX.x + 65, BOX.y + 1),
     calloutBackground: pixelAt(img, cx + 6, Math.round(callout.y) + 6),
     calloutBorder: pixelAt(img, cx + Math.floor(callout.width / 2), Math.round(callout.y)),
     badgeFill: pixelAt(img, Math.round(badge.x) + 4, Math.round(badge.y + badge.height / 2)),
@@ -77,10 +78,14 @@ async function sample(theme: BurnTheme | undefined) {
   };
 }
 
+// A themed burn draws the line connector by default; with the triangle asked for, the default theme
+// is today's look exactly.
+const DEFAULT_WITH_ARROW: BurnTheme = { ...DEFAULT_BURN_THEME, connectorStyle: "arrow" };
+
 describe("the default theme", () => {
   it("renders the same bytes as no theme at all", async () => {
     const plain = await sample(undefined);
-    const explicit = await sample(DEFAULT_BURN_THEME);
+    const explicit = await sample(DEFAULT_WITH_ARROW);
     expect(explicit.png.equals(plain.png)).toBe(true);
   });
 
@@ -90,7 +95,7 @@ describe("the default theme", () => {
       annotations: structuredClone(FIXTURE),
       metrics: METRICS,
     };
-    expect(buildBurnTree({ ...input, theme: DEFAULT_BURN_THEME })).toEqual(buildBurnTree(input));
+    expect(buildBurnTree({ ...input, theme: DEFAULT_WITH_ARROW })).toEqual(buildBurnTree(input));
   });
 
   it("draws the orange halo, white callout, near-black outline and badge it always did", async () => {
@@ -209,6 +214,7 @@ describe("a light connector", () => {
       callout_background: "#111111",
       ink: "#ffffff",
       callout_border_color: "#f5f5f5",
+      connector_style: "arrow",
     });
     const onWhite = buildBurnTree({
       image: { width: 400, height: 300, dataUri: "data:image/png;base64,AAAA" },
