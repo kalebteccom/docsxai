@@ -173,6 +173,7 @@ export default defineConfig({
             { label: "MCP tools", slug: "reference/mcp-tools" },
             { label: "Backend API", slug: "reference/backend-api" },
             { label: "Actionability contract", slug: "reference/actionability" },
+            { label: "Screens pack manifest", slug: "reference/pack-manifest" },
           ],
         },
         {

@@ -63,6 +63,13 @@ export const htmlPages = [
       "Steer where burned callouts land: the annotation record keys, side hints, obstacles, the badge, scale and display_width, and what to do when a callout covers text.",
   },
   {
+    src: "docs/pack-manifest.md",
+    out: "reference/pack-manifest.md",
+    title: "Screens pack manifest",
+    description:
+      "Reference for the manifest.json that docsxai pack writes and pack --check reads (docsxai/screens-pack@2), the pack.json that feeds it, and the version policy.",
+  },
+  {
     src: "docs/security-best-practices-for-adopters.md",
     out: "guides/security-best-practices.md",
     title: "Security best practices",

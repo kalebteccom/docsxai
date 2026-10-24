@@ -25,6 +25,7 @@ website/src/content/docs/guides/burn-theming.md
 website/src/content/docs/guides/annotation-placement.md
 website/src/content/docs/guides/security-best-practices.md
 website/src/content/docs/reference/actionability.md
+website/src/content/docs/reference/pack-manifest.md
 website/src/content/docs/packages/engine.md
 website/src/content/docs/packages/plugin.md
 website/src/content/docs/packages/mcp.md
