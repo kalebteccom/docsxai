@@ -62,7 +62,7 @@ The callout outline colour follows `ink` until a preset, the tokens file or the 
 | `caption_style`        | string             | `full`, `badge`, `auto`                         | `full`            | Caption, or badge only, see [Caption style](#caption-style).                  |
 | `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Triangle length for `connector_style: "arrow"`. Its base is 7/4 of that wide. |
 | `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, see [Scale](#scale).             |
-| `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | `1`               | Multiplies every caption dimension, see [Scale](#scale).                      |
+| `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | the pixel ratio   | Multiplies every caption dimension, see [Scale](#scale).                      |
 | `display_width`        | number or object   | 240 to 2400 px, or an object                    | `720`             | CSS px shown at, or a wide and narrow pair, see [Scale](#scale).              |
 
 Numbers are plain values without a unit: px for sizes, a share for `max_width_ratio`, a factor for `scale`. Colours are stored as lowercase `#rrggbb`.
@@ -73,8 +73,9 @@ A screenshot wider than the column it is shown in gets scaled down by the page, 
 
 `scale` multiplies every caption dimension: text size, line height, padding, outline, radius, shadow, connector, badge, halo and the callout's width. The layout (which side the callout takes, where it slides) is decided at base size and then multiplied, so a scaled caption sits where the unscaled one sits.
 
-- A number such as `1.5` or `2` is used as written.
-- `"auto"` uses `max(1, screenshot width / display_width)`, at most 4, so a screenshot wider than its column gets a larger caption and a narrower one keeps base size. A 1440 px screenshot with the default `display_width` of 720 gives 2. A 390 px screenshot gives 1.
+- Without `scale` the factor is the capture's pixel ratio (`device_scale_factor` in `annotations.json`, else 1). A 2x capture gets a caption twice as large in image pixels, so it has the 1x capture's size in CSS px. A 1x capture burns as before.
+- A number such as `1.5` or `2` is used as written, whatever the pixel ratio. `scale: 1` keeps the caption at base size in image pixels, which is the look 2x captures had before.
+- `"auto"` uses `max(pixel ratio, screenshot width / display_width)`, at most 4 times the pixel ratio, so a screenshot wider than its column gets a larger caption and a narrower one keeps base size. A 1440 px screenshot with the default `display_width` of 720 gives 2. A 390 px screenshot gives 1, and the same screen at 2x (780 px) gives 2.
 
 `display_width` is the width in CSS px the page shows the screenshot at. It only matters for `"auto"`. Wide and narrow screenshots shown at different widths take an object, see [Wide and narrow images](#wide-and-narrow-images).
 
@@ -112,7 +113,7 @@ A screenshot narrower than `narrow_below` image pixels (default 900) uses `narro
 - The number form has no narrow width. A number written in the block replaces an object from a lower layer.
 - A tokens file can supply the object through `tokens`, as the value of the mapped token.
 - It only changes `scale: "auto"`. An explicit `scale` ignores it, and the viewer's CSS variables do not read `display_width`.
-- In code the resolved theme carries `displayWidth`, `displayWidthNarrow` and `narrowBelow` (the last two are `null` for the number form), and `captionScale(theme, imageWidth)` picks the width.
+- In code the resolved theme carries `displayWidth`, `displayWidthNarrow` and `narrowBelow` (the last two are `null` for the number form), and `captionScale(theme, imageWidth, pixelRatio)` picks the width. The resolved `scale` is `null` when no layer sets it, which means the pixel ratio.
 
 ## Making captions legible on a docs site
 
@@ -216,7 +217,9 @@ A row is CHECK when the caption covers listed text or the phone header or nav, t
 
 A portrait capture under 900 px wide is treated as a phone screen. Its top 56 px (the header), bottom 56 px (the nav bar), the floating action button above the nav bar's right end (76 by 80 px) and a 16 px strip on each side are content. Captions stay off them, and badges stay off the header, nav bar and button. A caption docks 64 px from the top or bottom edge, under the header or above the nav bar. On a screenshot under 900 px wide the smaller text step is compact: 16 px lines for the 14 px text, 4 px of vertical padding and 8 px of horizontal padding.
 
-Those sizes are CSS px. A 2x capture (780 by 1688 px for a 390 by 844 viewport) is burned with the `pixelRatio` option set to 2 (`scripts/burn-trackxai.mjs --dpr 2`): the width classes and `display_width` read the CSS width (`780 / 2`), the bands, margins, text floors and the pixel text search double, and `scale: "auto"` still gives `780 / display_width`. Sidecar boxes are in the PNG's own pixels. `docsxai burn` sets `pixelRatio` from the `device_scale_factor` that `docsxai run --device-scale-factor` writes into `annotations.json`, so a workspace captured at 2x needs no flag.
+Those sizes are CSS px. A 2x capture (780 by 1688 px for a 390 by 844 viewport) is burned with the `pixelRatio` option set to 2 (`scripts/burn-trackxai.mjs --dpr 2`): the width classes and `display_width` read the CSS width (`780 / 2`), the bands, margins, text floors and the pixel text search double, the default scale is 2, and `scale: "auto"` gives `780 / display_width`, at least 2. Sidecar boxes are in the PNG's own pixels. `docsxai burn` sets `pixelRatio` from the `device_scale_factor` that `docsxai run --device-scale-factor` writes into `annotations.json`, so a workspace captured at 2x needs no flag.
+
+Before this release the default scale was 1 at every pixel ratio, so a 2x capture's caption showed at half size: 14 px text read as 7 CSS px. A pack built from 2x captures with the old default changes once. `pack --check` against that pack reports the 2x images as changed and exits 1. Run `docsxai pack` and commit the new pack, or set `"scale": 1` in `burn.theme` to keep the old size.
 
 ## Line breaks
 
@@ -226,7 +229,7 @@ A burn without a theme fills each line, as it always did.
 
 ## Presets
 
-Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` keep `scale` at 1, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62, `display_width` at 720, `connector_style` at `auto` and `caption_style` at `full`.
+Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` leave `scale` at the pixel ratio, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62, `display_width` at 720, `connector_style` at `auto` and `caption_style` at `full`.
 
 | Key                    | `clean`                               | `soft`                                  | `high-contrast` |
 | ---------------------- | ------------------------------------- | --------------------------------------- | --------------- |
@@ -335,6 +338,16 @@ A tokens file that defines none of the default paths and maps none is an error t
 The file is refused when it does not exist, is a symlink, is over 16 MiB, is a collection (`.ttc`), is a WOFF or WOFF2 file, or lacks the `head`, `hhea`, `hmtx` or `cmap` tables the burner measures with. One weight is used: the file's own. `font_weight` selects 400 or 600 and the file must be that weight, for example a semibold TTF with `font_weight: 600`. The bundled Inter is regular only, so `600` without a `font` prints a warning and the text stays 400.
 
 In the interactive viewer the font is embedded in each flow page as a `data:` URI, and the page's content security policy gains `font-src data:` and nothing else. A page built without a font file keeps the policy it always had.
+
+### Characters the font can't draw
+
+The burner uses one font and no fallback. The bundled Inter covers Latin, Greek and Cyrillic, but not Chinese, Japanese, Korean, Arabic, Hebrew, Thai, Devanagari or emoji. Those characters would burn as empty boxes, so the burner checks every drawn caption against the font's character map first. A miss prints a warning naming the annotation and the script:
+
+```text
+burn: annotation "#login" on step "open": the caption has Katakana, Han characters the font can't draw (ロ グ 設 定), so they burn as empty boxes. Set burn.theme.font to a font that covers them
+```
+
+The image is still written. The report entry gets `missing_glyphs` with the Unicode script names (`["Katakana", "Han"]`; `Emoji` and `Symbols` for the rest). `docsxai burn --strict-glyphs` exits 1 when any caption has one, for CI. To fix it, set `font` to a TTF or OTF that covers the script, such as a Noto Sans file for the language. Arabic and Hebrew captions are still laid out left to right, even with a font that covers them.
 
 ## Contrast
 

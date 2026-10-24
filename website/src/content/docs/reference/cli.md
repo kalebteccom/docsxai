@@ -33,7 +33,7 @@ docsxai login --backend-url <url> [--oauth <workspace-dir>]
 docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 docsxai pull <workspace-dir> [--rev <id>]
 docsxai render <workspace-dir>
-docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
+docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline] [--strict-glyphs]
 docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
 docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
 docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
@@ -378,8 +378,11 @@ threshold (`--max-overlap <ratio>`) is a flag of the viewer's own bin,
 `docsxai-viewer burn`; `docsxai burn` does not forward it. `--no-connector-outline`
 skips reading the screenshot's pixels: an arrow or stem stays plain ink (by default one over
 a dark part of the screenshot gets a white outline), a themed line keeps the callout's outline
-colour, and no text is estimated from the pixels. Exit 1 when the workspace has no `docs/`
-directory or no flow to burn; exit 2 for a bad flag.
+colour, and no text is estimated from the pixels. A caption with characters the font
+can't draw (Japanese, Arabic, Hebrew, Thai with the bundled font) prints a warning naming
+the annotation and the script, and its report entry gets `missing_glyphs`;
+`--strict-glyphs` then exits 1, see [the font guide](/guides/burn-theming/#characters-the-font-cant-draw).
+Exit 1 when the workspace has no `docs/` directory or no flow to burn; exit 2 for a bad flag.
 
 An annotation whose `bounding_box` lies outside the screenshot, has zero or negative
 size, or holds `NaN` or infinity is skipped with a warning that names its selector and

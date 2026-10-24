@@ -62,7 +62,7 @@ With the `arrow` connector it sits 8 px up and left of the halo. When the annota
 
 ## Scale and display_width
 
-A screenshot wider than its column shrinks, and the caption shrinks with it. `scale` multiplies every caption dimension, and `"auto"` uses `max(1, imageWidth / display_width)`, at most 4. On the page a length ends up as:
+A screenshot wider than its column shrinks, and the caption shrinks with it. `scale` multiplies every caption dimension. Without it the factor is the pixel ratio, and `"auto"` uses `max(pixelRatio, imageWidth / display_width)`, at most 4 times the pixel ratio. On the page a length ends up as:
 
 ```text
 on-screen px = fontSize x auto x displayWidth / imageWidth
