@@ -99,7 +99,7 @@ describe.skipIf(!engineBuilt || !viewerBuilt)("`docsxai burn` through the bare b
   it("--help lists burn with its flags", async () => {
     const r = await docsxai("--help");
     expect(r.stdout).toContain(
-      "docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]",
+      "docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>]",
     );
   });
 

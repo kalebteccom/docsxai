@@ -50,10 +50,10 @@ describe("help", () => {
   it("lists pack and pack --check with their flags, and no drift command", async () => {
     expect(await main(["--help"])).toBe(0);
     expect(out).toContain(
-      "docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]",
+      "docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>]\n      [--no-optimise] [--generated-for <text>]",
     );
     expect(out).toContain(
-      "docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]",
+      "docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw]\n      [--threshold <pct>]",
     );
     expect(out).not.toContain("docsxai drift <workspace-or-raw-dir>");
     expect(out).toContain("brew install oxipng");

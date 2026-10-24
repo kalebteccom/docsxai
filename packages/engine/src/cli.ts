@@ -7,6 +7,7 @@
 // the colocated tests) are unchanged. The clusters import shared helpers from cli-shared.ts (a leaf)
 // and the help text from cli-usage.ts — no cluster imports back from here, so there's no cycle.
 //   • cli-usage.ts             — the USAGE help-text constant
+//   • cli-help.ts              — help screens, per-command help and "did you mean"
 //   • cli-shared.ts            — parseFlags + listFlowFiles (the shared leaf)
 //   • cli-commands-session.ts  — init / calibrate / run (live-browser + scaffolding)
 //   • cli-commands-auth.ts     — capture-auth
@@ -17,7 +18,7 @@
 
 import { pathToFileURL } from "node:url";
 import { runDoctor } from "./doctor.js";
-import { USAGE } from "./cli-usage.js";
+import { tryHelp, unknownCommand } from "./cli-help.js";
 import { runAsBin } from "./cli-unexpected.js";
 import { cmdCaptureAuth } from "./cli-commands-auth.js";
 import { cmdCalibrate, cmdInit, cmdRun } from "./cli-commands-session.js";
@@ -51,12 +52,13 @@ export async function main(argv: string[]): Promise<number> {
     warnDeprecated(`the ${cmd} command`, retired);
     return main(retired.rewrite(rest));
   }
+  const helped = tryHelp(cmd, rest);
+  if (helped !== undefined) return helped;
   switch (cmd) {
     case undefined:
     case "--help":
     case "-h":
     case "help":
-      process.stdout.write(USAGE + "\n");
       return 0;
     case "init":
       return cmdInit(rest);
@@ -101,10 +103,7 @@ export async function main(argv: string[]): Promise<number> {
     case "pull":
       return cmdPull(rest);
     default:
-      process.stderr.write(
-        `unknown command: ${cmd}\nrun \`docsxai --help\` to list the commands\n`,
-      );
-      return 2;
+      return unknownCommand(cmd);
   }
 }
 
