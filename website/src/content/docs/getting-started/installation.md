@@ -24,8 +24,10 @@ ships stable, `latest` moves and the `@next` suffix is no longer needed.
 
 `docsxai` is the batteries-included meta-package - its bin runs
 [`@docsxai/engine`](/packages/engine/)'s CLI in-process, and it depends on
-[`@docsxai/viewer`](/packages/viewer/) so the `docsxai-viewer` bin (which
-`docsxai render` spawns) lands on your path too. Render works out of the box.
+[`@docsxai/viewer`](/packages/viewer/), which `docsxai render` and `docsxai burn` find on their
+own. Render works out of the box. A global install does not put the `docsxai-viewer` command on
+your path. To call it directly, for example to build Spanish pages with `--lang es`, install
+`@docsxai/viewer@next` as well.
 
 Prefer granular installs? The scoped packages are the same code:
 
