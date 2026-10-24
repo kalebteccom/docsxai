@@ -103,7 +103,7 @@ export function normalizeAccent(input: string): string {
     const [r, g, b] = raw;
     return `#${r!}${r!}${g!}${g!}${b!}${b!}`;
   }
-  throw new Error(`invalid accent color "${input}" — expected a hex color like #2563eb`);
+  throw new Error(`invalid accent color "${input}": expected a hex color like #2563eb`);
 }
 
 /** The `--sl-color-accent-*` scale for both themes, derived deterministically from one hex. */
@@ -394,7 +394,7 @@ export async function emitStarlightSite(
       ? logoConfigured
       : path.join(opts.workspaceDir, logoConfigured);
     if (await exists(resolved)) logoSrc = resolved;
-    else warnings.push(`logo not found: ${resolved} — emitting without a logo`);
+    else warnings.push(`logo not found: ${resolved}, emitting without a logo`);
   }
   const logoRel = logoSrc !== null ? `src/assets/logo${path.extname(logoSrc) || ".png"}` : null;
 

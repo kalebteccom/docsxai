@@ -12,7 +12,7 @@ import { DEFAULT_PUBLIC_PREFIX } from "./pack-schema.js";
 import { readRawCapture, type PackSource } from "./pack-source.js";
 import { PACK_CONFIG_FILE, readWorkspace } from "./pack-workspace.js";
 import { writePack } from "./pack-write.js";
-import { reportFailure } from "./cli-failure.js";
+import { reportFailure, withNext } from "./cli-failure.js";
 
 export const PACK_SYNOPSIS = `  docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
   docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]`;
@@ -58,8 +58,14 @@ function parseArgs(argv: string[], valued: string[], bare: string[]): Parsed | s
   return { positional: positionals[0]!, values, flags };
 }
 
+/** The message, the usage lines of `pack` (both forms) and a pointer to the full help. Returns exit code 2. */
 function usageError(command: string, message: string): number {
-  process.stderr.write(`${command}: ${message}\n\nUsage:\n${PACK_SYNOPSIS}\n\n${PACK_DETAILS}\n`);
+  const usage = PACK_SYNOPSIS.split("\n")
+    .map((l, i) => `${i === 0 ? "usage: " : "       "}${l.trim()}\n`)
+    .join("");
+  process.stderr.write(
+    `${command}: ${message}\n${usage}run \`docsxai-viewer\` with no arguments for every flag\n`,
+  );
   return 2;
 }
 
@@ -74,7 +80,15 @@ async function loadSource(
   dir: string,
   fromRaw: boolean,
 ): Promise<{ source: PackSource; workspace: boolean }> {
-  if (!(await isDirectory(dir))) throw new Error(`${dir} is not a directory`);
+  const stat = await fs.stat(dir).catch(() => null);
+  if (!stat?.isDirectory()) {
+    throw new Error(
+      withNext(
+        stat ? `${dir} is a file, not a directory` : `${dir} does not exist`,
+        "pass a workspace (docs/ and pack.json) or a raw capture directory",
+      ),
+    );
+  }
   if (fromRaw || !(await isDirectory(path.join(dir, "docs")))) {
     return { source: await readRawCapture(dir), workspace: false };
   }

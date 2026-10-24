@@ -13,7 +13,15 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { isDirectory, reportFailure, requireInputDir, withNext } from "./cli-failure.js";
+import {
+  astroFailureText,
+  isDirectory,
+  reportFailure,
+  requireInputDir,
+  shellQuote,
+  unknownFlowsNote,
+  withNext,
+} from "./cli-failure.js";
 import { isMainModule } from "./main-module.js";
 
 export {
@@ -194,8 +202,10 @@ export { diffGrids, diffPngs, type PixelDiff } from "./pack-pixels.js";
 import { buildViewer, discoverFlows, selectFlows } from "./render.js";
 import { workspaceTheme } from "./burn-theme-load.js";
 import { burnFlow, burnReport } from "./burn.js";
+import { AnnotationsFileError } from "./burn-annotations-file.js";
 import { DEFAULT_UNPLACEABLE_RATIO, type FlowBurnReport } from "./burn-report.js";
 import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
+import { normalizeAccent } from "./starlight-emit.js";
 import { PACK_DETAILS, PACK_SYNOPSIS, runPack } from "./pack-cli.js";
 import { asksHelp, commandHelp, usageLines } from "./viewer-help.js";
 
@@ -353,6 +363,11 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     const found = await discoverFlows(docsDir, { variants: true });
     // `--flow <name>` also selects the `<name>/<variant>` outputs of a flow that ran a matrix.
     const flows = args.flows.length ? selectFlows(found, args.flows) : found;
+    const unknown = unknownFlowsNote(args.flows, found, docsDir, workspace);
+    if (unknown) {
+      process.stderr.write(`burn: ${unknown}\n`);
+      return 1;
+    }
     if (flows.length === 0) {
       const note = withNext(
         `no flows with annotations.json under ${docsDir}`,
@@ -392,6 +407,14 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     }
     return 0;
   } catch (e) {
+    if (e instanceof AnnotationsFileError) {
+      const note = withNext(
+        e.message,
+        `fix ${shellQuote(e.file)}, then docsxai burn ${shellQuote(workspace)}`,
+      );
+      process.stderr.write(`burn: ${note}\n`);
+      return 1;
+    }
     return reportFailure("burn", e);
   }
 }
@@ -401,6 +424,16 @@ async function runSite(args: ParsedArgs): Promise<number> {
   const [workspace] = args.positional;
   if (!workspace) return usageError("site", "requires <workspace>");
   const outDir = args.out ?? path.join(workspace, "site");
+  if (args.accent !== undefined) {
+    try {
+      normalizeAccent(args.accent);
+    } catch {
+      return usageError(
+        "site",
+        `--accent must be a hex colour like #2563eb (got ${JSON.stringify(args.accent)})`,
+      );
+    }
+  }
   if (
     !(await requireInputDir(
       "site",
@@ -435,7 +468,7 @@ async function runSite(args: ParsedArgs): Promise<number> {
     if (args.build) {
       const b = await buildStarlightSite({ siteDir: outDir });
       if (!b.ok) {
-        process.stderr.write(`site: astro build failed\n${b.stderr}\n`);
+        process.stderr.write(`site: ${astroFailureText(b.stderr, outDir)}\n`);
         return 1;
       }
       process.stdout.write(`site: built ${b.distDir} in ${Math.round(b.durationMs)}ms\n`);
@@ -460,8 +493,13 @@ export async function runViewerCli(argv: string[]): Promise<number> {
   if (command === "burn") return runBurn(parseArgs(rest));
   if (command === "site") return runSite(parseArgs(rest));
   if (command === "pack") return runPack(rest);
+  if (command === undefined || command === "--help" || command === "-h" || command === "help") {
+    process.stdout.write(USAGE + "\n");
+    return 0;
+  }
+  process.stderr.write(`docsxai-viewer: unknown command ${JSON.stringify(command)}\n`);
   process.stdout.write(USAGE + "\n");
-  return argv.length === 0 ? 0 : 2;
+  return 2;
 }
 
 if (isMainModule(import.meta.url, process.argv[1])) {

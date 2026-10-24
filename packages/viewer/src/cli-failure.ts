@@ -4,6 +4,7 @@
 // mistyped path cannot leave an empty output behind. Leaf module (node built-ins only).
 
 import { existsSync, promises as fs } from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 const REASONS: Record<string, string> = {
@@ -14,7 +15,7 @@ const REASONS: Record<string, string> = {
 };
 
 /** `value` as one shell word: bare when it is made of safe characters, else single-quoted. */
-function shellQuote(value: string): string {
+export function shellQuote(value: string): string {
   return /^[\w./@:+-]+$/.test(value) ? value : `'${value.replace(/'/g, "'\\''")}'`;
 }
 
@@ -106,4 +107,53 @@ export async function requireInputDir(
 export async function reportFailure(command: string, e: unknown): Promise<number> {
   process.stderr.write(`${command}: ${await failureText(e)}\n`);
   return 1;
+}
+
+const ASTRO_LINES = 12;
+
+/**
+ * What a failed `astro build` shows: the first lines of astro's own report, cut before any stack
+ * trace, with the home directory as `~`, every `node_modules` path shortened and `siteDir` as
+ * `<site>`, and the command that prints the whole log.
+ */
+export function astroFailureText(stderr: string, siteDir: string): string {
+  const kept: string[] = [];
+  for (const line of stderr.split("\n")) {
+    if (/^\s*(Stack trace:|at )/.test(line)) break;
+    if (line.trim() !== "") kept.push(line);
+  }
+  const home = os.homedir();
+  const scrub = (line: string): string =>
+    line
+      .split(path.resolve(siteDir))
+      .join("<site>")
+      .split(home)
+      .join("~")
+      .replace(/(?:file:\/\/)?\/[^\s'")]*?node_modules\//g, "node_modules/");
+  const shown = kept.slice(0, ASTRO_LINES).map(scrub);
+  const more = kept.length > ASTRO_LINES ? [`... ${kept.length - ASTRO_LINES} more line(s)`] : [];
+  return withNext(
+    ["astro build failed:", ...shown.map((l) => `  ${l}`), ...more].join("\n"),
+    `cd ${shellQuote(siteDir)} && npx astro build  (prints the whole log)`,
+  );
+}
+
+/**
+ * The error for `--flow` names that have no `annotations.json` under `docsDir` (a matrix flow's
+ * `<name>/<variant>` outputs count as the name), or `undefined` when every name has one.
+ */
+export function unknownFlowsNote(
+  wanted: readonly string[],
+  found: readonly string[],
+  docsDir: string,
+  workspace: string,
+): string | undefined {
+  const unknown = wanted.filter(
+    (w) => !found.includes(w) && !found.some((f) => f.startsWith(`${w}/`)),
+  );
+  if (found.length === 0 || unknown.length === 0) return undefined;
+  return withNext(
+    `no flow ${unknown.map((f) => JSON.stringify(f)).join(", ")} with annotations.json under ${docsDir} (flows: ${found.join(", ")})`,
+    `docsxai run ${shellQuote(workspace)}, or pass --flow <name> with one of the flows`,
+  );
 }
