@@ -80,3 +80,29 @@ describe("burn tree neighbours of a skipped box", () => {
     expect(both.report[1]).toEqual(alone.report[0]);
   });
 });
+
+describe("burn with a non-finite nudge", () => {
+  for (const [name, nudge] of [
+    ["NaN x", { x: Number.NaN, y: 0 }],
+    ["NaN y", { x: 0, y: Number.NaN }],
+    ["infinite x", { x: Infinity, y: 0 }],
+  ] as const) {
+    it(`burns a nudge with ${name} as if that part were 0`, async () => {
+      const burn = (extra: Partial<AnnotationRecord>) =>
+        renderBurn({
+          screenshotBuffer: solidPng(300, 200, [255, 255, 255]),
+          annotations: [ann({ x: 100, y: 80, width: 50, height: 30 }, extra)],
+          options: { warn: () => {} },
+        });
+      const out = await burn({ nudge });
+      const zero = await burn({
+        nudge: {
+          x: Number.isFinite(nudge.x) ? nudge.x : 0,
+          y: Number.isFinite(nudge.y) ? nudge.y : 0,
+        },
+      });
+      expect(out.report[0]!.skipped).toBeUndefined();
+      expect(out.png.equals(zero.png)).toBe(true);
+    });
+  }
+});

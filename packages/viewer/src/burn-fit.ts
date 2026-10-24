@@ -28,6 +28,13 @@ export function fitBox(box: BoundingBox, image: { width: number; height: number 
   return { box: { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } };
 }
 
+/** `ann` with a non-finite part of its `nudge` read as 0: satori throws on a NaN position. */
+function withFiniteNudge(ann: AnnotationRecord): AnnotationRecord {
+  const { nudge } = ann;
+  if (!nudge || (isNum(nudge.x) && isNum(nudge.y))) return ann;
+  return { ...ann, nudge: { x: isNum(nudge.x) ? nudge.x : 0, y: isNum(nudge.y) ? nudge.y : 0 } };
+}
+
 /** `ann` with its box clipped to the image, or the reason it can't be drawn. */
 export function fitAnnotation(
   ann: AnnotationRecord,
@@ -41,5 +48,6 @@ export function fitAnnotation(
     fit.box.y === ann.bounding_box.y &&
     fit.box.width === ann.bounding_box.width &&
     fit.box.height === ann.bounding_box.height;
-  return { ann: same ? ann : { ...ann, bounding_box: fit.box } };
+  const clipped = same ? ann : { ...ann, bounding_box: fit.box };
+  return { ann: withFiniteNudge(clipped) };
 }
