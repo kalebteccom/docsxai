@@ -7,6 +7,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Fixed
 
 - **Doc pack, annotation, style and export writes are atomic.** `run`, `pull`, `style`, `run --verify-determinism` and `export adf` write to a temp file in the same directory and rename it over the target, so an interrupted write leaves the previous file instead of a truncated `annotations.json`. An existing file keeps its mode, and where the rename is refused (Windows) the write falls back to a plain overwrite.
+- **`docsxai baseline` keeps the previous snapshot when a refresh fails.** The new snapshot is built in a staging directory inside the output directory and swapped in after every file is copied, so a full disk or a read error no longer leaves `.baseline/` without `flows/` and `docs/`.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

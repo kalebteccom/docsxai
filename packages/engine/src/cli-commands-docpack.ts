@@ -8,6 +8,7 @@
 //   baseline  — snapshot the doc pack into .baseline/ as the "before" for diff
 //   diff      — drift report against a baseline (the after-vs-before)
 
+import { randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import {
@@ -285,29 +286,29 @@ export async function cmdBaseline(args: string[]): Promise<number> {
     );
   }
 
+  let stage = "";
   try {
     // Refresh = replace: a baseline is a derived snapshot, so the previous one is dropped whole
-    // rather than merged (a stale leftover file would read as drift).
-    await fs.rm(path.join(outDir, "flows"), { recursive: true, force: true });
-    await fs.rm(path.join(outDir, "docs"), { recursive: true, force: true });
-
+    // rather than merged (a stale leftover file would read as drift). The new snapshot is built
+    // in a staging directory first and swapped in, so a failed copy keeps the previous baseline.
+    stage = path.join(outDir, `.staging-${process.pid}-${randomBytes(4).toString("hex")}`);
     let copied = 0;
     const flowsDir = resolveWorkspacePath(projectDir, "flows");
     for (const entry of (await fs.readdir(flowsDir).catch(() => [] as string[])).sort()) {
       if (!entry.endsWith(".flow.yaml")) continue;
-      copied += await copyIfExists(path.join(flowsDir, entry), path.join(outDir, "flows", entry));
+      copied += await copyIfExists(path.join(flowsDir, entry), path.join(stage, "flows", entry));
     }
 
     const docsDir = resolveWorkspacePath(projectDir, "docs");
     copied += await copyIfExists(
       path.join(docsDir, "locators.yaml"),
-      path.join(outDir, "docs", "locators.yaml"),
+      path.join(stage, "docs", "locators.yaml"),
     );
     const docEntries = await fs.readdir(docsDir, { withFileTypes: true }).catch(() => []);
     for (const entry of docEntries.sort((x, y) => x.name.localeCompare(y.name))) {
       if (!entry.isDirectory()) continue;
       const flowDir = path.join(docsDir, entry.name);
-      const outFlowDir = path.join(outDir, "docs", entry.name);
+      const outFlowDir = path.join(stage, "docs", entry.name);
       for (const f of (await fs.readdir(flowDir).catch(() => [] as string[])).sort()) {
         if (f.endsWith(".md") || f === "annotations.json") {
           copied += await copyIfExists(path.join(flowDir, f), path.join(outFlowDir, f));
@@ -321,6 +322,13 @@ export async function cmdBaseline(args: string[]): Promise<number> {
           path.join(outFlowDir, "screenshots", f),
         );
       }
+    }
+
+    for (const part of ["flows", "docs"]) {
+      await fs.rm(path.join(outDir, part), { recursive: true, force: true });
+      await fs.rename(path.join(stage, part), path.join(outDir, part)).catch((e: unknown) => {
+        if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+      });
     }
 
     process.stdout.write(
@@ -337,6 +345,8 @@ export async function cmdBaseline(args: string[]): Promise<number> {
   } catch (e) {
     process.stderr.write(`baseline: ${describeFsError(e) ?? (e as Error).message}\n`);
     return 1;
+  } finally {
+    if (stage) await fs.rm(stage, { recursive: true, force: true });
   }
 }
 

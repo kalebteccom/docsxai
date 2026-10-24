@@ -561,6 +561,22 @@ describe("baseline + diff CLI", () => {
     expect(out).toMatch(/no drift detected/);
   });
 
+  it("a baseline refresh that fails partway keeps the previous snapshot", async () => {
+    const ws = await makePack({ prose: { "pay.md": "Pay.\n" } });
+    expect(await main(["baseline", ws])).toBe(0);
+    const kept = path.join(ws, ".baseline", "docs", "checkout", "pay.md");
+    await fs.access(kept);
+
+    const copy = vi
+      .spyOn(fs, "copyFile")
+      .mockRejectedValue(Object.assign(new Error("no space left"), { code: "ENOSPC" }));
+    expect(await main(["baseline", ws])).toBe(1);
+    copy.mockRestore();
+    await fs.access(kept);
+    await fs.access(path.join(ws, ".baseline", "flows", "checkout.flow.yaml"));
+    expect((await fs.readdir(path.join(ws, ".baseline"))).sort()).toEqual(["docs", "flows"]);
+  });
+
   it("baseline --out pointing at the workspace is refused and leaves flows/ and docs/ alone", async () => {
     const ws = await makePack({ prose: { "pay.md": "Pay.\n" } });
     expect(await main(["baseline", ws, "--out", ws])).toBe(2);
