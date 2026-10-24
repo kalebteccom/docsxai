@@ -32,20 +32,21 @@ import {
 import { loadThemeFont } from "./burn-theme-load.js";
 import { rgbaOf } from "./color.js";
 import { badgeNode, calloutNodes, calloutStyleOf, div, effectiveWeight } from "./burn-nodes.js";
-import { DOCK_MARGIN, haloBox, withPixelObstacles } from "./burn-clean.js";
+import {
+  DOCK_MARGIN,
+  DOCK_MAX_SHARE,
+  cornerBadge,
+  haloBox,
+  withOtherTargets,
+  withPixelObstacles,
+} from "./burn-clean.js";
+import { planClean } from "./burn-clean-plan.js";
 import { LINE_GAP, LINE_MAX_DISTANCE, drawnStyle } from "./burn-line.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
 import { parseFontMetrics, type FontMetrics } from "./font-metrics.js";
 import { atBaseSize, layoutAtScale, scaleRect } from "./burn-scale.js";
-import {
-  badgeBox,
-  badgeAnchor,
-  badgeSize,
-  keepClear,
-  otherHalos,
-  OUTSIDE_HALO_MARGIN,
-} from "./burn-badge.js";
+import { badgeBox, badgeSize, keepClear, otherHalos, OUTSIDE_HALO_MARGIN } from "./burn-badge.js";
 import {
   layoutBoxes,
   layoutCallout,
@@ -166,6 +167,8 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     },
   ];
   const placed: Rect[] = [];
+  /** Caption boxes drawn so far, at base size; a clean caption never covers one. */
+  const captions: Rect[] = [];
   const badges = new Map<AnnotationRecord, Rect>();
   const threshold = input.unplaceableRatio ?? DEFAULT_UNPLACEABLE_RATIO;
 
@@ -175,10 +178,12 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const clean = connector !== "arrow";
   for (const [i, realAnn] of input.annotations.entries()) {
     const self = baseAnnotations[i]!;
-    const ann =
+    const seen =
       clean && input.pixels && realAnn.bounding_box
         ? withPixelObstacles(self, realAnn.bounding_box, input.pixels, f)
         : self;
+    // A clean caption treats every other annotation's target as content.
+    const ann = clean ? withOtherTargets(seen, baseAnnotations, self) : seen;
     if (!ann.bounding_box) {
       warn(`burn: annotation on step "${ann.step}" has no bounding_box — skipped`);
       input.report?.push(skippedReport(ann, "no bounding_box"));
@@ -200,22 +205,26 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     );
 
     // The badge goes first so this annotation's callout and later ones keep clear of where it landed.
+    const blockers = [
+      ...otherHalos(baseAnnotations, self, clean ? OUTSIDE_HALO_MARGIN : undefined),
+      ...placed,
+      ...badges.values(),
+    ];
+    const size = typeof ann.index === "number" ? badgeSize(ann.index, input.metrics) : null;
     const badge =
-      typeof ann.index === "number"
-        ? ann.obstacles?.length
-          ? planBadge({
-              image: baseImage,
-              target: badgeAnchor(t, badgeSize(ann.index, input.metrics), clean),
-              size: badgeSize(ann.index, input.metrics),
-              obstacles: ann.obstacles,
-              avoid: [
-                ...otherHalos(baseAnnotations, self, clean ? OUTSIDE_HALO_MARGIN : undefined),
-                ...placed,
-                ...badges.values(),
-              ],
-            })
-          : badgeBox(t, ann.index, baseImage, input.metrics, clean)
-        : undefined;
+      size === null
+        ? undefined
+        : clean
+          ? cornerBadge(t, size, baseImage, [...(ann.obstacles ?? []), ...blockers])
+          : ann.obstacles?.length
+            ? planBadge({
+                image: baseImage,
+                target: t,
+                size,
+                obstacles: ann.obstacles,
+                avoid: blockers,
+              })
+            : badgeBox(t, ann.index!, baseImage, input.metrics);
     if (badge) badges.set(self, badge);
 
     let layout: CalloutLayout | null = null;
@@ -239,13 +248,23 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
         style,
         arrowLength: base.arrowSize,
         maxWidthRatio: base.maxWidthRatio,
-        ...(clean ? { gap: LINE_GAP, maxDistance: LINE_MAX_DISTANCE, dock: DOCK_MARGIN } : {}),
+        ...(clean
+          ? {
+              gap: LINE_GAP,
+              maxDistance: LINE_MAX_DISTANCE,
+              dock: DOCK_MARGIN,
+              dockMax: DOCK_MAX_SHARE * baseImage.height,
+              forbid: [...captions, ...badges.values()],
+            }
+          : {}),
       };
-      const planned = layoutCallout(layoutInput);
+      const plan = clean ? planClean(layoutInput, base, f, width) : null;
+      const planned = plan ? plan.layout : layoutCallout(layoutInput);
       input.trace?.push({ position: i, input: layoutInput, layout: planned, scale: f });
       placed.push(...layoutBoxes(planned));
+      captions.push(layoutBoxes(planned)[0]!);
       layout = layoutAtScale(planned, f);
-      const drawn = calloutNodes(layout, theme, f, themed, connector, input.pixels);
+      const drawn = calloutNodes(layout, plan?.theme ?? theme, f, themed, connector, input.pixels);
       children.push(...drawn.nodes);
       calloutBox = drawn.boxes[0]!;
     }

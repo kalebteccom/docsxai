@@ -1,0 +1,766 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "progress",
+  "variant": "en.dark.1280",
+  "matrix_id": "en-US.dark.desktop-1280",
+  "viewport": {
+    "name": "desktop-1280",
+    "width": 1280,
+    "height": 800
+  },
+  "annotations": [
+    {
+      "step": "progress",
+      "selector": "div.lsum__bar",
+      "bounding_box": {
+        "x": 280,
+        "y": 244,
+        "width": 968,
+        "height": 8
+      },
+      "obstacles": [
+        {
+          "x": 280,
+          "y": 90,
+          "width": 37,
+          "height": 16
+        },
+        {
+          "x": 319,
+          "y": 90,
+          "width": 351,
+          "height": 16
+        },
+        {
+          "x": 669,
+          "y": 90,
+          "width": 5,
+          "height": 16
+        },
+        {
+          "x": 8,
+          "y": 120,
+          "width": 231,
+          "height": 24
+        },
+        {
+          "x": 8,
+          "y": 148,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 155,
+          "width": 45,
+          "height": 33
+        },
+        {
+          "x": 340,
+          "y": 155,
+          "width": 46,
+          "height": 33
+        },
+        {
+          "x": 8,
+          "y": 176,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 201,
+          "width": 38,
+          "height": 36
+        },
+        {
+          "x": 8,
+          "y": 204,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 325,
+          "y": 215,
+          "width": 135,
+          "height": 19
+        },
+        {
+          "x": 467,
+          "y": 217,
+          "width": 130,
+          "height": 17
+        },
+        {
+          "x": 8,
+          "y": 232,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 8,
+          "y": 260,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 292,
+          "y": 261,
+          "width": 30,
+          "height": 15
+        },
+        {
+          "x": 325,
+          "y": 261,
+          "width": 16,
+          "height": 15
+        },
+        {
+          "x": 368,
+          "y": 261,
+          "width": 65,
+          "height": 15
+        },
+        {
+          "x": 436,
+          "y": 261,
+          "width": 8,
+          "height": 15
+        },
+        {
+          "x": 471,
+          "y": 261,
+          "width": 113,
+          "height": 15
+        },
+        {
+          "x": 587,
+          "y": 261,
+          "width": 9,
+          "height": 15
+        },
+        {
+          "x": 623,
+          "y": 261,
+          "width": 46,
+          "height": 15
+        },
+        {
+          "x": 672,
+          "y": 261,
+          "width": 9,
+          "height": 15
+        },
+        {
+          "x": 708,
+          "y": 261,
+          "width": 47,
+          "height": 15
+        },
+        {
+          "x": 758,
+          "y": 261,
+          "width": 8,
+          "height": 15
+        },
+        {
+          "x": 793,
+          "y": 261,
+          "width": 32,
+          "height": 15
+        },
+        {
+          "x": 828,
+          "y": 261,
+          "width": 16,
+          "height": 15
+        },
+        {
+          "x": 8,
+          "y": 288,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 8,
+          "y": 316,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 742,
+          "y": 327,
+          "width": 41,
+          "height": 25
+        },
+        {
+          "x": 280,
+          "y": 328,
+          "width": 129,
+          "height": 16
+        },
+        {
+          "x": 499,
+          "y": 329,
+          "width": 67,
+          "height": 14
+        },
+        {
+          "x": 653,
+          "y": 329,
+          "width": 15,
+          "height": 14
+        },
+        {
+          "x": 667,
+          "y": 329,
+          "width": 12,
+          "height": 14
+        },
+        {
+          "x": 1182,
+          "y": 330,
+          "width": 66,
+          "height": 19
+        },
+        {
+          "x": 728,
+          "y": 331,
+          "width": 7,
+          "height": 16
+        },
+        {
+          "x": 316,
+          "y": 357,
+          "width": 40,
+          "height": 25
+        },
+        {
+          "x": 8,
+          "y": 360,
+          "width": 231,
+          "height": 24
+        },
+        {
+          "x": 294,
+          "y": 360,
+          "width": 8,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 360,
+          "width": 184,
+          "height": 17
+        },
+        {
+          "x": 728,
+          "y": 361,
+          "width": 290,
+          "height": 24
+        }
+      ],
+      "copy": "The bar splits every task by phase: done, in progress, waiting, claimed or open.",
+      "arrow_style": "bottom",
+      "index": 1
+    },
+    {
+      "step": "progress",
+      "selector": "nav.llist li.ledrow >> nth=0",
+      "bounding_box": {
+        "x": 280,
+        "y": 350.5,
+        "width": 399,
+        "height": 38
+      },
+      "obstacles": [
+        {
+          "x": 280,
+          "y": 201,
+          "width": 38,
+          "height": 36
+        },
+        {
+          "x": 325,
+          "y": 215,
+          "width": 135,
+          "height": 19
+        },
+        {
+          "x": 8,
+          "y": 232,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 8,
+          "y": 260,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 292,
+          "y": 261,
+          "width": 30,
+          "height": 15
+        },
+        {
+          "x": 325,
+          "y": 261,
+          "width": 16,
+          "height": 15
+        },
+        {
+          "x": 368,
+          "y": 261,
+          "width": 65,
+          "height": 15
+        },
+        {
+          "x": 436,
+          "y": 261,
+          "width": 8,
+          "height": 15
+        },
+        {
+          "x": 471,
+          "y": 261,
+          "width": 113,
+          "height": 15
+        },
+        {
+          "x": 587,
+          "y": 261,
+          "width": 9,
+          "height": 15
+        },
+        {
+          "x": 623,
+          "y": 261,
+          "width": 46,
+          "height": 15
+        },
+        {
+          "x": 672,
+          "y": 261,
+          "width": 9,
+          "height": 15
+        },
+        {
+          "x": 708,
+          "y": 261,
+          "width": 47,
+          "height": 15
+        },
+        {
+          "x": 758,
+          "y": 261,
+          "width": 8,
+          "height": 15
+        },
+        {
+          "x": 8,
+          "y": 288,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 8,
+          "y": 316,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 742,
+          "y": 327,
+          "width": 41,
+          "height": 25
+        },
+        {
+          "x": 280,
+          "y": 328,
+          "width": 129,
+          "height": 16
+        },
+        {
+          "x": 499,
+          "y": 329,
+          "width": 67,
+          "height": 14
+        },
+        {
+          "x": 653,
+          "y": 329,
+          "width": 15,
+          "height": 14
+        },
+        {
+          "x": 667,
+          "y": 329,
+          "width": 12,
+          "height": 14
+        },
+        {
+          "x": 728,
+          "y": 331,
+          "width": 7,
+          "height": 16
+        },
+        {
+          "x": 8,
+          "y": 360,
+          "width": 231,
+          "height": 24
+        },
+        {
+          "x": 728,
+          "y": 361,
+          "width": 290,
+          "height": 24
+        },
+        {
+          "x": 8,
+          "y": 388,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 728,
+          "y": 391,
+          "width": 348,
+          "height": 17
+        },
+        {
+          "x": 316,
+          "y": 395,
+          "width": 40,
+          "height": 25
+        },
+        {
+          "x": 291,
+          "y": 398,
+          "width": 13,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 398,
+          "width": 155,
+          "height": 17
+        },
+        {
+          "x": 8,
+          "y": 416,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 316,
+          "y": 433,
+          "width": 40,
+          "height": 25
+        },
+        {
+          "x": 291,
+          "y": 436,
+          "width": 13,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 436,
+          "width": 251,
+          "height": 17
+        },
+        {
+          "x": 8,
+          "y": 444,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 768,
+          "y": 444,
+          "width": 99,
+          "height": 17
+        },
+        {
+          "x": 736,
+          "y": 445,
+          "width": 8,
+          "height": 16
+        },
+        {
+          "x": 316,
+          "y": 471,
+          "width": 40,
+          "height": 25
+        },
+        {
+          "x": 8,
+          "y": 472,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 291,
+          "y": 474,
+          "width": 13,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 474,
+          "width": 142,
+          "height": 17
+        }
+      ],
+      "copy": "Open tasks group by epic. Select one to read it on the right.",
+      "arrow_style": "right",
+      "index": 2
+    },
+    {
+      "step": "progress",
+      "selector": "li.lcard >> nth=0",
+      "bounding_box": {
+        "x": 768,
+        "y": 510.25,
+        "width": 480,
+        "height": 192.4375
+      },
+      "obstacles": [
+        {
+          "x": 471,
+          "y": 261,
+          "width": 113,
+          "height": 15
+        },
+        {
+          "x": 587,
+          "y": 261,
+          "width": 9,
+          "height": 15
+        },
+        {
+          "x": 623,
+          "y": 261,
+          "width": 46,
+          "height": 15
+        },
+        {
+          "x": 672,
+          "y": 261,
+          "width": 9,
+          "height": 15
+        },
+        {
+          "x": 708,
+          "y": 261,
+          "width": 47,
+          "height": 15
+        },
+        {
+          "x": 758,
+          "y": 261,
+          "width": 8,
+          "height": 15
+        },
+        {
+          "x": 793,
+          "y": 261,
+          "width": 32,
+          "height": 15
+        },
+        {
+          "x": 828,
+          "y": 261,
+          "width": 16,
+          "height": 15
+        },
+        {
+          "x": 742,
+          "y": 327,
+          "width": 41,
+          "height": 25
+        },
+        {
+          "x": 499,
+          "y": 329,
+          "width": 67,
+          "height": 14
+        },
+        {
+          "x": 653,
+          "y": 329,
+          "width": 15,
+          "height": 14
+        },
+        {
+          "x": 667,
+          "y": 329,
+          "width": 12,
+          "height": 14
+        },
+        {
+          "x": 1182,
+          "y": 330,
+          "width": 66,
+          "height": 19
+        },
+        {
+          "x": 728,
+          "y": 331,
+          "width": 7,
+          "height": 16
+        },
+        {
+          "x": 363,
+          "y": 360,
+          "width": 184,
+          "height": 17
+        },
+        {
+          "x": 728,
+          "y": 361,
+          "width": 290,
+          "height": 24
+        },
+        {
+          "x": 728,
+          "y": 391,
+          "width": 348,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 398,
+          "width": 155,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 436,
+          "width": 251,
+          "height": 17
+        },
+        {
+          "x": 768,
+          "y": 444,
+          "width": 99,
+          "height": 17
+        },
+        {
+          "x": 736,
+          "y": 445,
+          "width": 8,
+          "height": 16
+        },
+        {
+          "x": 768,
+          "y": 468,
+          "width": 244,
+          "height": 16
+        },
+        {
+          "x": 363,
+          "y": 474,
+          "width": 142,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 512,
+          "width": 163,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 550,
+          "width": 148,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 588,
+          "width": 191,
+          "height": 17
+        },
+        {
+          "x": 280,
+          "y": 633,
+          "width": 220,
+          "height": 17
+        },
+        {
+          "x": 507,
+          "y": 635,
+          "width": 59,
+          "height": 13
+        },
+        {
+          "x": 653,
+          "y": 635,
+          "width": 15,
+          "height": 13
+        },
+        {
+          "x": 667,
+          "y": 635,
+          "width": 12,
+          "height": 13
+        },
+        {
+          "x": 363,
+          "y": 666,
+          "width": 113,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 704,
+          "width": 222,
+          "height": 17
+        },
+        {
+          "x": 768,
+          "y": 721,
+          "width": 128,
+          "height": 17
+        },
+        {
+          "x": 736,
+          "y": 722,
+          "width": 8,
+          "height": 16
+        },
+        {
+          "x": 363,
+          "y": 742,
+          "width": 195,
+          "height": 17
+        },
+        {
+          "x": 792,
+          "y": 753,
+          "width": 170,
+          "height": 17
+        },
+        {
+          "x": 363,
+          "y": 780,
+          "width": 154,
+          "height": 16
+        },
+        {
+          "x": 792,
+          "y": 780,
+          "width": 153,
+          "height": 16
+        }
+      ],
+      "copy": "A question waiting on you shows up in the task's timeline.",
+      "arrow_style": "left",
+      "index": 3
+    }
+  ]
+}

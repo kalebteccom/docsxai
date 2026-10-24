@@ -58,6 +58,12 @@ export interface PlanInput extends PlaceInput {
    * cover content.
    */
   dock?: number;
+  /** Longest distance a docked callout may sit from its target. Default: no limit. */
+  dockMax?: number;
+  /** A callout that covers content loses to every clear one, hint or not. */
+  strict?: boolean;
+  /** Boxes the callout may not cover, see `ScoreContext.forbid`. */
+  forbid?: Rect[];
 }
 
 export interface PlannedPlacement extends Placement {
@@ -75,6 +81,13 @@ export interface ScoreContext {
   image: { width: number; height: number };
   obstacles: Rect[];
   avoid: Rect[];
+  /**
+   * Any callout area on content costs {@link STRICT_COST}, so a clear spot always wins. Avoided
+   * boxes (other halos with their margin) keep their plain weight: brushing a ring beats a label.
+   */
+  strict?: boolean;
+  /** Boxes a callout may not cover at all (other captions, badges): each px² costs {@link FORBID_WEIGHT}. */
+  forbid?: Rect[];
 }
 
 export interface Candidate {
@@ -109,7 +122,11 @@ const BOUNDS_WEIGHT = 50; // callout px² outside the image
 const STEM_COST = 1.5; // per px of stem
 const SLIDE_COST = 0.5; // per px the callout leaves its centred spot
 const SIDE_SWITCH_COST = 120; // leaving the preferred side
-const HINT_BONUS = 4000; // off a candidate on the hinted side: a 2 px strip along a 200 px callout
+const HINT_BONUS = 4000;
+/** Added once to a callout that covers anything under `strict`; more than any clear spot costs. */
+const STRICT_COST = 10_000_000;
+/** Per px² of callout on a forbidden box: covering any of one loses to covering any content. */
+const FORBID_WEIGHT = 100_000_000; // off a candidate on the hinted side: a 2 px strip along a 200 px callout
 /** Depth in px of the content sliver the hint outweighs, along the callout's width. */
 const HINT_SLIVER = 2;
 
@@ -172,7 +189,9 @@ export function scorePlacement(c: Candidate, ctx: ScoreContext): { cost: number;
     AVOID_WEIGHT * onAvoid +
     CONNECTOR_WEIGHT * connectorHits +
     CROSSING_WEIGHT * crossing +
-    BOUNDS_WEIGHT * outside;
+    BOUNDS_WEIGHT * outside +
+    (ctx.strict && onContent > 0 ? STRICT_COST : 0) +
+    FORBID_WEIGHT * sum([c.callout], ctx.forbid ?? []);
   return { cost: Math.round(cost), overlap: Math.round(onContent + onAvoid + connectorHits) };
 }
 
@@ -267,15 +286,20 @@ function pinnedOffsets(side: Side, nudge: { x: number; y: number }) {
 }
 
 /**
- * Extra distances to try on `side`: {@link EXTRA_DISTANCES} within `maxDistance`, then the docked
+ * Extra distances to try on `side`: {@link EXTRA_DISTANCES}, or every 8 px up to `maxDistance`, then the docked
  * spot when `dock` is set and it lies farther out.
  */
 function extrasFor(inp: PlanInput, side: Side, gap: number): number[] {
   const t = inp.target;
   const c = inp.callout;
-  const capped = EXTRA_DISTANCES.filter(
-    (e) => e === 0 || inp.maxDistance === undefined || gap + e <= inp.maxDistance,
-  );
+  // Under a cap every 8 px up to it is tried, so a callout finds a gap between two rows of content.
+  const capped =
+    inp.maxDistance === undefined
+      ? EXTRA_DISTANCES
+      : Array.from(
+          { length: Math.floor((inp.maxDistance - gap) / SLIDE_STEP) + 1 },
+          (_, i) => i * SLIDE_STEP,
+        );
   if (inp.dock === undefined || inp.pinArrow || (side !== "top" && side !== "bottom")) {
     return capped;
   }
@@ -284,7 +308,8 @@ function extrasFor(inp: PlanInput, side: Side, gap: number): number[] {
       ? t.y - c.height - inp.dock
       : inp.image.height - inp.dock - c.height - (t.y + t.height);
   const extra = Math.floor(room - gap);
-  return extra > capped[capped.length - 1]! ? [...capped, extra] : capped;
+  const fits = inp.dockMax === undefined || gap + extra <= inp.dockMax;
+  return fits && extra > capped[capped.length - 1]! ? [...capped, extra] : capped;
 }
 
 function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scored> {
@@ -293,7 +318,13 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
   const pin = inp.pinArrow === true;
   const arrowLength = inp.arrowLength ?? ARROW_LENGTH;
   const shiftBy = pin ? { x: 0, y: 0 } : nudge;
-  const ctx: ScoreContext = { image, obstacles: inp.obstacles, avoid: inp.avoid ?? [] };
+  const ctx: ScoreContext = {
+    image,
+    obstacles: inp.obstacles,
+    avoid: inp.avoid ?? [],
+    ...(inp.strict ? { strict: true } : {}),
+    ...(inp.forbid ? { forbid: inp.forbid } : {}),
+  };
   for (const [rank, side] of order.entries()) {
     const horizontal = side === "top" || side === "bottom";
     const span = horizontal ? { from: t.x, length: t.width } : { from: t.y, length: t.height };
@@ -402,7 +433,12 @@ export function planCallout(inp: PlanInput): PlannedPlacement {
     for (const cand of candidates(inp, sides, gap)) if (better(cand, found)) found = cand;
     return found;
   };
-  const best = (inp.strictSide ? search([preferred]) : undefined) ?? search(order);
+  const pinned = inp.strictSide ? search([preferred]) : undefined;
+  // Under `strict` a pinned side that only offers covered spots gives way to a clear one elsewhere.
+  const best =
+    pinned && inp.strict && pinned.cost >= STRICT_COST
+      ? [pinned, search(order)].reduce((a, b) => (b && better(b, a) ? b : a))
+      : (pinned ?? search(order));
   if (!best) {
     const p = placeCallout(inp);
     return { ...p, distance: gap, stem: null, overlap: 0 };

@@ -1,0 +1,270 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "agent-tokens",
+  "variant": "en.dark.390",
+  "matrix_id": "en-US.dark.mobile-390",
+  "viewport": {
+    "name": "mobile-390",
+    "width": 390,
+    "height": 844
+  },
+  "annotations": [
+    {
+      "step": "agent-tokens",
+      "selector": "section[aria-labelledby=\"connect-heading\"] pre",
+      "bounding_box": {
+        "x": 16,
+        "y": 105.296875,
+        "width": 358,
+        "height": 262.765625
+      },
+      "obstacles": [
+        {
+          "x": 16,
+          "y": 5,
+          "width": 48,
+          "height": 33
+        },
+        {
+          "x": 16,
+          "y": 22,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 121,
+          "y": 22,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 16,
+          "y": 24,
+          "width": 351,
+          "height": 14
+        },
+        {
+          "x": 40,
+          "y": 27,
+          "width": 66,
+          "height": 15
+        },
+        {
+          "x": 145,
+          "y": 27,
+          "width": 102,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 30,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 178,
+          "y": 30,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 40,
+          "y": 35,
+          "width": 123,
+          "height": 15
+        },
+        {
+          "x": 202,
+          "y": 35,
+          "width": 102,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 40,
+          "width": 358,
+          "height": 14
+        },
+        {
+          "x": 16,
+          "y": 54,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 135,
+          "y": 54,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 226,
+          "y": 54,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 16,
+          "y": 57,
+          "width": 345,
+          "height": 14
+        },
+        {
+          "x": 40,
+          "y": 59,
+          "width": 80,
+          "height": 15
+        },
+        {
+          "x": 159,
+          "y": 59,
+          "width": 52,
+          "height": 15
+        },
+        {
+          "x": 250,
+          "y": 59,
+          "width": 58,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 73,
+          "width": 239,
+          "height": 14
+        },
+        {
+          "x": 16,
+          "y": 78,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 142,
+          "y": 78,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 254,
+          "y": 78,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 40,
+          "y": 83,
+          "width": 87,
+          "height": 15
+        },
+        {
+          "x": 166,
+          "y": 83,
+          "width": 73,
+          "height": 15
+        },
+        {
+          "x": 278,
+          "y": 83,
+          "width": 81,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 102,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 128,
+          "y": 102,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 16,
+          "y": 366,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 149,
+          "y": 366,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 40,
+          "y": 371,
+          "width": 94,
+          "height": 15
+        },
+        {
+          "x": 173,
+          "y": 371,
+          "width": 81,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 384,
+          "width": 181,
+          "height": 31
+        },
+        {
+          "x": 203,
+          "y": 393,
+          "width": 153,
+          "height": 14
+        },
+        {
+          "x": 173,
+          "y": 395,
+          "width": 88,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 414,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 157,
+          "y": 414,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 16,
+          "y": 415,
+          "width": 179,
+          "height": 14
+        },
+        {
+          "x": 40,
+          "y": 419,
+          "width": 102,
+          "height": 15
+        },
+        {
+          "x": 181,
+          "y": 419,
+          "width": 66,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 438,
+          "width": 24,
+          "height": 25
+        }
+      ],
+      "copy": "Your agent's MCP install snippet lives here.",
+      "arrow_style": "left",
+      "placement": {
+        "inside": true
+      }
+    }
+  ]
+}

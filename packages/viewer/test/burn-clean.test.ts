@@ -1,17 +1,17 @@
 // The clean look of a line-connected burn: captions never land on text the capture sidecar lists,
 // nor on each other or a badge; badges and halo rings stay off the target; text is estimated from
-// pixels when a sidecar lists no obstacles.
+// pixels, and a listed box with nothing drawn in it is dropped.
 
 import { describe, expect, it } from "vitest";
 import { renderBurn } from "../src/burn.js";
 import { DEFAULT_BURN_THEME, type BurnTheme } from "../src/burn-theme.js";
 import { recordsFromSidecar } from "../src/pack-annotations.js";
 import { overlapArea } from "../src/obstacle-placement.js";
-import { textBoxes } from "../src/pixel-obstacles.js";
+import { busyCells, textBoxes } from "../src/pixel-obstacles.js";
 import { haloBox, withPixelObstacles } from "../src/burn-clean.js";
 import type { PixelGrid } from "../src/connector-contrast.js";
 import type { Rect } from "../src/placement.js";
-import { encodePng, solidPng } from "./helpers/png.js";
+import { encodePng } from "./helpers/png.js";
 
 const THEME: BurnTheme = {
   ...DEFAULT_BURN_THEME,
@@ -58,7 +58,7 @@ describe("captions on a screen with listed text", () => {
   it("cover no text box, no other caption and no badge", async () => {
     const records = recordsFromSidecar("ledger", sidecar.annotations, "ledger.en.dark.1280.json");
     const { report } = await renderBurn({
-      screenshotBuffer: solidPng(W, H),
+      screenshotBuffer: stripedPng(W, H, texts),
       annotations: records,
       options: { theme: THEME },
     });
@@ -76,7 +76,7 @@ describe("captions on a screen with listed text", () => {
   it("keeps each badge off its target", async () => {
     const records = recordsFromSidecar("ledger", sidecar.annotations, "ledger.en.dark.1280.json");
     const { report } = await renderBurn({
-      screenshotBuffer: solidPng(W, H),
+      screenshotBuffer: stripedPng(W, H, texts),
       annotations: records,
       options: { theme: THEME },
     });
@@ -93,17 +93,24 @@ describe("the halo ring", () => {
   });
 });
 
-/** A grey grid with a striped block (text-like edges) at `text`. */
-function striped(width: number, height: number, text: Rect): PixelGrid {
+/** A light grey grid with striped blocks (text-like edges both ways) at `texts`. */
+function striped(width: number, height: number, ...texts: Rect[]): PixelGrid {
   const rgba = new Uint8Array(width * height * 4).fill(240);
-  for (let y = text.y; y < text.y + text.height; y++) {
-    for (let x = text.x; x < text.x + text.width; x++) {
-      const ink = (x + y) % 3 === 0 ? 20 : 240;
-      const i = (y * width + x) * 4;
-      rgba[i] = rgba[i + 1] = rgba[i + 2] = ink;
+  for (const text of texts) {
+    for (let y = text.y; y < text.y + text.height; y++) {
+      for (let x = text.x; x < text.x + text.width; x++) {
+        const ink = (x + y) % 3 === 0 ? 20 : 240;
+        const i = (y * width + x) * 4;
+        rgba[i] = rgba[i + 1] = rgba[i + 2] = ink;
+      }
     }
   }
   return { width, height, rgba };
+}
+
+function stripedPng(width: number, height: number, texts: Rect[]): Buffer {
+  const g = striped(width, height, ...texts);
+  return encodePng(g.rgba, g.width, g.height);
 }
 
 describe("text estimated from pixels", () => {
@@ -112,29 +119,26 @@ describe("text estimated from pixels", () => {
   const target = { x: 40, y: 120, width: 60, height: 30 };
 
   it("finds the striped block and nothing on the flat background", () => {
-    const boxes = textBoxes(grid, target, 400, target);
+    const boxes = textBoxes(busyCells(grid), target);
     expect(boxes.length).toBeGreaterThan(0);
     for (const b of boxes) expect(area(b, text)).toBeGreaterThan(0);
     const covered = boxes.reduce((s, b) => s + area(b, text), 0);
     expect(covered).toBe(text.width * text.height);
   });
 
-  it("adds to the obstacles an annotation lists", () => {
+  it("drops a listed box with nothing drawn in it and adds the text it finds", () => {
     const ann = { step: "s", selector: "#t", copy: "x", bounding_box: target };
     const found = withPixelObstacles(ann, target, grid, 1).obstacles!;
     expect(found.length).toBeGreaterThan(0);
-    const listed = { ...ann, obstacles: [{ x: 0, y: 0, width: 1, height: 1 }] };
-    expect(withPixelObstacles(listed, target, grid, 1).obstacles).toEqual([
-      { x: 0, y: 0, width: 1, height: 1 },
-      ...found,
-    ]);
+    const shown = { x: 200, y: 64, width: 24, height: 16 };
+    const listed = { ...ann, obstacles: [{ x: 0, y: 0, width: 20, height: 20 }, shown] };
+    expect(withPixelObstacles(listed, target, grid, 1).obstacles).toEqual([shown, ...found]);
   });
 
   it("keeps a themed caption off the text in a pixel-only burn", async () => {
     // The text sits right above the target, where the caption would go by default.
     const block = { x: 120, y: 90, width: 220, height: 30 };
-    const g = striped(480, 320, block);
-    const png = encodePng(g.rgba, g.width, g.height);
+    const png = stripedPng(480, 320, [block]);
     const { report } = await renderBurn({
       screenshotBuffer: png,
       annotations: [

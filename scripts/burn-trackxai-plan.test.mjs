@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   calloutTexts,
   checkSidecar,
+  coverage,
   contentHash,
   mergeManifest,
   parseRawName,
@@ -119,4 +120,32 @@ test("the manifest merge replaces only the burned variants and keeps alt text", 
   assert.deepEqual(superseded, ["/screens/desktop-1280/board.aaaaaaaa.png"]);
   assert.equal(before.screens.board.variants["en.dark.1280"].src.endsWith("aaaaaaaa.png"), true);
   assert.throws(() => mergeManifest({ schema: "x" }, []), /manifest: schema/);
+});
+
+test("coverage names what a caption covers", () => {
+  const records = [
+    { index: 1, copy: "a", bounding_box: { x: 0, y: 0, width: 10, height: 10 }, obstacles: [box] },
+    { index: 2, copy: "b", bounding_box: { x: 100, y: 100, width: 10, height: 10 } },
+  ];
+  const clear = [
+    {
+      callout: { x: 50, y: 50, width: 10, height: 10 },
+      badge: { x: 70, y: 70, width: 5, height: 5 },
+    },
+    { callout: { x: 200, y: 200, width: 10, height: 10 } },
+  ];
+  assert.deepEqual(coverage(records, clear), []);
+  const covered = [
+    { callout: { x: 0, y: 0, width: 105, height: 105 } },
+    {
+      callout: { x: 100, y: 100, width: 10, height: 10 },
+      badge: { x: 1, y: 1, width: 2, height: 2 },
+    },
+  ];
+  assert.deepEqual(coverage(records, covered), [
+    "caption 1 covers 12 px² of listed text",
+    "caption 1 covers the target of caption 2",
+    "caption 1 overlaps caption 2",
+    "caption 1 covers badge of caption 2",
+  ]);
 });

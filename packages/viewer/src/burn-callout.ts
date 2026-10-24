@@ -106,6 +106,12 @@ export interface LayoutInput {
   maxDistance?: number;
   /** Margin of the top and bottom docking bands, see `PlanInput.dock`. */
   dock?: number;
+  /** See `PlanInput.dockMax`. */
+  dockMax?: number;
+  /** See `PlanInput.strict`. */
+  strict?: boolean;
+  /** See `PlanInput.forbid`. */
+  forbid?: Rect[];
   /** Widest callout as a share of the image's width when obstacles limit it. Default {@link ADAPTIVE_WIDTH_RATIO}. */
   maxWidthRatio?: number;
 }
@@ -242,6 +248,9 @@ function planInput(inp: LayoutInput, size: Size): PlanInput {
     arrowLength,
     ...(inp.maxDistance !== undefined ? { maxDistance: inp.maxDistance } : {}),
     ...(inp.dock !== undefined ? { dock: inp.dock } : {}),
+    ...(inp.dockMax !== undefined ? { dockMax: inp.dockMax } : {}),
+    ...(inp.strict ? { strict: true } : {}),
+    ...(inp.forbid ? { forbid: inp.forbid } : {}),
   };
 }
 

@@ -114,3 +114,37 @@ export function mergeManifest(manifest, entries) {
   }
   return { manifest: { ...base, screens }, superseded };
 }
+
+const overlap = (a, b) => {
+  const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
+};
+
+/**
+ * What each drawn caption covers, from the burn report: its own listed obstacles, the other
+ * annotations' targets, other captions and badges. One line per covered thing, empty when clean.
+ * Captions are named by their index, else their position.
+ */
+export function coverage(records, report) {
+  const lines = [];
+  const name = (i) => `caption ${records[i].index ?? i + 1}`;
+  report.forEach((r, i) => {
+    const c = r.callout;
+    if (!c) return;
+    const text = (records[i].obstacles ?? []).reduce((n, o) => n + overlap(c, o), 0);
+    if (text > 0) lines.push(`${name(i)} covers ${Math.round(text)} px² of listed text`);
+    records.forEach((other, j) => {
+      if (j === i) return;
+      if (other.bounding_box && overlap(c, other.bounding_box) > 0) {
+        lines.push(`${name(i)} covers the target of ${name(j)}`);
+      }
+      const oc = report[j]?.callout;
+      if (oc && j > i && overlap(c, oc) > 0) lines.push(`${name(i)} overlaps ${name(j)}`);
+    });
+    report.forEach((o, j) => {
+      if (o.badge && overlap(c, o.badge) > 0) lines.push(`${name(i)} covers badge of ${name(j)}`);
+    });
+  });
+  return lines;
+}

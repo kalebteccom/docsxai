@@ -1,0 +1,213 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "progress",
+  "variant": "en.dark.390",
+  "matrix_id": "en-US.dark.mobile-390",
+  "viewport": {
+    "name": "mobile-390",
+    "width": 390,
+    "height": 844
+  },
+  "annotations": [
+    {
+      "step": "progress",
+      "selector": "div.lsum__bar",
+      "bounding_box": {
+        "x": 16,
+        "y": 262,
+        "width": 358,
+        "height": 8
+      },
+      "obstacles": [
+        {
+          "x": 16,
+          "y": 5,
+          "width": 48,
+          "height": 33
+        },
+        {
+          "x": 259,
+          "y": 9,
+          "width": 53,
+          "height": 25
+        },
+        {
+          "x": 320,
+          "y": 9,
+          "width": 54,
+          "height": 25
+        },
+        {
+          "x": 72,
+          "y": 12,
+          "width": 4,
+          "height": 17
+        },
+        {
+          "x": 83,
+          "y": 12,
+          "width": 58,
+          "height": 17
+        },
+        {
+          "x": 16,
+          "y": 62,
+          "width": 70,
+          "height": 20
+        },
+        {
+          "x": 16,
+          "y": 90,
+          "width": 37,
+          "height": 16
+        },
+        {
+          "x": 55,
+          "y": 90,
+          "width": 294,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 108,
+          "width": 55,
+          "height": 16
+        },
+        {
+          "x": 70,
+          "y": 108,
+          "width": 4,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 173,
+          "width": 45,
+          "height": 33
+        },
+        {
+          "x": 76,
+          "y": 173,
+          "width": 46,
+          "height": 33
+        },
+        {
+          "x": 16,
+          "y": 219,
+          "width": 38,
+          "height": 36
+        },
+        {
+          "x": 61,
+          "y": 233,
+          "width": 135,
+          "height": 19
+        },
+        {
+          "x": 203,
+          "y": 235,
+          "width": 130,
+          "height": 17
+        },
+        {
+          "x": 28,
+          "y": 279,
+          "width": 30,
+          "height": 15
+        },
+        {
+          "x": 61,
+          "y": 279,
+          "width": 16,
+          "height": 15
+        },
+        {
+          "x": 104,
+          "y": 279,
+          "width": 65,
+          "height": 15
+        },
+        {
+          "x": 172,
+          "y": 279,
+          "width": 8,
+          "height": 15
+        },
+        {
+          "x": 207,
+          "y": 279,
+          "width": 113,
+          "height": 15
+        },
+        {
+          "x": 323,
+          "y": 279,
+          "width": 9,
+          "height": 15
+        },
+        {
+          "x": 28,
+          "y": 301,
+          "width": 46,
+          "height": 15
+        },
+        {
+          "x": 77,
+          "y": 301,
+          "width": 8,
+          "height": 15
+        },
+        {
+          "x": 112,
+          "y": 301,
+          "width": 47,
+          "height": 15
+        },
+        {
+          "x": 162,
+          "y": 301,
+          "width": 9,
+          "height": 15
+        },
+        {
+          "x": 198,
+          "y": 301,
+          "width": 31,
+          "height": 15
+        },
+        {
+          "x": 232,
+          "y": 301,
+          "width": 16,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 367,
+          "width": 358,
+          "height": 59
+        },
+        {
+          "x": 16,
+          "y": 426,
+          "width": 358,
+          "height": 60
+        },
+        {
+          "x": 16,
+          "y": 486,
+          "width": 358,
+          "height": 60
+        },
+        {
+          "x": 16,
+          "y": 546,
+          "width": 358,
+          "height": 60
+        }
+      ],
+      "copy": "The bar splits every task by phase: done, in progress, waiting, claimed or open.",
+      "arrow_style": "bottom"
+    }
+  ]
+}

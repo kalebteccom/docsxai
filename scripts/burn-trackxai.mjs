@@ -12,7 +12,8 @@
 // PNG's SHA-256 and `<name>` the screen after `--rename`. `<out>/manifest.json`
 // (docsxai/screens-pack@1) is merged: the burned variants are added or replaced, every other
 // screen, variant and `alt` stays (read from `--manifest-in`, else the existing
-// `<out>/manifest.json`). The PNG and WebP twin of a replaced variant are deleted. A bad sidecar
+// `<out>/manifest.json`). The PNG and WebP twin of a replaced variant are deleted. Two screens
+// that burn to the same bytes with the same callouts point at one file. A bad sidecar
 // stops the run with its file name. `--compare` also writes `before-` (no theme, the look burns
 // had before themes) and `after-` PNGs there.
 //
@@ -26,6 +27,7 @@ import { parseArgs } from "node:util";
 import {
   calloutTexts,
   checkSidecar,
+  coverage,
   contentHash,
   mergeManifest,
   parseRawName,
@@ -89,6 +91,7 @@ async function main() {
 
   const entries = [];
   const written = [];
+  const shared = new Map();
   for (const { name, parsed } of files) {
     const sidecarFile = join(raw, name.replace(/\.png$/, ".json"));
     let doc;
@@ -107,12 +110,19 @@ async function main() {
       annotations: records,
       options: { theme, warn: () => {} },
     });
+    for (const line of coverage(records, burned.report)) console.error(`check: ${name}: ${line}`);
     const screen = rename.get(parsed.screen) ?? parsed.screen;
     const dir = variantDir(parsed.width);
-    const file = `${screen}.${contentHash(burned.png)}.png`;
-    await mkdir(join(out, dir), { recursive: true });
-    await writeFile(join(out, dir, file), burned.png);
-    written.push(join(out, dir, file));
+    const callouts = calloutTexts(records);
+    // Two screens that burn to the same bytes with the same callouts share one file.
+    const key = `${dir}/${contentHash(burned.png)}/${JSON.stringify(callouts)}`;
+    const file = shared.get(key) ?? `${screen}.${contentHash(burned.png)}.png`;
+    if (!shared.has(key)) {
+      shared.set(key, file);
+      await mkdir(join(out, dir), { recursive: true });
+      await writeFile(join(out, dir, file), burned.png);
+      written.push(join(out, dir, file));
+    }
     const { pngDimensions } = await viewer("burn.js");
     const size = pngDimensions(burned.png);
     entries.push({
@@ -123,7 +133,7 @@ async function main() {
         width: size.width,
         height: size.height,
         bytes: burned.png.length,
-        callouts: calloutTexts(records),
+        callouts,
       },
     });
     if (values.compare) {
