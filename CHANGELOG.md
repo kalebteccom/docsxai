@@ -4,10 +4,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Fixed
-
-- **Docs site at 390 px.** The install commands on the landing page have copy buttons that change to "Copied", announce the result and copy no prompt, and the `$ ` transcripts in the CLI and plugins references now copy as commands without prompts or output. The menu, search, theme and copy buttons are 44 px, tables and cards use 16 px text, paragraphs stop at 75 characters, the 404 page links to Installation, and the Quickstart ends with a link to the flow-file format. `check-a11y-surface` checks the copy buttons, table wrappers, step numbers and next links in the build.
-
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
@@ -23,6 +19,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **`burnWithWorkspaceTheme` in `@docsxai/viewer`.** Burns a screenshot with the `burn.theme` of a workspace's `.docsxai.json`, loaded once per workspace and cached by path and config mtime. It returns what `burnAnnotations` returns, lets an explicit `options.theme` win, sends theme warnings to `options.warn` once per load and throws `BurnThemeError` for an invalid block. Guide: `docs/burn-theming.md`.
 - **First-run help.** `docsxai` with no argument prints three first steps (`init`, `calibrate`, `run`) and the commands grouped by purpose, each with a one-line description. `docsxai --help` starts with the same block, then prints the full usage text. `docsxai help <command>` and `docsxai <command> --help` print that command's usage and one example. A mistyped command exits 2 with `did you mean \`docsxai run\`?` when a command is within two edits, plus the `docsxai --help` pointer.
 - **Annotation placement guide.** `docs/annotation-placement.md`, published as Guides, Placing burned annotations: the annotation record keys, how `arrow_style` and `placement.side` hint a side, `obstacles`, the badge, `scale` and `display_width`, per-image theme overrides through `options.theme`, and a troubleshooting table.
+- **Screens pack manifest reference.** `docs/pack-manifest.md`, published as Reference, Screens pack manifest: the `docsxai/screens-pack@2` fields and limits, the `pack.json` keys, and the version policy.
 
 ### Changed
 
@@ -52,6 +49,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - Docs site: a print stylesheet that drops the site chrome, and readable dark text on the landing-page mock buttons.
 - **Emitted output accessibility.** Viewer print keeps a step heading row with its figure, and long ids and code in write-ups and placeholders wrap at 390 px. The Starlight copy and Retry focus ring uses the theme text colour (17:1 or more on both themes) in place of the accent, which a custom accent could push under 3:1, and the step image alt reads "Screenshot of step <id>".
 - **`docsxai doctor` URL lines show host and path.** The `login` next-step command, the `backend` line and the `app_url` line now print `backend_url` and `app_url` as host and path only, like the other doctor lines.
+- **Docs site at 390 px.** The install commands on the landing page have copy buttons that change to "Copied", announce the result and copy no prompt, and the `$ ` transcripts in the CLI and plugins references now copy as commands without prompts or output. The menu, search, theme and copy buttons are 44 px, tables and cards use 16 px text, paragraphs stop at 75 characters, the 404 page links to Installation, and the Quickstart ends with a link to the flow-file format. `check-a11y-surface` checks the copy buttons, table wrappers, step numbers and next links in the build.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
