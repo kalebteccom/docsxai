@@ -1034,6 +1034,18 @@ main:has(.docsx-404) > .content-panel {
     transform: rotate(90deg);
     margin: 0.15rem 0;
   }
+  /* Stacked, each panel is up to 22rem wide, so the 10 px labels have room to grow to 12 px. */
+  .dxf-chrome span,
+  .dxf-flow code,
+  .dxf-callout,
+  .dxf-badge {
+    font-size: 0.75rem;
+  }
+  .dxf-flow-name,
+  .dxf-tag,
+  .dxf-mid-tag {
+    font-size: 0.78rem;
+  }
 }
 
 /* Feature grid. */
@@ -1082,7 +1094,7 @@ main:has(.docsx-404) > .content-panel {
 .docsx-grid--install {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
 }
-/* First run: four numbered cards in one column. Each holds a .docsx-cmd--card block and one line
+/* First run: five numbered cards in one column. Each holds a .docsx-cmd--card block and one line
    of expected output. The output line wraps and never scrolls, and nothing in a card changes size
    after load, so the page does not shift. */
 .docsx-steps {
@@ -1739,6 +1751,11 @@ body::before {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+  /* The "On this page" dropdown's links are about 41 px tall by default. */
+  mobile-starlight-toc a {
+    min-height: var(--docsx-tap);
+    align-items: center;
   }
 }
 
