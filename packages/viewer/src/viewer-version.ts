@@ -1,16 +1,30 @@
-// The viewer's own name and version, stamped into the footer of every emitted page. It is a
-// build constant: the same pack rendered twice by one install gives byte-identical pages.
+// The viewer's own name and version, stamped into the footer of every emitted page and printed by
+// `docsxai-viewer --version`. It is a build constant: the same pack rendered twice by one install
+// gives byte-identical pages.
 
 import { readFileSync } from "node:fs";
 
-/** `@docsxai/viewer <version>`; `package.json` sits one level above both `src/` and `dist/`. */
-export function viewerStamp(): string {
+/** `package.json` sits one level above both `src/` and `dist/`. */
+function readPackage(): { name?: unknown; version?: unknown } {
   try {
-    const raw = readFileSync(new URL("../package.json", import.meta.url), "utf8");
-    const { name, version } = JSON.parse(raw) as { name?: string; version?: string };
-    if (typeof name === "string" && typeof version === "string") return `${name} ${version}`;
+    return JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+      name?: unknown;
+      version?: unknown;
+    };
   } catch {
-    // fall through to the generic stamp
+    return {};
   }
+}
+
+/** `@docsxai/viewer <version>`, or the bare name when the package file can't be read. */
+export function viewerStamp(): string {
+  const { name, version } = readPackage();
+  if (typeof name === "string" && typeof version === "string") return `${name} ${version}`;
   return "@docsxai/viewer";
+}
+
+/** The version in the viewer's `package.json`, or `unknown`. */
+export function viewerVersion(): string {
+  const { version } = readPackage();
+  return typeof version === "string" ? version : "unknown";
 }

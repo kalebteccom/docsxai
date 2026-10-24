@@ -8,6 +8,7 @@
 // and the help text from cli-usage.ts — no cluster imports back from here, so there's no cycle.
 //   • cli-usage.ts             — the USAGE help-text constant
 //   • cli-help.ts              — help screens, per-command help and "did you mean"
+//   • cli-version.ts           — --version / -v
 //   • cli-shared.ts            — parseFlags + listFlowFiles (the shared leaf)
 //   • cli-commands-session.ts  — init / calibrate / run (live-browser + scaffolding)
 //   • cli-commands-auth.ts     — capture-auth
@@ -20,6 +21,7 @@
 import "./cli-node-guard.js";
 import { runDoctor } from "./doctor.js";
 import { tryHelp, unknownCommand } from "./cli-help.js";
+import { tryVersion } from "./cli-version.js";
 import { usageError } from "./cli-messages.js";
 import { bareValueFlag } from "./cli-value-flags.js";
 import { runAsBin } from "./cli-unexpected.js";
@@ -46,6 +48,8 @@ export { runAsBin };
 
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
+  const version = tryVersion(cmd);
+  if (version !== undefined) return version;
   const retired = cmd === undefined ? undefined : findRetired(RETIRED_COMMANDS, cmd);
   if (retired) {
     warnDeprecated(`the ${cmd} command`, retired);

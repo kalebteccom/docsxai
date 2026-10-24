@@ -11,6 +11,7 @@ Usage:
   docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline] [--strict-glyphs]
   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--lang <locale>] [--flow <name>]...
 ${PACK_SYNOPSIS}
+  docsxai-viewer --version
 
   build: emit the interactive HTML viewer
     <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md;

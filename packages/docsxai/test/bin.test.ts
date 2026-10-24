@@ -67,6 +67,17 @@ describe.skipIf(!engineBuilt)("bare `docsxai` bin (meta-package wrapper)", () =>
     );
   });
 
+  it.each(["--version", "-v"])("%s prints this package's version and exits 0", async (flag) => {
+    const { version } = JSON.parse(
+      await fs.readFile(path.join(pkgDir, "package.json"), "utf8"),
+    ) as {
+      version: string;
+    };
+    const r = await docsxai(flag);
+    expect(r.code).toBe(0);
+    expect(r.stdout).toBe(`docsxai ${version}\n`);
+  });
+
   it("init + lint round-trip against a fixture workspace", async () => {
     const ws = path.join(tmp, "ws");
 

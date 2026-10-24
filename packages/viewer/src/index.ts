@@ -210,6 +210,7 @@ import { normalizeAccent } from "./starlight-emit.js";
 import { runPack } from "./pack-cli.js";
 import { USAGE } from "./cli-usage.js";
 import { asksHelp, commandHelp, usageLines } from "./viewer-help.js";
+import { viewerVersion } from "./viewer-version.js";
 
 interface ParsedArgs {
   positional: string[];
@@ -455,6 +456,10 @@ async function runSite(args: ParsedArgs): Promise<number> {
 
 export async function runViewerCli(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
+  if (command === "--version" || command === "-v") {
+    process.stdout.write(`docsxai-viewer ${viewerVersion()}\n`);
+    return 0;
+  }
   if (command === "--help" || command === "-h") {
     process.stdout.write(USAGE + "\n");
     return 0;

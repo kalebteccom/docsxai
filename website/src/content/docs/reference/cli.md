@@ -38,6 +38,7 @@ docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix 
 docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
 docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
 docsxai --help
+docsxai --version
 ```
 
 A _workspace_ (created by `init`) holds `flows/<flow>.flow.yaml`, `docs/`,
@@ -79,6 +80,8 @@ and names the closest command when one is within two edits. `run`, `calibrate`, 
 with the command name and gives the counts and where the output went. Use
 `--format json` where a command offers it when a script reads the output: the
 text formats are for people.
+
+`docsxai --version` (or `-v`) prints the installed version and exits 0. `docsxai-viewer --version` does the same for the viewer.
 
 An error that no command turned into a message is a bug in docsxai. The CLI
 prints `docsxai: unexpected error: <first line>` and a `next:` line, and exits 1.

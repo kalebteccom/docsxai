@@ -43,6 +43,7 @@ Usage:
   docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>]
       [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   docsxai --help
+  docsxai --version
 
 Notes:
   • A *workspace* (created by \`init\`) holds flows/<flow>.flow.yaml, docs/, auth/strategy.yaml, .auth/, .viewer/,
@@ -210,6 +211,7 @@ Notes:
     Exit 0 success, 1 runtime failure, 2 usage error; Ctrl-C prints one line with the command to rerun and
     exits 130. An error no command handled is a bug: it prints one \`docsxai: unexpected error\` line; set
     DOCSX_DEBUG=1 to print its stack trace.
+  • --version (or -v) prints \`docsxai <version>\` and exits 0.
   • --format json (lint, flow-tree, diagnose, style, diff, plugins, run --verify-determinism) is the
     machine-readable output; the text formats are for people and may change.
   • run, calibrate, burn, pack, zip, baseline, push, pull and doctor end with one line,

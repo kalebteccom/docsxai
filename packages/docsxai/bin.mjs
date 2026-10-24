@@ -9,7 +9,16 @@
 // So when the operator hasn't pointed DOCSX_VIEWER_BIN anywhere, point it at the copy this
 // package resolves. An explicit value always wins.
 
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
+// `--version` names the package the user installed, so it reads this package's version.
+const first = process.argv[2];
+if (first === "--version" || first === "-v") {
+  const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+  process.stdout.write(`docsxai ${version}\n`);
+  process.exit(0);
+}
 
 if (!process.env.DOCSX_VIEWER_BIN) {
   try {
