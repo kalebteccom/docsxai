@@ -5,7 +5,6 @@
 //   pull     — fetch a revision's artifacts back into the workspace files
 //   plugins  — forwards to plugins-cli (list | info | sync over the plugin runtime; no plugin code runs)
 
-import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import {
   BackendClient,
@@ -21,11 +20,13 @@ import {
   uploadScreenshotBlobs,
   writeDocPack,
 } from "./doc-pack-io.js";
+import { writeFileAtomic } from "./atomic-write.js";
 import { pluginsCli } from "./plugins-cli.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import { bareValueFlagExit, parseFlags } from "./cli-shared.js";
 import { configProblem, explainBackendFailure } from "./cli-backend-errors.js";
 import {
+  describeFsError,
   redactUrl,
   sanitizeForTerminal,
   shellQuote,
@@ -165,6 +166,19 @@ export async function cmdPush(args: string[]): Promise<number> {
     return 1;
   }
 
+  // Read the pack first: a file that cannot be read stops the push before the backend gets a
+  // workspace, a project or an unfinalized revision.
+  let payloads: DocPackPayloads;
+  try {
+    payloads = await readDocPack(projectDir);
+  } catch (e) {
+    const next = `fix the file, then docsxai push ${shellQuote(projectDir)}`;
+    process.stderr.write(
+      `push: ${describeFsError(e) ?? withNext(sanitizeForTerminal((e as Error).message), next)}\n`,
+    );
+    return 1;
+  }
+
   try {
     const binding = await ensureBackendBinding(
       client,
@@ -179,7 +193,7 @@ export async function cmdPush(args: string[]): Promise<number> {
         backend_workspace_id: binding.wsId,
         backend_project_id: binding.projectId,
       };
-      await fs.writeFile(
+      await writeFileAtomic(
         resolveWorkspacePath(projectDir, ".docsxai.json"),
         JSON.stringify(updated, null, 2) + "\n",
         "utf8",
@@ -190,7 +204,6 @@ export async function cmdPush(args: string[]): Promise<number> {
       kind: kindArg,
       author,
     });
-    const payloads = await readDocPack(projectDir);
     if (payloads.screenshots) {
       // Screenshot bytes go up as content-addressed blobs (HEAD-probed, so unchanged PNGs are
       // skipped); the artifact slot carries only the sha256 manifest.

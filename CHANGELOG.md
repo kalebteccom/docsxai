@@ -23,6 +23,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **Matrix viewport names `screenshots`, `halts` and Windows device names.** A viewport named `screenshots` or `con` made a variant directory that `pull` refuses and Windows cannot create. The flow-file parser now rejects `screenshots`, `halts`, `con`, `prn`, `aux`, `nul`, `com1` to `com9` and `lpt1` to `lpt9` as viewport names.
 - **Session cache files.** Roles `a/b` and `a_b` shared `.auth/a_b.json`, so one role ran with the other's session, and a role named `backend-token` overwrote the OAuth token file. A role with characters outside `A-Za-z0-9_.-`, and `backend-token`, now gets a hash suffix in its file name (an existing cache for such a role is re-captured once). The cache file is also written with mode 0600; it was group-readable under a default umask.
 - **`style` on a path that does not exist.** A mistyped workspace path got a new `docs/style.yaml` tree created under it and exit 0. `style` now exits 1 with `<path> is not a directory` and writes nothing.
+- **`push` with a doc pack it cannot read.** An invalid `docs/style.json` made `push` throw after it had created a backend workspace, a project and an unfinalized revision. It now reads the pack first, exits 1 naming the file, and touches the backend only when the pack reads. The `.docsxai.json` that records the backend ids is written atomically.
 
 ## [0.3.0-rc.4] - 2026-10-24
 
