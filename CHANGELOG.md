@@ -159,6 +159,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 - **`pull` wrote `style.yaml`, `style.json` and `locators.yaml` through symlinks.** A symlink in the workspace that pointed outside it got the backend's content written to its target. `pull` now refuses with `refusing to write docs/<name>: a symlink leads it outside the workspace` and writes nothing.
 - **Session cache written owner-only from the first byte.** Saving a role's session over an older `.auth/<role>.json` with mode 0644 wrote the new cookies into that file before the mode changed to 0600. The cache now writes a new 0600 file and renames it over the old one.
+- **Webhook run history no longer shows server paths.** When a revision could not be laid out in a temp workspace for a reason other than a refused payload, the run summary carried the raw file system error, temp directory included, to anyone with a project token. It now says `server file system error`. A refused payload still names the file.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

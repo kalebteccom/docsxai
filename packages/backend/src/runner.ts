@@ -12,7 +12,7 @@ import * as path from "node:path";
 import type { Revision } from "./api.js";
 import { engineRunArgv } from "./engine-argv.js";
 import { denyPrivateAppUrl, isEnvFlagOff } from "./app-url.js";
-import { materializeDocPack } from "./materialize.js";
+import { MaterializeError, materializeDocPack } from "./materialize.js";
 import type { BackendStore } from "./store.js";
 import type { WebhookJob } from "./webhook.js";
 import {
@@ -161,11 +161,9 @@ export class SpawnRunner {
     try {
       workspaceDir = this.materializeRevision(job, rev);
     } catch (e) {
-      this.recordFailedRun(
-        job,
-        rev,
-        `workspace could not be materialized: ${(e as Error).message}`,
-      );
+      // Run history is readable by project token holders: a file system error names server paths.
+      const reason = e instanceof MaterializeError ? e.message : "server file system error";
+      this.recordFailedRun(job, rev, `workspace could not be materialized: ${reason}`);
       throw e;
     }
     const started = Date.now();
