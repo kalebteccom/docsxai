@@ -26,7 +26,9 @@ Everything except `/v1/health`, the OAuth endpoints and `/v1/github/webhook`
   redirect URIs only). `docsxai login --backend-url <url> --oauth <workspace>`
   drives the full handshake and stores tokens at
   `<workspace>/.auth/backend-token.json` (mode 0600). Refresh tokens rotate:
-  the presented one is invalidated on use.
+  the presented one is invalidated on use. A refresh token expires 30 days
+  after it was issued; `DOCSX_OAUTH_REFRESH_TTL_DAYS` on the backend changes
+  that.
 
 Failed auth gets a 401 with a `WWW-Authenticate: Bearer` header. The server
 stores only sha256 hashes of issued tokens.
@@ -203,6 +205,31 @@ runs them, and the output goes to one of three strategies - `pr-comment`
 (run summary on the PR or commit), `viewer-refresh` (re-render the viewer,
 store `index.html` as a blob), or `wiki-push` (load a publisher plugin and
 report its result into run history).
+
+An unparsable payload, a payload without `repository.full_name` and a
+repository with no configured project get the same 401 as a bad signature.
+
+`secret_env` must be `DOCSX_WEBHOOK_SECRET` or `DOCSX_WEBHOOK_SECRET_<SUFFIX>`
+(`A-Z`, `0-9`, `_`). Any other name gets 400 naming `secret_env`.
+
+`wiki-push` settings that decide what code runs and where credentials go are
+the operator's, set in the backend's environment:
+
+- `DOCSX_BACKEND_PLUGIN_DIRS` lists the publisher plugin directories,
+  absolute paths separated by `:` (`;` on Windows). `plugin_config.sources`
+  is refused with 400, and `path:` plugins in a workspace
+  `docsxai.config.json` are ignored.
+- `DOCSX_BACKEND_PUBLISHER_ORIGINS` lists the `https://` origins a
+  `plugin_config` key named `url` or ending in `_url` (`base_url`,
+  `graph_base_url`) may use. A URL that is not `https:`, carries credentials
+  or names another origin gets 400 naming the key. With the variable unset
+  every such key is refused.
+- `DOCSX_BACKEND_PUBLISHER_ENV` names the env vars passed to the publisher as
+  `secretsEnv`. Unset passes none.
+
+A config stored before these checks is checked again when the run starts: a
+refused `plugin_config` fails the run with the same message, and a
+non-matching `secret_env` answers every delivery with 401.
 
 ```sh
 curl -s -X PUT $BASE/v1/workspaces/6f51…/projects/a90c…/webhook-config \
