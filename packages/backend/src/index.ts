@@ -16,22 +16,17 @@ export * from "./runner.js";
 export * from "./strategy.js";
 export { createBackendStub, type BackendStubOptions } from "./server.js";
 
+import { CLI_USAGE, parseCliArgs } from "./cli-args.js";
 import { isMainModule } from "./main-module.js";
 import { createBackendStub } from "./server.js";
 
 export async function runBackendStubCli(argv: string[]): Promise<number> {
-  const portArg = argv.find((a) => /^--port=/.test(a))?.split("=")[1] ?? process.env.PORT ?? "4477";
-  const port = Number(portArg);
-  if (!Number.isInteger(port) || port < 0) {
-    process.stderr.write(`docsxai-backend: invalid port "${portArg}"\n`);
+  const parsed = parseCliArgs(argv, process.env);
+  if (!parsed.ok) {
+    process.stderr.write(`docsxai-backend: ${parsed.message}\n${CLI_USAGE}\n`);
     return 2;
   }
-  const dataDir =
-    argv
-      .find((a) => /^--data-dir=/.test(a))
-      ?.split("=")
-      .slice(1)
-      .join("=") ?? process.env.DOCSX_DATA_DIR;
+  const { port, dataDir } = parsed;
   const stub = createBackendStub({
     ...(process.env.DOCSX_TOKEN ? { token: process.env.DOCSX_TOKEN } : {}),
     ...(dataDir ? { dataDir } : {}),
