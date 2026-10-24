@@ -43,7 +43,7 @@ If the change is non-obvious, surface the candidates to the user. **Never silent
 
 Hand-edit `flows/<flow>.flow.yaml`. One canonical locator per step; no fallback lists.
 
-If the drift is structural (steps added/removed by the app, not just a selector renamed), recommend a fuller `/docsxai:calibrate` of that flow instead of patching — the agent / human's call.
+If the drift is structural (steps added/removed by the app, not just a selector renamed), recommend a fuller `/docsxai:add-flow` of that flow instead of patching — the agent / human's call.
 
 ## 4. Validate the fix in seconds
 

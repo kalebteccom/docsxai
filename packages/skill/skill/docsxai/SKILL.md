@@ -35,7 +35,7 @@ When captions in `burn` or `pack` output look small on the page, set `burn.theme
 
 ## Calibration
 
-Authoring or re-authoring flows from a written description is the plugin's `calibrate` skill (`/docsxai:calibrate`). Its playbook is `skills/calibrate/SKILL.md` in the `@docsxai/plugin` package and in the docsxai repository under `packages/plugin/`. Without the plugin, read that file and follow it; the commands above are the CLI half of it.
+Authoring or re-authoring flows from a written description is the plugin's `add-flow` skill (`/docsxai:add-flow`, formerly `/docsxai:calibrate`, deprecated since 0.3.0 and removed in 0.5.0). Its playbook is `skills/add-flow/SKILL.md` in the `@docsxai/plugin` package and in the docsxai repository under `packages/plugin/`. Without the plugin, read that file and follow it; the commands above are the CLI half of it.
 
 ## Pinning
 

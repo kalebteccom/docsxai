@@ -55,18 +55,18 @@ Each command passes its arguments to the CLI as single-quoted shell words. The C
 | `/docsxai:plugins <list\|info\|sync> <workspace-dir>` | List, inspect, and sync (lock) the workspace's plugins.                                                                       |
 | `/docsxai:export <adf\|playwright> <workspace-dir>`   | Export the doc pack as a Confluence ADF projection, or as Playwright specs.                                                   |
 
-The rest of the CLI has no slash command: `init`, `capture-auth`, `calibrate`, `inspect`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `burn` (annotations baked into PNG copies), and `pack` (the screenshot pack a docs site ships, with `pack --check`). Skills and agents call them through the shell; run `docsxai --help` for the flags.
+The rest of the CLI has no slash command: `init`, `capture-auth`, `add-flow` (formerly `calibrate`), `inspect`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `burn` (annotations baked into PNG copies), and `pack` (the screenshot pack a docs site ships, with `pack --check`). Skills and agents call them through the shell; run `docsxai --help` for the flags.
 
 When a command fails, its error carries an indented `next: <command>` line when there is one. A halted `docsxai run` prints a `<flow>: next: <command>` line for each failed flow on stderr and exits 1. A clean run ends with `run: <n> of <m> flows ok, outputs in <dir>` on stdout. Start-up failures print one reason and one `next:` line: no Chromium gives the install command, a refused `--cdp` endpoint names the endpoint and the `--remote-debugging-port` flag, a `--app-url`, `--base-url` or `--backend-url` that is not an `http://` or `https://` URL exits 2, and a Node older than 20 exits 1 with `docsxai: Node v<version> is too old to start`. `docsxai doctor` checks the environment and workspace, and `docsxai diagnose` explains a halted run (`/docsxai:diagnose`).
 
 ## Skills (calibration, agent-driven; the host supplies inference)
 
-| Skill       | What                                                                                             |
-| ----------- | ------------------------------------------------------------------------------------------------ |
-| `calibrate` | Drive a calibration end-to-end: discovery → mapping+testing → commit, producing a doc pack.      |
-| `diagnose`  | The explicit failure path: propose a recalibration diff when a deterministic run halts on drift. |
+| Skill      | What                                                                                                                                                     |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `add-flow` | Author a flow end-to-end: discovery → mapping+testing → commit, producing a doc pack. Formerly `calibrate`, deprecated since 0.3.0 and removed in 0.5.0. |
+| `diagnose` | The explicit failure path: propose a recalibration diff when a deterministic run halts on drift.                                                         |
 
-Invoke them as `/docsxai:calibrate` and `/docsxai:diagnose`, or let the agent load one when the request matches its description.
+Invoke them as `/docsxai:add-flow` and `/docsxai:diagnose`, or let the agent load one when the request matches its description. `/docsxai:calibrate` still works as a short skill that points the agent at `add-flow`. It is deprecated since 0.3.0 and removed in 0.5.0.
 
 ## MCP
 

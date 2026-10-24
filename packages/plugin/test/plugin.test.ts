@@ -15,7 +15,7 @@ import {
 // If the engine grows a new command, add the matching commands/<name>.md and update this list.
 const KNOWN_CLI_COMMANDS = [
   "init",
-  "calibrate",
+  "add-flow",
   "inspect",
   "run",
   "render",
@@ -88,8 +88,23 @@ describe("plugin scaffold — basics", () => {
     expect(cmds).toEqual(expect.arrayContaining(["login", "render", "run", "push", "pull"]));
   });
 
-  it("ships the calibration skills calibrate/diagnose", async () => {
-    expect(await listSkills()).toEqual(expect.arrayContaining(["calibrate", "diagnose"]));
+  it("ships the skills add-flow and diagnose, and calibrate as the old name of add-flow", async () => {
+    expect(await listSkills()).toEqual(["add-flow", "calibrate", "diagnose"]);
+  });
+
+  it("keeps the calibrate skill as a short pointer to add-flow", async () => {
+    const alias = await fs.readFile(
+      path.join(pluginDir, "skills", "calibrate", "SKILL.md"),
+      "utf8",
+    );
+    expect(alias).toMatch(/^---\nname: calibrate\ndescription: .*add-flow/);
+    expect(alias).toContain("/docsxai:add-flow");
+    expect(alias).toContain("skills/add-flow/SKILL.md");
+    expect(alias.split("\n").length).toBeLessThan(15);
+    const skill = await fs.readFile(path.join(pluginDir, "skills", "add-flow", "SKILL.md"), "utf8");
+    expect(skill).toMatch(/^---\nname: add-flow\n/);
+    expect(skill).toContain("formerly `/docsxai:calibrate`");
+    expect(skill).not.toMatch(/docsxai calibrate /);
   });
 });
 

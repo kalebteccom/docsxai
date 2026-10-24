@@ -94,6 +94,7 @@ describe("required tarball paths", () => {
     const missing = missingPaths(old, required);
     expect(missing).toContain(".claude-plugin/plugin.json");
     expect(missing).toContain("commands/run.md");
+    expect(missing).toContain("skills/add-flow/SKILL.md");
     expect(missing).toContain("skills/calibrate/SKILL.md");
     expect(missing).not.toContain("dist/index.js");
     expect(missingPaths(required, required)).toEqual([]);
@@ -116,6 +117,7 @@ describe("forbidden path patterns", () => {
     for (const p of [
       ".claude-plugin/plugin.json",
       "commands/run.md",
+      "skills/add-flow/SKILL.md",
       "skills/calibrate/SKILL.md",
       "skill/docsxai/SKILL.md",
     ]) {
