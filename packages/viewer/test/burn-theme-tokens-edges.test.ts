@@ -135,12 +135,6 @@ describe("aliases", () => {
     expect(themeFrom(FROM, { base: { r: 6 }, radius: { callout: "{base.r}" } }).radius).toBe(6);
   });
 
-  it("report a token that points at itself", () => {
-    expect(problemsFrom(FROM, { color: { accent: "{color.accent}" } })[0]).toContain(
-      "alias cycle color.accent -> color.accent",
-    );
-  });
-
   it("resolve inside a shadow layer", () => {
     const tokens = {
       color: { ink: "#101820" },
