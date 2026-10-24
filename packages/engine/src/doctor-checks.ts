@@ -9,7 +9,7 @@
 import { existsSync, promises as fs } from "node:fs";
 import * as path from "node:path";
 import { parseAuthStrategyFile } from "./auth.js";
-import { shellQuote } from "./cli-messages.js";
+import { redactUrl, redactUrlsIn, shellQuote } from "./cli-messages.js";
 import {
   EGRESS_DENY_PRIVATE_ENV,
   EGRESS_GUARD_ENV,
@@ -308,22 +308,23 @@ export async function checkBackend(
       ? "token: OAuth tokens at .auth/backend-token.json"
       : "no token — push/pull need DOCSX_TOKEN or `docsxai login --oauth`";
   const base = backendUrl.replace(/\/+$/, "");
+  const shown = redactUrl(base);
   try {
     const res = await fetchImpl(`${base}/v1/health`, { signal: AbortSignal.timeout(2000) });
     if (!res.ok) {
       return {
         name: "backend",
         ok: false,
-        detail: `${base}/v1/health → HTTP ${res.status}`,
+        detail: `${shown}/v1/health → HTTP ${res.status}`,
         fix: "the backend answered but is unhealthy — check its logs",
       };
     }
-    return { name: "backend", ok: true, detail: `${base}/v1/health ok (${tokenNote})` };
+    return { name: "backend", ok: true, detail: `${shown}/v1/health ok (${tokenNote})` };
   } catch (e) {
     return {
       name: "backend",
       ok: false,
-      detail: `${base}/v1/health unreachable (${(e as Error).message})`,
+      detail: `${shown}/v1/health unreachable (${redactUrlsIn((e as Error).message)})`,
       fix: "start the backend (or fix backend_url in .docsxai.json)",
     };
   }

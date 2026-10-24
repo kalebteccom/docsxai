@@ -11,7 +11,7 @@
 
 import { existsSync, promises as fs, constants as fsConstants } from "node:fs";
 import * as path from "node:path";
-import { redactUrl, shellQuote } from "./cli-messages.js";
+import { redactUrl, redactUrlsIn, shellQuote } from "./cli-messages.js";
 import type { DoctorCheck } from "./doctor-checks.js";
 import { WORKSPACE_CONFIG_FILE } from "./workspace.js";
 
@@ -189,7 +189,7 @@ export async function checkAppUrl(
       ok: false,
       detail: timedOut
         ? `${shown} did not answer within ${APP_URL_TIMEOUT_MS / 1000}s`
-        : `${shown} unreachable (${codes[0] ?? (e as Error).message})`,
+        : `${shown} unreachable (${codes[0] ?? redactUrlsIn((e as Error).message)})`,
       fix: "start the app, or fix app_url in .docsxai.json",
     };
   }
@@ -218,6 +218,6 @@ export function checkLogin(
     name: "login",
     ok: false,
     detail: `not logged in to ${redactUrl(backendUrl)}; push and pull need a token`,
-    fix: `docsxai login --backend-url ${shellQuote(backendUrl)} --oauth ${shellQuote(workspaceDir)}, or export DOCSX_TOKEN`,
+    fix: `docsxai login --backend-url ${shellQuote(redactUrl(backendUrl))} --oauth ${shellQuote(workspaceDir)}, or export DOCSX_TOKEN`,
   };
 }

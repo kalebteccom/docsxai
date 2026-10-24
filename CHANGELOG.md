@@ -4,10 +4,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Added
-
-- **Annotation placement guide.** `docs/annotation-placement.md`, published as Guides, Placing burned annotations: the annotation record keys, how `arrow_style` and `placement.side` hint a side, `obstacles`, the badge, `scale` and `display_width`, per-image theme overrides through `options.theme`, and a troubleshooting table.
-
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
@@ -22,6 +18,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Sample flow in the `init` scaffold.** `flows/example.flow.yaml.sample` parses as a flow-file and is ignored until `docsxai calibrate . --from flows/example.flow.yaml.sample` writes it. The scaffolded `README.md` gains an optional `burn.theme` section and the `docsxai doctor` step.
 - **`burnWithWorkspaceTheme` in `@docsxai/viewer`.** Burns a screenshot with the `burn.theme` of a workspace's `.docsxai.json`, loaded once per workspace and cached by path and config mtime. It returns what `burnAnnotations` returns, lets an explicit `options.theme` win, sends theme warnings to `options.warn` once per load and throws `BurnThemeError` for an invalid block. Guide: `docs/burn-theming.md`.
 - **First-run help.** `docsxai` with no argument prints three first steps (`init`, `calibrate`, `run`) and the commands grouped by purpose, each with a one-line description. `docsxai --help` starts with the same block, then prints the full usage text. `docsxai help <command>` and `docsxai <command> --help` print that command's usage and one example. A mistyped command exits 2 with `did you mean \`docsxai run\`?` when a command is within two edits, plus the `docsxai --help` pointer.
+- **Annotation placement guide.** `docs/annotation-placement.md`, published as Guides, Placing burned annotations: the annotation record keys, how `arrow_style` and `placement.side` hint a side, `obstacles`, the badge, `scale` and `display_width`, per-image theme overrides through `options.theme`, and a troubleshooting table.
 
 ### Changed
 
@@ -50,6 +47,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **CI examples.** The GitHub Actions nightly recipe now runs its `tee` steps under `shell: bash`, so a failing `docsxai run` or `docsxai diff` fails the job (the default shell has no pipefail). The weekly GitHub and GitLab refresh recipes in `docs/ci-recipes.md` install `docsxai@next` with npm: they used `pnpm/action-setup` without a pnpm version and `corepack`, which Node 26 images do not ship. Added `examples/burn-theme/` and a README for `examples/ci/sample-repo/`.
 - Docs site: a print stylesheet that drops the site chrome, and readable dark text on the landing-page mock buttons.
 - **Emitted output accessibility.** Viewer print keeps a step heading row with its figure, and long ids and code in write-ups and placeholders wrap at 390 px. The Starlight copy and Retry focus ring uses the theme text colour (17:1 or more on both themes) in place of the accent, which a custom accent could push under 3:1, and the step image alt reads "Screenshot of step <id>".
+- **`docsxai doctor` URL lines show host and path.** The `login` next-step command, the `backend` line and the `app_url` line now print `backend_url` and `app_url` as host and path only, like the other doctor lines.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
