@@ -64,7 +64,8 @@ export async function buildDoctorChecks(opts: DoctorOptions = {}): Promise<Docto
     if (appUrl) checks.push(appUrl);
     checks.push(await checkBackend(workspaceDir, ws.config, env, fetchImpl));
     checks.push(checkLogin(workspaceDir, ws.config, env));
-    checks.push(...(await checkPlugins(workspaceDir)));
+    // A config that does not load already failed the workspace row; the plugins row would repeat it.
+    if (ws.check.ok) checks.push(...(await checkPlugins(workspaceDir)));
   }
 
   checks.push(await checkViewer(env));

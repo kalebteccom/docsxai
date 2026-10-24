@@ -107,10 +107,46 @@ interface WorkspaceProbe {
   present: boolean;
 }
 
+/** The workspace row when the path, or the config file in it, cannot be used as given. */
+function unusableWorkspace(detail: string, fix: string, present: boolean): WorkspaceProbe {
+  return { check: { name: "workspace", ok: false, detail, fix }, config: null, present };
+}
+
+const JSON_KINDS = (v: unknown): string =>
+  v === null ? "null" : Array.isArray(v) ? "an array" : `a ${typeof v}`;
+
 export async function checkWorkspace(workspaceDir: string): Promise<WorkspaceProbe> {
-  const configPath = path.join(path.resolve(workspaceDir), WORKSPACE_CONFIG_FILE);
-  const text = await readTextIfExists(configPath);
-  const flowsDirExists = existsSync(path.join(path.resolve(workspaceDir), "flows"));
+  const root = path.resolve(workspaceDir);
+  const configPath = path.join(root, WORKSPACE_CONFIG_FILE);
+  const dir = await fs.stat(root).catch(() => null);
+  if (!dir) {
+    return unusableWorkspace(
+      `workspace directory ${workspaceDir} does not exist`,
+      `docsxai init ${shellQuote(workspaceDir)} --app-url <url>, or fix the path`,
+      false,
+    );
+  }
+  if (!dir.isDirectory()) {
+    return unusableWorkspace(
+      `workspace path ${workspaceDir} is a file, not a directory`,
+      "pass the workspace directory, or docsxai init <new-dir> --app-url <url>",
+      false,
+    );
+  }
+  let text: string | null = null;
+  try {
+    text = await fs.readFile(configPath, "utf8");
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT" && code !== "ENOTDIR") {
+      return unusableWorkspace(
+        `${configPath} cannot be read (${code ?? (e as Error).message})`,
+        `chmod u+r ${shellQuote(configPath)}`,
+        true,
+      );
+    }
+  }
+  const flowsDirExists = existsSync(path.join(root, "flows"));
   if (text === null) {
     return {
       check: {
@@ -130,29 +166,26 @@ export async function checkWorkspace(workspaceDir: string): Promise<WorkspacePro
   try {
     raw = JSON.parse(text);
   } catch (e) {
-    return {
-      check: {
-        name: "workspace",
-        ok: false,
-        detail: `${configPath} is not valid JSON: ${(e as Error).message}`,
-        fix: `fix the JSON (or re-scaffold with \`docsxai init ${shellQuote(workspaceDir)} --force\`)`,
-      },
-      config: null,
-      present: true,
-    };
+    return unusableWorkspace(
+      `${configPath} is not valid JSON: ${(e as Error).message}`,
+      `fix the JSON syntax in ${WORKSPACE_CONFIG_FILE} at the position above`,
+      true,
+    );
+  }
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return unusableWorkspace(
+      `${configPath} holds ${JSON_KINDS(raw)}, not a JSON object`,
+      `make ${WORKSPACE_CONFIG_FILE} an object that starts with "schema": "docsxai/workspace@1"`,
+      true,
+    );
   }
   const cfg = raw as Record<string, unknown>;
-  if (cfg?.schema !== "docsxai/workspace@1") {
-    return {
-      check: {
-        name: "workspace",
-        ok: false,
-        detail: `${configPath} has schema "${String(cfg?.schema)}" — expected "docsxai/workspace@1"`,
-        fix: `set "schema": "docsxai/workspace@1" (or re-scaffold with \`docsxai init\`)`,
-      },
-      config: null,
-      present: true,
-    };
+  if (cfg.schema !== "docsxai/workspace@1") {
+    return unusableWorkspace(
+      `${configPath} has schema "${String(cfg.schema)}" — expected "docsxai/workspace@1"`,
+      `set "schema": "docsxai/workspace@1" (or re-scaffold with \`docsxai init\`)`,
+      true,
+    );
   }
   const appUrl = typeof cfg.app_url === "string" ? cfg.app_url : undefined;
   return {
@@ -176,7 +209,7 @@ export async function checkFlows(workspaceDir: string): Promise<DoctorCheck> {
       name: "flows",
       ok: false,
       detail: `no flows/ directory at ${flowsDir}`,
-      fix: `\`docsxai init\` scaffolds it; flows live at flows/<name>.flow.yaml`,
+      fix: `mkdir ${shellQuote(flowsDir)}, then docsxai calibrate ${shellQuote(workspaceDir)} --from <flow.yaml>`,
     };
   }
   if (entries.length === 0) {
