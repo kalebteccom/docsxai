@@ -1,13 +1,11 @@
 // Browser-side overlay runtime for the interactive viewer.
 //
-// Imports the real `placeCallout` from placement.ts — the same function the static burner
-// (burn.ts) uses — so callout placement has exactly one implementation. The package build
-// (scripts/bundle-overlay.mjs) bundles this file with esbuild into dist/generated/overlay.js
-// (IIFE, es2019, unminified for auditability); render.ts inlines that bundle into every
-// emitted flow page.
+// Drawing lives in overlay-draw.ts, which imports the real `placeCallout` from placement.ts (the
+// same function the static burner, burn.ts, uses), so callout placement has one implementation.
+// The package build (scripts/bundle-overlay.mjs) bundles this file with esbuild into
+// dist/generated/overlay.js (IIFE, es2019, unminified for auditability); render.ts inlines that
+// bundle into every emitted flow page.
 
-import { placeCallout, type Side } from "./placement.js";
-import type { AnnotationRecord } from "./annotations.js";
 import { COPIED_MS, FALLBACK_MS, copyAnnouncement, type CopyState } from "./viewer-copy.js";
 import {
   isEditableTarget,
@@ -19,79 +17,11 @@ import {
   type ViewerAction,
 } from "./viewer-keys.js";
 import { fmt, uiStrings } from "./ui-strings.js";
+import { NEAR_MARGIN, needsRedraw, type ShotState } from "./overlay-geometry.js";
+import { renderShots } from "./overlay-draw.js";
 
 // The page's own text in its language: markup and runtime pick the table from the same <html lang>.
 const ui = uiStrings(document.documentElement.lang);
-
-const SIDES: readonly string[] = ["top", "bottom", "left", "right"];
-
-interface CalloutSize {
-  width: number;
-  height: number;
-}
-
-// Two-pass sizing on a body-attached probe. The callout cannot be measured in place: when it is
-// measured its wrapper is still detached from the document, and the .sd-callout class is
-// display:none until :hover — either alone makes offsetWidth/Height resolve to 0, which would bake
-// width:0px and collapse the callout into a one-character-per-line column. The probe carries the
-// same .sd-callout class (so padding/font/border match), lives in the live render tree for two
-// synchronous reads, and is removed immediately. Pass 1: natural single-line width
-// (white-space:nowrap, wrap props neutralised) clamped to 280, or to the image width when the image
-// is narrower (a phone), so the callout stays inside it. Pass 2: height at that locked width.
-function measureCallout(text: string, maxWidth: number): CalloutSize {
-  const probe = document.createElement("div");
-  probe.className = "sd-callout";
-  probe.textContent = text;
-  probe.style.cssText =
-    "position:fixed;left:-99999px;top:0;display:block;visibility:hidden;" +
-    "white-space:nowrap;overflow-wrap:normal;word-break:normal;width:auto;max-width:none";
-  document.body.appendChild(probe);
-  const cw = Math.min(probe.offsetWidth, maxWidth);
-  probe.style.cssText =
-    "position:fixed;left:-99999px;top:0;display:block;visibility:hidden;" +
-    "white-space:normal;width:" +
-    cw +
-    "px";
-  const height = probe.offsetHeight;
-  document.body.removeChild(probe);
-  return { width: cw, height };
-}
-
-function preferredSide(arrowStyle: string | undefined): Side {
-  const pref = (arrowStyle ?? "top").split("-")[0] ?? "top";
-  return SIDES.indexOf(pref) >= 0 ? (pref as Side) : "top";
-}
-
-// A call-out with copy gets a real button as its halo, so keyboard users reach it with Tab and
-// screen readers read the copy from its label. Focus or hover shows the callout (CSS); a click or
-// tap pins it open, because iOS Safari does not focus a tapped button. Escape hides it while focus
-// or the pointer stays (dismissOpen). A halo without copy is decorative.
-function makeHalo(wrap: HTMLElement, label: string): HTMLElement {
-  if (!label) {
-    const deco = document.createElement("div");
-    deco.className = "sd-halo";
-    deco.setAttribute("aria-hidden", "true");
-    return deco;
-  }
-  const halo = document.createElement("button");
-  halo.type = "button";
-  halo.className = "sd-halo";
-  halo.setAttribute("aria-label", label);
-  halo.addEventListener("click", () => {
-    const open = !wrap.classList.contains("sd-open");
-    for (const other of Array.from(document.querySelectorAll(".sd-ann.sd-open")))
-      other.classList.remove("sd-open");
-    wrap.classList.toggle("sd-open", open);
-    wrap.classList.remove("sd-dismissed");
-  });
-  const reset = () => wrap.classList.remove("sd-dismissed");
-  halo.addEventListener("blur", () => {
-    reset();
-    wrap.classList.remove("sd-open");
-  });
-  halo.addEventListener("mouseleave", reset);
-  return halo;
-}
 
 /** Escape: hide every callout that is open, focused or hovered. Focus stays where it is. */
 function dismissOpen(): boolean {
@@ -106,107 +36,52 @@ function dismissOpen(): boolean {
   return open.length > 0;
 }
 
-function renderOne(
-  shot: Element,
-  ann: AnnotationRecord,
-  sx: number,
-  sy: number,
-  im: { width: number; height: number },
-): void {
-  if (!ann.bounding_box) return;
-  const bb = ann.bounding_box;
-  const t = { x: bb.x * sx, y: bb.y * sy, width: bb.width * sx, height: bb.height * sy };
-  const wrap = document.createElement("div");
-  wrap.className = "sd-ann";
-  const label = (typeof ann.index === "number" ? ann.index + ". " : "") + ann.copy;
+// Overlays are drawn only for shots in or near the viewport. An IntersectionObserver keeps the
+// near set; a shot that comes near, finishes loading or changes width is queued, and the queue is
+// drawn once per frame. Without IntersectionObserver, or while printing, every shot counts as near.
+const nearShots = new Set<Element>();
+let printing = false;
+const io =
+  typeof IntersectionObserver === "function"
+    ? new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              nearShots.add(e.target);
+              queueShot(e.target as HTMLElement);
+            } else nearShots.delete(e.target);
+          }
+        },
+        { rootMargin: NEAR_MARGIN },
+      )
+    : null;
 
-  const halo = makeHalo(wrap, ann.copy ? label : "");
-  halo.style.cssText =
-    "left:" + t.x + "px;top:" + t.y + "px;width:" + t.width + "px;height:" + t.height + "px";
-  wrap.appendChild(halo);
-
-  // Numbered badge — only when this image has > 1 call-out (ann.index set by the engine then).
-  if (typeof ann.index === "number") {
-    const badge = document.createElement("div");
-    badge.className = "sd-badge";
-    badge.textContent = String(ann.index);
-    // top-left of the halo, pulled slightly outside it; clamped to the image
-    const bx = Math.max(0, Math.min(t.x - 8, im.width - 22));
-    const by = Math.max(0, Math.min(t.y - 8, im.height - 22));
-    badge.style.cssText = "left:" + bx + "px;top:" + by + "px";
-    // The halo button carries the number in its label; the badge is a larger pointer target for it.
-    badge.setAttribute("aria-hidden", "true");
-    badge.addEventListener("click", () => halo.click());
-    wrap.appendChild(badge);
-  }
-
-  if (ann.copy) {
-    const co = document.createElement("div");
-    co.className = "sd-callout";
-    co.setAttribute("aria-hidden", "true");
-    co.textContent = label;
-    wrap.appendChild(co);
-    const c = measureCallout(label, Math.min(280, im.width));
-    const p = placeCallout({
-      image: im,
-      target: t,
-      callout: c,
-      preferred: preferredSide(ann.arrow_style),
-    });
-    // Optional nudge — moves callout + arrow together; halo (which highlights the target) stays
-    // put. Lets the author shift a callout aside when two annotations would otherwise overlap.
-    const nx = ann.nudge && typeof ann.nudge.x === "number" ? ann.nudge.x : 0;
-    const ny = ann.nudge && typeof ann.nudge.y === "number" ? ann.nudge.y : 0;
-    co.style.cssText =
-      "left:" +
-      (p.callout.x + nx) +
-      "px;top:" +
-      (p.callout.y + ny) +
-      "px;" +
-      "box-sizing:border-box;white-space:normal;width:" +
-      c.width +
-      "px";
-
-    const ar = document.createElement("div");
-    ar.className = "sd-arrow " + p.side;
-    ar.setAttribute("aria-hidden", "true");
-    let left: number, top: number;
-    if (p.side === "top") {
-      left = p.arrow.x - 7;
-      top = p.arrow.y - 8;
-    } else if (p.side === "bottom") {
-      left = p.arrow.x - 7;
-      top = p.arrow.y;
-    } else if (p.side === "left") {
-      left = p.arrow.x - 8;
-      top = p.arrow.y - 7;
-    } else {
-      left = p.arrow.x;
-      top = p.arrow.y - 7;
-    }
-    ar.style.cssText = "left:" + (left + nx) + "px;top:" + (top + ny) + "px";
-    wrap.appendChild(ar);
-  }
-
-  shot.appendChild(wrap);
+function shotState(shot: HTMLElement): ShotState {
+  const img = shot.querySelector("img");
+  return {
+    near: printing || !io || nearShots.has(shot),
+    loaded: !!img && img.naturalWidth > 0,
+    width: img ? img.clientWidth : 0,
+    drawnWidth: shot.dataset.drawnWidth,
+  };
 }
 
-function renderShot(shot: Element): void {
-  const img = shot.querySelector("img");
-  if (!img || !img.naturalWidth) return;
-  for (const old of Array.from(shot.querySelectorAll(".sd-ann"))) shot.removeChild(old);
-  let anns: AnnotationRecord[];
-  try {
-    anns = JSON.parse(shot.getAttribute("data-anns") ?? "[]") as AnnotationRecord[];
-  } catch {
-    return;
-  }
-  if (!anns || anns.length === 0) return;
-  const sx = img.clientWidth / img.naturalWidth;
-  const sy = img.clientHeight / img.naturalHeight;
-  const im = { width: img.clientWidth, height: img.clientHeight };
-  (shot as HTMLElement).dataset.drawnWidth = String(im.width);
-  for (const ann of anns) renderOne(shot, ann, sx, sy, im);
+const queued = new Set<HTMLElement>();
+let frameQueued = false;
+
+function flushQueue(): void {
+  frameQueued = false;
+  const shots = Array.from(queued);
+  queued.clear();
+  renderShots(shots.filter((shot) => needsRedraw(shotState(shot))));
+}
+
+function queueShot(shot: HTMLElement): void {
+  if (!shot.hasAttribute("data-anns")) return;
+  queued.add(shot);
+  if (frameQueued) return;
+  frameQueued = true;
+  window.requestAnimationFrame(flushQueue);
 }
 
 // Polite announcements share one live region with the step moves. The text is cleared first so the
@@ -270,7 +145,9 @@ function watchShot(shot: HTMLElement): void {
       const step = shot.closest<HTMLElement>("section.step");
       if (hadFocus && step) step.focus({ preventScroll: true });
     }
-    renderShot(shot);
+    // A reloaded image is drawn again even at the same width.
+    delete shot.dataset.drawnWidth;
+    queueShot(shot);
   });
   img.addEventListener("error", failed);
   if (retry)
@@ -283,8 +160,9 @@ function watchShot(shot: HTMLElement): void {
       shot.classList.add("is-loading");
       img.src = src + (src.indexOf("?") >= 0 ? "&" : "?") + "retry=" + tries;
     });
+  if (io && shot.hasAttribute("data-anns")) io.observe(shot);
   if (img.complete) {
-    if (img.naturalWidth) renderShot(shot);
+    if (img.naturalWidth) queueShot(shot);
     else if (src) failed();
   }
 }
@@ -455,19 +333,14 @@ function onDocumentClick(e: MouseEvent): void {
 document.addEventListener("keydown", onKeyDown);
 document.addEventListener("click", onDocumentClick);
 // Halo and callout positions are pixels of the displayed image, so a width change (rotating a
-// phone, resizing the window) redraws the overlays of the images whose width changed, once per frame.
-let resizeQueued = false;
+// phone, resizing the window) redraws the overlays near the viewport whose width changed, once per
+// frame. A far shot keeps its old drawing and is redrawn when it comes near (its shot.dataset.drawnWidth
+// no longer matches).
 function onResize(): void {
-  if (resizeQueued) return;
-  resizeQueued = true;
-  window.requestAnimationFrame(() => {
-    resizeQueued = false;
-    for (const shot of Array.from(document.querySelectorAll<HTMLElement>(".shot[data-anns]"))) {
-      const img = shot.querySelector("img");
-      if (img && img.naturalWidth && String(img.clientWidth) !== shot.dataset.drawnWidth)
-        renderShot(shot);
-    }
-  });
+  const shots = io
+    ? (Array.from(nearShots) as HTMLElement[])
+    : Array.from(document.querySelectorAll<HTMLElement>(".shot[data-anns]"));
+  for (const shot of shots) queueShot(shot);
 }
 
 // A closed <details> prints as its summary only, so the write-ups open for printing and the
@@ -478,10 +351,16 @@ function onBeforePrint(): void {
     document.querySelectorAll<HTMLDetailsElement>("details.write-up"),
   ).filter((d) => !d.open);
   for (const d of openedForPrint) d.open = true;
+  // Every loaded shot prints with its overlay, drawn now: the print layout starts before a frame.
+  printing = true;
+  const shots = Array.from(document.querySelectorAll<HTMLElement>(".shot[data-anns]"));
+  renderShots(shots.filter((shot) => needsRedraw(shotState(shot))));
 }
 function onAfterPrint(): void {
   for (const d of openedForPrint) d.open = false;
   openedForPrint = [];
+  printing = false;
+  onResize();
 }
 
 window.addEventListener("resize", onResize);

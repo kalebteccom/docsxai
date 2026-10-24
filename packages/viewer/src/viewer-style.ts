@@ -10,6 +10,8 @@
 // 50% (70% on hover), at least 3:1 against every page surface. Browsers without scrollbar-color get
 // a 12px webkit bar; forced colours and prefers-contrast: more hand the bar back to the system.
 
+import { BADGE_BORDER, BADGE_MIN, BADGE_PAD_X } from "./overlay-geometry.js";
+
 export interface ViewerTokens {
   /** Body text. */
   fg: string;
@@ -107,7 +109,7 @@ export const VIEWER_STYLE = `
   .sd-halo::after { content: ""; position: absolute; inset: -8px; border: 3px solid var(--sd-accent-pulse, rgba(232,89,12,.3)); border-radius: 8px; pointer-events: none; animation: sd-pulse 1.7s ease-in-out infinite; }
   .sd-halo:focus-visible::after { display: none; }
   @keyframes sd-pulse { 0%,100% { opacity: 0; } 50% { opacity: 1; } }
-  .sd-badge { position: absolute; min-width: 22px; height: 22px; padding: 0 6px; line-height: 22px; text-align: center; font-weight: 700; font-size: 12px; color: #fff; background: var(--sd-badge-fill, ${BADGE_FILL}); border: 2px solid #fff; border-radius: var(--sd-badge-radius, 11px); font-family: var(--sd-font, inherit); box-sizing: content-box; box-shadow: 0 2px 6px rgba(0,0,0,.32); pointer-events: auto; cursor: help; }
+  .sd-badge { position: absolute; min-width: ${BADGE_MIN}px; height: ${BADGE_MIN}px; padding: 0 ${BADGE_PAD_X}px; line-height: ${BADGE_MIN}px; text-align: center; font-weight: 700; font-size: 12px; color: #fff; background: var(--sd-badge-fill, ${BADGE_FILL}); border: ${BADGE_BORDER}px solid #fff; border-radius: var(--sd-badge-radius, 11px); font-family: var(--sd-font, inherit); box-sizing: content-box; box-shadow: 0 2px 6px rgba(0,0,0,.32); pointer-events: auto; cursor: help; }
   .sd-callout, .sd-arrow { position: absolute; display: none; z-index: 3; pointer-events: none; }
   .sd-callout { background: var(--sd-callout-bg, #1c1c1c); color: var(--sd-callout-ink, #fff); padding: var(--sd-callout-padding, 8px 11px); border: var(--sd-callout-border, 0); border-radius: var(--sd-callout-radius, 7px); font-family: var(--sd-font, inherit); font-size: var(--sd-callout-font-size, .85rem); line-height: var(--sd-callout-line-height, 1.35); box-shadow: var(--sd-callout-shadow, 0 4px 14px rgba(0,0,0,.32)); overflow-wrap: anywhere; }
   .sd-arrow { width: 0; height: 0; }

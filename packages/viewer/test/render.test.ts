@@ -221,10 +221,11 @@ describe("buildViewer", () => {
     // Pass 1: natural single-line width (nowrap + wrap props neutralised), clamped to 280 or to
     // the image width on a narrower image.
     expect(flowHtml).toContain("white-space:nowrap");
-    expect(flowHtml).toContain("Math.min(probe.offsetWidth, maxWidth)");
-    expect(flowHtml).toContain("measureCallout(label, Math.min(280, im.width))");
+    // Every label of a frame is measured in one batch (one width read pass, one height read pass).
+    expect(flowHtml).toContain("Math.min(probe.offsetWidth, reqs[i].maxWidth)");
+    expect(flowHtml).toContain("maxWidth: Math.min(280, p.im.width)");
     // Pass 2 + final placement lock an explicit pixel width and re-enable wrapping.
-    expect(flowHtml).toMatch(/white-space:normal;width:" \+ cw \+ "px/);
+    expect(flowHtml).toMatch(/white-space:normal;width:" \+ widths\[i\] \+ "px/);
     // The callout must never be measured in place (the regression that baked width:0px).
     expect(flowHtml).not.toContain("Math.min(co.offsetWidth, 280)");
     // The brittle intrinsic-width approach must stay gone.
