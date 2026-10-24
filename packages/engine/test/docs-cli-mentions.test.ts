@@ -25,6 +25,7 @@ const COPIED_DOCS = [
   "docs/burn-theming.md",
   "docs/ci-recipes.md",
   "docs/pack-manifest.md",
+  "docs/themed-caption-packs.md",
   "examples/burn-theme/README.md",
   "examples/ci/README.md",
   "examples/ci/sample-repo/README.md",

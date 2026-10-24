@@ -56,6 +56,13 @@ export const htmlPages = [
     ],
   },
   {
+    src: "docs/themed-caption-packs.md",
+    out: "guides/themed-caption-packs.md",
+    title: "Themed caption packs",
+    description:
+      "Turn raw captures from docsxai run into themed, hash-named screenshots with a manifest: tokens for light and dark, sizes per width class, badge fallback, reading the burn report and a no-overlap check.",
+  },
+  {
     src: "docs/annotation-placement.md",
     out: "guides/annotation-placement.md",
     title: "Placing burned annotations",

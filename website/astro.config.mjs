@@ -166,6 +166,7 @@ export default defineConfig({
             { label: "CI recipes", slug: "guides/ci-recipes" },
             { label: "Determinism and drift", slug: "guides/determinism-and-drift" },
             { label: "Themeable burned captions", slug: "guides/burn-theming" },
+            { label: "Themed caption packs", slug: "guides/themed-caption-packs" },
             { label: "Placing burned annotations", slug: "guides/annotation-placement" },
             { label: "Writing plugins", slug: "guides/writing-plugins" },
             { label: "Security best practices", slug: "guides/security-best-practices" },

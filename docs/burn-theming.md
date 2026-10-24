@@ -23,7 +23,7 @@ The `burn.theme` block of the workspace's `.docsxai.json` is the source of truth
 
 `burn`, `pack`, `pack --check` and `render` read it. `docsxai-viewer site` does not: the Starlight emitter takes its accent from `--accent` or the style artifact.
 
-An optional tokens file fills the block (see [Tokens file](#tokens-file)).
+An optional tokens file fills the block (see [Tokens file](#tokens-file)). For the whole path from raw captures to a hash-named pack, see [Themed caption packs](themed-caption-packs.md).
 
 ## Layering
 
