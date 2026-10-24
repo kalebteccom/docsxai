@@ -536,6 +536,9 @@ describe("checkEnv", () => {
     const bad = checks.find((c) => !c.ok);
     expect(bad?.detail).toMatch(/DOCSX_TOKN/);
     expect(bad?.fix).toBe("unset it or fix the spelling (the CLI reference lists the names)");
+    expect(bad?.fix).not.toMatch(
+      /DOCSX_BACKEND_|DOCSX_DATA_DIR|DOCSX_WEBHOOK_SECRET|DOCSX_ENGINE_BIN/,
+    );
   });
 
   it.each([
@@ -556,7 +559,8 @@ describe("checkEnv", () => {
     for (const v of ["on", "enabled", "2", "y", "1 1"]) {
       const bad = checkEnv({ [name]: v }).filter((c) => !c.ok);
       expect(bad).toHaveLength(1);
-      expect(bad[0]!.detail).toContain(name);
+      if (name.startsWith("DOCSX_BACKEND_")) expect(bad[0]!.detail).not.toContain("DOCSX_BACKEND_");
+      else expect(bad[0]!.detail).toContain(name);
       expect(bad[0]!.detail).toContain(JSON.stringify(v));
       expect(bad[0]!.fix).toMatch(/1, true or yes/);
     }

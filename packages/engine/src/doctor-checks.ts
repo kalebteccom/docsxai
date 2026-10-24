@@ -349,7 +349,7 @@ export async function checkBackend(
         name: "backend",
         ok: false,
         detail: `${shown}/v1/health → HTTP ${res.status}`,
-        fix: "the backend answered but is unhealthy, check its logs",
+        fix: "the backend answered but is unhealthy, try again, then contact whoever runs it",
       };
     }
     return { name: "backend", ok: true, detail: `${shown}/v1/health ok (${tokenNote})` };
@@ -418,6 +418,9 @@ const FLAG_ENV_VARS: ReadonlyArray<string> = [
   EGRESS_DENY_PRIVATE_ENV,
 ];
 
+/** Server-side switch: a doctor row never prints its name to a user. */
+const OPERATOR_ONLY_FLAG_ENV_VARS: ReadonlyArray<string> = ["DOCSX_BACKEND_DENY_PRIVATE_APP_URL"];
+
 function misspelledFlags(env: NodeJS.ProcessEnv): DoctorCheck[] {
   return FLAG_ENV_VARS.filter((k) => {
     const v = env[k];
@@ -425,7 +428,7 @@ function misspelledFlags(env: NodeJS.ProcessEnv): DoctorCheck[] {
   }).map((k) => ({
     name: "env",
     ok: false,
-    detail: `${k}=${JSON.stringify(env[k])} is not an on/off value, so the switch is off`,
+    detail: `${OPERATOR_ONLY_FLAG_ENV_VARS.includes(k) ? "a backend switch" : k}=${JSON.stringify(env[k])} is not an on/off value, so the switch is off`,
     fix: "use 1, true or yes to turn it on, or unset it",
   }));
 }

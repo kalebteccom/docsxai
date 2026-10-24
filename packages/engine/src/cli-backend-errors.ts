@@ -70,7 +70,7 @@ export function explainBackendFailure(
   if (e.status !== undefined && e.status >= 500) {
     return withNext(
       `${message}\n  why: ${url} failed on its side`,
-      "check the backend's logs, then retry",
+      "try again, then contact whoever runs the backend",
     );
   }
   return message;

@@ -89,7 +89,7 @@ The engine has two modes — **calibration** (AI-assisted, rare) and **execution
 
 - The engine **never** calls a model API. The host agent supplies inference at calibration time; execution has no agent in the loop.
 - `docsxai run` reproduces a doc pack byte-identically from the same flow-file + same target state. The keystone test asserts this against a real browser.
-- Adding model-provider code anywhere in `packages/{engine,plugin,backend,viewer,skill}/` is a contract violation. The future commercial SaaS surface is the only place provider SDKs live, and it's not in this repo.
+- Adding model-provider code anywhere in `packages/{engine,plugin,backend,viewer,skill}/` is a contract violation.
 
 Write-time signal beats run-time control. `actionable()`, the halt-cause prefix, `lint`, `diagnose`, `flow-tree` — these let the calibration agent decide _before_ committing a step whether it'll hold. Future contract work biases here. Agent orchestration belongs in the agent's tooling layer; the engine is the deterministic floor (parse, run, emit) plus write-time signal. Do not re-introduce in-engine agent-orchestration state machines — the engine carries no `DiscoveryStage`/`MappingStage`/`CommitStage`-style pipeline (rationale recorded in `docs/archive/phase-plans/PHASE-1.md`).
 

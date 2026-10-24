@@ -105,7 +105,7 @@ describe("explainBackendFailure", () => {
   it("blames the backend for a 5xx", () => {
     const text = explainBackendFailure(new BackendClientError("POST /x", 503), URL_REFUSED)!;
     expect(text).toContain("failed on its side");
-    expect(text).toContain("next: check the backend's logs");
+    expect(text).toContain("next: try again, then contact whoever runs the backend");
   });
 
   it("returns a plain message for other client errors", () => {
