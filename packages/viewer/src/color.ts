@@ -50,3 +50,11 @@ export function rgbaOf(hex: string, alpha: number): string {
   if (!rgb) throw new Error(`rgbaOf needs a hex colour, got "${hex}"`);
   return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
 }
+
+/** `#rrggbb` of `a` moved `t` (0 to 1) of the way towards `b`; both must be hex colours. */
+export function mixHex(a: string, b: string, t: number): string {
+  const [ca, cb] = [parseHexColor(a), parseHexColor(b)];
+  if (!ca || !cb) throw new Error(`mixHex needs hex colours, got "${a}" and "${b}"`);
+  const mix = ca.map((v, i) => Math.round(v * (1 - t) + cb[i]! * t));
+  return "#" + mix.map((v) => v.toString(16).padStart(2, "0")).join("");
+}
