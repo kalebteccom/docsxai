@@ -1,5 +1,5 @@
 {
-  "$description": "remotxai docs caption theme, dark. Colours and font from the remotxai docs site (accent, text, surface, hairline); the docs font is Instrument Sans.",
+  "$description": "Teal docs caption theme, dark: accent, text, surface and hairline colours for a docs site set in Instrument Sans.",
   "color": {
     "accent": {
       "$type": "color",

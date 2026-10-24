@@ -97,7 +97,7 @@ A workspace needs `pack.json` (`docsxai/pack-config@1`) beside `docs/`. A raw ca
 
 - The id is `docsxai/screens-pack@N`. The current N is 2, held in code as `SCREENS_PACK_SCHEMA`.
 - Adding an optional field keeps the id. A change that breaks a reader of `@N` introduces `@N+1`, and the CHANGELOG names it. [`public-surface.md`](public-surface.md) has the full policy and the stability mark for this file.
-- `docsxai/screens-pack@1` (the first trackxai script) and `docsxai/screens-manifest@1` (the first remotxai script) are not written any more. `convertScreensPackV1` and `convertScreensManifestV1` in `@docsxai/viewer` turn them into `@2`.
+- `docsxai/screens-pack@1` and `docsxai/screens-manifest@1` are not written any more. `convertScreensPackV1` and `convertScreensManifestV1` in `@docsxai/viewer` turn them into `@2`.
 - `pack` reads any of the three shapes in `--out` to prune the files the previous manifest listed. `pack --check` accepts only `@2` as the committed side and exits 1 on a missing or older `manifest.json`; rebuild it with `docsxai pack`.
 - `pack.json` has its own id, `docsxai/pack-config@1`, versioned the same way.
 

@@ -86,7 +86,7 @@ Lossless keeps the pixels identical to the PNG. The hash comes from the PNG, so 
 </picture>
 ```
 
-**The manifest** is `docsxai/screens-pack@1`, the shape the trackxai landing reads. `src`, `width`, `height` and `bytes` describe the PNG, and `callouts` holds the copy in badge order:
+**The manifest** is `docsxai/screens-pack@1`. `src`, `width`, `height` and `bytes` describe the PNG, and `callouts` holds the copy in badge order:
 
 ```json
 {
@@ -126,7 +126,7 @@ A 1280 px screenshot shown 1100 px wide shrinks to 86% of its size, and the capt
 on-screen px = font_size x auto x displayWidth / imageWidth
 ```
 
-For the trackxai pair, `font_size` is 15 and the page shows desktop shots at about 1100 px and phone shots at about 350:
+For the `trackxai-*` example pair, `font_size` is 15 and the page shows desktop shots at about 1100 px and phone shots at about 350:
 
 | Capture | Shown at | `auto` | Burned text | On the page |
 | ------- | -------- | ------ | ----------- | ----------- |
@@ -146,7 +146,7 @@ One number can't serve both. `display_width: 1100` leaves the 390 capture at `au
 }
 ```
 
-A capture narrower than `narrow_below` (900 by default) uses `narrow`, any other uses `default`. The trackxai tokens files carry `scale` and `display_width` under `render`, which has no default token path, so map them:
+A capture narrower than `narrow_below` (900 by default) uses `narrow`, any other uses `default`. The example tokens files carry `scale` and `display_width` under `render`, which has no default token path, so map them:
 
 ```json
 {
@@ -238,7 +238,7 @@ badge only: board.en.dark.390.png: annotation 1, 2
 - `callout` and `badge` are boxes in screenshot pixels. `callout` is `null` when no caption was drawn.
 - `obstacle_overlap` is the px² the caption, arrow and line cover of listed text, and `other_overlap` the px² on other halos, badges and captions. `overlap_ratio` is both as a share of the caption's area, and `unplaceable` is `true` above 0.1. `docsxai-viewer burn --max-overlap <ratio>` moves the threshold.
 - A fallback shows as `"mode": "none"`, `"callout": null` and `"caption_style": "badge"`. It doesn't count as `unplaceable`, so a build that only watches that count misses it.
-- `route` (line connector only) is `straight`, `elbow` or `none`, and `connector_crossings` counts the boxes the drawn line still crosses (0 once routed). This is on main.
+- `route` (line connector only) is `straight`, `elbow` or `none`, and `connector_crossings` counts the boxes the drawn line still crosses (0 once routed). Not in `0.3.0-rc.3`.
 
 In a themed burn the burner checks each listed box against the pixels first and drops a box with nothing drawn in it. A sidecar that lists a collapsed menu doesn't push captions around.
 
@@ -356,7 +356,7 @@ node scripts/burn-trackxai.mjs --raw raw --out web/public/screens --theme dark 2
 
 `packages/viewer/test/burn-real-sidecars.test.ts` is the same check in the repo's own suite: real sidecars, a synthetic screen with text stripes in every listed box, and assertions that no caption or badge covers text, a target or the phone chrome.
 
-## 6. Worked example: the trackxai pair
+## 6. Worked example: a light and dark pair
 
 `examples/burn-theme/` holds two tokens files for a light and a dark app:
 
