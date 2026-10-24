@@ -219,3 +219,62 @@ describe("terminology and advertised surface", () => {
     for (const skill of await listSkills()) expect(readme).toContain(`\`${skill}\``);
   });
 });
+
+describe("prose claims against engine, viewer and mcp source", () => {
+  const src = (...parts: string[]): Promise<string> => read(repoRoot, "packages", ...parts);
+
+  it("names exactly the MCP tools the standalone server registers", async () => {
+    const dir = path.join(repoRoot, "packages", "mcp", "src", "tools");
+    const registered: string[] = [];
+    for (const file of await fs.readdir(dir)) {
+      const m = /^\s*name:\s*"([a-z_]+)"/m.exec(await read(dir, file));
+      if (m) registered.push(m[1]!);
+    }
+    const calibrate = await read(pluginDir, "skills", "calibrate", "SKILL.md");
+    const sentence = /\(repo-only, not on npm; ([^)]+)\)/.exec(calibrate)?.[1] ?? "";
+    const named = [...sentence.matchAll(/`([a-z_]+)`/g)].map((m) => m[1]!);
+    expect(named.sort()).toEqual(registered.sort());
+  });
+
+  it("states the burn.theme numbers the viewer enforces", async () => {
+    const theme = await src("viewer", "src", "burn-theme.ts");
+    const fields = await src("viewer", "src", "burn-theme-fields.ts");
+    const skill = await read(pluginDir, "skills", "calibrate", "SKILL.md");
+    expect(theme).toMatch(/THEME_PRESET_NAMES = \[[^\]]*"readable"/);
+    expect(fields).toContain("DISPLAY_WIDTH_RANGE = { min: 240, max: 2400 }");
+    expect(skill).toContain("240 to 2400");
+    expect(theme).toMatch(/AUTO_SCALE_MAX = 4;/);
+    expect(skill).toContain("at most 4");
+    expect(theme).toMatch(/displayWidth: 720,/);
+    expect(skill).toContain("defaults to 720");
+    expect(theme).toContain("NARROW_BELOW_DEFAULT = 900");
+    expect(skill).toContain('"narrow_below": 900');
+  });
+
+  it("says `render` takes no --lang while the viewer bin's build and site do", async () => {
+    const entries = await usageEntries();
+    const render = entries.find((e) => subcommandOf(e) === "render")!;
+    expect(render).not.toContain("--lang");
+    const viewerUsage = await src("viewer", "src", "index.ts");
+    expect(viewerUsage).toMatch(
+      /docsxai-viewer build <docs-dir> <out-dir>[^\n]*\[--lang <locale>\]/,
+    );
+    expect(viewerUsage).toMatch(/docsxai-viewer site <workspace>[^\n]*\[--lang <locale>\]/);
+    expect(await read(pluginDir, "commands", "render.md")).toMatch(/has no language flag/);
+    expect(await read(pluginDir, "skills", "calibrate", "SKILL.md")).toMatch(
+      /has no language flag.*docsxai-viewer build.*--lang es.*docsxai-viewer site/,
+    );
+  });
+
+  it("describes the run summary and the doctor flag the engine prints", async () => {
+    const summary = await src("engine", "src", "cli-run-summary.ts");
+    expect(summary).toContain("run: ${okCount} of ${total} ${unit} ok, outputs in ${where}");
+    expect(summary).toContain("failed, ${okCount} ok; outputs in ${where}");
+    expect(await src("engine", "src", "cli-commands-session.ts")).toContain('"flow variants"');
+    const run = await read(pluginDir, "commands", "run.md");
+    expect(run).toContain("`run: <n> of <m> flows ok, outputs in <dir>`");
+    expect(run).toContain("`flow variants`");
+    expect(await src("engine", "src", "doctor.ts")).toContain('args.includes("--offline")');
+    expect(await read(pluginDir, "commands", "doctor.md")).toContain("--offline");
+  });
+});
