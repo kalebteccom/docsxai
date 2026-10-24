@@ -150,6 +150,14 @@ describe("POST /v1/github/webhook", () => {
     expect(res.status).toBe(400);
   });
 
+  it.each(["null", "42", '"text"', "[]"])(
+    "400s a payload that is the JSON value %s",
+    async (body) => {
+      const res = await deliver({ body });
+      expect(res.status).toBe(400);
+    },
+  );
+
   it("acknowledges but filters events the config does not subscribe to", async () => {
     const res = await deliver({ event: "pull_request", delivery: "filtered-1" });
     expect(res.status).toBe(200);
