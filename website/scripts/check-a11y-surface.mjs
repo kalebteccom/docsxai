@@ -38,9 +38,8 @@ const NEXT_LINK = {
   "getting-started/installation/index.html": "/getting-started/quickstart/",
   "getting-started/quickstart/index.html": "/reference/flow-file/",
 };
-// Pages that must hold copy buttons on their own install commands: the hero one-liner, two install
-// cards and the five first-run steps.
-const LANDING_COPY_BUTTONS = 8;
+// Copy buttons the landing must hold: the hero install line and the five first-run steps.
+const LANDING_COPY_BUTTONS = 6;
 const LANDING_FIRST_RUN_STEPS = 5;
 // Starlight's component CSS sits in `@layer starlight.*`, which any unlayered site rule overrides
 // (brand.css sets the thin scrollbars that way), so its own `scrollbar-width: none` is not judged.
