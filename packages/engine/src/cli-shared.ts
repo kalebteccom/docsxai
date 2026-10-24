@@ -6,8 +6,9 @@
 //   • listFlowFiles — enumerate the workspace's flows/*.flow.yaml (run / lint / flow-tree)
 
 import { promises as fs } from "node:fs";
+import * as path from "node:path";
 import { shellQuote, usageError, withNext } from "./cli-messages.js";
-import { resolveWorkspacePath } from "./workspace.js";
+import { resolveWorkspacePath, WORKSPACE_CONFIG_FILE } from "./workspace.js";
 
 /**
  * Split argv into positionals and `--flag [value]` / `--flag=value` pairs. A flag in `bool` never
@@ -60,6 +61,16 @@ export function parseFlags(
   return { positionals, flags, repeated, boolWithValue };
 }
 
+/** True when `value` parses as an `http:` or `https:` URL. */
+export function isHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /** The first of `names` given as a bare flag (`--flow` with nothing after it), or `undefined`. */
 export function flagMissingValue(
   flags: Map<string, string | true>,
@@ -98,18 +109,40 @@ export function claimFlowName(
   return `flow name "${name}" is declared by both ${first} and ${file}; each flow needs its own name`;
 }
 
+/** Why `projectDir` has no flows/ to list, with the one command that fixes it. */
+async function missingFlowsMessage(projectDir: string, flowsDir: string): Promise<string> {
+  const dir = shellQuote(projectDir);
+  let entries: string[] | undefined;
+  try {
+    entries = await fs.readdir(path.resolve(projectDir));
+  } catch {
+    entries = undefined;
+  }
+  if (entries?.includes(WORKSPACE_CONFIG_FILE)) {
+    return withNext(
+      `workspace ${projectDir} has no flows/ directory (expected ${flowsDir})`,
+      `mkdir ${shellQuote(flowsDir)}  (then docsxai calibrate ${dir} --from <flow.yaml>)`,
+    );
+  }
+  if (entries && entries.length > 0) {
+    return withNext(
+      `${projectDir} is not a docsxai workspace (no ${WORKSPACE_CONFIG_FILE}, no flows/)`,
+      "docsxai init <new-dir>, or pass the workspace directory",
+    );
+  }
+  return withNext(
+    `workspace ${projectDir} has no flows/ directory (expected ${flowsDir}); it is not a docsxai workspace`,
+    `docsxai init ${dir}  (or fix the path; init needs a new or empty directory)`,
+  );
+}
+
 export async function listFlowFiles(projectDir: string): Promise<string[]> {
   const dir = resolveWorkspacePath(projectDir, "flows");
   let entries: string[];
   try {
     entries = await fs.readdir(dir);
   } catch {
-    throw new Error(
-      withNext(
-        `workspace ${projectDir} has no flows/ directory (expected ${dir}); it is not a docsxai workspace`,
-        `docsxai init ${shellQuote(projectDir)}  (or fix the path; init needs a new or empty directory)`,
-      ),
-    );
+    throw new Error(await missingFlowsMessage(projectDir, dir));
   }
   return entries
     .filter((e) => e.endsWith(".flow.yaml"))

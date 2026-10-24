@@ -74,6 +74,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Fixed
 
 - **A browser that will not start.** `run`, `inspect` and `capture-auth` print one reason and one `next:` command instead of Playwright's banner and call log: no Chromium binary gives the install command, and a `--cdp` endpoint nobody listens on gives `cannot attach to the browser at <endpoint> (ECONNREFUSED)` and the `--remote-debugging-port` flag to start Chrome with. `run --cdp` no longer asks for a cached session first, because an attached browser owns its own login.
+- **First-run start-up errors.** `init --app-url`, `run --base-url` and `login --backend-url` reject a value that is not an `http://` or `https://` URL with exit 2 and the command's usage line (`login` no longer asks for `DOCSX_TOKEN` first). `run` stops on an `app_url` in `.docsxai.json` that is not a URL and names the file. `init` on a path that is a file says so, and a refused `mkdir` points `chmod` at the existing parent. `run`, `lint` and `flow-tree` on a workspace whose `flows/` was deleted print `mkdir <dir>/flows`, and on a non-empty directory without `.docsxai.json` say it is not a workspace; neither suggests `init`, which refuses a non-empty directory. A cached session that is not valid JSON is called corrupt instead of expired. A `plugins` entry of the wrong shape shows the two shapes that work.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

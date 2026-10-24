@@ -9,6 +9,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import {
+  cachedSessionIsCorrupt,
   parseAuthStrategyFile,
   resolveStateCache,
   storageStateFileName,
@@ -27,7 +28,13 @@ import { assertNoCaseCollision } from "./flow-name-rules.js";
 import { recordRunHistory } from "./backend-client.js";
 import { runFlowsInSessions } from "./run-flows.js";
 import { initWorkspace, loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { bareValueFlagExit, claimFlowName, flagMissingValue, listFlowFiles } from "./cli-shared.js";
+import {
+  bareValueFlagExit,
+  claimFlowName,
+  flagMissingValue,
+  isHttpUrl,
+  listFlowFiles,
+} from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
@@ -51,7 +58,7 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
   if (!state) {
     throw new Error(
       withNext(
-        `auth/strategy.yaml configures role "${role}" but there is no valid cached session at ${path.join(projectDir, ".auth", storageStateFileName(role))} (missing or expired)`,
+        `auth/strategy.yaml configures role "${role}" but there is no valid cached session at ${path.join(projectDir, ".auth", storageStateFileName(role))} (${(await cachedSessionIsCorrupt(resolveWorkspacePath(projectDir, ".auth"), role)) ? "the file is corrupt" : "missing or expired"})`,
         `docsxai capture-auth ${shellQuote(projectDir)}`,
       ),
     );
@@ -104,9 +111,21 @@ export async function cmdRun(args: string[]): Promise<number> {
   if (typeof verify === "string") return usageError("run", verify);
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg) await warnUnusableConfig("run", projectDir);
-  const baseURL =
-    (typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined) ??
-    wsCfg?.app_url;
+  const baseUrlFlag =
+    typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined;
+  if (baseUrlFlag !== undefined && !isHttpUrl(baseUrlFlag)) {
+    return usageError("run", "--base-url must be an http:// or https:// URL");
+  }
+  const baseURL = baseUrlFlag ?? wsCfg?.app_url;
+  if (baseUrlFlag === undefined && wsCfg?.app_url !== undefined && !isHttpUrl(wsCfg.app_url)) {
+    const file = resolveWorkspacePath(projectDir, ".docsxai.json");
+    const note = withNext(
+      `app_url in ${file} is not an http:// or https:// URL`,
+      `fix app_url in ${file}, or pass --base-url <url>`,
+    );
+    process.stderr.write(`run: ${note}\n`);
+    return 1;
+  }
   const ignoreHTTPSErrors =
     flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
 
@@ -361,9 +380,19 @@ export async function cmdInit(args: string[]): Promise<number> {
     return 2;
   }
   const appUrl = str("app-url");
+  if (appUrl !== undefined && !isHttpUrl(appUrl)) {
+    return usageError("init", "--app-url must be an http:// or https:// URL");
+  }
   const role = str("role");
   const ttl = str("ttl");
   const authCookie = str("auth-cookie");
+  if (dir && (await fs.stat(dir).catch(() => null))?.isFile()) {
+    const next = "docsxai init <new-dir>  (a workspace is a directory)";
+    process.stderr.write(
+      `init: ${withNext(`${path.resolve(dir)} is a file, not a directory`, next)}\n`,
+    );
+    return 1;
+  }
   try {
     const r = await initWorkspace({
       ...(dir ? { dir } : {}),
@@ -389,7 +418,7 @@ export async function cmdInit(args: string[]): Promise<number> {
     return 0;
   } catch (e) {
     process.stderr.write(
-      `init: ${describeFsError(e) ?? (e as Error).message.replace(/^init: /, "")}\n`,
+      `init: ${describeFsError(e, { creating: true }) ?? (e as Error).message.replace(/^init: /, "")}\n`,
     );
     return 1;
   }

@@ -2,6 +2,8 @@
 // run, in that order, on `<command>: ` lines with an indented `next:` line. Usage errors show the
 // failing command's own usage line instead of the whole help text. Leaf: imports only the help text.
 
+import { existsSync } from "node:fs";
+import * as path from "node:path";
 import { USAGE } from "./cli-usage.js";
 
 /** The `Usage:` entries of `docsxai --help`, one whitespace-normalised line per entry. */
@@ -112,14 +114,26 @@ export function fsNext(code: string, target?: string): string {
     : "make the directory accessible (or pick another one), then rerun the command";
 }
 
+/** The nearest directory above `target` (or `target` itself) that exists, for a chmod when `target` is yet to be made. */
+function nearestExisting(target: string): string {
+  let dir = path.resolve(target);
+  while (!existsSync(dir) && path.dirname(dir) !== dir) dir = path.dirname(dir);
+  return dir;
+}
+
 /**
  * A line for a file operation that failed with {@link fsErrorCode}: what failed, why, and the next command.
- * `undefined` for any other error, so the caller keeps its own wording.
+ * `undefined` for any other error, so the caller keeps its own wording. With `creating`, a refused
+ * `mkdir` names the nearest existing parent in the chmod, because the path that failed is not there to change.
  */
-export function describeFsError(e: unknown): string | undefined {
+export function describeFsError(e: unknown, opts: { creating?: boolean } = {}): string | undefined {
   const code = fsErrorCode(e);
   if (code === undefined) return undefined;
   const target = (e as NodeJS.ErrnoException).path;
   const where = target ? ` ${redactUrlsIn(target)}` : "";
-  return withNext(`cannot access${where} (${code}, ${FS_REASONS[code]})`, fsNext(code, target));
+  const parent = opts.creating && target && (code === "EACCES" || code === "EPERM");
+  const next = parent
+    ? `chmod u+rwx ${shellQuote(nearestExisting(target))}  (or pick another directory), then rerun the command`
+    : fsNext(code, target);
+  return withNext(`cannot access${where} (${code}, ${FS_REASONS[code]})`, next);
 }

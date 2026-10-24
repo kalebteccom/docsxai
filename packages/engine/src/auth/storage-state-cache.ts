@@ -67,6 +67,22 @@ export function storageStateFileName(role: string): string {
   return `${safe}-${hash}.json`;
 }
 
+/** True when the role's file in `<dir>` exists but is not a cached session (not JSON, or the wrong shape). */
+export async function cachedSessionIsCorrupt(dir: string, role: string): Promise<boolean> {
+  let text: string;
+  try {
+    text = await fs.readFile(new LocalStorageStateCache(dir).filePath(role), "utf8");
+  } catch {
+    return false;
+  }
+  try {
+    CachedStateSchema.parse(JSON.parse(text));
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 export class LocalStorageStateCache {
   /** @param dir the `.auth/` directory (relative paths resolved against cwd). */
   constructor(private readonly dir = ".auth") {}
@@ -77,6 +93,11 @@ export class LocalStorageStateCache {
 
   private file(role: string): string {
     return resolveWorkspacePath(this.dir, this.fileName(role));
+  }
+
+  /** The path of the cache file for `role`. */
+  filePath(role: string): string {
+    return this.file(role);
   }
 
   /** Return the cached state for a role if present and not past its expiry; otherwise `null`. */

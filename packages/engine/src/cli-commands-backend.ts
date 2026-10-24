@@ -24,7 +24,7 @@ import {
 import { writeFileAtomic } from "./atomic-write.js";
 import { pluginsCli } from "./plugins-cli.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { bareValueFlagExit } from "./cli-shared.js";
+import { bareValueFlagExit, isHttpUrl } from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
 import { configProblem, explainBackendFailure } from "./cli-backend-errors.js";
 import {
@@ -44,6 +44,9 @@ export async function cmdLogin(args: string[]): Promise<number> {
     typeof flags.get("backend-url") === "string" ? (flags.get("backend-url") as string) : undefined;
   if (!backendUrl) {
     return usageError("login", "--backend-url <url> required");
+  }
+  if (!isHttpUrl(backendUrl)) {
+    return usageError("login", "--backend-url must be an http:// or https:// URL");
   }
   const oauthFlag = flags.get("oauth");
   if (oauthFlag !== undefined) {
