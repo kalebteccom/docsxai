@@ -117,6 +117,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **`push` read files behind symlinks.** A flow file, annotations file, screenshot, `style.yaml`, `style.json` or `locators.yaml` that was a symlink to a file outside the workspace was read and sent to the backend. Those files are now left out of the pack.
 - **`pack --check --threshold ""`.** An empty or blank threshold passed as 0 percent. It now exits 2 like any other value that is not a percentage of 0 or more.
 - **`docsxai-backend` answers 400 to a request target the URL parser rejects.** A request line such as `GET //` or `GET //[` returned a 500 with `Invalid URL`; it now returns a JSON `bad_request`.
+- **Webhook run history records the revision that ran and the runs that never started.** A `head` revision that moved while the engine ran was recorded as the newer head, and a job whose payloads could not be laid out left no row. The row now names the revision the run executed against, and a failed materialization appends a failed run with the reason.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
