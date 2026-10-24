@@ -47,6 +47,8 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Fixed
 
 - **Viewer links and images for names with `#`, `?` or `%`.** `docsxai render` percent-encodes these characters in the screenshot, flow-card, thumbnail and previous/next flow URLs. A step id such as `a#b` used to point at `a` and show a broken image.
+- **`docsxai render --flow` with repeated or unknown names.** A flow named twice produced two pages and two index cards, and a name with no folder under `docs/` produced an empty page with no message. Each flow now renders once, and an unknown name is skipped with a warning.
+- **`docsxai render` with a directory named like a screenshot.** A directory called `<step>.png` under `screenshots/` crashed the copy. The step now shows the missing-screenshot state.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

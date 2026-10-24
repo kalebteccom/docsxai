@@ -123,6 +123,20 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
+async function isFile(p: string): Promise<boolean> {
+  return fs.stat(p).then(
+    (s) => s.isFile(),
+    () => false,
+  );
+}
+
+async function isDirectory(p: string): Promise<boolean> {
+  return fs.stat(p).then(
+    (s) => s.isDirectory(),
+    () => false,
+  );
+}
+
 /**
  * Flow names under `docsDir` that carry an `annotations.json` (sorted). With `variants`, a flow
  * that ran a matrix also contributes one `<flow>/<variant>` name per subdirectory holding an
@@ -183,15 +197,22 @@ async function loadOverlayJs(): Promise<string> {
 
 /** Build the static viewer. Returns the generated page paths (relative to `outDir`), index first. */
 export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewerResult> {
-  const requested = opts.flows ?? (await discoverFlows(opts.docsDir, { variants: true }));
+  const requested = [
+    ...new Set(opts.flows ?? (await discoverFlows(opts.docsDir, { variants: true }))),
+  ];
   const warnings: string[] = [];
-  const flows = requested.filter((flow) => {
-    if (isSafeFlowName(flow)) return true;
-    warnings.push(
-      `flow ${showName(flow)} skipped: a flow name cannot hold "..", ":", "\\" or control characters, so rename it and render again`,
-    );
-    return false;
-  });
+  const flows: string[] = [];
+  for (const flow of requested) {
+    if (!isSafeFlowName(flow)) {
+      warnings.push(
+        `flow ${showName(flow)} skipped: a flow name cannot hold "..", ":", "\\" or control characters, so rename it and render again`,
+      );
+    } else if (opts.flows && !(await isDirectory(path.join(opts.docsDir, flow)))) {
+      warnings.push(
+        `flow ${showName(flow)} skipped: there is no folder for it under ${opts.docsDir}`,
+      );
+    } else flows.push(flow);
+  }
   await fs.mkdir(opts.outDir, { recursive: true });
   const stamp = viewerStamp();
   const overlayJs = flows.length ? await loadOverlayJs() : "";
@@ -238,7 +259,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
         continue;
       }
       const shotRel = `screenshots/${id}.png`;
-      const hasShot = await exists(path.join(flowSrc, shotRel));
+      const hasShot = await isFile(path.join(flowSrc, shotRel));
       if (hasShot) {
         await fs.mkdir(path.join(opts.outDir, flow, "screenshots"), { recursive: true });
         await fs.copyFile(path.join(flowSrc, shotRel), path.join(opts.outDir, flow, shotRel));
