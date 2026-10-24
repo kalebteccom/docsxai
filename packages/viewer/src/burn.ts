@@ -56,6 +56,7 @@ import {
   type FlowBurnReport,
 } from "./burn-report.js";
 import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
+import { fitAnnotation } from "./burn-fit.js";
 
 export { arrowGeometry, type ArrowGeometry };
 
@@ -165,11 +166,30 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const badges = new Map<AnnotationRecord, Rect>();
   const threshold = input.unplaceableRatio ?? DEFAULT_UNPLACEABLE_RATIO;
 
-  const baseAnnotations = input.annotations.map((a) => atBaseSize(a, f));
+  // A box resvg can't draw (off the image, no area, NaN) is skipped; one that overhangs an edge is clipped.
+  const fitted = input.annotations.map((a) => fitAnnotation(a, image));
+  // A skipped record loses its box so the others don't place around a shape that isn't drawn.
+  const drawable = fitted.map((f, i) => {
+    if ("ann" in f) return f.ann;
+    const { bounding_box: _dropped, ...rest } = input.annotations[i]!;
+    return rest;
+  });
+  const baseAnnotations = drawable.map((a) => atBaseSize(a, f));
   // The line connector comes with the clean look: halos and badges outside their targets, and text
   // estimated from the pixels for annotations that list no obstacles.
   const clean = connector !== "arrow";
-  for (const [i, realAnn] of input.annotations.entries()) {
+  for (const [i, fit] of fitted.entries()) {
+    const original = input.annotations[i]!;
+    if ("skip" in fit) {
+      warn(
+        original.bounding_box
+          ? `burn: annotation "${original.selector}" on step "${original.step}": ${fit.skip}, skipped`
+          : `burn: annotation on step "${original.step}" has no bounding_box — skipped`,
+      );
+      input.report?.push(skippedReport(original, fit.skip));
+      continue;
+    }
+    const realAnn = fit.ann;
     const self = baseAnnotations[i]!;
     // Clean: text from the pixels, other targets and phone chrome join the obstacles.
     const prep = clean
@@ -184,12 +204,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
         )
       : { ann: self, badgeObstacles: self.obstacles ?? [] };
     const ann = prep.ann;
-    if (!ann.bounding_box) {
-      warn(`burn: annotation on step "${ann.step}" has no bounding_box — skipped`);
-      input.report?.push(skippedReport(ann, "no bounding_box"));
-      continue;
-    }
-    const t = ann.bounding_box;
+    const t = ann.bounding_box!;
     const real = haloBox(realAnn.bounding_box!, clean, f);
     children.push(
       div({

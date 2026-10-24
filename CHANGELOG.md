@@ -64,6 +64,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`docsxai pack` names the bad field in a damaged `annotations.json`.** A `bounding_box` with a string for `x`, a `placement.side` that is not a side, or a bad `nudge`, `obstacles`, `arrow_style` or `index` failed inside the burner with `inputValue.trim is not a function` or `Cannot read properties of undefined`. The pack now stops with the file, the record's position and the field, for the records of steps it reads.
 - **Copyable capture commands quote odd names.** The `docsxai run --flow ... --start-from ...` command that `render` and `docsxai-viewer site` offer for a missing screenshot was pasted as written, so a step id or flow name with a space, quote or `$` split into several shell words or ran as code. Both pages now single-quote such names the POSIX way; plain names stay bare.
 
+### Fixed
+
+- **`docsxai burn` no longer aborts on an annotation whose box is off the image or has no area.** A `bounding_box` that lies outside the screenshot, has zero or negative size, or holds NaN or infinity used to crash the process inside the rasteriser. Such an annotation is now skipped with a warning that names its selector and step, and `burn --report` lists it with `skipped` set. A box that only overhangs an edge is clipped to the image.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
