@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { WebhookConfig } from "../src/api.js";
 import { MemoryStore } from "../src/index.js";
 import { ENGINE_BIN_ENV, resolveEngineBin, SpawnRunner } from "../src/runner.js";
@@ -87,6 +87,26 @@ describe("SpawnRunner", () => {
       expect(runs[0]!.summary).toContain("fake: noted");
     } finally {
       fs.rmSync(outcome.workspace_dir, { recursive: true, force: true });
+    }
+  });
+
+  it("removes the temp workspace when recording the run fails", async () => {
+    const { store, job } = seed();
+    vi.spyOn(store, "appendRun").mockImplementation(() => {
+      throw new Error("disk full");
+    });
+    const workRoot = fs.mkdtempSync(path.join(os.tmpdir(), "docsxai-runner-leak-"));
+    try {
+      const runner = new SpawnRunner({
+        store,
+        engineBin: FAKE_BIN,
+        strategy: okStrategy([]),
+        workRoot,
+      });
+      await expect(runner.executeRun(job)).rejects.toThrow("disk full");
+      expect(fs.readdirSync(workRoot)).toEqual([]);
+    } finally {
+      fs.rmSync(workRoot, { recursive: true, force: true });
     }
   });
 

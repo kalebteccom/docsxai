@@ -73,6 +73,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Backend: run-history bodies are type-checked.** `POST .../run-history` stored `"ok": "false"` as `true` and a text `duration_ms` as `null`. It now returns 400 `bad_request` naming the field unless `ok` is a boolean, `duration_ms` is a non-negative number (default 0) and `summary` is a string (default empty).
 - **Backend: run history is capped at 1000 records per project.** `runs.json` and the in-memory list grew with every run, and each append rewrote the whole file. Appending past 1000 now drops the oldest record.
 - **Backend: a webhook run's summary is the engine's last line.** The runner kept the first 64 KiB of engine output and read the last line of that, so a run that printed more than 64 KiB recorded a line from the middle. It now keeps the last 64 KiB.
+- **Backend: a webhook run removes its temp workspace when run history cannot be written.** If recording the run threw, the materialized workspace (flows, screenshots, rendered output) stayed in the temp dir.
 
 ## [0.3.0-rc.3] - 2026-10-09
 

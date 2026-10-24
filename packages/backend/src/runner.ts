@@ -191,14 +191,16 @@ export class SpawnRunner {
       };
     }
 
-    store.appendRun(job.workspace_id, job.project_id, {
-      rev: job.config.workspace_rev,
-      ok: outcome.ok && strategyResult.ok,
-      duration_ms: outcome.duration_ms,
-      summary: `[webhook ${job.event} ${job.delivery_id}] ${outcome.summary}; ${strategyResult.strategy}: ${strategyResult.detail}`,
-    });
-
-    if (!this.opts.keepWorkspace) fs.rmSync(workspaceDir, { recursive: true, force: true });
+    try {
+      store.appendRun(job.workspace_id, job.project_id, {
+        rev: job.config.workspace_rev,
+        ok: outcome.ok && strategyResult.ok,
+        duration_ms: outcome.duration_ms,
+        summary: `[webhook ${job.event} ${job.delivery_id}] ${outcome.summary}; ${strategyResult.strategy}: ${strategyResult.detail}`,
+      });
+    } finally {
+      if (!this.opts.keepWorkspace) fs.rmSync(workspaceDir, { recursive: true, force: true });
+    }
     return { ...outcome, strategy: strategyResult };
   }
 }
