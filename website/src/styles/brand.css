@@ -1285,6 +1285,18 @@ main:has(.docsx-404) > .content-panel {
   letter-spacing: -0.015em;
 }
 
+/* Measure: paragraphs and list items stop at 75 characters, tables and code keep the column. Long
+   unbroken tokens (paths, flags) wrap inside the column and never widen the page. */
+.sl-markdown-content {
+  overflow-wrap: break-word;
+}
+.sl-markdown-content :not(pre) > code {
+  overflow-wrap: anywhere;
+}
+.sl-markdown-content :is(p, li):not(:where(.not-content *)) {
+  max-width: 75ch;
+}
+
 /* Reference tables: top-align cells and tighten type. Starlight keeps tables
    in a display:block + overflow-x container, so a genuinely wide one scrolls
    within the column rather than bleeding under the right-hand sidebar. Tables
@@ -1311,6 +1323,18 @@ main:has(.docsx-404) > .content-panel {
 }
 .sl-markdown-content table :is(th, td) {
   vertical-align: top;
+}
+/* Phone width: body copy is 16px. Wide tables already scroll inside their wrapper. */
+@media (max-width: 40rem) {
+  .sl-markdown-content table,
+  .docsx-card-text,
+  .docsx-install-note,
+  .docsx-boundary .dxb-list li {
+    font-size: 1rem;
+  }
+  .docsx-credit {
+    font-size: 0.875rem;
+  }
 }
 
 /* ---- browxai / docsxai boundary diagram (ecosystem page) ---------------- */
@@ -1594,7 +1618,9 @@ body::before {
   .docsx-sidebar-llms,
   .docsx-credit a,
   #starlight__sidebar a,
-  .sl-markdown-content a {
+  .sl-markdown-content a,
+  .expressive-code .copy,
+  .expressive-code .copy * {
     animation: none !important;
     transition: none !important;
   }
@@ -1625,14 +1651,19 @@ body::before {
   outline-offset: -2px;
 }
 
-/* Touch targets: at least 44px tall on touch screens for the sidebar links,
-   the llms.txt link, the buttons and the footer credit links. */
-@media (pointer: coarse) {
+/* Touch targets: at least 44px tall on touch screens and on phone-width windows (Starlight swaps
+   to its mobile layout at 50rem) for the sidebar links, the llms.txt link, the buttons, the footer
+   credit links, the header search and menu buttons, the search dialog's close button, the theme
+   select, the GitHub icon, the edit link and Expressive Code's copy buttons. */
+:root {
+  --docsx-tap: 44px;
+}
+@media (pointer: coarse), (max-width: 49.99rem) {
   #starlight__sidebar .top-level a,
   .docsx-sidebar-llms,
   .docsx-btn,
   .docsx-credit a {
-    min-height: 44px;
+    min-height: var(--docsx-tap);
   }
   #starlight__sidebar .top-level a {
     display: flex;
@@ -1642,6 +1673,34 @@ body::before {
     display: inline-flex;
     align-items: center;
     padding-inline: 0.25rem;
+  }
+  .expressive-code .frame .copy button {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .expressive-code .frame .copy button::after {
+    margin: 0.6rem;
+  }
+}
+@media (max-width: 49.99rem) {
+  /* The menu button is Starlight's 2rem circle; the header reserves room for it from this token. */
+  :root {
+    --sl-menu-button-size: 2.75rem;
+  }
+  site-search button[data-open-modal],
+  site-search button[data-close-modal],
+  starlight-theme-select select,
+  .social-icons a,
+  footer .meta a {
+    min-width: var(--docsx-tap);
+    min-height: var(--docsx-tap);
+  }
+  site-search button[data-open-modal],
+  .social-icons a,
+  footer .meta a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
