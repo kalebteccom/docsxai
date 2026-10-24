@@ -18,7 +18,12 @@ import type {
 import { writeFilesTransactional, type StagedFile } from "./atomic-write.js";
 import { FlowName } from "./doc-pack.js";
 import { findCaseCollision, hasTrailingDot, isWindowsDeviceName } from "./flow-name-rules.js";
-import { readFileInside, resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
+import {
+  readFileInside,
+  resolveWorkspacePath,
+  resolveWorkspacePathReal,
+  WorkspacePathEscapeError,
+} from "./workspace.js";
 
 export interface DocPackPayloads {
   flows: FlowsPayload | null;
@@ -301,6 +306,16 @@ export function assertSafePackNames(payloads: Partial<DocPackPayloads>): void {
   }
 }
 
+/** `docs/<name>` for a pulled file, refused when a symlink on the way leads outside the workspace. */
+async function docsTargetInside(workspace: string, name: string): Promise<string> {
+  try {
+    return await resolveWorkspacePathReal(workspace, "docs", name);
+  } catch (e) {
+    if (!(e instanceof WorkspacePathEscapeError)) throw e;
+    throw new Error(`refusing to write docs/${name}: a symlink leads it outside the workspace`);
+  }
+}
+
 export async function writeDocPack(
   workspace: string,
   payloads: Partial<DocPackPayloads>,
@@ -334,11 +349,11 @@ export async function writeDocPack(
     }
   }
   if (payloads.style?.yaml != null) {
-    const target = resolveWorkspacePath(workspace, "docs", "style.yaml");
+    const target = await docsTargetInside(workspace, "style.yaml");
     files.push({ target, data: payloads.style.yaml, encoding: "utf8" });
   }
   if (payloads.style?.json != null) {
-    const target = resolveWorkspacePath(workspace, "docs", "style.json");
+    const target = await docsTargetInside(workspace, "style.json");
     files.push({
       target,
       data: JSON.stringify(payloads.style.json, null, 2) + "\n",
@@ -346,7 +361,7 @@ export async function writeDocPack(
     });
   }
   if (payloads.locators?.yaml) {
-    const target = resolveWorkspacePath(workspace, "docs", "locators.yaml");
+    const target = await docsTargetInside(workspace, "locators.yaml");
     files.push({ target, data: payloads.locators.yaml, encoding: "utf8" });
   }
   await writeFilesTransactional(files);

@@ -155,6 +155,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`docsxai-viewer site`.** An invalid `--accent` exits 2 with the value and the usage line (it exited 1). An `annotations.json` the site cannot read is a `site: warning:` line, not silence. A failed `--build` prints the first lines of astro's report, without its stack trace or `node_modules` paths, and the command that prints the whole log.
 - **`docsxai-viewer` bin and `pack`.** `--help`, `-h` and `help` exit 0 (they exited 2). An unknown command prints its name on stderr before the help. `pack` usage errors print the message, the two usage lines and the `--help` pointer, not the whole pack help. `pack <dir>` says `does not exist` or `is a file`, and a raw capture step without `step.json` says what the file holds and what to do.
 
+### Security
+
+- **`pull` wrote `style.yaml`, `style.json` and `locators.yaml` through symlinks.** A symlink in the workspace that pointed outside it got the backend's content written to its target. `pull` now refuses with `refusing to write docs/<name>: a symlink leads it outside the workspace` and writes nothing.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

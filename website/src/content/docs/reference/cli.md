@@ -970,9 +970,9 @@ checks every name in the revision and refuses the whole revision on one bad name
   they are one directory on a case-insensitive disk.
 
 A refused revision exits 1 with `refusing the pulled doc pack, nothing written`, and
-the `next:` line suggests an older `--rev`. Flow, annotation and screenshot files are
-also written through the workspace root, so a symlink inside the workspace that
-points out of it stops the pull.
+the `next:` line suggests an older `--rev`. Flow, annotation, screenshot, style and
+locator files are also written through the workspace root, so a symlink inside the
+workspace that points out of it stops the pull.
 
 The endpoint surface behind `login`/`push`/`pull` is documented in the
 [backend API reference](/reference/backend-api/).

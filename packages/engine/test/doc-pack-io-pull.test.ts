@@ -254,3 +254,27 @@ describe("writeDocPack with a hostile response", () => {
     ).toBe("{}\n");
   });
 });
+
+describe("writeDocPack style and locator files", () => {
+  it.skipIf(process.platform === "win32").each(["style.yaml", "style.json", "locators.yaml"])(
+    "refuses to write %s through a symlink that leaves the workspace",
+    async (name) => {
+      const outside = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-pull-outside-"));
+      try {
+        await fs.mkdir(path.join(ws, "docs"), { recursive: true });
+        await fs.writeFile(path.join(outside, "victim"), "keep", "utf8");
+        await fs.symlink(path.join(outside, "victim"), path.join(ws, "docs", name));
+        const payloads: Partial<DocPackPayloads> =
+          name === "style.yaml"
+            ? { style: { yaml: "x: 1\n" } as DocPackPayloads["style"] }
+            : name === "style.json"
+              ? { style: { json: { x: 1 } } as DocPackPayloads["style"] }
+              : { locators: { yaml: "x: 1\n" } as DocPackPayloads["locators"] };
+        await expect(writeDocPack(ws, payloads)).rejects.toThrow(name);
+        expect(await fs.readFile(path.join(outside, "victim"), "utf8")).toBe("keep");
+      } finally {
+        await fs.rm(outside, { recursive: true, force: true });
+      }
+    },
+  );
+});
