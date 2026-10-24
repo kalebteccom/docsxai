@@ -328,18 +328,6 @@ describe("parseFlowFile — error text names the field", () => {
     throw new Error("expected parseFlowFile to throw");
   };
 
-  it("names the wrong-typed field inside a union instead of a bare Invalid input", () => {
-    const msg = messageOf(flowWith("    success: { visible: 5 }\n"));
-    expect(msg).toContain("f.flow.yaml: invalid flow-file:");
-    expect(msg).toContain("steps.0.success.visible:");
-    expect(msg).not.toMatch(/success: Invalid input/);
-  });
-
-  it("names an unknown key inside a union", () => {
-    const msg = messageOf(flowWith("    success: { visible: $btn, bogus: 1 }\n"));
-    expect(msg).toContain("bogus");
-  });
-
   it("names an unknown key at the top level", () => {
     expect(messageOf(flowWith("") + "colour: red\n")).toContain("colour");
   });

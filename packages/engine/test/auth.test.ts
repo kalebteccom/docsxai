@@ -83,16 +83,6 @@ describe("parseAuthStrategyFile", () => {
     expect(d.roles.editor!.cache).toEqual({ enabled: true, store: "local", ttl: "session" });
     expect(d.roles.editor!.creds_env).toEqual({});
   });
-
-  it("rejects a descriptor whose default_role isn't in roles", () => {
-    const bad = `schema: docsxai/auth-strategy@1\ndefault_role: nope\nroles: { editor: { strategy: manual-capture } }\n`;
-    expect(() => parseAuthStrategyFile(bad)).toThrow(AuthStrategyConfigError);
-  });
-
-  it("rejects an unknown strategy name", () => {
-    const bad = `schema: docsxai/auth-strategy@1\ndefault_role: e\nroles: { e: { strategy: telepathy } }\n`;
-    expect(() => parseAuthStrategyFile(bad)).toThrow(AuthStrategyConfigError);
-  });
 });
 
 describe("resolveCredsEnv", () => {

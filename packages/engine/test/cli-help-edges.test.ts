@@ -30,12 +30,6 @@ afterEach(() => {
 const POINTER = "run `docsxai --help` to list the commands\n";
 
 describe("help followed by words", () => {
-  it("prints the whole help and exits 0 for a bare help", async () => {
-    expect(await main(["help"])).toBe(0);
-    expect(out).toBe(fullHelp());
-    expect(err).toBe("");
-  });
-
   it("prints only that command's usage and exits 0 when words follow the command name", async () => {
     expect(await main(["help", "run", "--flow", "x"])).toBe(0);
     expect(out).toContain("usage:   docsxai run ");
@@ -49,7 +43,11 @@ describe("help followed by words", () => {
     expect(err).toContain("unknown command: frobnicate");
   });
 
-  it("treats -h and --help the same way", async () => {
+  it("prints the whole help for a bare help, and the same text for -h and --help", async () => {
+    expect(await main(["help"])).toBe(0);
+    expect(out).toBe(fullHelp());
+    expect(err).toBe("");
+    out = "";
     expect(await main(["-h"])).toBe(0);
     const short = out;
     out = "";

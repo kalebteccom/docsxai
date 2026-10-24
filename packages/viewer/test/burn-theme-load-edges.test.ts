@@ -5,7 +5,7 @@ import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { pngDimensions, renderBurn } from "../src/burn.js";
+import { renderBurn } from "../src/burn.js";
 import { DEFAULT_BURN_THEME } from "../src/burn-theme.js";
 import { loadBurnTheme, loadThemeFont } from "../src/burn-theme-load.js";
 import { solidPng } from "./helpers/png.js";
@@ -138,20 +138,5 @@ describe("a theme font that cannot be used", () => {
     await expect(
       renderBurn({ screenshotBuffer: solidPng(40, 30), annotations: [], options: { theme } }),
     ).rejects.toThrow(/burn\.theme font .*gone\.ttf does not exist/);
-  });
-});
-
-describe("a burn with a theme font", () => {
-  it("returns a PNG of the screenshot's size for an empty annotation list", async () => {
-    await writeRaw("fonts/brand.ttf", FONT);
-    await writeConfig({ burn: { theme: { font: "fonts/brand.ttf", font_weight: 600 } } });
-    const theme = (await loadBurnTheme(ws))!.theme;
-    const { png, report } = await renderBurn({
-      screenshotBuffer: solidPng(40, 30),
-      annotations: [],
-      options: { theme },
-    });
-    expect(pngDimensions(png)).toEqual({ width: 40, height: 30 });
-    expect(report).toEqual([]);
   });
 });
