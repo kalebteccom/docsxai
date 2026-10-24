@@ -51,6 +51,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Plugin and vendored skill review.** `/docsxai:doctor` frontmatter is valid YAML (quoted description and argument-hint), the commands point at `docsxai doctor` and `diagnose` on failure, `run` documents its starting and interrupted lines, `calibrate` gains a setup order and a burned-captions section (`burn.theme` `readable` preset and `display_width`), and the plugin README is the one place that names the install command.
 - **Usage lines wrap under 100 columns.** The `Usage:` block of `docsxai --help` breaks long entries onto indented continuation lines. Commands, flags and their order are unchanged. The `Examples:` block gains one line for each command that had none.
 - **Landing page first-run section.** docsxai.dev gains a "First run" section after Install: `init`, `doctor`, calibrate through the Claude Code plugin, and `run`, each with a copy button and one line of expected output, then a link to the quickstart. The page now names `0.3.0-rc.4`, the `readable` preset, the second `display_width` for narrow captures and `--lang`.
+- **Landing page first-run section.** docsxai.dev gains a "First run" section after Install: `init --app-url`, `doctor`, calibrate through the Claude Code plugin with an example request, `run`, and `render` to open the viewer, each with a copy button and one line of expected output, then a link to the quickstart. The page now names `0.3.0-rc.4`, the `readable` preset, the second `display_width` for narrow captures, `--lang` and `pnpm setup` for a pnpm global install.
 
 ### Fixed
 
@@ -120,6 +121,8 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Webhook run history records the revision that ran and the runs that never started.** A `head` revision that moved while the engine ran was recorded as the newer head, and a job whose payloads could not be laid out left no row. The row now names the revision the run executed against, and a failed materialization appends a failed run with the reason.
 - **Webhook repo matching ignores case.** A delivery whose `owner/name` differs only by case from the configured repo got a 404, because GitHub treats the name case-insensitively. Both stores now match it.
 - **`FsStore` lists projects in creation order.** It listed them, and picked the project for a webhook repo, in id order; `MemoryStore` used creation order. Both stores now agree.
+- **Docs site at 390 px, round two.** Shell commands in code blocks wrap with an indented continuation line, where they used to scroll sideways, and the copy button still copies one command. The "On this page" dropdown links are 44 px tall. The landing diagram's 10 px labels grow to 12 px once the panels stack.
+- **Installation and Quickstart match the CLI.** Installation names `0.3.0-rc.4` and doctor's `ok:`, `fail:` and `next:` lines. The Quickstart shows the starting line `run` prints for each flow, points at the `flows/example.flow.yaml.sample` that `init` writes and how `calibrate --from` turns it into a flow, uses `http://localhost:3000`, and says a callout opens on hover, tap or Tab.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
