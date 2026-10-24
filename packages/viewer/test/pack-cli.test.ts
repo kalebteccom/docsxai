@@ -119,7 +119,7 @@ describe("argument handling", () => {
     expect(await runViewerCli(["pack"])).toBe(2);
     expect(await runViewerCli(["pack", "--check"])).toBe(2);
     out = "";
-    expect(await runViewerCli(["--help"])).toBe(2);
+    expect(await runViewerCli(["--help"])).toBe(0);
     expect(out).toContain("docsxai-viewer pack <workspace-or-raw-dir> [--from-raw]");
     expect(out).toContain(
       "docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir>",

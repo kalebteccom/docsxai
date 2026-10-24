@@ -56,6 +56,54 @@ describe("viewer usage errors", () => {
   });
 });
 
+describe("viewer --help", () => {
+  it.each([
+    ["build", "--help"],
+    ["build", "-h"],
+    ["burn", "--help"],
+    ["burn", "-h"],
+    ["site", "--help"],
+    ["pack", "--help"],
+    ["pack", "-h"],
+  ])("`%s %s` prints that command's usage and exits 0", async (cmd, flag) => {
+    expect(await runViewerCli([cmd, flag])).toBe(0);
+    expect(err).toBe("");
+    expect(out).toContain(`usage:   docsxai-viewer ${cmd} `);
+    expect(out).toContain(`  ${cmd} — `);
+    expect(out).not.toContain("docsxai-viewer — static viewer generator");
+  });
+
+  it("answers --help even after other arguments", async () => {
+    expect(await runViewerCli(["burn", "ws", "--nope", "--help"])).toBe(0);
+    expect(out).toContain("--max-overlap");
+  });
+
+  it("keeps the other commands' flags out of a command's help", async () => {
+    await runViewerCli(["burn", "--help"]);
+    expect(out).not.toContain("--accent");
+    expect(out).not.toContain("--public-prefix");
+  });
+
+  it("shows both pack forms in `pack --help`", async () => {
+    await runViewerCli(["pack", "--help"]);
+    expect(out).toContain("docsxai-viewer pack <workspace-or-raw-dir> --check");
+    expect(out).toContain("pack --check — rebuild");
+  });
+
+  it("prints the full help for a top-level --help or -h", async () => {
+    expect(await runViewerCli(["--help"])).toBe(0);
+    expect(out).toContain("Usage:");
+    out = "";
+    expect(await runViewerCli(["-h"])).toBe(0);
+    expect(out).toContain("Usage:");
+  });
+
+  it("still exits 2 on an unknown flag", async () => {
+    expect(await runViewerCli(["burn", "ws", "--nope"])).toBe(2);
+    expect(err.split("\n")[0]).toBe("burn: unknown flag --nope");
+  });
+});
+
 describe("burn over several flows", () => {
   let tmp = "";
 

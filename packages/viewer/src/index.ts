@@ -196,6 +196,7 @@ import { burnFlow, burnReport } from "./burn.js";
 import { DEFAULT_UNPLACEABLE_RATIO, type FlowBurnReport } from "./burn-report.js";
 import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
 import { PACK_DETAILS, PACK_SYNOPSIS, runPack } from "./pack-cli.js";
+import { asksHelp, commandHelp, usageLines } from "./viewer-help.js";
 
 const USAGE = `docsxai-viewer — static viewer generator
 
@@ -290,12 +291,7 @@ function parseArgs(argv: string[]): ParsedArgs {
 }
 
 /** The `docsxai-viewer <command>` line(s) of the help text. */
-function usageOf(command: string): string {
-  return USAGE.split("\n")
-    .filter((l) => l.startsWith(`  docsxai-viewer ${command} `))
-    .map((l) => l.trim())
-    .join("\n       ");
-}
+const usageOf = (command: string): string => usageLines(USAGE, command).join("\n       ");
 
 /** A usage error shows the failing command's own usage line, not the whole help text. Returns exit code 2. */
 function usageError(command: string, message: string): number {
@@ -424,6 +420,14 @@ async function runSite(args: ParsedArgs): Promise<number> {
 
 export async function runViewerCli(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
+  if (command === "--help" || command === "-h") {
+    process.stdout.write(USAGE + "\n");
+    return 0;
+  }
+  if (["build", "burn", "site", "pack"].includes(command ?? "") && asksHelp(rest)) {
+    process.stdout.write(commandHelp(USAGE, command!));
+    return 0;
+  }
   if (command === "build") return runBuild(parseArgs(rest));
   if (command === "burn") return runBurn(parseArgs(rest));
   if (command === "site") return runSite(parseArgs(rest));
