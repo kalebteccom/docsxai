@@ -8,7 +8,6 @@
 // specs carry a "regenerate, don't hand-edit" header and are meant to live in the consumer's
 // Playwright suite as a drift tripwire between docs and reality.
 
-import { promises as fs } from "node:fs";
 import {
   type EnvironmentSpec,
   type FlowFile,
@@ -18,7 +17,7 @@ import {
   type WaitSpec,
 } from "../doc-pack.js";
 import { locatorRefName, parseFlowFile, resolveFlowExtends } from "../flow-file.js";
-import { resolveWorkspacePath } from "../workspace.js";
+import { listFlowNamesInside, readFileInside, resolveWorkspacePath } from "../workspace.js";
 
 export interface PlaywrightExportOptions {
   /** Flow-file base name for the header comment (default: the flow's `name`). */
@@ -265,11 +264,7 @@ export async function exportWorkspaceFlowsAsPlaywrightTests(opts: {
   flows?: string[];
 }): Promise<ExportedSpec[]> {
   const flowsDir = resolveWorkspacePath(opts.workspaceDir, "flows");
-  const entries = await fs.readdir(flowsDir).catch(() => [] as string[]);
-  const names = entries
-    .filter((e) => e.endsWith(".flow.yaml"))
-    .map((e) => e.slice(0, -".flow.yaml".length))
-    .sort();
+  const names = await listFlowNamesInside(opts.workspaceDir);
   const wanted = opts.flows && opts.flows.length > 0 ? opts.flows : names;
   for (const w of wanted) {
     if (!names.includes(w))
@@ -278,7 +273,9 @@ export async function exportWorkspaceFlowsAsPlaywrightTests(opts: {
 
   const load = async (name: string): Promise<FlowFile> => {
     const p = resolveWorkspacePath(opts.workspaceDir, "flows", `${name}.flow.yaml`);
-    return parseFlowFile(await fs.readFile(p, "utf8"), p);
+    const text = await readFileInside(opts.workspaceDir, "flows", `${name}.flow.yaml`);
+    if (text === null) throw new Error(`no flow named "${name}" at ${p}`);
+    return parseFlowFile(text.toString("utf8"), p);
   };
 
   const out: ExportedSpec[] = [];

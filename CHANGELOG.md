@@ -37,6 +37,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`run --pause <workspace>`.** The flag took the workspace as its value, so `run` reported a missing workspace. Flags that take no value (`--pause`, `--headed`, `--force`, `--check`, `--fresh`, `--headless`, `--ignore-https-errors`, `--include-viewer`) no longer read the next argument, and `--pause=yes` exits 2.
 - **Flow name that differs from its file name.** `flows/payment.flow.yaml` with `name: checkout` ran fine, but `extends: payment` found nothing and the output went to `docs/checkout/`. `lint` now warns (R017) and names both. `run` is unchanged.
 - **`pull` that failed partway.** `writeDocPack` wrote flows, then annotations, then screenshots one file at a time, so a disk error or a path in the way left a workspace holding part of the new revision and part of the old. Every file is now staged next to its target first and renamed into place together; a failure while staging changes nothing and a failed rename puts the swapped files back.
+- **`export adf` and `export playwright` followed symlinks.** A flow file, step markdown file or screenshot that was a symlink to a file outside the workspace was read: its text went into `projection.json`, and its path into `attachments.json` for a publisher to upload. Those files are now left out, as `zip` and `push` do. A symlink to a file inside the workspace still works.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

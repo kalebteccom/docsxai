@@ -18,11 +18,7 @@ import type {
 import { writeFilesTransactional, type StagedFile } from "./atomic-write.js";
 import { FlowName } from "./doc-pack.js";
 import { findCaseCollision, hasTrailingDot, isWindowsDeviceName } from "./flow-name-rules.js";
-import {
-  resolveWorkspacePath,
-  resolveWorkspacePathReal,
-  WorkspacePathEscapeError,
-} from "./workspace.js";
+import { readFileInside, resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
 
 export interface DocPackPayloads {
   flows: FlowsPayload | null;
@@ -43,23 +39,8 @@ export async function readDocPack(workspace: string): Promise<DocPackPayloads> {
   };
 }
 
-/**
- * The bytes of a workspace file, or `null` when it is missing or reaches outside the workspace
- * through a symlink. A pack is sent to the backend, so a linked file must not be read.
- */
-async function readInside(workspace: string, ...segments: string[]): Promise<Buffer | null> {
-  let abs: string;
-  try {
-    abs = await resolveWorkspacePathReal(workspace, ...segments);
-  } catch (e) {
-    if (e instanceof WorkspacePathEscapeError) return null;
-    throw e;
-  }
-  return fs.readFile(abs).catch(() => null);
-}
-
 const readInsideText = async (workspace: string, ...segments: string[]): Promise<string | null> =>
-  (await readInside(workspace, ...segments))?.toString("utf8") ?? null;
+  (await readFileInside(workspace, ...segments))?.toString("utf8") ?? null;
 
 async function readFlows(workspace: string): Promise<FlowsPayload | null> {
   const dir = resolveWorkspacePath(workspace, "flows");
@@ -118,7 +99,7 @@ async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | 
     if (!shots) continue;
     for (const f of shots.sort()) {
       if (!/\.(png|jpg|jpeg|webp)$/i.test(f)) continue;
-      const buf = await readInside(workspace, "docs", dir, "screenshots", f);
+      const buf = await readFileInside(workspace, "docs", dir, "screenshots", f);
       if (buf === null) continue;
       files[`${dir}/screenshots/${f}`] = {
         sha256: createHash("sha256").update(buf).digest("hex"),

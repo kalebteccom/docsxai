@@ -16,10 +16,9 @@
 // stable across modes.
 
 import { createHash } from "node:crypto";
-import { promises as fs } from "node:fs";
 import type { FlowFile } from "../doc-pack.js";
 import { parseFlowFile, resolveFlowExtends } from "../flow-file.js";
-import { resolveWorkspacePath } from "../workspace.js";
+import { listFlowNamesInside, readFileInside, resolveWorkspacePath } from "../workspace.js";
 
 // ---------------------------------------------------------------------------
 // ADF node shapes (the subset this exporter emits)
@@ -260,14 +259,6 @@ function mediaSingle(fileName: string): AdfNode {
   };
 }
 
-async function readIfExists(p: string): Promise<Buffer | null> {
-  try {
-    return await fs.readFile(p);
-  } catch {
-    return null;
-  }
-}
-
 interface FlowSection {
   flowName: string;
   title: string;
@@ -286,8 +277,7 @@ async function projectFlow(
   const attachments: AdfAttachment[] = [];
 
   for (const step of flow.steps) {
-    const mdPath = resolveWorkspacePath(workspaceDir, "docs", flowName, `${step.id}.md`);
-    const md = await readIfExists(mdPath);
+    const md = await readFileInside(workspaceDir, "docs", flowName, `${step.id}.md`);
 
     const burnedPath = resolveWorkspacePath(
       workspaceDir,
@@ -304,11 +294,11 @@ async function projectFlow(
       `${step.id}.png`,
     );
     let shotPath: string | null = null;
-    let shot = await readIfExists(burnedPath);
+    let shot = await readFileInside(workspaceDir, "docs", flowName, "burned", `${step.id}.png`);
     if (shot) {
       shotPath = burnedPath;
     } else {
-      shot = await readIfExists(cleanPath);
+      shot = await readFileInside(workspaceDir, "docs", flowName, "screenshots", `${step.id}.png`);
       if (shot) {
         shotPath = cleanPath;
         warnings.push(
@@ -342,11 +332,7 @@ async function loadFlows(
   only?: string[],
 ): Promise<Array<{ flowName: string; flow: FlowFile }>> {
   const flowsDir = resolveWorkspacePath(workspaceDir, "flows");
-  const entries = await fs.readdir(flowsDir).catch(() => [] as string[]);
-  const names = entries
-    .filter((e) => e.endsWith(".flow.yaml"))
-    .map((e) => e.slice(0, -".flow.yaml".length))
-    .sort();
+  const names = await listFlowNamesInside(workspaceDir);
   const wanted = only && only.length > 0 ? names.filter((n) => only.includes(n)) : names;
   if (only) {
     for (const o of only) {
@@ -356,7 +342,9 @@ async function loadFlows(
 
   const load = async (name: string): Promise<FlowFile> => {
     const p = resolveWorkspacePath(workspaceDir, "flows", `${name}.flow.yaml`);
-    return parseFlowFile(await fs.readFile(p, "utf8"), p);
+    const text = await readFileInside(workspaceDir, "flows", `${name}.flow.yaml`);
+    if (text === null) throw new Error(`no flow named "${name}" at ${p}`);
+    return parseFlowFile(text.toString("utf8"), p);
   };
 
   const out: Array<{ flowName: string; flow: FlowFile }> = [];

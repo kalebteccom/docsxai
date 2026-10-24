@@ -76,6 +76,45 @@ export async function resolveWorkspacePathReal(
 }
 
 /**
+ * The bytes of a workspace file, or `null` when it is missing or reaches outside the workspace
+ * through a symlink. For reads whose content leaves the machine (a push, an export): a linked
+ * file must not be read.
+ */
+export async function readFileInside(
+  workspaceDir: string,
+  ...segments: string[]
+): Promise<Buffer | null> {
+  let abs: string;
+  try {
+    abs = await resolveWorkspacePathReal(workspaceDir, ...segments);
+  } catch (e) {
+    if (e instanceof WorkspacePathEscapeError) return null;
+    throw e;
+  }
+  return fs.readFile(abs).catch(() => null);
+}
+
+/**
+ * The names of the workspace's `flows/<name>.flow.yaml` files, sorted. A flow file that is a
+ * symlink to somewhere outside the workspace is left out.
+ */
+export async function listFlowNamesInside(workspaceDir: string): Promise<string[]> {
+  const entries = await fs
+    .readdir(resolveWorkspacePath(workspaceDir, "flows"))
+    .catch(() => [] as string[]);
+  const names: string[] = [];
+  for (const e of entries) {
+    if (!e.endsWith(".flow.yaml")) continue;
+    const abs = await resolveWorkspacePathReal(workspaceDir, "flows", e).catch((err: unknown) => {
+      if (err instanceof WorkspacePathEscapeError) return null;
+      throw err;
+    });
+    if (abs !== null) names.push(e.slice(0, -".flow.yaml".length));
+  }
+  return names.sort();
+}
+
+/**
  * The `burn.theme` block: the look of burned captions and of the viewer's overlay. Every key is
  * optional; no block means the original look. `@docsxai/viewer` checks the values and layers them
  * (default look, then `preset`, then the tokens file named by `from`, then the keys written here).
