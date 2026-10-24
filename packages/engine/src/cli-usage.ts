@@ -112,12 +112,13 @@ Notes:
     investigate). The engine never patches the flow-file itself — that's the agent's explicit opt-in
     action. --format json emits machine-readable output for an agent to act on. Pair with
     --start-from <step-id> --cdp on a follow-up run to validate the fix in seconds.
-  • doctor health-checks the environment + workspace: Node >= 26, Chromium presence, .docsxai.json
-    found + parseable (cwd or the arg), flow-file parses, auth descriptor + cached-session freshness,
-    backend reachability (when backend_url is set), the plugin declarations (same inspection as
-    \`plugins list\` — no plugin code is executed), viewer-bin resolution (which of the three layers
-    hit), and DOCSX_* env sanity. ✓/✗ rows with a one-line fix per failure; − rows are informational
-    and never fail. Exit 1 if any ✗.
+  • doctor health-checks the environment + workspace: Node >= 26, Chromium presence (with the install
+    command), .docsxai.json found + valid (fields, burn.theme shape), write access to the workspace and
+    its output dirs, flow-file parses, auth descriptor + cached-session freshness, a short HEAD to
+    app_url (--offline skips it), backend reachability and login state (when backend_url is set), the
+    plugin declarations and lock (same inspection as \`plugins list\` — no plugin code is executed),
+    viewer-bin resolution (which of the three layers hit), and DOCSX_* env sanity. One \`ok:\` or
+    \`fail:\` line per check, with a \`next:\` step. Exit 1 if any line is \`fail:\`.
   • style initialises docs/style.yaml + derived docs/style.json if absent (otherwise validates the
     existing YAML against the schema and rederives the JSON). --check additionally scans every
     docs/<flow>/<step>.md user-facing write-up for jargon leaks against the style's pruning_rules

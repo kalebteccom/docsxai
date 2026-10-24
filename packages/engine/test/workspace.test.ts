@@ -3,6 +3,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parseAuthStrategyFile } from "../src/auth.js";
+import { USAGE } from "../src/cli-usage.js";
+import { parseFlowFile } from "../src/flow-file.js";
 import { initWorkspace, loadWorkspaceConfig } from "../src/workspace.js";
 
 let tmp = "";
@@ -94,5 +96,51 @@ describe("loadWorkspaceConfig", () => {
     expect(await loadWorkspaceConfig(tmp)).toBeNull();
     await fs.writeFile(path.join(tmp, ".docsxai.json"), JSON.stringify({ schema: "wrong" }));
     expect(await loadWorkspaceConfig(tmp)).toBeNull();
+  });
+});
+
+describe("scaffolded README and sample flow", () => {
+  const readme = async (opts: Parameters<typeof initWorkspace>[0]): Promise<string> => {
+    const r = await initWorkspace(opts);
+    return fs.readFile(path.join(r.dir, "README.md"), "utf8");
+  };
+
+  it("writes a sample flow that parses and that run, lint and render do not load", async () => {
+    const dir = path.join(tmp, "sample");
+    await initWorkspace({ dir });
+    const file = path.join(dir, "flows", "example.flow.yaml.sample");
+    const flow = parseFlowFile(await fs.readFile(file, "utf8"), file);
+    expect(flow.name).toBe("example");
+    expect(flow.steps.length).toBeGreaterThan(0);
+    expect(
+      (await fs.readdir(path.join(dir, "flows"))).filter((f) => f.endsWith(".flow.yaml")),
+    ).toEqual([]);
+  });
+
+  it("names the real commands, and every docsxai subcommand it shows is in the usage text", async () => {
+    const text = await readme({ dir: path.join(tmp, "cmds") });
+    const shown = [...text.matchAll(/^docsxai ([a-z-]+)/gm)].map((m) => m[1]);
+    expect(shown).toEqual(["doctor", "capture-auth", "calibrate", "run", "render"]);
+    for (const cmd of shown) expect(USAGE).toContain(`docsxai ${cmd} `);
+    expect(text).toContain("docsxai calibrate . --from flows/example.flow.yaml.sample");
+    expect(text).not.toContain("--description");
+  });
+
+  it("documents burn.theme in a short optional section", async () => {
+    const text = await readme({ dir: path.join(tmp, "theme") });
+    const section = text.slice(text.indexOf("## Optional: caption theme"));
+    expect(section).toContain('"burn": { "theme"');
+    expect(section).toContain("docs/burn-theming.md");
+    expect(section.trim().split("\n").length).toBeLessThanOrEqual(10);
+  });
+
+  it("guides an app without a login to --auth none, and drops the login steps for it", async () => {
+    const withLogin = await readme({ dir: path.join(tmp, "login") });
+    expect(withLogin).toContain("--auth none");
+    expect(withLogin).toContain("auth/strategy.yaml");
+    const none = await readme({ dir: path.join(tmp, "nologin"), auth: "none" });
+    expect(none).not.toContain("capture-auth");
+    expect(none).toContain("--auth none");
+    expect(none).not.toContain("`.auth/<role>.json`");
   });
 });

@@ -31,7 +31,7 @@ pack           build the screenshot pack: burn, optimise, hash-name, manifest; `
 lint           static checks across flow-files (R001-R016; `extraRules` injectable via `lintFlow`)
 flow-tree      visualise the `extends` graph
 diagnose       halt-context + recommendations after a halt
-doctor         environment + workspace health-check (✓/✗ + one-line fixes; no plugin code runs)
+doctor         environment + workspace health-check (one ok:/fail: line per check, each with a next: step; no plugin code runs)
 style          init/validate style.yaml; --check scans for jargon leaks
 zip            package the doc pack for hand-off
 baseline       snapshot the doc pack (flows, prose, annotations, screenshots, locators) for drift comparison

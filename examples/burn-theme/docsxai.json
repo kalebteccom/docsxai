@@ -1,0 +1,12 @@
+{
+  "schema": "docsxai/workspace@1",
+  "app_url": "http://localhost:3000/",
+  "created_at": "2030-01-01T00:00:00.000Z",
+  "burn": {
+    "theme": {
+      "preset": "readable",
+      "display_width": 720,
+      "accent": "#0b6e4f"
+    }
+  }
+}

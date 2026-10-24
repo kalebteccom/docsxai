@@ -45,6 +45,10 @@ export const CALLOUT_WIDTH_FLOOR = 168;
 /** Bounds `placement.max_width` is clamped to; the engine schema holds the same range. */
 const PLACEMENT_WIDTH_RANGE = { min: 120, max: 560 };
 const SIDES: readonly string[] = ["top", "bottom", "left", "right"];
+/** A callout that has no clear spot is retried with its side padding cut by this much... */
+const SQUEEZE_PADDING_X = 6;
+/** ...but never below this. */
+const MIN_SQUEEZED_PADDING_X = 8;
 
 export type Size = { width: number; height: number };
 type Point = { x: number; y: number };
@@ -63,6 +67,8 @@ export interface CalloutLayout {
   stem: Rect | null;
   /** Arrow length in px, for the boxes {@link layoutBoxes} gives. */
   arrowLength: number;
+  /** Side padding the box was laid out with; set only when it is squeezed below the theme's. */
+  paddingX?: number;
   /** Offset still to add to callout, arrow and stem when drawing. */
   nudge: Point;
   /** Px² of callout, arrow and stem on obstacles. */
@@ -84,6 +90,11 @@ export interface LayoutInput {
   arrowLength?: number;
   /** Widest callout as a share of the image's width when obstacles limit it. Default {@link ADAPTIVE_WIDTH_RATIO}. */
   maxWidthRatio?: number;
+}
+
+/** True when `arrow_style` names a side: the author asked for it, it is not the default. */
+function hintsSide(arrowStyle: string | undefined): boolean {
+  return arrowStyle !== undefined && SIDES.includes(arrowStyle.split("-")[0] ?? "");
 }
 
 function preferredSide(arrowStyle: string | undefined): Side {
@@ -247,6 +258,7 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
         avoid: clear,
         nudge,
         ...(placement?.side ? { strictSide: true } : {}),
+        ...(placement?.side !== undefined || hintsSide(ann.arrow_style) ? { hinted: true } : {}),
         ...(placement?.align ? { align: placement.align } : {}),
         ...(placement?.pin_arrow ? { pinArrow: true } : {}),
         arrowLength,
@@ -289,6 +301,15 @@ export function layoutCallout(inp: LayoutInput): CalloutLayout {
     const overlap = layout.obstacleOverlap + layout.otherOverlap;
     if (overlap === 0) return layout;
     if (best === undefined || overlap < best.obstacleOverlap + best.otherOverlap) best = layout;
+  }
+  // No clear spot at any width: a box with tighter side padding may still fit a narrow gap.
+  const style = inp.style ?? DEFAULT_CALLOUT_STYLE;
+  const paddingX = Math.max(MIN_SQUEEZED_PADDING_X, style.paddingX - SQUEEZE_PADDING_X);
+  if (paddingX < style.paddingX) {
+    for (const width of widths) {
+      const layout = layoutAtWidth({ ...inp, style: { ...style, paddingX } }, label, width);
+      if (layout.obstacleOverlap + layout.otherOverlap === 0) return { ...layout, paddingX };
+    }
   }
   return best!;
 }

@@ -580,17 +580,21 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
     });
     expect(checks.every((c) => c.ok)).toBe(true);
     const text = formatDoctorChecks(checks);
-    expect(text).toContain("docsxai doctor — environment & workspace health");
-    expect(text).toContain("✓ node");
-    expect(text).toContain("✓ chromium");
-    expect(text).toContain("✓ workspace");
-    expect(text).toContain("✓ flows");
-    expect(text).toContain("− auth"); // no descriptor — informational
-    expect(text).toContain("− backend");
-    expect(text).toContain("− plugins");
-    expect(text).toContain("✓ viewer");
-    expect(text).toContain("all checks passed");
-    expect(text).toMatch(/\ndoctor: all checks passed \(\d+ checks, \d+ informational\)\n$/);
+    for (const name of ["node", "chromium", "workspace", "config", "writable", "flows", "viewer"]) {
+      expect(text).toContain(`ok: ${name}: `);
+    }
+    expect(text).toContain("ok: auth: no auth/strategy.yaml"); // no descriptor, informational
+    expect(text).toContain("ok: backend: ");
+    expect(text).toContain("ok: login: ");
+    expect(text).toContain("ok: plugins: ");
+    expect(text).not.toContain("fail:");
+    expect(text).toMatch(
+      /\nok: doctor: all checks passed \(\d+ checks, \d+ informational\) next: .+\n$/,
+    );
+    // every line is an ok: or fail: line, with no glyphs or ANSI escapes
+    for (const line of text.trimEnd().split("\n")) expect(line).toMatch(/^(ok|fail): /);
+    expect(text).not.toMatch(/[✓✗−]/);
+    expect(text.includes("\u001b")).toBe(false);
   });
 
   it("skips workspace-scoped checks outside a workspace", async () => {
@@ -605,16 +609,18 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
     expect(checks.map((c) => c.name)).not.toContain("backend");
   });
 
-  it("renders ✗ rows with their one-line fix and the failure summary", () => {
+  it("renders fail: lines with their next step and the failure summary", () => {
     const text = formatDoctorChecks([
       { name: "node", ok: true, detail: "v26.0.0" },
-      { name: "chromium", ok: false, detail: "missing", fix: "install it" },
+      { name: "chromium", ok: false, detail: "missing\nbinary", fix: "install it" },
     ]);
-    expect(text).toContain("✗ chromium");
-    expect(text).toContain("    fix: install it");
-    expect(text).toContain("fix the ✗ items above");
-    expect(text).toContain(
-      "\ndoctor: fix the ✗ items above and run docsxai doctor again (1 of 2 checks failed)\n",
+    expect(text).toBe(
+      [
+        "ok: node: v26.0.0",
+        "fail: chromium: missing binary next: install it",
+        "fail: doctor: 1 of 2 checks failed next: fix the fail lines above, then run docsxai doctor again",
+        "",
+      ].join("\n"),
     );
   });
 });
@@ -632,11 +638,12 @@ describe("doctor CLI dispatch", () => {
     vi.restoreAllMocks();
   });
 
-  it("prints the checklist and exits 0/1 per the ✗ rows", async () => {
+  it("prints the checklist and exits 0/1 per the fail: lines", async () => {
     const code = await main(["doctor", tmp]);
-    expect(out).toContain("docsxai doctor — environment & workspace health");
-    const hasFailure = /\n {2}✗ /.test(out);
-    expect(code).toBe(hasFailure ? 1 : 0);
+    const lines = out.trimEnd().split("\n");
+    for (const line of lines) expect(line).toMatch(/^(ok|fail): /);
+    expect(lines.at(-1)).toMatch(/^(ok|fail): doctor: /);
+    expect(code).toBe(lines.some((l) => l.startsWith("fail: ")) ? 1 : 0);
   });
 
   it("prints doctor's usage for --help and -h, exits 0 and runs no check", async () => {
@@ -644,14 +651,15 @@ describe("doctor CLI dispatch", () => {
       out = "";
       expect(await main(["doctor", flag])).toBe(0);
       expect(out).toContain("usage: docsxai doctor [<workspace-dir>]\n");
-      expect(out).toContain("Exit 0 when no row failed, 1 otherwise.");
-      expect(out).not.toContain("environment & workspace health");
+      expect(out).toContain("Exit 0 when no line starts with fail:, 1 otherwise.");
+      expect(out).toContain("--offline");
+      expect(out).not.toMatch(/^(ok|fail): doctor:/m);
     }
   });
 
   it("prints the help when --help follows a workspace dir", async () => {
     expect(await main(["doctor", tmp, "--help"])).toBe(0);
     expect(out).toContain("usage: docsxai doctor");
-    expect(out).not.toContain("environment & workspace health");
+    expect(out).not.toMatch(/^(ok|fail): doctor:/m);
   });
 });

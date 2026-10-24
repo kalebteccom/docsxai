@@ -49,7 +49,7 @@ Each command passes its arguments to the CLI as single-quoted shell words. The C
 | `/docsxai:push <workspace-dir>`                       | Upload the doc pack to the configured backend.                                                                                |
 | `/docsxai:pull <workspace-dir>`                       | Download the doc pack from the configured backend.                                                                            |
 | `/docsxai:login`                                      | Backend login: `--oauth` runs OAuth 2.1 + PKCE, CI uses `DOCSX_TOKEN`.                                                        |
-| `/docsxai:doctor [<workspace-dir>]`                   | Environment and workspace health-check (✓/✗ plus a one-line fix per failure).                                                 |
+| `/docsxai:doctor [<workspace-dir>]`                   | Environment and workspace health-check (one `ok:` or `fail:` line per check, with a `next:` step).                            |
 | `/docsxai:plugins <list\|info\|sync> <workspace-dir>` | List, inspect, and sync (lock) the workspace's plugins.                                                                       |
 | `/docsxai:export <adf\|playwright> <workspace-dir>`   | Export the doc pack as a Confluence ADF projection, or as Playwright specs.                                                   |
 

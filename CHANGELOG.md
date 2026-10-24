@@ -4,19 +4,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Added
-
-- **`burnWithWorkspaceTheme` in `@docsxai/viewer`.** Burns a screenshot with the `burn.theme` of a workspace's `.docsxai.json`, loaded once per workspace and cached by path and config mtime. It returns what `burnAnnotations` returns, lets an explicit `options.theme` win, sends theme warnings to `options.warn` once per load and throws `BurnThemeError` for an invalid block. Guide: `docs/burn-theming.md`.
-
-### Changed
-
-- **`readable` caption preset and `scale: auto`.** The auto factor is capped at 4 (was 3), so a 1440 px screenshot shown at 360 px keeps about 15 px captions, it rounds up to two decimals, and `readable` limits the callout to 55 percent of the image width. Burned output without a theme and with the other presets is unchanged.
-
-### Fixed
-
-- Docs site: a print stylesheet that drops the site chrome, and readable dark text on the landing-page mock buttons.
-
-## [0.3.0-rc.4] - 2026-10-23
+## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
 
@@ -26,6 +14,9 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Burned captions scale with the screenshot (`burn.theme`).** New keys: `scale` (a number from 0.5 to 4, or `auto`), `display_width` (CSS px the page shows the screenshot at, default 720), `font_weight` (400 or 600, needs a font file with that weight), `arrow_size` (default 8) and `max_width_ratio` (default 0.62). `scale` multiplies text, padding, outline, radius, shadow, arrow, badge, halo and callout width; `auto` uses the screenshot width over `display_width`, between 1 and 4, so a 1440 px capture in a 720 px column gets factor 2. A fourth preset, `readable`, sets `auto`, 15 px text, 10 and 14 px padding, a 0.55 `max_width_ratio` and ink on near-white at WCAG AA. Every default equals the old value, so a workspace without the keys burns the same bytes. Bad values stop the command with the key and range. Guide: `docs/burn-theming.md`.
 - **Copy buttons for ids in the viewer and the Starlight site.** Flow and variant ids, step ids, the viewer build and the capture command copy on click, Enter or Space. The label changes to "Copied" for 1.5 s without moving the page and a polite live region announces it; where the clipboard is unavailable the text is selected and the button reads "Press Ctrl+C". `?` opens the keyboard shortcut list.
 - **Clearer image and empty states.** A step with no screenshot shows the missing path and the command that captures it. A failed image has a Retry button with "Retrying..." and "still failing" states. A failed index thumbnail becomes a placeholder. Annotation and step-name messages now say what to do next.
+- **`docsxai doctor` checks the config, write access, `app_url` and backend login.** New lines: `config` (field types, URL shape and the `burn.theme` shape and preset name; the viewer's value and contrast checks stay in `docsxai burn`, because the engine does not depend on the viewer), `writable` (workspace root and its output dirs), `app_url` (one HEAD with a 3 s timeout; a remote host that does not resolve prints a skipped line, `--offline` skips it, a refused connection or timeout fails) and `login` (fails when `backend_url` is set and neither `DOCSX_TOKEN` nor stored OAuth tokens exist).
+- **Sample flow in the `init` scaffold.** `flows/example.flow.yaml.sample` parses as a flow-file and is ignored until `docsxai calibrate . --from flows/example.flow.yaml.sample` writes it. The scaffolded `README.md` gains an optional `burn.theme` section and the `docsxai doctor` step.
+- **`burnWithWorkspaceTheme` in `@docsxai/viewer`.** Burns a screenshot with the `burn.theme` of a workspace's `.docsxai.json`, loaded once per workspace and cached by path and config mtime. It returns what `burnAnnotations` returns, lets an explicit `options.theme` win, sends theme warnings to `options.warn` once per load and throws `BurnThemeError` for an invalid block. Guide: `docs/burn-theming.md`.
 
 ### Changed
 
@@ -36,6 +27,9 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Zod 4.** `@docsxai/engine` and `@docsxai/mcp` move to `zod ^4.6.6`. Schemas and the options they accept are unchanged. Where a flow-file, auth descriptor, plugin manifest or style file breaks a built-in rule (a wrong type, an unknown key), the message after the key path now uses Zod 4's wording. Messages written in the schemas themselves are unchanged.
 - **`docsxai run` prints a starting line.** Each flow prints `run: <flow> — starting` before its browser launches, so a log shows which flow is in flight. Ctrl-C (or SIGTERM) stops any command with one `docsxai: interrupted` line and the command to rerun, and exits 130 (143 for SIGTERM).
 - **Viewer layout.** Headings sit in an id row with their copy button, the footer carries the viewer build as copyable text, and each index card has a copy button under it. The skip link is 44 px tall.
+- **`docsxai doctor` prints `ok:` and `fail:` lines.** Every line starts with `ok:` or `fail:` and carries a `next:` step where there is one; the `✓`, `✗` and `−` glyphs and the header are gone, and the last line is `ok: doctor: ...` or `fail: doctor: ...`. Exit 1 on any `fail:` line, as before.
+- **The scaffolded `README.md` follows the auth choice.** An `--auth none` workspace no longer lists `capture-auth` or `auth/strategy.yaml`, and the default one points at `--auth none` for an app without a login.
+- **`readable` caption preset and `scale: auto`.** The auto factor is capped at 4 (was 3), so a 1440 px screenshot shown at 360 px keeps about 15 px captions, it rounds up to two decimals, and `readable` limits the callout to 55 percent of the image width. Burned output without a theme and with the other presets is unchanged.
 
 ### Fixed
 
@@ -45,6 +39,9 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Missing `flows/`, token and config errors end with a command.** `run`, `lint` and `flow-tree` on a directory without `flows/` end with `next: docsxai init <dir>`. `push` and `pull` without a usable token end with the `docsxai login ... --oauth <dir>` command. `run` and `capture-auth` warn when `.docsxai.json` exists but was ignored (invalid JSON or the wrong `schema`), and `run` warns when a flow navigates to a relative path with no `app_url`.
 - **Read-only or full disks.** A write refused with `EACCES`, `EPERM`, `EROFS` or `ENOSPC` prints `cannot access <path> (<code>, <reason>)` and a `next:` line in `init`, `zip`, `baseline`, `export`, `run` and the bin's last-resort handler, with no report-a-bug line.
 - **Docs match the code.** Fixed the reserved plugin namespaces, the backend auth gate (any bearer without `DOCSX_TOKEN`, the webhook exemption), the optional `BrowserDriver` methods, the lint rule range, the plugin status list, the `burn.theme` preset count, the session-expiry message and the `plugin-sharepoint` publish note.
+- **Burned callout, arrow and badge placement on dense screens.** A stem or arrow that ran through text or a neighbouring halo is now charged per px crossed, so a callout sits near its target and covers a few px of text before a long stem crosses six rows. An `arrow_style` or `placement.side` hint now wins over a side that is only a sliver cleaner, where a few px of overlap used to throw it away. A numbered badge no longer crosses the bottom or right edge of the screenshot: it stays inside with a 2 px margin. A callout that overran a narrow gap by a few px retries with its side padding cut by up to 6 px (never below 8 px) and keeps that box when it fits clear. Annotations without `obstacles` and hint burn the same bytes as before. Guide: `docs/burn-theming.md`.
+- **CI examples.** The GitHub Actions nightly recipe now runs its `tee` steps under `shell: bash`, so a failing `docsxai run` or `docsxai diff` fails the job (the default shell has no pipefail). The weekly GitHub and GitLab refresh recipes in `docs/ci-recipes.md` install `docsxai@next` with npm: they used `pnpm/action-setup` without a pnpm version and `corepack`, which Node 26 images do not ship. Added `examples/burn-theme/` and a README for `examples/ci/sample-repo/`.
+- Docs site: a print stylesheet that drops the site chrome, and readable dark text on the landing-page mock buttons.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
