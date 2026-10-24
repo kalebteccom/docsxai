@@ -16,6 +16,8 @@ Records live in `annotations.json` (`docsxai/annotations@1`), one per annotated 
 | `obstacles`    | Up to 40 boxes of page content to keep clear, in screenshot pixels.                                                                |
 | `placement`    | `inside`, `side`, `align`, `pin_arrow` and `max_width` (120 to 560 px). `obstacle_radius` and `obstacle_limit` steer capture only. |
 
+A box that lies off the image, has zero or negative size, or holds `NaN` or infinity is skipped the same way. A box that only overhangs an edge is clipped to the image. A skipped annotation names its selector and step in the warning and appears in `burn --report` with a `skipped` reason.
+
 With `annotations.obstacles` on in `.docsxai.json`, `docsxai run` records `obstacles` for you. A pipeline that knows the layout can write them by hand. The interactive viewer ignores `obstacles` and `placement`.
 
 ## Side hints

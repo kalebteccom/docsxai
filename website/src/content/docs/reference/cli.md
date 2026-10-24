@@ -99,7 +99,10 @@ session-cache fallback expiry (`30m`, `1h`); `--capture-trigger` picks
 between the devtools-console capture call and an injected on-page button;
 `--auth-cookie <name>` pins the cache expiry to a named cookie up front. For
 a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
-`--force` re-inits over an existing directory.
+`--force` re-inits over an existing directory. `--app-url` has to be an `http://` or
+`https://` URL, or `init` exits 2 with its usage line. A path that is a file stops with
+`<path> is a file, not a directory`, and a `mkdir` the filesystem refuses points
+`chmod` at the existing parent directory.
 
 ```
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
@@ -201,7 +204,22 @@ Chromium; if no browser binary is present, install one with
 `npx playwright-core install chromium` (from a source checkout:
 `pnpm -C packages/engine exec playwright-core install chromium`).
 `--flow <name>` restricts to one flow;
-`--base-url <url>` overrides the workspace's `app_url`.
+`--base-url <url>` overrides the workspace's `app_url`; it has to be an `http://` or
+`https://` URL, or `run` exits 2 with its usage line. An `app_url` in `.docsxai.json`
+that is not one stops with exit 1 and names the file.
+
+Start-up failures print one reason and one `next:` line. A missing Chromium gives the
+install command, a `--cdp` endpoint nobody listens on gives
+`cannot attach to the browser at <endpoint> (ECONNREFUSED)` and the
+`--remote-debugging-port` flag to start Chrome with, and `run --cdp` does not ask for a
+cached session first. `run`, `lint` and `flow-tree` on a workspace whose `flows/` was
+deleted print `mkdir <dir>/flows`; on a non-empty directory with no `.docsxai.json` they
+say it is not a workspace. A cached session that is not valid JSON is reported as
+corrupt, not expired; re-run `capture-auth`. A `.docsxai.json` that exists but cannot be
+read (`EACCES`) prints a `was ignored (it cannot be read, EACCES)` warning with a
+`next:` line, also in `capture-auth`. On Node 18 and older the CLI prints
+`docsxai: Node v18.20.5 is too old to start (the engine requires Node >= 26)` and exits 1
+before Playwright's own text.
 
 - `--stop-after <step-id>` runs only a prefix of the flow (up to and
   including that step); `--pause` keeps the (headed) browser open at the last
@@ -315,7 +333,17 @@ Flow names and step ids from the doc pack become file paths and link targets, so
 character (a step id also `/`), with a warning on stderr. A `docs/` folder that
 does not exist, or a `--flow` name with no folder under `docs/`, also prints a
 warning; the viewer still writes its (empty) page. Each flow renders once, and
-`#`, `?` and `%` in names are percent-encoded in the page's links and images.
+`#`, `?` and `%` in names are percent-encoded in the page's links and images. A step
+with a screenshot and no record in `annotations.json` stays on its page as a plain
+screenshot after the annotated steps, and numbered ids sort by value (`step-2` before
+`step-10`). An `annotations.json` that is not valid JSON prints a warning and the page
+lists the screenshots without callouts; one that cannot be read (permissions, a
+directory in its place) stops `render` with an error that names the file. A page with a
+missing screenshot offers the command that captures it again; a flow name or step id
+with a space, quote or `$` is single-quoted in it, so it pastes as one word. `render`
+takes no flags; `docsxai-viewer build --flow <name>` also renders the variant folders of
+a matrix flow, and `docsxai-viewer build --lang fr` warns that only `en` and `es` have
+text tables and writes English.
 
 ```
 $ docsxai render ~/docsxai/my-app
@@ -342,6 +370,12 @@ threshold (`--max-overlap <ratio>`) is a flag of the viewer's own bin,
 every arrow and stem plain ink; by default one over a dark part of the
 screenshot gets a white outline. Exit 1 when the workspace has no `docs/`
 directory or no flow to burn; exit 2 for a bad flag.
+
+An annotation whose `bounding_box` lies outside the screenshot, has zero or negative
+size, or holds `NaN` or infinity is skipped with a warning that names its selector and
+step, and `--report` lists it with `skipped` set. A box that only overhangs an edge is
+clipped to the image. A flow whose `annotations.json` is missing, unreadable or not valid
+JSON stops the burn with a message that names the file.
 
 The look of the halo, badge, callout and arrow comes from the `burn.theme` block of
 `.docsxai.json`: four presets, an optional tokens file and per-key overrides. A workspace without
@@ -447,7 +481,10 @@ nothing else in `--out` is touched. Loopback addresses (`localhost`, `127.x.x.x`
 `example.org`, `example.net` and the `.test`, `.invalid` and `.example` TLDs pass),
 `Authorization:` headers other than `Bearer`, tokens in a URL query and obvious
 secrets in a title, caption, alt text, callout or the `--generated-for` text stop the
-build, naming the manifest path and rule. Exit 1 for a failed build, 2 for a bad flag.
+build, naming the manifest path and rule. A damaged `annotations.json` record (a
+`bounding_box` with a string for `x`, a `placement.side` that is not a side, a bad
+`nudge`, `obstacles`, `arrow_style` or `index`) stops it with the file, the record's
+position and the field. Exit 1 for a failed build, 2 for a bad flag.
 
 `pack` and `pack --check` read the workspace's `burn.theme` block as well (see
 [Themeable burned captions](/guides/burn-theming/)).
@@ -577,7 +614,14 @@ offline or with `--offline`), backend reachability and login state when `backend
 is configured, the plugin declarations and lock through the same inspection
 `plugins list` runs - declared/installed/lock/capabilities, with **no plugin
 code executed** - viewer-bin resolution (naming which of the three layers
-hit), and `DOCSX_*` env sanity. Exit 1 on any `fail:` line.
+hit), and `DOCSX_*` env sanity. Exit 1 on any `fail:` line, and 2 on a flag it does not
+know (`doctor --offine` used to probe the network).
+
+The `workspace` and `flows` rows name why a workspace is unusable: a `.docsxai.json` it cannot read
+(`chmod u+r <file>`), one that holds an array, `null`, a string or a number, invalid JSON
+(the position in the file, not `init --force`, which would rewrite it), a path that does
+not exist or is a file, and a deleted `flows/` (`mkdir <dir>/flows`). The `plugins` row
+does not repeat a config failure the `workspace` row already printed.
 
 The env row checks three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
 bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typo; the

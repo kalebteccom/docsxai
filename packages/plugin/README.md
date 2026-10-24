@@ -57,7 +57,7 @@ Each command passes its arguments to the CLI as single-quoted shell words. The C
 
 The rest of the CLI has no slash command: `init`, `capture-auth`, `calibrate`, `inspect`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `burn` (annotations baked into PNG copies), and `pack` (the screenshot pack a docs site ships, with `pack --check`). Skills and agents call them through the shell; run `docsxai --help` for the flags.
 
-When a command fails, its error carries an indented `next: <command>` line when there is one. A halted `docsxai run` prints a `<flow>: next: <command>` line for each failed flow on stderr and exits 1. A clean run ends with `run: <n> of <m> flows ok, outputs in <dir>` on stdout. `docsxai doctor` checks the environment and workspace, and `docsxai diagnose` explains a halted run (`/docsxai:diagnose`).
+When a command fails, its error carries an indented `next: <command>` line when there is one. A halted `docsxai run` prints a `<flow>: next: <command>` line for each failed flow on stderr and exits 1. A clean run ends with `run: <n> of <m> flows ok, outputs in <dir>` on stdout. Start-up failures print one reason and one `next:` line: no Chromium gives the install command, a refused `--cdp` endpoint names the endpoint and the `--remote-debugging-port` flag, a `--app-url`, `--base-url` or `--backend-url` that is not an `http://` or `https://` URL exits 2, and a Node older than 20 exits 1 with `docsxai: Node v<version> is too old to start`. `docsxai doctor` checks the environment and workspace, and `docsxai diagnose` explains a halted run (`/docsxai:diagnose`).
 
 ## Skills (calibration, agent-driven; the host supplies inference)
 
