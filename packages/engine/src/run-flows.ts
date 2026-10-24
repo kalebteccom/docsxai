@@ -6,6 +6,7 @@
 
 import { promises as fs } from "node:fs";
 import { writeFileAtomic } from "./atomic-write.js";
+import { waitForBrowserClose } from "./browser-wait.js";
 import { type StorageState } from "./auth.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowExecutionError } from "./flow-halt.js";
@@ -159,7 +160,7 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
     } finally {
       if (pause) {
         say("run: --pause — browser is open at the last step run; close it to exit.\n");
-        await new Promise<void>((resolve) => session.browser.on("disconnected", () => resolve()));
+        await waitForBrowserClose(session.browser);
       }
       await session.close();
     }

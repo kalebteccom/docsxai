@@ -9,6 +9,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **Doc pack, annotation, style and export writes are atomic.** `run`, `pull`, `style`, `run --verify-determinism` and `export adf` write to a temp file in the same directory and rename it over the target, so an interrupted write leaves the previous file instead of a truncated `annotations.json`. An existing file keeps its mode, and where the rename is refused (Windows) the write falls back to a plain overwrite.
 - **`docsxai baseline` keeps the previous snapshot when a refresh fails.** The new snapshot is built in a staging directory inside the output directory and swapped in after every file is copied, so a full disk or a read error no longer leaves `.baseline/` without `flows/` and `docs/`.
 - **`render`, `burn` and `pack` forward SIGTERM and SIGINT to the viewer.** The command passes the signal to the viewer child and waits for it, then exits with the child's exit code, or 128 plus the signal number when the signal ended it. Before, the command exited at once and the child kept running and writing.
+- **`run --pause` and `inspect --headed` no longer hang when the browser is already closed.** The wait resolves at once for a browser that disconnected during the last step, and the session is closed and the command exits.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

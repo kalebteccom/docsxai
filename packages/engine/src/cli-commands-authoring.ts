@@ -9,6 +9,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { LocalStorageStateCache, parseAuthStrategyFile } from "./auth.js";
+import { waitForBrowserClose } from "./browser-wait.js";
 import { type FlowFile } from "./doc-pack.js";
 import {
   expandFlowVariants,
@@ -165,7 +166,7 @@ export async function cmdInspect(args: string[]): Promise<number> {
     }
     if (headed && !cdp) {
       process.stdout.write("inspect: browser is open — close it to exit.\n");
-      await new Promise<void>((resolve) => session.browser.on("disconnected", () => resolve()));
+      await waitForBrowserClose(session.browser);
     }
     return 0;
   } catch (e) {
