@@ -18,6 +18,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Fixed
 
+- **Burn help and guides match the code.** `docsxai burn --help` and `docsxai-viewer burn --help` say that `--no-connector-outline` skips reading the screenshot's pixels, so a themed line keeps the callout's outline colour and no text is estimated, and that `burn.theme` sets the look. The theming guide covers `caption_style`, the clean halo and badge and the phone chrome numbers, and gives the auto factor of a 780 px capture at the default `display_width` as 1.09 (it said 1.08). The landing page no longer says `docsxai@next` is `0.3.0-rc.4`.
 - **A side hint no longer pulls a short callout onto a neighbour.** The bonus `arrow_style` or `placement.side` gives its side now outweighs at most a 2 px strip of content along the callout's width. A 60 px label on a phone screenshot used to keep its hinted side over 6 px of a neighbouring control. Callouts 200 px wide or more score as before.
 - **`plugins sync` with three plugins on one namespace.** It locked the last of them and named only the second as not locked. It now locks none of them and names every claimant.
 - **Two flow files with one `name:`.** `run` started both and let them overwrite one `docs/<name>/`, and `lint` and `flow-tree` kept only the last. All three now stop with exit 1 and name both files.
