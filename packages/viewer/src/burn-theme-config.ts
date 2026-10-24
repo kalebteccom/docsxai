@@ -14,7 +14,14 @@ import {
   type ThemeLayer,
   type ThemePresetName,
 } from "./burn-theme.js";
-import { THEME_FIELDS, THEME_KEYS, ThemeValueError, type ThemeKey } from "./burn-theme-fields.js";
+import {
+  THEME_FIELDS,
+  THEME_KEYS,
+  ThemeValueError,
+  parseField,
+  type ThemeField,
+  type ThemeKey,
+} from "./burn-theme-fields.js";
 import { tokenLayer, type TokenLeaves } from "./burn-theme-tokens.js";
 
 /** A `burn.theme` block that cannot be used. `message` lists every problem. */
@@ -111,7 +118,6 @@ export function parseThemeConfig(raw: unknown, source = "burn.theme"): ThemeConf
   }
   const problems: string[] = [];
   const config: ThemeConfig = { tokens: {}, inline: {} };
-  const inline = config.inline as Record<string, unknown>;
   for (const [key, value] of Object.entries(raw)) {
     try {
       if (key === "preset") {
@@ -124,8 +130,8 @@ export function parseThemeConfig(raw: unknown, source = "burn.theme"): ThemeConf
       } else if (key === "from") config.from = parseFrom(value);
       else if (key === "tokens") config.tokens = parseMapping(value, problems);
       else if ((THEME_KEYS as string[]).includes(key)) {
-        const field = THEME_FIELDS[key as ThemeKey];
-        inline[field.prop] = field.parse(value);
+        const field: ThemeField = THEME_FIELDS[key as ThemeKey];
+        Object.assign(config.inline, parseField(field, value));
       } else {
         throw new ThemeValueError(
           `not a known key${suggestion(key, TOP_KEYS)}; keys are ${TOP_KEYS.join(", ")}`,
@@ -133,7 +139,7 @@ export function parseThemeConfig(raw: unknown, source = "burn.theme"): ThemeConf
       }
     } catch (e) {
       if (!(e instanceof ThemeValueError)) throw e;
-      problems.push(`${key}: ${e.message}`);
+      problems.push(`${key}${e.subkey}: ${e.message}`);
     }
   }
   if (problems.length > 0) throw new BurnThemeError(source, problems);

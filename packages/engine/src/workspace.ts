@@ -113,8 +113,12 @@ export interface BurnThemeConfig {
   max_width_ratio?: number;
   /** Multiplier of every caption dimension, 0.5 to 4, or `"auto"` (screenshot width over `display_width`, 1 to 4). */
   scale?: number | "auto";
-  /** CSS px the screenshot is shown at on the docs page, 240 to 2400. Read by `scale: "auto"`. */
-  display_width?: number;
+  /**
+   * CSS px the screenshot is shown at on the docs page, 240 to 2400. Read by `scale: "auto"`.
+   * The object form picks `narrow` for screenshots narrower than `narrow_below` px (default 900)
+   * and `default` (720 when absent) for the rest.
+   */
+  display_width?: number | { default?: number; narrow: number; narrow_below?: number };
 }
 
 export interface WorkspaceConfig {
