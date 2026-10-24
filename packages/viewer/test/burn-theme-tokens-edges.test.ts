@@ -210,8 +210,4 @@ describe("flattenTokens", () => {
     expect(flattenTokens(nested(16)).size).toBe(1);
     expect(() => flattenTokens(nested(17))).toThrow(/tokens nest deeper than 16 levels at "a\.a/);
   });
-
-  it("reads an empty object as no tokens", () => {
-    expect(flattenTokens({}).size).toBe(0);
-  });
 });

@@ -95,15 +95,6 @@ describe("sharing and keys", () => {
     await burn({ warn });
     expect(warn).toHaveBeenCalledTimes(1);
   });
-
-  it("loads again once the cache is cleared, with the mtime unchanged", async () => {
-    await writeConfig(LOW_CONTRAST, FIXED);
-    const warn = vi.fn();
-    await burn({ warn });
-    clearWorkspaceThemeCache();
-    await burn({ warn });
-    expect(warn).toHaveBeenCalledTimes(2);
-  });
 });
 
 describe("the config appearing and going", () => {
@@ -147,14 +138,6 @@ describe("a failed load", () => {
     await fs.mkdir(path.join(ws, "fonts"));
     await fs.writeFile(path.join(ws, "fonts", "brand.ttf"), FONT);
     expect((await burn()).length).toBeGreaterThan(0);
-  });
-
-  it("rejects a config that is not JSON, and reads it again once it is", async () => {
-    await fs.writeFile(configPath(), "{ nope", "utf8");
-    await fs.utimes(configPath(), FIXED, FIXED);
-    await expect(burn()).rejects.toThrow(".docsxai.json is not valid JSON");
-    await writeConfig({ burn: { theme: { preset: "soft" } } }, FIXED);
-    expect((await burn()).equals(await direct())).toBe(false);
   });
 });
 

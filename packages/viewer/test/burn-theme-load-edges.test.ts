@@ -63,14 +63,6 @@ describe("a tokens file that cannot be used", () => {
     );
   });
 
-  it("reports nesting past 16 levels", async () => {
-    let doc: unknown = "#ffffff";
-    for (let i = 0; i < 17; i++) doc = { a: doc };
-    await writeRaw("tokens.json", JSON.stringify(doc));
-    await fromTokens();
-    expect(await messageOf(loadBurnTheme(ws))).toContain("tokens nest deeper than 16 levels");
-  });
-
   it("names the token and the file for a value of the wrong type", async () => {
     await writeRaw("tokens.json", JSON.stringify({ color: { accent: 7 } }));
     await fromTokens();
