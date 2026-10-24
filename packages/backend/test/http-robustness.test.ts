@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as http from "node:http";
+import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -30,6 +31,38 @@ describe("request path handling", () => {
     expect(r.headers.get("content-type")).toContain("application/json");
     expect(((await r.json()) as { error: string }).error).toBe("bad_request");
   });
+});
+
+/** Send a raw request line so the target reaches the server unparsed by a client library. */
+function rawGet(target: string): Promise<{ status: number; body: string }> {
+  const port = Number(new URL(base).port);
+  return new Promise((resolve, reject) => {
+    const socket = net.connect(port, "127.0.0.1", () => {
+      socket.write(
+        `GET ${target} HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer ${TOKEN}\r\nConnection: close\r\n\r\n`,
+      );
+    });
+    let raw = "";
+    socket.on("data", (d) => (raw += String(d)));
+    socket.on("error", reject);
+    socket.on("close", () =>
+      resolve({
+        status: Number(/^HTTP\/1\.1 (\d+)/.exec(raw)?.[1]),
+        body: raw.split("\r\n\r\n").slice(1).join("\r\n\r\n"),
+      }),
+    );
+  });
+}
+
+describe("request targets the URL parser rejects", () => {
+  it.each(["//", "//[", "http://[::1/x"])(
+    "400s %s with a JSON error, not a 500",
+    async (target) => {
+      const r = await rawGet(target);
+      expect(r.status).toBe(400);
+      expect(r.body).toContain('"error": "bad_request"');
+    },
+  );
 });
 
 describe("HEAD on the liveness probe", () => {
