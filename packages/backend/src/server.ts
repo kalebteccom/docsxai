@@ -30,7 +30,7 @@ import {
   isArtifact,
   sendJson,
 } from "./http.js";
-import { OAuthIssuer } from "./oauth.js";
+import { OAuthIssuer, refreshTokenTtlMs } from "./oauth.js";
 import { handleAuthorize, handleToken } from "./oauth-http.js";
 import { pluginConfigProblem } from "./publisher-policy.js";
 import { SpawnRunner } from "./runner.js";
@@ -65,8 +65,8 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
   close(): Promise<void>;
 } {
   const store = resolveStore(opts);
-  const oauth = new OAuthIssuer();
   const env = opts.env ?? process.env;
+  const oauth = new OAuthIssuer(Date.now, { refreshTtlMs: refreshTokenTtlMs(env) });
   const dispatcher =
     opts.dispatcher ??
     new QueuedDispatcher((job) => new SpawnRunner({ store, env }).executeRun(job).then(() => {}));

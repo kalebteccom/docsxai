@@ -1,7 +1,14 @@
 import { createHash, randomBytes } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createBackendStub } from "../src/index.js";
-import { ACCESS_TOKEN_TTL_S, AUTH_CODE_TTL_MS, OAuthError, OAuthIssuer } from "../src/oauth.js";
+import {
+  ACCESS_TOKEN_TTL_S,
+  AUTH_CODE_TTL_MS,
+  DEFAULT_REFRESH_TOKEN_TTL_DAYS,
+  OAuthError,
+  OAuthIssuer,
+  refreshTokenTtlMs,
+} from "../src/oauth.js";
 
 const TOKEN = "ci-token";
 let base = "";
@@ -282,5 +289,42 @@ describe("OAuthIssuer clock-driven expiry", () => {
     // ...but the refresh grant still rotates a fresh pair.
     const rotated = issuer.refresh(tokens.refresh_token);
     expect(issuer.isLiveAccessToken(rotated.access_token)).toBe(true);
+  });
+
+  const DAY = 86_400_000;
+  const issue = (issuer: OAuthIssuer) => {
+    const { verifier, challenge } = pkcePair();
+    const code = issuer.issueCode({ challenge, redirectUri: "http://127.0.0.1:1/cb" });
+    return issuer.exchangeCode({ code, verifier });
+  };
+
+  it("expires refresh tokens after the default 30 days", () => {
+    expect(DEFAULT_REFRESH_TOKEN_TTL_DAYS).toBe(30);
+    let now = 1_000_000;
+    const issuer = new OAuthIssuer(() => now);
+    const fresh = issue(issuer);
+    now += 30 * DAY - 1;
+    const rotated = issuer.refresh(fresh.refresh_token);
+    now += 30 * DAY + 1;
+    expect(() => issuer.refresh(rotated.refresh_token)).toThrow(OAuthError);
+  });
+
+  it("takes the refresh TTL from the constructor", () => {
+    let now = 1_000_000;
+    const issuer = new OAuthIssuer(() => now, { refreshTtlMs: DAY });
+    const tokens = issue(issuer);
+    now += DAY + 1;
+    expect(() => issuer.refresh(tokens.refresh_token)).toThrow(/expired/);
+  });
+
+  it("reads DOCSX_OAUTH_REFRESH_TTL_DAYS and refuses a bad value", () => {
+    expect(refreshTokenTtlMs({})).toBe(30 * DAY);
+    expect(refreshTokenTtlMs({ DOCSX_OAUTH_REFRESH_TTL_DAYS: "7" })).toBe(7 * DAY);
+    expect(refreshTokenTtlMs({ DOCSX_OAUTH_REFRESH_TTL_DAYS: "0.5" })).toBe(DAY / 2);
+    for (const bad of ["0", "-1", "abc", ""]) {
+      expect(() => refreshTokenTtlMs({ DOCSX_OAUTH_REFRESH_TTL_DAYS: bad })).toThrow(
+        /DOCSX_OAUTH_REFRESH_TTL_DAYS/,
+      );
+    }
   });
 });
