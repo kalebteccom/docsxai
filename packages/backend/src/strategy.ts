@@ -3,7 +3,7 @@
 //   pr-comment      → post the run summary as a GitHub PR issue-comment (commit comment on push)
 //   viewer-refresh  → re-render the viewer from the materialized workspace, store it as a blob
 //   wiki-push       → invoke the project's configured publisher plugin (engine plugin contract:
-//                     package.json `docsxai` manifest + register(api) module) from a local path
+//                     package.json `docsxai` manifest + register(api) module) from an operator dir
 // Every effect is injected (fetch, spawn, token provider, store) so strategies test with fakes.
 
 import type { ChildProcess } from "node:child_process";
@@ -11,6 +11,12 @@ import { pathToFileURL } from "node:url";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { RENDER_OUT_DIR, engineRenderArgv } from "./engine-argv.js";
+import {
+  pluginConfigProblem,
+  pluginDirs,
+  publisherSecretsEnv,
+  registerModulePath,
+} from "./publisher-policy.js";
 import type { BackendStore } from "./store.js";
 import type { WebhookJob } from "./webhook.js";
 
@@ -223,32 +229,12 @@ interface PublisherPluginLike {
 
 /**
  * Load publisher plugins the way the engine does (package.json `docsxai` manifest naming a
- * register(api) module; registered names auto-prefixed `<ns>:<name>`), from local path sources:
- * `plugin_config.sources` (dirs, absolute or workspace-relative), falling back to `path:` entries
- * in the workspace's `docsxai.config.json` `plugins` array.
+ * register(api) module; registered names auto-prefixed `<ns>:<name>`) from the operator's
+ * `DOCSX_BACKEND_PLUGIN_DIRS`. Nothing from the webhook config or the workspace picks a dir.
  */
-async function loadPublishers(
-  job: WebhookJob,
-  workspaceDir: string,
-): Promise<Map<string, PublisherPluginLike>> {
-  const sources: string[] = [];
-  const configured = job.config.plugin_config?.sources;
-  if (Array.isArray(configured)) {
-    for (const s of configured) if (typeof s === "string") sources.push(s);
-  } else {
-    const wsConfig = path.join(workspaceDir, "docsxai.config.json");
-    if (fs.existsSync(wsConfig)) {
-      const parsed = JSON.parse(fs.readFileSync(wsConfig, "utf8")) as { plugins?: unknown };
-      if (Array.isArray(parsed.plugins)) {
-        for (const s of parsed.plugins) {
-          if (typeof s === "string" && s.startsWith("path:")) sources.push(s.slice("path:".length));
-        }
-      }
-    }
-  }
+async function loadPublishers(env: NodeJS.ProcessEnv): Promise<Map<string, PublisherPluginLike>> {
   const publishers = new Map<string, PublisherPluginLike>();
-  for (const src of sources) {
-    const dir = path.isAbsolute(src) ? src : path.resolve(workspaceDir, src);
+  for (const dir of pluginDirs(env)) {
     const manifestPath = path.join(dir, "package.json");
     const pkg = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
       docsxai?: { namespace?: string; register?: string };
@@ -256,7 +242,7 @@ async function loadPublishers(
     const ns = pkg.docsxai?.namespace;
     const register = pkg.docsxai?.register;
     if (!ns || !register) throw new Error(`${manifestPath}: no docsxai { namespace, register }`);
-    const mod = (await import(pathToFileURL(path.resolve(dir, register)).href)) as {
+    const mod = (await import(pathToFileURL(registerModulePath(dir, register)).href)) as {
       register?: unknown;
       default?: unknown;
     };
@@ -282,7 +268,10 @@ async function wikiPush(
   if (!pluginName) {
     return { strategy: "wiki-push", ok: false, detail: "no publisher plugin configured" };
   }
-  const publishers = await loadPublishers(job, run.workspace_dir);
+  const env = deps.env ?? process.env;
+  const problem = pluginConfigProblem(job.config.plugin_config, env);
+  if (problem) return { strategy: "wiki-push", ok: false, detail: problem };
+  const publishers = await loadPublishers(env);
   const publisher = publishers.get(pluginName);
   if (!publisher) {
     return {
@@ -295,7 +284,6 @@ async function wikiPush(
   const projection = fs.existsSync(projectionPath)
     ? (JSON.parse(fs.readFileSync(projectionPath, "utf8")) as unknown)
     : {};
-  const env = deps.env ?? process.env;
   const log = {
     info: () => {},
     warn: () => {},
@@ -306,9 +294,7 @@ async function wikiPush(
     projection,
     artifactsDir: run.workspace_dir,
     config: job.config.plugin_config ?? {},
-    secretsEnv: Object.fromEntries(
-      Object.entries(env).filter((e): e is [string, string] => typeof e[1] === "string"),
-    ),
+    secretsEnv: publisherSecretsEnv(env),
     log,
   });
   const actions = result.pages.reduce<Record<string, number>>((acc, p) => {

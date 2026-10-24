@@ -132,7 +132,7 @@ describe("POST /v1/github/webhook", () => {
   });
 
   it("fails closed when the configured secret env var is unset", async () => {
-    await putConfig({ secret_env: "UNSET_WEBHOOK_SECRET_ENV" });
+    await putConfig({ secret_env: "DOCSX_WEBHOOK_SECRET_UNSET" });
     expect((await deliver({})).status).toBe(401);
     expect(dispatched).toHaveLength(0);
   });

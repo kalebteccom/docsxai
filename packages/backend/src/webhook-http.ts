@@ -3,7 +3,7 @@
 // http.js. The route is unauthenticated but strictly verified — see the handler doc comment.
 
 import { type IncomingMessage, type ServerResponse } from "node:http";
-import { JSON_BODY_LIMIT_BYTES } from "./api.js";
+import { JSON_BODY_LIMIT_BYTES, WEBHOOK_SECRET_ENV_RE } from "./api.js";
 import { asSingle, readBody, sendJson } from "./http.js";
 import { type BackendStore } from "./store.js";
 import {
@@ -55,8 +55,10 @@ export async function handleGitHubWebhook(
       message: `no project is configured for repository ${repo}`,
     });
   }
-  // Signature gate. A missing secret in the env fails closed (401), never open.
-  const secret = env[match.config.secret_env];
+  // Signature gate. A missing secret in the env fails closed (401), never open. A stored config
+  // whose secret_env predates the DOCSX_WEBHOOK_SECRET* rule is treated as having no secret.
+  const secretEnv = match.config.secret_env;
+  const secret = WEBHOOK_SECRET_ENV_RE.test(secretEnv) ? env[secretEnv] : undefined;
   const signature = req.headers[SIGNATURE_HEADER];
   if (!secret || !verifyGitHubSignature(secret, raw, asSingle(signature))) {
     res.setHeader("WWW-Authenticate", 'Signature realm="github-webhook"');

@@ -271,7 +271,11 @@ export interface WebhookConfig {
 }
 
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
-const ENV_NAME_RE = /^[A-Z][A-Z0-9_]*$/;
+/**
+ * `secret_env` must be `DOCSX_WEBHOOK_SECRET` or `DOCSX_WEBHOOK_SECRET_<SUFFIX>`, so a config
+ * cannot key the HMAC on a server env var whose value a caller knows (`DOCSX_TOKEN`, `HOME`).
+ */
+export const WEBHOOK_SECRET_ENV_RE = /^DOCSX_WEBHOOK_SECRET(_[A-Z0-9_]+)?$/;
 
 /**
  * Validate + normalize a webhook-config body. Returns the normalized config, or a human-readable
@@ -298,8 +302,8 @@ export function parseWebhookConfig(v: unknown): WebhookConfig | string {
   if (typeof rev !== "string" || rev.length === 0)
     return "workspace_rev must be a revision id or 'head'";
   const secretEnv = c.secret_env ?? DEFAULT_WEBHOOK_SECRET_ENV;
-  if (typeof secretEnv !== "string" || !ENV_NAME_RE.test(secretEnv)) {
-    return "secret_env must be an env-var name ([A-Z][A-Z0-9_]*)";
+  if (typeof secretEnv !== "string" || !WEBHOOK_SECRET_ENV_RE.test(secretEnv)) {
+    return "secret_env must be DOCSX_WEBHOOK_SECRET or DOCSX_WEBHOOK_SECRET_<SUFFIX> ([A-Z0-9_])";
   }
   const enabled = c.enabled ?? true;
   if (typeof enabled !== "boolean") return "enabled must be a boolean";

@@ -8,7 +8,11 @@ export function register(api) {
     async publish(ctx) {
       fs.writeFileSync(
         path.join(ctx.workspaceDir, "publish-call.json"),
-        JSON.stringify({ config: ctx.config, projection: ctx.projection }, null, 2),
+        JSON.stringify(
+          { config: ctx.config, projection: ctx.projection, secretsEnv: ctx.secretsEnv },
+          null,
+          2,
+        ),
       );
       return {
         ok: true,
