@@ -217,7 +217,6 @@ describe("mobile", () => {
     );
   });
 
-
   it("tightens the page padding and stacks flow cards on narrow screens", () => {
     expect(VIEWER_STYLE).toMatch(
       /@media \(max-width: 600px\) \{\s*body \{ padding: 1rem; \}[^@]*\.flow-grid \{ grid-template-columns: 1fr; \}/,
