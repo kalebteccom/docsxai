@@ -48,7 +48,7 @@ export interface ThemeField {
 /** Parses `value` with `field` and returns the theme values it sets. Throws ThemeValueError. */
 export function parseField(field: ThemeField, value: unknown): ThemeLayer {
   const parsed = field.parse(value);
-  return field.layer ? field.layer(parsed) : ({ [field.prop]: parsed } as ThemeLayer);
+  return field.layer ? field.layer(parsed) : { [field.prop]: parsed };
 }
 
 const shown = (value: unknown): string =>
