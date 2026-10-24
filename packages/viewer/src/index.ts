@@ -190,7 +190,7 @@ export {
 } from "./pack-drift.js";
 export { diffGrids, diffPngs, type PixelDiff } from "./pack-pixels.js";
 
-import { buildViewer, discoverFlows } from "./render.js";
+import { buildViewer, discoverFlows, selectFlows } from "./render.js";
 import { workspaceTheme } from "./burn-theme-load.js";
 import { burnFlow, burnReport } from "./burn.js";
 import { DEFAULT_UNPLACEABLE_RATIO, type FlowBurnReport } from "./burn-report.js";
@@ -209,6 +209,8 @@ ${PACK_SYNOPSIS}
     <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md;
                 a flow that ran a matrix holds the same under <flow>/<variant>/, each variant a flow here)
     <out-dir>   where the generated viewer is written
+    --flow      restrict to these flows (default: all flows with annotations.json); a flow that ran a
+                matrix also selects its <flow>/<variant> pages
     --lang      locale of the text the pages add, e.g. es or es-ES (default: en; other tags give en);
                 a matrix variant flow (<flow>/<locale>.<scheme>.<viewport>) uses its own locale
 
@@ -344,12 +346,7 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     const theme = await workspaceTheme(workspace, warnTheme("burn"));
     const found = await discoverFlows(docsDir, { variants: true });
     // `--flow <name>` also selects the `<name>/<variant>` outputs of a flow that ran a matrix.
-    const flows = args.flows.length
-      ? args.flows.flatMap((want) => {
-          const variants = found.filter((f) => f.startsWith(`${want}/`));
-          return found.includes(want) ? [want, ...variants] : variants.length ? variants : [want];
-        })
-      : found;
+    const flows = args.flows.length ? selectFlows(found, args.flows) : found;
     if (flows.length === 0) {
       process.stderr.write(`burn: no flows with annotations.json under ${docsDir}\n`);
       return 1;

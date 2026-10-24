@@ -91,6 +91,40 @@ describe("buildViewer with variants", () => {
   });
 });
 
+describe("buildViewer --flow with variants", () => {
+  it("--flow <flow> renders the flow's variants, as burn does, and not the parent", async () => {
+    const outDir = path.join(tmp, "out");
+    const r = await buildViewer({ docsDir, outDir, flows: ["matrix-flow"] });
+    expect(r.pages).toEqual([
+      "index.html",
+      "matrix-flow/en-US.dark/index.html",
+      "matrix-flow/es-ES.light/index.html",
+    ]);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it("--flow <flow> keeps the flow's own page when it has one, ahead of its variants", async () => {
+    await writeFlowDir("matrix-flow", "matrix-flow");
+    const r = await buildViewer({ docsDir, outDir: path.join(tmp, "out"), flows: ["matrix-flow"] });
+    expect(r.pages).toEqual([
+      "index.html",
+      "matrix-flow/index.html",
+      "matrix-flow/en-US.dark/index.html",
+      "matrix-flow/es-ES.light/index.html",
+    ]);
+  });
+
+  it("--flow <flow>/<variant> still renders one variant, and an unknown name still warns", async () => {
+    const r = await buildViewer({
+      docsDir,
+      outDir: path.join(tmp, "out"),
+      flows: ["matrix-flow/es-ES.light", "typo"],
+    });
+    expect(r.pages).toEqual(["index.html", "matrix-flow/es-ES.light/index.html"]);
+    expect(r.warnings).toHaveLength(1);
+  });
+});
+
 describe("docsxai-viewer burn with variants", () => {
   it("burns every variant into its own burned/ directory", async () => {
     expect(await runViewerCli(["burn", tmp])).toBe(0);

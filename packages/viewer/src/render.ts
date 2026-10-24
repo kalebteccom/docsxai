@@ -172,6 +172,20 @@ export async function discoverFlows(
   return flows.sort();
 }
 
+/**
+ * The flows a `--flow` list selects among `found` (from `discoverFlows` with `variants`). A name
+ * selects its variants too: `login` gives `login` (when it has its own annotations.json) and every
+ * `login/<variant>`; `login/<variant>` selects one. A name nothing matches stays, so the caller
+ * can say it found nothing. Order follows the list, a flow before its variants.
+ */
+export function selectFlows(found: string[], wanted: string[]): string[] {
+  const picked = wanted.flatMap((want) => {
+    const variants = found.filter((f) => f.startsWith(`${want}/`));
+    return found.includes(want) ? [want, ...variants] : variants.length ? variants : [want];
+  });
+  return [...new Set(picked)];
+}
+
 // The overlay script (halo + badge + hover callout placement) is generated at build time from
 // overlay-runtime.ts so the placement logic is single-sourced in placement.ts. Two candidate
 // locations: ./generated/overlay.js next to the compiled render.js (the published-package case)
@@ -198,9 +212,8 @@ async function loadOverlayJs(): Promise<string> {
 
 /** Build the static viewer. Returns the generated page paths (relative to `outDir`), index first. */
 export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewerResult> {
-  const requested = [
-    ...new Set(opts.flows ?? (await discoverFlows(opts.docsDir, { variants: true }))),
-  ];
+  const found = await discoverFlows(opts.docsDir, { variants: true });
+  const requested = opts.flows ? selectFlows(found, opts.flows) : found;
   const warnings: string[] = [];
   if (!(await isDirectory(opts.docsDir))) {
     warnings.push(`docs folder ${opts.docsDir} not found, so the viewer lists no flows`);
