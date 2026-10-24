@@ -114,6 +114,36 @@ function isBusy(grid: PixelGrid, cx: number, cy: number, cell: number, pr: numbe
   return across >= BUSY_EACH * pr && down >= BUSY_EACH * pr && across + down >= BUSY_EDGES * pr;
 }
 
+/** Luma step between side-by-side pixels that counts as part of a divider. */
+export const DIVIDER_STEP = 8;
+/** Share of the image height a step must run down to make its column part of a divider. */
+export const DIVIDER_SHARE = 0.9;
+
+/**
+ * Full-height vertical dividers: a column whose left neighbour differs by at least
+ * {@link DIVIDER_STEP} luma on {@link DIVIDER_SHARE} of the rows is an edge, and edge columns that
+ * touch merge into one box (a 1 px border has an edge at each side). A sidebar's edge is one;
+ * a card border is not, it does not run the height of the page. Image px, full height.
+ */
+export function fullHeightDividers(grid: PixelGrid): Rect[] {
+  const need = Math.ceil(grid.height * DIVIDER_SHARE);
+  const edges: number[] = [];
+  for (let x = 1; x < grid.width; x++) {
+    let n = 0;
+    for (let y = 0; y < grid.height; y++) {
+      if (Math.abs(lumaAt(grid, x, y)! - lumaAt(grid, x - 1, y)!) >= DIVIDER_STEP) n++;
+    }
+    if (n >= need) edges.push(x);
+  }
+  const boxes: Rect[] = [];
+  for (const x of edges) {
+    const last = boxes[boxes.length - 1];
+    if (last && x === last.x + last.width) last.width++;
+    else boxes.push({ x, y: 0, width: 1, height: grid.height });
+  }
+  return boxes;
+}
+
 /** Runs with the same x span in consecutive rows become one box. Input is in row order. */
 function mergeRows(runs: Rect[]): Rect[] {
   const open = new Map<string, Rect>();

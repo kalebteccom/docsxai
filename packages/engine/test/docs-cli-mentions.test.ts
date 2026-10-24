@@ -201,7 +201,7 @@ describe("the checker", () => {
       "run ws --flow a --stop-after b --pause",
       "pack ws --check --against dir --threshold 1",
       "pack ws --no-optimise --generated-for abc",
-      "burn ws --report r.json --no-connector-outline",
+      "burn ws --report r.json --no-connector-outline --strict-glyphs",
       "export adf ws --mode single --title t",
       "export playwright ws --out dir",
       "plugins list ws --format json",

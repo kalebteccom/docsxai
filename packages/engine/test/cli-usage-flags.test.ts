@@ -77,7 +77,7 @@ const COMMANDS: Record<string, { flags: string[]; files: string[] }> = {
   pull: { flags: ["rev"], files: ["cli-commands-backend.ts"] },
   render: { flags: [], files: ["cli-commands-docpack.ts"] },
   burn: {
-    flags: ["flow", "out", "report", "no-connector-outline"],
+    flags: ["flow", "out", "report", "no-connector-outline", "strict-glyphs"],
     files: ["cli-commands-docpack.ts"],
   },
   pack: {

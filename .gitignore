@@ -35,6 +35,10 @@ website/src/content/docs/packages/viewer.md
 website/src/content/docs/packages/skill.md
 website/src/content/docs/packages/plugin-confluence.md
 website/src/content/docs/packages/plugin-starlight.md
+website/src/content/docs/packages/plugin-gitbook.md
+website/src/content/docs/packages/plugin-guru.md
+website/src/content/docs/packages/plugin-notion.md
+website/src/content/docs/packages/plugin-sharepoint.md
 website/src/content/docs/project/changelog.md
 website/src/content/docs/project/contributing.md
 website/src/content/docs/project/security.md

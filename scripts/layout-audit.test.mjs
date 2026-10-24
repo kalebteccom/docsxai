@@ -1,6 +1,7 @@
 // The box maths of scripts/layout-audit.mjs. The browser part runs by hand on a machine with
 // Chromium; these checks need none.
 
+import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -13,6 +14,7 @@ import {
   isStep,
   pageOverflows,
   readConfig,
+  readPageStates,
   stateFindingsFor,
   stateShifts,
   viewportsFor,
@@ -109,14 +111,26 @@ test("the table pads every column to its widest cell", () => {
 });
 
 test("the config keeps well-formed entries only", () => {
-  assert.deepEqual(readConfig(undefined), { paths: [], center: [], ignore: [], states: [] });
+  assert.deepEqual(readConfig(undefined), {
+    paths: [],
+    center: [],
+    ignore: [],
+    states: [],
+    pageStates: [],
+  });
   assert.deepEqual(
     readConfig({
       paths: ["/", 3],
       center: [{ parent: ".a", child: ".b" }, { parent: ".a" }],
       ignore: [".skip"],
     }),
-    { paths: ["/"], center: [{ parent: ".a", child: ".b" }], ignore: [".skip"], states: [] },
+    {
+      paths: ["/"],
+      center: [{ parent: ".a", child: ".b" }],
+      ignore: [".skip"],
+      states: [],
+      pageStates: [],
+    },
   );
 });
 
@@ -232,4 +246,33 @@ test("the shipped states config covers idle, pending, slow, failed and done", ()
   const names = new Set(cfg.states.flatMap((e) => e.states.map((s) => s.name)));
   for (const n of ["idle", "pending", "slow", "failed", "done"]) assert.ok(names.has(n), n);
   for (const e of cfg.states) assert.equal(e.states[0].name, "idle", "idle is the reference");
+});
+
+test("page states: a name is required, click and wait are selectors, scroll is bottom or nothing", () => {
+  assert.deepEqual(
+    readPageStates([
+      { name: "lightbox", click: "a.docsx-zoom", wait: "dialog[open]" },
+      { name: "lazy", scroll: "bottom" },
+      { name: "odd", scroll: "top", click: 3, wait: "" },
+      { click: ".x" },
+      null,
+    ]),
+    [
+      { name: "lightbox", click: "a.docsx-zoom", scroll: undefined, wait: "dialog[open]" },
+      { name: "lazy", click: undefined, scroll: "bottom", wait: undefined },
+      { name: "odd", click: undefined, scroll: undefined, wait: undefined },
+    ],
+  );
+  assert.deepEqual(readPageStates("lightbox"), []);
+});
+
+test("the checked-in states file covers the lightbox and the lazy viewer flow", async () => {
+  const raw = JSON.parse(
+    await readFile(new URL("./layout-audit.states.json", import.meta.url), "utf8"),
+  );
+  const { pageStates: states } = readConfig(raw);
+  const byName = Object.fromEntries(states.map((st) => [st.name, st]));
+  assert.equal(byName.lightbox.click, "a.docsx-zoom");
+  assert.equal(byName.lightbox.wait, "dialog.docsx-lightbox[open]");
+  assert.equal(byName.lazy.scroll, "bottom");
 });

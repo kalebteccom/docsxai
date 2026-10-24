@@ -1,3 +1,7 @@
 {
-  "badge_only": ["agent-tokens-issued.en.dark.390"]
+  "badge_only": [
+    "agent-tokens-issued.en.dark.390",
+    "agent-tokens.en.dark.390",
+    "documents.en.dark.390"
+  ]
 }

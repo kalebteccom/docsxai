@@ -86,5 +86,9 @@
         }
       ]
     }
+  ],
+  "pageStates": [
+    { "name": "lightbox", "click": "a.docsx-zoom", "wait": "dialog.docsx-lightbox[open]" },
+    { "name": "lazy", "scroll": "bottom" }
   ]
 }

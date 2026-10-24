@@ -64,7 +64,7 @@ Persist the doc pack to a backend with `/docsxai:push` (OAuth or `DOCSX_TOKEN` a
 { "burn": { "theme": { "preset": "readable", "display_width": 720 } } }
 ```
 
-- `readable` sets `scale` to `"auto"`: the factor is screenshot width over `display_width` (at least 1, at most 4), so the caption reads at its set size once scaled down. It sets 15 px text, ink on near-white at WCAG AA.
+- `readable` sets `scale` to `"auto"`: the factor is screenshot width over `display_width` (at least the capture's pixel ratio, at most 4 times it), so the caption reads at its set size once scaled down. It sets 15 px text, ink on near-white at WCAG AA.
 - `display_width` is 240 to 2400 and defaults to 720. A 780 px phone screenshot shown at 358 px needs 358, since the default gives it 7.5 px text. One workspace with both sizes writes `{ "default": 720, "narrow": 358, "narrow_below": 900 }`: a screenshot narrower than `narrow_below` px (default 900) uses `narrow`.
 - Screenshots narrower than `display_width` keep base size, so one block serves phone and desktop captures.
 - Any key in the block overrides the preset. `burn`, `pack` and `render` print a warning when a text pair falls under WCAG AA. `docsxai doctor` checks the block's shape, and `burn` checks its values.

@@ -1,7 +1,7 @@
 {
   "usage": [
     "docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]... [--lang <locale>]",
-    "docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]",
+    "docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline] [--strict-glyphs]",
     "docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--lang <locale>] [--flow <name>]...",
     "docsxai-viewer pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]",
     "docsxai-viewer pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]"
@@ -47,9 +47,10 @@
           "skipped": "skipped?: string",
           "caption_style": "caption_style?: \"badge\"",
           "route": "route?: \"straight\" | \"elbow\" | \"none\"",
-          "connector_crossings": "connector_crossings?: number"
+          "connector_crossings": "connector_crossings?: number",
+          "missing_glyphs": "missing_glyphs?: string[]"
         },
-        "optional": ["caption_style", "connector_crossings", "route", "skipped"]
+        "optional": ["caption_style", "connector_crossings", "missing_glyphs", "route", "skipped"]
       }
     }
   },

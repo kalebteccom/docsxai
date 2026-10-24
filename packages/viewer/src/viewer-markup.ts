@@ -125,7 +125,14 @@ function missingShot(id: string, flow: string | undefined, ui: UiStrings): strin
   return `<div class="shot-missing" role="status"><p>${why}</p><p>${how}</p></div>`;
 }
 
-function stepShot(s: ViewerStep, flow: string | undefined, ui: UiStrings): string {
+/**
+ * Steps drawn with an eager image: the first ones are on screen when the page opens. Every later
+ * step image loads lazily and decodes off the main thread, so a 500-step flow does not fetch 500
+ * screenshots on open. The width/height attributes reserve each box, so nothing moves as they load.
+ */
+export const EAGER_STEPS = 2;
+
+function stepShot(s: ViewerStep, n: number, flow: string | undefined, ui: UiStrings): string {
   if (s.unsafe)
     return `<p class="shot-missing" role="alert">${fmt(ui.shot.unsafe, { run: RUN, render: RENDER })}</p>`;
   if (!s.screenshot) return missingShot(s.id, flow, ui);
@@ -136,7 +143,8 @@ function stepShot(s: ViewerStep, flow: string | undefined, ui: UiStrings): strin
     : "";
   const data = s.anns.length ? ` data-anns='${escAttrSingle(JSON.stringify(s.anns))}'` : "";
   const alt = fmt(ui.step.shotAlt, { id: esc(s.id) });
-  return `<div class="shot"${data}><img src="${urlPath(s.screenshot)}" alt="${alt}"${dims}>${shotError(s.id, s.screenshot, ui)}</div>`;
+  const lazy = n > EAGER_STEPS ? ' loading="lazy" decoding="async"' : "";
+  return `<div class="shot"${data}><img src="${urlPath(s.screenshot)}" alt="${alt}"${dims}${lazy}>${shotError(s.id, s.screenshot, ui)}</div>`;
 }
 
 function stepSection(s: ViewerStep, n: number, flow: string | undefined, ui: UiStrings): string {
@@ -145,7 +153,7 @@ function stepSection(s: ViewerStep, n: number, flow: string | undefined, ui: UiS
   const md = s.md
     ? `<details class="write-up"><summary>${ui.step.writeUp}</summary><div class="md">${demoteHeadings(micromark(s.md))}</div></details>`
     : "";
-  const figure = `<figure class="shot-figure">${stepShot(s, flow, ui)}${stepCaption(s.anns)}</figure>`;
+  const figure = `<figure class="shot-figure">${stepShot(s, n, flow, ui)}${stepCaption(s.anns)}</figure>`;
   return `<section class="step" id="step-${n}" aria-labelledby="step-${n}-title" tabindex="-1"><div class="id-row"><h2 id="step-${n}-title">${esc(s.id)}</h2>${copyButton(s.id, "step id", ui)}</div>${figure}${md}</section>`;
 }
 

@@ -89,7 +89,7 @@ describe("a mapped token", () => {
 
   it("ignores a scale and a display_width in the file unless they are mapped", () => {
     const theme = themeFrom(FROM, { color: { accent: "#0b6e4f" }, scale: 3, display_width: 300 });
-    expect(theme).toMatchObject({ scale: 1, displayWidth: 720 });
+    expect(theme).toMatchObject({ scale: null, displayWidth: 720 });
   });
 
   it("applies the sizing range to a mapped token", () => {

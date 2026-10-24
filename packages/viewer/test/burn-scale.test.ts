@@ -164,9 +164,9 @@ describe("captionScale with a CSS width", () => {
   };
 
   it("takes the display width from the CSS width, so a 2x phone capture uses the narrow one", () => {
-    expect(captionScale(theme, 780, 390)).toBe(2.23);
-    expect(captionScale(theme, 2560, 1280)).toBe(2.33);
-    expect(captionScale(theme, 1000, 500)).toBe(2.86);
+    expect(captionScale(theme, 780, 2)).toBe(2.23);
+    expect(captionScale(theme, 2560, 2)).toBe(2.33);
+    expect(captionScale(theme, 1000, 2)).toBe(2.86);
   });
 });
 
@@ -206,7 +206,7 @@ describe("scaledTheme", () => {
   it("leaves the colours and the settings the layout reads at base size", () => {
     const t = scaledTheme(shadowed, 2);
     expect(t.accent).toBe(shadowed.accent);
-    expect([t.arrowSize, t.maxWidthRatio, t.scale, t.displayWidth]).toEqual([8, 0.62, 1, 720]);
+    expect([t.arrowSize, t.maxWidthRatio, t.scale, t.displayWidth]).toEqual([8, 0.62, null, 720]);
     expect(shadowed.radius).toBe(7);
   });
 });

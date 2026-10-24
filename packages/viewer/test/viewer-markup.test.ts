@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { COPIED_MS, copyAnnouncement, copyButton } from "../src/viewer-copy.js";
 import { SHORTCUTS } from "../src/viewer-keys.js";
 import {
+  EAGER_STEPS,
   demoteHeadings,
   flowPageHtml,
   indexHtml,
@@ -196,6 +197,21 @@ describe("layout stability", () => {
   it("lazy-loads index thumbnails (their box is fixed by CSS)", () => {
     const html = indexHtml([{ flow: "a", steps: 1, annotations: 0, thumb: "a/s/x.png" }], AT);
     expect(html).toContain('<img src="a/s/x.png" alt="" loading="lazy" decoding="async">');
+  });
+
+  it("loads the first two step images eagerly and every later one lazily, size kept", () => {
+    const steps = Array.from({ length: 500 }, (_, i) =>
+      step({ id: `s${i + 1}`, screenshot: `s${i + 1}.png`, size: { width: 1280, height: 800 } }),
+    );
+    const html = flowPageHtml("big", steps, AT, "");
+    const imgs = [...html.matchAll(/<img [^>]*>/g)].map((m) => m[0]);
+    expect(imgs).toHaveLength(500);
+    expect(imgs.slice(0, EAGER_STEPS).every((i) => !i.includes("loading="))).toBe(true);
+    expect(
+      imgs.slice(EAGER_STEPS).every((i) => i.endsWith(' loading="lazy" decoding="async">')),
+    ).toBe(true);
+    expect(imgs.every((i) => i.includes('width="1280" height="800"'))).toBe(true);
+    expect(EAGER_STEPS).toBe(2);
   });
 });
 

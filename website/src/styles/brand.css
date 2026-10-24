@@ -417,6 +417,12 @@ main:has(.docsx-404) > .content-panel {
   margin-top: 2rem;
   padding-inline-start: 0.85rem;
 }
+/* One column: the box fills it, so both gutters match the text above. */
+@media (max-width: 52rem) {
+  .docsx-cmd--hero {
+    width: 100%;
+  }
+}
 .docsx-cmd--hero .docsx-copy {
   align-self: stretch;
   border-inline-start: 1px solid var(--sl-color-hairline-shade);
@@ -456,6 +462,14 @@ main:has(.docsx-404) > .content-panel {
   font-size: 0.9rem;
   line-height: 1.5;
   color: var(--sl-color-gray-3);
+}
+/* Links in the landing's prose blocks sit in .not-content, outside Starlight's link colour. */
+.docsx-install-note a,
+.docsx-card-text a,
+.docsx-section-sub a,
+.docsx-lede a {
+  color: var(--sl-color-text-accent);
+  text-underline-offset: 0.18em;
 }
 .docsx-install-note code {
   font-family: var(--docsx-font-mono);
@@ -514,9 +528,14 @@ main:has(.docsx-404) > .content-panel {
 }
 .docsx-snap .row {
   display: grid;
-  grid-template-columns: 5.2rem 8.4rem 1fr;
+  grid-template-columns: 5.2rem 8.4rem minmax(0, 1fr);
   gap: 0.5rem;
   white-space: nowrap;
+}
+/* The result column wraps at every width: in a two-column hero on a landscape phone (844 px) the
+   window is about 370 px wide, and "4 steps, 4 annotations" on one line needs about 344 px. */
+.docsx-snap .t-body {
+  white-space: normal;
 }
 .docsx-snap .t-time {
   color: var(--sl-color-gray-3);
@@ -537,12 +556,8 @@ main:has(.docsx-404) > .content-panel {
     padding: 0.9rem 1rem 1rem;
   }
   .docsx-snap .row {
-    grid-template-columns: 3.8rem 5.6rem 1fr;
+    grid-template-columns: 3.8rem 5.6rem minmax(0, 1fr);
     gap: 0.3rem;
-  }
-  /* "4 steps, 4 annotations" on one line needs about 344px, wider than a 320 or 360 px phone. */
-  .docsx-snap .t-body {
-    white-space: normal;
   }
 }
 
@@ -639,7 +654,6 @@ main:has(.docsx-404) > .content-panel {
   padding: 0.8rem 0.85rem 0.7rem;
   background: var(--docsx-glass);
   backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -926,7 +940,6 @@ main:has(.docsx-404) > .content-panel {
   padding: 0.55rem 0.6rem 0.65rem;
   background: var(--docsx-glass);
   backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
   display: flex;
   flex-direction: column;
   gap: 0.18rem;
@@ -1407,12 +1420,115 @@ main:has(.docsx-404) > .content-panel {
   overflow: visible;
   margin-block: 0;
 }
+/* Edge fade on sideways scrollers: tables, code blocks and the hero transcript. A scroll-driven
+   animation moves two mask stops, so the right edge fades while more content sits past it and
+   the left edge fades once scrolled. A box that does not overflow has an inactive timeline, so
+   it gets no mask. Browsers without scroll-driven animations keep the plain scroller. */
+@property --docsx-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --docsx-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes docsx-edge-fade {
+  0% {
+    --docsx-fade-start: 0px;
+    --docsx-fade-end: 2rem;
+  }
+  8%,
+  92% {
+    --docsx-fade-start: 2rem;
+    --docsx-fade-end: 2rem;
+  }
+  100% {
+    --docsx-fade-start: 2rem;
+    --docsx-fade-end: 0px;
+  }
+}
+@supports (animation-timeline: scroll()) {
+  .sl-markdown-content .docsx-table-scroll,
+  .expressive-code pre,
+  .docsx-snap {
+    animation: docsx-edge-fade linear both;
+    animation-timeline: scroll(self inline);
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--docsx-fade-start),
+      #000 calc(100% - var(--docsx-fade-end)),
+      transparent
+    );
+  }
+}
+/* Inside the box: the edge-fade mask clips anything drawn outside it. */
 .docsx-table-scroll:focus-visible {
   outline: 2px solid var(--sl-color-text-accent);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 .sl-markdown-content table :is(th, td) {
   vertical-align: top;
+}
+/* Code in a cell breaks only at its own punctuation, never mid-word: `overflow-wrap: anywhere`
+   (set for prose code above) lets the table squeeze a column to a few characters wide. The first
+   column holds the key or name the row is about, so it keeps a minimum width. */
+.sl-markdown-content table :not(pre) > code {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.sl-markdown-content table :is(th, td):first-child {
+  min-width: 7rem;
+}
+
+/* Phone width: a table of four or more columns (the docsx-table--stack class from
+   plugins/rehype-wrap-tables.mjs) stacks each row as a card. The first cell is the card title,
+   every other cell sits under its column name from data-label. The header row stays for screen
+   readers, which read the explicit table roles. */
+@media (max-width: 48rem) {
+  .sl-markdown-content .docsx-table-scroll > table.docsx-table--stack,
+  .docsx-table--stack :is(tbody, tr, td) {
+    display: block;
+  }
+  .docsx-table--stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .docsx-table--stack tr {
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+  .docsx-table--stack tr:nth-child(2n) {
+    background: none;
+  }
+  .sl-markdown-content .docsx-table--stack td {
+    display: grid;
+    grid-template-columns: minmax(6rem, 35%) minmax(0, 1fr);
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.2rem 0;
+    border: 0;
+  }
+  .docsx-table--stack td::before {
+    content: attr(data-label);
+    color: var(--sl-color-gray-3);
+    font-size: 0.875rem;
+  }
+  .sl-markdown-content .docsx-table--stack td:first-child {
+    display: block;
+    padding-bottom: 0.4rem;
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+  .docsx-table--stack td:first-child::before {
+    content: none;
+  }
 }
 /* Phone width: body copy is 16px. Wide tables already scroll inside their wrapper. */
 @media (max-width: 40rem) {
@@ -1425,6 +1541,14 @@ main:has(.docsx-404) > .content-panel {
   .docsx-credit {
     font-size: 0.875rem;
   }
+}
+
+/* Note asides take the ember palette. Starlight draws them in its blue, periwinkle on the cream
+   page. Title on fill: 7.7:1 dark, 6.1:1 light. */
+.starlight-aside--note {
+  --sl-color-asides-text-accent: var(--sl-color-text-accent);
+  --sl-color-asides-border: var(--sl-color-accent);
+  background-color: var(--sl-color-accent-low);
 }
 
 /* ---- browxai / docsxai boundary diagram (ecosystem page) ---------------- */
@@ -1673,21 +1797,30 @@ body::before {
   }
 }
 
-/* Frosted top nav. */
-.header {
+/* Frosted top nav and the sticky "On this page" bar under it. Write backdrop-filter unprefixed
+   only: the build's CSS minifier (Lightning CSS) adds -webkit-backdrop-filter itself, and when
+   both are written it keeps only the prefixed one, which Chromium ignores. */
+.header,
+mobile-starlight-toc nav {
   backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+/* Without backdrop-filter the 70% nav background lets page text show through: go opaque. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
+    --sl-color-bg-nav: var(--sl-color-bg);
+  }
 }
 
-/* Frosted-glass surfaces: cards, the product window, and the sidebar affordance
-   float over the halo wash instead of sitting on a flat panel. */
+/* Frosted-glass surfaces: the cards, the product window and the sidebar llms.txt link float over
+   the halo wash. */
 .docsx-card,
 .docsx-window,
 .docsx-sidebar-llms {
   background: var(--docsx-glass);
   border-color: var(--docsx-glass-border);
   backdrop-filter: blur(16px) saturate(135%);
-  -webkit-backdrop-filter: blur(16px) saturate(135%);
 }
 .docsx-card:hover {
   background: color-mix(in srgb, var(--docsx-amber-500) 9%, var(--docsx-glass));
@@ -1771,6 +1904,18 @@ body::before {
   .expressive-code .frame .copy button::after {
     margin: 0.6rem;
   }
+  /* The header logo link is 32 px tall; the header has room for 44. */
+  .site-title {
+    min-height: var(--docsx-tap);
+  }
+  /* Heading anchors: padding grows the box to 44 px and the same negative margin takes it back,
+     so the icon and the heading line stay where they were. Starlight's own start margin
+     (minus the icon size) moves the link over the heading's end padding. */
+  .sl-markdown-content .sl-anchor-link {
+    padding: 0.75rem 1rem;
+    margin-block: -0.75rem;
+    margin-inline: calc(-1 * var(--sl-anchor-icon-size) - 1rem) -1rem;
+  }
 }
 @media (max-width: 49.99rem) {
   /* The menu button is Starlight's 2rem circle; the header reserves room for it from this token. */
@@ -1792,10 +1937,66 @@ body::before {
     align-items: center;
     justify-content: center;
   }
+  /* Starlight's menu button is a flex box with 0.5rem padding sized for a 2rem circle, so at
+     2.75rem its 16 px icon sat 6 px up and left of centre. Centre the icon, and draw the button
+     in the header's palette: Starlight paints it --sl-color-white, a bright disc in dark mode. */
+  .sl-menu-button {
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    border: 1px solid var(--sl-color-hairline-shade);
+    background-color: var(--sl-color-bg-sidebar);
+    color: var(--sl-color-white);
+    box-shadow: none;
+  }
+  .sl-menu-button:has(~ :popover-open) {
+    background-color: var(--sl-color-accent-low);
+    border-color: var(--sl-color-accent);
+  }
   /* The "On this page" dropdown's links are about 41 px tall by default. */
   mobile-starlight-toc a {
     min-height: var(--docsx-tap);
     align-items: center;
+  }
+  /* One column: the text column fills the width, so both insets are the 1rem content padding.
+     Starlight caps it at 45rem and centres it only from 72rem, so at 721 to 799 px it sat left. */
+  .sl-container {
+    max-width: none;
+  }
+  /* Pages without a sidebar (the landing and the 404) have no menu, so the theme switch and the
+     GitHub link stay in the header as two 44 px icon buttons. */
+  :root:not([data-has-sidebar]) .header .right-group {
+    display: flex;
+    gap: 0.25rem;
+  }
+  :root:not([data-has-sidebar]) .header .social-icons::after {
+    content: none;
+  }
+  :root:not([data-has-sidebar]) .header starlight-theme-select label {
+    width: var(--docsx-tap);
+    height: var(--docsx-tap);
+  }
+  :root:not([data-has-sidebar]) .header starlight-theme-select select {
+    width: var(--docsx-tap);
+    padding: 0;
+    margin: 0;
+    color: transparent;
+  }
+  :root:not([data-has-sidebar]) .header starlight-theme-select .label-icon {
+    inset-inline-start: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1rem;
+  }
+  :root:not([data-has-sidebar]) .header starlight-theme-select .caret {
+    display: none;
+  }
+}
+
+/* Landscape phones: the fixed header and the sticky "On this page" bar took 29% of a 390 px tall
+   window. The bar scrolls away with the page; the header stays. */
+@media (max-width: 71.99rem) and (max-height: 30rem) and (orientation: landscape) {
+  mobile-starlight-toc nav {
+    position: absolute;
   }
 }
 
@@ -1809,7 +2010,7 @@ body::before {
   .sidebar-pane,
   .right-sidebar,
   mobile-starlight-toc,
-  starlight-menu-button,
+  .sl-menu-button,
   .pagination-links,
   .docsx-sidebar-llms,
   .docsx-hero::before,
@@ -1837,7 +2038,6 @@ body::before {
   .dxm-core,
   .dxf-flow {
     backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     break-inside: avoid;
   }
   .sl-markdown-content a[href^="http"]::after {

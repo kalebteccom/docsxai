@@ -10,7 +10,7 @@ command is not.
 
 ## Synopsis
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>] [--ttl <dur>]
                                [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                [--persist tmp] [--force]
@@ -33,7 +33,7 @@ docsxai login --backend-url <url> [--oauth <workspace-dir>]
 docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 docsxai pull <workspace-dir> [--rev <id>]
 docsxai render <workspace-dir>
-docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline]
+docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline] [--strict-glyphs]
 docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
 docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
 docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
@@ -104,7 +104,7 @@ a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
 `<path> is a file, not a directory`, and a `mkdir` the filesystem refuses points
 `chmod` at the existing parent directory.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
 init: workspace at ~/docsxai/my-app
   created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, auth/strategy.yaml, flows/example.flow.yaml.sample, README.md
@@ -140,7 +140,7 @@ the `ttl` guess. An interactive SSO login leaves ephemeral IdP scratch
 cookies, so the minimum cookie expiry is roughly "now" and must not be
 trusted. If unset or unfound, `ttl` (or a 1h default) is used.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai capture-auth ~/docsxai/my-app --auth-cookie session
 capture-auth: launching browser for role "editor" (manual-capture), reusing saved profile if present; log in if prompted, then trigger capture…
 capture-auth: captured 9 cookie(s) (newest expiry first):
@@ -163,7 +163,7 @@ host agent - that is the plugin's calibrate skill, which then produces the
 flow-file; this CLI command covers only the deterministic structured-input
 case. `--name <flow>` overrides the flow name.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai calibrate ~/docsxai/my-app --from ./guides/publish-post.md
 calibrate: wrote ~/docsxai/my-app/flows/publish-post.flow.yaml  (5 steps)
 calibrate: wrote default ~/docsxai/my-app/docs/style.yaml
@@ -186,7 +186,7 @@ cached session to load. `--ignore-https-errors` accepts a self-signed or invalid
 TLS certificate (the same setting is read from `ignore_https_errors` in
 `.docsxai.json`).
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai inspect ~/docsxai/my-app
 inspect: https://localhost:3000/dashboard
   title: Acme · Dashboard
@@ -265,7 +265,7 @@ before Playwright's own text.
 
 A clean run prints one line per flow and exits 0:
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai run ~/docsxai/my-app --flow publish-post
 run: publish-post, 5 step(s) executed, 4 annotation(s) written
 run: 1 of 1 flow ok, outputs in ~/docsxai/my-app/docs
@@ -275,7 +275,7 @@ A halted run names the step, the inferred cause, and the halt screenshot,
 then exits 1 - hand that to [`diagnose`](#docsxai-diagnose) rather than
 retrying:
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai run ~/docsxai/my-app --flow publish-post
 run: [target is covered by another element] step "publish" (click) failed at
 https://localhost:3000/editor/draft-7: … (halt screenshot: docs/publish-post/halts/publish.png)
@@ -315,7 +315,7 @@ against the same target produce the same doc pack. It runs the selected flows
   including `--runs` outside 2 to 5 and any combination with `--pause`,
   `--stop-after`, `--start-from` or `--cdp`.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai run ~/docsxai/my-app --verify-determinism
 verify-determinism: 2 runs of 1 flow (publish-post), 5 artefacts per run
 result: DIFFERING
@@ -354,7 +354,7 @@ takes no flags; `docsxai-viewer build --flow <name>` also renders the variant fo
 a matrix flow, and `docsxai-viewer build --lang fr` warns that only `en` and `es` have
 text tables and writes English.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai render ~/docsxai/my-app
 render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; each flow page
 shows the screenshots, hover a pulsing halo to read its callout)
@@ -378,8 +378,11 @@ threshold (`--max-overlap <ratio>`) is a flag of the viewer's own bin,
 `docsxai-viewer burn`; `docsxai burn` does not forward it. `--no-connector-outline`
 skips reading the screenshot's pixels: an arrow or stem stays plain ink (by default one over
 a dark part of the screenshot gets a white outline), a themed line keeps the callout's outline
-colour, and no text is estimated from the pixels. Exit 1 when the workspace has no `docs/`
-directory or no flow to burn; exit 2 for a bad flag.
+colour, and no text is estimated from the pixels. A caption with characters the font
+can't draw (Japanese, Arabic, Hebrew, Thai with the bundled font) prints a warning naming
+the annotation and the script, and its report entry gets `missing_glyphs`;
+`--strict-glyphs` then exits 1, see [the font guide](/guides/burn-theming/#characters-the-font-cant-draw).
+Exit 1 when the workspace has no `docs/` directory or no flow to burn; exit 2 for a bad flag.
 
 An annotation whose `bounding_box` lies outside the screenshot, has zero or negative
 size, or holds `NaN` or infinity is skipped with a warning that names its selector and
@@ -393,7 +396,7 @@ the block burns the original look, byte for byte. The block, `connector_style` a
 are new in the next release; see
 [Themeable burned captions](/guides/burn-theming/).
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai burn ~/docsxai/my-app --report burn-report.json
 burn: wrote 6 image(s) to ~/docsxai/my-app/docs/publish-post/burned
 burn: wrote report to ~/docsxai/my-app/burn-report.json (0 unplaceable)
@@ -500,7 +503,7 @@ position and the field. Exit 1 for a failed build, 2 for a bad flag.
 `pack` and `pack --check` read the workspace's `burn.theme` block as well (see
 [Themeable burned captions](/guides/burn-theming/)).
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai pack ~/docsxai/my-app
 pack: 32 image(s), 3 written, 1 removed in ~/docsxai/my-app/.screens
 ```
@@ -519,7 +522,7 @@ of those, 2 for a bad flag, and 1 when the committed `manifest.json` is missing 
 earlier builds still works for now: it prints a deprecation warning and runs
 `pack --check` with the same arguments.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai pack ~/docsxai/my-app --check --against web/public/screens
 docsxai drift: 32 compared, 1 over threshold (0.5%)
   changed  app/board/en.dark.1280  2.4113%  region 40,96 612x188  OVER
@@ -542,7 +545,7 @@ from its file name (`flows/payment.flow.yaml` with `name: checkout`), because
 exits 1. Two flow files that share one `name:` stop `lint`, `flow-tree` and `run`
 with exit 1 and name both files.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai lint ~/docsxai/my-app
 flow publish-post
   R004 [info] step 'open-editor': selector `[data-testid="new-post"]` is a bare `[data-*=…]` match; it may resolve to multiple DOM nodes (visible + hidden duplicate)
@@ -561,7 +564,7 @@ plus any orphans (flows whose `extends` parent is not in the workspace) and
 resolution issues (cycles, step-id collisions across the merge). Pure-static.
 Exit 1 if any issues.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai flow-tree ~/docsxai/my-app
 preamble    [3 steps]
 ├── publish-post    [5 steps]
@@ -588,7 +591,7 @@ variant (its steps and its `halts/` screenshot). Without it, `diagnose` takes
 the one variant that holds a halt screenshot for the step, and otherwise lists
 the variants and exits 2.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai diagnose ~/docsxai/my-app --flow publish-post --step publish --cdp http://localhost:9222
 diagnose: flow=publish-post step=publish
 
@@ -646,7 +649,7 @@ three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD
 `yes`, `0`, `false` or `no` (any case), because any other value reads as off.
 `docsxai doctor --help` prints its usage line and what the lines mean, and runs no check.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai doctor ~/docsxai/my-app
 ok: node: v26.1.0 (>= 26 required)
 ok: chromium: ~/Library/Caches/ms-playwright/chromium-1223/…/Google Chrome for Testing
@@ -680,7 +683,7 @@ re-shapes prose itself; the agent does that at calibration time - this
 command is the enforcement layer. `--format json` for tooling. A workspace path
 that is not a directory exits 1 with `<path> is not a directory` and writes nothing.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai style ~/docsxai/my-app --check
 style: validated docs/style.yaml; rederived docs/style.json
 
@@ -705,7 +708,7 @@ leftovers never read as drift.
 flow with a [matrix](/reference/flow-file/#matrix) writes one directory per variant
 below those paths, so its screenshots are not in the baseline.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai baseline ~/docsxai/my-app
 baseline: snapshotted 23 files to ~/docsxai/my-app/.baseline
 ```
@@ -722,7 +725,7 @@ report severity is at or above the threshold (screenshot severity: at least
 1% changed pixels is warn, at least 5% is fail; structural changes are
 warn).
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai diff ~/docsxai/my-app --fail-on warn
 drift: ~/docsxai/my-app/.baseline → ~/docsxai/my-app
 flow publish-post [WARN]
@@ -760,7 +763,7 @@ outside the workspace is left out, whether it is one of the fixed entries
 directory. The archive is written atomically, and the output directory is created
 only once there is something to write.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai zip ~/docsxai/my-app
 zip: wrote my-app.zip (38 entries, 1843.2 KB)
 ```
@@ -783,7 +786,7 @@ the workspace is left out of `projection.json` and `attachments.json`, so a
 publisher never uploads it. A symlink to a file inside the workspace still works.
 `export playwright` skips them the same way.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai export adf ~/docsxai/my-app --mode page-tree
 export adf: wrote ~/docsxai/my-app/.export/adf/projection.json (3 documents, mode page-tree) + ~/docsxai/my-app/.export/adf/attachments.json (9 attachments)
 ```
@@ -796,7 +799,7 @@ page actions, success criteria as `expect()` assertions, `environment` as
 `test.use()`; optional steps are try/catch-wrapped. Generated files say so in
 a header: regenerate, do not hand-edit.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai export playwright ~/docsxai/my-app
 export playwright: wrote 3 specs to ~/docsxai/my-app/.export/tests
 ```
@@ -812,7 +815,7 @@ or disabled, with reasons; exit 1 if any plugin is not loaded), `info
 sha256 - without ever executing plugin code. All three accept `--format
 json`. Field-by-field detail is in the [plugins reference](/reference/plugins/).
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai plugins list ~/docsxai/my-app
 plugins (2 configured, 2 loaded):
   confluence  loaded  v0.1.0  kalebtec  publisher  package:@docsxai/plugin-confluence
@@ -835,7 +838,7 @@ authorization-code + PKCE handshake against the backend and stores the tokens
 at `<workspace>/.auth/backend-token.json` (mode 0600); `push`, `pull`, and
 `run` pick them up from there.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ DOCSX_TOKEN=$CI_TOKEN docsxai login --backend-url http://127.0.0.1:4477
 login: ok. 1 workspace visible at http://127.0.0.1:4477
 ```
@@ -859,7 +862,7 @@ on the backend. A flow file, annotations file, screenshot, `style.yaml`, `style.
 or `locators.yaml` that is a symlink to a file outside the workspace is left out of
 the pack. The ids `push` records in `.docsxai.json` are written atomically.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai push ~/docsxai/my-app --kind run --author ci
 push: screenshots, 2 blob(s) uploaded, 7 already on the backend
 push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) on http://127.0.0.1:4477, 5 artifact slots uploaded, finalized
@@ -879,7 +882,7 @@ target first and then renames them all into place; a failure while staging chang
 nothing, and a failed rename puts the files already swapped back. A workspace never
 holds half of the new revision and half of the old.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai pull ~/docsxai/my-app
 pull: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci), wrote 23 file(s) to ~/docsxai/my-app
 ```

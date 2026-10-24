@@ -1,4 +1,5 @@
-// Astro component sources emitted into the Starlight site (CopyId.astro and AnnotatedShot.astro).
+// Astro component sources emitted into the Starlight site (CopyId.astro and AnnotatedShot.astro;
+// the lightbox AnnotatedShot opens is ShotLightbox.astro, in starlight-lightbox.ts).
 // Split from starlight-emit.ts to keep that file under the max-lines ceiling. The sources are
 // emitted verbatim, with the text the components add (labels, messages, announcements) taken from
 // the site language's table in ui-strings.ts. In English the output is the sources as they were
@@ -167,10 +168,11 @@ const { value, kind = "id" } = Astro.props;
 // The caption list is numbered to match the badge numbers burned into the image (`item.n` is the
 // annotation's 1-based badge index), so <li value> carries the explicit number. The image carries
 // its intrinsic width and height (Astro reads them from the imported file), so its box is reserved
-// before it loads, and an explicit aspect-ratio keeps that box when the load fails. A failed load
-// shows a message with Retry (a fresh query string defeats a cached failure) as an overlay inside
-// the image's box, so it never moves the page. A step with no image shows why and the command that
-// captures it.
+// before it loads, and an explicit aspect-ratio keeps that box when the load fails. The image is a
+// link to its own file: ShotLightbox turns it into a button that opens the shot full size, and
+// without JS the link opens the file. A failed load shows a message with Retry (a fresh query
+// string defeats a cached failure) as an overlay inside the image's box, so it never moves the
+// page. A step with no image shows why and the command that captures it.
 export function annotatedShotAstro(ui: UiStrings): string {
   const alt = tplVar("alt");
   const kinds = ui.kinds;
@@ -179,6 +181,7 @@ export function annotatedShotAstro(ui: UiStrings): string {
 // The image already carries the burned halo/badge/callout pixels when burned={true}; the caption
 // lists each annotation's copy, numbered to match the burned badges.
 import CopyId from "./CopyId.astro";
+import ShotLightbox from "./ShotLightbox.astro";
 const { src, alt, items = [], burned = false, missing = false, flow = "" } = Astro.props;
 const resolved = src === undefined ? "" : typeof src === "string" ? src : src.src;
 const width = src && typeof src === "object" ? src.width : undefined;
@@ -200,15 +203,26 @@ const command = \`docsxai run <workspace>\${flow ? \` --flow \${shellQuote(flow.
       </div>
     ) : (
       <div class="annotated-shot-frame">
-        <img
-          src={resolved}
-          alt={\`${fmt(ui.step.shotAlt, { id: alt })}\`}
-          width={width}
-          height={height}
-          style={width && height ? \`aspect-ratio: \${width} / \${height}\` : undefined}
-          loading="lazy"
-          decoding="async"
-        />
+        <a
+          class="docsx-zoom"
+          href={resolved}
+          data-docsx-zoom
+          aria-label={\`${fmt(ui.site.zoomOpen, { id: alt })}\`}
+        >
+          <img
+            src={resolved}
+            alt={\`${fmt(ui.step.shotAlt, { id: alt })}\`}
+            width={width}
+            height={height}
+            style={width && height ? \`aspect-ratio: \${width} / \${height}\` : undefined}
+            loading="lazy"
+            decoding="async"
+          />
+          <span class="docsx-zoom-hint" aria-hidden="true">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9" /></svg>
+            ${ui.site.zoomHint}
+          </span>
+        </a>
         <p class="annotated-shot-error" role="alert" hidden>
           <span class="annotated-shot-error-msg">
             ${fmt(ui.site.errorMsg, { id: "{alt}" })}
@@ -231,6 +245,7 @@ const command = \`docsxai run <workspace>\${flow ? \` --flow \${shellQuote(flow.
     )
   }
   <p class="annotated-shot-id">${fmt(ui.site.stepId, { copy: `<CopyId value={alt} kind="${kinds["step id"]}" />` })}</p>
+  {!missing && <ShotLightbox />}
 </figure>
 
 <style>

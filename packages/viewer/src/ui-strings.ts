@@ -114,6 +114,14 @@ export interface UiStrings {
     errorMsg: string;
     /** `{copy}` */
     stepId: string;
+    /** Accessible name of the link that enlarges a screenshot: `{id}`. */
+    zoomOpen: string;
+    /** Visible hint on the screenshot that it enlarges on tap. */
+    zoomHint: string;
+    /** Accessible name of the full-size screenshot dialog. */
+    zoomDialog: string;
+    /** The dialog's close button. */
+    zoomClose: string;
   };
 }
 
@@ -216,6 +224,10 @@ const EN: UiStrings = {
     errorMsg:
       "The screenshot for step {id} could not be loaded. Check your connection, then press Retry.",
     stepId: "Step id {copy}",
+    zoomOpen: "Enlarge screenshot of step {id}",
+    zoomHint: "Enlarge",
+    zoomDialog: "Full-size screenshot",
+    zoomClose: "Close",
   },
 };
 
@@ -318,6 +330,10 @@ const ES: UiStrings = {
     errorMsg:
       "No se pudo cargar la captura del paso {id}. Comprueba tu conexión y pulsa Reintentar.",
     stepId: "ID del paso {copy}",
+    zoomOpen: "Ampliar la captura del paso {id}",
+    zoomHint: "Ampliar",
+    zoomDialog: "Captura a tamaño completo",
+    zoomClose: "Cerrar",
   },
 };
 

@@ -8,7 +8,7 @@ export const USAGE = `docsxai-viewer: static viewer generator
 
 Usage:
   docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]... [--lang <locale>]
-  docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]
+  docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline] [--strict-glyphs]
   docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--lang <locale>] [--flow <name>]...
 ${PACK_SYNOPSIS}
 
@@ -35,6 +35,8 @@ ${PACK_SYNOPSIS}
     --no-connector-outline  skip reading the screenshot's pixels: an arrow or stem stays plain ink
                  (by default one over a dark part gets a white outline), a themed line keeps the
                  callout's outline colour, and no text is estimated from the pixels
+    --strict-glyphs  exit 1 when a caption has characters the font can't draw (they burn as empty
+                 boxes); without it they are a warning and \`missing_glyphs\` in the report
 
   site: emit a production Astro Starlight docs site (burned images preferred)
     <workspace>  a docsxai workspace (reads <workspace>/docs + <workspace>/flows)

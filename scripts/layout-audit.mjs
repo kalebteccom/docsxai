@@ -22,10 +22,17 @@
 //
 // The config is JSON: { "paths": ["/"], "center": [{ "parent": "css", "child": "css" }],
 // "ignore": ["css"], "states": [{ "element": "css", "states": [{ "name": "idle", "steps": [] },
-// { "name": "copied", "steps": [{ "set": "css", "attr": "data-state", "value": "copied" }] }] }] }.
+// { "name": "copied", "steps": [{ "set": "css", "attr": "data-state", "value": "copied" }] }] }],
+// "pageStates": [{ "name": "lightbox", "click": "css", "scroll": "bottom", "wait": "css" }] }.
 // A step is one of { "set", "attr", "value" }, { "remove", "attr" }, { "eval": "js" },
-// { "click": "css" } or { "wait": ms }. Paths given with --path win over the config's. Playwright
-// comes from @docsxai/engine's playwright-core, like scripts/visual-capture.mjs.
+// { "click": "css" } or { "wait": ms }. Paths given with --path win over the config's.
+//
+// In the default mode each page is audited as loaded, then once per page state on a fresh load:
+// the state scrolls to the bottom in screen-sized steps (so lazy images load and near-viewport
+// overlays draw), clicks its element, and waits for its selector and for every image to finish. A
+// state whose click element isn't on the page is skipped there. scripts/layout-audit.states.json
+// holds both lists for the viewer and site emit. Playwright comes from @docsxai/engine's
+// playwright-core, like scripts/visual-capture.mjs.
 
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
@@ -139,6 +146,7 @@ export function readConfig(raw) {
     center,
     ignore: list(cfg.ignore),
     states: readStates(cfg.states),
+    pageStates: readPageStates(cfg.pageStates),
   };
 }
 
@@ -196,6 +204,20 @@ export function stateFindingsFor(page, viewport, measured, expected) {
     }
   }
   return out;
+}
+
+/** The `pageStates` list: each needs a name; `click` and `wait` are selectors, `scroll` is "bottom". */
+export function readPageStates(raw) {
+  if (!Array.isArray(raw)) return [];
+  const str = (v) => (typeof v === "string" && v ? v : undefined);
+  return raw
+    .filter((st) => st && typeof st.name === "string" && st.name)
+    .map((st) => ({
+      name: st.name,
+      click: str(st.click),
+      scroll: st.scroll === "bottom" ? "bottom" : undefined,
+      wait: str(st.wait),
+    }));
 }
 
 const TYPES = {
@@ -367,6 +389,32 @@ export function findingsFor(page, viewport, data) {
   return out;
 }
 
+// Puts the page in a state from the config. False when its click element isn't on the page.
+async function enterState(page, state) {
+  if (state.scroll === "bottom") {
+    await page.evaluate(async () => {
+      const { document, window } = globalThis;
+      const se = document.scrollingElement ?? document.documentElement;
+      while (se.scrollTop + window.innerHeight < se.scrollHeight) {
+        se.scrollTop += window.innerHeight;
+        await new Promise((ok) => window.requestAnimationFrame(() => window.setTimeout(ok, 50)));
+      }
+    });
+  }
+  if (state.click) {
+    const el = await page.$(state.click);
+    if (!el) return false;
+    await el.click();
+  }
+  if (state.wait) await page.waitForSelector(state.wait, { timeout: 5000 });
+  await page
+    .waitForFunction(() => [...globalThis.document.images].every((i) => i.complete), null, {
+      timeout: 5000,
+    })
+    .catch(() => {});
+  return true;
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -407,6 +455,7 @@ async function main() {
         isMobile: viewport.width < 768,
       });
       const page = await context.newPage();
+      const opts = { center: config.center, ignore: config.ignore };
       for (const p of paths) {
         if (values.mode === "states") {
           for (const entry of config.states) {
@@ -416,8 +465,13 @@ async function main() {
           continue;
         }
         await page.goto(`${origin}${p}`, { waitUntil: "load" });
-        const data = await page.evaluate(collect, { center: config.center, ignore: config.ignore });
-        findings.push(...findingsFor(p, viewport, data));
+        findings.push(...findingsFor(p, viewport, await page.evaluate(collect, opts)));
+        for (const state of config.pageStates) {
+          await page.goto(`${origin}${p}`, { waitUntil: "load" });
+          if (!(await enterState(page, state))) continue;
+          const data = await page.evaluate(collect, opts);
+          findings.push(...findingsFor(`${p} [${state.name}]`, viewport, data));
+        }
       }
       await context.close();
     }

@@ -49,6 +49,11 @@ export interface AnnotationReport {
    * the drawn line crosses. 0 once routed.
    */
   connector_crossings?: number;
+  /**
+   * Unicode scripts of caption characters the font has no glyph for (`Han`, `Arabic`, `Emoji`...).
+   * They burn as empty boxes. Absent when the font covers the caption.
+   */
+  missing_glyphs?: string[];
 }
 
 /** What a line-connector burn adds to a report entry. */
@@ -137,5 +142,18 @@ export function annotationReport(
     overlap_ratio: round(ratio, 3),
     unplaceable: ratio > threshold,
     ...route,
+  };
+}
+
+/** Wraps flow reports into the document `burn --report` writes. */
+export function burnReport(
+  flows: FlowBurnReport[],
+  threshold: number = DEFAULT_UNPLACEABLE_RATIO,
+): BurnReport {
+  return {
+    schema: BURN_REPORT_SCHEMA,
+    threshold,
+    flows,
+    unplaceable: flows.reduce((n, f) => n + f.annotations.filter((a) => a.unplaceable).length, 0),
   };
 }

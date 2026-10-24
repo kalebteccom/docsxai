@@ -76,11 +76,13 @@ export interface BurnTheme {
   maxWidthRatio: number;
   /**
    * Multiplier of every caption dimension (text, padding, outline, radius, arrow, badge, halo,
-   * shadow), or `"auto"`: the screenshot's width over `displayWidth`, at least 1 and at most
-   * {@link AUTO_SCALE_MAX}, so a screenshot the page shrinks to its column reads at base size.
-   * On the page, text is `fontSize * scale * (displayWidth / imageWidth)` CSS px.
+   * shadow), or `"auto"`: the screenshot's width over `displayWidth`, at least the pixel ratio and
+   * at most {@link AUTO_SCALE_MAX} times it, so a screenshot the page shrinks to its column reads
+   * at base size. On the page, text is `fontSize * scale * (displayWidth / imageWidth)` CSS px.
+   * null, the default, is the pixel ratio: a 2x capture's caption has the 1x capture's CSS size.
+   * A number is used as written, whatever the pixel ratio.
    */
-  scale: number | "auto";
+  scale: number | "auto" | null;
   /** CSS px the screenshot is shown at on the page. Read by `scale: "auto"`. */
   displayWidth: number;
   /**
@@ -99,8 +101,9 @@ export const FONT_WEIGHTS = [400, 600] as const;
 export type FontWeight = (typeof FONT_WEIGHTS)[number];
 
 /**
- * Largest factor `scale: "auto"` picks. 4 is the top of the explicit `scale` range, and it keeps a
- * 1440 px screenshot shown at 360 px (factor 4) at its base text size.
+ * Largest factor `scale: "auto"` picks at a pixel ratio of 1 (it is multiplied by the ratio). 4 is
+ * the top of the explicit `scale` range, and it keeps a 1440 px screenshot shown at 360 px (factor
+ * 4) at its base text size.
  */
 export const AUTO_SCALE_MAX = 4;
 
@@ -125,7 +128,7 @@ export const DEFAULT_BURN_THEME: BurnTheme = {
   captionStyle: "full",
   arrowSize: 8,
   maxWidthRatio: 0.62,
-  scale: 1,
+  scale: null,
   displayWidth: 720,
   displayWidthNarrow: null,
   narrowBelow: null,
@@ -140,7 +143,7 @@ const PLAIN_SIZING = {
   captionStyle: "full",
   arrowSize: 8,
   maxWidthRatio: 0.62,
-  scale: 1,
+  scale: null,
   displayWidth: 720,
   displayWidthNarrow: null,
   narrowBelow: null,
@@ -235,13 +238,19 @@ export function displayWidthFor(theme: BurnTheme, imageWidth: number): number {
     : theme.displayWidth;
 }
 
-/** The factor `theme.scale` gives a screenshot `imageWidth` px wide: 1 for a screenshot at or under its display width. */
-export function captionScale(theme: BurnTheme, imageWidth: number, cssWidth = imageWidth): number {
+/**
+ * The factor `theme.scale` gives a screenshot `imageWidth` px wide taken at `pixelRatio` device px
+ * per CSS px: the pixel ratio for the default, and for `auto` a screenshot at or under its display
+ * width.
+ */
+export function captionScale(theme: BurnTheme, imageWidth: number, pixelRatio = 1): number {
+  if (theme.scale === null) return pixelRatio;
   if (theme.scale !== "auto") return theme.scale;
   // The wide or narrow display width is picked by CSS width, so a 2x phone capture still counts as narrow.
-  const factor = imageWidth / displayWidthFor(theme, cssWidth);
+  const factor = imageWidth / displayWidthFor(theme, imageWidth / pixelRatio);
   // Rounded up to 2 decimals, so on-screen sizes are never a hair under their base size.
-  return Math.min(AUTO_SCALE_MAX, Math.max(1, Math.ceil(factor * 100 - 1e-9) / 100));
+  const rounded = Math.ceil(factor * 100 - 1e-9) / 100;
+  return Math.min(AUTO_SCALE_MAX * pixelRatio, Math.max(pixelRatio, rounded));
 }
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
