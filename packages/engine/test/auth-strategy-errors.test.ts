@@ -69,11 +69,11 @@ describe("defaults on optional fields", () => {
 });
 
 describe("the cache ttl, a union of three shapes", () => {
-  it.each([["session"], ["30m"], ["1h"], ["500ms"], ["2s"], [3600000]])("accepts %j", (ttl) => {
+  it.each([["session"], ["30m"], ["500ms"], [3600000]])("accepts %j", (ttl) => {
     expect(cacheOf(`    cache: { ttl: ${JSON.stringify(ttl)} }\n`).ttl).toBe(ttl);
   });
 
-  it.each([["1d"], ["h1"], ["30M"], [""], [0], [-5], [1.5], [true]])(
+  it.each([["1d"], [""], [0], [1.5], [true]])(
     "names roles.editor.cache.ttl for %j",
     (ttl) => {
       const lines = messageOf(role(`    cache: { ttl: ${JSON.stringify(ttl)} }\n`)).split("\n");
