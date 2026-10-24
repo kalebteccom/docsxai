@@ -186,14 +186,16 @@ import CopyCommand from "../../components/CopyCommand.astro";
       <span class="docsx-card-mark">// captions</span>
       <h3>Themeable burned captions</h3>
       <div class="docsx-card-text">
-        The halo, numbered badge, callout, and arrow follow a
+        The halo, numbered badge, callout, and connector follow a
         <code>burn.theme</code> block: four presets (clean, soft,
         high-contrast, readable), an optional design-tokens file, and per-key
         overrides. The interactive viewer reads the same theme. The
         <code>readable</code> preset scales captions with the screenshot, and
         <code>display_width</code> takes a second width for narrow captures,
-        so a phone variant and a desktop variant both stay legible. New in
-        the next release.
+        so a phone capture and a desktop capture both read at 15 px. A themed
+        burn joins each caption to its target with a 2 px line and can fall back
+        to a numbered badge where no clear spot exists. New in the next
+        release.
         <a href="/guides/burn-theming/">Read the burn theming guide</a>
       </div>
     </div>

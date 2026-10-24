@@ -366,9 +366,10 @@ JSON placement report (`docsxai/burn-report@1`: callout and badge boxes,
 overlaps, and `unplaceable` for a callout whose best spot still covers more than
 10% of its own area), resolved under the workspace when relative. The report
 threshold (`--max-overlap <ratio>`) is a flag of the viewer's own bin,
-`docsxai-viewer burn`; `docsxai burn` does not forward it. `--no-connector-outline` keeps
-every arrow and stem plain ink; by default one over a dark part of the
-screenshot gets a white outline. Exit 1 when the workspace has no `docs/`
+`docsxai-viewer burn`; `docsxai burn` does not forward it. `--no-connector-outline`
+skips reading the screenshot's pixels: an arrow or stem stays plain ink (by default one over
+a dark part of the screenshot gets a white outline), a themed line keeps the callout's outline
+colour, and no text is estimated from the pixels. Exit 1 when the workspace has no `docs/`
 directory or no flow to burn; exit 2 for a bad flag.
 
 An annotation whose `bounding_box` lies outside the screenshot, has zero or negative
@@ -377,9 +378,10 @@ step, and `--report` lists it with `skipped` set. A box that only overhangs an e
 clipped to the image. A flow whose `annotations.json` is missing, unreadable or not valid
 JSON stops the burn with a message that names the file.
 
-The look of the halo, badge, callout and arrow comes from the `burn.theme` block of
+The look of the halo, badge, callout and connector comes from the `burn.theme` block of
 `.docsxai.json`: four presets, an optional tokens file and per-key overrides. A workspace without
-the block burns the original look, byte for byte. New in the next release; see
+the block burns the original look, byte for byte. The block, `connector_style` and `caption_style`
+are new in the next release; see
 [Themeable burned captions](/guides/burn-theming/).
 
 ```
