@@ -118,6 +118,8 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **`pack --check --threshold ""`.** An empty or blank threshold passed as 0 percent. It now exits 2 like any other value that is not a percentage of 0 or more.
 - **`docsxai-backend` answers 400 to a request target the URL parser rejects.** A request line such as `GET //` or `GET //[` returned a 500 with `Invalid URL`; it now returns a JSON `bad_request`.
 - **Webhook run history records the revision that ran and the runs that never started.** A `head` revision that moved while the engine ran was recorded as the newer head, and a job whose payloads could not be laid out left no row. The row now names the revision the run executed against, and a failed materialization appends a failed run with the reason.
+- **Webhook repo matching ignores case.** A delivery whose `owner/name` differs only by case from the configured repo got a 404, because GitHub treats the name case-insensitively. Both stores now match it.
+- **`FsStore` lists projects in creation order.** It listed them, and picked the project for a webhook repo, in id order; `MemoryStore` used creation order. Both stores now agree.
 
 ## [0.3.0-rc.3] - 2026-10-09
 

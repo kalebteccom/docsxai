@@ -173,3 +173,43 @@ describe("store-level webhook surface", () => {
     expect(store.getProject(ws.id, project.id)).not.toHaveProperty("webhook_config");
   });
 });
+
+const sleepMs = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+describe("repo matching", () => {
+  it("matches a delivery's repo to the configured one regardless of case, in both stores", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "docsxai-webhook-case-"));
+    try {
+      for (const store of [new MemoryStore(), new FsStore(dir)]) {
+        const ws = store.createWorkspace("ws");
+        const project = store.createProject(ws.id, "site");
+        store.putWebhookConfig(ws.id, project.id, { ...VALID, repo: "Octo-Org/Docs-Site" });
+        expect(store.findWebhookProject("octo-org/docs-site")?.project_id).toBe(project.id);
+        expect(store.findWebhookProject("OCTO-ORG/DOCS-SITE")?.project_id).toBe(project.id);
+        expect(store.findWebhookProject("octo-org/docs")).toBeNull();
+      }
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("lists projects, and picks the repo match, in creation order in both stores", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "docsxai-webhook-order-"));
+    try {
+      for (const store of [new MemoryStore(), new FsStore(dir)]) {
+        const ws = store.createWorkspace("ws");
+        const first = store.createProject(ws.id, "first");
+        const ids = [first.id];
+        for (let i = 0; i < 8; i++) {
+          sleepMs(2); // created_at has millisecond resolution
+          ids.push(store.createProject(ws.id, `p${i}`).id);
+        }
+        for (const id of ids) store.putWebhookConfig(ws.id, id, VALID);
+        expect(store.findWebhookProject(VALID.repo)?.project_id).toBe(first.id);
+        expect(store.listProjects(ws.id).map((p) => p.id)).toEqual(ids);
+      }
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

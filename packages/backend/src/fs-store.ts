@@ -36,6 +36,8 @@ import {
   type RunInput,
   sha256Hex,
   WEBHOOK_DELIVERY_MEMORY,
+  compareByCreation,
+  sameRepo,
   type WebhookProjectMatch,
 } from "./store.js";
 
@@ -106,19 +108,9 @@ export class FsStore implements BackendStore {
   }
   listProjects(wsId: string): Project[] {
     this.getWorkspace(wsId);
-    const projectsDir = this.resolve("projects");
-    let ids: string[];
-    try {
-      ids = fs.readdirSync(projectsDir);
-    } catch {
-      return [];
-    }
-    const out: Project[] = [];
-    for (const id of ids.sort()) {
-      const meta = this.readJson<ProjectMetaFile>(this.resolve("projects", id, "meta.json"));
-      if (meta && meta.workspace_id === wsId) out.push(publicProject(meta));
-    }
-    return out;
+    return this.allProjectMetas()
+      .filter((meta) => meta.workspace_id === wsId)
+      .map(publicProject);
   }
   getProject(wsId: string, projectId: string): Project {
     return publicProject(this.projectMeta(wsId, projectId));
@@ -276,20 +268,13 @@ export class FsStore implements BackendStore {
     return c;
   }
   findWebhookProject(repo: string): WebhookProjectMatch | null {
-    let ids: string[];
-    try {
-      ids = fs.readdirSync(this.resolve("projects"));
-    } catch {
-      return null;
-    }
-    for (const id of ids.sort()) {
+    for (const meta of this.allProjectMetas()) {
       const config = this.readJson<WebhookConfig>(
-        this.resolve("projects", id, "webhook-config.json"),
+        this.resolve("projects", meta.id, "webhook-config.json"),
       );
-      if (config?.repo !== repo) continue;
-      const meta = this.readJson<ProjectMetaFile>(this.resolve("projects", id, "meta.json"));
-      if (!meta) continue;
-      return { workspace_id: meta.workspace_id, project_id: id, config };
+      if (config && sameRepo(config.repo, repo)) {
+        return { workspace_id: meta.workspace_id, project_id: meta.id, config };
+      }
     }
     return null;
   }
@@ -345,6 +330,22 @@ export class FsStore implements BackendStore {
     } catch (e) {
       throw new Error(`data file ${path.relative(this.root, p)} is not valid JSON`, { cause: e });
     }
+  }
+
+  /** Every project's meta file, oldest first (creation time, then id for a same-millisecond tie). */
+  private allProjectMetas(): ProjectMetaFile[] {
+    let ids: string[];
+    try {
+      ids = fs.readdirSync(this.resolve("projects"));
+    } catch {
+      return [];
+    }
+    const metas: ProjectMetaFile[] = [];
+    for (const id of ids) {
+      const meta = this.readJson<ProjectMetaFile>(this.resolve("projects", id, "meta.json"));
+      if (meta) metas.push(meta);
+    }
+    return metas.sort(compareByCreation);
   }
 
   private readWorkspaces(): Workspace[] {
