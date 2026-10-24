@@ -19,4 +19,4 @@ These are the impl-repo closure summaries for the original implementation phases
 - **Current phase status, scope, exit criteria** → portfolio `projects/automated-site-documentation-bot/roadmap.md`
 - **Cycle-by-cycle progress log** → portfolio `projects/automated-site-documentation-bot/progress.md`
 - **Live agent guidance** → `docs/ai-context/`
-- **Public adopter contracts** → `docs/agent-runbook.md`, `docs/actionability-contract.md`, `docs/browxai-asks.md`
+- **Public adopter contracts** → `docs/agent-runbook.md`, `docs/actionability-contract.md`
