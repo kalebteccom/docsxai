@@ -19,6 +19,7 @@ export interface RunSummaryInput {
 /** The command to run for a failure: `diagnose` for a halted step, `doctor` when the browser never started. */
 export function nextForFailure(projectDir: string, f: FlowFailure): string {
   const dir = shellQuote(projectDir);
+  if (f.next) return f.next;
   if (f.step === null) {
     const m = /^cannot write the outputs under .* \((EACCES|EPERM|EROFS|ENOSPC)\)/.exec(f.message);
     return m ? fsNext(m[1]!, projectDir) : `docsxai doctor ${dir}`;

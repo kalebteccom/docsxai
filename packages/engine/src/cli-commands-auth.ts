@@ -10,6 +10,7 @@ import {
   resolveCredsEnv,
   storageStateFileName,
 } from "./auth.js";
+import { describeBrowserLaunch } from "./browser-launch-error.js";
 import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import { bareValueFlagExit } from "./cli-shared.js";
@@ -134,7 +135,10 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
     }
     return 0;
   } catch (e) {
-    process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
+    const problem = describeBrowserLaunch((e as Error).message, cdp);
+    process.stderr.write(
+      `capture-auth: ${problem.next ? withNext(problem.reason, problem.next) : (e as Error).message}\n`,
+    );
     return 1;
   }
 }

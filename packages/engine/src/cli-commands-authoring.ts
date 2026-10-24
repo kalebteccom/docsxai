@@ -9,6 +9,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { LocalStorageStateCache, parseAuthStrategyFile } from "./auth.js";
 import { waitForBrowserClose } from "./browser-wait.js";
+import { describeBrowserLaunch } from "./browser-launch-error.js";
 import { type FlowFile } from "./doc-pack.js";
 import {
   expandFlowVariants,
@@ -112,14 +113,10 @@ export async function cmdInspect(args: string[]): Promise<number> {
       docPackRoot: workspaceDir,
     });
   } catch (e) {
-    const msg = (e as Error).message;
-    if (/Executable doesn't exist|playwright install/i.test(msg)) {
-      process.stderr.write(
-        "inspect: no Chromium binary — `npx playwright-core install chromium` (source checkout: `pnpm -C packages/engine exec playwright-core install chromium`)\n",
-      );
-      return 1;
-    }
-    process.stderr.write(`inspect: failed to launch browser: ${msg}\n`);
+    const problem = describeBrowserLaunch((e as Error).message, cdp);
+    process.stderr.write(
+      `inspect: ${problem.next ? withNext(problem.reason, problem.next) : problem.reason}\n`,
+    );
     return 1;
   }
   try {

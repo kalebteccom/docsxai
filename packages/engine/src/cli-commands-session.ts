@@ -245,9 +245,10 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
   }
 
+  // An attached browser (--cdp) owns its own login; the cached session is not loaded over it.
   let storageState: StorageState | undefined;
   try {
-    storageState = await loadAuthStorageState(projectDir);
+    storageState = cdpEndpoint ? undefined : await loadAuthStorageState(projectDir);
   } catch (e) {
     process.stderr.write(`run: ${(e as Error).message}\n`);
     return 1;
