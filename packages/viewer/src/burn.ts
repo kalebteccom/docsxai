@@ -260,7 +260,8 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
           : {}),
       };
       const mode = clean ? base.captionStyle : "full";
-      const plan = clean && mode !== "badge" ? planClean(layoutInput, base, f, width) : null;
+      const plan =
+        clean && mode !== "badge" ? planClean(layoutInput, base, f, width, mode === "auto") : null;
       badgeOnly = mode === "badge" || (mode === "auto" && plan !== null && plan.cover > 0);
       if (!badgeOnly) {
         const planned = plan ? plan.layout : layoutCallout(layoutInput);

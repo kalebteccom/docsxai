@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   calloutTexts,
   badgeOnly,
+  badgeOnlyFrames,
   checkSidecar,
+  isBadgeOnly,
   coverage,
   contentHash,
   mergeManifest,
@@ -174,4 +176,14 @@ test("coverage flags phone chrome and badges on text", () => {
     "badge 1 covers 100 px² of listed text",
   ]);
   assert.deepEqual(badgeOnly([{}, { caption_style: "badge" }]), [2]);
+});
+
+test("badge-only frames come from the flag and the overrides file", () => {
+  const set = badgeOnlyFrames("board.390", { badge_only: ["agent-tokens-issued.en.dark.390"] });
+  const p = (screen, locale, width) => ({ screen, locale, theme: "dark", width });
+  assert.equal(isBadgeOnly(set, p("board", "es", 390)), true);
+  assert.equal(isBadgeOnly(set, p("board", "en", 1280)), false);
+  assert.equal(isBadgeOnly(set, p("agent-tokens-issued", "en", 390)), true);
+  assert.equal(isBadgeOnly(set, p("agent-tokens-issued", "es", 390)), false);
+  assert.throws(() => badgeOnlyFrames("board", null), /badge-only: "board"/);
 });

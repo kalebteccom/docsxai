@@ -64,6 +64,8 @@ export interface PlanInput extends PlaceInput {
   strict?: boolean;
   /** Boxes the callout may not cover, see `ScoreContext.forbid`. */
   forbid?: Rect[];
+  /** See `ScoreContext.strictLine`. */
+  strictLine?: boolean;
 }
 
 export interface PlannedPlacement extends Placement {
@@ -88,6 +90,8 @@ export interface ScoreContext {
   strict?: boolean;
   /** Boxes a callout may not cover at all (other captions, badges): each px² costs {@link FORBID_WEIGHT}. */
   forbid?: Rect[];
+  /** A stem that crosses content costs {@link STRICT_COST} too, like a covered callout. */
+  strictLine?: boolean;
 }
 
 export interface Candidate {
@@ -191,6 +195,7 @@ export function scorePlacement(c: Candidate, ctx: ScoreContext): { cost: number;
     CROSSING_WEIGHT * crossing +
     BOUNDS_WEIGHT * outside +
     (ctx.strict && onContent > 0 ? STRICT_COST : 0) +
+    (ctx.strictLine && crossing > 0 ? STRICT_COST : 0) +
     FORBID_WEIGHT * sum([c.callout], ctx.forbid ?? []);
   return { cost: Math.round(cost), overlap: Math.round(onContent + onAvoid + connectorHits) };
 }
@@ -324,6 +329,7 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
     avoid: inp.avoid ?? [],
     ...(inp.strict ? { strict: true } : {}),
     ...(inp.forbid ? { forbid: inp.forbid } : {}),
+    ...(inp.strictLine ? { strictLine: true } : {}),
   };
   for (const [rank, side] of order.entries()) {
     const horizontal = side === "top" || side === "bottom";

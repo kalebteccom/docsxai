@@ -112,6 +112,8 @@ export interface LayoutInput {
   strict?: boolean;
   /** See `PlanInput.forbid`. */
   forbid?: Rect[];
+  /** See `PlanInput.strictLine`. */
+  strictLine?: boolean;
   /** Widest callout as a share of the image's width when obstacles limit it. Default {@link ADAPTIVE_WIDTH_RATIO}. */
   maxWidthRatio?: number;
 }
@@ -251,6 +253,7 @@ function planInput(inp: LayoutInput, size: Size): PlanInput {
     ...(inp.dockMax !== undefined ? { dockMax: inp.dockMax } : {}),
     ...(inp.strict ? { strict: true } : {}),
     ...(inp.forbid ? { forbid: inp.forbid } : {}),
+    ...(inp.strictLine ? { strictLine: true } : {}),
   };
 }
 

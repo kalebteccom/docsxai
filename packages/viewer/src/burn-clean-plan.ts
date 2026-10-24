@@ -10,13 +10,20 @@ import {
 } from "./burn-callout.js";
 import { scaledTheme, type BurnTheme } from "./burn-theme.js";
 import { calloutStyleOf } from "./burn-nodes.js";
-import { overlapArea } from "./obstacle-placement.js";
+import { crossingLength, overlapArea } from "./obstacle-placement.js";
 import { MIN_TEXT_NARROW, SIDE_MARGIN, WIDE_FROM, shrinkSteps } from "./burn-clean.js";
 
 /** Px² of the caption box itself on the annotation's obstacles (content and other targets). */
 export function captionCover(inp: LayoutInput, l: CalloutLayout): number {
   const box = layoutBoxes(l)[0]!;
   return (inp.ann.obstacles ?? []).reduce((n, b) => n + overlapArea(box, b), 0);
+}
+
+/** Px of the connector's stem inside the annotation's obstacles; 0 for a short connector. */
+export function lineCrossing(inp: LayoutInput, l: CalloutLayout): number {
+  if (!l.stem) return 0;
+  const stem = { ...l.stem, x: l.stem.x + l.nudge.x, y: l.stem.y + l.nudge.y };
+  return crossingLength(stem, inp.ann.obstacles ?? []);
 }
 
 export interface CleanPlan {
@@ -45,13 +52,15 @@ export const WIDE_CAPTION = 560;
 /**
  * Lays out one caption strictly. When the usual box covers something it tries, in order, a wide
  * box (fewer lines, so it fits a thin strip), then both again with the text one step smaller, and
- * keeps the first clear layout, else the one covering least.
+ * keeps the first clear layout, else the one covering least. With `lineCounts` a connector that
+ * crosses content counts as covering it, so an `auto` caption with no clean line falls back.
  */
 export function planClean(
   inp: LayoutInput,
   base: BurnTheme,
   f: number,
   imageWidth: number,
+  lineCounts = false,
 ): CleanPlan {
   const narrow = imageWidth < WIDE_FROM;
   let best: { layout: CalloutLayout; k: number; cover: number } | undefined;
@@ -64,8 +73,13 @@ export function planClean(
     const style = calloutStyleOf(themeAt(k), true);
     for (const ann of keepsWidth ? [inp.ann] : [inp.ann, wide]) {
       const tried = { ...inp, ann };
-      const layout = layoutCallout({ ...tried, style, strict: true });
-      const cover = captionCover(tried, layout);
+      const layout = layoutCallout({
+        ...tried,
+        style,
+        strict: true,
+        ...(lineCounts ? { strictLine: true } : {}),
+      });
+      const cover = captionCover(tried, layout) + (lineCounts ? lineCrossing(tried, layout) : 0);
       if (best === undefined || cover < best.cover) best = { layout, k, cover };
       if (cover === 0) break;
     }

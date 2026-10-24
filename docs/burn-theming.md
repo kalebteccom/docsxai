@@ -173,7 +173,7 @@ To compare the looks, `node scripts/burn-trackxai-sample.mjs` (after `pnpm --fil
 
 - `full`, the default: every annotation gets its caption.
 - `badge`: no caption box and no connector. Each target gets its ring and a numbered badge, numbered by its place in the list when it has no `index`. Use it where the page prints the callout text as a numbered list under the image.
-- `auto`: the caption when a spot clear of text exists, else the badge. The burn report marks each fallback with `"caption_style": "badge"`.
+- `auto`: the caption when a spot clear of text exists and its connector crosses no text, else the badge. The burn report marks each fallback with `"caption_style": "badge"`.
 
 ## Phone captures
 

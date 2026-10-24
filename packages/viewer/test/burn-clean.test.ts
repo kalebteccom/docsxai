@@ -2,7 +2,9 @@
 // nor on each other or a badge; badges and halo rings stay off the target; text is estimated from
 // pixels, and a listed box with nothing drawn in it is dropped.
 
+import { promises as fs } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { decodeScreenshot } from "../src/screenshot-pixels.js";
 import { renderBurn } from "../src/burn.js";
 import { DEFAULT_BURN_THEME, type BurnTheme } from "../src/burn-theme.js";
 import { recordsFromSidecar } from "../src/pack-annotations.js";
@@ -215,5 +217,23 @@ describe("phone chrome", () => {
   it("is absent on a desktop or a landscape capture", () => {
     expect(chromeBoxes({ width: 1280, height: 800 }, 1, 1280, true)).toEqual([]);
     expect(chromeBoxes({ width: 400, height: 300 }, 1, 400, true)).toEqual([]);
+  });
+});
+
+describe("text found in a real capture", () => {
+  it("finds a small grey form label (the 'Issue a token' label of a phone capture)", async () => {
+    // 200 x 40 px cut from a 390 px dark capture; the label sits at x 16, y 12, 74 x 13.
+    const png = await fs.readFile(
+      new URL("./fixtures/trackxai/issue-label-crop.png", import.meta.url),
+    );
+    const boxes = textBoxes(busyCells(decodeScreenshot(png, 200, 40)), {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    });
+    const label = { x: 16, y: 12, width: 74, height: 13 };
+    const covered = boxes.reduce((n, b) => n + area(b, label), 0);
+    expect(covered / (label.width * label.height)).toBeGreaterThan(0.6);
   });
 });

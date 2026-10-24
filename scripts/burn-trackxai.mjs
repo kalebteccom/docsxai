@@ -17,6 +17,9 @@
 // stops the run with its file name. `--compare` also writes `before-` (no theme, the look burns
 // had before themes) and `after-` PNGs there.
 //
+// `--badge-only board.390,ticket.en.dark.390` (and the `badge_only` list of
+// scripts/burn-trackxai.overrides.json, or `--overrides <file>`) burns those frames as badges and
+// rings only. `--keep-superseded` leaves replaced files in place (for a tree where they are tracked).
 // Phone captures (under 900 px) burn with `caption_style: "auto"`: an annotation with no caption
 // spot clear of text, header and bottom nav gets its badge only. Desktop captures keep captions.
 //
@@ -32,6 +35,8 @@ import {
   checkSidecar,
   coverage,
   badgeOnly,
+  badgeOnlyFrames,
+  isBadgeOnly,
   contentHash,
   mergeManifest,
   parseRawName,
@@ -70,6 +75,9 @@ async function main() {
       rename: { type: "string" },
       "manifest-in": { type: "string" },
       compare: { type: "string" },
+      "badge-only": { type: "string" },
+      overrides: { type: "string" },
+      "keep-superseded": { type: "boolean", default: false },
     },
   });
   if (!values.raw || !values.out)
@@ -80,6 +88,13 @@ async function main() {
   const widths = values.widths.split(",").map(Number);
   const only = values.screens ? values.screens.split(",") : null;
   const rename = parseRename(values.rename);
+  const overridesFile = resolve(
+    values.overrides ?? join(ROOT, "scripts/burn-trackxai.overrides.json"),
+  );
+  const overrides = existsSync(overridesFile)
+    ? JSON.parse(await readFile(overridesFile, "utf8"))
+    : null;
+  const forced = badgeOnlyFrames(values["badge-only"], overrides);
   const { renderBurn } = await viewer("burn.js");
   const theme = await themeFor(values.theme);
 
@@ -110,7 +125,11 @@ async function main() {
     }
     const png = await readFile(join(raw, name));
     // Phone captures fall back to badges where no caption spot is clear; desktop keeps captions.
-    const captionStyle = parsed.width < 900 ? "auto" : "full";
+    const captionStyle = isBadgeOnly(forced, parsed)
+      ? "badge"
+      : parsed.width < 900
+        ? "auto"
+        : "full";
     const burned = await renderBurn({
       screenshotBuffer: png,
       annotations: records,
@@ -168,6 +187,10 @@ async function main() {
   const { manifest, superseded } = mergeManifest(previous, entries);
   for (const src of superseded) {
     if (!src.startsWith("/screens/")) continue;
+    if (values["keep-superseded"]) {
+      console.error(`superseded (kept): ${src}`);
+      continue;
+    }
     const old = join(out, src.slice("/screens/".length));
     if (written.includes(old)) continue;
     await rm(old, { force: true });

@@ -177,3 +177,27 @@ export function coverage(records, report, size = { width: 1280, height: 800 }) {
 /** Positions (1-based) the burn drew as a badge only, from the report. */
 export const badgeOnly = (report) =>
   report.flatMap((r, i) => (r.caption_style === "badge" ? [i + 1] : []));
+
+/**
+ * Frames forced to badges only, from `--badge-only` (comma list) and the `badge_only` list of the
+ * overrides file. An entry is `<screen>.<width>` (every locale and theme) or
+ * `<screen>.<locale>.<theme>.<width>`.
+ */
+export function badgeOnlyFrames(cli, file) {
+  const list = [
+    ...(cli ? cli.split(",") : []),
+    ...(Array.isArray(file?.badge_only) ? file.badge_only : []),
+  ].map((e) => String(e).trim());
+  for (const e of list) {
+    if (!/^[a-z0-9][a-z0-9-]*\.(?:[A-Za-z-]+\.(?:light|dark)\.)?\d+$/.test(e)) {
+      throw new Error(
+        `badge-only: "${e}" is not <screen>.<width> or <screen>.<locale>.<theme>.<width>`,
+      );
+    }
+  }
+  return new Set(list);
+}
+
+/** True when raw `p` (from {@link parseRawName}) is in the badge-only set. */
+export const isBadgeOnly = (set, p) =>
+  set.has(`${p.screen}.${p.width}`) || set.has(`${p.screen}.${p.locale}.${p.theme}.${p.width}`);
