@@ -23,7 +23,7 @@ import {
 } from "./doc-pack-io.js";
 import { pluginsCli } from "./plugins-cli.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit, parseFlags } from "./cli-shared.js";
 import { configProblem, explainBackendFailure } from "./cli-backend-errors.js";
 import {
   redactUrl,
@@ -134,6 +134,8 @@ export async function cmdPush(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("push", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const barePush = bareValueFlagExit("push", flags, ["kind", "author"]);
+  if (barePush !== undefined) return barePush;
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url) {
     const file = path.join(projectDir, ".docsxai.json");
@@ -226,6 +228,8 @@ export async function cmdPull(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("pull", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const barePull = bareValueFlagExit("pull", flags, ["rev"]);
+  if (barePull !== undefined) return barePull;
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url || !wsCfg.backend_workspace_id || !wsCfg.backend_project_id) {
     const gap = wsCfg

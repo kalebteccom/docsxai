@@ -22,7 +22,13 @@ import { assertNoCaseCollision } from "./flow-name-rules.js";
 import { recordRunHistory } from "./backend-client.js";
 import { runFlowsInSessions } from "./run-flows.js";
 import { initWorkspace, loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { claimFlowName, flagMissingValue, listFlowFiles, parseFlags } from "./cli-shared.js";
+import {
+  bareValueFlagExit,
+  claimFlowName,
+  flagMissingValue,
+  listFlowFiles,
+  parseFlags,
+} from "./cli-shared.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
@@ -301,10 +307,27 @@ export async function cmdRun(args: string[]): Promise<number> {
   return anyFailed ? 1 : 0;
 }
 
+/** The flags of `init` that take a value. */
+const INIT_VALUE_FLAGS = [
+  "app-url",
+  "auth",
+  "role",
+  "ttl",
+  "capture-trigger",
+  "auth-cookie",
+  "persist",
+];
+
 export async function cmdInit(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   const persistTmp = flags.get("persist") === "tmp";
   const dir = positionals[0];
+  const bareInit = bareValueFlagExit("init", flags, INIT_VALUE_FLAGS);
+  if (bareInit !== undefined) return bareInit;
+  const persist = flags.get("persist");
+  if (persist !== undefined && persist !== "tmp") {
+    return usageError("init", `--persist must be "tmp" (got "${String(persist)}")`);
+  }
   if (!persistTmp && !dir)
     return usageError("init", "missing <workspace-dir> (or use --persist tmp)");
   const str = (k: string): string | undefined =>
@@ -358,6 +381,8 @@ export async function cmdCalibrate(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   const workspaceDir = positionals[0];
   if (!workspaceDir) return usageError("calibrate", "missing <workspace-dir>");
+  const bareCalibrate = bareValueFlagExit("calibrate", flags, ["from", "name"]);
+  if (bareCalibrate !== undefined) return bareCalibrate;
   const from = typeof flags.get("from") === "string" ? (flags.get("from") as string) : undefined;
   if (!from) {
     return usageError(

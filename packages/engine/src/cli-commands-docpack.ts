@@ -24,7 +24,7 @@ import { writeFileAtomic } from "./atomic-write.js";
 import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
-import { flagMissingValue, parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit, flagMissingValue, parseFlags } from "./cli-shared.js";
 import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdRender(args: string[]): Promise<number> {
@@ -128,6 +128,8 @@ export async function cmdZip(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("zip", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bareZip = bareValueFlagExit("zip", flags, ["out"]);
+  if (bareZip !== undefined) return bareZip;
   const output =
     typeof flags.get("out") === "string"
       ? (flags.get("out") as string)
@@ -177,6 +179,8 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(rest);
   if (!positionals[0]) return usageError("export adf", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bareAdf = bareValueFlagExit("export adf", flags, ["mode", "flow", "title", "out"]);
+  if (bareAdf !== undefined) return bareAdf;
   const modeFlag = flags.get("mode");
   let mode: AdfExportMode = "single";
   if (typeof modeFlag === "string") {
@@ -228,6 +232,8 @@ async function cmdExportPlaywright(rest: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(rest);
   if (!positionals[0]) return usageError("export playwright", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const barePlaywright = bareValueFlagExit("export playwright", flags, ["flow", "out"]);
+  if (barePlaywright !== undefined) return barePlaywright;
   const flow = flags.get("flow");
   const outFlag = flags.get("out");
   const outDir =

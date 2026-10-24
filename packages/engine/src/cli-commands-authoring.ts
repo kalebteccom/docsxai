@@ -4,7 +4,6 @@
 //   lint       — pure-static flow-file checks (R001…R004 + plugin-contributed rules)
 //   flow-tree  — the extends graph, orphans, and resolution issues
 //   diagnose   — halt context + recommendations for one step (optional live --cdp probe)
-//   style      — init/validate docs/style.yaml; --check scans prose for jargon leaks
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
@@ -27,25 +26,33 @@ import {
 } from "./diagnose.js";
 import { formatIssuesText, type LintIssue, type LintRule, lintFlow } from "./flow-lint.js";
 import { buildFlowTree, formatTreeText } from "./flow-tree.js";
-import {
-  formatJargonHitsText,
-  initStyleIfAbsent,
-  loadStyle,
-  scanWorkspaceForJargon,
-  StyleError,
-  writeStyle,
-} from "./style.js";
 import { readPluginsLock, readWorkspacePluginsConfig } from "./plugins/lock.js";
 import { resolvePlugins } from "./plugins/runtime.js";
 import { launchPlaywrightSession } from "./playwright-driver.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { claimFlowName, listFlowFiles, parseFlags } from "./cli-shared.js";
+import { bareValueFlagExit, claimFlowName, listFlowFiles, parseFlags } from "./cli-shared.js";
 import { shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdInspect(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   const workspaceDir = positionals[0];
   if (!workspaceDir) return usageError("inspect", "missing <workspace-dir>");
+  const bare = bareValueFlagExit("inspect", flags, [
+    "url",
+    "selector",
+    "cdp",
+    "wait",
+    "wait-for",
+    "role",
+  ]);
+  if (bare !== undefined) return bare;
+  const waitFlag = flags.get("wait");
+  if (typeof waitFlag === "string" && !/^\d+$/.test(waitFlag)) {
+    return usageError(
+      "inspect",
+      `--wait must be a whole number of milliseconds (got "${waitFlag}")`,
+    );
+  }
   const wsCfg = await loadWorkspaceConfig(workspaceDir);
   const cdp = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
   const explicitUrl =
@@ -64,8 +71,7 @@ export async function cmdInspect(args: string[]): Promise<number> {
     flags.get("ignore-https-errors") === true || !!wsCfg?.ignore_https_errors;
   const waitForSel =
     typeof flags.get("wait-for") === "string" ? (flags.get("wait-for") as string) : undefined;
-  const waitMs =
-    typeof flags.get("wait") === "string" ? Math.max(0, Number(flags.get("wait")) || 0) : 800;
+  const waitMs = typeof waitFlag === "string" ? Number(waitFlag) : 800;
 
   let storageState: import("./auth.js").StorageState | undefined;
   if (!cdp) {
@@ -181,6 +187,8 @@ export async function cmdLint(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("lint", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bareLint = bareValueFlagExit("lint", flags, ["flow", "format"]);
+  if (bareLint !== undefined) return bareLint;
   const flowFilter =
     typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
@@ -269,6 +277,8 @@ export async function cmdFlowTree(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("flow-tree", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bareTree = bareValueFlagExit("flow-tree", flags, ["format"]);
+  if (bareTree !== undefined) return bareTree;
   const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
   if (format !== "text" && format !== "json") {
     return usageError("flow-tree", '--format must be "text" or "json"');
@@ -315,6 +325,14 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("diagnose", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bareDiagnose = bareValueFlagExit("diagnose", flags, [
+    "flow",
+    "step",
+    "cdp",
+    "variant",
+    "format",
+  ]);
+  if (bareDiagnose !== undefined) return bareDiagnose;
   const flowName =
     typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const stepId = typeof flags.get("step") === "string" ? (flags.get("step") as string) : undefined;
@@ -437,59 +455,4 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
     process.stdout.write(formatReportText(report));
   }
   return 0;
-}
-
-export async function cmdStyle(args: string[]): Promise<number> {
-  const { positionals, flags } = parseFlags(args);
-  if (!positionals[0]) return usageError("style", "missing <workspace-dir>");
-  const projectDir = positionals[0];
-  const check = flags.get("check") === true;
-  const format = typeof flags.get("format") === "string" ? (flags.get("format") as string) : "text";
-  if (format !== "text" && format !== "json") {
-    return usageError("style", '--format must be "text" or "json"');
-  }
-
-  // init-if-absent (idempotent); then load + validate; then rederive JSON; then optional jargon check.
-  const { created } = await initStyleIfAbsent(projectDir);
-  let style;
-  try {
-    style = await loadStyle(projectDir);
-  } catch (e) {
-    if (e instanceof StyleError) {
-      process.stderr.write(
-        `style: ${withNext(e.message, `fix docs/style.yaml, then docsxai style ${shellQuote(projectDir)}`)}\n`,
-      );
-      return 1;
-    }
-    throw e;
-  }
-  if (!style) {
-    // Shouldn't happen after initStyleIfAbsent, but defensive.
-    process.stderr.write(`style: failed to initialise style.yaml in ${projectDir}\n`);
-    return 1;
-  }
-  // Always rewrite to ensure derived JSON stays in sync with YAML (idempotent).
-  const paths = await writeStyle(projectDir, style);
-
-  let hits: Awaited<ReturnType<typeof scanWorkspaceForJargon>> = [];
-  if (check) {
-    hits = await scanWorkspaceForJargon(projectDir, style);
-  }
-
-  if (format === "json") {
-    process.stdout.write(
-      JSON.stringify({ style, paths, created, jargonLeaks: check ? hits : undefined }, null, 2) +
-        "\n",
-    );
-  } else {
-    process.stdout.write(
-      `style: ${created ? "created" : "validated"} ${path.relative(projectDir, paths.yamlPath)}; rederived ${path.relative(projectDir, paths.jsonPath)}\n`,
-    );
-    if (check) {
-      process.stdout.write("\n");
-      process.stdout.write(formatJargonHitsText(hits));
-    }
-  }
-
-  return check && hits.length > 0 ? 1 : 0;
 }

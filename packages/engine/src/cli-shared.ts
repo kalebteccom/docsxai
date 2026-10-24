@@ -6,7 +6,7 @@
 //   • listFlowFiles — enumerate the workspace's flows/*.flow.yaml (run / lint / flow-tree)
 
 import { promises as fs } from "node:fs";
-import { shellQuote, withNext } from "./cli-messages.js";
+import { shellQuote, usageError, withNext } from "./cli-messages.js";
 import { resolveWorkspacePath } from "./workspace.js";
 
 export function parseFlags(args: string[]): {
@@ -48,6 +48,19 @@ export function flagMissingValue(
   names: readonly string[],
 ): string | undefined {
   return names.find((n) => flags.get(n) === true);
+}
+
+/**
+ * Exit code 2 (after the usage error) when any of `names` was given as a bare flag, else
+ * `undefined`. A value flag with nothing after it would otherwise fall back to its default.
+ */
+export function bareValueFlagExit(
+  label: string,
+  flags: Map<string, string | true>,
+  names: readonly string[],
+): number | undefined {
+  const bare = flagMissingValue(flags, names);
+  return bare ? usageError(label, `--${bare} needs a value`) : undefined;
 }
 
 /**

@@ -192,6 +192,10 @@ export async function pluginsCli(args: string[]): Promise<number> {
     process.stderr.write(`plugins ${sub}: missing <workspace-dir>\n\n${PLUGINS_USAGE}`);
     return 2;
   }
+  if (flags.get("format") === true) {
+    process.stderr.write(`plugins ${sub}: --format needs a value ("text" or "json")\n`);
+    return 2;
+  }
   const format = parseFormat(flags);
   if (!format) {
     process.stderr.write(`plugins ${sub}: --format must be "text" or "json"\n`);
