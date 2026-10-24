@@ -1,0 +1,95 @@
+{
+  "$description": "trackxai caption theme, dark. Colours from the Kalebtec brand tokens: brand.light violet on ink.soft.",
+  "color": {
+    "accent": {
+      "$type": "color",
+      "$value": "#a64dff"
+    },
+    "ink": {
+      "$type": "color",
+      "$value": "#f1f0e4"
+    },
+    "callout": {
+      "background": {
+        "$type": "color",
+        "$value": "#151b20"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "#a64dff"
+      }
+    },
+    "badge": {
+      "background": {
+        "$type": "color",
+        "$value": "#8000ff"
+      }
+    }
+  },
+  "border": {
+    "callout": {
+      "width": {
+        "$type": "dimension",
+        "$value": "1px"
+      }
+    }
+  },
+  "radius": {
+    "callout": {
+      "$type": "dimension",
+      "$value": "8px"
+    }
+  },
+  "shadow": {
+    "callout": {
+      "$value": "0px 4px 14px 0px rgba(0,0,0,0.45)"
+    }
+  },
+  "shape": {
+    "badge": {
+      "$value": "circle"
+    },
+    "connector": {
+      "$value": "line"
+    }
+  },
+  "font": {
+    "size": {
+      "caption": {
+        "$type": "dimension",
+        "$value": "15px"
+      }
+    },
+    "line-height": {
+      "caption": {
+        "$type": "dimension",
+        "$value": "21px"
+      }
+    }
+  },
+  "space": {
+    "callout": {
+      "x": {
+        "$type": "dimension",
+        "$value": "13px"
+      },
+      "y": {
+        "$type": "dimension",
+        "$value": "9px"
+      }
+    }
+  },
+  "render": {
+    "$description": "Render settings with no default token path: map them with burn.theme.tokens (scale to render.scale, display_width to render.display-width). The landing shows 1280 px captures at 1100 CSS px and 390 px captures at 350.",
+    "scale": {
+      "$value": "auto"
+    },
+    "display-width": {
+      "$value": {
+        "default": 1100,
+        "narrow": 350,
+        "narrow_below": 900
+      }
+    }
+  }
+}

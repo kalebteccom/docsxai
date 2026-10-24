@@ -1,0 +1,235 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "connect",
+  "variant": "en.dark.390",
+  "matrix_id": "en-US.dark.mobile-390",
+  "viewport": {
+    "name": "mobile-390",
+    "width": 390,
+    "height": 844
+  },
+  "annotations": [
+    {
+      "step": "connect",
+      "selector": "section.connect__pick",
+      "bounding_box": {
+        "x": 16,
+        "y": 244.5,
+        "width": 358,
+        "height": 182.5
+      },
+      "obstacles": [
+        {
+          "x": 16,
+          "y": 5,
+          "width": 48,
+          "height": 33
+        },
+        {
+          "x": 259,
+          "y": 9,
+          "width": 53,
+          "height": 25
+        },
+        {
+          "x": 320,
+          "y": 9,
+          "width": 54,
+          "height": 25
+        },
+        {
+          "x": 72,
+          "y": 12,
+          "width": 4,
+          "height": 17
+        },
+        {
+          "x": 83,
+          "y": 12,
+          "width": 113,
+          "height": 17
+        },
+        {
+          "x": 16,
+          "y": 62,
+          "width": 137,
+          "height": 20
+        },
+        {
+          "x": 16,
+          "y": 90,
+          "width": 310,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 108,
+          "width": 325,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 174,
+          "width": 333,
+          "height": 17
+        },
+        {
+          "x": 16,
+          "y": 194,
+          "width": 107,
+          "height": 16
+        },
+        {
+          "x": 33,
+          "y": 478,
+          "width": 102,
+          "height": 20
+        },
+        {
+          "x": 151,
+          "y": 482,
+          "width": 63,
+          "height": 15
+        },
+        {
+          "x": 33,
+          "y": 518,
+          "width": 314,
+          "height": 17
+        },
+        {
+          "x": 33,
+          "y": 538,
+          "width": 24,
+          "height": 16
+        },
+        {
+          "x": 33,
+          "y": 564,
+          "width": 324,
+          "height": 61
+        },
+        {
+          "x": 33,
+          "y": 632,
+          "width": 324,
+          "height": 60
+        },
+        {
+          "x": 33,
+          "y": 724,
+          "width": 151,
+          "height": 17
+        }
+      ],
+      "copy": "Pick the app you want to connect.",
+      "arrow_style": "right",
+      "index": 1
+    },
+    {
+      "step": "connect",
+      "selector": "section.connect__card",
+      "bounding_box": {
+        "x": 16,
+        "y": 459,
+        "width": 358,
+        "height": 385
+      },
+      "obstacles": [
+        {
+          "x": 16,
+          "y": 174,
+          "width": 333,
+          "height": 17
+        },
+        {
+          "x": 16,
+          "y": 194,
+          "width": 107,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 246,
+          "width": 64,
+          "height": 19
+        },
+        {
+          "x": 16,
+          "y": 275,
+          "width": 115,
+          "height": 32
+        },
+        {
+          "x": 138,
+          "y": 275,
+          "width": 74,
+          "height": 32
+        },
+        {
+          "x": 219,
+          "y": 275,
+          "width": 75,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 315,
+          "width": 91,
+          "height": 32
+        },
+        {
+          "x": 114,
+          "y": 315,
+          "width": 89,
+          "height": 32
+        },
+        {
+          "x": 210,
+          "y": 315,
+          "width": 100,
+          "height": 32
+        },
+        {
+          "x": 317,
+          "y": 315,
+          "width": 46,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 355,
+          "width": 121,
+          "height": 32
+        },
+        {
+          "x": 144,
+          "y": 355,
+          "width": 124,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 395,
+          "width": 138,
+          "height": 32
+        },
+        {
+          "x": 0,
+          "y": 820,
+          "width": 130,
+          "height": 24
+        },
+        {
+          "x": 260,
+          "y": 820,
+          "width": 130,
+          "height": 24
+        }
+      ],
+      "copy": "Follow the steps for that app. An agent never needs to see your token.",
+      "arrow_style": "right",
+      "index": 2
+    }
+  ]
+}

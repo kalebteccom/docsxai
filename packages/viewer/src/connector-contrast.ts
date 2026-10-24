@@ -90,8 +90,62 @@ export function needsConnectorHalo(
   return total > 0 && dark * DARK_SHARE_DEN >= total * DARK_SHARE_NUM;
 }
 
+/** Share (1/10) of pixels under a connector, at most, that may match the callout fill for the fill to be used. */
+export const FILL_SHARE_NUM = 1;
+export const FILL_SHARE_DEN = 10;
+
+/**
+ * How a connector of tone `tone` is painted over `boxes`: `ink` where it reads as it is, `fill`
+ * (the callout's own colour, of tone `fillTone`) where the ink is lost and almost no pixel under
+ * it matches the fill, `outline` (ink with a contrasting outline) otherwise. Without `fillTone`
+ * the answer is `ink` or `outline`, the look before themes.
+ */
+export function connectorPaint(
+  grid: PixelGrid,
+  boxes: Rect[],
+  tone: ConnectorTone,
+  fillTone?: ConnectorTone,
+): "ink" | "fill" | "outline" {
+  if (!needsConnectorHalo(grid, boxes, tone)) return "ink";
+  if (fillTone === undefined || fillTone === tone) return "outline";
+  const { dark: matching, total } =
+    fillTone === "light"
+      ? sampleLuma(grid, boxes, (luma) => luma >= LIGHT_LUMA)
+      : sampleLuma(grid, boxes, (luma) => luma < DARK_LUMA);
+  return matching * FILL_SHARE_DEN < total * FILL_SHARE_NUM ? "fill" : "outline";
+}
+
 /** `light` for a colour at or above mid luma, `dark` below. */
 export function toneOf(hex: string): ConnectorTone {
   const rgb = parseHexColor(hex);
   return rgb !== null && lumaOf(rgb[0], rgb[1], rgb[2]) >= 128 ? "light" : "dark";
+}
+
+/** Mean colour of the pixels under `boxes`, clipped to the grid, as `#rrggbb`; null when none fall inside. */
+export function averageHex(grid: PixelGrid, boxes: Rect[]): string | null {
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let total = 0;
+  for (const box of boxes) {
+    const x0 = Math.max(0, Math.floor(box.x));
+    const y0 = Math.max(0, Math.floor(box.y));
+    const x1 = Math.min(grid.width, Math.ceil(box.x + box.width));
+    const y1 = Math.min(grid.height, Math.ceil(box.y + box.height));
+    for (let y = y0; y < y1; y++) {
+      for (let x = x0; x < x1; x++) {
+        const i = (y * grid.width + x) * 4;
+        r += grid.rgba[i]!;
+        g += grid.rgba[i + 1]!;
+        b += grid.rgba[i + 2]!;
+        total++;
+      }
+    }
+  }
+  if (total === 0) return null;
+  const hex = (v: number) =>
+    Math.round(v / total)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
 }

@@ -13,6 +13,23 @@ import { BADGE_FILL } from "./viewer-style.js";
 export const BADGE_SHAPES = ["circle", "rounded", "square"] as const;
 export type BadgeShape = (typeof BADGE_SHAPES)[number];
 
+/**
+ * How a callout is joined to its target. `arrow` is the filled triangle (and stem) docsxai always
+ * drew. `line` is a thin line from the caption edge ending in a small dot on the target, `chevron`
+ * the same line ending in a small open chevron. `auto` is `arrow` for a burn without a theme and
+ * `line` for a themed one.
+ */
+export const CONNECTOR_STYLES = ["auto", "arrow", "line", "chevron"] as const;
+export type ConnectorStyle = (typeof CONNECTOR_STYLES)[number];
+
+/**
+ * What a clean burn (line connector) draws for an annotation: `full` the caption, `badge` only the
+ * numbered badge and the ring (the page lists the callout text), `auto` the caption when a spot
+ * clear of text exists, else the badge. The triangle connector always draws the caption.
+ */
+export const CAPTION_STYLES = ["full", "badge", "auto"] as const;
+export type CaptionStyle = (typeof CAPTION_STYLES)[number];
+
 export const THEME_PRESET_NAMES = ["clean", "soft", "high-contrast", "readable"] as const;
 export type ThemePresetName = (typeof THEME_PRESET_NAMES)[number];
 
@@ -46,6 +63,10 @@ export interface BurnTheme {
    * bundled Inter ships regular only, so 600 needs a semibold `fontFile`.
    */
   fontWeight: FontWeight;
+  /** How the callout is joined to its target, see {@link CONNECTOR_STYLES}. */
+  connectorStyle: ConnectorStyle;
+  /** Caption or badge only, see {@link CAPTION_STYLES}. */
+  captionStyle: CaptionStyle;
   /** Length of the arrow in px (its base is 7/4 of that wide). The callout keeps 2 px more than that from its target. */
   arrowSize: number;
   /**
@@ -100,6 +121,8 @@ export const DEFAULT_BURN_THEME: BurnTheme = {
   paddingY: 8,
   fontFile: null,
   fontWeight: 400,
+  connectorStyle: "auto",
+  captionStyle: "full",
   arrowSize: 8,
   maxWidthRatio: 0.62,
   scale: 1,
@@ -113,6 +136,8 @@ export type ThemeLayer = Partial<BurnTheme>;
 /** What a preset sets besides its own look: the caption stays at base size and the bundled font's weight. */
 const PLAIN_SIZING = {
   fontWeight: 400,
+  connectorStyle: "auto",
+  captionStyle: "full",
   arrowSize: 8,
   maxWidthRatio: 0.62,
   scale: 1,

@@ -29,3 +29,20 @@ docsxai pack ./docs-workspace --out ./docs-workspace/.screens
 ```
 
 Expect `burned/<flow>/<step>.png` for every flow with an `annotations.json`, and `.screens/manifest.json` from `pack`, with a halo in `#0b6e4f`, a numbered badge and a callout in the `readable` look on each. A bad key or value stops the command and lists each problem with its key. Text colours under WCAG AA print a warning.
+
+## trackxai tokens pair
+
+`trackxai-light.tokens.json` and `trackxai-dark.tokens.json` are W3C tokens files for a light and a dark app: Kalebtec violet on paper, and light violet on ink. Each sets the callout, badge and halo colours, 15 px text, `shape.connector: "line"`, and under `render` a `scale` of `auto` with a `display_width` of 1100 (350 under 900 px), the widths the landing shows its captures at. That gives 17.6 px burned text on a 1280 capture and 16.8 px on a 390 one, 15 px on the page for both. `render` has no default token path, so map it:
+
+```json
+{
+  "burn": {
+    "theme": {
+      "from": "trackxai-dark.tokens.json",
+      "tokens": { "scale": "render.scale", "display_width": "render.display-width" }
+    }
+  }
+}
+```
+
+`node scripts/burn-trackxai-sample.mjs` burns synthetic screens with both files, with the old triangle connector and with the line, and prints the before and after paths. `node scripts/burn-trackxai.mjs --raw <dir> --out <dir>` burns raw captures (`<screen>.<locale>.<theme>.<width>.png` with a `trackxai/raw-capture-sidecar@1` sidecar) into a screens pack and merges its `manifest.json`; see the script's header for `--rename`, `--screens` and `--compare`. Phone captures burn with `caption_style: "auto"`, desktop ones with `full`; the script prints what each caption still covers (`check:`) and which annotations fell back to a badge. `--badge-only <screen>.<width>,...` and the `badge_only` list in `scripts/burn-trackxai.overrides.json` force frames to badges only; `--keep-superseded` leaves replaced files in place where they are tracked.

@@ -45,6 +45,27 @@ export interface PlanInput extends PlaceInput {
   pinArrow?: boolean;
   /** Arrow length in px. Default {@link ARROW_LENGTH}. */
   arrowLength?: number;
+  /**
+   * Longest gap in px between the target and the callout. Farther candidates are not tried, so a
+   * callout that cannot clear content within it sits closer and covers some. Unset: no limit. A
+   * pinned arrow ignores it, since the author's nudge sets the distance.
+   */
+  maxDistance?: number;
+  /**
+   * Also try the callout docked in the band along the image's top or bottom edge, this many px
+   * from it, beyond `maxDistance`: a dense screen with no clear spot near the target gets a long
+   * connector to an empty strip. Scored like any other spot, so it wins only when nearer spots
+   * cover content.
+   */
+  dock?: number;
+  /** Longest distance a docked callout may sit from its target. Default: no limit. */
+  dockMax?: number;
+  /** A callout that covers content loses to every clear one, hint or not. */
+  strict?: boolean;
+  /** Boxes the callout may not cover, see `ScoreContext.forbid`. */
+  forbid?: Rect[];
+  /** See `ScoreContext.strictLine`. */
+  strictLine?: boolean;
 }
 
 export interface PlannedPlacement extends Placement {
@@ -62,6 +83,15 @@ export interface ScoreContext {
   image: { width: number; height: number };
   obstacles: Rect[];
   avoid: Rect[];
+  /**
+   * Any callout area on content costs {@link STRICT_COST}, so a clear spot always wins. Avoided
+   * boxes (other halos with their margin) keep their plain weight: brushing a ring beats a label.
+   */
+  strict?: boolean;
+  /** Boxes a callout may not cover at all (other captions, badges): each px² costs {@link FORBID_WEIGHT}. */
+  forbid?: Rect[];
+  /** A stem that crosses content costs {@link STRICT_COST} too, like a covered callout. */
+  strictLine?: boolean;
 }
 
 export interface Candidate {
@@ -96,7 +126,21 @@ const BOUNDS_WEIGHT = 50; // callout px² outside the image
 const STEM_COST = 1.5; // per px of stem
 const SLIDE_COST = 0.5; // per px the callout leaves its centred spot
 const SIDE_SWITCH_COST = 120; // leaving the preferred side
-const HINT_BONUS = 4000; // off a candidate on the hinted side: outweighs a ~2 px sliver of content
+const HINT_BONUS = 4000;
+/** Added once to a callout that covers anything under `strict`; more than any clear spot costs. */
+const STRICT_COST = 10_000_000;
+/** Per px² of callout on a forbidden box: covering any of one loses to covering any content. */
+const FORBID_WEIGHT = 100_000_000; // off a candidate on the hinted side: a 2 px strip along a 200 px callout
+/** Depth in px of the content sliver the hint outweighs, along the callout's width. */
+const HINT_SLIVER = 2;
+
+/**
+ * The hint bonus for a callout `width` px wide: {@link HINT_BONUS}, but never more than a
+ * {@link HINT_SLIVER} px strip of content along that width costs. A short label on a phone
+ * screenshot (60 px wide) would otherwise let its hint beat 6 px of a neighbouring control.
+ */
+export const hintBonus = (width: number): number =>
+  Math.min(HINT_BONUS, Math.round(CONTENT_WEIGHT * HINT_SLIVER * width));
 
 export function overlapArea(a: Rect, b: Rect): number {
   const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
@@ -149,7 +193,10 @@ export function scorePlacement(c: Candidate, ctx: ScoreContext): { cost: number;
     AVOID_WEIGHT * onAvoid +
     CONNECTOR_WEIGHT * connectorHits +
     CROSSING_WEIGHT * crossing +
-    BOUNDS_WEIGHT * outside;
+    BOUNDS_WEIGHT * outside +
+    (ctx.strict && onContent > 0 ? STRICT_COST : 0) +
+    (ctx.strictLine && crossing > 0 ? STRICT_COST : 0) +
+    FORBID_WEIGHT * sum([c.callout], ctx.forbid ?? []);
   return { cost: Math.round(cost), overlap: Math.round(onContent + onAvoid + connectorHits) };
 }
 
@@ -243,13 +290,47 @@ function pinnedOffsets(side: Side, nudge: { x: number; y: number }) {
   }
 }
 
+/**
+ * Extra distances to try on `side`: {@link EXTRA_DISTANCES}, or every 8 px up to `maxDistance`, then the docked
+ * spot when `dock` is set and it lies farther out.
+ */
+function extrasFor(inp: PlanInput, side: Side, gap: number): number[] {
+  const t = inp.target;
+  const c = inp.callout;
+  // Under a cap every 8 px up to it is tried, so a callout finds a gap between two rows of content.
+  const capped =
+    inp.maxDistance === undefined
+      ? EXTRA_DISTANCES
+      : Array.from(
+          { length: Math.floor((inp.maxDistance - gap) / SLIDE_STEP) + 1 },
+          (_, i) => i * SLIDE_STEP,
+        );
+  if (inp.dock === undefined || inp.pinArrow || (side !== "top" && side !== "bottom")) {
+    return capped;
+  }
+  const room =
+    side === "top"
+      ? t.y - c.height - inp.dock
+      : inp.image.height - inp.dock - c.height - (t.y + t.height);
+  const extra = Math.floor(room - gap);
+  const fits = inp.dockMax === undefined || gap + extra <= inp.dockMax;
+  return fits && extra > capped[capped.length - 1]! ? [...capped, extra] : capped;
+}
+
 function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scored> {
   const { image, target: t, callout: c } = inp;
   const nudge = inp.nudge ?? { x: 0, y: 0 };
   const pin = inp.pinArrow === true;
   const arrowLength = inp.arrowLength ?? ARROW_LENGTH;
   const shiftBy = pin ? { x: 0, y: 0 } : nudge;
-  const ctx: ScoreContext = { image, obstacles: inp.obstacles, avoid: inp.avoid ?? [] };
+  const ctx: ScoreContext = {
+    image,
+    obstacles: inp.obstacles,
+    avoid: inp.avoid ?? [],
+    ...(inp.strict ? { strict: true } : {}),
+    ...(inp.forbid ? { forbid: inp.forbid } : {}),
+    ...(inp.strictLine ? { strictLine: true } : {}),
+  };
   for (const [rank, side] of order.entries()) {
     const horizontal = side === "top" || side === "bottom";
     const span = horizontal ? { from: t.x, length: t.width } : { from: t.y, length: t.height };
@@ -262,7 +343,7 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
     const { starts } = slide;
     const centred = starts[0] ?? 0;
     const offsets = pin ? pinnedOffsets(side, nudge) : { across: 0, along: 0 };
-    for (const extra of EXTRA_DISTANCES) {
+    for (const extra of pin ? EXTRA_DISTANCES : extrasFor(inp, side, gap)) {
       for (const baseStart of starts) {
         const distance = pin ? Math.max(arrowLength, gap + extra + offsets.across) : gap + extra;
         const start = pin ? clamp(baseStart + offsets.along, slide.lo, slide.hi) : baseStart;
@@ -288,7 +369,7 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
           { callout: placed, connector, stem: stemBox },
           ctx,
         );
-        const bonus = inp.hinted && rank === 0 ? HINT_BONUS : 0;
+        const bonus = inp.hinted && rank === 0 ? hintBonus(c.width) : 0;
         // Travel is measured from the un-nudged candidate, so a nudge is not charged as a detour.
         const travel = extra * STEM_COST + Math.abs(baseStart - centred) * SLIDE_COST;
         yield {
@@ -312,6 +393,39 @@ const better = (a: Scored, b: Scored | undefined) =>
   a.cost < b.cost ||
   (a.cost === b.cost && (a.rank < b.rank || (a.rank === b.rank && a.travel < b.travel)));
 
+/** The cheapest spot one side offers, as {@link planCallout} scores it. */
+export interface SideVerdict {
+  side: Side;
+  /** 0 for the preferred side, then the order the sides were tried in. */
+  rank: number;
+  /** What the planner minimises, hint bonus and side switch included; null when no spot fits. */
+  cost: number | null;
+  /** Px² of callout, arrow and stem still on content or an avoided box. */
+  overlap: number;
+  /** Stem length in px; 0 when the callout sits at the arrow. */
+  stem: number;
+}
+
+/**
+ * The best spot on each side, in the order `planCallout` tries them, for a report of why one side
+ * won. Every side is listed; with `strictSide` the planner keeps the preferred one whenever it has
+ * a spot, whatever the others cost.
+ */
+export function sideVerdicts(inp: PlanInput): SideVerdict[] {
+  const gap = inp.gap ?? 10;
+  const preferred = inp.preferred ?? "top";
+  const order = [preferred, ...SIDES.filter((s) => s !== preferred)];
+  const best = new Map<Side, Scored>();
+  for (const cand of candidates(inp, order, gap)) {
+    if (better(cand, best.get(cand.side))) best.set(cand.side, cand);
+  }
+  return order.map((side, rank) => {
+    const b = best.get(side);
+    const stem = b?.stem ? Math.max(b.stem.width, b.stem.height) : 0;
+    return { side, rank, cost: b ? b.cost : null, overlap: b ? b.overlap : 0, stem };
+  });
+}
+
 /**
  * Pick the cheapest callout position for a target among sides, distances and slides. Falls back to
  * `placeCallout`'s clamped placement when no candidate fits inside the image.
@@ -325,7 +439,12 @@ export function planCallout(inp: PlanInput): PlannedPlacement {
     for (const cand of candidates(inp, sides, gap)) if (better(cand, found)) found = cand;
     return found;
   };
-  const best = (inp.strictSide ? search([preferred]) : undefined) ?? search(order);
+  const pinned = inp.strictSide ? search([preferred]) : undefined;
+  // Under `strict` a pinned side that only offers covered spots gives way to a clear one elsewhere.
+  const best =
+    pinned && inp.strict && pinned.cost >= STRICT_COST
+      ? [pinned, search(order)].reduce((a, b) => (b && better(b, a) ? b : a))
+      : (pinned ?? search(order));
   if (!best) {
     const p = placeCallout(inp);
     return { ...p, distance: gap, stem: null, overlap: 0 };

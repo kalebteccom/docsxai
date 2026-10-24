@@ -89,7 +89,8 @@ describe("squeezing the side padding", () => {
         image: { width: image.width * k, height: image.height * k, ...IMAGE },
         annotations: [ann],
         metrics: METRICS,
-        theme,
+        // The scene is sized for the triangle's 10 px gap.
+        theme: { ...theme, connectorStyle: "arrow" },
       });
       const callout = (tree.props.children as BurnNode[]).find(
         (n) => n.props.style?.backgroundColor === "#fff",

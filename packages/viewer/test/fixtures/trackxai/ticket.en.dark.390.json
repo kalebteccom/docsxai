@@ -1,0 +1,255 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "ticket",
+  "variant": "en.dark.390",
+  "matrix_id": "en-US.dark.mobile-390",
+  "viewport": {
+    "name": "mobile-390",
+    "width": 390,
+    "height": 844
+  },
+  "annotations": [
+    {
+      "step": "ticket",
+      "selector": "h2.tread__title",
+      "bounding_box": {
+        "x": 32,
+        "y": 171.796875,
+        "width": 326,
+        "height": 26.25
+      },
+      "obstacles": [
+        {
+          "x": 16,
+          "y": 5,
+          "width": 48,
+          "height": 33
+        },
+        {
+          "x": 83,
+          "y": 5,
+          "width": 25,
+          "height": 33
+        },
+        {
+          "x": 259,
+          "y": 9,
+          "width": 53,
+          "height": 25
+        },
+        {
+          "x": 320,
+          "y": 9,
+          "width": 54,
+          "height": 25
+        },
+        {
+          "x": 72,
+          "y": 12,
+          "width": 4,
+          "height": 17
+        },
+        {
+          "x": 115,
+          "y": 12,
+          "width": 46,
+          "height": 17
+        },
+        {
+          "x": 16,
+          "y": 93,
+          "width": 116,
+          "height": 26
+        },
+        {
+          "x": 272,
+          "y": 93,
+          "width": 44,
+          "height": 26
+        },
+        {
+          "x": 145,
+          "y": 97,
+          "width": 115,
+          "height": 17
+        },
+        {
+          "x": 304,
+          "y": 142,
+          "width": 25,
+          "height": 26
+        },
+        {
+          "x": 333,
+          "y": 142,
+          "width": 25,
+          "height": 26
+        },
+        {
+          "x": 32,
+          "y": 214,
+          "width": 66,
+          "height": 26
+        },
+        {
+          "x": 105,
+          "y": 214,
+          "width": 96,
+          "height": 26
+        },
+        {
+          "x": 208,
+          "y": 214,
+          "width": 90,
+          "height": 26
+        },
+        {
+          "x": 32,
+          "y": 243,
+          "width": 104,
+          "height": 26
+        },
+        {
+          "x": 143,
+          "y": 243,
+          "width": 99,
+          "height": 26
+        },
+        {
+          "x": 275,
+          "y": 247,
+          "width": 8,
+          "height": 16
+        },
+        {
+          "x": 282,
+          "y": 247,
+          "width": 8,
+          "height": 16
+        },
+        {
+          "x": 32,
+          "y": 272,
+          "width": 142,
+          "height": 26
+        },
+        {
+          "x": 207,
+          "y": 276,
+          "width": 85,
+          "height": 16
+        },
+        {
+          "x": 189,
+          "y": 301,
+          "width": 95,
+          "height": 26
+        },
+        {
+          "x": 41,
+          "y": 305,
+          "width": 41,
+          "height": 16
+        },
+        {
+          "x": 81,
+          "y": 305,
+          "width": 4,
+          "height": 16
+        },
+        {
+          "x": 88,
+          "y": 305,
+          "width": 85,
+          "height": 16
+        },
+        {
+          "x": 32,
+          "y": 334,
+          "width": 50,
+          "height": 26
+        },
+        {
+          "x": 89,
+          "y": 334,
+          "width": 26,
+          "height": 26
+        },
+        {
+          "x": 122,
+          "y": 334,
+          "width": 93,
+          "height": 26
+        },
+        {
+          "x": 48,
+          "y": 401,
+          "width": 275,
+          "height": 19
+        },
+        {
+          "x": 48,
+          "y": 422,
+          "width": 197,
+          "height": 19
+        },
+        {
+          "x": 48,
+          "y": 452,
+          "width": 42,
+          "height": 16
+        },
+        {
+          "x": 169,
+          "y": 453,
+          "width": 8,
+          "height": 14
+        },
+        {
+          "x": 176,
+          "y": 453,
+          "width": 7,
+          "height": 14
+        },
+        {
+          "x": 182,
+          "y": 453,
+          "width": 8,
+          "height": 14
+        },
+        {
+          "x": 48,
+          "y": 478,
+          "width": 61,
+          "height": 16
+        },
+        {
+          "x": 76,
+          "y": 501,
+          "width": 73,
+          "height": 16
+        },
+        {
+          "x": 152,
+          "y": 501,
+          "width": 36,
+          "height": 16
+        },
+        {
+          "x": 192,
+          "y": 502,
+          "width": 29,
+          "height": 14
+        },
+        {
+          "x": 51,
+          "y": 504,
+          "width": 14,
+          "height": 12
+        }
+      ],
+      "copy": "A task keeps its title, address and description in one place.",
+      "arrow_style": "right"
+    }
+  ]
+}

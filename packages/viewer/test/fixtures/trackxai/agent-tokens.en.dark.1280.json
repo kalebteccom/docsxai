@@ -1,0 +1,267 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "agent-tokens",
+  "variant": "en.dark.1280",
+  "matrix_id": "en-US.dark.desktop-1280",
+  "viewport": {
+    "name": "desktop-1280",
+    "width": 1280,
+    "height": 800
+  },
+  "annotations": [
+    {
+      "step": "agent-tokens",
+      "selector": "#token-name",
+      "bounding_box": {
+        "x": 280,
+        "y": 242.5,
+        "width": 968,
+        "height": 31.5
+      },
+      "obstacles": [
+        {
+          "x": 211,
+          "y": 8,
+          "width": 28,
+          "height": 28
+        },
+        {
+          "x": 264,
+          "y": 9,
+          "width": 98,
+          "height": 25
+        },
+        {
+          "x": 860,
+          "y": 9,
+          "width": 225,
+          "height": 25
+        },
+        {
+          "x": 1092,
+          "y": 9,
+          "width": 110,
+          "height": 25
+        },
+        {
+          "x": 1210,
+          "y": 9,
+          "width": 54,
+          "height": 25
+        },
+        {
+          "x": 369,
+          "y": 12,
+          "width": 5,
+          "height": 17
+        },
+        {
+          "x": 8,
+          "y": 48,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 1135,
+          "y": 60,
+          "width": 113,
+          "height": 30
+        },
+        {
+          "x": 280,
+          "y": 64,
+          "width": 103,
+          "height": 21
+        },
+        {
+          "x": 8,
+          "y": 76,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 95,
+          "width": 574,
+          "height": 15
+        },
+        {
+          "x": 280,
+          "y": 113,
+          "width": 374,
+          "height": 15
+        },
+        {
+          "x": 657,
+          "y": 113,
+          "width": 181,
+          "height": 15
+        },
+        {
+          "x": 8,
+          "y": 120,
+          "width": 231,
+          "height": 24
+        },
+        {
+          "x": 280,
+          "y": 131,
+          "width": 24,
+          "height": 15
+        },
+        {
+          "x": 303,
+          "y": 131,
+          "width": 101,
+          "height": 15
+        },
+        {
+          "x": 403,
+          "y": 131,
+          "width": 5,
+          "height": 15
+        },
+        {
+          "x": 8,
+          "y": 148,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 8,
+          "y": 176,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 197,
+          "width": 74,
+          "height": 13
+        },
+        {
+          "x": 8,
+          "y": 204,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 221,
+          "width": 68,
+          "height": 16
+        },
+        {
+          "x": 8,
+          "y": 232,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 8,
+          "y": 260,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 283,
+          "width": 68,
+          "height": 15
+        },
+        {
+          "x": 8,
+          "y": 288,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 304,
+          "width": 968,
+          "height": 32
+        },
+        {
+          "x": 8,
+          "y": 316,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 344,
+          "width": 85,
+          "height": 16
+        },
+        {
+          "x": 8,
+          "y": 360,
+          "width": 231,
+          "height": 24
+        },
+        {
+          "x": 280,
+          "y": 365,
+          "width": 968,
+          "height": 32
+        },
+        {
+          "x": 8,
+          "y": 388,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 8,
+          "y": 416,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 426,
+          "width": 148,
+          "height": 17
+        },
+        {
+          "x": 8,
+          "y": 444,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 449,
+          "width": 83,
+          "height": 31
+        },
+        {
+          "x": 366,
+          "y": 449,
+          "width": 78,
+          "height": 31
+        },
+        {
+          "x": 447,
+          "y": 449,
+          "width": 53,
+          "height": 31
+        },
+        {
+          "x": 8,
+          "y": 472,
+          "width": 231,
+          "height": 28
+        },
+        {
+          "x": 280,
+          "y": 483,
+          "width": 968,
+          "height": 33
+        }
+      ],
+      "copy": "Name a token for one agent session, then issue it.",
+      "arrow_style": "right"
+    }
+  ]
+}

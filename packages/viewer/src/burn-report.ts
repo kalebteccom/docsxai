@@ -37,6 +37,8 @@ export interface AnnotationReport {
   unplaceable: boolean;
   /** Why nothing was drawn: `no bounding_box` or `no screenshot`. */
   skipped?: string;
+  /** `badge`: a clean burn drew only the numbered badge and ring, no caption (`caption_style`). */
+  caption_style?: "badge";
 }
 
 export interface FlowBurnReport {

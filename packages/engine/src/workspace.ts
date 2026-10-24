@@ -107,6 +107,10 @@ export interface BurnThemeConfig {
   font?: string;
   /** 400 or 600; the font file must have that weight (the bundled Inter is 400 only). */
   font_weight?: number;
+  /** `auto`, `line`, `chevron` or `arrow`: how a callout joins its target. */
+  connector_style?: string;
+  /** `full`, `badge` or `auto`: caption, or numbered badge only. */
+  caption_style?: string;
   /** Arrow length in px, 4 to 24. */
   arrow_size?: number;
   /** Widest callout as a share of the screenshot's width, 0.2 to 1. */

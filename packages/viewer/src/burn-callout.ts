@@ -8,10 +8,17 @@
 // narrower one wins only on strictly less overlap.
 
 import { placeCallout, type Rect, type Side } from "./placement.js";
-import { overlapArea, planCallout } from "./obstacle-placement.js";
+import {
+  overlapArea,
+  planCallout,
+  sideVerdicts,
+  type PlanInput,
+  type SideVerdict,
+} from "./obstacle-placement.js";
 import { fitsInside, INSIDE_MARGIN, MIN_INSIDE_WIDTH, planInside } from "./inside-placement.js";
 import { ARROW_LENGTH, arrowGeometry } from "./arrow.js";
 import { measureText, wrapText, type FontMetrics } from "./font-metrics.js";
+import { wrapBalanced } from "./caption-wrap.js";
 import type { AnnotationPlacement, AnnotationRecord, BoundingBox } from "./annotations.js";
 
 export const FONT_SIZE = 14;
@@ -27,6 +34,11 @@ export interface CalloutStyle {
   paddingX: number;
   paddingY: number;
   borderWidth: number;
+  /**
+   * `greedy` fills each line (the look without a theme); `balance` keeps the line count and evens
+   * the lines out, see caption-wrap.ts. Default `greedy`.
+   */
+  wrap?: "greedy" | "balance";
 }
 
 export const DEFAULT_CALLOUT_STYLE: CalloutStyle = {
@@ -88,6 +100,20 @@ export interface LayoutInput {
   style?: CalloutStyle;
   /** Arrow length in px; the callout keeps 2 px more than that from its target. Default {@link ARROW_LENGTH}. */
   arrowLength?: number;
+  /** Gap in px between target and callout at rest. Default `arrowLength + 2`. */
+  gap?: number;
+  /** Longest gap the obstacle planner may detach the callout to, see `PlanInput.maxDistance`. */
+  maxDistance?: number;
+  /** Margin of the top and bottom docking bands, see `PlanInput.dock`. */
+  dock?: number;
+  /** See `PlanInput.dockMax`. */
+  dockMax?: number;
+  /** See `PlanInput.strict`. */
+  strict?: boolean;
+  /** See `PlanInput.forbid`. */
+  forbid?: Rect[];
+  /** See `PlanInput.strictLine`. */
+  strictLine?: boolean;
   /** Widest callout as a share of the image's width when obstacles limit it. Default {@link ADAPTIVE_WIDTH_RATIO}. */
   maxWidthRatio?: number;
 }
@@ -111,7 +137,8 @@ export function measureCallout(
 ): { lines: string[]; size: Size } {
   const inset = style.paddingX + style.borderWidth;
   const contentMax = maxWidth - 2 * inset;
-  const lines = wrapText(label, style.fontSize, contentMax, metrics);
+  const wrap = style.wrap === "balance" ? wrapBalanced : wrapText;
+  const lines = wrap(label, style.fontSize, contentMax, metrics);
   const contentWidth = Math.min(
     Math.ceil(Math.max(...lines.map((l) => measureText(l, style.fontSize, metrics)))),
     contentMax,
@@ -202,11 +229,49 @@ function withOverlap(
   };
 }
 
+/** What the obstacle planner gets for a callout of `size`. */
+function planInput(inp: LayoutInput, size: Size): PlanInput {
+  const { ann, target, image, clear } = inp;
+  const placement = ann.placement;
+  const arrowLength = inp.arrowLength ?? ARROW_LENGTH;
+  return {
+    image,
+    target,
+    callout: size,
+    preferred: placement?.side ?? preferredSide(ann.arrow_style),
+    gap: inp.gap ?? arrowLength + 2,
+    obstacles: ann.obstacles ?? [],
+    avoid: clear,
+    nudge: { x: ann.nudge?.x ?? 0, y: ann.nudge?.y ?? 0 },
+    ...(placement?.side ? { strictSide: true } : {}),
+    ...(placement?.side !== undefined || hintsSide(ann.arrow_style) ? { hinted: true } : {}),
+    ...(placement?.align ? { align: placement.align } : {}),
+    ...(placement?.pin_arrow ? { pinArrow: true } : {}),
+    arrowLength,
+    ...(inp.maxDistance !== undefined ? { maxDistance: inp.maxDistance } : {}),
+    ...(inp.dock !== undefined ? { dock: inp.dock } : {}),
+    ...(inp.dockMax !== undefined ? { dockMax: inp.dockMax } : {}),
+    ...(inp.strict ? { strict: true } : {}),
+    ...(inp.forbid ? { forbid: inp.forbid } : {}),
+    ...(inp.strictLine ? { strictLine: true } : {}),
+  };
+}
+
+/**
+ * How each side scored for the box `layout` ended with, for a placement probe. Empty for a callout
+ * inside its target, and for one laid out without obstacles or placement keys (no scoring ran).
+ */
+export function explainLayout(inp: LayoutInput, layout: CalloutLayout): SideVerdict[] {
+  const scored = steersBurner(inp.ann.placement) || (inp.ann.obstacles?.length ?? 0) > 0;
+  if (layout.mode === "inside" || !scored) return [];
+  return sideVerdicts(planInput(inp, layout.size));
+}
+
 function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutLayout {
   const { ann, target, image, metrics, clear } = inp;
   const style = inp.style ?? DEFAULT_CALLOUT_STYLE;
   const arrowLength = inp.arrowLength ?? ARROW_LENGTH;
-  const gap = arrowLength + 2;
+  const gap = inp.gap ?? arrowLength + 2;
   const placement = ann.placement;
   const obstacles = ann.obstacles ?? [];
   const nudge = { x: ann.nudge?.x ?? 0, y: ann.nudge?.y ?? 0 };
@@ -249,21 +314,14 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
   }
 
   const { lines, size } = measureCallout(label, metrics, width, style);
-  const input = { image, target, callout: size, preferred, gap };
   const planned = steersBurner(placement) || obstacles.length > 0;
   const p = planned
-    ? planCallout({
-        ...input,
-        obstacles,
-        avoid: clear,
-        nudge,
-        ...(placement?.side ? { strictSide: true } : {}),
-        ...(placement?.side !== undefined || hintsSide(ann.arrow_style) ? { hinted: true } : {}),
-        ...(placement?.align ? { align: placement.align } : {}),
-        ...(placement?.pin_arrow ? { pinArrow: true } : {}),
-        arrowLength,
-      })
-    : { ...placeCallout(input), stem: null, nudgeBaked: false };
+    ? planCallout(planInput(inp, size))
+    : {
+        ...placeCallout({ image, target, callout: size, preferred, gap }),
+        stem: null,
+        nudgeBaked: false,
+      };
   return withOverlap(
     {
       lines,

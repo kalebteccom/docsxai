@@ -15,8 +15,15 @@ import { parseHexColor } from "../src/color.js";
 import type { AnnotationRecord } from "../src/annotations.js";
 import { decodePng, pixelAt, solidPng } from "./helpers/png.js";
 
+// The triangle connector, so a themed burn at scale 1 can be compared with an unthemed one byte for
+// byte; the line connector's own scaling is in burn-line.test.ts.
 const themeOf = (block: unknown): BurnTheme =>
-  resolveBurnTheme(parseThemeConfig(block), { workspace: "/tmp/docsxai-theme-workspace" });
+  resolveBurnTheme(
+    parseThemeConfig(
+      typeof block === "object" && block !== null ? { connector_style: "arrow", ...block } : block,
+    ),
+    { workspace: "/tmp/docsxai-theme-workspace" },
+  );
 
 const problemsOf = (block: unknown): string[] => {
   try {
@@ -126,7 +133,7 @@ describe("scale in a burn", () => {
   it("burns the same bytes at scale 1 as with no theme", async () => {
     const plain = await burn(1200, 900);
     const explicit = await burn(1200, 900, themeOf({ scale: 1 }));
-    const defaults = await burn(1200, 900, DEFAULT_BURN_THEME);
+    const defaults = await burn(1200, 900, { ...DEFAULT_BURN_THEME, connectorStyle: "arrow" });
     expect(sha(explicit.png)).toBe(sha(plain.png));
     expect(sha(defaults.png)).toBe(sha(plain.png));
   });

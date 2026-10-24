@@ -12,3 +12,7 @@ Frozen Satori trees for the scenarios in `../helpers/legacy-scenarios.ts`, as th
 ## `engine-matrix/`
 
 A workspace laid out as `docsxai run` writes a flow with a `matrix:` block: `docs/login/<variant id>/screenshots/<step>.png` and `docs/login/<variant id>/annotations.json` (with the `variant` record) for the ids `en-US.light.desktop-1280` and `es-ES.dark.mobile-390`, plus a `pack.json` that maps both to pack keys. `../pack-matrix.test.ts` copies it to a temporary directory. The PNGs are solid-colour images (160x100 and 80x140) written once by a throwaway script; they are not generated at test time.
+
+## `trackxai/`
+
+Capture sidecars (`trackxai/raw-capture-sidecar@1`) of a dense app, copied unchanged from a real `docsxai run` at 1280x800 and 390x844, English and dark: each annotation's target box, copy, side hint and up to 40 boxes of the text-bearing elements near it. `../burn-real-sidecars.test.ts` burns them on a synthetic screen that draws a text-like pattern in every listed box, and checks that no caption covers listed text, another target, another caption or a badge, and that every badge sits next to its target. The screenshots are not checked in. `issue-label-crop.png` is a 200 x 40 px cut (x 0, y 392) of the same app's 390 px dark capture, holding the grey `Issue a token` form label; `../burn-clean.test.ts` checks the pixel text finder sees it.

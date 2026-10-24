@@ -30,7 +30,7 @@ The preferred side is `placement.side`, else the side in `arrow_style`, else `to
 
 List the neighbours of the target: text blocks, logos, icons, other halos. Do not list the target. A box that contains the target cannot be avoided.
 
-The burner moves the callout out along the side, adds a stem back to the arrow, and slides it along the target's edge. It keeps the spot that covers the least. A stem that crosses content costs more than a callout that covers the same area. Other halos, badges and earlier callouts count as obstacles too.
+The burner moves the callout out along the side, adds a stem back to the arrow, and slides it along the target's edge. With a theme the connector is a thin line instead: the callout moves up to 176 px out to empty space, or docks along the top or bottom edge, and text found in the pixels counts as an obstacle (see [burn-theming.md](burn-theming.md#connectors)). It keeps the spot that covers the least. A stem that crosses content costs more than a callout that covers the same area. Other halos, badges and earlier callouts count as obstacles too.
 
 When no spot is clear:
 
@@ -89,3 +89,5 @@ const png = await burnWithWorkspaceTheme({
 | Badge touches the image edge        | Add at least one box to `obstacles`. The badge then stays 2 px inside.             |
 | Captions too small on the page      | Set `display_width` to the column width and `scale` to `"auto"`.                   |
 | Callout too wide for a narrow image | Lower `placement.max_width`, or `max_width_ratio` in the theme.                    |
+
+> **For agents:** to check a side hint against a raw capture before committing it, run `node scripts/burn-probe.mjs --screenshot raw.png --annotations raw.json` from a docsxai checkout after `pnpm --filter @docsxai/viewer build`. It prints, per callout, the side asked for and the side taken, each side's best score, the obstacles the callout, arrow, stem and badge touch, and whether the connector is drawn as ink, fill or outline. `--side 2=bottom` tries a hint without editing the file, `--theme` or `--workspace` burns with a theme, and `--out` writes the burned PNG.

@@ -24,34 +24,27 @@ import { planBadge } from "./badge-placement.js";
 import { arrowGeometry, type ArrowGeometry } from "./arrow.js";
 import {
   DEFAULT_BURN_THEME,
-  badgeRadius,
   captionScale,
-  connectorColor,
   haloRadius,
   scaledTheme,
   type BurnTheme,
 } from "./burn-theme.js";
 import { loadThemeFont } from "./burn-theme-load.js";
 import { rgbaOf } from "./color.js";
-import { connectorNodes } from "./burn-connector.js";
-import { CONNECTOR_HALO } from "./connector-contrast.js";
+import { badgeNode, calloutNodes, calloutStyleOf, div, effectiveWeight } from "./burn-nodes.js";
+import { DOCK_MAX_SHARE, cleanObstacles, cornerBadge, dockMargin, haloBox } from "./burn-clean.js";
+import { planClean } from "./burn-clean-plan.js";
+import { LINE_GAP, LINE_MAX_DISTANCE, drawnStyle } from "./burn-line.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
 import { parseFontMetrics, type FontMetrics } from "./font-metrics.js";
 import { atBaseSize, layoutAtScale, scaleRect } from "./burn-scale.js";
-import {
-  BADGE_BORDER,
-  BADGE_FONT_SIZE,
-  badgeBox,
-  badgeSize,
-  keepClear,
-  otherHalos,
-} from "./burn-badge.js";
+import { badgeBox, badgeSize, keepClear, otherHalos, OUTSIDE_HALO_MARGIN } from "./burn-badge.js";
 import {
   layoutBoxes,
   layoutCallout,
   type CalloutLayout,
-  type CalloutStyle,
+  type LayoutInput,
 } from "./burn-callout.js";
 import {
   annotationReport,
@@ -94,10 +87,6 @@ export function pngDimensions(png: Uint8Array): { width: number; height: number 
   return { width: view.getUint32(16), height: view.getUint32(20) };
 }
 
-function div(style: Record<string, string | number>, children?: BurnNode[] | string): BurnNode {
-  return { type: "div", props: { style, ...(children !== undefined ? { children } : {}) } };
-}
-
 export interface BurnTreeInput {
   image: { width: number; height: number; dataUri: string };
   annotations: AnnotationRecord[];
@@ -114,97 +103,21 @@ export interface BurnTreeInput {
   pixels?: PixelGrid;
   /** The caption look. Default {@link DEFAULT_BURN_THEME}, today's. */
   theme?: BurnTheme;
+  /** Receives what each callout was laid out from and how, at base size, for placement probes. */
+  trace?: CalloutTrace[];
+}
+
+/** One callout's layout input and result at base size; `scale` multiplies them to screenshot px. */
+export interface CalloutTrace {
+  /** Position of the annotation in the input list. */
+  position: number;
+  input: LayoutInput;
+  layout: CalloutLayout;
+  scale: number;
 }
 
 /** Family name the theme's own font file is registered under in Satori. */
 const THEME_FONT_NAME = "ThemeFont";
-
-/** Weight the callout text is drawn in: the theme's, when its own font file can supply it. */
-const effectiveWeight = (theme: BurnTheme): number =>
-  theme.fontFile !== null ? theme.fontWeight : 400;
-
-/** What sizes a callout box under `theme`. */
-const calloutStyleOf = (theme: BurnTheme): CalloutStyle => ({
-  fontSize: theme.fontSize,
-  lineHeight: theme.lineHeight,
-  paddingX: theme.paddingX,
-  paddingY: theme.paddingY,
-  borderWidth: theme.calloutBorderWidth,
-});
-
-interface DrawnCallout {
-  nodes: BurnNode[];
-  /** Boxes the callout, arrow and stem occupy (nudge applied), for later annotations to avoid. */
-  boxes: Rect[];
-}
-
-/** `layout` and `theme` are in screenshot px, already multiplied by the caption scale `f`. */
-function calloutNodes(
-  layout: CalloutLayout,
-  theme: BurnTheme,
-  f: number,
-  pixels?: PixelGrid,
-): DrawnCallout {
-  const { lines, size: callout, nudge } = layout;
-  const nodes: BurnNode[] = connectorNodes(
-    layout,
-    pixels,
-    connectorColor(theme),
-    CONNECTOR_HALO * f,
-  );
-  nodes.push(
-    div(
-      {
-        position: "absolute",
-        left: layout.callout.x + nudge.x,
-        top: layout.callout.y + nudge.y,
-        width: callout.width,
-        height: callout.height,
-        display: "flex",
-        flexDirection: "column",
-        paddingTop: theme.paddingY,
-        paddingBottom: theme.paddingY,
-        paddingLeft: layout.paddingX ?? theme.paddingX,
-        paddingRight: layout.paddingX ?? theme.paddingX,
-        backgroundColor: theme.calloutBackground,
-        border: `${theme.calloutBorderWidth}px solid ${theme.calloutBorderColor}`,
-        borderRadius: theme.radius,
-        color: theme.ink,
-        fontSize: theme.fontSize,
-        ...(effectiveWeight(theme) !== 400 ? { fontWeight: effectiveWeight(theme) } : {}),
-        ...(theme.shadow !== null ? { boxShadow: theme.shadow } : {}),
-      },
-      lines.map((line) =>
-        div(
-          { height: theme.lineHeight, lineHeight: `${theme.lineHeight}px`, whiteSpace: "nowrap" },
-          line,
-        ),
-      ),
-    ),
-  );
-  return { nodes, boxes: layoutBoxes(layout) };
-}
-
-function badgeNode(box: Rect, index: number, theme: BurnTheme, f: number): BurnNode {
-  return div(
-    {
-      position: "absolute",
-      left: box.x,
-      top: box.y,
-      width: box.width,
-      height: box.height,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: theme.badgeFill,
-      border: `${BADGE_BORDER * f}px solid #fff`,
-      borderRadius: badgeRadius(theme.badgeShape, box.height),
-      color: "#fff",
-      fontSize: BADGE_FONT_SIZE * f,
-    },
-    String(index),
-  );
-}
 
 /**
  * Satori 0.62 sizes a box by its content (CSS `content-box`), where 0.33 sized it by its border box.
@@ -231,7 +144,9 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   // when drawn, so every caption dimension scales together. At 1 nothing is converted.
   const f = captionScale(base, width);
   const theme = scaledTheme(base, f);
-  const style = calloutStyleOf(base);
+  const themed = input.theme !== undefined;
+  const style = calloutStyleOf(base, themed);
+  const connector = drawnStyle(base.connectorStyle, themed);
   const baseImage = f === 1 ? image : { width: width / f, height: height / f };
   const children: BurnNode[] = [
     {
@@ -245,19 +160,37 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     },
   ];
   const placed: Rect[] = [];
+  /** Caption boxes drawn so far, at base size; a clean caption never covers one. */
+  const captions: Rect[] = [];
   const badges = new Map<AnnotationRecord, Rect>();
   const threshold = input.unplaceableRatio ?? DEFAULT_UNPLACEABLE_RATIO;
 
   const baseAnnotations = input.annotations.map((a) => atBaseSize(a, f));
+  // The line connector comes with the clean look: halos and badges outside their targets, and text
+  // estimated from the pixels for annotations that list no obstacles.
+  const clean = connector !== "arrow";
   for (const [i, realAnn] of input.annotations.entries()) {
-    const ann = baseAnnotations[i]!;
+    const self = baseAnnotations[i]!;
+    // Clean: text from the pixels, other targets and phone chrome join the obstacles.
+    const prep = clean
+      ? cleanObstacles(
+          self,
+          realAnn.bounding_box,
+          input.pixels,
+          f,
+          baseAnnotations,
+          baseImage,
+          width,
+        )
+      : { ann: self, badgeObstacles: self.obstacles ?? [] };
+    const ann = prep.ann;
     if (!ann.bounding_box) {
       warn(`burn: annotation on step "${ann.step}" has no bounding_box — skipped`);
       input.report?.push(skippedReport(ann, "no bounding_box"));
       continue;
     }
     const t = ann.bounding_box;
-    const real = realAnn.bounding_box!;
+    const real = haloBox(realAnn.bounding_box!, clean, f);
     children.push(
       div({
         position: "absolute",
@@ -266,31 +199,48 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
         width: real.width,
         height: real.height,
         border: `${2 * f}px solid ${theme.accent}`,
-        borderRadius: haloRadius(theme),
+        borderRadius: haloRadius(theme) + (clean ? 5 * f : 0),
         boxShadow: `0 0 0 ${3 * f}px ${rgbaOf(theme.accent, 0.35)}`,
       }),
     );
 
     // The badge goes first so this annotation's callout and later ones keep clear of where it landed.
+    const blockers = [
+      ...otherHalos(baseAnnotations, self, clean ? OUTSIDE_HALO_MARGIN : undefined),
+      ...placed,
+      ...badges.values(),
+    ];
+    const size = typeof ann.index === "number" ? badgeSize(ann.index, input.metrics) : null;
     const badge =
-      typeof ann.index === "number"
-        ? ann.obstacles?.length
-          ? planBadge({
-              image: baseImage,
-              target: t,
-              size: badgeSize(ann.index, input.metrics),
-              obstacles: ann.obstacles,
-              avoid: [...otherHalos(baseAnnotations, ann), ...placed, ...badges.values()],
-            })
-          : badgeBox(t, ann.index, baseImage, input.metrics)
-        : undefined;
-    if (badge) badges.set(ann, badge);
+      size === null
+        ? undefined
+        : clean
+          ? cornerBadge(t, size, baseImage, [...prep.badgeObstacles, ...blockers])
+          : ann.obstacles?.length
+            ? planBadge({
+                image: baseImage,
+                target: t,
+                size,
+                obstacles: ann.obstacles,
+                avoid: blockers,
+              })
+            : badgeBox(t, ann.index!, baseImage, input.metrics);
+    if (badge) badges.set(self, badge);
 
     let layout: CalloutLayout | null = null;
     let calloutBox: Rect | null = null;
+    let badgeOnly = false;
     if (ann.copy) {
-      const clear = keepClear(baseAnnotations, ann, baseImage, input.metrics, placed, badges);
-      const planned = layoutCallout({
+      const clear = keepClear(
+        baseAnnotations,
+        self,
+        baseImage,
+        input.metrics,
+        placed,
+        badges,
+        clean,
+      );
+      const layoutInput: LayoutInput = {
         ann,
         target: t,
         image: baseImage,
@@ -299,19 +249,54 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
         style,
         arrowLength: base.arrowSize,
         maxWidthRatio: base.maxWidthRatio,
-      });
-      placed.push(...layoutBoxes(planned));
-      layout = layoutAtScale(planned, f);
-      const drawn = calloutNodes(layout, theme, f, input.pixels);
-      children.push(...drawn.nodes);
-      calloutBox = drawn.boxes[0]!;
+        ...(clean
+          ? {
+              gap: LINE_GAP,
+              maxDistance: LINE_MAX_DISTANCE,
+              dock: dockMargin(f, width, baseImage),
+              dockMax: DOCK_MAX_SHARE * baseImage.height,
+              forbid: [...captions, ...badges.values()],
+            }
+          : {}),
+      };
+      const mode = clean ? base.captionStyle : "full";
+      const plan =
+        clean && mode !== "badge" ? planClean(layoutInput, base, f, width, mode === "auto") : null;
+      badgeOnly = mode === "badge" || (mode === "auto" && plan !== null && plan.cover > 0);
+      if (!badgeOnly) {
+        const planned = plan ? plan.layout : layoutCallout(layoutInput);
+        input.trace?.push({ position: i, input: layoutInput, layout: planned, scale: f });
+        placed.push(...layoutBoxes(planned));
+        captions.push(layoutBoxes(planned)[0]!);
+        layout = layoutAtScale(planned, f);
+        const drawn = calloutNodes(
+          layout,
+          plan?.theme ?? theme,
+          f,
+          themed,
+          connector,
+          input.pixels,
+        );
+        children.push(...drawn.nodes);
+        calloutBox = drawn.boxes[0]!;
+      }
     }
 
-    const realBadge = badge ? scaleRect(badge, f) : undefined;
-    if (realBadge && typeof ann.index === "number") {
-      children.push(badgeNode(realBadge, ann.index, theme, f));
-    }
-    input.report?.push(annotationReport(realAnn, layout, calloutBox, realBadge, threshold));
+    // A badge-only annotation is numbered by its place in the list when it has no index of its own.
+    const number = typeof ann.index === "number" ? ann.index : badgeOnly ? i + 1 : null;
+    const ownBadge =
+      badge ??
+      (badgeOnly && number !== null
+        ? cornerBadge(t, badgeSize(number, input.metrics), baseImage, [
+            ...prep.badgeObstacles,
+            ...blockers,
+          ])
+        : undefined);
+    if (ownBadge) badges.set(self, ownBadge);
+    const realBadge = ownBadge ? scaleRect(ownBadge, f) : undefined;
+    if (realBadge && number !== null) children.push(badgeNode(realBadge, number, theme, f));
+    const entry = annotationReport(realAnn, layout, calloutBox, realBadge, threshold);
+    input.report?.push(badgeOnly ? { ...entry, caption_style: "badge" } : entry);
   }
 
   return div(

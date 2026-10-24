@@ -1,0 +1,267 @@
+{
+  "schema": "trackxai/raw-capture-sidecar@1",
+  "step": "agent-tokens",
+  "variant": "en.dark.390",
+  "matrix_id": "en-US.dark.mobile-390",
+  "viewport": {
+    "name": "mobile-390",
+    "width": 390,
+    "height": 844
+  },
+  "annotations": [
+    {
+      "step": "agent-tokens",
+      "selector": "#token-name",
+      "bounding_box": {
+        "x": 16,
+        "y": 260.5,
+        "width": 358,
+        "height": 31.5
+      },
+      "obstacles": [
+        {
+          "x": 16,
+          "y": 5,
+          "width": 48,
+          "height": 33
+        },
+        {
+          "x": 259,
+          "y": 9,
+          "width": 53,
+          "height": 25
+        },
+        {
+          "x": 320,
+          "y": 9,
+          "width": 54,
+          "height": 25
+        },
+        {
+          "x": 72,
+          "y": 12,
+          "width": 4,
+          "height": 17
+        },
+        {
+          "x": 83,
+          "y": 12,
+          "width": 85,
+          "height": 17
+        },
+        {
+          "x": 261,
+          "y": 60,
+          "width": 113,
+          "height": 30
+        },
+        {
+          "x": 16,
+          "y": 64,
+          "width": 103,
+          "height": 21
+        },
+        {
+          "x": 16,
+          "y": 95,
+          "width": 356,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 113,
+          "width": 357,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 131,
+          "width": 232,
+          "height": 15
+        },
+        {
+          "x": 250,
+          "y": 131,
+          "width": 106,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 149,
+          "width": 101,
+          "height": 15
+        },
+        {
+          "x": 116,
+          "y": 149,
+          "width": 101,
+          "height": 15
+        },
+        {
+          "x": 216,
+          "y": 149,
+          "width": 4,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 215,
+          "width": 74,
+          "height": 13
+        },
+        {
+          "x": 16,
+          "y": 239,
+          "width": 68,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 301,
+          "width": 68,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 322,
+          "width": 358,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 362,
+          "width": 85,
+          "height": 16
+        },
+        {
+          "x": 16,
+          "y": 383,
+          "width": 358,
+          "height": 32
+        },
+        {
+          "x": 16,
+          "y": 444,
+          "width": 148,
+          "height": 17
+        },
+        {
+          "x": 16,
+          "y": 467,
+          "width": 83,
+          "height": 31
+        },
+        {
+          "x": 102,
+          "y": 467,
+          "width": 78,
+          "height": 31
+        },
+        {
+          "x": 183,
+          "y": 467,
+          "width": 53,
+          "height": 31
+        },
+        {
+          "x": 16,
+          "y": 501,
+          "width": 358,
+          "height": 33
+        },
+        {
+          "x": 16,
+          "y": 533,
+          "width": 358,
+          "height": 33
+        },
+        {
+          "x": 16,
+          "y": 557,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 164,
+          "y": 557,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 40,
+          "y": 562,
+          "width": 109,
+          "height": 15
+        },
+        {
+          "x": 188,
+          "y": 562,
+          "width": 95,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 565,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 178,
+          "y": 565,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 16,
+          "y": 566,
+          "width": 351,
+          "height": 14
+        },
+        {
+          "x": 40,
+          "y": 570,
+          "width": 123,
+          "height": 15
+        },
+        {
+          "x": 202,
+          "y": 570,
+          "width": 124,
+          "height": 15
+        },
+        {
+          "x": 16,
+          "y": 581,
+          "width": 24,
+          "height": 25
+        },
+        {
+          "x": 142,
+          "y": 581,
+          "width": 25,
+          "height": 25
+        },
+        {
+          "x": 16,
+          "y": 582,
+          "width": 80,
+          "height": 14
+        },
+        {
+          "x": 40,
+          "y": 586,
+          "width": 87,
+          "height": 15
+        },
+        {
+          "x": 166,
+          "y": 586,
+          "width": 95,
+          "height": 15
+        }
+      ],
+      "copy": "Name a token for one agent session, then issue it.",
+      "arrow_style": "right"
+    }
+  ]
+}

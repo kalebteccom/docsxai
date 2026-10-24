@@ -58,6 +58,8 @@ The callout outline colour follows `ink` until a preset, the tokens file or the 
 | `padding_y`            | number             | 0 to 40 px                                      | `8`               | Callout vertical padding.                                           |
 | `font`                 | string             | path to a `.ttf` or `.otf` inside the workspace | the bundled Inter | Callout and badge font, see [Font](#font).                          |
 | `font_weight`          | number             | `400` or `600`                                  | `400`             | Callout text weight. The font file must have it, see [Font](#font). |
+| `connector_style`      | string             | `auto`, `line`, `chevron`, `arrow`              | `auto`            | How a callout joins its target, see [Connectors](#connectors).      |
+| `caption_style`        | string             | `full`, `badge`, `auto`                         | `full`            | Caption, or badge only, see [Badge only](#badge-only).              |
 | `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Arrow length. Its base is 7/4 of that wide.                         |
 | `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, see [Scale](#scale).   |
 | `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | `1`               | Multiplies every caption dimension, see [Scale](#scale).            |
@@ -138,6 +140,51 @@ Screenshots narrower than `display_width` keep base size, so one block serves mo
 
 When an annotation carries `obstacles`, the burner scores every callout position and keeps the cheapest. From most to least important: the callout covers no page content, halo, badge or earlier callout; the stem and arrow cross none (each px of stem inside content costs more than a px of callout covering it, and a brush of under 2 px at a box edge does not count); the side named by `arrow_style` or `placement.side` is kept; the stem is short. The side hint outweighs a sliver of overlap, about 2 px of content along the callout's width, and loses to anything deeper or to a side with no room in the image. When no spot is clear at full size the burner retries with the callout's side padding cut by up to 6 px (never below 8 px) and keeps that box if it then fits clear. With `obstacles`, a numbered badge is kept fully inside the screenshot, 2 px from the edge. Annotations without `obstacles` place their badge and callout as before, so a badge on a target at the image edge can still be cut off there.
 
+## Connectors
+
+`connector_style` sets what joins a callout to its target:
+
+- `line`: a thin line from the middle of the caption edge that faces the target to the outside of the halo ring, ending in a small dot there. It starts on the caption's outer edge, so there is no gap and it does not run under the caption. The start keeps clear of the caption's rounded corners. When the target is off the caption's span the line takes one right-angle elbow halfway.
+- `chevron`: the same line ending in a small open chevron.
+- `arrow`: the filled triangle and stem docsxai always drew.
+- `auto`, the default: `line` for a burn with a theme, `arrow` for a burn without one.
+
+The line is 2 px wide, the dot 2 px in radius and the chevron arms 5 px, all multiplied by `scale`.
+
+The line comes with a clean look for the halo and badge. The halo ring is drawn 3 px outside the target, so it never covers text inside it, and the numbered badge sits diagonally off the target's corner, clear of the element.
+
+Placement, with the line:
+
+- A caption rests 20 px from its target, so 15 px of line show past the ring.
+- The burner estimates text from the screenshot's pixels around the target (dense sharp luminance steps, in 8 px cells) and adds those boxes to the annotation's `obstacles`. A capture sidecar lists at most 40 boxes, and a burn without `obstacles` gets the same protection.
+- A caption that would cover text moves out up to 176 px to empty space. Clear space wins over a short line: a long thin line is fine, a covered label is not.
+- When nothing within 176 px is clear, the caption may dock in a band 12 px from the top or bottom edge of the image, joined by a straight line. A line that crosses text costs more than one through a gutter, so docking takes the gutter when there is one.
+- A pinned arrow (`placement.pin_arrow`) is not capped, since its nudge sets the distance. The side hint in `arrow_style` works as before.
+
+The line takes `callout_border_color`, or `ink` when `callout_border_width` is 0. The burner averages the screenshot under the line and checks that colour against it. Under 3:1 it switches to whichever of `ink` and `callout_background` has the most contrast there. There is no outline.
+
+A burn without a theme keeps the triangle and its bytes. To keep the triangle in a themed burn, set `connector_style: "arrow"`.
+
+To compare the looks, `node scripts/burn-trackxai-sample.mjs` (after `pnpm --filter @docsxai/viewer build`) burns three synthetic app screens in light and dark with the `examples/burn-theme/trackxai-light.tokens.json` and `trackxai-dark.tokens.json` pair, once with `arrow` and once with the default, and prints the PNG paths under `/tmp/burn-before-after`.
+
+## Badge only
+
+`caption_style` applies with the line connector (`connector_style` `line` or `chevron`, or `auto` with a theme):
+
+- `full`, the default: every annotation gets its caption.
+- `badge`: no caption box and no connector. Each target gets its ring and a numbered badge, numbered by its place in the list when it has no `index`. Use it where the page prints the callout text as a numbered list under the image.
+- `auto`: the caption when a spot clear of text exists and its connector crosses no text, else the badge. The burn report marks each fallback with `"caption_style": "badge"`.
+
+## Phone captures
+
+A portrait capture under 900 px wide is treated as a phone screen. Its top 56 px (the header), bottom 56 px (the nav bar), the floating action button above the nav bar's right end and a 16 px strip on each side are content: captions stay off them, and badges stay off the header, nav bar and button. A caption docks under the header or above the nav bar, never on them. When no spot is clear, the caption first tries a box as wide as the screen allows, then one text step smaller (14 px burned), with lines 2 px over the text and 4 px of vertical padding.
+
+## Line breaks
+
+A burn with a theme balances the callout's lines. It keeps as many lines as filling each one would give and narrows the box until one more line would be needed, so the lines come out about even and none ends with a single word left over. A one-letter word such as Spanish `a`, `y` or `o`, and the list number in front of the copy, stay on the line of the word after them. A word wider than the line, such as a path or a URL, breaks after `/`, `-`, `_`, `.` or `:` before it breaks between letters.
+
+A burn without a theme fills each line, as it always did.
+
 ## Presets
 
 Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` keep `scale` at 1, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62 and `display_width` at 720.
@@ -214,6 +261,7 @@ Both flatten to dotted paths. Each theme key reads one default path:
 | `padding_y`            | `space.callout.y`          | dimension                                                                                                      |
 | `font`                 | `font.file`                | path to a `.ttf` or `.otf`, relative to the workspace root                                                     |
 | `font_weight`          | `font.weight.caption`      | `400` or `600`                                                                                                 |
+| `connector_style`      | `shape.connector`          | `auto`, `line`, `chevron` or `arrow`                                                                           |
 | `arrow_size`           | `size.callout.arrow`       | dimension                                                                                                      |
 
 A `rem` is 16 px. A key whose default path the file does not define is left at the preset or default.
@@ -264,7 +312,7 @@ burn: warning: burn.theme: ink on callout_background is 2.32:1, WCAG AA needs 4.
 
 The output is still produced.
 
-An arrow or stem over a dark part of a screenshot gets a white outline, as before. A light connector colour (a light `callout_border_color`) mirrors that: it gets a dark outline over light pixels.
+A line connector picks its colour as [Connectors](#connectors) describes. With `connector_style: "arrow"`, an arrow or stem over a dark part of a screenshot is drawn solid in `callout_background`, so it reads as the callout's tail. Where a tenth or more of the pixels under it are as light as that fill, it keeps the dark ink with a white outline instead. A light connector colour (a light `callout_border_color`) mirrors this: over light pixels it takes a dark `callout_background`, or else gets a dark outline. Burns without a theme keep the outline look.
 
 ## From a script
 

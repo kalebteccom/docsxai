@@ -144,7 +144,7 @@ describe("a failed load", () => {
 describe("options", () => {
   it("never reads the config when options.theme is given", async () => {
     await writeConfig({ burn: { theme: { accent: "red" } } });
-    const bytes = await burn({ theme: DEFAULT_BURN_THEME });
+    const bytes = await burn({ theme: { ...DEFAULT_BURN_THEME, connectorStyle: "arrow" } });
     expect(bytes.equals(await direct())).toBe(true);
   });
 
