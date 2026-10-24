@@ -157,6 +157,8 @@ pnpm depcruise
 pnpm jscpd:check
 ```
 
+The viewer and engine `test` scripts pass `--testTimeout=30000` because the shared CI box is slow, so tests you add must pass under it.
+
 `pnpm depcruise` is the graph-level layering gate (no runtime import cycles; the
 no-`playwright-core`-outside-the-driver and no-model-SDK bans are additionally
 enforced by eslint). `pnpm jscpd:check` is the duplication budget. Both are part
