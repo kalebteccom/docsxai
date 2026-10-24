@@ -9,6 +9,7 @@ import * as path from "node:path";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { writeFileAtomic } from "./atomic-write.js";
 import { StyleArtifact } from "./doc-pack.js";
+import { toPosix } from "./posix-path.js";
 import { resolveWorkspacePath } from "./workspace.js";
 
 export class StyleError extends Error {
@@ -167,7 +168,7 @@ export async function scanWorkspaceForJargon(
     for (const f of [...files].sort()) {
       if (!f.endsWith(".md")) continue;
       const abs = resolveWorkspacePath(workspace, "docs", ent.name, f);
-      const rel = path.relative(path.resolve(workspace), abs);
+      const rel = toPosix(path.relative(path.resolve(workspace), abs));
       const text = await fs.readFile(abs, "utf8").catch(() => "");
       hits.push(...scanTextForJargon(text, rel, categories));
     }
