@@ -441,7 +441,7 @@ named flows and can be repeated. `site` doesn't read the `burn.theme` block.
 Exit 1 when the workspace or its `docs/` folder is missing or the build fails;
 exit 2 for a bad flag or an `--accent` that isn't a hex colour.
 
-```
+```text wrap preserveIndent=false hangingIndent=4
 $ docsxai site ~/docsxai/my-app --lang es --build
 site: emitted 9 file(s) to ~/docsxai/my-app/site
 site: built ~/docsxai/my-app/site/dist in 4210ms
