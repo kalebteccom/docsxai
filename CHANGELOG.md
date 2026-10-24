@@ -12,6 +12,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`--flag=value` was ignored.** `docsxai run <ws> --flow=tour` read `flow=tour` as an unknown boolean flag and ran every flow. Every command now reads `--flag=value` the same as `--flag value`.
 - **A bare `--` took the next argument as its value.** `docsxai run -- <ws>` reported a missing workspace directory. A bare `--` now ends flag parsing and the rest are positional arguments.
 - **`baseline --out <workspace>` deleted the workspace's `flows/` and `docs/`.** A refresh clears `<out>/flows` and `<out>/docs` before copying, so an `--out` equal to the workspace removed the sources it was about to snapshot. The command now exits 2 and touches nothing.
+- **`push` payload order followed the disk.** The flows, annotations and screenshots entries of a pushed doc pack were added in the order the file system listed them, which differs between machines. They are now sorted, so the same workspace produces the same payload everywhere.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

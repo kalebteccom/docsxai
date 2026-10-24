@@ -43,7 +43,7 @@ async function readFlows(workspace: string): Promise<FlowsPayload | null> {
   const dir = resolveWorkspacePath(workspace, "flows");
   const entries = await fs.readdir(dir).catch(() => null);
   if (!entries) return null;
-  const yamls = entries.filter((e) => e.endsWith(".flow.yaml"));
+  const yamls = entries.filter((e) => e.endsWith(".flow.yaml")).sort();
   if (yamls.length === 0) return null;
   const files: Record<string, string> = {};
   for (const f of yamls) {
@@ -68,7 +68,7 @@ async function outputDirs(workspace: string): Promise<string[]> {
       .catch(() => []);
     for (const sub of subs) if (sub.isDirectory()) dirs.push(`${ent.name}/${sub.name}`);
   }
-  return dirs;
+  return dirs.sort();
 }
 
 async function readAnnotations(workspace: string): Promise<AnnotationsPayload | null> {
@@ -93,7 +93,7 @@ async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | 
     const screenDir = resolveWorkspacePath(workspace, "docs", dir, "screenshots");
     const shots = await fs.readdir(screenDir).catch(() => null);
     if (!shots) continue;
-    for (const f of shots) {
+    for (const f of shots.sort()) {
       if (!/\.(png|jpg|jpeg|webp)$/i.test(f)) continue;
       const buf = await fs.readFile(resolveWorkspacePath(workspace, "docs", dir, "screenshots", f));
       files[`${dir}/screenshots/${f}`] = {
