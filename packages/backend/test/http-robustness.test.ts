@@ -1,4 +1,6 @@
+import * as http from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { JSON_BODY_LIMIT_BYTES } from "../src/api.js";
 import { createBackendStub } from "../src/index.js";
 
 const TOKEN = "test-token";
@@ -39,5 +41,36 @@ describe("405 responses", () => {
     });
     expect(opt.status).toBe(405);
     expect(opt.headers.get("allow")).toBe("DELETE, GET, PUT");
+  });
+});
+
+/** POST a body of `mib` one-MiB spaces with chunked transfer encoding (no Content-Length). */
+function postChunked(urlPath: string, mib: number): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      `${base}${urlPath}`,
+      { method: "POST", headers: h({ "transfer-encoding": "chunked" }) },
+      (res) => {
+        let body = "";
+        res.setEncoding("utf8");
+        res.on("data", (d: string) => {
+          body += d;
+        });
+        res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
+      },
+    );
+    req.on("error", reject);
+    const chunk = Buffer.alloc(1024 * 1024, 0x20);
+    for (let i = 0; i < mib; i++) req.write(chunk);
+    req.end();
+  });
+}
+
+describe("body limits on chunked uploads", () => {
+  it("413s with the JSON error body instead of resetting the connection", async () => {
+    const mib = JSON_BODY_LIMIT_BYTES / (1024 * 1024) + 1;
+    const r = await postChunked("/v1/workspaces", mib);
+    expect(r.status).toBe(413);
+    expect((JSON.parse(r.body) as { error: string }).error).toBe("payload_too_large");
   });
 });

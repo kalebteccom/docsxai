@@ -75,18 +75,36 @@ export class PayloadTooLargeError extends Error {
   }
 }
 
-export async function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
+/**
+ * Read a request body, rejecting with {@link PayloadTooLargeError} past `limit`. Reads through
+ * `data` events: breaking out of `for await` destroys the request and its socket, which would
+ * turn a 413 into a connection reset for a chunked upload. After the rejection the stream keeps
+ * draining and the surplus is dropped.
+ */
+export function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
   const declared = Number(req.headers["content-length"]);
-  if (Number.isFinite(declared) && declared > limit) throw new PayloadTooLargeError(limit);
-  const chunks: Buffer[] = [];
-  let total = 0;
-  for await (const c of req) {
-    const chunk = c as Buffer;
-    total += chunk.length;
-    if (total > limit) throw new PayloadTooLargeError(limit);
-    chunks.push(chunk);
+  if (Number.isFinite(declared) && declared > limit) {
+    return Promise.reject(new PayloadTooLargeError(limit));
   }
-  return Buffer.concat(chunks);
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let total = 0;
+    let over = false;
+    req.on("data", (chunk: Buffer) => {
+      if (over) return;
+      total += chunk.length;
+      if (total > limit) {
+        over = true;
+        chunks.length = 0;
+        reject(new PayloadTooLargeError(limit));
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+    req.on("close", () => reject(new Error("request closed before the body was read")));
+  });
 }
 
 export async function readJsonBody(req: IncomingMessage): Promise<unknown> {
