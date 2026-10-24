@@ -274,7 +274,7 @@ describe("prose claims against engine, viewer and mcp source", () => {
     const run = await read(pluginDir, "commands", "run.md");
     expect(run).toContain("`run: <n> of <m> flows ok, outputs in <dir>`");
     expect(run).toContain("`flow variants`");
-    expect(await src("engine", "src", "doctor.ts")).toContain('args.includes("--offline")');
+    expect(await src("engine", "src", "doctor.ts")).toContain('flags.get("offline") === true');
     expect(await read(pluginDir, "commands", "doctor.md")).toContain("--offline");
   });
 });
