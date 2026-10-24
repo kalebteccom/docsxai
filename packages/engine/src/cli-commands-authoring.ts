@@ -129,10 +129,21 @@ export async function cmdInspect(args: string[]): Promise<number> {
   }
   try {
     // In CDP-attach mode without an explicit --url, inspect whatever the attached browser already has open.
-    if (url && (!cdp || explicitUrl))
+    if (url && (!cdp || explicitUrl)) {
+      let loadError: Error | undefined;
       await session.page.goto(url, { waitUntil: "domcontentloaded" }).catch((e: Error) => {
-        process.stderr.write(`inspect: warning: ${describePageLoad(e.message, url)}\n`);
+        loadError = e;
       });
+      if (loadError) {
+        process.stderr.write(
+          `inspect: ${withNext(
+            describePageLoad((loadError as Error).message, url),
+            `start the app, then docsxai inspect ${shellQuote(workspaceDir)}`,
+          )}\n`,
+        );
+        return 1;
+      }
+    }
     if (waitForSel)
       await session.page.waitForSelector(waitForSel, { timeout: 30_000 }).catch(() => undefined);
     else if (waitMs > 0) await session.page.waitForTimeout(waitMs);
