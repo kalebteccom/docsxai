@@ -52,8 +52,15 @@ burned screenshots keep callouts off them. `--ignore-https-errors` accepts self-
 
 Every command exits 0 on success. Validation problems (a missing argument, a
 bad flag value) exit 2; operational failures (a halt, a lint warning, drift at
-the threshold) exit 1. The transcripts below show representative output; paths
-and counts vary with your workspace.
+the threshold) exit 1. A flag a command does not take exits 2 (`burn` and
+`pack` too), and most commands name the nearest flag when one is close:
+`run --flwo x` prints `unknown flag --flwo, did you mean --flow?`. Giving a
+flag twice exits 2 as well, except `burn --flow`, which repeats. A flag that
+takes no value never reads the next argument, so `run --pause <workspace-dir>`
+keeps the workspace, and `--pause=yes` exits 2. A value flag with no value exits
+2 with `<flag> needs a value`. `doctor` is the exception: it ignores a flag it
+does not know. The transcripts below show
+representative output; paths and counts vary with your workspace.
 
 Reports and data go to stdout. Progress lines and warnings go to stderr where
 a command already splits them, and nothing is coloured. A failing command
@@ -102,8 +109,12 @@ init: workspace at ~/docsxai/my-app
 Runs the role's auth strategy (for `manual-capture`: a headed, instrumented
 browser the engineer logs into; `window.__docsxai.capture()` or an injected
 button snapshots the session) and caches it to
-`<workspace-dir>/.auth/<role>.json` for subsequent runs. It prints the
-captured cookie jar so you can identify the app's real auth/session cookie.
+`<workspace-dir>/.auth/<role>.json` for subsequent runs, with file mode 0600
+(owner read and write). A role name with characters outside `A-Za-z0-9_.-`, and
+the role name `backend-token`, gets a hash suffix in its file name, so `a/b` and
+`a_b` never share a session and no role overwrites the OAuth token file. A cache
+that predates the suffix is captured once more. It prints the captured cookie jar
+so you can identify the app's real auth/session cookie.
 
 It keeps a persistent Chrome profile at `<workspace>/.auth/chrome-profile/`
 (gitignored) - re-running it reuses the login; just trigger capture again.
@@ -468,7 +479,11 @@ to likely-unmounting click/navigate targets, selector waits with no
 prone to hidden duplicates, and more - the full R001-R017 table is in
 [Troubleshooting](/guides/troubleshooting/). Workspace plugins can add
 rules. Exit 1 if any warning or error; `--format json` emits
-machine-readable output for tooling.
+machine-readable output for tooling. R017 warns when a flow's `name:` differs
+from its file name (`flows/payment.flow.yaml` with `name: checkout`), because
+`extends`, `--flow` and `docs/<name>/` all use the name; it names both, so lint
+exits 1. Two flow files that share one `name:` stop `lint`, `flow-tree` and `run`
+with exit 1 and name both files.
 
 ```
 $ docsxai lint ~/docsxai/my-app
@@ -597,7 +612,8 @@ JSON. `--check` additionally scans every `docs/<flow>/<step>.md` user-facing
 write-up for jargon leaks against the style's `pruning_rules` (VERIFY, WAIT,
 `data-testid` leaking into user-facing prose, say). The engine never
 re-shapes prose itself; the agent does that at calibration time - this
-command is the enforcement layer. `--format json` for tooling.
+command is the enforcement layer. `--format json` for tooling. A workspace path
+that is not a directory exits 1 with `<path> is not a directory` and writes nothing.
 
 ```
 $ docsxai style ~/docsxai/my-app --check
@@ -673,7 +689,11 @@ session state), `**/halts/` (debug screenshots), and `.viewer/` by default
 output to `<workspace-name>.zip` in the current dir; override with
 `--out <path>`. Zips in-process (no system `zip` binary needed) and
 deterministically - sorted entries, fixed mtime, fixed compression - so the
-same doc pack always produces a byte-identical archive.
+same doc pack always produces a byte-identical archive. A symlink that points
+outside the workspace is left out, whether it is one of the fixed entries
+(`README.md`, `.docsxai.json`, `auth/strategy.yaml`, `docs/`) or sits below a
+directory. The archive is written atomically, and the output directory is created
+only once there is something to write.
 
 ```
 $ docsxai zip ~/docsxai/my-app
@@ -692,6 +712,11 @@ agent hands these to the Atlassian MCP, or the
 [Confluence publisher plugin](/packages/plugin-confluence/) consumes them -
 all Confluence HTTP lives in that capability-declared plugin, never in the
 engine.
+
+A flow file, step markdown file or screenshot that is a symlink to a file outside
+the workspace is left out of `projection.json` and `attachments.json`, so a
+publisher never uploads it. A symlink to a file inside the workspace still works.
+`export playwright` skips them the same way.
 
 ```
 $ docsxai export adf ~/docsxai/my-app --mode page-tree
@@ -763,6 +788,12 @@ defaults to the OS user. Screenshots and `annotations.json` under
 upload - a sealed, immutable snapshot. The backend URL printed in the summary has no
 query string or fragment.
 
+`push` reads the whole doc pack before it calls the backend. A pack it cannot read
+(an invalid `docs/style.json`, say) exits 1 naming the file, and nothing is created
+on the backend. A flow file, annotations file, screenshot, `style.yaml`, `style.json`
+or `locators.yaml` that is a symlink to a file outside the workspace is left out of
+the pack. The ids `push` records in `.docsxai.json` are written atomically.
+
 ```
 $ docsxai push ~/docsxai/my-app --kind run --author ci
 push: screenshots — 2 blob(s) uploaded, 7 already on the backend
@@ -774,7 +805,14 @@ push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) on http://127.0.0.
 Fetches a revision's artifacts back into the workspace files (default:
 `head`; `--rev <id>` for a named revision). Useful for syncing with a
 different operator's edits or rolling back. Fetched screenshot blobs are
-verified against their sha256 before they touch disk.
+verified against their sha256 before they touch disk. `pull` asks the backend only
+for the artifact names `flows`, `annotations`, `screenshots`, `style` and `locators`
+and prints a warning for any other name in the revision.
+
+The doc pack is written as one transaction. `pull` stages every file next to its
+target first and then renames them all into place; a failure while staging changes
+nothing, and a failed rename puts the files already swapped back. A workspace never
+holds half of the new revision and half of the old.
 
 ```
 $ docsxai pull ~/docsxai/my-app

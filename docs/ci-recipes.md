@@ -135,6 +135,11 @@ CPU and memory, and it needs target credentials that a pull request from a fork 
 Schedule it (nightly, or on a deploy of the target app) on a runner you control, and keep per-PR
 pipelines to the checks that need no browser, such as `docsxai lint` and `docsxai flow-tree`.
 
+`docsxai lint` exits 1 on any warning or error, so a per-PR job fails on R017 (a flow whose `name:`
+differs from its file name) as it does on any other warning. A misspelt or repeated flag in a recipe
+exits 2 before the command does any work. It used to run with the flag ignored, so a recipe copied
+from an older docsxai can start failing after an upgrade.
+
 The recipes install with `npm install --global docsxai@next` because a plain Node image has npm and nothing else to set up; `pnpm add -g docsxai@next` works the same where pnpm is already on the runner. The pin is `next` because `pack`, `--verify-determinism` and matrix flows are in 0.3.x, which is on the `next` dist-tag while `latest` stays 0.2.0; when 0.3.x ships stable, `latest` moves to it and the pin should move to the stable version. The weekly refresh and GitLab recipes above install `docsxai@next` too, for the same reason: a bare `docsxai` resolves to 0.2.0 while `latest` is there. The `docsxai` package carries the viewer, so `render` works from that one install. Pin the actions by commit SHA in your own repository.
 
 The three files below also live under `examples/ci/` in the docsxai repository, and a test keeps the
