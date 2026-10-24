@@ -270,7 +270,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   try {
     storageState = cdpEndpoint ? undefined : await loadAuthStorageState(projectDir);
   } catch (e) {
-    process.stderr.write(`run: ${(e as Error).message}\n`);
+    process.stderr.write(`run: ${describeFsError(e) ?? (e as Error).message}\n`);
     return 1;
   }
 

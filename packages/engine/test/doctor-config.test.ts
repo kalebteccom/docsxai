@@ -76,6 +76,15 @@ describe("checkWritable", () => {
     expect(c).toMatchObject({ name: "writable", ok: true });
   });
 
+  it("fails naming an output dir that is a file, with the mv to run", async () => {
+    const auth = path.join(tmp, ".auth");
+    await fs.writeFile(auth, "x");
+    const c = await checkWritable(tmp);
+    expect(c.ok).toBe(false);
+    expect(c.detail).toContain(`${auth} is a file, but docsxai needs a directory there`);
+    expect(c.fix).toBe(`mv ${auth} ${auth}.bak, or use another workspace dir`);
+  });
+
   it.skipIf(process.getuid?.() === 0 || process.platform === "win32")(
     "fails naming the read-only output dir and the chmod to run",
     async () => {

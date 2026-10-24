@@ -80,6 +80,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **Unreadable `.docsxai.json` in `run` and `capture-auth`.** A config file that exists but cannot be read now prints the `was ignored (it cannot be read, EACCES)` warning with the `next:` line. It used to pass as a missing file and say nothing.
 - **`docsxai` on Node 18 and older.** The CLI prints `docsxai: Node v18.20.5 is too old to start (the engine requires Node >= 26)` and a `next:` line, and exits 1, before Playwright's own text appears. Node 20 to 25 start as before, and `doctor` fails the `node` row for them.
 - **`run_flows` words a browser that will not start like the CLI.** The `run_flows` MCP tool now reports `no Chromium binary found` or `cannot attach to the browser at <endpoint> (ECONNREFUSED)` in `error` and the install or Chrome command in `hint`, from the same helper `run` uses. Other launch errors keep Playwright's text. `describeBrowserLaunch` and `CHROMIUM_INSTALL` are now exported from `@docsxai/engine`.
+- **A file where `.auth/` should be.** `capture-auth`, `run`, `inspect`, `doctor` and the `run_flows` MCP tool name the file, say it is a file where a directory is needed (ENOTDIR) and give `next: mv <file> <file>.bak`. `capture-auth` used to print Playwright's raw `ENOTDIR: not a directory, mkdir`, `run` and `inspect` called it a missing session, and `doctor` passed the `writable` row. The same message covers any other workspace directory (`flows/`, `docs/`, `.viewer/`) that is a file.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

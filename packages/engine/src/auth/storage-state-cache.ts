@@ -105,7 +105,9 @@ export class LocalStorageStateCache {
     let text: string;
     try {
       text = await fs.readFile(this.file(role), "utf8");
-    } catch {
+    } catch (e) {
+      // A file where `.auth/` should be is a broken workspace, not a missing session.
+      if ((e as NodeJS.ErrnoException).code === "ENOTDIR") throw e;
       return null;
     }
     let parsed: CachedState;

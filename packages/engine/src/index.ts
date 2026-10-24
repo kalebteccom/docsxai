@@ -15,6 +15,7 @@ export * from "./flow-lint.js";
 export * from "./flow-tree.js";
 export * from "./auth.js";
 export * from "./browser-launch-error.js";
+export { describeFsProblem, type FsProblem } from "./cli-messages.js";
 export * from "./backend-client.js";
 export * from "./calibrate.js";
 export * from "./diagnose.js";

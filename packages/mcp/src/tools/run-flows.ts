@@ -6,6 +6,7 @@
 import { promises as fs } from "node:fs";
 import {
   describeBrowserLaunch,
+  describeFsProblem,
   FlowExecutionError,
   inferHaltCause,
   launchPlaywrightSession,
@@ -63,9 +64,14 @@ async function loadAuthStorageState(workspace: string): Promise<StorageState | u
     );
   }
   const role = descriptor.default_role;
-  const state = await new LocalStorageStateCache(resolveWorkspacePath(workspace, ".auth")).load(
-    role,
-  );
+  let state: StorageState | null;
+  try {
+    state = await new LocalStorageStateCache(resolveWorkspacePath(workspace, ".auth")).load(role);
+  } catch (e) {
+    const problem = describeFsProblem(e);
+    if (!problem) throw e;
+    throw new ToolInputError(problem.reason, problem.next);
+  }
   if (!state) {
     throw new ToolInputError(
       `auth/strategy.yaml configures role "${role}" but its cached session is missing or expired`,

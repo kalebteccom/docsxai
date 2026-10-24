@@ -98,13 +98,27 @@ export async function checkWritable(workspaceDir: string): Promise<DoctorCheck> 
     ...["flows", "docs", ".auth", ".viewer"].map((d) => path.join(root, d)),
   ];
   const blocked: string[] = [];
+  const files: string[] = [];
   for (const dir of candidates) {
     if (dir !== root && !existsSync(dir)) continue;
+    const stat = await fs.stat(dir).catch(() => null);
+    if (stat && !stat.isDirectory()) {
+      files.push(dir);
+      continue;
+    }
     try {
       await fs.access(dir, fsConstants.W_OK);
     } catch {
       blocked.push(dir);
     }
+  }
+  if (files.length > 0) {
+    return {
+      name: "writable",
+      ok: false,
+      detail: files.map((f) => `${f} is a file, but docsxai needs a directory there`).join("; "),
+      fix: `${files.map((f) => `mv ${shellQuote(f)} ${shellQuote(`${f}.bak`)}`).join(" && ")}, or use another workspace dir`,
+    };
   }
   if (blocked.length === 0) {
     return { name: "writable", ok: true, detail: `${root} and its output dirs are writable` };

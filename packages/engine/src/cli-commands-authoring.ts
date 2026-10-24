@@ -33,7 +33,7 @@ import { launchPlaywrightSession } from "./playwright-driver.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import { bareValueFlagExit, claimFlowName, listFlowFiles } from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
-import { shellQuote, usageError, withNext } from "./cli-messages.js";
+import { describeFsProblem, shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdInspect(args: string[]): Promise<number> {
   const parsed = parseCommandFlags("inspect", args);
@@ -89,9 +89,17 @@ export async function cmdInspect(args: string[]): Promise<number> {
         role = "editor";
       }
     }
-    storageState =
-      (await new LocalStorageStateCache(resolveWorkspacePath(workspaceDir, ".auth")).load(role)) ??
-      undefined;
+    try {
+      storageState =
+        (await new LocalStorageStateCache(resolveWorkspacePath(workspaceDir, ".auth")).load(
+          role,
+        )) ?? undefined;
+    } catch (e) {
+      const problem = describeFsProblem(e);
+      if (!problem) throw e;
+      process.stderr.write(`inspect: ${withNext(problem.reason, problem.next)}\n`);
+      return 1;
+    }
     if (!storageState) {
       process.stderr.write(
         `inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`docsxai capture-auth\` first if the app needs login)\n`,
