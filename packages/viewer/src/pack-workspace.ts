@@ -16,6 +16,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
+import { checkDeviceScaleFactor } from "./burn-annotations-file.js";
 import { calloutsOf, checkEngineRecord } from "./pack-annotations.js";
 import {
   CAPTURE_FLOW,
@@ -185,14 +186,20 @@ interface PlacedRecord {
   at: number;
 }
 
-async function annotationsOf(flowDir: string, shownDir: string): Promise<PlacedRecord[]> {
+async function annotationsOf(
+  flowDir: string,
+  shownDir: string,
+): Promise<{ placed: PlacedRecord[]; pixelRatio?: number }> {
   const shown = `${shownDir}/annotations.json`;
   const parsed = await readJsonObject(path.join(flowDir, "annotations.json"), true, shown);
-  if (parsed.annotations === undefined) return [];
+  const pixelRatio = checkDeviceScaleFactor(parsed.device_scale_factor, shown);
+  const ratio = pixelRatio !== undefined ? { pixelRatio } : {};
+  if (parsed.annotations === undefined) return { placed: [], ...ratio };
   if (!Array.isArray(parsed.annotations)) throw new Error(`${shown}: annotations must be an array`);
-  return (parsed.annotations as unknown[]).flatMap((raw, at) =>
+  const placed = (parsed.annotations as unknown[]).flatMap((raw, at) =>
     isObj(raw) ? [{ record: raw as unknown as AnnotationRecord, at }] : [],
   );
+  return { placed, ...ratio };
 }
 
 /**
@@ -224,7 +231,8 @@ async function addSource(
     );
   }
   const byStep = new Map<unknown, PlacedRecord[]>();
-  for (const p of await annotationsOf(flowDir, shownDir)) {
+  const { placed, pixelRatio } = await annotationsOf(flowDir, shownDir);
+  for (const p of placed) {
     const list = byStep.get(p.record.step);
     if (list) list.push(p);
     else byStep.set(p.record.step, [p]);
@@ -260,6 +268,7 @@ async function addSource(
       ),
       annotations,
       callouts: calloutsOf(annotations),
+      ...(pixelRatio !== undefined ? { pixelRatio } : {}),
     });
     steps.set(id, step);
   }

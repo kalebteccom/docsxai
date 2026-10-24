@@ -13,6 +13,7 @@ import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
 import { withNext } from "./cli-failure.js";
 import { pngDimensions } from "./burn.js";
+import { checkDeviceScaleFactor } from "./burn-annotations-file.js";
 import { calloutsOf, recordsFromSidecar } from "./pack-annotations.js";
 import { showingPath } from "./pack-paths.js";
 import { isValidId, parseVariantKey, type LocalizedText, type PackCallout } from "./pack-schema.js";
@@ -24,6 +25,8 @@ export interface SourceVariant {
   png: Buffer;
   annotations: AnnotationRecord[];
   callouts: PackCallout[];
+  /** Device pixels per CSS pixel the screenshot was captured at; absent means 1. */
+  pixelRatio?: number;
 }
 
 export interface SourceStep {
@@ -128,7 +131,14 @@ async function readVariant(stepDir: string, step: string, file: string): Promise
     );
   }
   const annotations = recordsFromSidecar(step, sidecar.annotations, sidecarFile);
-  return { key, png, annotations, callouts: calloutsOf(annotations) };
+  const pixelRatio = checkDeviceScaleFactor(sidecar.device_scale_factor, sidecarFile);
+  return {
+    key,
+    png,
+    annotations,
+    callouts: calloutsOf(annotations),
+    ...(pixelRatio !== undefined ? { pixelRatio } : {}),
+  };
 }
 
 async function readStep(flowDir: string, flow: string, step: string): Promise<SourceStep> {

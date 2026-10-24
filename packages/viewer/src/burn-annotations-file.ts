@@ -42,7 +42,14 @@ export function readAnnotationList(raw: string, file: string): AnnotationRecord[
  * from 1 to 4 is an {@link AnnotationsFileError}. Expects text that {@link readAnnotationList} accepted.
  */
 export function readDeviceScaleFactor(raw: string, file: string): number | undefined {
-  const value = (JSON.parse(raw) as { device_scale_factor?: unknown } | null)?.device_scale_factor;
+  return checkDeviceScaleFactor(
+    (JSON.parse(raw) as { device_scale_factor?: unknown } | null)?.device_scale_factor,
+    file,
+  );
+}
+
+/** {@link readDeviceScaleFactor} for a value already parsed out of `file`. */
+export function checkDeviceScaleFactor(value: unknown, file: string): number | undefined {
   if (value === undefined) return undefined;
   if (typeof value !== "number" || !Number.isFinite(value) || value < 1 || value > 4) {
     throw new AnnotationsFileError(

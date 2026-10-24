@@ -28,6 +28,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Fixed
 
+- **`docsxai-viewer pack` burns 2x captures at their device scale.** A workspace `annotations.json` with `device_scale_factor`, or a raw capture sidecar with the same key, now reaches the burner as its pixel ratio, as `burn` already did; before, pack drew captions at 1x size on a 2x screenshot. A value outside 1 to 4 stops the pack and names the file.
 - **`docsxai run` rejects an empty value for its value flags.** `--flow ""`, `--variant ""`, `--stop-after ""`, `--start-from ""` and `--cdp ""` were read as unset and ran every flow or variant; they now exit 2 with `needs a value`.
 - **`docsxai run --start-from` no longer merges steps captured at another device scale.** Earlier steps in an `annotations.json` recorded at a different `--device-scale-factor` (absent counts as 1) are dropped with a warning, since their boxes are in other pixels than the re-run steps and the file has one `device_scale_factor`.
 - **Spanish viewer and site text reviewed.** Instructions now use tú imperatives ("Pulsa Ctrl+C", "Comprueba tu conexión") with one term per concept (captura, paso, flujo, anotación, ID), "registro de anotación" becomes "anotación", and a term table in `ui-strings.test.ts` pins them
