@@ -63,23 +63,38 @@ export interface RunFlowsResult {
   failures: FlowFailure[];
 }
 
-/** Merge a `--start-from` partial run into the annotations file already on disk, by step id. */
+/**
+ * Merge a `--start-from` partial run into the annotations file already on disk, by step id. An
+ * existing file that cannot be read or is not an annotations file is replaced by the fresh
+ * annotations alone, and `warn` says so.
+ */
 async function mergeAnnotations(
   annotationsPath: string,
   fresh: Awaited<ReturnType<typeof runFlow>>["annotations"],
+  warn: (message: string) => void,
 ): Promise<typeof fresh> {
+  let existing: typeof fresh;
   try {
-    const existing = JSON.parse(await fs.readFile(annotationsPath, "utf8")) as typeof fresh;
-    const newStepIds = new Set(fresh.annotations.map((a) => a.step));
-    const merged = [
-      ...existing.annotations.filter((a) => !newStepIds.has(a.step)),
-      ...fresh.annotations,
-    ];
-    return { ...fresh, annotations: merged };
-  } catch {
-    // No existing file (or unreadable) — just write what we have.
+    existing = JSON.parse(await fs.readFile(annotationsPath, "utf8")) as typeof fresh;
+  } catch (e) {
+    // No existing file: nothing to merge.
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") {
+      warn(
+        `${annotationsPath} cannot be read (${(e as Error).message}), the earlier steps are dropped`,
+      );
+    }
     return fresh;
   }
+  if (!Array.isArray(existing?.annotations)) {
+    warn(`${annotationsPath} is not an annotations file, the earlier steps are dropped`);
+    return fresh;
+  }
+  const newStepIds = new Set(fresh.annotations.map((a) => a.step));
+  const merged = [
+    ...existing.annotations.filter((a) => !newStepIds.has(a.step)),
+    ...fresh.annotations,
+  ];
+  return { ...fresh, annotations: merged };
 }
 
 /** Execute `opts.flows`, up to `opts.concurrency` at a time, each in its own browser session. */
@@ -138,7 +153,9 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
       // existing file (if any) by step id so the prior steps' annotations stay in place. Same
       // story for screenshots (they live as separate PNGs and are simply not re-captured).
       const toWrite = startFrom
-        ? await mergeAnnotations(annotationsPath, result.annotations)
+        ? await mergeAnnotations(annotationsPath, result.annotations, (m) =>
+            say(`${tag(name)}warning: ${m}\n`),
+          )
         : result.annotations;
       await writeFileAtomic(annotationsPath, JSON.stringify(toWrite, null, 2) + "\n", "utf8");
       say(
