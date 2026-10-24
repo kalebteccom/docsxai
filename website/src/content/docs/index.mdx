@@ -8,6 +8,7 @@ lastUpdated: false
 ---
 
 import CopyCommand from "../../components/CopyCommand.astro";
+import ShowcaseShot from "../../components/ShowcaseShot.astro";
 
 <div class="docsx-hero not-content">
   <div class="docsx-hero-copy">
@@ -128,6 +129,29 @@ import CopyCommand from "../../components/CopyCommand.astro";
     </svg>
     <span>replay on every change · no agent in the run</span>
   </p>
+</div>
+
+<div class="docsx-section not-content" id="what-it-makes">
+  <h2 class="docsx-section-title">What it makes</h2>
+  <div class="docsx-section-sub">
+    A screen of trackxai, a Kalebtec app, as <code>docsxai run</code> captured it and as a themed
+    burn draws it, then what a run prints.
+  </div>
+  <div class="docsx-shots">
+    <ShowcaseShot
+      shot="pipeline"
+      alt="The same screenshot of the trackxai Progress page twice. The copy labelled raw is the plain capture. The copy labelled burned adds violet halos and numbered badges and, on wider screens, three callouts joined to their targets by thin lines: the bar splits every task by phase, open tasks group by epic, and a question waiting on you shows up in the task's timeline."
+    >
+      The same capture, raw and burned with a caption theme. Caption themes are new in the next
+      release.
+    </ShowcaseShot>
+    <ShowcaseShot
+      shot="terminal"
+      alt="A terminal window titled docsxai run. The command docsxai run workspace replays the screens flow in eight variants: en-US and es-ES, light and dark, desktop 1280 and mobile 390. Each variant prints a starting line, then 61 or 53 steps executed and 29 or 18 annotations written. The last line reads: run: 8 of 8 flow variants ok, outputs in workspace/docs."
+    >
+      One flow file with a matrix, replayed in eight variants with no agent in the loop.
+    </ShowcaseShot>
+  </div>
 </div>
 
 <div class="docsx-section not-content">

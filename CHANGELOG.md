@@ -8,6 +8,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 - **`docsxai-viewer <command> --help` and `-h` print that command's usage.** `build`, `burn`, `site` and `pack` show their usage lines and flag notes and exit 0, as `docsxai help <command>` does; `docsxai-viewer --help` and `-h` print the full help and exit 0. An unknown flag still exits 2
 - **`scripts/burn-trackxai.mjs --webp` writes a lossless WebP twin beside each new PNG.** It runs `cwebp -lossless -z 9`, keeps a twin only when it is under 100 kB and smaller than the PNG, and prints a warning with both sizes when it drops one. Without `cwebp` on `PATH` it stops with an install hint
+- **Landing page "What it makes" section.** docsxai.dev shows two product shots after the hero: a trackxai capture raw and burned with a caption theme, and the lines `docsxai run` prints for a matrix flow. Each comes in dark and light, follows the site's theme, sends 390 px files to phones and has a lossless WebP twin under 100 kB. `node scripts/landing-showcase.mjs --raw <dir> --out website/public/showcase` redraws them with satori and resvg and writes the manifest the page reads
 
 ### Changed
 
