@@ -11,7 +11,7 @@ Pass every value as its own single-quoted shell word (an embedded `'` is written
 docsxai pull '<workspace-dir>' [flags]
 ```
 
-It fetches each artifact slot on the named revision and writes it back into the workspace files (`flows/`, `docs/<flow>/annotations.json`, `docs/<flow>/screenshots/`, `docs/style.{yaml,json}`, `docs/locators.yaml`; a matrix flow's files sit under `docs/<flow>/<variant>/`). The last line is `pull: revision <rev_id> … wrote <n> file(s)`. Use it to sync with another operator's edits or to roll back to a named revision.
+It fetches each artifact slot on the named revision and writes it back into the workspace files (`flows/`, `docs/<flow>/annotations.json`, `docs/<flow>/screenshots/`, `docs/style.{yaml,json}`, `docs/locators.yaml`; a matrix flow's files sit under `docs/<flow>/<variant>/`). The last line is `pull: revision <rev_id> … wrote <n> file(s)`. Use it to sync with someone else's edits or to roll back to a named revision.
 
 The workspace must be bound to a backend (`backend_url`, `backend_workspace_id` and `backend_project_id` in `.docsxai.json`), which the first `push` sets up. Otherwise it exits 2 and the `next:` line says how to bind it.
 

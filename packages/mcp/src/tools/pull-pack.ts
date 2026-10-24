@@ -16,7 +16,7 @@ export const pullPackTool = defineTool({
   title: "Pull a doc-pack revision from the backend",
   description:
     "Download a doc-pack revision from the backend and write it into the workspace, to pick up " +
-    "another operator's edits or to roll back to a named revision. Overwrites the local flow, " +
+    "someone else's edits or to roll back to a named revision. Overwrites the local flow, " +
     "annotation, screenshot, style and locator files the revision contains, so push_pack first " +
     "if you have local edits you want to keep. Needs the workspace bound to a backend " +
     "(backend_url plus workspace and project ids in .docsxai.json; push_pack creates the ids) " +

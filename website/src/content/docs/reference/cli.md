@@ -114,7 +114,7 @@ init: workspace at ~/docsxai/my-app
 ### `docsxai capture-auth`
 
 Runs the role's auth strategy (for `manual-capture`: a headed, instrumented
-browser the engineer logs into; `window.__docsxai.capture()` or an injected
+browser you log into; `window.__docsxai.capture()` or an injected
 button snapshots the session) and caches it to
 `<workspace-dir>/.auth/<role>.json` for subsequent runs, with file mode 0600
 (owner read and write). A role name with characters outside `A-Za-z0-9_.-`, and
@@ -243,7 +243,7 @@ before Playwright's own text.
 - `--cdp <endpoint>` attaches to a running Chrome (start it with
   `--remote-debugging-port=N`) instead of launching one; docsxai will not
   close that Chrome. When `--cdp` is set, the cached storageState is NOT
-  loaded into the context - the operator's Chrome owns its auth state.
+  loaded into the context - the attached Chrome keeps its own auth state.
 - `--concurrency <N>` runs up to N flows in parallel, each in its own
   isolated Chromium session (default 1). Useful when several flows share a
   long preamble: total wall time is the longest flow, not the sum.
@@ -748,7 +748,7 @@ YAML (steps and locators). Gate a matrix workspace's screenshots with
 
 Packages the workspace's doc pack into a single archive for hand-off.
 Includes `flows/`, `docs/`, `.docsxai.json`, `auth/strategy.yaml` (env-var
-names only, no creds), `README.md`. Excludes `.auth/` (operator-local
+names only, no creds), `README.md`. Excludes `.auth/` (local
 session state), `**/halts/` (debug screenshots), and `.viewer/` by default
 (re-renderable from the pack; pass `--include-viewer` to bundle it). Defaults
 output to `<workspace-name>.zip` in the current dir; override with
@@ -868,8 +868,8 @@ push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) on http://127.0.0.
 ### `docsxai pull`
 
 Fetches a revision's artifacts back into the workspace files (default:
-`head`; `--rev <id>` for a named revision). Useful for syncing with a
-different operator's edits or rolling back. Fetched screenshot blobs are
+`head`; `--rev <id>` for a named revision). Useful for syncing with
+someone else's edits or rolling back. Fetched screenshot blobs are
 verified against their sha256 before they touch disk. `pull` asks the backend only
 for the artifact names `flows`, `annotations`, `screenshots`, `style` and `locators`
 and prints a warning for any other name in the revision.
