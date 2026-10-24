@@ -219,7 +219,7 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
         case "/v1/workspaces/:ws/projects/:project/revisions":
           if (method === "GET") return sendJson(res, 200, store.listRevisions(ws!, project!));
           {
-            const b = (await readJsonBody(req)) as { kind?: string; author?: string } | undefined;
+            const b = (await readJsonBody(req)) as { kind?: string; author?: unknown } | undefined;
             const kind = b?.kind;
             if (kind !== "calibrate" && kind !== "run" && kind !== "edit") {
               return sendJson(res, 400, {
@@ -227,11 +227,14 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
                 message: "body requires { kind: calibrate|run|edit, author }",
               });
             }
-            return sendJson(
-              res,
-              201,
-              store.createRevision(ws!, project!, kind, String(b?.author ?? "unknown")),
-            );
+            const author = b?.author ?? "unknown";
+            if (typeof author !== "string") {
+              return sendJson(res, 400, {
+                error: "bad_request",
+                message: "author must be a string",
+              });
+            }
+            return sendJson(res, 201, store.createRevision(ws!, project!, kind, author));
           }
         case "/v1/workspaces/:ws/projects/:project/revisions/:rev":
           return sendJson(res, 200, store.getRevision(ws!, project!, rev!));

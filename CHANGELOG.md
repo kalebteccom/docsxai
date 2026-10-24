@@ -91,6 +91,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Halt screenshot and jargon-hit paths use `/` on Windows.** `diagnose` and `style --check` printed workspace-relative paths with backslashes there; they now match the POSIX form the other reports use.
 - **`docsxai` and `docsxai-viewer` start through an installed bin symlink.** The entry check compared `import.meta.url` with the path the shell used, so a bin that npm links into `PATH` exited 0 without running. It now also compares the real path, as `docsxai-backend` does.
 - **`HEAD /v1/health` answers 200 (`@docsxai/backend`).** It was a 405, which failed load balancer probes that use HEAD. Other GET routes still answer HEAD with 405.
+- **A revision with a non-string `author` is rejected (`@docsxai/backend`).** `POST .../revisions` stored an object as `[object Object]`; it now answers 400 `author must be a string`. A missing `author` still defaults to `unknown`.
 
 ## [0.3.0-rc.3] - 2026-10-09
 
