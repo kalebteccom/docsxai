@@ -19,7 +19,11 @@ import type {
 import { writeFileAtomic } from "./atomic-write.js";
 import { FlowName } from "./doc-pack.js";
 import { findCaseCollision, hasTrailingDot, isWindowsDeviceName } from "./flow-name-rules.js";
-import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
+import {
+  resolveWorkspacePath,
+  resolveWorkspacePathReal,
+  WorkspacePathEscapeError,
+} from "./workspace.js";
 
 export interface DocPackPayloads {
   flows: FlowsPayload | null;
@@ -40,6 +44,24 @@ export async function readDocPack(workspace: string): Promise<DocPackPayloads> {
   };
 }
 
+/**
+ * The bytes of a workspace file, or `null` when it is missing or reaches outside the workspace
+ * through a symlink. A pack is sent to the backend, so a linked file must not be read.
+ */
+async function readInside(workspace: string, ...segments: string[]): Promise<Buffer | null> {
+  let abs: string;
+  try {
+    abs = await resolveWorkspacePathReal(workspace, ...segments);
+  } catch (e) {
+    if (e instanceof WorkspacePathEscapeError) return null;
+    throw e;
+  }
+  return fs.readFile(abs).catch(() => null);
+}
+
+const readInsideText = async (workspace: string, ...segments: string[]): Promise<string | null> =>
+  (await readInside(workspace, ...segments))?.toString("utf8") ?? null;
+
 async function readFlows(workspace: string): Promise<FlowsPayload | null> {
   const dir = resolveWorkspacePath(workspace, "flows");
   const entries = await fs.readdir(dir).catch(() => null);
@@ -48,8 +70,10 @@ async function readFlows(workspace: string): Promise<FlowsPayload | null> {
   if (yamls.length === 0) return null;
   const files: Record<string, string> = {};
   for (const f of yamls) {
-    files[f] = await fs.readFile(resolveWorkspacePath(workspace, "flows", f), "utf8");
+    const text = await readInsideText(workspace, "flows", f);
+    if (text !== null) files[f] = text;
   }
+  if (Object.keys(files).length === 0) return null;
   return { schema: "docsxai/flows@1", files };
 }
 
@@ -75,8 +99,7 @@ async function outputDirs(workspace: string): Promise<string[]> {
 async function readAnnotations(workspace: string): Promise<AnnotationsPayload | null> {
   const files: Record<string, unknown> = {};
   for (const dir of await outputDirs(workspace)) {
-    const annPath = resolveWorkspacePath(workspace, "docs", dir, "annotations.json");
-    const text = await fs.readFile(annPath, "utf8").catch(() => null);
+    const text = await readInsideText(workspace, "docs", dir, "annotations.json");
     if (text === null) continue;
     try {
       files[`${dir}/annotations.json`] = JSON.parse(text);
@@ -96,7 +119,8 @@ async function readScreenshots(workspace: string): Promise<ScreenshotsPayload | 
     if (!shots) continue;
     for (const f of shots.sort()) {
       if (!/\.(png|jpg|jpeg|webp)$/i.test(f)) continue;
-      const buf = await fs.readFile(resolveWorkspacePath(workspace, "docs", dir, "screenshots", f));
+      const buf = await readInside(workspace, "docs", dir, "screenshots", f);
+      if (buf === null) continue;
       files[`${dir}/screenshots/${f}`] = {
         sha256: createHash("sha256").update(buf).digest("hex"),
         bytes: buf.byteLength,
@@ -163,10 +187,9 @@ export async function fetchScreenshotBlobs(
 }
 
 async function readStyle(workspace: string): Promise<StylePayload | null> {
-  const yamlPath = resolveWorkspacePath(workspace, "docs", "style.yaml");
   const jsonPath = resolveWorkspacePath(workspace, "docs", "style.json");
-  const yaml = await fs.readFile(yamlPath, "utf8").catch(() => null);
-  const jsonText = await fs.readFile(jsonPath, "utf8").catch(() => null);
+  const yaml = await readInsideText(workspace, "docs", "style.yaml");
+  const jsonText = await readInsideText(workspace, "docs", "style.json");
   if (yaml === null && jsonText === null) return null;
   let json: unknown = null;
   if (jsonText) {
@@ -180,8 +203,7 @@ async function readStyle(workspace: string): Promise<StylePayload | null> {
 }
 
 async function readLocators(workspace: string): Promise<LocatorsPayload | null> {
-  const yamlPath = resolveWorkspacePath(workspace, "docs", "locators.yaml");
-  const yaml = await fs.readFile(yamlPath, "utf8").catch(() => null);
+  const yaml = await readInsideText(workspace, "docs", "locators.yaml");
   if (yaml === null) return null;
   return { schema: "docsxai/locators@1", yaml };
 }

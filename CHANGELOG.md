@@ -26,6 +26,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`push` with a doc pack it cannot read.** An invalid `docs/style.json` made `push` throw after it had created a backend workspace, a project and an unfinalized revision. It now reads the pack first, exits 1 naming the file, and touches the backend only when the pack reads. The `.docsxai.json` that records the backend ids is written atomically.
 - **`pull` with an unknown artifact name in a revision.** The names a backend listed went into the request path as they came, so `../../x` reached another endpoint with the bearer token. `pull` now requests only `flows`, `annotations`, `screenshots`, `style` and `locators`, and prints a warning for any other name.
 - **`zip` followed symlinks in its fixed entries.** `README.md`, `.docsxai.json`, `auth/strategy.yaml` or `docs/` linked to a file or directory outside the workspace went into the archive with the target's content; only entries found below a directory were checked. All entries get the check now. `zip` also creates the output directory only after it has something to write, and writes the archive atomically.
+- **`push` read files behind symlinks.** A flow file, annotations file, screenshot, `style.yaml`, `style.json` or `locators.yaml` that was a symlink to a file outside the workspace was read and sent to the backend. Those files are now left out of the pack.
 
 ## [0.3.0-rc.4] - 2026-10-24
 
