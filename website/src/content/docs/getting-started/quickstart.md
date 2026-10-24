@@ -76,7 +76,10 @@ steps:
     target: $nav_reports
     wait_for: { selector: $report_table }
     success: { visible: $report_table }
-    annotation: { copy: "Open Reports to see this month's numbers", arrow: top-right }
+    annotation:
+      target: $nav_reports
+      copy: "Open Reports to see this month's numbers"
+      arrow: top-right
 ```
 
 To find good locators on the live, authed page, use
@@ -100,8 +103,8 @@ Headless Chromium loads the cached session, replays the steps, and writes
 step. A successful run prints a starting line and a result line per flow:
 
 ```text
-run: open-reports — starting
-run: open-reports — 2 step(s) executed, 1 annotation(s) written
+run: open-reports, starting
+run: open-reports, 2 step(s) executed, 1 annotation(s) written
 ```
 
 The last line is a summary, for example

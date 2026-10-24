@@ -85,3 +85,16 @@ Still needs a person:
 - A real touch device: tap targets under a finger, overlay redraw after rotation.
 - Screen readers: live-region announcements in VoiceOver and NVDA.
 - Layout shift on load (CLS from the font swap and the reserved image boxes), and print preview.
+
+## Layout audit
+
+`scripts/layout-audit.mjs` measures layout and takes no screenshots. No CI step runs it. It opens each page at 320, 360, 390, 430, 768, 1024, 1280 and 1920 px wide, portrait and landscape, and lists horizontal page overflow, elements that run past the viewport's edge with no clipping ancestor, and off-centre children: for an element marked `data-center` (or a pair in the config), the child's centre must sit within 1 px of the parent's and its left and right insets must match within 1 px. It exits 1 on any finding.
+
+```bash
+pnpm --filter @docsxai/website build
+pnpm -C packages/engine exec playwright-core install chromium
+node scripts/layout-audit.mjs --dir website/dist --path / --path /getting-started/quickstart/
+node scripts/layout-audit.mjs --dir /tmp/viewer --path /index.html --config layout.json
+```
+
+The config is JSON with optional `paths`, `center` (a list of `{ "parent": "<css>", "child": "<css>" }`) and `ignore` (selectors whose subtrees are skipped). `scripts/layout-audit.test.mjs` covers the box maths and runs with the website package tests.
