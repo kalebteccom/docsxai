@@ -538,6 +538,10 @@ main:has(.docsx-404) > .content-panel {
     grid-template-columns: 3.8rem 5.6rem 1fr;
     gap: 0.3rem;
   }
+  /* "4 steps, 4 annotations" on one line needs about 344px, wider than a 320 or 360 px phone. */
+  .docsx-snap .t-body {
+    white-space: normal;
+  }
 }
 
 /* ---- Two-mode split diagram (architecture page) ------------------------- */
@@ -1051,7 +1055,8 @@ main:has(.docsx-404) > .content-panel {
 /* Feature grid. */
 .docsx-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  /* min(100%, ...) keeps one column inside a phone at 200% text size, where 15rem is 480px. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
   gap: 1rem;
   margin: 1.5rem 0;
 }
