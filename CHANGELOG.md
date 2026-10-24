@@ -8,6 +8,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 - **`--stop-after` on an optional step.** When the step named by `--stop-after` was `optional: true` and failed, it was skipped and the run went on to the end of the flow; the run now stops there.
 - **Browser left running after a failed launch step.** When Chromium started but creating the context or page failed (a bad `environment` value, a rejected `storageState`), the browser process was never closed, so the command hung until it was killed. The browser is now closed before the error is reported.
+- **Flags without a value were ignored.** `docsxai run <ws> --flow` (or `--variant`, `--stop-after`, `--start-from`, `--cdp`, `--base-url`, `--concurrency`) ran every flow as if the flag was absent, and `diff --against`, `diff --format` and `baseline --out` fell back to their defaults. Each now exits 2 with `--<flag> needs a value`.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

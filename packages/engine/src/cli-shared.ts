@@ -32,6 +32,14 @@ export function parseFlags(args: string[]): {
   return { positionals, flags };
 }
 
+/** The first of `names` given as a bare flag (`--flow` with nothing after it), or `undefined`. */
+export function flagMissingValue(
+  flags: Map<string, string | true>,
+  names: readonly string[],
+): string | undefined {
+  return names.find((n) => flags.get(n) === true);
+}
+
 export async function listFlowFiles(projectDir: string): Promise<string[]> {
   const dir = resolveWorkspacePath(projectDir, "flows");
   let entries: string[];

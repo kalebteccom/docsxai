@@ -77,6 +77,19 @@ describe("docsxai CLI — main()", () => {
     expect(err).toMatch(/--start-from requires --flow/);
   });
 
+  it.each<[string, string]>([
+    ["run", "--flow"],
+    ["run", "--variant"],
+    ["run", "--stop-after"],
+    ["run", "--concurrency"],
+    ["diff", "--against"],
+    ["diff", "--format"],
+    ["baseline", "--out"],
+  ])("%s with a bare %s exits 2 instead of ignoring the flag", async (cmd, flag) => {
+    expect(await main([cmd, "/some/ws", flag])).toBe(2);
+    expect(err).toContain(`${cmd}: ${flag} needs a value`);
+  });
+
   it("init requires a workspace dir (unless --persist tmp) and validates enums", async () => {
     expect(await main(["init"])).toBe(2);
     expect(err).toMatch(/missing <workspace-dir>/);

@@ -22,7 +22,7 @@ import { exportWorkspaceFlowsAsPlaywrightTests } from "./export/playwright-test.
 import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
-import { parseFlags } from "./cli-shared.js";
+import { flagMissingValue, parseFlags } from "./cli-shared.js";
 import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdRender(args: string[]): Promise<number> {
@@ -270,6 +270,8 @@ export async function cmdBaseline(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("baseline", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bare = flagMissingValue(flags, ["out"]);
+  if (bare) return usageError("baseline", `--${bare} needs a value`);
   const outFlag = flags.get("out");
   const outDir =
     typeof outFlag === "string"
@@ -335,6 +337,8 @@ export async function cmdDiff(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("diff", "missing <workspace-dir>");
   const projectDir = positionals[0];
+  const bare = flagMissingValue(flags, ["against", "format"]);
+  if (bare) return usageError("diff", `--${bare} needs a value`);
   const againstFlag = flags.get("against");
   const againstDir =
     typeof againstFlag === "string"
