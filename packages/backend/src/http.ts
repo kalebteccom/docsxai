@@ -20,7 +20,13 @@ export interface Matched {
   params: Record<string, string>;
 }
 
+/** The liveness probe also answers HEAD, which load balancer health checks commonly send. */
+const HEAD_AS_GET_PATH = "/v1/health";
+
 export function matchRoute(method: string, pathname: string): Matched | "method_mismatch" | null {
+  if (method === "HEAD" && pathname.replace(/\/+$/, "") === HEAD_AS_GET_PATH) {
+    return matchRoute("GET", pathname);
+  }
   const segs = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
   let methodMismatch = false;
   for (const route of ROUTES) {

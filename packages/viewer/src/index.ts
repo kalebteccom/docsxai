@@ -13,7 +13,7 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { pathToFileURL } from "node:url";
+import { isMainModule } from "./main-module.js";
 
 export {
   buildViewer,
@@ -433,6 +433,6 @@ export async function runViewerCli(argv: string[]): Promise<number> {
   return argv.length === 0 ? 0 : 2;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   void runViewerCli(process.argv.slice(2)).then((code) => process.exit(code));
 }

@@ -90,6 +90,16 @@ describe("docsxai CLI — main()", () => {
     expect(err).toContain(`${cmd}: ${flag} needs a value`);
   });
 
+  it.each(["abc", "0", "-2", "1.5", "2x"])(
+    "run --concurrency %s exits 2 instead of falling back to 1",
+    async (value) => {
+      expect(await main(["run", "/some/ws", "--concurrency", value])).toBe(2);
+      expect(err).toContain(
+        `run: --concurrency must be a whole number of 1 or more (got "${value}")`,
+      );
+    },
+  );
+
   it("reads --flag=value like --flag value", async () => {
     expect(await main(["run", "/some/ws", "--start-from=edit-timing"])).toBe(2);
     expect(err).toMatch(/--start-from requires --flow/);

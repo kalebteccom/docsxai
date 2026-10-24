@@ -11,8 +11,9 @@
 //      `require.resolve.paths()`, which test runners extend with extra lookup dirs.)
 //   3. `docsxai-viewer` on PATH (the npm bin shim) — the legacy behavior, kept as the fallback.
 
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { promises as fs } from "node:fs";
+import { constants as osConstants } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -127,10 +128,29 @@ export function formatViewerBinFailure(resolution: ViewerBinResolution): string 
   ].join("\n");
 }
 
+/** Viewer children that are running now, so a signal sent to the engine can reach them. */
+const runningViewers = new Set<ChildProcess>();
+
 /**
- * Run the viewer's CLI with `args` and resolve to its exit code. The viewer is its own package/bin;
- * spawning it keeps the engine from depending on it at build time. `label` prefixes the failure
- * line when the bin can't be launched.
+ * Send `signal` to every viewer child that is running. Returns false when none is, so the caller
+ * can end the process itself; true means a child got the signal and {@link runViewerBin} resolves
+ * once it has exited.
+ */
+export function forwardSignalToViewer(signal: NodeJS.Signals): boolean {
+  let sent = false;
+  for (const child of runningViewers) sent = child.kill(signal) || sent;
+  return sent;
+}
+
+/** The exit code a shell reports for a process the signal ended: 128 plus the signal number. */
+function signalExitCode(signal: NodeJS.Signals): number {
+  return 128 + (osConstants.signals[signal] ?? 1);
+}
+
+/**
+ * Run the viewer's CLI with `args` and resolve to its exit code, or 128 plus the signal number
+ * when a signal ended it. The viewer is its own package/bin; spawning it keeps the engine from
+ * depending on it at build time. `label` prefixes the failure line when the bin can't be launched.
  */
 export async function runViewerBin(label: string, args: string[]): Promise<number> {
   const viewerBin = await resolveViewerBin();
@@ -138,7 +158,9 @@ export async function runViewerBin(label: string, args: string[]): Promise<numbe
     const child = spawn(viewerBin.command, [...viewerBin.prefixArgs, ...args], {
       stdio: "inherit",
     });
+    runningViewers.add(child);
     child.on("error", (e: NodeJS.ErrnoException) => {
+      runningViewers.delete(child);
       if (e.code === "ENOENT") {
         process.stderr.write(`${label}: ${formatViewerBinFailure(viewerBin)}\n`);
       } else {
@@ -146,6 +168,9 @@ export async function runViewerBin(label: string, args: string[]): Promise<numbe
       }
       resolve(1);
     });
-    child.on("exit", (code) => resolve(code ?? 1));
+    child.on("exit", (code, signal) => {
+      runningViewers.delete(child);
+      resolve(code ?? (signal ? signalExitCode(signal) : 1));
+    });
   });
 }

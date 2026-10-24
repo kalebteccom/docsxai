@@ -336,6 +336,22 @@ steps:
     expect(report.summary.screenshots_changed).toBe(3);
   });
 
+  it("severity compares the exact changed ratio, not the 4-decimal pct shown in the report", async () => {
+    const base = solidPng(3, 1, WHITE);
+    const a = await makePack({ screenshots: { "pay.png": base } });
+    const b = await makePack({
+      screenshots: { "pay.png": withRect(base, { x: 0, y: 0, width: 2, height: 1 }, RED) },
+    });
+    // 2 of 3 pixels is 66.666...%, shown as 66.6667. A warn threshold of 66.6667 is not reached.
+    const report = await diffDocPacks(a, b, {
+      screenshot_pct_warn: 66.6667,
+      screenshot_pct_fail: 90,
+    });
+    expect(report.flows[0]!.screenshots).toEqual([
+      expect.objectContaining({ step: "pay", pct: 66.6667, severity: "info" }),
+    ]);
+  });
+
   it("ignore_regions exclude a named flow/step rectangle from the pixel diff", async () => {
     const base = solidPng(20, 10, WHITE);
     const a = await makePack({ screenshots: { "pay.png": base } });
@@ -559,6 +575,22 @@ describe("baseline + diff CLI", () => {
     out = "";
     expect(await main(["diff", ws, "--against", outDir])).toBe(0);
     expect(out).toMatch(/no drift detected/);
+  });
+
+  it("a baseline refresh that fails partway keeps the previous snapshot", async () => {
+    const ws = await makePack({ prose: { "pay.md": "Pay.\n" } });
+    expect(await main(["baseline", ws])).toBe(0);
+    const kept = path.join(ws, ".baseline", "docs", "checkout", "pay.md");
+    await fs.access(kept);
+
+    const copy = vi
+      .spyOn(fs, "copyFile")
+      .mockRejectedValue(Object.assign(new Error("no space left"), { code: "ENOSPC" }));
+    expect(await main(["baseline", ws])).toBe(1);
+    copy.mockRestore();
+    await fs.access(kept);
+    await fs.access(path.join(ws, ".baseline", "flows", "checkout.flow.yaml"));
+    expect((await fs.readdir(path.join(ws, ".baseline"))).sort()).toEqual(["docs", "flows"]);
   });
 
   it("baseline --out pointing at the workspace is refused and leaves flows/ and docs/ alone", async () => {

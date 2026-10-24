@@ -70,6 +70,13 @@ export async function cmdRun(args: string[]): Promise<number> {
   const projectDir: string = positionals[0];
   const bare = flagMissingValue(flags, RUN_VALUE_FLAGS);
   if (bare) return usageError("run", `--${bare} needs a value`);
+  const concurrencyFlag = flags.get("concurrency");
+  if (typeof concurrencyFlag === "string" && !/^[1-9]\d*$/.test(concurrencyFlag)) {
+    return usageError(
+      "run",
+      `--concurrency must be a whole number of 1 or more (got "${concurrencyFlag}")`,
+    );
+  }
   const onlyFlow =
     typeof flags.get("flow") === "string" ? (flags.get("flow") as string) : undefined;
   const stopAfter =
@@ -220,9 +227,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   // Parallel runners: each flow gets its own Playwright session, so flows are isolated and can run together.
   // `--concurrency N` (default 1) caps how many run at once. `--pause` / `--stop-after` force concurrency=1
   // (they're single-flow calibration aids; mixing them with parallelism would be chaos).
-  const concurrencyRaw =
-    typeof flags.get("concurrency") === "string" ? Number(flags.get("concurrency")) : 1;
-  const requestedConcurrency = Math.max(1, Math.floor(concurrencyRaw || 1));
+  const requestedConcurrency = typeof concurrencyFlag === "string" ? Number(concurrencyFlag) : 1;
   const forceSingle = pause || stopAfter || startFrom || cdpEndpoint;
   const concurrency = forceSingle ? 1 : requestedConcurrency;
   if (forceSingle && requestedConcurrency > 1) {

@@ -97,6 +97,21 @@ describe("zipDocPack", () => {
     expect(entries.some((e) => e.includes("halts/"))).toBe(false);
   });
 
+  it("keeps the outputs of a flow named halts and still drops that flow's halts/", async () => {
+    await fs.mkdir(path.join(workspace, "docs", "halts", "screenshots"), { recursive: true });
+    await fs.mkdir(path.join(workspace, "docs", "halts", "halts"), { recursive: true });
+    await fs.writeFile(path.join(workspace, "docs", "halts", "annotations.json"), "{}", "utf8");
+    await fs.writeFile(path.join(workspace, "docs", "halts", "screenshots", "s.png"), "p", "utf8");
+    await fs.writeFile(path.join(workspace, "docs", "halts", "halts", "s.png"), "halt", "utf8");
+    const out = path.join(outDir, "pack.zip");
+    await zipDocPack({ workspace, output: out });
+    const entries = Object.keys(await readArchive(out));
+    expect(entries).toContain("docs/halts/annotations.json");
+    expect(entries).toContain("docs/halts/screenshots/s.png");
+    expect(entries).not.toContain("docs/halts/halts/s.png");
+    expect(entries).not.toContain("docs/f1/halts/s.png");
+  });
+
   it("excludes .viewer/ by default; --include-viewer pulls it in", async () => {
     const out1 = path.join(outDir, "no-viewer.zip");
     await zipDocPack({ workspace, output: out1 });

@@ -9,6 +9,7 @@ import * as path from "node:path";
 import type { BoundingBox, FlowFile, Step } from "./doc-pack.js";
 import { hiddenAtEachStep } from "./flow-hidden.js";
 import { locatorRefName } from "./flow-file.js";
+import { toPosix } from "./posix-path.js";
 import { variantDocDir, type FlowVariant } from "./flow-matrix.js";
 import { resolveWorkspacePath } from "./workspace.js";
 import type { ActionableState, BrowserDriver } from "./flow-runtime.js";
@@ -262,7 +263,7 @@ export async function buildDiagnoseReport(opts: {
         .catch(() => false)
     : false;
   const haltRel = haltExists
-    ? path.relative(opts.workspace, opts.haltScreenshotAbsPath!)
+    ? toPosix(path.relative(opts.workspace, opts.haltScreenshotAbsPath!))
     : undefined;
   const live = opts.liveProbe ? await opts.liveProbe() : undefined;
 

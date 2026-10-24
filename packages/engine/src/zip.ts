@@ -46,7 +46,10 @@ const FIXED_LEVEL = 6;
 
 function isExcluded(relPath: string, includeViewer: boolean): boolean {
   const segments = relPath.split("/");
-  if (segments.includes(".auth") || segments.includes("halts")) return true;
+  if (segments.includes(".auth")) return true;
+  // Halt context sits under `docs/<flow>[/<variant>]/halts/`. The segment after `docs` is the flow's
+  // name, so a flow called `halts` keeps its own outputs.
+  if (segments.indexOf("halts", segments[0] === "docs" ? 2 : 0) !== -1) return true;
   if (!includeViewer && segments[0] === ".viewer") return true;
   const base = segments[segments.length - 1]!;
   return base === ".DS_Store" || base.endsWith(".tmp");

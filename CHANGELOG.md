@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Changed
+
+- **Landing page first-run section.** docsxai.dev gains a "First run" section after Install: `init`, `doctor`, calibrate through the Claude Code plugin, and `run`, each with a copy button and one line of expected output, then a link to the quickstart. The page now names `0.3.0-rc.4`, the `readable` preset, the second `display_width` for narrow captures and `--lang`.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
@@ -77,6 +81,23 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Backend: a webhook run's summary is the engine's last line.** The runner kept the first 64 KiB of engine output and read the last line of that, so a run that printed more than 64 KiB recorded a line from the middle. It now keeps the last 64 KiB.
 - **Backend: a webhook run removes its temp workspace when run history cannot be written.** If recording the run threw, the materialized workspace (flows, screenshots, rendered output) stayed in the temp dir.
 - **Backend: an over-limit chunked upload answers 413.** A body sent without `Content-Length` that grew past the 10 MB or 25 MB limit destroyed the connection, so the client saw a connection reset and no 413 `payload_too_large` body. The server now answers 413 and drops the rest of the upload.
+- **Doc pack, annotation, style and export writes are atomic.** `run`, `pull`, `style`, `run --verify-determinism` and `export adf` write to a temp file in the same directory and rename it over the target, so an interrupted write leaves the previous file instead of a truncated `annotations.json`. An existing file keeps its mode, and where the rename is refused (Windows) the write falls back to a plain overwrite.
+- **`docsxai baseline` keeps the previous snapshot when a refresh fails.** The new snapshot is built in a staging directory inside the output directory and swapped in after every file is copied, so a full disk or a read error no longer leaves `.baseline/` without `flows/` and `docs/`.
+- **`render`, `burn` and `pack` forward SIGTERM and SIGINT to the viewer.** The command passes the signal to the viewer child and waits for it, then exits with the child's exit code, or 128 plus the signal number when the signal ended it. Before, the command exited at once and the child kept running and writing.
+- **`run --pause` and `inspect --headed` no longer hang when the browser is already closed.** The wait resolves at once for a browser that disconnected during the last step, and the session is closed and the command exits.
+- **`run --stop-after` with an unknown step id fails before any step runs.** It named no step and so ran the whole flow and overwrote its annotations; it now fails with `stopAfter: no step with id ...`, as `--start-from` already did.
+- **An unresolved locator ref halts as a step failure.** With a custom `resolveLocator`, a `target` or redaction `$ref` that resolved to nothing threw a plain error with no step id and no halt screenshot. It now halts as a `FlowExecutionError` that names the step. When a redaction cannot be resolved, no halt screenshot is taken, since it would go out unmasked.
+- **`run --start-from` warns when it cannot merge into the existing `annotations.json`.** A file that was unreadable, invalid JSON or not an annotations file was replaced by the fresh annotations without a word, dropping the earlier steps. The run now prints a `warning:` line naming the file.
+- **`run --concurrency` rejects a value that is not a whole number of 1 or more.** `abc`, `0`, `-2` and `1.5` fell back to 1 without a message. They now exit 2 with `--concurrency must be a whole number of 1 or more`.
+- **`zip` keeps the outputs of a flow named `halts`.** Every path segment named `halts` was excluded, so `docs/halts/` vanished from the archive. Only `halts/` directories below `docs/<flow>/` are left out now.
+- **`diff` screenshot severity compares the exact changed ratio.** The warn and fail thresholds were compared with `pct` after it was rounded to 4 decimals, so 0.99996% counted as 1% and tripped a `screenshot_pct_warn` of 1. The reported `pct` is unchanged.
+- **`push` names the file when `docs/style.json` is not valid JSON.** It failed with a bare `SyntaxError` that carried no file name. The message is now `<path>/docs/style.json: invalid JSON, ...`.
+- **Halt screenshot and jargon-hit paths use `/` on Windows.** `diagnose` and `style --check` printed workspace-relative paths with backslashes there; they now match the POSIX form the other reports use.
+- **`docsxai` and `docsxai-viewer` start through an installed bin symlink.** The entry check compared `import.meta.url` with the path the shell used, so a bin that npm links into `PATH` exited 0 without running. It now also compares the real path, as `docsxai-backend` does.
+- **`HEAD /v1/health` answers 200 (`@docsxai/backend`).** It was a 405, which failed load balancer probes that use HEAD. Other GET routes still answer HEAD with 405.
+- **A revision with a non-string `author` is rejected (`@docsxai/backend`).** `POST .../revisions` stored an object as `[object Object]`; it now answers 400 `author must be a string`. A missing `author` still defaults to `unknown`.
+- **`FsStore` removes its temp file when a write fails (`@docsxai/backend`).** A failed write or rename left `<file>.tmp-<id>` in the data dir.
+- **`FsStore` no longer reads an unreadable data file as empty (`@docsxai/backend`).** Any read error, such as a permission error, counted as a missing file, so the next `createWorkspace` could overwrite `workspaces.json` with a single entry. Only a missing file reads as empty now; other errors answer 500.
 
 ## [0.3.0-rc.3] - 2026-10-09
 

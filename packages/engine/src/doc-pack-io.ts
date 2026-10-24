@@ -16,6 +16,7 @@ import type {
   ScreenshotsPayload,
   StylePayload,
 } from "./backend-client.js";
+import { writeFileAtomic } from "./atomic-write.js";
 import { FlowName } from "./doc-pack.js";
 import { findCaseCollision, hasTrailingDot, isWindowsDeviceName } from "./flow-name-rules.js";
 import { resolveWorkspacePath, resolveWorkspacePathReal } from "./workspace.js";
@@ -167,7 +168,14 @@ async function readStyle(workspace: string): Promise<StylePayload | null> {
   const yaml = await fs.readFile(yamlPath, "utf8").catch(() => null);
   const jsonText = await fs.readFile(jsonPath, "utf8").catch(() => null);
   if (yaml === null && jsonText === null) return null;
-  const json = jsonText ? JSON.parse(jsonText) : null;
+  let json: unknown = null;
+  if (jsonText) {
+    try {
+      json = JSON.parse(jsonText);
+    } catch (e) {
+      throw new Error(`${jsonPath}: invalid JSON, ${(e as Error).message}`, { cause: e });
+    }
+  }
   return { schema: "docsxai/style-bundle@1", yaml, json };
 }
 
@@ -306,7 +314,7 @@ export async function writeDocPack(
   if (payloads.flows) {
     await fs.mkdir(resolveWorkspacePath(workspace, "flows"), { recursive: true });
     for (const [f, text] of Object.entries(payloads.flows.files)) {
-      await fs.writeFile(await resolveWorkspacePathReal(workspace, "flows", f), text, "utf8");
+      await writeFileAtomic(await resolveWorkspacePathReal(workspace, "flows", f), text, "utf8");
       n++;
     }
   }
@@ -314,7 +322,7 @@ export async function writeDocPack(
     for (const [rel, json] of Object.entries(payloads.annotations.files)) {
       const abs = await resolveWorkspacePathReal(workspace, "docs", rel);
       await fs.mkdir(path.dirname(abs), { recursive: true });
-      await fs.writeFile(abs, JSON.stringify(json, null, 2) + "\n", "utf8");
+      await writeFileAtomic(abs, JSON.stringify(json, null, 2) + "\n", "utf8");
       n++;
     }
   }
@@ -324,7 +332,7 @@ export async function writeDocPack(
       if (!data) continue;
       const abs = await resolveWorkspacePathReal(workspace, "docs", rel);
       await fs.mkdir(path.dirname(abs), { recursive: true });
-      await fs.writeFile(abs, data);
+      await writeFileAtomic(abs, data);
       n++;
     }
   }
@@ -332,20 +340,20 @@ export async function writeDocPack(
     if (payloads.style.yaml !== null) {
       const p = resolveWorkspacePath(workspace, "docs", "style.yaml");
       await fs.mkdir(path.dirname(p), { recursive: true });
-      await fs.writeFile(p, payloads.style.yaml, "utf8");
+      await writeFileAtomic(p, payloads.style.yaml, "utf8");
       n++;
     }
     if (payloads.style.json !== null) {
       const p = resolveWorkspacePath(workspace, "docs", "style.json");
       await fs.mkdir(path.dirname(p), { recursive: true });
-      await fs.writeFile(p, JSON.stringify(payloads.style.json, null, 2) + "\n", "utf8");
+      await writeFileAtomic(p, JSON.stringify(payloads.style.json, null, 2) + "\n", "utf8");
       n++;
     }
   }
   if (payloads.locators?.yaml) {
     const p = resolveWorkspacePath(workspace, "docs", "locators.yaml");
     await fs.mkdir(path.dirname(p), { recursive: true });
-    await fs.writeFile(p, payloads.locators.yaml, "utf8");
+    await writeFileAtomic(p, payloads.locators.yaml, "utf8");
     n++;
   }
   return { filesWritten: n };

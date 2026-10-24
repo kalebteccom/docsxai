@@ -49,3 +49,21 @@ describe("readDocPack key order", () => {
     ]);
   });
 });
+
+describe("readDocPack style.json", () => {
+  it("names the file when style.json is not valid JSON", async () => {
+    await fs.writeFile(path.join(ws, "docs", "style.json"), '{"tone": ', "utf8");
+    await expect(readDocPack(ws)).rejects.toThrow(/style\.json: invalid JSON/);
+  });
+
+  it("reads a valid style.json next to style.yaml", async () => {
+    await fs.writeFile(path.join(ws, "docs", "style.yaml"), "tone: plain\n", "utf8");
+    await fs.writeFile(path.join(ws, "docs", "style.json"), '{"tone":"plain"}', "utf8");
+    const pack = await readDocPack(ws);
+    expect(pack.style).toEqual({
+      schema: "docsxai/style-bundle@1",
+      yaml: "tone: plain\n",
+      json: { tone: "plain" },
+    });
+  });
+});

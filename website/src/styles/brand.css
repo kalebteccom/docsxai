@@ -1082,6 +1082,44 @@ main:has(.docsx-404) > .content-panel {
 .docsx-grid--install {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
 }
+/* First run: four numbered cards in one column. Each holds a .docsx-cmd--card block and one line
+   of expected output. The output line wraps and never scrolls, and nothing in a card changes size
+   after load, so the page does not shift. */
+.docsx-steps {
+  display: grid;
+  gap: 1rem;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.docsx-step .docsx-card-text {
+  margin: 0;
+}
+.docsx-expect {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.9rem 0 0;
+}
+.docsx-expect-label {
+  font-family: var(--docsx-font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--sl-color-gray-3);
+}
+.docsx-expect code {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--docsx-font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--sl-color-white);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .docsx-card .docsx-card-mark {
   font-family: var(--docsx-font-mono);
   color: var(--sl-color-text-accent);

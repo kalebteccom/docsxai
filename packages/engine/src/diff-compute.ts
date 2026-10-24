@@ -295,12 +295,15 @@ async function diffScreenshots(
       continue;
     }
     if (diff.changed_pixel_count === 0) continue;
-    const severity: ScreenshotDiff["severity"] =
-      diff.pct >= policy.screenshot_pct_fail
-        ? "fail"
-        : diff.pct >= policy.screenshot_pct_warn
-          ? "warn"
-          : "info";
+    // `pct` is rounded to 4 decimals for the report; the thresholds compare the exact ratio, so
+    // 0.99996% does not count as 1%. Width and height are the first two IHDR fields, 16 bytes in.
+    const area = aPng.readUInt32BE(16) * aPng.readUInt32BE(20);
+    const reaches = (threshold: number) => diff.changed_pixel_count * 100 >= threshold * area;
+    const severity: ScreenshotDiff["severity"] = reaches(policy.screenshot_pct_fail)
+      ? "fail"
+      : reaches(policy.screenshot_pct_warn)
+        ? "warn"
+        : "info";
     out.push({
       step,
       status: "changed",

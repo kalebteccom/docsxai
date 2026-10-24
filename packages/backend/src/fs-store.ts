@@ -55,6 +55,15 @@ interface ProjectMetaFile extends Project {
   revision_ids: string[];
 }
 
+/** Read errors that mean "no such file" (an id that cannot name a file included). */
+const ABSENT_CODES = new Set([
+  "ENOENT",
+  "ENOTDIR",
+  "ENAMETOOLONG",
+  "EINVAL",
+  "ERR_INVALID_ARG_VALUE",
+]);
+
 const now = () => new Date().toISOString();
 
 export class FsStore implements BackendStore {
@@ -306,21 +315,30 @@ export class FsStore implements BackendStore {
   private writeAtomic(target: string, data: Buffer | string): void {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     const tmp = `${target}.tmp-${randomUUID()}`;
-    fs.writeFileSync(tmp, data);
-    fs.renameSync(tmp, target);
+    try {
+      fs.writeFileSync(tmp, data);
+      fs.renameSync(tmp, target);
+    } catch (e) {
+      fs.rmSync(tmp, { force: true });
+      throw e;
+    }
   }
 
   private writeJson(target: string, value: unknown): void {
     this.writeAtomic(target, JSON.stringify(value, null, 2) + "\n");
   }
 
-  /** Read + parse a JSON file; `undefined` if it doesn't exist. */
+  /** Read + parse a JSON file; `undefined` if it doesn't exist. Any other read error throws. */
   private readJson<T>(p: string): T | undefined {
     let text: string;
     try {
       text = fs.readFileSync(p, "utf8");
-    } catch {
-      return undefined;
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code;
+      if (code !== undefined && ABSENT_CODES.has(code)) return undefined;
+      throw new Error(`cannot read data file ${path.relative(this.root, p)} (${code})`, {
+        cause: e,
+      });
     }
     try {
       return JSON.parse(text) as T;

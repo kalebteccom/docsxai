@@ -6,8 +6,9 @@
 // viewer pages. Node strips the types when it imports the .ts file.
 // On top of those rules, `surfaceChecks` reads the built HTML for the onboarding path: a zoomable
 // viewport, copy buttons that name themselves, announce their result and copy no prompt, tables
-// inside a scroll wrapper, numbered quickstart steps, a "next" link on each onboarding page, a 404
-// that links to the quickstart and the installation page, and a search with a no-results message.
+// inside a scroll wrapper, numbered quickstart steps, four first-run steps on the landing page, a
+// "next" link on each onboarding page, a 404 that links to the quickstart and the installation
+// page, and a search with a no-results message.
 // Runs after `astro build`, against dist/. Extra pages (paths relative to dist/) can be passed as
 // arguments. At most 40 pages are read.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -37,8 +38,10 @@ const NEXT_LINK = {
   "getting-started/installation/index.html": "/getting-started/quickstart/",
   "getting-started/quickstart/index.html": "/reference/flow-file/",
 };
-// Pages that must hold copy buttons on their own install commands.
-const LANDING_COPY_BUTTONS = 3;
+// Pages that must hold copy buttons on their own install commands: the hero one-liner, two install
+// cards and the four first-run steps.
+const LANDING_COPY_BUTTONS = 7;
+const LANDING_FIRST_RUN_STEPS = 4;
 // Starlight's component CSS sits in `@layer starlight.*`, which any unlayered site rule overrides
 // (brand.css sets the thin scrollbars that way), so its own `scrollbar-width: none` is not judged.
 const FRAMEWORK_LAYERS = ["starlight"];
@@ -74,6 +77,16 @@ function surfaceChecks(page, html) {
     out.push(
       `copy: ${buttons.length} copy buttons on the landing page, expected ${LANDING_COPY_BUTTONS}`,
     );
+  if (page === "index.html") {
+    const steps = (html.match(/<li\b[^>]*class="[^"]*\bdocsx-step\b/g) ?? []).length;
+    if (steps !== LANDING_FIRST_RUN_STEPS)
+      out.push(
+        `first run: ${steps} steps on the landing page, expected ${LANDING_FIRST_RUN_STEPS}`,
+      );
+    const afterFirstRun = html.split('id="first-run"')[1] ?? "";
+    if (!/<a\b[^>]*\shref="\/getting-started\/quickstart\/"/.test(afterFirstRun))
+      out.push("first run: no link to the quickstart after the first-run section");
+  }
   if (regions.length < buttons.length)
     out.push(`copy: ${buttons.length} copy buttons but ${regions.length} status regions`);
   for (const tag of buttons) {
