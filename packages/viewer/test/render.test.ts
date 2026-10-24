@@ -282,6 +282,15 @@ describe("buildViewer", () => {
     expect(flowHtml).toContain("shot.dataset.drawnWidth");
   });
 
+  it("the inlined runtime runs one copy at a time per button and restores it on failure", async () => {
+    const outDir = path.join(tmp, "out-copy-busy");
+    await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
+    const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
+    expect(flowHtml).toContain('if (btn.getAttribute("aria-busy") === "true") return;');
+    expect(flowHtml).toContain('btn.setAttribute("aria-busy", "true")');
+    expect(flowHtml).toContain('btn.removeAttribute("aria-busy")');
+  });
+
   it("the inlined runtime makes a call-out a labelled button and hides the duplicate nodes from AT", async () => {
     const outDir = path.join(tmp, "out-a11y-runtime");
     await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });

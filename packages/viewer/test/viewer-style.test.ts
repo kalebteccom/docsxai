@@ -232,6 +232,37 @@ describe("mobile", () => {
   });
 });
 
+describe("no layout shift between states", () => {
+  const rule = (sel: string) => {
+    const m = VIEWER_STYLE.match(
+      new RegExp(`(?:^|[\\s}])${sel.replace(/[.[\]]/g, "\\$&")} \\{([^}]*)\\}`),
+    );
+    return m ? m[1]! : "";
+  };
+
+  it("overlays the screenshot error inside the reserved box", () => {
+    expect(rule(".shot")).toContain("position: relative");
+    expect(rule(".shot-error")).toContain("position: absolute; inset: 0;");
+    expect(rule(".shot-error[hidden]")).toContain("display: none");
+  });
+
+  it("holds the same floor for an unsized screenshot while loading and after failing", () => {
+    expect(VIEWER_STYLE).toContain(
+      ".shot.is-loading img:not([height]), .shot.is-broken img:not([height]) { min-height: 160px; }",
+    );
+  });
+
+  it("gives Retry a fixed width, so its working label never resizes it", () => {
+    expect(rule("button.shot-retry")).toMatch(/width: \d+ch;/);
+  });
+
+  it("stacks every copy label in one grid cell and only toggles visibility", () => {
+    expect(rule(".sd-copy")).toContain("display: inline-grid");
+    expect(rule(".sd-copy-label")).toContain("grid-area: 1 / 1; visibility: hidden;");
+    expect(VIEWER_STYLE).not.toMatch(/\.sd-copy[^{]*\{[^}]*display: none(?! !important)/);
+  });
+});
+
 describe("print", () => {
   const print = VIEWER_STYLE.slice(VIEWER_STYLE.indexOf("@media print"));
 

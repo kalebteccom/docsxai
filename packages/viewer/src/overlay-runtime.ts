@@ -221,7 +221,7 @@ function announce(text: string): void {
 }
 
 // Load, failure and retry for one screenshot. The overlay is drawn once the image has its size;
-// a failed load shows the step's error line (alt text stays visible in the image box) with a
+// a failed load shows the step's error line, an overlay inside the image's reserved box, with a
 // Retry button that requests the file again under a fresh query string, so no cached failure
 // is reused. While a retry runs the button reads "Retrying..." and ignores clicks (aria-disabled,
 // so focus stays on it); a second failure says how many tries failed; a success hides the line,
@@ -334,6 +334,7 @@ function showCopy(btn: HTMLElement, state: CopyState, ms: number): void {
 }
 
 function onCopy(btn: HTMLElement): void {
+  if (btn.getAttribute("aria-busy") === "true") return;
   const value = btn.getAttribute("data-copy") ?? "";
   const fallback = () => {
     const row = btn.closest(".id-row, .sd-copyable, .flow-item, .site-footer");
@@ -348,7 +349,19 @@ function onCopy(btn: HTMLElement): void {
   } catch {
     return fallback();
   }
-  pending.then(() => showCopy(btn, "done", COPIED_MS), fallback);
+  // One write at a time per button: a click while one is pending does nothing.
+  btn.setAttribute("aria-busy", "true");
+  const settle = () => btn.removeAttribute("aria-busy");
+  pending.then(
+    () => {
+      settle();
+      showCopy(btn, "done", COPIED_MS);
+    },
+    () => {
+      settle();
+      fallback();
+    },
+  );
 }
 
 // "?" opens the shortcut list and moves focus to it; "?" again closes it.

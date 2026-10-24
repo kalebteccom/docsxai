@@ -152,8 +152,9 @@ export const VIEWER_STYLE = `
   .shot-missing p { margin: .25rem 0; }
   .shot-missing code { color: var(--fg); }
   /* A screenshot of unknown size has no box to reserve from its attributes, so it holds a floor while it loads. */
-  .shot.is-loading img:not([height]) { min-height: 160px; }
-  .shot-error { color: var(--danger); margin: .5rem 0 0; }
+  .shot.is-loading img:not([height]), .shot.is-broken img:not([height]) { min-height: 160px; }
+  /* The error line is an overlay inside the reserved .shot box, so showing it, the Retry label swap and a second failure never move the page. */
+  .shot-error { position: absolute; inset: 0; z-index: 4; margin: 0; padding: 1rem; box-sizing: border-box; display: grid; place-content: center; justify-items: center; gap: .5rem; overflow: auto; text-align: center; color: var(--danger); background: var(--bg); }
   .shot-error[hidden] { display: none; }
   .shot.is-broken { border-color: var(--danger); }
   button.shot-retry { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--fg); border-radius: 6px; padding: .25rem .75rem; min-height: 44px; min-width: 44px; width: 10ch; box-sizing: border-box; cursor: pointer; }

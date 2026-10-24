@@ -176,7 +176,17 @@ describe("keyboard navigation markup", () => {
 describe("layout stability", () => {
   it("writes the PNG's intrinsic size on the screenshot so its box is reserved", () => {
     const html = stepHtml(step({ size: { width: 1280, height: 800 } }), 1);
-    expect(html).toContain('alt="Screenshot of step open-sidebar" width="1280" height="800">');
+    expect(html).toContain(
+      'alt="Screenshot of step open-sidebar" width="1280" height="800" style="aspect-ratio: 1280 / 800">',
+    );
+  });
+
+  it("puts the error line inside the screenshot box, so failing never inserts a line below it", () => {
+    const html = stepHtml(step({ size: { width: 1280, height: 800 } }), 1);
+    const shot = html.slice(html.indexOf('<div class="shot"'), html.indexOf("<figcaption"));
+    expect(shot).toMatch(
+      /^<div class="shot"[^>]*><img [^>]*><p class="shot-error"[^]*<\/p><\/div>$/,
+    );
   });
 
   it("leaves the size off when it is unknown", () => {
@@ -225,10 +235,10 @@ describe("empty, error and loading states", () => {
     expect(html).not.toContain("<img");
   });
 
-  it("ships a hidden error line with a Retry button next to every screenshot", () => {
+  it("ships a hidden error line with a Retry button in every screenshot box", () => {
     const html = stepHtml(step(), 1);
     expect(html).toContain(
-      '</div><p class="shot-error" role="alert" hidden><span class="shot-error-msg">The screenshot for step open-sidebar could not be loaded. Check that <code>screenshots/open-sidebar.png</code> is still next to this page, then press Retry.</span> <button type="button" class="shot-retry">Retry</button></p>',
+      'alt="Screenshot of step open-sidebar"><p class="shot-error" role="alert" hidden><span class="shot-error-msg">The screenshot for step open-sidebar could not be loaded. Check that <code>screenshots/open-sidebar.png</code> is still next to this page, then press Retry.</span> <button type="button" class="shot-retry">Retry</button></p></div>',
     );
   });
 
