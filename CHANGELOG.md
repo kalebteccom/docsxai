@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Fixed
+
+- **`docsxai doctor` prints URLs without their user:password and query.** The `login` next-step command, the `backend` line and the `app_url` line could print `backend_url` or `app_url` as typed: the login command always did, and the other two did when a fetch error quoted the URL. All three now show the host and path only, as the other doctor lines already did.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
