@@ -16,7 +16,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
-import { calloutsOf } from "./pack-annotations.js";
+import { calloutsOf, checkEngineRecord } from "./pack-annotations.js";
 import {
   CAPTURE_FLOW,
   parseMatrixFlow,
@@ -179,12 +179,20 @@ export function parsePackConfig(raw: Obj): PackConfig {
   return { sources, ...(matrixFlow ? { matrixFlow } : {}), flows };
 }
 
-async function annotationsOf(flowDir: string, shownDir: string): Promise<AnnotationRecord[]> {
+/** A record of `annotations.json` and its place in the file's list, for messages. */
+interface PlacedRecord {
+  record: AnnotationRecord;
+  at: number;
+}
+
+async function annotationsOf(flowDir: string, shownDir: string): Promise<PlacedRecord[]> {
   const shown = `${shownDir}/annotations.json`;
   const parsed = await readJsonObject(path.join(flowDir, "annotations.json"), true, shown);
   if (parsed.annotations === undefined) return [];
   if (!Array.isArray(parsed.annotations)) throw new Error(`${shown}: annotations must be an array`);
-  return (parsed.annotations as unknown[]).filter(isObj) as unknown as AnnotationRecord[];
+  return (parsed.annotations as unknown[]).flatMap((raw, at) =>
+    isObj(raw) ? [{ record: raw as unknown as AnnotationRecord, at }] : [],
+  );
 }
 
 /**
@@ -215,7 +223,12 @@ async function addSource(
           : ""),
     );
   }
-  const records = await annotationsOf(flowDir, shownDir);
+  const byStep = new Map<unknown, PlacedRecord[]>();
+  for (const p of await annotationsOf(flowDir, shownDir)) {
+    const list = byStep.get(p.record.step);
+    if (list) list.push(p);
+    else byStep.set(p.record.step, [p]);
+  }
   const steps = into.get(flow) ?? new Map<string, SourceStep>();
   into.set(flow, steps);
   for (const file of shots) {
@@ -231,7 +244,15 @@ async function addSource(
     if (step.variants.some((v) => v.key === variant)) {
       throw new Error(`${PACK_CONFIG_FILE}: two sources feed ${flow}/${printable(id)}/${variant}`);
     }
-    const annotations = records.filter((r) => r.step === id);
+    const mine = byStep.get(id) ?? [];
+    for (const { record, at } of mine) {
+      // Only the records this pack reads; the burner would otherwise fail on them without a name.
+      checkEngineRecord(
+        record as unknown as Record<string, unknown>,
+        `${shownDir}/annotations.json: annotation ${at} (step "${printable(id)}")`,
+      );
+    }
+    const annotations = mine.map((p) => p.record);
     step.variants.push({
       key: variant,
       png: await showingPath(`${shownDir}/screenshots/${printable(file)}`, () =>
