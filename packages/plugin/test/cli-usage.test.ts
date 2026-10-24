@@ -72,7 +72,9 @@ function problemsInSpan(span: string, entries: string[], owner?: string): string
 }
 
 function frontmatterValue(text: string, key: string): string | undefined {
-  return new RegExp(`^${key}:\\s*(.+)$`, "m").exec(text.split(/\n---/)[0]!)?.[1]?.trim();
+  const raw = new RegExp(`^${key}:\\s*(.+)$`, "m").exec(text.split(/\n---/)[0]!)?.[1]?.trim();
+  // A value that starts with `[` or holds `: ` is double-quoted in the YAML; compare the unquoted text.
+  return raw?.replace(/^"(.*)"$/, "$1");
 }
 
 const read = (...parts: string[]): Promise<string> => fs.readFile(path.join(...parts), "utf8");
@@ -154,6 +156,19 @@ describe("commands against the CLI help text", () => {
       expect(body, `commands/${cmd}.md`).toMatch(/single-quoted/);
       for (const block of body.matchAll(/```[^\n]*\n([\s\S]*?)```/g)) {
         expect(block[1], `commands/${cmd}.md code block`).not.toContain("$ARGUMENTS");
+      }
+    }
+  });
+});
+
+describe("frontmatter is valid YAML", () => {
+  it("quotes a value that starts with `[` or holds `: `", async () => {
+    for (const [file, text] of (await markdownDocs()).all) {
+      if (!text.startsWith("---\n")) continue;
+      for (const line of text.split(/\n---/)[0]!.split("\n").slice(1)) {
+        const value = /^[a-z-]+:\s+(.+)$/.exec(line)?.[1];
+        if (value === undefined || /^["']/.test(value)) continue;
+        expect(value, `${file}: ${line}`).not.toMatch(/^\[|: /);
       }
     }
   });

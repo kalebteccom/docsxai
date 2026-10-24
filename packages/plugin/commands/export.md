@@ -18,3 +18,5 @@ docsxai export <adf|playwright> '<workspace-dir>' [flags]
 `export playwright` writes one self-contained `.spec.ts` per flow into `<workspace-dir>/.export/tests/` (or `--out`). The files carry a header saying they are generated: regenerate, don't hand-edit.
 
 Report the output paths, the document or spec count, and any warnings. A failure prints a `next:` line.
+
+Any other failure: run `docsxai doctor '<workspace-dir>'` and follow the `next:` line of each `fail:` line.

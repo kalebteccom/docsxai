@@ -1,6 +1,6 @@
 ---
-description: Health-check the docsxai environment and workspace (one ok: or fail: line per check, each with a next: step).
-argument-hint: [<workspace-dir>]
+description: "Health-check the docsxai environment and workspace (one ok: or fail: line per check, each with a next: step)."
+argument-hint: "[<workspace-dir>]"
 ---
 
 Arguments: `$ARGUMENTS`

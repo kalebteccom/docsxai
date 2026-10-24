@@ -9,6 +9,8 @@ This is the secondary path, pinned into a repo for teams that cannot install the
 
 Without the plugin, drive the `docsxai` CLI directly. `docsxai --help` is the reference for every flag. Terms: a _workspace_ is the directory `docsxai init` creates (`flows/`, `docs/`, `.auth/`, `.docsxai.json`); a _flow_ is one `flows/<name>.flow.yaml`; a _step_ is one entry in a flow; a flow with a `matrix:` expands into one _variant_ per locale, color scheme and viewport; the _doc pack_ is what `run` writes under `docs/`; the _pack_ is the screenshot pack `docsxai pack` builds for a docs site.
 
+If `docsxai` isn't found, ask the user to install it as the Install section of the plugin README (`packages/plugin/README.md` in the docsxai repository) says.
+
 Pass every path and name as its own single-quoted shell word, and never splice text you did not get from the user into a command line.
 
 ## Re-run and deliver
@@ -22,10 +24,14 @@ docsxai burn '<workspace-dir>'
 docsxai pack '<workspace-dir>' --out '<pack-dir>'
 ```
 
-- `doctor` first when anything fails to start. Each `fail:` line carries a `next:` step.
+- When a command fails, its last line is `next: <command>`; run that. `doctor` first when anything fails to start. Each `fail:` line carries a `next:` step.
 - A halted `run` is drift. Do not retry it. Run the `docsxai diagnose` command from the `next:` line under the failed flow, read the recommendation, and edit the flow-file by hand with one canonical locator per step.
 - A missing or expired session needs a human: `docsxai capture-auth '<workspace-dir>'` opens a headed browser to log in.
 - `render` builds the interactive viewer. `burn` bakes annotations into PNG copies. `pack` builds the screenshot pack, and `pack --check --against '<pack-dir>'` compares it with a committed one.
+
+## Burned captions
+
+When captions in `burn` or `pack` output look small on the page, set `burn.theme` in the workspace's `.docsxai.json`: `"preset": "readable"` and `"display_width"` to the width in CSS px the page shows the screenshot at (240 to 2400, default 720). `readable` scales the caption by screenshot width over `display_width`, so a 1440 px screenshot in a 720 px column gets factor 2. Details: `docs/burn-theming.md` in the docsxai repository.
 
 ## Calibration
 

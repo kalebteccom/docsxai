@@ -20,6 +20,8 @@ This gathers:
 - **With `--cdp`:** a live probe — connects to the running Chrome, runs the engine's `BrowserDriver.actionable()` predicate on the target selector, captures current URL + bbox
 - Recommendations: one of `selector` / `wait_for` / `success` / `annotation_target` / `split_step` / `investigate` — each with a rationale and a concrete suggestion
 
+If `diagnose` itself fails, its `next:` line says what to run. Run `docsxai doctor '<workspace-dir>'` when the browser, the config or the session is the cause.
+
 `--format json` is the agent-facing path; the report has a stable shape (`DiagnoseReport` in `packages/engine/src/diagnose.ts`).
 
 ## 2. Read the recommendations + decide

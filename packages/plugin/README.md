@@ -12,6 +12,8 @@ npx playwright-core install chromium
 docsxai doctor
 ```
 
+`@next` is the `0.3.0` release candidate. For `0.2.0` (`latest`) install plain `docsxai`. This is the one place the plugin and skill files send you for install steps.
+
 Then, from inside Claude Code, add the marketplace this repo publishes (`.claude-plugin/marketplace.json` at the repo root, marketplace name `docsxai`) and install the plugin:
 
 ```
@@ -54,6 +56,8 @@ Each command passes its arguments to the CLI as single-quoted shell words. The C
 | `/docsxai:export <adf\|playwright> <workspace-dir>`   | Export the doc pack as a Confluence ADF projection, or as Playwright specs.                                                   |
 
 The rest of the CLI has no slash command: `init`, `capture-auth`, `calibrate`, `inspect`, `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `burn` (annotations baked into PNG copies), and `pack` (the screenshot pack a docs site ships, with `pack --check`). Skills and agents call them through the shell; run `docsxai --help` for the flags.
+
+When a command fails, its last line is `next: <command>`. `docsxai doctor` checks the environment and workspace, and `docsxai diagnose` explains a halted run (`/docsxai:diagnose`).
 
 ## Skills (calibration, agent-driven; the host supplies inference)
 

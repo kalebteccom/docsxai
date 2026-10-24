@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Changed
+
+- **Plugin and vendored skill review.** `/docsxai:doctor` frontmatter is valid YAML (quoted description and argument-hint), the commands point at `docsxai doctor` and `diagnose` on failure, `run` documents its starting and interrupted lines, `calibrate` gains a setup order and a burned-captions section (`burn.theme` `readable` preset and `display_width`), and the plugin README is the one place that names the install command.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
