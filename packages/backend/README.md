@@ -138,6 +138,60 @@ GitHub push/PR ──▶ POST /v1/github/webhook          (no bearer auth; HMAC-
 - `sources` is refused. Publisher directories come from `DOCSX_BACKEND_PLUGIN_DIRS`.
 - Every key named `url` or ending in `_url` (`base_url`, `graph_base_url`) must be an `https:` URL without credentials whose origin is listed in `DOCSX_BACKEND_PUBLISHER_ORIGINS`. With the variable unset, every such key is refused. A publisher's default URL, used when the key is absent, is not checked here.
 
+### Upgrading a stored wiki-push config
+
+A `wiki-push` config written before these checks keeps working only after the backend's environment names what the config used to name. Three things move.
+
+Before, stored with `PUT .../webhook-config`:
+
+```json
+{
+  "repo": "acme/web-app",
+  "events": ["push"],
+  "strategy": "wiki-push",
+  "plugin": "confluence:push",
+  "secret_env": "ACME_WEBHOOK_SECRET",
+  "plugin_config": {
+    "sources": ["/opt/docsxai/plugins/confluence"],
+    "base_url": "https://acme.atlassian.net",
+    "space_key": "DOCS"
+  }
+}
+```
+
+After, the same config:
+
+```json
+{
+  "repo": "acme/web-app",
+  "events": ["push"],
+  "strategy": "wiki-push",
+  "plugin": "confluence:push",
+  "secret_env": "DOCSX_WEBHOOK_SECRET_ACME",
+  "plugin_config": {
+    "base_url": "https://acme.atlassian.net",
+    "space_key": "DOCS"
+  }
+}
+```
+
+And on the backend host:
+
+```sh
+export DOCSX_BACKEND_PLUGIN_DIRS=/opt/docsxai/plugins/confluence
+export DOCSX_BACKEND_PUBLISHER_ORIGINS=https://acme.atlassian.net
+export DOCSX_BACKEND_PUBLISHER_ENV=CONFLUENCE_TOKEN
+# the HMAC secret moves from ACME_WEBHOOK_SECRET to the new name; same value
+export DOCSX_WEBHOOK_SECRET_ACME=...
+```
+
+- `plugin_config.sources` is removed and its directories go in `DOCSX_BACKEND_PLUGIN_DIRS` as absolute paths. While the key stays in the stored config, every run fails and a new `PUT` gets 400.
+- Each `base_url` (or other `*_url` key) keeps its place in `plugin_config`, and its origin is added to `DOCSX_BACKEND_PUBLISHER_ORIGINS`. Without the entry the run fails naming the key.
+- A custom `secret_env` is renamed to `DOCSX_WEBHOOK_SECRET_<SUFFIX>`, in the config and on the host. Until both match, every delivery for that project gets 401. Update the secret in the GitHub App's webhook settings only if you change its value.
+- A publisher that read credentials through `secretsEnv` now sees only the variables in `DOCSX_BACKEND_PUBLISHER_ENV`. List the variables it needs there.
+
+Refresh tokens issued before this change expire 30 days after they were issued, so a CLI idle for longer than that runs `docsxai login` again.
+
 ### Webhook endpoint behavior
 
 `POST /v1/github/webhook` — unauthenticated route, strictly verified:
