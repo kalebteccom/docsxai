@@ -16,10 +16,10 @@
 //   • cli-commands-pack.ts     — pack / pack --check (screenshot pack + drift check, run by the viewer bin)
 //   • cli-commands-backend.ts  — login / push / pull / plugins (backend + sync)
 
-import { pathToFileURL } from "node:url";
 import { runDoctor } from "./doctor.js";
 import { tryHelp, unknownCommand } from "./cli-help.js";
 import { runAsBin } from "./cli-unexpected.js";
+import { isMainModule } from "./main-module.js";
 import { cmdCaptureAuth } from "./cli-commands-auth.js";
 import { cmdCalibrate, cmdInit, cmdRun } from "./cli-commands-session.js";
 import {
@@ -108,6 +108,6 @@ export async function main(argv: string[]): Promise<number> {
 }
 
 // Run as the bin entry, but not when imported (e.g. in tests).
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   void runAsBin(main, process.argv.slice(2)).then((code) => process.exit(code));
 }
