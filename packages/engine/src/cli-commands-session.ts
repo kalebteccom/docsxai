@@ -15,7 +15,7 @@ import {
   storageStateFileName,
   type StorageState,
 } from "./auth.js";
-import { calibrate } from "./calibrate.js";
+import { calibrate, CalibrateError } from "./calibrate.js";
 import { type FlowFile } from "./doc-pack.js";
 import {
   expandFlowVariants,
@@ -40,7 +40,13 @@ import { parseCommandFlags } from "./cli-flags.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
-import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
+import {
+  describeFsError,
+  sanitizeForTerminal,
+  shellQuote,
+  usageError,
+  withNext,
+} from "./cli-messages.js";
 import { reportRun } from "./cli-run-summary.js";
 import { warnUnusableConfig } from "./cli-backend-errors.js";
 
@@ -139,13 +145,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   }
   const loadFlowFile = async (name: string) => {
     const fp = resolveWorkspacePath(projectDir, "flows", `${name}.flow.yaml`);
-    let text: string;
-    try {
-      text = await fs.readFile(fp, "utf8");
-    } catch {
-      throw new FlowFileError(`\`extends\`: no flow named "${name}" at ${fp}`);
-    }
-    return parseFlowFile(text, fp);
+    return parseFlowFile(await fs.readFile(fp, "utf8"), fp);
   };
   // `flows` goes to the run loop, which expands each matrix flow itself; `units` is the same
   // expansion here, for the checks and messages that need the variant ids before anything launches.
@@ -188,7 +188,12 @@ export async function cmdRun(args: string[]): Promise<number> {
   if (flowCount === 0) {
     process.stderr.write(
       onlyFlow
-        ? `run: no flow named "${onlyFlow}" (flows: ${knownFlows.join(", ") || "none"})\n`
+        ? `run: ${withNext(
+            `no flow named "${onlyFlow}" (flows: ${knownFlows.join(", ") || "none"})`,
+            knownFlows.length > 0
+              ? `docsxai flow-tree ${shellQuote(projectDir)}  (lists the flows), then pass --flow <name>`
+              : `docsxai calibrate ${shellQuote(projectDir)} --from <flow.yaml>`,
+          )}\n`
         : `run: ${withNext(`no flow-files in ${projectDir}/flows`, `docsxai calibrate ${shellQuote(projectDir)} --from <flow.yaml>`)}\n`,
     );
     return 1;
@@ -245,7 +250,7 @@ export async function cmdRun(args: string[]): Promise<number> {
       )
     ) {
       process.stderr.write(
-        `run: warning — docs/${name}/annotations.json is from before ${name} had a matrix; its variants write to docs/${name}/<variant>/, so remove the old docs/${name}/ outputs\n`,
+        `run: warning: docs/${name}/annotations.json is from before ${name} had a matrix; its variants write to docs/${name}/<variant>/, so remove the old docs/${name}/ outputs\n`,
       );
     }
   }
@@ -270,7 +275,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   try {
     storageState = cdpEndpoint ? undefined : await loadAuthStorageState(projectDir);
   } catch (e) {
-    process.stderr.write(`run: ${(e as Error).message}\n`);
+    process.stderr.write(`run: ${describeFsError(e) ?? (e as Error).message}\n`);
     return 1;
   }
 
@@ -338,7 +343,7 @@ export async function cmdRun(args: string[]): Promise<number> {
     durationMs: Date.now() - startedAt,
     summary: `${okCount}/${units.length} ${noun} ok`,
   });
-  if (history.warning) process.stderr.write(`run: warning — ${history.warning}\n`);
+  if (history.warning) process.stderr.write(`run: warning: ${history.warning}\n`);
 
   return anyFailed ? 1 : 0;
 }
@@ -372,13 +377,17 @@ export async function cmdInit(args: string[]): Promise<number> {
     typeof flags.get(k) === "string" ? (flags.get(k) as string) : undefined;
   const auth = str("auth");
   if (auth !== undefined && auth !== "manual-capture" && auth !== "none") {
-    process.stderr.write("init: --auth must be 'manual-capture' or 'none'\n");
-    return 2;
+    return usageError(
+      "init",
+      `--auth must be manual-capture or none (got "${sanitizeForTerminal(auth)}")`,
+    );
   }
   const trigger = str("capture-trigger");
   if (trigger !== undefined && trigger !== "console" && trigger !== "button") {
-    process.stderr.write("init: --capture-trigger must be 'console' or 'button'\n");
-    return 2;
+    return usageError(
+      "init",
+      `--capture-trigger must be console or button (got "${sanitizeForTerminal(trigger)}")`,
+    );
   }
   const appUrl = str("app-url");
   if (appUrl !== undefined && !isHttpUrl(appUrl)) {
@@ -464,9 +473,12 @@ export async function cmdCalibrate(args: string[]): Promise<number> {
     );
     return 0;
   } catch (e) {
-    process.stderr.write(
-      `calibrate: ${withNext((e as Error).message, `fix ${shellQuote(from)}, then docsxai calibrate ${shellQuote(workspaceDir)} --from ${shellQuote(from)}`)}\n`,
-    );
+    const rerun = `docsxai calibrate ${shellQuote(workspaceDir)} --from ${shellQuote(from)}`;
+    const next =
+      e instanceof CalibrateError && e.field === "name-flag"
+        ? `${rerun} --name <flow>`
+        : `fix ${shellQuote(from)}, then ${rerun}`;
+    process.stderr.write(`calibrate: ${withNext((e as Error).message, next)}\n`);
     return 1;
   }
 }

@@ -58,7 +58,7 @@ export async function loadPlugins(
         candidateRecord(
           c,
           "disabled-by-capability-mismatch",
-          `plugin declares capabilities [${missing.join(", ")}] not enabled for this workspace — ` +
+          `plugin declares capabilities [${missing.join(", ")}] not enabled for this workspace; ` +
             `add them to "plugin_capabilities" in .docsxai.json to opt in`,
         ),
       );
@@ -76,7 +76,7 @@ export async function loadPlugins(
     const qualify = (kind: PluginKind, bare: string, taken: { has(k: string): boolean }) => {
       if (!c.manifest.kinds.includes(kind)) {
         throw new Error(
-          `plugin "${c.name}": registered a "${kind}" but the manifest's kinds are [${c.manifest.kinds.join(", ")}] — declare every extension point the plugin registers`,
+          `plugin "${c.name}": registered a "${kind}" but the manifest's kinds are [${c.manifest.kinds.join(", ")}]; declare every extension point the plugin registers`,
         );
       }
       if (!ARTIFACT_NAME.test(bare)) {

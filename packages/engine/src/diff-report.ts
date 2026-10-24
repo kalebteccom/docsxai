@@ -103,7 +103,7 @@ export function formatDriftReportMarkdown(report: DriftReport): string {
   );
   for (const f of report.flows) {
     if (f.status !== "changed") {
-      lines.push(`| \`${f.flow}\` | ${MARKER[f.severity]} | flow ${f.status} | — | — | — | — |`);
+      lines.push(`| \`${f.flow}\` | ${MARKER[f.severity]} | flow ${f.status} | - | - | - | - |`);
       continue;
     }
     const locatorCount =

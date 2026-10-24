@@ -298,7 +298,7 @@ describe("checkBackend", () => {
     try {
       const c = await checkBackend(tmp, { backend_url: base }, {}, fetch);
       expect(c.ok).toBe(true);
-      expect(c.detail).toMatch(/no token — push\/pull need DOCSX_TOKEN/);
+      expect(c.detail).toMatch(/no token, push\/pull need DOCSX_TOKEN/);
     } finally {
       await stub.close();
     }

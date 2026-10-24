@@ -69,8 +69,8 @@ describe("viewer --help", () => {
     expect(await runViewerCli([cmd, flag])).toBe(0);
     expect(err).toBe("");
     expect(out).toContain(`usage:   docsxai-viewer ${cmd} `);
-    expect(out).toContain(`  ${cmd} — `);
-    expect(out).not.toContain("docsxai-viewer — static viewer generator");
+    expect(out).toMatch(new RegExp(`^  ${cmd}( --check)?: `, "m"));
+    expect(out).not.toContain("docsxai-viewer: static viewer generator");
   });
 
   it("answers --help even after other arguments", async () => {
@@ -87,7 +87,7 @@ describe("viewer --help", () => {
   it("shows both pack forms in `pack --help`", async () => {
     await runViewerCli(["pack", "--help"]);
     expect(out).toContain("docsxai-viewer pack <workspace-or-raw-dir> --check");
-    expect(out).toContain("pack --check — rebuild");
+    expect(out).toContain("pack --check: rebuild");
   });
 
   it("prints the full help for a top-level --help or -h", async () => {

@@ -62,6 +62,6 @@ export function attachSkipNotice(
     .map((k) => `environment.${k}`);
   if (hasContextOptions) fields.push("contextOptions");
   return fields.length
-    ? `launchPlaywrightSession: attached over CDP — the browser context is externally owned; skipped: ${fields.join(", ")}\n`
+    ? `launchPlaywrightSession: attached over CDP, where the browser context is externally owned; skipped: ${fields.join(", ")}\n`
     : undefined;
 }

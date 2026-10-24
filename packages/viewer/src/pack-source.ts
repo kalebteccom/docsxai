@@ -11,6 +11,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
+import { withNext } from "./cli-failure.js";
 import { pngDimensions } from "./burn.js";
 import { calloutsOf, recordsFromSidecar } from "./pack-annotations.js";
 import { showingPath } from "./pack-paths.js";
@@ -46,14 +47,24 @@ type Obj = Record<string, unknown>;
  * Reads a JSON file that must hold an object. `optional`: a missing file reads as `{}`. `shown`
  * is the name messages use for the file, when the absolute path should not appear in them.
  */
-export async function readJsonObject(file: string, optional = false, shown = file): Promise<Obj> {
+export async function readJsonObject(
+  file: string,
+  optional = false,
+  shown = file,
+  /** What to add to the "does not exist" message when the file is required. */
+  missing?: { why: string; next: string },
+): Promise<Obj> {
   let text: string;
   try {
     text = (await showingPath(shown, () => readRegularFile(file, MAX_JSON_BYTES))).toString("utf8");
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
     if (optional) return {};
-    throw new Error(`missing ${shown}`);
+    throw new Error(
+      missing
+        ? withNext(`${shown} does not exist (${missing.why})`, missing.next)
+        : `${shown} does not exist`,
+    );
   }
   let value: unknown;
   try {
@@ -122,7 +133,11 @@ async function readVariant(stepDir: string, step: string, file: string): Promise
 
 async function readStep(flowDir: string, flow: string, step: string): Promise<SourceStep> {
   const stepDir = path.join(flowDir, step);
-  const meta = await readJsonObject(path.join(stepDir, "step.json"));
+  const stepFile = path.join(stepDir, "step.json");
+  const meta = await readJsonObject(stepFile, false, stepFile, {
+    why: "a raw capture step holds a step.json with its alt text and optional caption",
+    next: `add ${stepFile}, or remove the ${step} directory from the capture`,
+  });
   const files = (await fs.readdir(stepDir)).filter((f) => f.endsWith(".png")).sort();
   if (files.length === 0) {
     throw new Error(`step ${flow}/${step} has no <locale>.<theme>.<viewport>.png`);

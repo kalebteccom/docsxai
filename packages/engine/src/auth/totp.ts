@@ -147,7 +147,7 @@ export class TotpStrategy implements AuthStrategy {
 
   authenticate(_ctx: AuthContext): Promise<AuthResult> {
     throw new AuthStrategyConfigError(
-      "strategy `totp` is not a standalone login — use strategy `ui-form` with " +
+      "strategy `totp` is not a standalone login: use strategy `ui-form` with " +
         "options.totp: { secret_env: <ENV-VAR NAME>, otp_selector: <css>, submit_selector?: <css> }; " +
         "the TOTP primitives (generateTotp / verifyTotp) are exported for direct use",
     );

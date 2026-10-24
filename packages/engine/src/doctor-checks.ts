@@ -85,7 +85,7 @@ export function checkNode(nodeVersion: string): DoctorCheck {
   return {
     name: "node",
     ok: false,
-    detail: `v${nodeVersion} — the engine requires Node >= 26`,
+    detail: `v${nodeVersion}, the engine requires Node >= 26`,
     fix: "upgrade Node (https://nodejs.org); the engine's `engines` field pins >= 26",
   };
 }
@@ -154,8 +154,8 @@ export async function checkWorkspace(workspaceDir: string): Promise<WorkspacePro
         ok: true,
         info: true,
         detail: flowsDirExists
-          ? `flows/ present but no ${WORKSPACE_CONFIG_FILE} at ${workspaceDir} — \`docsxai init\` writes one`
-          : `no ${WORKSPACE_CONFIG_FILE} at ${workspaceDir} — not a docsxai workspace (pass <workspace-dir> or run doctor from one); workspace checks skipped`,
+          ? `flows/ present but no ${WORKSPACE_CONFIG_FILE} at ${workspaceDir}, \`docsxai init\` writes one`
+          : `no ${WORKSPACE_CONFIG_FILE} at ${workspaceDir}, not a docsxai workspace (pass <workspace-dir> or run doctor from one); workspace checks skipped`,
         fix: `docsxai init ${shellQuote(workspaceDir)} --app-url <url>, or run doctor with a workspace dir`,
       },
       config: null,
@@ -182,7 +182,7 @@ export async function checkWorkspace(workspaceDir: string): Promise<WorkspacePro
   const cfg = raw as Record<string, unknown>;
   if (cfg.schema !== "docsxai/workspace@1") {
     return unusableWorkspace(
-      `${configPath} has schema "${String(cfg.schema)}" — expected "docsxai/workspace@1"`,
+      `${configPath} has schema "${String(cfg.schema)}", expected "docsxai/workspace@1"`,
       `set "schema": "docsxai/workspace@1" (or re-scaffold with \`docsxai init\`)`,
       true,
     );
@@ -217,7 +217,7 @@ export async function checkFlows(workspaceDir: string): Promise<DoctorCheck> {
       name: "flows",
       ok: true,
       info: true,
-      detail: "flows/ is empty — calibrate one, or hand-author flows/<name>.flow.yaml",
+      detail: "flows/ is empty, calibrate one, or hand-author flows/<name>.flow.yaml",
     };
   }
   for (const entry of entries) {
@@ -250,7 +250,7 @@ export async function checkAuth(workspaceDir: string, now: number): Promise<Doct
         name: "auth",
         ok: true,
         info: true,
-        detail: "no auth/strategy.yaml — flows run with a fresh, unauthenticated context",
+        detail: "no auth/strategy.yaml, flows run with a fresh, unauthenticated context",
       },
     ];
   }
@@ -273,7 +273,7 @@ export async function checkAuth(workspaceDir: string, now: number): Promise<Doct
     {
       name: "auth",
       ok: true,
-      detail: `auth/strategy.yaml ok — role(s) ${roles} (default "${role}", strategy ${descriptor.roles[role]!.strategy})`,
+      detail: `auth/strategy.yaml ok, role(s) ${roles} (default "${role}", strategy ${descriptor.roles[role]!.strategy})`,
     },
   ];
   // Cached-session freshness for the default role (the one `run` loads).
@@ -284,7 +284,7 @@ export async function checkAuth(workspaceDir: string, now: number): Promise<Doct
       name: "auth",
       ok: true,
       info: true,
-      detail: `no cached session for role "${role}" — \`docsxai capture-auth ${shellQuote(workspaceDir)}\` before \`run\``,
+      detail: `no cached session for role "${role}", \`docsxai capture-auth ${shellQuote(workspaceDir)}\` before \`run\``,
     });
     return checks;
   }
@@ -331,7 +331,7 @@ export async function checkBackend(
       name: "backend",
       ok: true,
       info: true,
-      detail: "no backend_url configured — the workspace operates fully locally",
+      detail: "no backend_url configured, the workspace operates fully locally",
     };
   }
   // Token presence is a note, not a gate — /v1/health is unauthenticated.
@@ -339,7 +339,7 @@ export async function checkBackend(
     ? "token: DOCSX_TOKEN set"
     : existsSync(path.join(path.resolve(workspaceDir), ".auth", "backend-token.json"))
       ? "token: OAuth tokens at .auth/backend-token.json"
-      : "no token — push/pull need DOCSX_TOKEN or `docsxai login --oauth`";
+      : "no token, push/pull need DOCSX_TOKEN or `docsxai login --oauth`";
   const base = backendUrl.replace(/\/+$/, "");
   const shown = redactUrl(base);
   try {
@@ -349,7 +349,7 @@ export async function checkBackend(
         name: "backend",
         ok: false,
         detail: `${shown}/v1/health → HTTP ${res.status}`,
-        fix: "the backend answered but is unhealthy — check its logs",
+        fix: "the backend answered but is unhealthy, check its logs",
       };
     }
     return { name: "backend", ok: true, detail: `${shown}/v1/health ok (${tokenNote})` };
@@ -400,7 +400,7 @@ export async function checkViewer(
   return {
     name: "viewer",
     ok: false,
-    detail: `\`${VIEWER_BIN_NAME}\` not resolvable — tried $${VIEWER_BIN_ENV}, the installed ${VIEWER_PACKAGE} package, and PATH`,
+    detail: `\`${VIEWER_BIN_NAME}\` not resolvable, tried $${VIEWER_BIN_ENV}, the installed ${VIEWER_PACKAGE} package, and PATH`,
     fix: `install ${VIEWER_PACKAGE} next to the engine (a global \`docsxai\` install ships it), or point ${VIEWER_BIN_ENV} at its bin script`,
   };
 }
@@ -474,7 +474,7 @@ export function checkEnv(env: NodeJS.ProcessEnv): DoctorCheck[] {
         name: "env",
         ok: false,
         detail: `${k} is not a DOCSX_* variable any docsxai package reads (typo?)`,
-        fix: `unset it or fix the spelling — known: ${KNOWN_DOCSX_ENV_VARS.join(", ")}`,
+        fix: `unset it or fix the spelling, known: ${KNOWN_DOCSX_ENV_VARS.join(", ")}`,
       });
     }
   }

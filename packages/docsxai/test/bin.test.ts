@@ -59,7 +59,7 @@ describe.skipIf(!engineBuilt)("bare `docsxai` bin (meta-package wrapper)", () =>
   it("--help prints the engine CLI usage and exits 0", async () => {
     const r = await docsxai("--help");
     expect(r.code).toBe(0);
-    expect(r.stdout).toContain("docsxai — deterministic execution CLI");
+    expect(r.stdout).toContain("docsxai: deterministic execution CLI");
     expect(r.stdout).toContain("docsxai init <workspace-dir>");
     expect(r.stdout).toContain("docsxai doctor [<workspace-dir>]");
     expect(r.stdout).toContain(

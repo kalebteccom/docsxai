@@ -13,6 +13,15 @@
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
+import {
+  astroFailureText,
+  isDirectory,
+  reportFailure,
+  requireInputDir,
+  shellQuote,
+  unknownFlowsNote,
+  withNext,
+} from "./cli-failure.js";
 import { isMainModule } from "./main-module.js";
 
 export {
@@ -193,54 +202,13 @@ export { diffGrids, diffPngs, type PixelDiff } from "./pack-pixels.js";
 import { buildViewer, discoverFlows, selectFlows } from "./render.js";
 import { workspaceTheme } from "./burn-theme-load.js";
 import { burnFlow, burnReport } from "./burn.js";
-import { DEFAULT_UNPLACEABLE_RATIO, type FlowBurnReport } from "./burn-report.js";
+import { AnnotationsFileError } from "./burn-annotations-file.js";
+import type { FlowBurnReport } from "./burn-report.js";
 import { buildStarlightSite, emitStarlightSite } from "./starlight.js";
-import { PACK_DETAILS, PACK_SYNOPSIS, runPack } from "./pack-cli.js";
+import { normalizeAccent } from "./starlight-emit.js";
+import { runPack } from "./pack-cli.js";
+import { USAGE } from "./cli-usage.js";
 import { asksHelp, commandHelp, usageLines } from "./viewer-help.js";
-
-const USAGE = `docsxai-viewer — static viewer generator
-
-Usage:
-  docsxai-viewer build <docs-dir> <out-dir> [--flow <name>]... [--lang <locale>]
-  docsxai-viewer burn <workspace> [--flow <name>]... [--out <dir>] [--report <file>] [--max-overlap <ratio>] [--no-connector-outline]
-  docsxai-viewer site <workspace> [--out <dir>] [--build] [--title <t>] [--accent <hex>] [--lang <locale>] [--flow <name>]...
-${PACK_SYNOPSIS}
-
-  build — emit the interactive HTML viewer
-    <docs-dir>  a doc pack's docs/ tree (<flow>/annotations.json, <flow>/screenshots/<step>.png, <flow>/<step>.md;
-                a flow that ran a matrix holds the same under <flow>/<variant>/, each variant a flow here)
-    <out-dir>   where the generated viewer is written
-    --flow      restrict to these flows (default: all flows with annotations.json); a flow that ran a
-                matrix also selects its <flow>/<variant> pages
-    --lang      locale of the text the pages add, e.g. es or es-ES (default: en; other tags give en);
-                a matrix variant flow (<flow>/<locale>.<scheme>.<viewport>) uses its own locale
-
-  burn — bake annotations into the PNGs (for surfaces that can't run the viewer)
-    <workspace>  a docsxai workspace (reads <workspace>/docs; the burn.theme block of
-                 <workspace>/.docsxai.json sets the look, see docs/burn-theming.md)
-    --flow       restrict to these flows (default: all flows with annotations.json); a flow that ran a
-                 matrix also selects its <flow>/<variant> outputs
-    --out        output root (default: docs/<flow>/burned/<step>.png)
-    --report     write a JSON placement report (callout and badge boxes, overlaps, unplaceable
-                 flags) to <file>, resolved under <workspace> when relative; every callout is drawn
-                 either way
-    --max-overlap  share of its own area a callout may cover before the report flags it
-                 unplaceable (default ${DEFAULT_UNPLACEABLE_RATIO})
-    --no-connector-outline  skip reading the screenshot's pixels: an arrow or stem stays plain ink
-                 (by default one over a dark part gets a white outline), a themed line keeps the
-                 callout's outline colour, and no text is estimated from the pixels
-
-  site — emit a production Astro Starlight docs site (burned images preferred)
-    <workspace>  a docsxai workspace (reads <workspace>/docs + <workspace>/flows)
-    --out        site project directory (default: <workspace>/site)
-    --build      also run astro build (writes <out>/dist)
-    --title      site title (default: "Documentation")
-    --accent     accent hex color (overrides the style artifact's visual keys)
-    --lang       locale of the site, e.g. es or es-ES (default: en; other tags give en); sets
-                 Starlight's language and the text of the copy and retry components
-    --flow       restrict to these flows (default: all flows with annotations.json)
-
-${PACK_DETAILS}`;
 
 interface ParsedArgs {
   positional: string[];
@@ -323,11 +291,18 @@ async function runBuild(args: ParsedArgs): Promise<number> {
       ...(theme ? { theme } : {}),
     });
     for (const w of r.warnings) process.stderr.write(`viewer: warning: ${w}\n`);
+    if (r.pages.length === 1 && !args.flows.length) {
+      const cause = (await isDirectory(docsDir))
+        ? "no flows with annotations.json under"
+        : "no docs directory at";
+      process.stderr.write(
+        `viewer: warning: ${withNext(`${cause} ${docsDir}, so the index is empty`, "docsxai run <workspace-dir>, or fix the path")}\n`,
+      );
+    }
     process.stdout.write(`viewer: wrote ${r.pages.length} page(s) to ${outDir}\n`);
     return 0;
   } catch (e) {
-    process.stderr.write(`build: ${(e as Error).message}\n`);
-    return 1;
+    return reportFailure("build", e);
   }
 }
 
@@ -345,8 +320,17 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     const found = await discoverFlows(docsDir, { variants: true });
     // `--flow <name>` also selects the `<name>/<variant>` outputs of a flow that ran a matrix.
     const flows = args.flows.length ? selectFlows(found, args.flows) : found;
+    const unknown = unknownFlowsNote(args.flows, found, docsDir, workspace);
+    if (unknown) {
+      process.stderr.write(`burn: ${unknown}\n`);
+      return 1;
+    }
     if (flows.length === 0) {
-      process.stderr.write(`burn: no flows with annotations.json under ${docsDir}\n`);
+      const note = withNext(
+        `no flows with annotations.json under ${docsDir}`,
+        "docsxai run <workspace-dir>",
+      );
+      process.stderr.write(`burn: ${note}\n`);
       return 1;
     }
     const reports: FlowBurnReport[] = [];
@@ -380,8 +364,15 @@ async function runBurn(args: ParsedArgs): Promise<number> {
     }
     return 0;
   } catch (e) {
-    process.stderr.write(`burn: ${(e as Error).message}\n`);
-    return 1;
+    if (e instanceof AnnotationsFileError) {
+      const note = withNext(
+        e.message,
+        `fix ${shellQuote(e.file)}, then docsxai burn ${shellQuote(workspace)}`,
+      );
+      process.stderr.write(`burn: ${note}\n`);
+      return 1;
+    }
+    return reportFailure("burn", e);
   }
 }
 
@@ -390,6 +381,34 @@ async function runSite(args: ParsedArgs): Promise<number> {
   const [workspace] = args.positional;
   if (!workspace) return usageError("site", "requires <workspace>");
   const outDir = args.out ?? path.join(workspace, "site");
+  if (args.accent !== undefined) {
+    try {
+      normalizeAccent(args.accent);
+    } catch {
+      return usageError(
+        "site",
+        `--accent must be a hex colour like #2563eb (got ${JSON.stringify(args.accent)})`,
+      );
+    }
+  }
+  if (
+    !(await requireInputDir(
+      "site",
+      workspace,
+      "workspace",
+      "docsxai init <workspace-dir>, or fix the path",
+    ))
+  )
+    return 1;
+  if (
+    !(await requireInputDir(
+      "site",
+      path.join(workspace, "docs"),
+      "docs directory",
+      "docsxai run <workspace-dir>, or fix the path",
+    ))
+  )
+    return 1;
   try {
     const r = await emitStarlightSite({
       workspaceDir: workspace,
@@ -406,15 +425,14 @@ async function runSite(args: ParsedArgs): Promise<number> {
     if (args.build) {
       const b = await buildStarlightSite({ siteDir: outDir });
       if (!b.ok) {
-        process.stderr.write(`site: astro build failed\n${b.stderr}\n`);
+        process.stderr.write(`site: ${astroFailureText(b.stderr, outDir)}\n`);
         return 1;
       }
       process.stdout.write(`site: built ${b.distDir} in ${Math.round(b.durationMs)}ms\n`);
     }
     return 0;
   } catch (e) {
-    process.stderr.write(`site: ${(e as Error).message}\n`);
-    return 1;
+    return reportFailure("site", e);
   }
 }
 
@@ -432,8 +450,13 @@ export async function runViewerCli(argv: string[]): Promise<number> {
   if (command === "burn") return runBurn(parseArgs(rest));
   if (command === "site") return runSite(parseArgs(rest));
   if (command === "pack") return runPack(rest);
+  if (command === undefined || command === "--help" || command === "-h" || command === "help") {
+    process.stdout.write(USAGE + "\n");
+    return 0;
+  }
+  process.stderr.write(`docsxai-viewer: unknown command ${JSON.stringify(command)}\n`);
   process.stdout.write(USAGE + "\n");
-  return argv.length === 0 ? 0 : 2;
+  return 2;
 }
 
 if (isMainModule(import.meta.url, process.argv[1])) {

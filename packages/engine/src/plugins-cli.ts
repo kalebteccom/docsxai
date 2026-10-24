@@ -18,11 +18,12 @@ import {
   sha256Hex,
   writePluginsLock,
 } from "./plugins/lock.js";
+import { sanitizeForTerminal, usageError } from "./cli-messages.js";
 import { parseCommandFlags } from "./cli-flags.js";
 import type { PluginRecord } from "./plugins/registry.js";
 import { resolvePlugins, resolvePluginSources } from "./plugins/runtime.js";
 
-const PLUGINS_USAGE = `docsxai plugins — workspace plugin runtime
+const PLUGINS_USAGE = `docsxai plugins: workspace plugin runtime
 
 Usage:
   docsxai plugins list <workspace-dir> [--format text|json]
@@ -36,7 +37,7 @@ Notes:
   • list resolves and loads the declared set, then prints every plugin's status (loaded, or the
     disabled/error reason). Exit 1 if any declared plugin is not loaded.
   • sync pins each plugin's register-module sha256 into ${PLUGINS_LOCK_FILE} next to the config.
-    When the lock exists, every resolve verifies the bytes before importing — a changed module
+    When the lock exists, every resolve verifies the bytes before importing, a changed module
     fails closed until you re-run sync. sync itself never executes plugin code.
 `;
 
@@ -130,7 +131,7 @@ async function cmdSync(workspaceDir: string, format: "text" | "json"): Promise<n
       continue;
     }
     const ns = r.candidate.manifest.namespace;
-    const reason = `namespace "${ns}" is claimed by more than one configured plugin — cannot lock`;
+    const reason = `namespace "${ns}" is claimed by more than one configured plugin, so it cannot be locked`;
     const firstSource = claimed.get(ns);
     if (firstSource !== undefined) {
       // The first claimant was locked before this one showed up: take it back out, once.
@@ -170,7 +171,7 @@ async function cmdSync(workspaceDir: string, format: "text" | "json"): Promise<n
       );
     }
     for (const f of failures) {
-      process.stderr.write(`plugins sync: NOT locked ${f.source} — ${f.reason}\n`);
+      process.stderr.write(`plugins sync: NOT locked ${f.source}: ${f.reason}\n`);
     }
   }
   return failures.length > 0 ? 1 : 0;
@@ -178,30 +179,28 @@ async function cmdSync(workspaceDir: string, format: "text" | "json"): Promise<n
 
 export async function pluginsCli(args: string[]): Promise<number> {
   const [sub, ...rest] = args;
-  if (sub === undefined || sub === "--help" || sub === "-h" || sub === "help") {
+  if (sub === "--help" || sub === "-h" || sub === "help") {
     process.stdout.write(PLUGINS_USAGE);
-    return sub === undefined ? 2 : 0;
+    return 0;
   }
+  if (sub === undefined) return usageError("plugins", "missing subcommand (list, info or sync)");
   if (sub !== "list" && sub !== "info" && sub !== "sync") {
-    process.stderr.write(`plugins: unknown subcommand "${sub}"\n\n${PLUGINS_USAGE}`);
-    return 2;
+    return usageError("plugins", `unknown subcommand "${sanitizeForTerminal(sub)}"`);
   }
   const parsed = parseCommandFlags(`plugins ${sub}`, rest, "plugins");
   if (typeof parsed === "number") return parsed;
   const { positionals, flags } = parsed;
   const workspaceDir = positionals[0];
-  if (!workspaceDir) {
-    process.stderr.write(`plugins ${sub}: missing <workspace-dir>\n\n${PLUGINS_USAGE}`);
-    return 2;
-  }
+  if (!workspaceDir) return usageError(`plugins ${sub}`, "missing <workspace-dir>");
   if (flags.get("format") === true) {
-    process.stderr.write(`plugins ${sub}: --format needs a value ("text" or "json")\n`);
-    return 2;
+    return usageError(`plugins ${sub}`, '--format needs a value ("text" or "json")');
   }
   const format = parseFormat(flags);
   if (!format) {
-    process.stderr.write(`plugins ${sub}: --format must be "text" or "json"\n`);
-    return 2;
+    return usageError(
+      `plugins ${sub}`,
+      `--format must be "text" or "json" (got "${sanitizeForTerminal(String(flags.get("format")))}")`,
+    );
   }
   try {
     switch (sub) {
@@ -209,10 +208,7 @@ export async function pluginsCli(args: string[]): Promise<number> {
         return await cmdList(workspaceDir, format);
       case "info": {
         const namespace = positionals[1];
-        if (!namespace) {
-          process.stderr.write(`plugins info: missing <namespace>\n\n${PLUGINS_USAGE}`);
-          return 2;
-        }
+        if (!namespace) return usageError("plugins info", "missing <namespace>");
         return await cmdInfo(workspaceDir, namespace, format);
       }
       case "sync":

@@ -111,7 +111,7 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
     const { flow } = unit;
     const name = unitLabel(unit);
     // A flow takes seconds to minutes; this line shows a log reader which one is in flight.
-    say(`${tag(name)}${name} — starting\n`);
+    say(`${tag(name)}${name}, starting\n`);
     let session;
     try {
       // When attaching to an existing Chrome via --cdp, the operator owns its auth state — don't
@@ -165,7 +165,7 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
         : result.annotations;
       await writeFileAtomic(annotationsPath, JSON.stringify(toWrite, null, 2) + "\n", "utf8");
       say(
-        `${tag(name)}${name} — ${result.steps.length} step(s) executed, ${result.annotations.annotations.length} annotation(s) ${startFrom ? "merged" : "written"}\n`,
+        `${tag(name)}${name}, ${result.steps.length} step(s) executed, ${result.annotations.annotations.length} annotation(s) ${startFrom ? "merged" : "written"}\n`,
       );
       return true;
     } catch (e) {
@@ -183,7 +183,7 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
     } finally {
       // Cleanup failures never replace the flow's own result or stop the other workers.
       if (pause) {
-        say("run: --pause — browser is open at the last step run; close it to exit.\n");
+        say("run: --pause, browser is open at the last step run; close it to exit.\n");
         await waitForBrowserClose(session.browser).catch(() => undefined);
       }
       await session.close().catch((e: Error) => {

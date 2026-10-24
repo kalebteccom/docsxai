@@ -133,7 +133,7 @@ describe("argument handling", () => {
     expect(err).toMatch(/--out is required when <dir> is a raw capture directory/);
     err = "";
     expect(await runPack([path.join(root, "nope"), "--no-optimise", "--out", dest])).toBe(1);
-    expect(err).toMatch(/pack: .*nope is not a directory/);
+    expect(err).toMatch(/pack: .*nope does not exist/);
   });
 });
 

@@ -84,7 +84,7 @@ export function groupedCommands(): string {
 /** What `docsxai` prints with no argument: the first steps, then the commands by purpose. */
 export function startScreen(): string {
   return [
-    "docsxai — deterministic execution CLI",
+    "docsxai: deterministic execution CLI",
     "",
     START_HERE,
     "",

@@ -142,7 +142,7 @@ trusted. If unset or unfound, `ttl` (or a 1h default) is used.
 
 ```
 $ docsxai capture-auth ~/docsxai/my-app --auth-cookie session
-capture-auth: launching browser for role "editor" (manual-capture) — reusing saved profile if present; log in if prompted, then trigger capture…
+capture-auth: launching browser for role "editor" (manual-capture), reusing saved profile if present; log in if prompted, then trigger capture…
 capture-auth: captured 9 cookie(s) (newest expiry first):
     _ga  @localhost  expires 2027-07-12T16:40:08.000Z
     session  @localhost  expires 2026-06-12T17:40:11.000Z
@@ -190,7 +190,7 @@ TLS certificate (the same setting is read from `ignore_https_errors` in
 $ docsxai inspect ~/docsxai/my-app
 inspect: https://localhost:3000/dashboard
   title: Acme · Dashboard
-  4 [data-testid] element(s) (✓ = visible) — pin these as locators:
+  4 [data-testid] element(s) (✓ = visible), pin these as locators:
     ✓ [data-testid="nav-reports"]  <a>  "Reports"
     ✓ [data-testid="nav-account"]  <a>  "Account"
     ✓ [data-testid="new-post"]  <button>  "New post"
@@ -258,7 +258,7 @@ A clean run prints one line per flow and exits 0:
 
 ```
 $ docsxai run ~/docsxai/my-app --flow publish-post
-run: publish-post — 5 step(s) executed, 4 annotation(s) written
+run: publish-post, 5 step(s) executed, 4 annotation(s) written
 run: 1 of 1 flow ok, outputs in ~/docsxai/my-app/docs
 ```
 
@@ -348,7 +348,7 @@ text tables and writes English.
 ```
 $ docsxai render ~/docsxai/my-app
 render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; each flow page
-shows the screenshots — hover a pulsing halo to read its callout)
+shows the screenshots, hover a pulsing halo to read its callout)
 ```
 
 ### `docsxai burn`
@@ -536,7 +536,7 @@ with exit 1 and name both files.
 ```
 $ docsxai lint ~/docsxai/my-app
 flow publish-post
-  R004 [info] step 'open-editor': selector `[data-testid="new-post"]` is a bare `[data-*=…]` match — may resolve to multiple DOM nodes (visible + hidden duplicate)
+  R004 [info] step 'open-editor': selector `[data-testid="new-post"]` is a bare `[data-*=…]` match; it may resolve to multiple DOM nodes (visible + hidden duplicate)
     → scope it: `[data-testid="new-post"]:visible` or add a `:has-text(…)` qualifier
   R007 [warning] step 'confirm-live': terminal step has no `success` criterion
 
@@ -598,7 +598,7 @@ Live probe (via http://localhost:9222):
   bbox: {"x":1184,"y":24,"width":96,"height":36}
 
 Recommendations (1):
-  [wait_for] the live probe reports the target covered — another element receives the click
+  [wait_for] the live probe reports the target covered, another element receives the click
     → wait out (or dismiss, via a prior optional step) the covering element before this click
 ```
 
@@ -644,10 +644,10 @@ ok: workspace: ~/docsxai/my-app/.docsxai.json (docsxai/workspace@1, app_url http
 ok: config: .docsxai.json fields are valid
 ok: writable: ~/docsxai/my-app and its output dirs are writable
 ok: flows: 3 flow-file(s) parse
-ok: auth: auth/strategy.yaml ok — role(s) editor (default "editor", strategy manual-capture)
+ok: auth: auth/strategy.yaml ok, role(s) editor (default "editor", strategy manual-capture)
 fail: auth: cached session for role "editor" expired 2026-06-12T11:00:00.000Z next: re-capture: docsxai capture-auth ~/docsxai/my-app
 ok: app_url: https://localhost:3000/ answered HTTP 200
-ok: backend: no backend_url configured — the workspace operates fully locally
+ok: backend: no backend_url configured, the workspace operates fully locally
 ok: login: no backend_url, so no backend login is needed
 ok: plugins: no plugins configured (add a "plugins" array to .docsxai.json)
 ok: viewer: @docsxai/viewer installed next to the engine → …/dist/index.js (layer 2: installed package)
@@ -851,8 +851,8 @@ the pack. The ids `push` records in `.docsxai.json` are written atomically.
 
 ```
 $ docsxai push ~/docsxai/my-app --kind run --author ci
-push: screenshots — 2 blob(s) uploaded, 7 already on the backend
-push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) on http://127.0.0.1:4477 — 5 artifact slots uploaded, finalized
+push: screenshots, 2 blob(s) uploaded, 7 already on the backend
+push: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) on http://127.0.0.1:4477, 5 artifact slots uploaded, finalized
 ```
 
 ### `docsxai pull`
@@ -871,7 +871,7 @@ holds half of the new revision and half of the old.
 
 ```
 $ docsxai pull ~/docsxai/my-app
-pull: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci) — wrote 23 file(s) to ~/docsxai/my-app
+pull: revision 1d4f0c9a-6f4e-4b9a-9a3e-7f1d2b8c5e10 (run, ci), wrote 23 file(s) to ~/docsxai/my-app
 ```
 
 The backend is not trusted with file names. Before it writes anything, `pull`

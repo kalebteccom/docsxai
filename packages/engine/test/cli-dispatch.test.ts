@@ -137,7 +137,7 @@ describe("render dispatch", () => {
     expect(err).toMatch(/could not be launched/);
     expect(err).toMatch(/1\. \$DOCSX_VIEWER_BIN → .*no-such-viewer\.js \(no such file\)/);
     expect(err).toMatch(/2\. @docsxai\/viewer \(installed package\)/);
-    expect(err).toMatch(/3\. `docsxai-viewer` on PATH — not found/);
+    expect(err).toMatch(/3\. `docsxai-viewer` on PATH: not found/);
   });
 });
 

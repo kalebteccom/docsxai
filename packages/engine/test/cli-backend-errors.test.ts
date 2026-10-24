@@ -56,7 +56,7 @@ describe("explainBackendFailure", () => {
 
   it("turns the client's missing-token hint into a next line", () => {
     const e = new BackendClientError(
-      "stored backend token expired and the refresh failed (token refresh → 401) — set DOCSX_TOKEN or run `docsxai login`",
+      "stored backend token expired and the refresh failed (token refresh → 401): set DOCSX_TOKEN or run `docsxai login`",
     );
     expect(explainBackendFailure(e, URL_REFUSED, "/ws")).toBe(
       "stored backend token expired and the refresh failed (token refresh → 401) for http://127.0.0.1:1\n" +

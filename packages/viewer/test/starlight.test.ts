@@ -885,10 +885,10 @@ describe("site CLI subcommand", () => {
     expect(await runViewerCli(["site"])).toBe(2);
   });
 
-  it("exits 1 on an invalid --accent", async () => {
+  it("exits 2 on an invalid --accent, a bad flag value", async () => {
     const ws = await makeWorkspace(goldenSpec());
     const code = await runViewerCli(["site", ws, "--out", await outDir(), "--accent", "nope"]);
-    expect(code).toBe(1);
+    expect(code).toBe(2);
   });
 });
 

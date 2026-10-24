@@ -1,0 +1,29 @@
+{
+  "width": 1280,
+  "height": 8,
+  "annotations": [
+    {
+      "index": 1,
+      "copy": "Pick a card",
+      "bbox": {
+        "x": 2,
+        "y": 2,
+        "width": 4,
+        "height": 2
+      },
+      "arrow_style": "top",
+      "obstacles": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 2,
+          "height": 2
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "copy": "No box yet"
+    }
+  ]
+}

@@ -100,6 +100,9 @@ export async function zipDocPack(opts: ZipOptions): Promise<ZipResult> {
   }
 
   const outAbs = path.resolve(output);
+  if ((await fs.stat(outAbs).catch(() => null))?.isDirectory()) {
+    throw new ZipError(`${output} is a directory, but --out needs a .zip file path`);
+  }
 
   const includesAll = includeViewer ? [...DEFAULT_INCLUDES, ".viewer/"] : DEFAULT_INCLUDES;
   const files: string[] = [];

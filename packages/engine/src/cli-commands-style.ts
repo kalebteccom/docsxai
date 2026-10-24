@@ -1,8 +1,10 @@
 // style — init/validate docs/style.yaml and rederive style.json; --check scans prose for jargon leaks.
 // Split from cli-commands-authoring.ts to keep both files under the max-lines ceiling.
 
-import { promises as fs } from "node:fs";
 import * as path from "node:path";
+import { bareValueFlagExit, workspaceDirProblem } from "./cli-shared.js";
+import { parseCommandFlags } from "./cli-flags.js";
+import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 import {
   formatJargonHitsText,
   initStyleIfAbsent,
@@ -11,9 +13,13 @@ import {
   StyleError,
   writeStyle,
 } from "./style.js";
-import { bareValueFlagExit } from "./cli-shared.js";
-import { parseCommandFlags } from "./cli-flags.js";
-import { shellQuote, usageError, withNext } from "./cli-messages.js";
+/** A style file the disk refused, as a `style:` line with the chmod; any other error is rethrown. */
+function styleFsFailure(e: unknown): number {
+  const line = describeFsError(e);
+  if (line === undefined) throw e;
+  process.stderr.write(`style: ${line}\n`);
+  return 1;
+}
 
 export async function cmdStyle(args: string[]): Promise<number> {
   const parsed = parseCommandFlags("style", args);
@@ -28,22 +34,19 @@ export async function cmdStyle(args: string[]): Promise<number> {
   if (format !== "text" && format !== "json") {
     return usageError("style", '--format must be "text" or "json"');
   }
-
-  const isDir = await fs.stat(projectDir).then(
-    (st) => st.isDirectory(),
-    () => false,
-  );
-  if (!isDir) {
-    const note = withNext(
-      `${projectDir} is not a directory`,
-      `docsxai init ${shellQuote(projectDir)}  (or fix the path)`,
-    );
-    process.stderr.write(`style: ${note}\n`);
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`style: ${problem}\n`);
     return 1;
   }
 
   // init-if-absent (idempotent); then load + validate; then rederive JSON; then optional jargon check.
-  const { created } = await initStyleIfAbsent(projectDir);
+  let created: boolean;
+  try {
+    ({ created } = await initStyleIfAbsent(projectDir));
+  } catch (e) {
+    return styleFsFailure(e);
+  }
   let style;
   try {
     style = await loadStyle(projectDir);
@@ -62,7 +65,12 @@ export async function cmdStyle(args: string[]): Promise<number> {
     return 1;
   }
   // Always rewrite to ensure derived JSON stays in sync with YAML (idempotent).
-  const paths = await writeStyle(projectDir, style);
+  let paths: Awaited<ReturnType<typeof writeStyle>>;
+  try {
+    paths = await writeStyle(projectDir, style);
+  } catch (e) {
+    return styleFsFailure(e);
+  }
 
   let hits: Awaited<ReturnType<typeof scanWorkspaceForJargon>> = [];
   if (check) {

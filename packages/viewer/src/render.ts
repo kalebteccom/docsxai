@@ -214,7 +214,7 @@ async function loadOverlayJs(): Promise<string> {
     }
   }
   throw new Error(
-    "overlay bundle not found — run the viewer package build (scripts/bundle-overlay.mjs emits dist/generated/overlay.js)",
+    "overlay bundle not found, run the viewer package build (scripts/bundle-overlay.mjs emits dist/generated/overlay.js)",
   );
 }
 

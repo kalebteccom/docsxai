@@ -435,13 +435,15 @@ steps:
   it("startFrom throws fast if the named step doesn't exist (catch the typo before launching)", async () => {
     await expect(
       runFlow(parseFlowFile(FLOW), new FakeDriver(), { startFrom: "no-such-step" }),
-    ).rejects.toThrow(/startFrom: no step with id "no-such-step"/);
+    ).rejects.toThrow(
+      /cannot start from step "no-such-step": flow ".*" has no such step \(steps: /,
+    );
   });
 
   it("stopAfter throws fast if the named step doesn't exist, before any step runs", async () => {
     const d = new FakeDriver();
     await expect(runFlow(parseFlowFile(FLOW), d, { stopAfter: "no-such-step" })).rejects.toThrow(
-      /stopAfter: no step with id "no-such-step"/,
+      /cannot stop after step "no-such-step": flow ".*" has no such step \(steps: /,
     );
     expect(d.calls).toEqual([]);
   });

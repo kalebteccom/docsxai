@@ -90,7 +90,7 @@ describe("readRawCapture", () => {
 
   it("refuses a step without step.json, without a PNG, or with malformed text", async () => {
     await fs.mkdir(path.join(raw(), "f", "s"), { recursive: true });
-    await expect(readRawCapture(raw())).rejects.toThrow(/missing .*step\.json/);
+    await expect(readRawCapture(raw())).rejects.toThrow(/step\.json does not exist/);
     await fs.writeFile(
       path.join(raw(), "f", "s", "step.json"),
       JSON.stringify({ alt: { en: "S" } }),
@@ -509,7 +509,7 @@ describe("readWorkspace", () => {
 
   it("refuses a workspace without pack.json", async () => {
     await fs.mkdir(path.join(ws(), "docs"), { recursive: true });
-    await expect(readWorkspace(ws())).rejects.toThrow(/missing .*pack\.json/);
+    await expect(readWorkspace(ws())).rejects.toThrow(/pack\.json does not exist/);
   });
 
   it("reads a PNG as it is, without decoding it", async () => {

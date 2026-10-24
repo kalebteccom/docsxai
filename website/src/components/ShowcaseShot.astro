@@ -1,0 +1,51 @@
+---
+// One product shot on the landing page: a dark and a light <picture>, of which the site's theme
+// shows one (brand.css, `.docsx-shot-pic--*`), with phone-width files under 34rem and lossless
+// WebP first. The file names, sizes and sources come from public/showcase/manifest.json, which
+// scripts/landing-showcase.mjs writes; re-run it after a capture changes. The caption is the slot.
+import manifest from "../../public/showcase/manifest.json";
+
+interface Props {
+  shot: "pipeline" | "terminal";
+  alt: string;
+}
+
+const { shot, alt } = Astro.props;
+const entry = manifest.shots[shot];
+if (!entry) {
+  throw new Error(
+    `ShowcaseShot: public/showcase/manifest.json has no "${shot}"; run scripts/landing-showcase.mjs`,
+  );
+}
+const pictures = (["dark", "light"] as const).map((theme) => ({
+  theme,
+  ...entry[theme].picture,
+}));
+---
+
+<figure class={`docsx-shot docsx-shot--${shot}`}>
+  {
+    pictures.map(({ theme, sources, img }) => (
+      <picture class={`docsx-shot-pic docsx-shot-pic--${theme}`}>
+        {sources.map((s) => (
+          <source
+            media={"media" in s ? s.media : undefined}
+            type={s.type}
+            srcset={s.srcset}
+            width={s.width}
+            height={s.height}
+          />
+        ))}
+        <img
+          src={img.src}
+          width={img.width}
+          height={img.height}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+        />
+      </picture>
+    ))
+  }
+  <figcaption><slot /></figcaption>
+</figure>

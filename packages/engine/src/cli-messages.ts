@@ -2,7 +2,7 @@
 // run, in that order, on `<command>: ` lines with an indented `next:` line. Usage errors show the
 // failing command's own usage line instead of the whole help text. Leaf: imports only the help text.
 
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import * as path from "node:path";
 import { USAGE } from "./cli-usage.js";
 
@@ -121,19 +121,80 @@ function nearestExisting(target: string): string {
   return dir;
 }
 
+/** What went wrong with a file operation and the command to run next, as two parts for callers that print them apart. */
+export interface FsProblem {
+  reason: string;
+  next: string;
+}
+
+/** The nearest path at or above `target` that exists and is not a directory: the file standing where a directory should be. */
+function blockingFile(target: string): string | undefined {
+  let probe = path.resolve(target);
+  for (;;) {
+    try {
+      return statSync(probe).isDirectory() ? undefined : probe;
+    } catch {
+      const parent = path.dirname(probe);
+      if (parent === probe) return undefined;
+      probe = parent;
+    }
+  }
+}
+
 /**
- * A line for a file operation that failed with {@link fsErrorCode}: what failed, why, and the next command.
- * `undefined` for any other error, so the caller keeps its own wording. With `creating`, a refused
- * `mkdir` names the nearest existing parent in the chmod, because the path that failed is not there to change.
+ * The problem when `target` (or a directory under it) is a file: names the file, says a directory is
+ * needed there, and moves the file aside. `target` is the path the failing call named, when known.
  */
-export function describeFsError(e: unknown, opts: { creating?: boolean } = {}): string | undefined {
+export function notDirectoryProblem(target?: string): FsProblem {
+  const file = target ? (blockingFile(target) ?? path.resolve(target)) : undefined;
+  if (file === undefined) {
+    return {
+      reason: "a file stands where docsxai needs a directory (ENOTDIR)",
+      next: "move the file aside, then rerun the command",
+    };
+  }
+  const shown = redactUrlsIn(file);
+  return {
+    reason: `${shown} is a file, but docsxai needs a directory there (ENOTDIR)`,
+    next: `mv ${shellQuote(file)} ${shellQuote(`${file}.bak`)}, then rerun the command`,
+  };
+}
+
+/**
+ * {@link describeFsError} as a reason and a next step: for `EACCES`, `EPERM`, `EROFS`, `ENOSPC` and
+ * `ENOTDIR`. `undefined` for any other error.
+ */
+export function describeFsProblem(
+  e: unknown,
+  opts: { creating?: boolean } = {},
+): FsProblem | undefined {
+  const target = e instanceof Error ? (e as NodeJS.ErrnoException).path : undefined;
+  const raw = e instanceof Error ? (e as NodeJS.ErrnoException) : undefined;
+  // `mkdir -p` over a path that runs through a file fails with EEXIST rather than ENOTDIR.
+  if (raw?.code === "ENOTDIR" || (raw?.code === "EEXIST" && raw.syscall === "mkdir")) {
+    return notDirectoryProblem(target);
+  }
   const code = fsErrorCode(e);
   if (code === undefined) return undefined;
-  const target = (e as NodeJS.ErrnoException).path;
   const where = target ? ` ${redactUrlsIn(target)}` : "";
-  const parent = opts.creating && target && (code === "EACCES" || code === "EPERM");
+  // A real error carries the failing `syscall`; a path that is not there yet means the denied
+  // directory is its parent, which is where the chmod has to go.
+  const creating =
+    opts.creating || ((e as NodeJS.ErrnoException).syscall && !existsSync(target ?? ""));
+  const parent = creating && target && (code === "EACCES" || code === "EPERM");
   const next = parent
     ? `chmod u+rwx ${shellQuote(nearestExisting(target))}  (or pick another directory), then rerun the command`
     : fsNext(code, target);
-  return withNext(`cannot access${where} (${code}, ${FS_REASONS[code]})`, next);
+  return { reason: `cannot access${where} (${code}, ${FS_REASONS[code]})`, next };
+}
+
+/**
+ * A line for a file operation that failed with {@link fsErrorCode}, or with `ENOTDIR`: what failed,
+ * why, and the next command. `undefined` for any other error, so the caller keeps its own wording.
+ * A refused create (`creating`, or a failing call on a path that does not exist yet) names the nearest
+ * existing parent in the chmod, because the path that failed is not there to change.
+ */
+export function describeFsError(e: unknown, opts: { creating?: boolean } = {}): string | undefined {
+  const problem = describeFsProblem(e, opts);
+  return problem ? withNext(problem.reason, problem.next) : undefined;
 }

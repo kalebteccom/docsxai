@@ -26,7 +26,7 @@ describe("style with a workspace path that is not a directory", () => {
   it("exits 1 and creates nothing for a missing path", async () => {
     const missing = path.join(tmp, "typo", "ws");
     expect(await main(["style", missing])).toBe(1);
-    expect(err).toContain(`style: ${missing} is not a directory`);
+    expect(err).toContain(`style: workspace doesn't exist: ${missing}`);
     expect(err).toContain("next:");
     await expect(fs.access(path.join(tmp, "typo"))).rejects.toThrow();
   });
@@ -35,7 +35,7 @@ describe("style with a workspace path that is not a directory", () => {
     const file = path.join(tmp, "file.txt");
     await fs.writeFile(file, "x", "utf8");
     expect(await main(["style", file])).toBe(1);
-    expect(err).toContain("is not a directory");
+    expect(err).toContain("is a file, not a workspace directory");
   });
 
   it("still scaffolds style.yaml in an existing directory", async () => {

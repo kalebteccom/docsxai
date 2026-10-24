@@ -77,7 +77,7 @@ export class ApiLoginStrategy implements AuthStrategy {
     if (check === undefined) {
       if (result.status >= 400) {
         throw new AuthStrategyConfigError(
-          `api-login: ${url.href} answered ${result.status} — login rejected (credentials read from env; values not shown)`,
+          `api-login: ${url.href} answered ${result.status}, login rejected (credentials read from env; values not shown)`,
         );
       }
     } else if ("cookie" in check) {

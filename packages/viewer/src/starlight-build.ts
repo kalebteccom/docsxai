@@ -70,7 +70,7 @@ export function resolveAstroBin(): string {
     pkgDir = resolvePackageDir("astro");
   } catch {
     throw new Error(
-      "cannot resolve the astro package — pass `astroBin`, or run `npm install` inside the emitted site and build there",
+      "cannot resolve the astro package, pass `astroBin`, or run `npm install` inside the emitted site and build there",
     );
   }
   const pkg = JSON.parse(readFileSync(path.join(pkgDir, "package.json"), "utf8")) as {

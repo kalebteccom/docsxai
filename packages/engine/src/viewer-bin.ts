@@ -81,7 +81,7 @@ export async function resolveViewerBin(
     }
     attempts.push(`$${VIEWER_BIN_ENV} → ${envBin} (no such file)`);
   } else {
-    attempts.push(`$${VIEWER_BIN_ENV} — not set`);
+    attempts.push(`$${VIEWER_BIN_ENV}: not set`);
   }
 
   const searchDirs = opts.resolveFrom
@@ -101,7 +101,7 @@ export async function resolveViewerBin(
         return { command: process.execPath, prefixArgs: [binAbs], source: "package", attempts };
       }
       attempts.push(
-        `${VIEWER_PACKAGE} (installed package) → ${binAbs} (bin file missing — is the package built?)`,
+        `${VIEWER_PACKAGE} (installed package) → ${binAbs} (bin file missing; is the package built?)`,
       );
     } else {
       attempts.push(
@@ -109,7 +109,7 @@ export async function resolveViewerBin(
       );
     }
   } else {
-    attempts.push(`${VIEWER_PACKAGE} (installed package) — not found next to the engine`);
+    attempts.push(`${VIEWER_PACKAGE} (installed package): not found next to the engine`);
   }
 
   attempts.push(`\`${VIEWER_BIN_NAME}\` on PATH`);
@@ -119,7 +119,7 @@ export async function resolveViewerBin(
 /** Failure message for when the resolved command could not be launched (spawn ENOENT). */
 export function formatViewerBinFailure(resolution: ViewerBinResolution): string {
   const lines = resolution.attempts.map(
-    (a, i, all) => `  ${i + 1}. ${a}${i === all.length - 1 ? " — not found" : ""}`,
+    (a, i, all) => `  ${i + 1}. ${a}${i === all.length - 1 ? ": not found" : ""}`,
   );
   return [
     `\`${VIEWER_BIN_NAME}\` could not be launched. Tried, in order:`,

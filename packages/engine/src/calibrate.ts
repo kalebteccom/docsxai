@@ -20,6 +20,8 @@ export class CalibrateError extends Error {
   constructor(
     message: string,
     readonly cause?: unknown,
+    /** `"name-flag"` when the `--name` the operator passed is the problem, so the fix is not in the guide. */
+    readonly field?: "name-flag",
   ) {
     super(message);
     this.name = "CalibrateError";
@@ -39,6 +41,8 @@ export function extractFlowFile(text: string, source = "<flow-guide>"): FlowFile
     return parseFlowFile(text, source);
   } catch (e) {
     if (!(e instanceof FlowFileError)) throw e;
+    // A `.yaml` file is a flow-file, not a guide: its own error names the field or the line.
+    if (/\.ya?ml$/i.test(source)) throw new CalibrateError(e.message, e);
   }
   // 2. A ```yaml fenced block.
   const m = YAML_FENCE.exec(text);
@@ -58,8 +62,8 @@ export function extractFlowFile(text: string, source = "<flow-guide>"): FlowFile
   throw new CalibrateError(
     `${source}: not a structured flow-guide (no parseable flow-file YAML found).\n` +
       `\`calibrate --from\` only takes a flow-file in YAML, or a Markdown doc with a \`\`\`yaml fenced block that *is* one.\n` +
-      `Loose prose — e.g. a hand-written test guide whose fenced blocks are numbered prose pseudo-steps for an agent\n` +
-      `to *test* rather than flow-file YAML — must be turned into a flow-file by hand: follow the /docsxai:calibrate skill\n` +
+      `Loose prose (a hand-written test guide whose fenced blocks are numbered prose pseudo-steps for an agent\n` +
+      `to *test*, not flow-file YAML) must be turned into a flow-file by hand: follow the /docsxai:calibrate skill\n` +
       `(walk the live app via Claude in Chrome, pin one canonical locator per step), then \`calibrate --from\` it or just \`run\`.`,
   );
 }
@@ -94,6 +98,8 @@ export async function calibrate(opts: CalibrateOptions): Promise<CalibrateResult
   if (!checked.success) {
     throw new CalibrateError(
       `flow name "${name}" is not usable: ${checked.error.issues.map((i) => i.message).join("; ")}`,
+      undefined,
+      opts.flowName === undefined ? undefined : "name-flag",
     );
   }
 

@@ -24,7 +24,7 @@ import {
 import { writeFileAtomic } from "./atomic-write.js";
 import { pluginsCli } from "./plugins-cli.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
-import { bareValueFlagExit, isHttpUrl } from "./cli-shared.js";
+import { bareValueFlagExit, isHttpUrl, workspaceDirProblem } from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
 import { configProblem, explainBackendFailure } from "./cli-backend-errors.js";
 import {
@@ -146,6 +146,11 @@ export async function cmdPush(args: string[]): Promise<number> {
   const projectDir = positionals[0];
   const barePush = bareValueFlagExit("push", flags, ["kind", "author"]);
   if (barePush !== undefined) return barePush;
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`push: ${problem}\n`);
+    return 1;
+  }
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url) {
     const file = path.join(projectDir, ".docsxai.json");
@@ -222,7 +227,7 @@ export async function cmdPush(args: string[]): Promise<number> {
         client,
       );
       process.stdout.write(
-        `push: screenshots — ${uploaded} blob(s) uploaded, ${skipped} already on the backend\n`,
+        `push: screenshots, ${uploaded} blob(s) uploaded, ${skipped} already on the backend\n`,
       );
     }
     let pushed = 0;
@@ -235,7 +240,7 @@ export async function cmdPush(args: string[]): Promise<number> {
     }
     await client.finalizeRevision(binding.wsId, binding.projectId, rev.id);
     process.stdout.write(
-      `push: revision ${sanitizeForTerminal(rev.id)} (${kindArg}, ${sanitizeForTerminal(author)}) on ${redactUrl(wsCfg.backend_url)} — ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded, finalized\n`,
+      `push: revision ${sanitizeForTerminal(rev.id)} (${kindArg}, ${sanitizeForTerminal(author)}) on ${redactUrl(wsCfg.backend_url)}, ${pushed} artifact slot${pushed !== 1 ? "s" : ""} uploaded, finalized\n`,
     );
     return 0;
   } catch (e) {
@@ -263,6 +268,11 @@ export async function cmdPull(args: string[]): Promise<number> {
   const projectDir = positionals[0];
   const barePull = bareValueFlagExit("pull", flags, ["rev"]);
   if (barePull !== undefined) return barePull;
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`pull: ${problem}\n`);
+    return 1;
+  }
   const wsCfg = await loadWorkspaceConfig(projectDir);
   if (!wsCfg?.backend_url || !wsCfg.backend_workspace_id || !wsCfg.backend_project_id) {
     const gap = wsCfg
@@ -297,7 +307,7 @@ export async function cmdPull(args: string[]): Promise<number> {
     for (const artifact of rev.artifacts) {
       if (!KNOWN_ARTIFACTS.includes(artifact)) {
         process.stderr.write(
-          `pull: warning — revision lists the artifact ${JSON.stringify(sanitizeForTerminal(String(artifact)))}, which this docsxai does not know; skipped\n`,
+          `pull: warning, revision lists the artifact ${JSON.stringify(sanitizeForTerminal(String(artifact)))}, which this docsxai does not know; skipped\n`,
         );
         continue;
       }
@@ -315,7 +325,7 @@ export async function cmdPull(args: string[]): Promise<number> {
       : undefined;
     const r = await writeDocPack(projectDir, payloads, screenshotBytes ? { screenshotBytes } : {});
     process.stdout.write(
-      `pull: revision ${sanitizeForTerminal(rev.id)} (${sanitizeForTerminal(rev.kind)}, ${sanitizeForTerminal(rev.author)}) — wrote ${r.filesWritten} file(s) to ${sanitizeForTerminal(projectDir)}\n`,
+      `pull: revision ${sanitizeForTerminal(rev.id)} (${sanitizeForTerminal(rev.kind)}, ${sanitizeForTerminal(rev.author)}), wrote ${r.filesWritten} file(s) to ${sanitizeForTerminal(projectDir)}\n`,
     );
     return 0;
   } catch (e) {

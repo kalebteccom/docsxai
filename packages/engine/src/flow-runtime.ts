@@ -241,9 +241,7 @@ async function obstaclesAround(
         })
       : [];
   } catch (e) {
-    process.stderr.write(
-      `runFlow: step "${stepId}" — obstacle scan skipped (${(e as Error).message})\n`,
-    );
+    process.stderr.write(`run: step "${stepId}": obstacle scan skipped (${firstLine(e)})\n`);
     return [];
   }
 }
@@ -291,9 +289,27 @@ async function executeAction(
   }
 }
 
+/** The first line of a caught error's message: Playwright's call log stays out of a one-line note. */
+function firstLine(e: unknown): string {
+  const text = e instanceof Error ? e.message : String(e);
+  return text.split("\n")[0] || "unknown error";
+}
+
 /** The halt message for a step whose optional driver method is missing. `halt-cause` keys on its shape. */
 function missingMethod(feature: string, method: string): string {
   return `${feature}: driver has no ${method} (this browser driver doesn't implement it)`;
+}
+
+/** The error for a `--start-from` or `--stop-after` step id the flow does not have: the id, the flow and the ids it has. */
+function unknownStep(verb: "start from" | "stop after", id: string, flow: FlowFile): Error {
+  const ids = flow.steps.map((s) => s.id);
+  const shown =
+    ids.length > 12
+      ? `${ids.slice(0, 12).join(", ")}, and ${ids.length - 12} more`
+      : ids.join(", ");
+  return new Error(
+    `cannot ${verb} step "${id}": flow "${flow.name}" has no such step (steps: ${shown})`,
+  );
 }
 
 function needSelector(selector: string | null, step: Step): string {
@@ -331,11 +347,11 @@ export async function runFlow(
   // startFrom validation: if set, must name an actual step id in this (already-merged) flow.
   // Catching the typo here is cheaper than running, halting, and reading the wall of Playwright noise.
   if (opts.startFrom && !flow.steps.some((s) => s.id === opts.startFrom)) {
-    throw new Error(`startFrom: no step with id "${opts.startFrom}" in flow "${flow.name}"`);
+    throw unknownStep("start from", opts.startFrom, flow);
   }
   // Same for stopAfter: a typo would otherwise run the whole flow and overwrite its outputs.
   if (opts.stopAfter && !flow.steps.some((s) => s.id === opts.stopAfter)) {
-    throw new Error(`stopAfter: no step with id "${opts.stopAfter}" in flow "${flow.name}"`);
+    throw unknownStep("stop after", opts.stopAfter, flow);
   }
   let skipping = !!opts.startFrom;
 
@@ -379,7 +395,7 @@ export async function runFlow(
       // No screenshot / annotation for a skipped step — same as a `--start-from`-skipped one.
       if (step.optional) {
         process.stderr.write(
-          `runFlow: optional step "${step.id}" (${step.action}) skipped — ${(e as Error).message}\n`,
+          `run: optional step "${step.id}" (${step.action}) skipped: ${firstLine(e)}\n`,
         );
         if (opts.stopAfter && step.id === opts.stopAfter) break;
         continue;
@@ -393,7 +409,8 @@ export async function runFlow(
       const haltShotWanted = captureDocs && redactionsResolved;
       if (haltShotWanted) await driver.screenshot(haltShot, redactions).catch(() => undefined);
       const suffix = haltShotWanted ? ` (halt screenshot: ${haltShot})` : "";
-      const cause = inferHaltCause((e as Error).message ?? "");
+      const raw = e instanceof Error ? e.message : String(e);
+      const cause = inferHaltCause(raw);
       const causePrefix = cause ? `[${cause}] ` : "";
       const variantTag = variantId ? `[variant ${variantId}] ` : "";
       if (e instanceof FlowExecutionError) {
@@ -406,7 +423,7 @@ export async function runFlow(
       }
       const where = await driver.currentUrl().catch(() => "?");
       throw new FlowExecutionError(
-        `${causePrefix}${variantTag}step "${step.id}" (${step.action}) failed at ${where}: ${(e as Error).message}${suffix}`,
+        `${causePrefix}${variantTag}step "${step.id}" (${step.action}) failed at ${where}: ${raw}${suffix}`,
         step.id,
         e,
         variantId,
@@ -463,7 +480,7 @@ export async function runFlow(
         }
       } catch (e) {
         process.stderr.write(
-          `runFlow: step "${step.id}" — annotation capture skipped (${(e as Error).message})\n`,
+          `run: step "${step.id}": annotation capture skipped (${firstLine(e)})\n`,
         );
       }
     }

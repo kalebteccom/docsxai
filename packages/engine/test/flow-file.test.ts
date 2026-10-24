@@ -333,6 +333,6 @@ describe("parseFlowFile — error text names the field", () => {
   });
 
   it("puts the file name first on a YAML syntax error", () => {
-    expect(messageOf("name: [unclosed")).toMatch(/^f\.flow\.yaml: not valid YAML — /);
+    expect(messageOf("name: [unclosed")).toMatch(/^f\.flow\.yaml: not valid YAML: /);
   });
 });

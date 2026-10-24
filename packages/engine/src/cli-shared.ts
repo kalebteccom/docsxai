@@ -145,6 +145,26 @@ async function missingFlowsMessage(projectDir: string, flowsDir: string): Promis
   );
 }
 
+/**
+ * Why `projectDir` cannot be a workspace at all: it does not exist, or it is a file. `undefined` when
+ * it is a directory (an empty one included). Commands that write into the workspace call this first,
+ * so a mistyped path fails instead of creating the directory.
+ */
+export async function workspaceDirProblem(projectDir: string): Promise<string | undefined> {
+  const stat = await fs.stat(path.resolve(projectDir)).catch(() => null);
+  if (stat?.isDirectory()) return undefined;
+  if (stat) {
+    return withNext(
+      `${projectDir} is a file, not a workspace directory`,
+      "docsxai init <new-dir>, or pass the workspace directory",
+    );
+  }
+  return withNext(
+    `workspace doesn't exist: ${projectDir}`,
+    `docsxai init ${shellQuote(projectDir)}  (or fix the path)`,
+  );
+}
+
 export async function listFlowFiles(projectDir: string): Promise<string[]> {
   const dir = resolveWorkspacePath(projectDir, "flows");
   let entries: string[];

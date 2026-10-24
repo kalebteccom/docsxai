@@ -80,7 +80,7 @@ describe("docsxai push / pull against a real stub", () => {
     const src = await scaffoldWorkspace();
 
     expect(await main(["push", src])).toBe(0);
-    expect(out).toMatch(/screenshots — 1 blob\(s\) uploaded, 0 already on the backend/);
+    expect(out).toMatch(/screenshots, 1 blob\(s\) uploaded, 0 already on the backend/);
     expect(out).toMatch(/4 artifact slots uploaded, finalized/);
 
     const cfg = JSON.parse(await fs.readFile(path.join(src, ".docsxai.json"), "utf8")) as {
@@ -92,7 +92,7 @@ describe("docsxai push / pull against a real stub", () => {
 
     out = "";
     expect(await main(["push", src, "--kind", "edit", "--author", "vitest"])).toBe(0);
-    expect(out).toMatch(/screenshots — 0 blob\(s\) uploaded, 1 already on the backend/);
+    expect(out).toMatch(/screenshots, 0 blob\(s\) uploaded, 1 already on the backend/);
     expect(out).toMatch(/\(edit, vitest\)/);
   });
 

@@ -99,7 +99,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
         flow: flow.name,
         message: `extends chain depth is ${chain.depth}`,
         suggestion:
-          "consider flattening — deep chains add per-run setup cost and obscure the step order",
+          "consider flattening: deep chains add per-run setup cost and obscure the step order",
       });
     }
   }
@@ -114,7 +114,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
         flow: flow.name,
         message: `locator \`${name}\` is defined but never referenced by any step, wait, success, annotation, or redaction`,
         suggestion:
-          "remove it — unless a child flow references it via `extends` (references in children count only in the child)",
+          "remove it, unless a child flow references it via `extends` (references in children count only in the child)",
       });
     }
   }
@@ -132,7 +132,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       flow: flow.name,
       stepId: lastStep.id,
       message:
-        "the flow's terminal step has no `success` criterion — the run can end without verifying the end state",
+        "the flow's terminal step has no `success` criterion; the run can end without verifying the end state",
       suggestion:
         "add `success: { visible: $… }` (or url_matches / text_contains) to the last step",
     });
@@ -196,7 +196,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
           severity: "info",
           flow: flow.name,
           stepId: step.id,
-          message: `selector \`${sel}\` is a bare \`[data-*=…]\` match — may resolve to multiple DOM nodes (visible + hidden duplicate)`,
+          message: `selector \`${sel}\` is a bare \`[data-*=…]\` match; it may resolve to multiple DOM nodes (visible + hidden duplicate)`,
           suggestion:
             "if duplicates exist, scope with `:visible` or add a `:has-text(...)` qualifier",
         });
@@ -211,7 +211,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
         flow: flow.name,
         stepId: step.id,
         message:
-          "`optional: true` with no `wait_for` or `success` — every failure is silently swallowed, so a real regression on this step would be masked",
+          "`optional: true` with no `wait_for` or `success`; every failure is silently swallowed, so a real regression on this step would be masked",
         suggestion:
           "add a `wait_for: { selector: … }` or a `success:` check to make the presence test explicit",
       });
@@ -225,7 +225,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
         flow: flow.name,
         stepId: step.id,
         message:
-          "`optional: true` step has no `timeout_ms` — when its element is absent the run waits Playwright's full 30 s default before skipping it",
+          "`optional: true` step has no `timeout_ms`; when its element is absent the run waits Playwright's full 30 s default before skipping it",
         suggestion:
           step.action === "wait"
             ? "add `timeout_ms: 1500` to the step (or to its `wait_for`) so a miss is skipped fast"
@@ -240,8 +240,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
         severity: "error",
         flow: flow.name,
         stepId: step.id,
-        message:
-          "`hide` has no `target` — there is nothing to hide, and the run halts on this step",
+        message: "`hide` has no `target`; there is nothing to hide, and the run halts on this step",
         suggestion: "set `target` to the element (a `$ref` or an inline selector) to hide",
       });
     }
@@ -280,7 +279,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
         flow: flow.name,
         stepId: step.id,
         message:
-          "`wait_for: element_stable` has no selector context (the step has no `target`) — it waits on nothing",
+          "`wait_for: element_stable` has no selector context (the step has no `target`); it waits on nothing",
         suggestion:
           "give the step a `target`, or wait on a concrete element with `wait_for: { selector: $x }`",
       });
@@ -320,7 +319,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
             severity: "warning",
             flow: flow.name,
             stepId: step.id,
-            message: `annotation is anchored to \`${anchor}\`, which a redaction on this step masks — the call-out would point at a black box`,
+            message: `annotation is anchored to \`${anchor}\`, which a redaction on this step masks; the call-out would point at a black box`,
             suggestion: "anchor the annotation to a different element, or drop the redaction",
           });
         }

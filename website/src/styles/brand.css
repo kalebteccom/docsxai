@@ -1160,6 +1160,39 @@ main:has(.docsx-404) > .content-panel {
   text-align: left;
 }
 
+/* "What it makes": product shots from scripts/landing-showcase.mjs. Each figure holds a dark and
+   a light <picture>; the site's theme shows one. Without a data-theme (no script) the dark one
+   shows, as the rest of the page defaults to dark. The width and height on every <source> and
+   <img> reserve the box before the file loads, and height: auto keeps the ratio when it scales. */
+.docsx-shots {
+  display: grid;
+  gap: clamp(2.25rem, 5vw, 3.25rem);
+}
+.docsx-shot {
+  margin: 0;
+}
+.docsx-shot--terminal {
+  max-width: 880px;
+  margin-inline: auto;
+}
+.docsx-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.docsx-shot-pic--light,
+:root[data-theme="light"] .docsx-shot-pic--dark {
+  display: none;
+}
+:root[data-theme="light"] .docsx-shot-pic--light {
+  display: block;
+}
+.docsx-shot figcaption {
+  margin-top: 0.85rem;
+  color: var(--sl-color-gray-3);
+  font-size: 0.9rem;
+}
+
 /* Centered closing call to action. */
 .docsx-cta--center {
   justify-content: center;

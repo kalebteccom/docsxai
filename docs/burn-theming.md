@@ -180,6 +180,8 @@ To compare the looks, run `node scripts/burn-trackxai-sample.mjs` after `pnpm --
 
 `node scripts/burn-trackxai.mjs --raw <dir> --out <dir>` burns a directory of trackxai raw captures into a screens pack (its header lists every flag). Add `--webp` to write a lossless `<name>.<hash>.webp` beside each new PNG, made with `cwebp -lossless -z 9`. A twin is kept only when it is under 100 kB and smaller than the PNG; otherwise the script removes it and prints a warning with both sizes. `cwebp` comes from the `webp` package (`brew install webp`, `apt install webp`); without it on `PATH` the run stops before it burns anything.
 
+`remotxai-light.tokens.json` and `remotxai-dark.tokens.json` carry the remotxai docs look: its teal accent and neutral surfaces, 17 px text, and a `display_width` of 800 (390 under 900 px), so a 1280 capture shows at the content width and a 390 one at full width. The docs font is Instrument Sans, which a tokens file cannot name: set `font` to a copy of it in the workspace.
+
 ## Caption style
 
 `caption_style` is new in the next release. It applies with the line connector (`connector_style` `line` or `chevron`, or `auto` with a theme). An `arrow` burn always draws the caption.
@@ -189,6 +191,25 @@ To compare the looks, run `node scripts/burn-trackxai-sample.mjs` after `pnpm --
 - `auto`: the caption when a spot clear of text exists and its connector crosses no text, else the badge.
 
 The burn report marks each badge-only annotation with `"caption_style": "badge"`, whether `badge` or the `auto` fallback chose it.
+
+## Checking a whole capture folder
+
+`node scripts/burn-probe-batch.mjs --raw <dir> --out <dir>` burns every frame of a raw capture folder with the trackxai tokens and writes a report of where each caption, connector and badge landed. It lives in `scripts/` of a docsxai checkout, so run it from one after `pnpm --filter @docsxai/viewer build`.
+
+```sh
+node scripts/burn-probe-batch.mjs --raw raw --out probe --theme dark --locale en --widths 1280,390
+```
+
+`--raw` is read in either layout, detected from the file names. Other files (manifests, READMEs, step metadata) are ignored:
+
+- Flat: `<screen>.<locale>.<theme>.<width>.png` with a `.json` sidecar beside it (`trackxai/raw-capture-sidecar@1`, annotations with `bounding_box`).
+- Rawcap: `<flow>/<step>/<locale>.<theme>.<viewport>.png` with a `.json` sidecar beside it (`width`, `height`, annotations with `index`, `copy`, `bbox` and optional `obstacles`). A viewport is a width (`390`) or a name that ends in one (`mobile-390`).
+
+`--theme` (default `dark`), `--locale` (default `en`) and `--widths` (default `1280,390`) pick the frames. The tokens file is `--tokens-dark` or `--tokens-light`, else `examples/burn-theme/<project>-<theme>.tokens.json`, where `--project trackxai|remotxai` (default `trackxai`) picks the project. Captures under 900 px burn with `caption_style: "auto"`, the others with `full`.
+
+`<out>/previews/` holds the burned PNG of each frame, and `<out>/report.md` the summary (frames, annotations, OK, CHECK, skipped for no `bounding_box`), the CHECK rows, then one row per frame and annotation: mode (`full`, `badge` or `skipped`), side, connector length in px, px² of the caption over listed text and over the phone header and bottom nav, whether the connector crosses listed text, whether the badge sits next to its target, and the verdict.
+
+A row is CHECK when the caption covers listed text or the phone header or nav, the burn marked it `unplaceable`, it covers another annotation's target, caption or badge, its badge is on its target, on listed text or the phone chrome, or more than 6 px from the target, or (phone captures only) its connector crosses listed text. Desktop rows show the crossing without holding it against the verdict.
 
 ## Phone captures
 

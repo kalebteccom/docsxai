@@ -302,7 +302,7 @@ async function projectFlow(
       if (shot) {
         shotPath = cleanPath;
         warnings.push(
-          `flow "${flowName}" step "${step.id}": burned screenshot missing — falling back to the clean screenshot`,
+          `flow "${flowName}" step "${step.id}": burned screenshot missing, falling back to the clean screenshot`,
         );
       }
     }

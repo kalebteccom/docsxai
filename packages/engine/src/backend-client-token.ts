@@ -71,11 +71,11 @@ export async function resolveBackendToken(opts: {
   if (process.env.DOCSX_TOKEN) return process.env.DOCSX_TOKEN;
   const reloginHint = `set DOCSX_TOKEN or run \`docsxai login --backend-url ${shellQuote(redactUrl(opts.baseUrl))} --oauth <workspace-dir>\``;
   if (!opts.workspaceDir) {
-    throw new BackendClientError(`no bearer token — ${reloginHint}`);
+    throw new BackendClientError(`no bearer token: ${reloginHint}`);
   }
   const stored = await loadBackendTokenFile(opts.workspaceDir);
   if (!stored) {
-    throw new BackendClientError(`no bearer token — ${reloginHint}`);
+    throw new BackendClientError(`no bearer token: ${reloginHint}`);
   }
   const now = opts.now ?? Date.now();
   if (stored.expires_at > now + 30_000) return stored.access_token;
@@ -96,7 +96,7 @@ export async function resolveBackendToken(opts: {
     refreshed = (await res.json()) as typeof refreshed;
   } catch (e) {
     throw new BackendClientError(
-      `stored backend token expired and the refresh failed (${redactUrlsIn((e as Error).message)}) — ${reloginHint}`,
+      `stored backend token expired and the refresh failed (${redactUrlsIn((e as Error).message)}): ${reloginHint}`,
     );
   }
   const tokens: BackendTokenFile = {

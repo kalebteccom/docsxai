@@ -84,7 +84,7 @@ export function formatTreeText(result: FlowTreeResult): string {
     out += "\n";
   }
   if (result.orphans.length) {
-    out += "(extends parent not in workspace — orphan flows)\n";
+    out += "(extends parent not in workspace, orphan flows)\n";
     for (const o of result.orphans) out += renderRoot(o);
     out += "\n";
   }

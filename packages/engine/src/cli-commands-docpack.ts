@@ -24,7 +24,7 @@ import { writeFileAtomic } from "./atomic-write.js";
 import { runViewerBin } from "./viewer-bin.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
-import { bareValueFlagExit, flagMissingValue } from "./cli-shared.js";
+import { bareValueFlagExit, flagMissingValue, workspaceDirProblem } from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
 import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 
@@ -43,7 +43,7 @@ export async function cmdRender(args: string[]): Promise<number> {
     ))
   ) {
     const note = withNext(
-      `warning — ${docsDir} does not exist, so the viewer will be empty`,
+      `warning: ${docsDir} does not exist, so the viewer will be empty`,
       `docsxai run ${shellQuote(projectDir)}`,
     );
     process.stderr.write(`render: ${note}\n`);
@@ -51,7 +51,7 @@ export async function cmdRender(args: string[]): Promise<number> {
   const code = await runViewerBin("render", ["build", docsDir, outDir]);
   if (code === 0) {
     process.stdout.write(
-      `render: open ${path.join(outDir, "index.html")}  (the index links the flows; each flow page shows the screenshots — hover a pulsing halo to read its callout)\n`,
+      `render: open ${path.join(outDir, "index.html")}  (the index links the flows; each flow page shows the screenshots, hover a pulsing halo to read its callout)\n`,
     );
   }
   return code;
@@ -152,7 +152,9 @@ export async function cmdZip(args: string[]): Promise<number> {
         ? `docsxai run ${shellQuote(projectDir)}`
         : /doesn't exist/.test(e.message)
           ? `docsxai init ${shellQuote(projectDir)}  (or fix the path)`
-          : undefined;
+          : /is a directory/.test(e.message)
+            ? `docsxai zip ${shellQuote(projectDir)} --out ${shellQuote(path.join(output, `${path.basename(path.resolve(projectDir))}.zip`))}`
+            : undefined;
       process.stderr.write(`zip: ${next ? withNext(e.message, next) : e.message}\n`);
       return 1;
     }
@@ -161,6 +163,18 @@ export async function cmdZip(args: string[]): Promise<number> {
     process.stderr.write(`zip: ${fsLine}\n`);
     return 1;
   }
+}
+
+/** The text after `<label>: ` for an export that failed: the disk's refusal, or the exporter's message once, with the command that helps. */
+function exportFailure(label: string, e: unknown, projectDir: string): string {
+  const fsLine = describeFsError(e);
+  if (fsLine !== undefined) return fsLine;
+  const message = (e as Error).message.replace(`${label}: `, "");
+  const dir = shellQuote(projectDir);
+  return withNext(
+    message,
+    /no flow named/.test(message) ? `docsxai flow-tree ${dir}` : `docsxai lint ${dir}`,
+  );
 }
 
 export async function cmdExport(args: string[]): Promise<number> {
@@ -174,8 +188,8 @@ export async function cmdExport(args: string[]): Promise<number> {
       return usageError(
         "export",
         format === undefined
-          ? "missing format — supported: adf, playwright"
-          : `unknown format "${format}" — supported: adf, playwright`,
+          ? "missing format (supported: adf, playwright)"
+          : `unknown format "${format}" (supported: adf, playwright)`,
       );
   }
 }
@@ -198,6 +212,11 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
   }
   const flow = flags.get("flow");
   const title = flags.get("title");
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`export adf: ${problem}\n`);
+    return 1;
+  }
 
   try {
     const projection = await projectDocPackToAdf({
@@ -228,9 +247,7 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
     for (const w of projection.warnings) process.stderr.write(`export adf: warning: ${w}\n`);
     return 0;
   } catch (e) {
-    process.stderr.write(
-      `export adf: ${describeFsError(e) ?? withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
-    );
+    process.stderr.write(`export adf: ${exportFailure("export adf", e, projectDir)}\n`);
     return 1;
   }
 }
@@ -249,6 +266,11 @@ async function cmdExportPlaywright(rest: string[]): Promise<number> {
     typeof outFlag === "string"
       ? path.resolve(outFlag)
       : resolveWorkspacePath(projectDir, ".export", "tests");
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`export playwright: ${problem}\n`);
+    return 1;
+  }
 
   try {
     const specs = await exportWorkspaceFlowsAsPlaywrightTests({
@@ -265,7 +287,7 @@ async function cmdExportPlaywright(rest: string[]): Promise<number> {
     return 0;
   } catch (e) {
     process.stderr.write(
-      `export playwright: ${describeFsError(e) ?? withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
+      `export playwright: ${exportFailure("export playwright", e, projectDir)}\n`,
     );
     return 1;
   }
@@ -301,6 +323,11 @@ export async function cmdBaseline(args: string[]): Promise<number> {
       "baseline",
       "--out cannot be the workspace itself: a refresh clears <out>/flows and <out>/docs first",
     );
+  }
+  const problem = await workspaceDirProblem(projectDir);
+  if (problem) {
+    process.stderr.write(`baseline: ${problem}\n`);
+    return 1;
   }
 
   let stage = "";
@@ -353,17 +380,20 @@ export async function cmdBaseline(args: string[]): Promise<number> {
     );
     if (copied === 0) {
       const note = withNext(
-        "warning — no flows/ or docs/ files found to snapshot",
+        "warning: no flows/ or docs/ files found to snapshot",
         `docsxai run ${shellQuote(projectDir)}`,
       );
       process.stderr.write(`baseline: ${note}\n`);
     }
     return 0;
   } catch (e) {
+    // The staging directory is an implementation detail; report the output directory instead.
+    const err = e as NodeJS.ErrnoException;
+    if (stage && err.path?.startsWith(stage)) err.path = outDir;
     process.stderr.write(`baseline: ${describeFsError(e) ?? (e as Error).message}\n`);
     return 1;
   } finally {
-    if (stage) await fs.rm(stage, { recursive: true, force: true });
+    if (stage) await fs.rm(stage, { recursive: true, force: true }).catch(() => undefined);
   }
 }
 
@@ -406,7 +436,10 @@ export async function cmdDiff(args: string[]): Promise<number> {
   }
 
   try {
-    const report = await diffDocPacks(againstDir, projectDir);
+    // The report is pasted into pull requests: print the baseline as it was typed, not as an absolute path.
+    const shownBaseline =
+      typeof againstFlag === "string" ? againstFlag : path.join(projectDir, ".baseline");
+    const report = { ...(await diffDocPacks(againstDir, projectDir)), a: shownBaseline };
     if (format === "json") process.stdout.write(JSON.stringify(report, null, 2) + "\n");
     else if (format === "md") process.stdout.write(formatDriftReportMarkdown(report));
     else process.stdout.write(formatDriftReportText(report));

@@ -67,14 +67,16 @@ export class PluginManifestError extends Error {
 /** Validate the `docsxai` field of a plugin's package.json. Throws {@link PluginManifestError}. */
 export function parsePluginManifest(raw: unknown, source: string): PluginManifest {
   if (raw === undefined || raw === null) {
-    throw new PluginManifestError(`${source}: package.json has no "docsxai" field — not a plugin`);
+    throw new PluginManifestError(
+      `${source}: package.json has no "docsxai" field, so it is not a plugin`,
+    );
   }
   const result = manifestSchema.safeParse(raw);
   if (!result.success) {
     const detail = result.error.issues
       .map((i) => `${i.path.length ? i.path.join(".") + ": " : ""}${i.message}`)
       .join("; ");
-    throw new PluginManifestError(`${source}: invalid "docsxai" manifest — ${detail}`);
+    throw new PluginManifestError(`${source}: invalid "docsxai" manifest: ${detail}`);
   }
   return result.data;
 }

@@ -57,7 +57,8 @@ import {
 } from "./burn-report.js";
 import type { AnnotationRecord } from "./annotations.js";
 import { fitAnnotation } from "./burn-fit.js";
-import { readBurnAnnotations } from "./burn-read.js";
+import { readAnnotationList } from "./burn-annotations-file.js";
+import { readTextIfPresent } from "./safe-read.js";
 
 export { arrowGeometry, type ArrowGeometry };
 
@@ -185,7 +186,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
       warn(
         original.bounding_box
           ? `burn: annotation "${original.selector}" on step "${original.step}": ${fit.skip}, skipped`
-          : `burn: annotation on step "${original.step}" has no bounding_box — skipped`,
+          : `burn: annotation on step "${original.step}" has no bounding_box, skipped`,
       );
       input.report?.push(skippedReport(original, fit.skip));
       continue;
@@ -464,9 +465,11 @@ export function burnReport(
 export async function burnFlow(opts: BurnFlowOptions): Promise<BurnFlowResult> {
   const warn = opts.warn ?? defaultWarn;
   const flowDir = path.join(opts.docsDir, opts.flow);
-  const annFile = await readBurnAnnotations(flowDir);
+  const annPath = path.join(flowDir, "annotations.json");
+  const raw = await readTextIfPresent(annPath);
+  if (raw === null) throw new Error(`burnFlow: no annotations.json under ${flowDir}`);
   const byStep = new Map<string, AnnotationRecord[]>();
-  for (const ann of annFile.annotations) {
+  for (const ann of readAnnotationList(raw, annPath)) {
     const list = byStep.get(ann.step) ?? [];
     list.push(ann);
     byStep.set(ann.step, list);
@@ -509,7 +512,7 @@ export async function burnFlow(opts: BurnFlowOptions): Promise<BurnFlowResult> {
   }
   for (const step of byStep.keys()) {
     if (!burnedSteps.has(step)) {
-      warn(`burn: step "${step}" has annotations but no screenshot — skipped`);
+      warn(`burn: step "${step}" has annotations but no screenshot, skipped`);
       reports.push(...byStep.get(step)!.map((a) => skippedReport(a, "no screenshot")));
     }
   }

@@ -9,7 +9,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { LocalStorageStateCache, parseAuthStrategyFile } from "./auth.js";
 import { waitForBrowserClose } from "./browser-wait.js";
-import { describeBrowserLaunch } from "./browser-launch-error.js";
+import { describeBrowserLaunch, describePageLoad } from "./browser-launch-error.js";
 import { type FlowFile } from "./doc-pack.js";
 import {
   expandFlowVariants,
@@ -33,7 +33,7 @@ import { launchPlaywrightSession } from "./playwright-driver.js";
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import { bareValueFlagExit, claimFlowName, listFlowFiles } from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
-import { shellQuote, usageError, withNext } from "./cli-messages.js";
+import { describeFsProblem, shellQuote, usageError, withNext } from "./cli-messages.js";
 
 export async function cmdInspect(args: string[]): Promise<number> {
   const parsed = parseCommandFlags("inspect", args);
@@ -65,7 +65,7 @@ export async function cmdInspect(args: string[]): Promise<number> {
   if (!cdp && !url) {
     return usageError(
       "inspect",
-      "no URL — pass --url <url>, set app_url in .docsxai.json, or use --cdp <endpoint>",
+      "no URL: pass --url <url>, set app_url in .docsxai.json, or use --cdp <endpoint>",
     );
   }
   const selector =
@@ -89,12 +89,20 @@ export async function cmdInspect(args: string[]): Promise<number> {
         role = "editor";
       }
     }
-    storageState =
-      (await new LocalStorageStateCache(resolveWorkspacePath(workspaceDir, ".auth")).load(role)) ??
-      undefined;
+    try {
+      storageState =
+        (await new LocalStorageStateCache(resolveWorkspacePath(workspaceDir, ".auth")).load(
+          role,
+        )) ?? undefined;
+    } catch (e) {
+      const problem = describeFsProblem(e);
+      if (!problem) throw e;
+      process.stderr.write(`inspect: ${withNext(problem.reason, problem.next)}\n`);
+      return 1;
+    }
     if (!storageState) {
       process.stderr.write(
-        `inspect: no valid cached session for role "${role}" — inspecting unauthenticated (\`docsxai capture-auth\` first if the app needs login)\n`,
+        `inspect: no valid cached session for role "${role}", so it inspects unauthenticated (run \`docsxai capture-auth\` first if the app needs login)\n`,
       );
     }
   }
@@ -121,13 +129,21 @@ export async function cmdInspect(args: string[]): Promise<number> {
   }
   try {
     // In CDP-attach mode without an explicit --url, inspect whatever the attached browser already has open.
-    if (url && (!cdp || explicitUrl))
+    if (url && (!cdp || explicitUrl)) {
+      let loadError: Error | undefined;
       await session.page.goto(url, { waitUntil: "domcontentloaded" }).catch((e: Error) => {
-        const why = e.message.split("\n")[0];
-        process.stderr.write(
-          `inspect: warning — could not load ${url}: ${why}; is the app running?\n`,
-        );
+        loadError = e;
       });
+      if (loadError) {
+        process.stderr.write(
+          `inspect: ${withNext(
+            describePageLoad(loadError.message, url),
+            `start the app, then docsxai inspect ${shellQuote(workspaceDir)}`,
+          )}\n`,
+        );
+        return 1;
+      }
+    }
     if (waitForSel)
       await session.page.waitForSelector(waitForSel, { timeout: 30_000 }).catch(() => undefined);
     else if (waitMs > 0) await session.page.waitForTimeout(waitMs);
@@ -159,7 +175,7 @@ export async function cmdInspect(args: string[]): Promise<number> {
         )
         .catch(() => [] as Array<{ testid: string; tag: string; text: string; visible: boolean }>);
       process.stdout.write(
-        `  ${items.length} [data-testid] element(s) (✓ = visible) — pin these as locators:\n`,
+        `  ${items.length} [data-testid] element(s) (✓ = visible), pin these as locators:\n`,
       );
       for (const it of items) {
         process.stdout.write(
@@ -171,7 +187,7 @@ export async function cmdInspect(args: string[]): Promise<number> {
       );
     }
     if (headed && !cdp) {
-      process.stdout.write("inspect: browser is open — close it to exit.\n");
+      process.stdout.write("inspect: browser is open, close it to exit.\n");
       await waitForBrowserClose(session.browser);
     }
     return 0;
@@ -213,15 +229,15 @@ export async function cmdLint(args: string[]): Promise<number> {
   for (const p of flowPaths) {
     try {
       const text = await fs.readFile(p, "utf8");
-      const flow = parseFlowFile(text, path.basename(p));
+      const flow = parseFlowFile(text, p);
       const duplicate = claimFlowName(owners, flow.name, p);
       if (duplicate) throw new FlowFileError(duplicate);
       flowsByName.set(flow.name, flow);
       fileNames.set(flow.name, path.basename(p));
     } catch (e) {
-      const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
+      const msg = e instanceof FlowFileError ? e.message : `${p}: ${(e as Error).message}`;
       process.stderr.write(
-        `lint: ${withNext(`parse error in ${p}: ${msg}`, `fix the flow-file, then docsxai lint ${shellQuote(projectDir)}`)}\n`,
+        `lint: ${withNext(msg, `fix the flow-file, then docsxai lint ${shellQuote(projectDir)}`)}\n`,
       );
       return 1;
     }
@@ -260,7 +276,7 @@ export async function cmdLint(args: string[]): Promise<number> {
       extraRules = registry.getLintRules();
     }
   } catch (e) {
-    process.stderr.write(`lint: plugin rules skipped — ${(e as Error).message}\n`);
+    process.stderr.write(`lint: plugin rules skipped: ${(e as Error).message}\n`);
   }
 
   const issues: LintIssue[] = [];
@@ -308,14 +324,14 @@ export async function cmdFlowTree(args: string[]): Promise<number> {
   for (const p of flowPaths) {
     try {
       const text = await fs.readFile(p, "utf8");
-      const flow = parseFlowFile(text, path.basename(p));
+      const flow = parseFlowFile(text, p);
       const duplicate = claimFlowName(owners, flow.name, p);
       if (duplicate) throw new FlowFileError(duplicate);
       flowsByName.set(flow.name, flow);
     } catch (e) {
-      const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
+      const msg = e instanceof FlowFileError ? e.message : `${p}: ${(e as Error).message}`;
       process.stderr.write(
-        `flow-tree: ${withNext(`parse error in ${p}: ${msg}`, `fix the flow-file, then docsxai flow-tree ${shellQuote(projectDir)}`)}\n`,
+        `flow-tree: ${withNext(msg, `fix the flow-file, then docsxai flow-tree ${shellQuote(projectDir)}`)}\n`,
       );
       return 1;
     }
@@ -362,30 +378,33 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
   }
 
   // Load the flow (resolving `extends` so step lookup works against the merged step list).
-  const loadFlowFile = async (name: string) => {
+  const readFlowFile = async (name: string) => {
     const fp = resolveWorkspacePath(projectDir, "flows", `${name}.flow.yaml`);
-    let text: string;
-    try {
-      text = await fs.readFile(fp, "utf8");
-    } catch {
-      throw new FlowFileError(
-        withNext(
-          `no flow named "${name}" at ${fp}`,
-          `docsxai flow-tree ${shellQuote(projectDir)}  (lists the flows)`,
-        ),
-      );
-    }
-    return parseFlowFile(text, fp);
+    return parseFlowFile(await fs.readFile(fp, "utf8"), fp);
   };
   let flow: FlowFile;
   let variants: FlowVariant[];
   try {
-    const parsed = await loadFlowFile(flowName);
-    flow = parsed.extends ? await resolveFlowExtends(parsed, loadFlowFile) : parsed;
+    let parsed: FlowFile;
+    try {
+      parsed = await readFlowFile(flowName);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+      const fp = resolveWorkspacePath(projectDir, "flows", `${flowName}.flow.yaml`);
+      throw new FlowFileError(
+        withNext(
+          `no flow named "${flowName}" at ${fp}`,
+          `docsxai flow-tree ${shellQuote(projectDir)}  (lists the flows)`,
+        ),
+      );
+    }
+    flow = parsed.extends ? await resolveFlowExtends(parsed, readFlowFile) : parsed;
     variants = expandFlowVariants(flow);
   } catch (e) {
     const msg = e instanceof FlowFileError ? e.message : (e as Error).message;
-    process.stderr.write(`diagnose: ${msg}\n`);
+    process.stderr.write(
+      `diagnose: ${e instanceof FlowFileError && !msg.includes("\n  next: ") ? withNext(msg, `docsxai lint ${shellQuote(projectDir)}`) : msg}\n`,
+    );
     return 1;
   }
 
@@ -406,9 +425,9 @@ export async function cmdDiagnose(args: string[]): Promise<number> {
 
   const step = flow.steps.find((s) => s.id === stepId);
   if (!step) {
-    process.stderr.write(
-      `diagnose: no step "${stepId}" in flow "${flowName}"${variantId ? ` variant "${variantId}"` : ""} (${variantId ? "variant" : "merged"} step list: ${flow.steps.map((s) => s.id).join(", ")})\n`,
-    );
+    const message = `no step "${stepId}" in flow "${flowName}"${variantId ? ` variant "${variantId}"` : ""} (steps: ${flow.steps.map((s) => s.id).join(", ")})`;
+    const next = `docsxai diagnose ${shellQuote(projectDir)} --flow ${shellQuote(flowName)} --step <step-id>${variantId ? ` --variant ${shellQuote(variantId)}` : ""}`;
+    process.stderr.write(`diagnose: ${withNext(message, next)}\n`);
     return 1;
   }
 

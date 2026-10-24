@@ -227,7 +227,7 @@ describe("projectDocPackToAdf", () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
     expect(projection.warnings).toEqual([
-      'flow "checkout" step "step-2": burned screenshot missing — falling back to the clean screenshot',
+      'flow "checkout" step "step-2": burned screenshot missing, falling back to the clean screenshot',
     ]);
   });
 

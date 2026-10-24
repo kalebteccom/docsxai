@@ -110,13 +110,13 @@ export class BackendStateCache {
   constructor(opts: BackendStateCacheOptions) {
     if (!opts.cacheKey) {
       throw new BackendStateCacheError(
-        "missing cache key — set DOCSX_CACHE_KEY to a base64-encoded 32-byte key",
+        "missing cache key: set DOCSX_CACHE_KEY to a base64-encoded 32-byte key",
       );
     }
     const key = Buffer.from(opts.cacheKey, "base64");
     if (key.length !== 32) {
       throw new BackendStateCacheError(
-        `malformed cache key — DOCSX_CACHE_KEY must decode to exactly 32 bytes (got ${key.length})`,
+        `malformed cache key: DOCSX_CACHE_KEY must decode to exactly 32 bytes (got ${key.length})`,
       );
     }
     this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
@@ -172,7 +172,7 @@ export class BackendStateCache {
       source = `auth-cookie "${authCookieName}"`;
     } else if (authCookieName) {
       expiresAt = typeof ttlMs === "number" ? now + ttlMs : now + 3_600_000;
-      source = `ttl (fallback — auth-cookie "${authCookieName}" not in the jar or has no expiry)`;
+      source = `ttl (fallback: auth-cookie "${authCookieName}" not in the jar or has no expiry)`;
     } else if (typeof ttlMs === "number") {
       expiresAt = now + ttlMs;
       source = "ttl";
@@ -184,7 +184,7 @@ export class BackendStateCache {
     }
     if (expiresAt <= now) {
       throw new BackendStateCacheError(
-        `computed cache expiry (${new Date(expiresAt).toISOString()}, from ${source}) is not in the future — refusing to cache a dead session`,
+        `computed cache expiry (${new Date(expiresAt).toISOString()}, from ${source}) is not in the future; refusing to cache a dead session`,
       );
     }
 
@@ -253,7 +253,7 @@ export class BackendStateCache {
       ]).toString("utf8");
     } catch {
       throw new BackendStateCacheError(
-        "auth-cache decryption failed — wrong DOCSX_CACHE_KEY or tampered ciphertext",
+        "auth-cache decryption failed: wrong DOCSX_CACHE_KEY or tampered ciphertext",
       );
     }
   }

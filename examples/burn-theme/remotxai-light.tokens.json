@@ -1,0 +1,95 @@
+{
+  "$description": "remotxai docs caption theme, light. Colours and font from the remotxai docs site (accent, text, surface, hairline); the docs font is Instrument Sans.",
+  "color": {
+    "accent": {
+      "$type": "color",
+      "$value": "#0a645d"
+    },
+    "ink": {
+      "$type": "color",
+      "$value": "#171717"
+    },
+    "callout": {
+      "background": {
+        "$type": "color",
+        "$value": "#ffffff"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "#0a645d"
+      }
+    },
+    "badge": {
+      "background": {
+        "$type": "color",
+        "$value": "#0a645d"
+      }
+    }
+  },
+  "border": {
+    "callout": {
+      "width": {
+        "$type": "dimension",
+        "$value": "1px"
+      }
+    }
+  },
+  "radius": {
+    "callout": {
+      "$type": "dimension",
+      "$value": "8px"
+    }
+  },
+  "shadow": {
+    "callout": {
+      "$value": "0px 4px 14px 0px rgba(17,17,17,0.16)"
+    }
+  },
+  "shape": {
+    "badge": {
+      "$value": "circle"
+    },
+    "connector": {
+      "$value": "line"
+    }
+  },
+  "font": {
+    "size": {
+      "caption": {
+        "$type": "dimension",
+        "$value": "17px"
+      }
+    },
+    "line-height": {
+      "caption": {
+        "$type": "dimension",
+        "$value": "24px"
+      }
+    }
+  },
+  "space": {
+    "callout": {
+      "x": {
+        "$type": "dimension",
+        "$value": "14px"
+      },
+      "y": {
+        "$type": "dimension",
+        "$value": "10px"
+      }
+    }
+  },
+  "render": {
+    "$description": "Render settings with no default token path: map them with burn.theme.tokens (scale to render.scale, display_width to render.display-width). The docs show 1280 px captures at the 800 px content width and 390 px captures at full width.",
+    "scale": {
+      "$value": "auto"
+    },
+    "display-width": {
+      "$value": {
+        "default": 800,
+        "narrow": 390,
+        "narrow_below": 900
+      }
+    }
+  }
+}

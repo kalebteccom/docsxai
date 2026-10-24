@@ -103,7 +103,7 @@ describe("the README's config line", () => {
       { auth: "none", configFile: "custom.json" },
     );
     expect(text).toContain("Add a `burn.theme` block to `custom.json`");
-    expect(text).toContain("- `custom.json` ");
+    expect(text).toContain("- `custom.json`, ");
   });
 });
 
