@@ -179,16 +179,98 @@ describe("the two tables", () => {
 describe("the Spanish copy", () => {
   const es = leaves(UI_TABLES.es);
 
-  it("uses the infinitive or a noun for actions", () => {
+  it("uses nouns and infinitives for control labels, tú imperatives for instructions", () => {
     const { copy, shot } = UI_TABLES.es;
-    expect([copy.idle, copy.done, copy.fallback]).toEqual(["Copiar", "Copiado", "Pulsar Ctrl+C"]);
+    expect([copy.idle, copy.done, copy.fallback]).toEqual(["Copiar", "Copiado", "Pulsa Ctrl+C"]);
     expect([shot.retry, shot.retrying]).toEqual(["Reintentar", "Cargando…"]);
   });
 
-  it("has no imperative or formal command form", () => {
-    const forms =
-      /\b(pulsa|pulse|copia|copie|usa|use|haz|haga|abre|abra|ejecuta|ejecute|comprueba|compruebe|corrige|corrija|renombra|renombre|vuelve|vuelva|recargue)\b/i;
-    for (const [at, text] of es) expect(text, at).not.toMatch(forms);
+  it("has no formal (usted) command form and no infinitive instruction in a sentence", () => {
+    const formal =
+      /\b(pulse|copie|use|haga|abra|ejecute|compruebe|corrija|renombre|vuelva|recargue|capture)\b/i;
+    const infinitiveOrder =
+      /(?:[.:,]|^)\s*(?:Comprobar|Ejecutar|Corregir|Renombrar|Pulsar|Abrir el|Capturarlo|Forzar|Usar|Volver)\b|\b(?:y|para|,)\s+(?:pulsar|volver a|ejecutar|usar)\b/;
+    for (const [at, text] of es) {
+      expect(text, at).not.toMatch(formal);
+      expect(text, at).not.toMatch(infinitiveOrder);
+    }
+  });
+
+  it("opens every question or exclamation with its inverted mark", () => {
+    for (const [at, text] of es) {
+      expect((text.match(/¿/g) ?? []).length, at).toBe((text.match(/\?/g) ?? []).length);
+      expect((text.match(/¡/g) ?? []).length, at).toBe((text.match(/!/g) ?? []).length);
+    }
+  });
+
+  it("keeps one term per concept (the forbidden variants and the chosen term)", () => {
+    const terms: Array<{ concept: string; chosen: string; forbidden: RegExp }> = [
+      {
+        concept: "screenshot",
+        chosen: "captura",
+        forbidden: /\b(screenshot|pantallazo|imagen de pantalla|captura de pantalla)s?\b/i,
+      },
+      { concept: "step", chosen: "paso", forbidden: /\b(etapa|fase|step)s?\b/i },
+      { concept: "flow", chosen: "flujo", forbidden: /\b(flow|proceso|recorrido|itinerario)s?\b/i },
+      {
+        concept: "annotation",
+        chosen: "anotación",
+        forbidden: /\b(call-?out|llamada|globo|nota|comentario|registros? de anotaci)\w*/i,
+      },
+      { concept: "viewer", chosen: "visor", forbidden: /\b(viewer|visualizador|lector)\b/i },
+      {
+        concept: "clipboard",
+        chosen: "portapapeles",
+        forbidden: /\b(clipboard|portafolios|papelera)\b/i,
+      },
+      {
+        concept: "retry",
+        chosen: "Reintentar",
+        forbidden: /\b(retry|volver a intentar|reiniciar)\b/i,
+      },
+      { concept: "identifier", chosen: "ID", forbidden: /\b(id|identificador)\b(?![.\w-])/ },
+    ];
+    for (const [at, text] of es) {
+      if (at.startsWith("lang")) continue;
+      const bare = text.replace(/\{\w+\}/g, "").replace(/annotations\.json/g, "");
+      for (const t of terms)
+        expect(bare, `${at}: ${t.concept} is "${t.chosen}"`).not.toMatch(t.forbidden);
+    }
+    const all = es.map(([, v]) => v).join(" ");
+    for (const t of terms.slice(0, 5)) expect(all.toLowerCase(), t.concept).toContain(t.chosen);
+  });
+
+  it("writes the identifier as ID, capitalised, in every kind label", () => {
+    expect(UI_TABLES.es.kinds["flow id"]).toBe("ID del flujo");
+    expect(UI_TABLES.es.kinds["step id"]).toBe("ID del paso");
+    expect(UI_TABLES.es.site.stepId).toBe("ID del paso {copy}");
+  });
+
+  it("starts every sentence with a capital and keeps each plural pair distinct", () => {
+    const { index, notices, shot } = UI_TABLES.es;
+    expect(index.stepOne).not.toBe(index.stepMany);
+    expect(index.annOne).toContain("anotación");
+    expect(index.annMany).toContain("anotaciones");
+    expect(notices.skippedOne).toContain("anotación:");
+    expect(notices.skippedMany).toContain("anotaciones:");
+    expect(shot.stillOne).toContain("intento");
+    expect(shot.stillMany).toContain("intentos");
+    for (const [at, text] of es) {
+      if (
+        /^(lang|shortcuts\.(keys|what)|kinds\.|notices\.(noCallouts|noList)|site\.noFlows|shot\.still|shortcuts\.or)/.test(
+          at,
+        )
+      )
+        continue;
+      if (/^\{/.test(text)) continue;
+      expect(text, at).toMatch(/^[A-ZÁÉÍÓÚÑ0-9_(]/);
+    }
+  });
+
+  it("keeps every button label short enough for a 390 px viewport (22 characters)", () => {
+    const { copy, shot, nav } = UI_TABLES.es;
+    for (const label of [copy.idle, copy.done, copy.fallback, shot.retry, shot.retrying, nav.all])
+      expect(label.length, label).toBeLessThanOrEqual(22);
   });
 });
 

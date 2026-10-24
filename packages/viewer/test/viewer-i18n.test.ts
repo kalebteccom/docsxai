@@ -62,26 +62,26 @@ describe("a Spanish page", () => {
   it("labels the copy buttons, the screenshot and the write-up in Spanish", () => {
     expect(html).toContain('aria-hidden="true">Copiar</span>');
     expect(html).toContain('aria-hidden="true">Copiado</span>');
-    expect(html).toContain('aria-hidden="true">Pulsar Ctrl+C</span>');
-    expect(html).toContain('data-kind="id del paso"');
-    expect(html).toContain('aria-label="Copiar id del paso open-sidebar"');
-    expect(html).toContain('aria-label="Copiar id del flujo checkout/es.light.1280"');
+    expect(html).toContain('aria-hidden="true">Pulsa Ctrl+C</span>');
+    expect(html).toContain('data-kind="ID del paso"');
+    expect(html).toContain('aria-label="Copiar ID del paso open-sidebar"');
+    expect(html).toContain('aria-label="Copiar ID del flujo checkout/es.light.1280"');
     expect(html).toContain('alt="Captura del paso open-sidebar"');
     expect(html).toContain("<summary>Descripción del paso</summary>");
   });
 
   it("words the image error, the missing-screenshot block and the footer in Spanish", () => {
     expect(html).toContain(
-      '<span class="shot-error-msg">No se pudo cargar la captura del paso open-sidebar. Comprobar que <code>screenshots/open-sidebar.png</code> sigue junto a esta página y pulsar Reintentar.</span> <button type="button" class="shot-retry">Reintentar</button>',
+      '<span class="shot-error-msg">No se pudo cargar la captura del paso open-sidebar. Comprueba que <code>screenshots/open-sidebar.png</code> sigue junto a esta página y pulsa Reintentar.</span> <button type="button" class="shot-retry">Reintentar</button>',
     );
     expect(html).toContain(
       "<p>Falta la captura de este paso. No se encontró <code>screenshots/gone.png</code> al generar esta página.</p>",
     );
-    expect(html).toContain("Para capturarla de nuevo, ejecutar ");
+    expect(html).toContain("Para capturarla de nuevo, ejecuta ");
     expect(html).toContain('data-kind="comando"');
     expect(html).toContain("y después <code>docsxai render &lt;workspace&gt;</code>.</p>");
     expect(html).toContain(
-      'Generado con <span class="sd-id">@docsxai/viewer 1.2.3</span>. Forzar la recarga si esta página parece desactualizada.',
+      'Generado con <span class="sd-id">@docsxai/viewer 1.2.3</span>. Recarga sin caché si esta página parece desactualizada.',
     );
     expect(html).toContain('data-kind="versión del visor"');
   });
@@ -89,13 +89,13 @@ describe("a Spanish page", () => {
   it("names the empty states in Spanish", () => {
     const none = flowPageHtml("a/es", [], AT, "", { lang: "es" });
     expect(none).toContain(
-      '<p class="empty">Este flujo aún no tiene pasos. Capturarlo con <code>docsxai run</code> y volver a ejecutar <code>docsxai render</code>.</p>',
+      '<p class="empty">Este flujo aún no tiene pasos. Captúralo con <code>docsxai run</code> y vuelve a ejecutar <code>docsxai render</code>.</p>',
     );
     expect(indexHtml([], AT, "", "es")).toContain(
-      '<p class="empty">Aún no hay flujos. Ejecutar <code>docsxai run</code> y después <code>docsxai render</code>.</p>',
+      '<p class="empty">Aún no hay flujos. Ejecuta <code>docsxai run</code> y después <code>docsxai render</code>.</p>',
     );
     const unsafe = stepHtml(step({ id: "../x", screenshot: null, unsafe: true }), 1, "a", "es");
-    expect(unsafe).toContain("El nombre de este paso no sirve como nombre de archivo");
+    expect(unsafe).toContain("El nombre de este paso no se puede usar como nombre de archivo");
   });
 
   it("counts steps and annotations with Spanish plurals on the index", () => {
@@ -105,11 +105,11 @@ describe("a Spanish page", () => {
       { flow: "c", steps: 3, annotations: 2, thumb: null },
     ];
     const html = indexHtml(cards, AT, "/*js*/", "es");
-    expect(html).toContain("<span>Sin pasos todavía</span>");
+    expect(html).toContain("<span>Aún no hay pasos</span>");
     expect(html).toContain("<span>1 paso, 1 anotación</span>");
     expect(html).toContain("<span>3 pasos, 2 anotaciones</span>");
     expect(html).toContain(
-      '<div class="thumb-missing">Aún no hay captura. Abrir el flujo para ver cómo capturarla.</div>',
+      '<div class="thumb-missing">Aún no hay captura. Abre el flujo para ver cómo capturarla.</div>',
     );
     expect(html).toContain('<html lang="es">');
     expect(html).toContain("<h1>Documentación</h1>");
@@ -117,11 +117,11 @@ describe("a Spanish page", () => {
 
   it("announces a copy and a step change in Spanish", () => {
     const es = UI_TABLES.es;
-    expect(copyAnnouncement("done", "id del paso", "pay", es)).toBe(
-      "Copiado al portapapeles: id del paso pay.",
+    expect(copyAnnouncement("done", "ID del paso", "pay", es)).toBe(
+      "Copiado al portapapeles: ID del paso pay.",
     );
-    expect(copyAnnouncement("fallback", "id del paso", "pay", es)).toContain("pulsar Ctrl+C");
-    expect(copyAnnouncement("idle", "id del paso", "pay", es)).toBe("");
+    expect(copyAnnouncement("fallback", "ID del paso", "pay", es)).toContain("pulsa Ctrl+C");
+    expect(copyAnnouncement("idle", "ID del paso", "pay", es)).toBe("");
     expect(stepAnnouncement(1, 5, "open-sidebar", es)).toBe("Paso 2 de 5: open-sidebar");
   });
 });
@@ -218,9 +218,9 @@ describe("button width reservation", () => {
     }
   });
 
-  it("stacks the Spanish labels so the widest, Pulsar Ctrl+C, sets the width", () => {
+  it("stacks the Spanish labels so the widest, Pulsa Ctrl+C, sets the width", () => {
     const labels = [UI_TABLES.es.copy.idle, UI_TABLES.es.copy.done, UI_TABLES.es.copy.fallback];
-    expect(labels.reduce((a, b) => (b.length > a.length ? b : a))).toBe("Pulsar Ctrl+C");
+    expect(labels.reduce((a, b) => (b.length > a.length ? b : a))).toBe("Pulsa Ctrl+C");
     expect(VIEWER_STYLE).toContain(".sd-copy-label { grid-area: 1 / 1; visibility: hidden;");
   });
 });
@@ -231,16 +231,16 @@ describe("notices", () => {
       /^annotations\.json could not be parsed, so this page/,
     );
     expect(parseAnnotations("{", "es").notices[0]).toBe(
-      "No se pudo analizar annotations.json, por lo que esta página muestra las capturas sin anotaciones. Corregir el archivo y volver a ejecutar docsxai render.",
+      "No se pudo analizar annotations.json, por lo que esta página muestra las capturas sin anotaciones. Corrige el archivo y vuelve a ejecutar docsxai render.",
     );
     expect(parseAnnotations("null", "es-ES").notices[0]).toMatch(
       /^annotations\.json no tiene lista de anotaciones, por lo que/,
     );
     const rec = { step: "a", copy: "c" };
     const one = parseAnnotations(JSON.stringify({ annotations: [rec, {}] }), "es");
-    expect(one.notices[0]).toMatch(/^Se omitió 1 registro de anotación:/);
+    expect(one.notices[0]).toMatch(/^Se omitió 1 anotación:/);
     const two = parseAnnotations(JSON.stringify({ annotations: [rec, {}, 1] }), "es_MX");
-    expect(two.notices[0]).toMatch(/^Se omitieron 2 registros de anotación:/);
+    expect(two.notices[0]).toMatch(/^Se omitieron 2 anotaciones:/);
     const en = parseAnnotations(JSON.stringify({ annotations: [{}, {}] }), "fr");
     expect(en.notices[0]).toMatch(/^2 annotation records were skipped: each needs a step name/);
   });

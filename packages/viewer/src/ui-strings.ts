@@ -7,7 +7,9 @@
 // A string may hold `{name}` placeholders, filled by `fmt`. Table text is trusted markup-safe text:
 // it holds no `<`, `>`, `&`, `"`, `{` or `}` outside placeholders, so builders place it without
 // escaping. Values passed to `fmt` are escaped (or are deliberate markup) by the caller. The Spanish
-// copy uses infinitives and nouns ("Copiar", "Pulsar Ctrl+C"), never a second-person form.
+// copy addresses the reader as "tú" with imperatives ("Pulsa Ctrl+C"); control labels and shortcut
+// descriptions are infinitives and nouns ("Copiar", "Reintentar", "Paso siguiente"). One term per
+// concept: captura, paso, flujo, anotación, ID, visor.
 
 export type UiLang = "en" | "es";
 
@@ -222,21 +224,21 @@ const ES: UiStrings = {
   langLabel: "Español",
   siteTitle: "Documentación",
   skipToContent: "Saltar al contenido",
-  renderedBy: "Generado con {stamp}. Forzar la recarga si esta página parece desactualizada.",
+  renderedBy: "Generado con {stamp}. Recarga sin caché si esta página parece desactualizada.",
   copy: {
     idle: "Copiar",
     done: "Copiado",
-    fallback: "Pulsar Ctrl+C",
+    fallback: "Pulsa Ctrl+C",
     aria: "Copiar {kind} {value}",
     announceDone: "Copiado al portapapeles: {kind} {value}.",
     announceFallback:
-      "El portapapeles no está disponible aquí. Texto seleccionado: {kind} {value}. Para copiar, pulsar Ctrl+C (Cmd+C en Mac).",
+      "El portapapeles no está disponible aquí. Texto seleccionado: {kind} {value}. Para copiarlo, pulsa Ctrl+C (Cmd+C en Mac).",
     announceFallbackSite:
-      "El portapapeles no está disponible aquí. Texto seleccionado: {kind}. Para copiar, pulsar Ctrl+C (Cmd+C en Mac).",
+      "El portapapeles no está disponible aquí. Texto seleccionado: {kind}. Para copiarlo, pulsa Ctrl+C (Cmd+C en Mac).",
   },
   kinds: {
-    "flow id": "id del flujo",
-    "step id": "id del paso",
+    "flow id": "ID del flujo",
+    "step id": "ID del paso",
     "viewer build": "versión del visor",
     command: "comando",
   },
@@ -275,23 +277,23 @@ const ES: UiStrings = {
   },
   shot: {
     errorMsg:
-      "No se pudo cargar la captura del paso {id}. Comprobar que {file} sigue junto a esta página y pulsar Reintentar.",
+      "No se pudo cargar la captura del paso {id}. Comprueba que {file} sigue junto a esta página y pulsa Reintentar.",
     retry: "Reintentar",
     retrying: "Cargando\u2026",
     stillPrefix: "Sigue sin cargar tras ",
     stillOne: " intento. ",
     stillMany: " intentos. ",
     missingWhy: "Falta la captura de este paso. No se encontró {file} al generar esta página.",
-    missingHow: "Para capturarla de nuevo, ejecutar {command} y después {render}.",
+    missingHow: "Para capturarla de nuevo, ejecuta {command} y después {render}.",
     unsafe:
-      "El nombre de este paso no sirve como nombre de archivo, así que se omitieron su captura y su descripción. Renombrar el paso en el archivo del flujo y volver a ejecutar {run} y {render}.",
-    thumbFailed: "No se pudo cargar esta miniatura. Abrir el flujo para reintentar.",
-    thumbMissing: "Aún no hay captura. Abrir el flujo para ver cómo capturarla.",
+      "El nombre de este paso no se puede usar como nombre de archivo, así que se omitieron su captura y su descripción. Renombra el paso en el archivo del flujo y vuelve a ejecutar {run} y {render}.",
+    thumbFailed: "No se pudo cargar esta miniatura. Abre el flujo para reintentar.",
+    thumbMissing: "Aún no hay captura. Abre el flujo para ver cómo capturarla.",
   },
   index: {
-    noFlows: "Aún no hay flujos. Ejecutar {run} y después {render}.",
-    noSteps: "Este flujo aún no tiene pasos. Capturarlo con {run} y volver a ejecutar {render}.",
-    cardNoSteps: "Sin pasos todavía",
+    noFlows: "Aún no hay flujos. Ejecuta {run} y después {render}.",
+    noSteps: "Este flujo aún no tiene pasos. Captúralo con {run} y vuelve a ejecutar {render}.",
+    cardNoSteps: "Aún no hay pasos",
     stepOne: "{n} paso",
     stepMany: "{n} pasos",
     annOne: "{n} anotación",
@@ -301,21 +303,21 @@ const ES: UiStrings = {
     unparsable: "No se pudo analizar annotations.json, {tail}",
     noList: "annotations.json no tiene lista de anotaciones, {tail}",
     noCallouts:
-      "por lo que esta página muestra las capturas sin anotaciones. Corregir el archivo y volver a ejecutar docsxai render.",
+      "por lo que esta página muestra las capturas sin anotaciones. Corrige el archivo y vuelve a ejecutar docsxai render.",
     skippedOne:
-      "Se omitió {n} registro de anotación: cada uno necesita el nombre de un paso y un texto. Corregirlo en annotations.json y volver a ejecutar docsxai render.",
+      "Se omitió {n} anotación: cada una necesita el nombre de un paso y un texto. Corrígela en annotations.json y vuelve a ejecutar docsxai render.",
     skippedMany:
-      "Se omitieron {n} registros de anotación: cada uno necesita el nombre de un paso y un texto. Corregirlos en annotations.json y volver a ejecutar docsxai render.",
+      "Se omitieron {n} anotaciones: cada una necesita el nombre de un paso y un texto. Corrígelas en annotations.json y vuelve a ejecutar docsxai render.",
   },
   site: {
     description: "Flujos paso a paso con capturas anotadas.",
-    noFlows: "_(aún no hay flujos: ejecutar `docsxai run` y volver a generar el sitio)_",
+    noFlows: "_(aún no hay flujos: ejecuta `docsxai run` y vuelve a generar el sitio)_",
     flowsLabel: "Flujos",
     missingWhy: "No hay captura del paso {id}. No se encontró el archivo al generar este sitio.",
-    missingHow: "Para capturarla, usar {command} y volver a generar el sitio.",
+    missingHow: "Para capturarla, usa {command} y vuelve a generar el sitio.",
     errorMsg:
-      "No se pudo cargar la captura del paso {id}. Comprobar la conexión y pulsar Reintentar.",
-    stepId: "Id del paso {copy}",
+      "No se pudo cargar la captura del paso {id}. Comprueba tu conexión y pulsa Reintentar.",
+    stepId: "ID del paso {copy}",
   },
 };
 

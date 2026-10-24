@@ -82,12 +82,12 @@ describe("a Spanish site", () => {
 
   it("labels CopyId in Spanish, with all three labels in one cell", async () => {
     const copy = (await emit("es"))["src/components/CopyId.astro"]!;
-    for (const label of ["Copiar", "Copiado", "Pulsar Ctrl+C"])
+    for (const label of ["Copiar", "Copiado", "Pulsa Ctrl+C"])
       expect(copy).toContain(`>${label}</span>`);
     expect(copy).toContain("aria-label={`Copiar ${kind} ${value}`}");
     expect(copy).toContain('"Copiado al portapapeles: " + kind + " " + value + "."');
     expect(copy).toContain(
-      '"El portapapeles no está disponible aquí. Texto seleccionado: " + kind + ". Para copiar, pulsar Ctrl+C (Cmd+C en Mac)."',
+      '"El portapapeles no está disponible aquí. Texto seleccionado: " + kind + ". Para copiarlo, pulsa Ctrl+C (Cmd+C en Mac)."',
     );
     expect(copy).toContain("grid-area: 1 / 1;");
     expect(copy).toContain("const COPIED_MS = 1500;");
@@ -98,12 +98,12 @@ describe("a Spanish site", () => {
     const shot = (await emit("es"))["src/components/AnnotatedShot.astro"]!;
     expect(shot).toContain("alt={`Captura del paso ${alt}`}");
     expect(shot).toContain(
-      "No se pudo cargar la captura del paso {alt}. Comprobar la conexión y pulsar Reintentar.",
+      "No se pudo cargar la captura del paso {alt}. Comprueba tu conexión y pulsa Reintentar.",
     );
     expect(shot).toContain('class="annotated-shot-retry">Reintentar</button>');
     expect(shot).toContain("No hay captura del paso <code>{alt}</code>.");
     expect(shot).toContain('<CopyId value={command} kind="comando" />');
-    expect(shot).toContain('Id del paso <CopyId value={alt} kind="id del paso" />');
+    expect(shot).toContain('ID del paso <CopyId value={alt} kind="ID del paso" />');
     expect(shot).toContain('btn.textContent = "Reintentar";');
     expect(shot).toContain('btn.textContent = "Cargando\\u2026";');
     expect(shot).toContain(
@@ -121,7 +121,7 @@ describe("a Spanish site", () => {
     expect(index).toContain('description="2 pasos, 2 anotaciones"');
     expect(index).toContain('description="1 paso, 1 anotación"');
     expect(tree["src/content/docs/flows/login.mdx"]!).toContain(
-      '<CopyId value={"login"} kind="id del flujo" />',
+      '<CopyId value={"login"} kind="ID del flujo" />',
     );
   });
 
