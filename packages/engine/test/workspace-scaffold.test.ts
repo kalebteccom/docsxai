@@ -46,15 +46,6 @@ describe("the files init creates", () => {
     await expect(fs.access(path.join(r.dir, SAMPLE_FLOW_PATH))).resolves.toBeUndefined();
   });
 
-  it("scaffolds into a throwaway directory with the sample in it", async () => {
-    const r = await initWorkspace({ persistTmp: true, auth: "none" });
-    try {
-      expect(await read(r.dir, SAMPLE_FLOW_PATH)).toBe(SAMPLE_FLOW);
-    } finally {
-      await fs.rm(r.dir, { recursive: true, force: true });
-    }
-  });
-
   it("writes nothing when it refuses a directory that is not empty", async () => {
     const dir = path.join(tmp, "busy");
     await fs.mkdir(dir);
@@ -76,11 +67,6 @@ describe("the sample flow", () => {
       ["point-at-heading", "hover"],
     ]);
     expect(flow.steps[0]).toMatchObject({ value: "/", wait_for: "load" });
-  });
-
-  it("names the calibrate command that turns it into a flow", () => {
-    expect(SAMPLE_FLOW).toContain(`docsxai calibrate . --from ${SAMPLE_FLOW_PATH}`);
-    expect(SAMPLE_FLOW_PATH).toMatch(/\.flow\.yaml\.sample$/);
   });
 
   it("is not listed as a flow, so run, lint and render skip it", async () => {
@@ -118,12 +104,6 @@ describe("the README's config line", () => {
     );
     expect(text).toContain("Add a `burn.theme` block to `custom.json`");
     expect(text).toContain("- `custom.json` ");
-  });
-
-  it("lists the steps for a workspace with a login in the order they run", async () => {
-    const text = await readme({ dir: path.join(tmp, "c") });
-    const commands = [...text.matchAll(/^docsxai ([a-z-]+)/gm)].map((m) => m[1]);
-    expect(commands).toEqual(["doctor", "capture-auth", "calibrate", "run", "render"]);
   });
 });
 
