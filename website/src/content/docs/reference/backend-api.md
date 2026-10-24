@@ -220,7 +220,7 @@ curl -s -X PUT $BASE/v1/workspaces/6f51…/projects/a90c…/webhook-config \
 
 JSON bodies are capped at 10 MB and raw blobs at 25 MB; over-limit requests
 get 413 `{ "error": "payload_too_large" }`. Errors are uniform
-`{ error, message }` JSON. Artifact writes after finalize get 409
+`{ error, message }` JSON. A method a path does not serve gets 405 with an `Allow` header. Artifact writes after finalize get 409
 `{ "error": "revision-finalized" }`.
 
 ## Persistence

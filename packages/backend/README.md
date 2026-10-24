@@ -9,7 +9,7 @@ Authenticated service that persists doc packs (projects, revisions, flow-files, 
 - **`ROUTES`** in `src/api.ts` — the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators}`, plus run history, blobs, the auth-cache relay, and the OAuth endpoints. Versioned via the `Docsxai-Api-Version` header.
 - **Linear immutable revisions** — every `calibrate` / `run` / human edit creates a new revision with `id` / `parent_revision_id` / `kind` / `author` / `created_at`. No branches; concurrent-edit conflicts surface as failed pushes resolved via re-pull + re-edit.
 - **`createBackendStub({ token?, store?, dataDir? })`** — starts the server bound to loopback; used by the engine's integration tests and as the local dev backend.
-- **`docsxai-backend`** bin — the same server as a standalone process: `docsxai-backend --port=4477 --data-dir=~/.docsxai-data`.
+- **`docsxai-backend`** bin — the same server as a standalone process: `docsxai-backend --port=4477 --data-dir=~/.docsxai-data` (`--port 4477` works too). A missing flag value, a port outside 0-65535 or an unknown argument exits 2 with a usage line; a port already in use or an unusable data dir exits 1 with one line naming it.
 
 ## Persistence modes
 
