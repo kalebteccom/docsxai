@@ -67,6 +67,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Fixed
 
 - **`docsxai burn` no longer aborts on an annotation whose box is off the image or has no area.** A `bounding_box` that lies outside the screenshot, has zero or negative size, or holds NaN or infinity used to crash the process inside the rasteriser. Such an annotation is now skipped with a warning that names its selector and step, and `burn --report` lists it with `skipped` set. A box that only overhangs an edge is clipped to the image.
+- **A viewport-only variant such as `<flow>/sm` no longer sets the page language.** `sm`, `md`, `lg`, `xl` and `xs` read as locale tags, so `docsxai-viewer build` and `site` ignored `--lang` for those flows. The first part of a variant id is now checked against the color schemes (`light`, `dark`) and the viewport names (`desktop`, `tablet`, `mobile`, `xs` to `2xl`, a width such as `1280`, `mobile-390`, `1440x900`) before it counts as a locale, and a `<flow>/<step>/<locale>.<theme>.<viewport>` id reads its locale from the last part.
 
 ## [0.3.0-rc.4] - 2026-10-24
 
