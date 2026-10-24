@@ -1,13 +1,13 @@
 // Calibration — the deterministic, structured-input path.
 //
-// `docsxai calibrate <workspace> --from <flow.md|.yaml>` takes a *structured flow-guide* — a flow-file in
+// `docsxai add-flow <workspace> --from <flow.md|.yaml>` takes a *structured flow-guide* — a flow-file in
 // YAML, or a Markdown doc containing a ```yaml fenced block that parses as one (the the first-consumer testing guide
 // shape: prerequisites + locators reference + per-step actions + success criteria) — and writes it as
 // `<workspace>/flows/<name>.flow.yaml`, plus a default `docs/style.yaml` if absent. Then `docsxai run`
 // exercises it against the live app to fill in screenshots + bounding boxes + the real `annotations.json`.
 //
 // Loose-prose flow descriptions (and live element-picking / ambiguity resolution) need the host agent —
-// that's the `/docsxai:calibrate` *skill* (see packages/plugin/skills/calibrate/SKILL.md); ambiguity
+// that's the `/docsxai:add-flow` *skill* (see packages/plugin/skills/add-flow/SKILL.md); ambiguity
 // signalling lives at the MCP/skill layer. This module covers only the part that's deterministic.
 
 import { promises as fs } from "node:fs";
@@ -33,7 +33,7 @@ const YAML_FENCE = /```ya?ml\s*\n([\s\S]*?)\n```/i;
 /**
  * Extract a flow-file from a structured flow-guide. Accepts: the YAML of a flow-file directly, or a Markdown
  * doc whose first ```yaml fenced block parses as one. Throws {@link CalibrateError} if neither works (which is
- * the signal that the input is loose prose → use the calibrate skill / agent path instead).
+ * the signal that the input is loose prose → use the add-flow skill / agent path instead).
  */
 export function extractFlowFile(text: string, source = "<flow-guide>"): FlowFile {
   // 1. The whole text as flow-file YAML.
@@ -61,14 +61,14 @@ export function extractFlowFile(text: string, source = "<flow-guide>"): FlowFile
   }
   throw new CalibrateError(
     `${source}: not a structured flow-guide (no parseable flow-file YAML found).\n` +
-      `\`calibrate --from\` only takes a flow-file in YAML, or a Markdown doc with a \`\`\`yaml fenced block that *is* one.\n` +
+      `\`add-flow --from\` only takes a flow-file in YAML, or a Markdown doc with a \`\`\`yaml fenced block that *is* one.\n` +
       `Loose prose (a hand-written test guide whose fenced blocks are numbered prose pseudo-steps for an agent\n` +
-      `to *test*, not flow-file YAML) must be turned into a flow-file by hand: follow the /docsxai:calibrate skill\n` +
-      `(walk the live app via Claude in Chrome, pin one canonical locator per step), then \`calibrate --from\` it or just \`run\`.`,
+      `to *test*, not flow-file YAML) must be turned into a flow-file by hand: follow the /docsxai:add-flow skill\n` +
+      `(walk the live app via Claude in Chrome, pin one canonical locator per step), then \`add-flow --from\` it or just \`run\`.`,
   );
 }
 
-// Default style is owned by the style module so `docsxai style init` and `calibrate` agree.
+// Default style is owned by the style module so `docsxai style init` and `add-flow` agree.
 
 export interface CalibrateOptions {
   workspaceDir: string;

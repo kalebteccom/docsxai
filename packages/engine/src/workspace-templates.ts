@@ -8,7 +8,7 @@ import type { WorkspaceConfig } from "./workspace.js";
 export const SAMPLE_FLOW_PATH = "flows/example.flow.yaml.sample";
 
 export const SAMPLE_FLOW = `# Sample flow-file. Edit the locators and steps for your app, then:
-#   docsxai calibrate . --from ${SAMPLE_FLOW_PATH}
+#   docsxai add-flow . --from ${SAMPLE_FLOW_PATH}
 # which writes flows/example.flow.yaml. Full format: docs/agent-runbook.md in the docsxai repo.
 name: example
 locators:
@@ -64,7 +64,7 @@ export function workspaceReadme(cfg: WorkspaceConfig, opts: ReadmeOptions): stri
           "docsxai capture-auth .     # opens an instrumented browser; log in, then run window.__docsxai.capture()",
         ]
       : []),
-    `docsxai calibrate . --from ${SAMPLE_FLOW_PATH}   # edit the sample first, or pass a flow-file you wrote`,
+    `docsxai add-flow . --from ${SAMPLE_FLOW_PATH}   # edit the sample first, or pass a flow-file you wrote`,
     "docsxai run .              # replay the flow-files headlessly; refresh annotations + screenshots",
     "docsxai render . && open .viewer/index.html",
   ];
@@ -73,7 +73,7 @@ export function workspaceReadme(cfg: WorkspaceConfig, opts: ReadmeOptions): stri
 This directory is a **docsxai workspace**, it holds the doc pack for one running app:
 
 - \`flows/<flow>.flow.yaml\`, hand-editable flow-files (the source of truth for execution)
-- \`${SAMPLE_FLOW_PATH}\`: a sample flow-file to copy from (ignored until calibrated)
+- \`${SAMPLE_FLOW_PATH}\`: a sample flow-file to copy from (ignored until you add it with add-flow)
 - \`docs/<flow>/{annotations.json, screenshots/, <step>.md}\`, \`docs/{style.yaml, locators.yaml}\`, the generated docs
 ${authLine}
 - \`.viewer/\`, the generated interactive viewer (gitignored)

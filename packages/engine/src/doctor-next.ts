@@ -1,5 +1,5 @@
 // The command `docsxai doctor` suggests after a passing check list, read from the workspace's
-// state: no workspace, then init --example; no flow, then calibrate; nothing captured, then run;
+// state: no workspace, then init --example; no flow, then add-flow; nothing captured, then run;
 // annotations present, then render --open.
 
 import { existsSync, promises as fs } from "node:fs";
@@ -48,7 +48,7 @@ export async function doctorNextStep(
   }
   const ws = shellQuote(dirArg ?? ".");
   if (!(await hasFlowFile(path.join(root, "flows")))) {
-    return `docsxai calibrate ${ws} --from <flow.yaml>`;
+    return `docsxai add-flow ${ws} --from <flow.yaml>`;
   }
   if (!(await hasAnnotations(path.join(root, "docs")))) return `docsxai run ${ws}`;
   return `docsxai render ${ws} --open`;

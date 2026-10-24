@@ -8,7 +8,7 @@ Usage:
   docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>]
       [--ttl <dur>] [--capture-trigger console|button] [--auth-cookie <name>]
       [--ignore-https-errors] [--persist tmp] [--force] [--example]
-  docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
+  docsxai add-flow <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>]
       [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
   docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed]
@@ -114,10 +114,11 @@ Notes:
     slow SPA, settle before the snapshot with --wait <ms> (default 800) or --wait-for '<css>'. --cdp <endpoint>
     attaches to an already-running Chrome (e.g. the one from capture-auth --cdp) instead of launching one.
     --ignore-https-errors accepts a self-signed/invalid TLS certificate (also read from ignore_https_errors in .docsxai.json).
-  • calibrate takes a *structured flow-guide* (a flow-file in YAML, or a .md with a yaml fenced block) and
-    writes flows/<name>.flow.yaml + a default docs/style.yaml. Loose-prose descriptions / live element-picking
-    need the host agent, that's the /docsxai:calibrate *skill* (see the plugin), which then refines/produces
-    the flow-file; this CLI command covers only the deterministic structured-input case.
+  • add-flow (calibrate is deprecated since 0.3.0 and removed in 0.5.0) takes a *structured flow-guide* (a flow-file in
+    YAML, or a .md with a yaml fenced block) and writes flows/<name>.flow.yaml + a default docs/style.yaml.
+    Loose-prose descriptions / live element-picking need the host agent, that's the /docsxai:add-flow *skill*
+    (see the plugin), which then refines/produces the flow-file; this CLI command covers only the
+    deterministic structured-input case.
   • lint runs pure-static checks across the workspace's flow-files, no Playwright, no live page. Rules:
     R001 (deep extends chain), R002 (annotation anchored to a likely-unmounting click/navigate target,
     suggest annotation.target override), R003 (wait_for with no timeout_ms on a long-async-looking step),
@@ -139,7 +140,7 @@ Notes:
     plugin declarations and lock (same inspection as \`plugins list\`, no plugin code is executed),
     where the viewer was found, and environment settings. The first line is the docsxai version; one
     \`ok:\` or \`fail:\` line per check follows, and the last line names the next command for the
-    workspace's state (init --example, calibrate, run or render --open). --format json prints one
+    workspace's state (init --example, add-flow, run or render --open). --format json prints one
     document (schema docsxai/doctor@1). Exit 1 if any line is \`fail:\`.
   • style initialises docs/style.yaml + derived docs/style.json if absent (otherwise validates the
     existing YAML against the schema and rederives the JSON). --check additionally scans every
@@ -227,14 +228,14 @@ Notes:
   • --version (or -v) prints \`docsxai <version>\` and exits 0.
   • --format json (lint, flow-tree, diagnose, style, diff, plugins, doctor, run --verify-determinism) is the
     machine-readable output; the text formats are for people and may change.
-  • run, calibrate, burn, pack, zip, baseline, push, pull and doctor end with one line,
+  • run, add-flow, burn, pack, zip, baseline, push, pull and doctor end with one line,
     \`<command>: <result> …\`, naming the counts and where the output went (run --verify-determinism
     ends with its report).
 
 Examples:
   docsxai init ~/docsxai/my-app --app-url https://app.example.com
   docsxai capture-auth ~/docsxai/my-app
-  docsxai calibrate ~/docsxai/my-app --from login.flow.yaml
+  docsxai add-flow ~/docsxai/my-app --from login.flow.yaml
   docsxai inspect ~/docsxai/my-app --url https://app.example.com/login
   docsxai run ~/docsxai/my-app --flow login
   docsxai run ~/docsxai/my-app --verify-determinism --runs 3 --format md

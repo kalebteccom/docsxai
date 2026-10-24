@@ -12,10 +12,13 @@ export interface RetiredEntry {
   replacement?: string;
   /** One extra clause, for example why. */
   note?: string;
+  /** The whole warning after `docsxai: `, for a plain rename. Replaces the built line. */
+  message?: string;
 }
 
 /** The warning line (without a trailing newline) for a retired `item`. */
 export function deprecationMessage(item: string, entry: RetiredEntry): string {
+  if (entry.message) return `docsxai: ${entry.message}`;
   const use = entry.replacement ? `, use ${entry.replacement}` : "";
   const note = entry.note ? ` (${entry.note})` : "";
   return `docsxai: ${item} is deprecated since ${entry.since}${use}${note}`;

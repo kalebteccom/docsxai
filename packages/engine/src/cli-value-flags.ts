@@ -6,7 +6,7 @@ import { flagMissingValue, parseFlags } from "./cli-shared.js";
 
 const VALUE_FLAGS: Readonly<Record<string, readonly string[]>> = {
   init: ["app-url", "auth", "role", "ttl", "capture-trigger", "auth-cookie", "persist"],
-  calibrate: ["from", "name"],
+  "add-flow": ["from", "name"],
   inspect: ["url", "selector", "cdp", "wait", "wait-for", "role"],
   lint: ["flow", "format"],
   "flow-tree": ["format"],

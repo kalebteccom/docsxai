@@ -82,7 +82,7 @@ describe("checkFlows", () => {
     const c = await checkFlows(tmp);
     expect(c.ok).toBe(false);
     expect(c.fix).toBe(
-      `mkdir ${path.join(tmp, "flows")}, then docsxai calibrate ${tmp} --from <flow.yaml>`,
+      `mkdir ${path.join(tmp, "flows")}, then docsxai add-flow ${tmp} --from <flow.yaml>`,
     );
     expect(c.fix).not.toContain("`docsxai init`");
   });

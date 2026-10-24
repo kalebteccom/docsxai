@@ -35,7 +35,7 @@ const COMMANDS: Record<string, { flags: string[]; files: string[] }> = {
     ],
     files: ["cli-commands-init.ts"],
   },
-  calibrate: { flags: ["from", "name"], files: ["cli-commands-session.ts"] },
+  "add-flow": { flags: ["from", "name"], files: ["cli-commands-session.ts"] },
   inspect: {
     flags: ["url", "selector", "cdp", "wait", "wait-for", "headed", "ignore-https-errors", "role"],
     files: ["cli-commands-authoring.ts"],

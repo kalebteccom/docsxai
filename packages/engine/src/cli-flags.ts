@@ -36,7 +36,7 @@ export const COMMAND_FLAGS: Readonly<Record<string, CommandFlags>> = {
     value: ["app-url", "auth", "role", "ttl", "capture-trigger", "auth-cookie", "persist"],
     bool: ["ignore-https-errors", "force", "example"],
   },
-  calibrate: { value: ["from", "name"], bool: [] },
+  "add-flow": { value: ["from", "name"], bool: [] },
   inspect: {
     value: ["url", "selector", "cdp", "wait", "wait-for", "role"],
     bool: ["headed", "ignore-https-errors"],

@@ -130,7 +130,7 @@ async function missingFlowsMessage(projectDir: string, flowsDir: string): Promis
   if (entries?.includes(WORKSPACE_CONFIG_FILE)) {
     return withNext(
       `workspace ${projectDir} has no flows/ directory (expected ${flowsDir})`,
-      `mkdir ${shellQuote(flowsDir)}  (then docsxai calibrate ${dir} --from <flow.yaml>)`,
+      `mkdir ${shellQuote(flowsDir)}  (then docsxai add-flow ${dir} --from <flow.yaml>)`,
     );
   }
   if (entries && entries.length > 0) {

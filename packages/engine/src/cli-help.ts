@@ -4,13 +4,15 @@
 
 import { USAGE } from "./cli-usage.js";
 import { commandUsage } from "./cli-messages.js";
+import { RETIRED_COMMANDS } from "./cli-retired.js";
+import { findRetired } from "./deprecation.js";
 
 /** The first steps for a new user, printed before any long list. */
 export const START_HERE = `Start here (an example flow on example.com):
   1. docsxai init <workspace-dir> --example
   2. docsxai run <workspace-dir>
   3. docsxai render <workspace-dir> --open
-Your own app: docsxai init <workspace-dir> --app-url <url>, then calibrate a flow.`;
+Your own app: docsxai init <workspace-dir> --app-url <url>, then docsxai add-flow.`;
 
 /** Commands by purpose, each with a one-line description. Every dispatched command appears once. */
 export const COMMAND_GROUPS: ReadonlyArray<{
@@ -21,7 +23,7 @@ export const COMMAND_GROUPS: ReadonlyArray<{
     title: "Getting started",
     commands: [
       ["init", "scaffold a workspace for your app"],
-      ["calibrate", "write a flow from a structured flow-file"],
+      ["add-flow", "add a flow from a flow-file (formerly calibrate)"],
       ["inspect", "list the page's test ids to pin locators"],
     ],
   },
@@ -177,7 +179,9 @@ export function tryHelp(cmd: string | undefined, rest: string[]): number | undef
   const asksHelp = rest.some((a) => a === "--help" || a === "-h");
   const target = cmd === "help" ? rest[0] : asksHelp ? cmd : undefined;
   if (target === undefined || (cmd !== "help" && target === "doctor")) return undefined;
-  const text = commandHelp(target);
+  // `help calibrate` answers with the help of the command a retired name now runs.
+  const retired = findRetired(RETIRED_COMMANDS, target);
+  const text = commandHelp(retired ? retired.rewrite([])[0]! : target);
   if (text === undefined) return unknownCommand(target);
   process.stdout.write(text);
   return 0;

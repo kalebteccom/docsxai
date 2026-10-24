@@ -10,7 +10,8 @@ import { main } from "../src/cli.js";
 import { commandNames, START_HERE } from "../src/cli-help.js";
 import { resetDeprecationWarnings } from "../src/deprecation.js";
 
-const WARNING = "docsxai: calibrate is now add-flow; the old name still works\n";
+const WARNING =
+  "docsxai: calibrate is deprecated since 0.3.0, use add-flow (calibrate will be removed in 0.5.0)\n";
 
 let out = "";
 let err = "";
@@ -36,9 +37,12 @@ afterEach(async () => {
 });
 
 const FLOW = `name: open-reports
+locators: { reports: '#reports' }
 steps:
   - id: open
-    action: { goto: "/reports" }
+    action: click
+    target: $reports
+    success: { visible: $reports }
 `;
 
 async function guide(): Promise<string> {
@@ -78,7 +82,9 @@ describe("docsxai add-flow", () => {
     expect(commandNames()).not.toContain("calibrate");
     expect(START_HERE).toContain("docsxai add-flow <workspace-dir> --from <flow.yaml>");
     expect(await main(["--help"])).toBe(0);
-    expect(out).toContain("docsxai add-flow <workspace-dir> --from <flow.md|.yaml> [--name <flow>]");
+    expect(out).toContain(
+      "docsxai add-flow <workspace-dir> --from <flow.md|.yaml> [--name <flow>]",
+    );
     expect(out).not.toMatch(/docsxai calibrate /);
   });
 
