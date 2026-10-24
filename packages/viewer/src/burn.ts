@@ -34,6 +34,13 @@ import {
 import { loadThemeFont } from "./burn-theme-load.js";
 import { rgbaOf } from "./color.js";
 import { connectorNodes } from "./burn-connector.js";
+import {
+  LINE_GAP,
+  LINE_MAX_DISTANCE,
+  drawnStyle,
+  lineNodes,
+  type DrawnStyle,
+} from "./burn-line.js";
 import { CONNECTOR_HALO } from "./connector-contrast.js";
 import type { PixelGrid } from "./connector-contrast.js";
 import { decodeScreenshot } from "./screenshot-pixels.js";
@@ -163,16 +170,20 @@ function calloutNodes(
   theme: BurnTheme,
   f: number,
   themed: boolean,
+  connector: DrawnStyle,
   pixels?: PixelGrid,
 ): DrawnCallout {
   const { lines, size: callout, nudge } = layout;
-  const nodes: BurnNode[] = connectorNodes(
-    layout,
-    pixels,
-    connectorColor(theme),
-    CONNECTOR_HALO * f,
-    themed ? theme.calloutBackground : undefined,
-  );
+  const nodes: BurnNode[] =
+    connector === "arrow"
+      ? connectorNodes(
+          layout,
+          pixels,
+          connectorColor(theme),
+          CONNECTOR_HALO * f,
+          themed ? theme.calloutBackground : undefined,
+        )
+      : lineNodes(layout, theme, f, connector, pixels);
   nodes.push(
     div(
       {
@@ -254,6 +265,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
   const theme = scaledTheme(base, f);
   const themed = input.theme !== undefined;
   const style = calloutStyleOf(base, themed);
+  const connector = drawnStyle(base.connectorStyle, themed);
   const baseImage = f === 1 ? image : { width: width / f, height: height / f };
   const children: BurnNode[] = [
     {
@@ -321,12 +333,13 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
         style,
         arrowLength: base.arrowSize,
         maxWidthRatio: base.maxWidthRatio,
+        ...(connector === "arrow" ? {} : { gap: LINE_GAP, maxDistance: LINE_MAX_DISTANCE }),
       };
       const planned = layoutCallout(layoutInput);
       input.trace?.push({ position: i, input: layoutInput, layout: planned, scale: f });
       placed.push(...layoutBoxes(planned));
       layout = layoutAtScale(planned, f);
-      const drawn = calloutNodes(layout, theme, f, themed, input.pixels);
+      const drawn = calloutNodes(layout, theme, f, themed, connector, input.pixels);
       children.push(...drawn.nodes);
       calloutBox = drawn.boxes[0]!;
     }

@@ -100,6 +100,10 @@ export interface LayoutInput {
   style?: CalloutStyle;
   /** Arrow length in px; the callout keeps 2 px more than that from its target. Default {@link ARROW_LENGTH}. */
   arrowLength?: number;
+  /** Gap in px between target and callout at rest. Default `arrowLength + 2`. */
+  gap?: number;
+  /** Longest gap the obstacle planner may detach the callout to, see `PlanInput.maxDistance`. */
+  maxDistance?: number;
   /** Widest callout as a share of the image's width when obstacles limit it. Default {@link ADAPTIVE_WIDTH_RATIO}. */
   maxWidthRatio?: number;
 }
@@ -225,7 +229,7 @@ function planInput(inp: LayoutInput, size: Size): PlanInput {
     target,
     callout: size,
     preferred: placement?.side ?? preferredSide(ann.arrow_style),
-    gap: arrowLength + 2,
+    gap: inp.gap ?? arrowLength + 2,
     obstacles: ann.obstacles ?? [],
     avoid: clear,
     nudge: { x: ann.nudge?.x ?? 0, y: ann.nudge?.y ?? 0 },
@@ -234,6 +238,7 @@ function planInput(inp: LayoutInput, size: Size): PlanInput {
     ...(placement?.align ? { align: placement.align } : {}),
     ...(placement?.pin_arrow ? { pinArrow: true } : {}),
     arrowLength,
+    ...(inp.maxDistance !== undefined ? { maxDistance: inp.maxDistance } : {}),
   };
 }
 
@@ -251,7 +256,7 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
   const { ann, target, image, metrics, clear } = inp;
   const style = inp.style ?? DEFAULT_CALLOUT_STYLE;
   const arrowLength = inp.arrowLength ?? ARROW_LENGTH;
-  const gap = arrowLength + 2;
+  const gap = inp.gap ?? arrowLength + 2;
   const placement = ann.placement;
   const obstacles = ann.obstacles ?? [];
   const nudge = { x: ann.nudge?.x ?? 0, y: ann.nudge?.y ?? 0 };

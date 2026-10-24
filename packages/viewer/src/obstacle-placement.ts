@@ -45,6 +45,12 @@ export interface PlanInput extends PlaceInput {
   pinArrow?: boolean;
   /** Arrow length in px. Default {@link ARROW_LENGTH}. */
   arrowLength?: number;
+  /**
+   * Longest gap in px between the target and the callout. Farther candidates are not tried, so a
+   * callout that cannot clear content within it sits closer and covers some. Unset: no limit. A
+   * pinned arrow ignores it, since the author's nudge sets the distance.
+   */
+  maxDistance?: number;
 }
 
 export interface PlannedPlacement extends Placement {
@@ -275,6 +281,9 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
     for (const extra of EXTRA_DISTANCES) {
       for (const baseStart of starts) {
         const distance = pin ? Math.max(arrowLength, gap + extra + offsets.across) : gap + extra;
+        if (!pin && extra > 0 && inp.maxDistance !== undefined && distance > inp.maxDistance) {
+          continue;
+        }
         const start = pin ? clamp(baseStart + offsets.along, slide.lo, slide.hi) : baseStart;
         const l = layout(side, inp, distance, start);
         const rect = { x: l.x, y: l.y, width: c.width, height: c.height };

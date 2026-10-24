@@ -120,3 +120,32 @@ export function toneOf(hex: string): ConnectorTone {
   const rgb = parseHexColor(hex);
   return rgb !== null && lumaOf(rgb[0], rgb[1], rgb[2]) >= 128 ? "light" : "dark";
 }
+
+/** Mean colour of the pixels under `boxes`, clipped to the grid, as `#rrggbb`; null when none fall inside. */
+export function averageHex(grid: PixelGrid, boxes: Rect[]): string | null {
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  let total = 0;
+  for (const box of boxes) {
+    const x0 = Math.max(0, Math.floor(box.x));
+    const y0 = Math.max(0, Math.floor(box.y));
+    const x1 = Math.min(grid.width, Math.ceil(box.x + box.width));
+    const y1 = Math.min(grid.height, Math.ceil(box.y + box.height));
+    for (let y = y0; y < y1; y++) {
+      for (let x = x0; x < x1; x++) {
+        const i = (y * grid.width + x) * 4;
+        r += grid.rgba[i]!;
+        g += grid.rgba[i + 1]!;
+        b += grid.rgba[i + 2]!;
+        total++;
+      }
+    }
+  }
+  if (total === 0) return null;
+  const hex = (v: number) =>
+    Math.round(v / total)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}

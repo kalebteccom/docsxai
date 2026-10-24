@@ -7,6 +7,7 @@ import { normaliseHex } from "./color.js";
 import {
   AUTO_SCALE_MAX,
   BADGE_SHAPES,
+  CONNECTOR_STYLES,
   FONT_WEIGHTS,
   NARROW_BELOW_DEFAULT,
   type BurnTheme,
@@ -348,6 +349,12 @@ export const THEME_FIELDS = {
     token: "font.weight.caption",
     kind: "text",
     parse: fontWeight,
+  },
+  connector_style: {
+    prop: "connectorStyle",
+    token: "shape.connector",
+    kind: "text",
+    parse: oneOf(CONNECTOR_STYLES),
   },
   arrow_size: {
     prop: "arrowSize",

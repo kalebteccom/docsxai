@@ -1,0 +1,29 @@
+{
+  "$description": "trackxai caption theme, light. Colours from the Kalebtec brand tokens: brand.dark violet on paper.",
+  "color": {
+    "accent": { "$type": "color", "$value": "#5c00b8" },
+    "ink": { "$type": "color", "$value": "#080f11" },
+    "callout": {
+      "background": { "$type": "color", "$value": "#fafaf5" },
+      "border": { "$type": "color", "$value": "#5c00b8" }
+    },
+    "badge": { "background": { "$type": "color", "$value": "#5c00b8" } }
+  },
+  "border": { "callout": { "width": { "$type": "dimension", "$value": "1px" } } },
+  "radius": { "callout": { "$type": "dimension", "$value": "8px" } },
+  "shadow": { "callout": { "$value": "0px 4px 14px 0px rgba(8,15,17,0.16)" } },
+  "shape": {
+    "badge": { "$value": "circle" },
+    "connector": { "$value": "line" }
+  },
+  "font": {
+    "size": { "caption": { "$type": "dimension", "$value": "14px" } },
+    "line-height": { "caption": { "$type": "dimension", "$value": "20px" } }
+  },
+  "space": {
+    "callout": {
+      "x": { "$type": "dimension", "$value": "12px" },
+      "y": { "$type": "dimension", "$value": "8px" }
+    }
+  }
+}
