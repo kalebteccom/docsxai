@@ -120,6 +120,7 @@ describe("CLI exit-code contract", () => {
     "run",
     "render",
     "burn",
+    "site",
     "pack",
     "capture-auth",
     "lint",

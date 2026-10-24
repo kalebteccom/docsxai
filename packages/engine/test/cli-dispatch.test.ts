@@ -121,6 +121,38 @@ describe("render dispatch", () => {
     expect(argv).toEqual(["build", path.join(ws, "docs"), path.join(ws, ".viewer")]);
   });
 
+  it("passes --lang to the viewer's build", async () => {
+    const ws = await makeWorkspace();
+    const argvFile = path.join(tmp, "argv.json");
+    const script = await makeFakeViewerScript(
+      `require("node:fs").writeFileSync(${JSON.stringify(argvFile)}, JSON.stringify(process.argv.slice(2)));\n`,
+    );
+    vi.stubEnv("DOCSX_VIEWER_BIN", script);
+    expect(await main(["render", ws, "--lang", "es"])).toBe(0);
+    const argv = JSON.parse(await fs.readFile(argvFile, "utf8")) as string[];
+    expect(argv).toEqual([
+      "build",
+      path.join(ws, "docs"),
+      path.join(ws, ".viewer"),
+      "--lang",
+      "es",
+    ]);
+  });
+
+  it("exits 2 on --lang with no value, a repeated --lang or an unknown flag", async () => {
+    const ws = await makeWorkspace();
+    const cases: Array<[string[], RegExp]> = [
+      [["render", ws, "--lang"], /render: --lang needs a value/],
+      [["render", ws, "--lang", "es", "--lang", "en"], /--lang given more than once/],
+      [["render", ws, "--lnag", "es"], /unknown flag --lnag, did you mean --lang\?/],
+    ];
+    for (const [argv, message] of cases) {
+      err = "";
+      expect(await main(argv)).toBe(2);
+      expect(err).toMatch(message);
+    }
+  });
+
   it("propagates the viewer's non-zero exit code", async () => {
     const ws = await makeWorkspace();
     const script = await makeFakeViewerScript("process.exit(3);\n");
@@ -244,6 +276,114 @@ describe("burn dispatch", () => {
     vi.stubEnv("PATH", "");
     expect(await main(["burn", ws])).toBe(1);
     expect(err).toMatch(/burn: .*could not be launched/s);
+  });
+});
+
+describe("site dispatch", () => {
+  async function fakeViewer(body?: string): Promise<{ argvFile: string }> {
+    const argvFile = path.join(tmp, "site-argv.json");
+    const script = path.join(tmp, "fake-viewer.js");
+    await fs.writeFile(
+      script,
+      body ??
+        `require("node:fs").writeFileSync(${JSON.stringify(argvFile)}, JSON.stringify(process.argv.slice(2)));\n`,
+      "utf8",
+    );
+    vi.stubEnv("DOCSX_VIEWER_BIN", script);
+    return { argvFile };
+  }
+  const argvOf = async (file: string) => JSON.parse(await fs.readFile(file, "utf8")) as string[];
+
+  it("exits 2 on a missing workspace, an unknown flag, a bare value flag or a second positional", async () => {
+    const { argvFile } = await fakeViewer();
+    const cases: Array<[string[], RegExp]> = [
+      [["site"], /site: missing <workspace-dir>/],
+      [["site", "ws", "--frobnicate"], /unknown flag --frobnicate/],
+      [["site", "ws", "--titel", "x"], /unknown flag --titel, did you mean --title\?/],
+      [["site", "ws", "--out"], /--out needs a value/],
+      [["site", "ws", "--lang", "--build"], /--lang needs a value/],
+      [["site", "ws", "--title", "a", "--title", "b"], /--title given more than once/],
+      [["site", "ws", "other"], /unexpected argument "other"/],
+      [["site", "ws", "--flow", "../x"], /not a flow name/],
+    ];
+    for (const [argv, message] of cases) {
+      err = "";
+      expect(await main(argv)).toBe(2);
+      expect(err).toMatch(message);
+      expect(err).toContain("usage: docsxai site <workspace-dir>");
+    }
+    await expect(fs.access(argvFile)).rejects.toThrow();
+  });
+
+  it("runs the viewer's site with only the workspace when no flag is given", async () => {
+    const ws = await makeWorkspace();
+    const { argvFile } = await fakeViewer();
+    expect(await main(["site", ws])).toBe(0);
+    expect(await argvOf(argvFile)).toEqual(["site", ws]);
+  });
+
+  it("passes every flag through, --flow repeated, in a fixed order", async () => {
+    const ws = await makeWorkspace();
+    const { argvFile } = await fakeViewer();
+    const out = path.join(tmp, "site-out");
+    const argv = [
+      "site",
+      "--build",
+      ws,
+      "--flow",
+      "a",
+      "--lang",
+      "es",
+      "--accent",
+      "#2563eb",
+      "--flow",
+      "b",
+      "--title",
+      "Help centre",
+      "--out",
+      out,
+    ];
+    expect(await main(argv)).toBe(0);
+    expect(await argvOf(argvFile)).toEqual([
+      "site",
+      ws,
+      "--out",
+      out,
+      "--build",
+      "--title",
+      "Help centre",
+      "--accent",
+      "#2563eb",
+      "--lang",
+      "es",
+      "--flow",
+      "a",
+      "--flow",
+      "b",
+    ]);
+  });
+
+  it("accepts --flag=value", async () => {
+    const ws = await makeWorkspace();
+    const { argvFile } = await fakeViewer();
+    expect(await main(["site", ws, "--lang=es", "--title=Docs"])).toBe(0);
+    expect(await argvOf(argvFile)).toEqual(["site", ws, "--title", "Docs", "--lang", "es"]);
+  });
+
+  it("propagates the viewer's exit code", async () => {
+    const ws = await makeWorkspace();
+    await fakeViewer("process.exit(1);\n");
+    expect(await main(["site", ws])).toBe(1);
+    await fakeViewer("process.exit(2);\n");
+    expect(await main(["site", ws, "--accent", "nope"])).toBe(2);
+  });
+
+  it("lists the viewer resolution attempts when no viewer is found", async () => {
+    const ws = await makeWorkspace();
+    vi.stubEnv("DOCSX_VIEWER_BIN", path.join(tmp, "no-such-viewer.js"));
+    vi.stubEnv("PATH", "");
+    expect(await main(["site", ws])).toBe(1);
+    expect(err).toMatch(/site: .*could not be launched/s);
   });
 });
 
