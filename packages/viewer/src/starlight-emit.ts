@@ -18,7 +18,13 @@ import { mixHex } from "./color.js";
 import { annotatedShotAstro, copyIdAstro } from "./starlight-components.js";
 import { accentContrastWarnings } from "./starlight-contrast.js";
 import { SCROLLBARS_CSS, SCROLLBARS_CSS_PATH } from "./starlight-scrollbars.js";
-import { pickFlows, readStyleVisual, readSteps, type StepPage } from "./starlight-sources.js";
+import {
+  flowSlugs,
+  pickFlows,
+  readStyleVisual,
+  readSteps,
+  type StepPage,
+} from "./starlight-sources.js";
 import { fmt, uiStrings, type UiStrings } from "./ui-strings.js";
 
 /** Exact versions pinned into the emitted site's package.json — verified to install + build. */
@@ -180,10 +186,17 @@ export async function deriveFlowOrder(workspaceDir: string, flows: string[]): Pr
 const yamlQuote = (s: string) =>
   `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, " ")}"`;
 
-/** Backslash-escape the characters MDX would otherwise parse as JSX / expressions. */
-const escapeMdxText = (s: string) => s.replace(/([\\<>{}`])/g, "\\$1");
+/** Backslash-escape the characters MDX would otherwise parse as JSX, expressions, emphasis, links or entities. */
+const escapeMdxText = (s: string) => s.replace(/([\\<>{}`*_[\]&~])/g, "\\$1");
 
-function flowMdx(flow: string, steps: StepPage[], ui: UiStrings): string {
+/**
+ * A JSX attribute value. A JSX string has no escapes and decodes entities, so a value holding a
+ * quote, a backslash, `&`, `<`, `{` or a line break goes in as an expression instead.
+ */
+const jsxAttr = (v: string) =>
+  /^[^"\\&<>{}\r\n\u2028\u2029]*$/.test(v) ? JSON.stringify(v) : `{${JSON.stringify(v)}}`;
+
+function flowMdx(flow: string, slug: string, steps: StepPage[], ui: UiStrings): string {
   const imports = [
     'import AnnotatedShot from "../../../components/AnnotatedShot.astro";',
     'import CopyId from "../../../components/CopyId.astro";',
@@ -195,10 +208,10 @@ function flowMdx(flow: string, steps: StepPage[], ui: UiStrings): string {
     if (step.imageSrc !== null) {
       const ident = `shot${String(i)}`;
       imports.push(
-        `import ${ident} from ${JSON.stringify(`../../../assets/flows/${flow}/${step.id}.png`)};`,
+        `import ${ident} from ${JSON.stringify(`../../../assets/flows/${slug}/${step.asset}.png`)};`,
       );
       parts.push(
-        `<AnnotatedShot src={${ident}} alt=${JSON.stringify(step.id)} burned={${String(step.burned)}} items={${JSON.stringify(step.items)}} />`,
+        `<AnnotatedShot src={${ident}} alt=${jsxAttr(step.id)} burned={${String(step.burned)}} items={${JSON.stringify(step.items)}} />`,
       );
     } else {
       parts.push(
@@ -221,7 +234,7 @@ ${sections.join("\n\n")}
 
 function indexMdx(
   title: string,
-  flows: Array<{ flow: string; steps: number; annotations: number }>,
+  flows: Array<{ flow: string; slug: string; steps: number; annotations: number }>,
   ui: UiStrings,
 ): string {
   const t = ui.index;
@@ -232,7 +245,7 @@ function indexMdx(
         ? `, ${fmt(f.annotations === 1 ? t.annOne : t.annMany, { n: f.annotations })}`
         : "";
       const sub = steps + anns;
-      return `  <LinkCard title=${JSON.stringify(f.flow)} href=${JSON.stringify(`/flows/${f.flow.toLowerCase()}/`)} description=${JSON.stringify(sub)} />`;
+      return `  <LinkCard title=${jsxAttr(f.flow)} href=${jsxAttr(`/flows/${f.slug}/`)} description=${JSON.stringify(sub)} />`;
     })
     .join("\n");
   const grid = flows.length ? `<CardGrid>\n${cards}\n</CardGrid>` : ui.site.noFlows;
@@ -251,7 +264,7 @@ function astroConfigMjs(opts: {
   title: string;
   accent: string | null;
   logoRel: string | null;
-  flows: string[];
+  flows: Array<{ flow: string; slug: string }>;
   ui: UiStrings;
 }): string {
   const lines: string[] = [];
@@ -272,7 +285,7 @@ function astroConfigMjs(opts: {
     const items = opts.flows
       .map(
         (f) =>
-          `            { label: ${JSON.stringify(f)}, slug: ${JSON.stringify(`flows/${f.toLowerCase()}`)} },`,
+          `            { label: ${JSON.stringify(f.flow)}, slug: ${JSON.stringify(`flows/${f.slug}`)} },`,
       )
       .join("\n");
     lines.push(
@@ -387,9 +400,11 @@ export async function emitStarlightSite(
   const ui = uiStrings(config.lang);
   const title = config.title ?? ui.siteTitle;
 
-  const flowPages: Array<{ flow: string; steps: StepPage[] }> = [];
+  const slugs = flowSlugs(flows, warnings);
+  const flowPages: Array<{ flow: string; slug: string; steps: StepPage[] }> = [];
   for (const flow of flows) {
-    flowPages.push({ flow, steps: await readSteps(docsDir, flow, ui.lang, warnings) });
+    const steps = await readSteps(docsDir, flow, ui.lang, warnings);
+    flowPages.push({ flow, slug: slugs.get(flow)!, steps });
   }
 
   // Assemble the file tree, then write it in sorted order (deterministic bytes + listing).
@@ -397,7 +412,10 @@ export async function emitStarlightSite(
   textFiles.set("package.json", sitePackageJson());
   textFiles.set("tsconfig.json", SITE_TSCONFIG);
   textFiles.set(".gitignore", GITIGNORE);
-  textFiles.set("astro.config.mjs", astroConfigMjs({ title, accent, logoRel, flows, ui }));
+  textFiles.set(
+    "astro.config.mjs",
+    astroConfigMjs({ title, accent, logoRel, flows: flowPages, ui }),
+  );
   textFiles.set("src/content.config.ts", CONTENT_CONFIG_TS);
   textFiles.set("src/components/AnnotatedShot.astro", annotatedShotAstro(ui));
   textFiles.set("src/components/CopyId.astro", copyIdAstro(ui));
@@ -410,6 +428,7 @@ export async function emitStarlightSite(
       title,
       flowPages.map((p) => ({
         flow: p.flow,
+        slug: p.slug,
         steps: p.steps.length,
         annotations: p.steps.reduce((n, s) => n + s.items.length, 0),
       })),
@@ -417,7 +436,10 @@ export async function emitStarlightSite(
     ),
   );
   for (const page of flowPages) {
-    textFiles.set(`src/content/docs/flows/${page.flow}.mdx`, flowMdx(page.flow, page.steps, ui));
+    textFiles.set(
+      `src/content/docs/flows/${page.slug}.mdx`,
+      flowMdx(page.flow, page.slug, page.steps, ui),
+    );
   }
 
   const copies = new Map<string, string>(); // rel dest → abs source
@@ -425,7 +447,7 @@ export async function emitStarlightSite(
   for (const page of flowPages) {
     for (const step of page.steps) {
       if (step.imageSrc !== null) {
-        copies.set(`src/assets/flows/${page.flow}/${step.id}.png`, step.imageSrc);
+        copies.set(`src/assets/flows/${page.slug}/${step.asset}.png`, step.imageSrc);
       }
     }
   }

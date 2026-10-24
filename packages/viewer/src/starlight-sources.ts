@@ -18,6 +18,8 @@ export interface StepPage {
   id: string;
   /** Absolute path of the image to copy in (burned preferred), or null. */
   imageSrc: string | null;
+  /** File name (no extension) the image gets in the site, safe to import. */
+  asset: string;
   burned: boolean;
   items: CaptionItem[];
   md: string | null;
@@ -123,10 +125,50 @@ export async function readSteps(
     steps.push({
       id,
       imageSrc,
+      asset: "",
       burned,
       items: anns.map((a, i) => ({ n: a.index ?? i + 1, copy: a.copy })),
       md: await readText(path.join(flowSrc, `${id}.md`)),
     });
   }
+  const assets = uniqueSlugs(steps.map((step) => step.id));
+  for (const step of steps) step.asset = assets.get(step.id)!;
   return steps;
+}
+
+/**
+ * A slug for each name: lowercased, every run of characters that is not a letter, mark, digit or
+ * underscore turned into one hyphen. Two names with one slug get `-2`, `-3`; `onClash` hears of
+ * each. Used for flow pages, because Starlight slugifies file names itself and a name holding a
+ * space or a quote would give a page whose slug differs from the one the sidebar links to, and for
+ * image files, because `#`, `?` and `%` in an import path are read as URL syntax.
+ */
+export function uniqueSlugs(
+  names: string[],
+  onClash: (name: string, base: string, slug: string) => void = () => {},
+): Map<string, string> {
+  const slugs = new Map<string, string>();
+  const taken = new Set<string>();
+  for (const name of names) {
+    const base =
+      name
+        .toLowerCase()
+        .replace(/[^\p{L}\p{M}\p{N}_]+/gu, "-")
+        .replace(/^-+|-+$/g, "") || "x";
+    let slug = base;
+    for (let n = 2; taken.has(slug); n++) slug = `${base}-${String(n)}`;
+    if (slug !== base) onClash(name, base, slug);
+    taken.add(slug);
+    slugs.set(name, slug);
+  }
+  return slugs;
+}
+
+/** The page slug of each flow; two flows with one slug are told apart and the later one warned about. */
+export function flowSlugs(flows: string[], warnings: string[]): Map<string, string> {
+  return uniqueSlugs(flows, (flow, base, slug) =>
+    warnings.push(
+      `flow ${showName(flow)} shares the page name "${base}", so its page is "${slug}"`,
+    ),
+  );
 }
