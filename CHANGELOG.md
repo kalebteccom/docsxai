@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **Accent contrast warning for the Starlight site.** `docsxai-viewer site` checks the accent against Starlight's light (`#ffffff`) and dark (`#17181c`) backgrounds and prints a `site: warning:` line with the ratio when link text is under 4.5:1 or the focus ring and buttons are under 3:1. It never fails the command and the emitted colours stay as configured.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
