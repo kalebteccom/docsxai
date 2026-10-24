@@ -10,10 +10,14 @@ import {
   findingsFor,
   formatTable,
   horizontalSpill,
+  isStep,
   pageOverflows,
   readConfig,
+  stateFindingsFor,
+  stateShifts,
   viewportsFor,
 } from "./layout-audit.mjs";
+import { readFileSync } from "node:fs";
 
 test("eight widths, each portrait and landscape at the same width", () => {
   assert.deepEqual(WIDTHS, [320, 360, 390, 430, 768, 1024, 1280, 1920]);
@@ -105,13 +109,127 @@ test("the table pads every column to its widest cell", () => {
 });
 
 test("the config keeps well-formed entries only", () => {
-  assert.deepEqual(readConfig(undefined), { paths: [], center: [], ignore: [] });
+  assert.deepEqual(readConfig(undefined), { paths: [], center: [], ignore: [], states: [] });
   assert.deepEqual(
     readConfig({
       paths: ["/", 3],
       center: [{ parent: ".a", child: ".b" }, { parent: ".a" }],
       ignore: [".skip"],
     }),
-    { paths: ["/"], center: [{ parent: ".a", child: ".b" }], ignore: [".skip"] },
+    { paths: ["/"], center: [{ parent: ".a", child: ".b" }], ignore: [".skip"], states: [] },
   );
+});
+
+const box = (y, height) => ({ x: 0, y, width: 100, height });
+
+test("state shifts compare top and height with the first state, 1 px slack", () => {
+  const rows = stateShifts([
+    { state: "idle", box: box(100, 44) },
+    { state: "pending", box: box(100.6, 44.9) },
+    { state: "failed", box: box(100, 66) },
+    { state: "done", box: box(98.5, 44) },
+  ]);
+  assert.deepEqual(rows, [
+    { state: "pending", against: "idle", dTop: 0.6, dHeight: 0.9, ok: true },
+    { state: "failed", against: "idle", dTop: 0, dHeight: 22, ok: false },
+    { state: "done", against: "idle", dTop: -1.5, dHeight: 0, ok: false },
+  ]);
+  assert.equal(stateShifts([{ state: "idle", box: box(0, 1) }]).length, 0, "one state: nothing");
+  assert.equal(stateShifts([])[0], undefined);
+});
+
+test("exactly 1 px is within tolerance, anything past it is not", () => {
+  const [at] = stateShifts([
+    { state: "idle", box: box(10, 20) },
+    { state: "slow", box: box(11, 21) },
+  ]);
+  assert.equal(at.ok, true);
+  const [past] = stateShifts([
+    { state: "idle", box: box(10, 20) },
+    { state: "slow", box: box(10, 21.2) },
+  ]);
+  assert.equal(past.ok, false);
+});
+
+test("width changes alone are not a state shift", () => {
+  const [row] = stateShifts([
+    { state: "idle", box: { x: 0, y: 0, width: 60, height: 44 } },
+    { state: "done", box: { x: 0, y: 0, width: 80, height: 44 } },
+  ]);
+  assert.equal(row.ok, true);
+});
+
+test("state findings name the states and flag an element that vanished", () => {
+  const vp = { width: 390, height: 693, orientation: "portrait" };
+  const rows = stateFindingsFor(
+    "/",
+    vp,
+    [
+      {
+        name: ".shot-figure[0]",
+        boxes: [
+          { state: "idle", box: box(200, 300) },
+          { state: "failed", box: box(200, 340) },
+        ],
+      },
+      {
+        name: ".docsx-copy[0]",
+        boxes: [
+          { state: "idle", box: box(80, 44) },
+          { state: "failed", box: box(80, 44) },
+        ],
+      },
+      { name: ".shot-error[0]", boxes: [{ state: "failed", box: box(210, 40) }] },
+    ],
+    2,
+  );
+  assert.deepEqual(
+    rows.map((r) => [r.kind, r.element, r.detail]),
+    [
+      ["state-shift", ".shot-figure[0]", "failed vs idle: top 0 height 40"],
+      ["state-missing", ".shot-error[0]", "not found in 1 state(s)"],
+    ],
+  );
+  assert.equal(rows[0].viewport, "390x693 portrait");
+});
+
+test("state steps and entries are validated", () => {
+  assert.equal(isStep({ set: ".a", attr: "data-state", value: "done" }), true);
+  assert.equal(isStep({ set: ".a", attr: "data-state" }), false);
+  assert.equal(isStep({ remove: ".a", attr: "hidden" }), true);
+  assert.equal(isStep({ eval: "1" }), true);
+  assert.equal(isStep({ click: "button" }), true);
+  assert.equal(isStep({ wait: 100 }), true);
+  assert.equal(isStep({ wait: -1 }), false);
+  assert.equal(isStep(null), false);
+  const cfg = readConfig({
+    states: [
+      {
+        element: ".a",
+        states: [{ name: "idle" }, { name: "done", steps: [{ wait: 1 }, { x: 1 }] }],
+      },
+      { element: ".b", states: [{ name: "idle" }] },
+      { states: [{ name: "idle" }, { name: "done" }] },
+    ],
+  });
+  assert.deepEqual(cfg.states, [
+    {
+      element: ".a",
+      states: [
+        { name: "idle", steps: [] },
+        { name: "done", steps: [{ wait: 1 }] },
+      ],
+    },
+  ]);
+});
+
+test("the shipped states config covers idle, pending, slow, failed and done", () => {
+  const raw = JSON.parse(
+    readFileSync(new URL("./layout-audit.states.json", import.meta.url), "utf8"),
+  );
+  const cfg = readConfig(raw);
+  assert.equal(cfg.states.length, raw.states.length, "every entry is well formed");
+  const names = new Set(cfg.states.flatMap((e) => e.states.map((s) => s.name)));
+  for (const n of ["idle", "pending", "slow", "failed", "done"]) assert.ok(names.has(n), n);
+  for (const e of cfg.states) assert.equal(e.states[0].name, "idle", "idle is the reference");
 });
