@@ -416,9 +416,9 @@ describe("emitStarlightSite micro-states", () => {
     expect(copy).toContain('btn.setAttribute("aria-busy", "true");');
     expect(copy.match(/btn\.removeAttribute\("aria-busy"\)/g)).toHaveLength(2);
     const shot = await read(out, "src/components/AnnotatedShot.astro");
-    // the error line is an overlay inside the image frame, not a line inserted below it
+    // the error line is an overlay inside the image frame, after the zoom link around the image
     expect(shot).toMatch(
-      /<div class="annotated-shot-frame">\s*<img[^>]*\/>\s*<p class="annotated-shot-error"[^]*?<\/p>\s*<\/div>/,
+      /<div class="annotated-shot-frame">\s*<a\s[^>]*data-docsx-zoom[^>]*>\s*<img[^>]*\/>[^]*?<\/a>\s*<p class="annotated-shot-error"[^]*?<\/p>\s*<\/div>/,
     );
     expect(shot).toMatch(/\.annotated-shot-frame \{\s*position: relative;/);
     expect(shot).toMatch(/\.annotated-shot-error \{\s*position: absolute;\s*inset: 1px;/);
