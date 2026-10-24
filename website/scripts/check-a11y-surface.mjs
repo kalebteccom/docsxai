@@ -6,7 +6,7 @@
 // viewer pages. Node strips the types when it imports the .ts file.
 // On top of those rules, `surfaceChecks` reads the built HTML for the onboarding path: a zoomable
 // viewport, copy buttons that name themselves, announce their result and copy no prompt, tables
-// inside a scroll wrapper, numbered quickstart steps, four first-run steps on the landing page, a
+// inside a scroll wrapper, numbered quickstart steps, five first-run steps on the landing page, a
 // "next" link on each onboarding page, a 404 that links to the quickstart and the installation
 // page, and a search with a no-results message.
 // Runs after `astro build`, against dist/. Extra pages (paths relative to dist/) can be passed as
@@ -39,9 +39,9 @@ const NEXT_LINK = {
   "getting-started/quickstart/index.html": "/reference/flow-file/",
 };
 // Pages that must hold copy buttons on their own install commands: the hero one-liner, two install
-// cards and the four first-run steps.
-const LANDING_COPY_BUTTONS = 7;
-const LANDING_FIRST_RUN_STEPS = 4;
+// cards and the five first-run steps.
+const LANDING_COPY_BUTTONS = 8;
+const LANDING_FIRST_RUN_STEPS = 5;
 // Starlight's component CSS sits in `@layer starlight.*`, which any unlayered site rule overrides
 // (brand.css sets the thin scrollbars that way), so its own `scrollbar-width: none` is not judged.
 const FRAMEWORK_LAYERS = ["starlight"];
