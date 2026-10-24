@@ -215,7 +215,8 @@ ${PACK_SYNOPSIS}
                 a matrix variant flow (<flow>/<locale>.<scheme>.<viewport>) uses its own locale
 
   burn — bake annotations into the PNGs (for surfaces that can't run the viewer)
-    <workspace>  a docsxai workspace (reads <workspace>/docs)
+    <workspace>  a docsxai workspace (reads <workspace>/docs; the burn.theme block of
+                 <workspace>/.docsxai.json sets the look, see docs/burn-theming.md)
     --flow       restrict to these flows (default: all flows with annotations.json); a flow that ran a
                  matrix also selects its <flow>/<variant> outputs
     --out        output root (default: docs/<flow>/burned/<step>.png)
@@ -224,8 +225,9 @@ ${PACK_SYNOPSIS}
                  either way
     --max-overlap  share of its own area a callout may cover before the report flags it
                  unplaceable (default ${DEFAULT_UNPLACEABLE_RATIO})
-    --no-connector-outline  keep every arrow and stem plain ink; by default one over a dark
-                 part of the screenshot gets a white outline
+    --no-connector-outline  skip reading the screenshot's pixels: an arrow or stem stays plain ink
+                 (by default one over a dark part gets a white outline), a themed line keeps the
+                 callout's outline colour, and no text is estimated from the pixels
 
   site — emit a production Astro Starlight docs site (burned images preferred)
     <workspace>  a docsxai workspace (reads <workspace>/docs + <workspace>/flows)

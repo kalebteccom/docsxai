@@ -164,8 +164,10 @@ Notes:
     <ws>/docs/<flow>/annotations.json and writes docs/<flow>/burned/<step>.png (or <out>/<flow>/<step>.png
     with --out). --flow limits it to named flows (repeatable); the default is every flow with annotations.
     --report <file> writes a JSON placement report (callout and badge boxes, overlaps, callouts flagged
-    unplaceable), resolved under the workspace when relative. --no-connector-outline keeps every arrow and
-    stem plain ink; by default one over a dark part of the screenshot gets a white outline.
+    unplaceable), resolved under the workspace when relative. The workspace's burn.theme block (.docsxai.json)
+    sets the look; see docs/burn-theming.md. --no-connector-outline skips reading the screenshot's pixels: an
+    arrow or stem stays plain ink (by default one over a dark part gets a white outline), a themed line keeps
+    the callout's outline colour, and no text is estimated from the pixels.
   • pack builds the screenshot pack a docs site or README ships: it burns each step's annotations into its
     clean screenshot, optimises the PNG losslessly with the external \`oxipng\` binary (on PATH, or
     $DOCSX_OXIPNG_BIN; \`brew install oxipng\`; --no-optimise skips it), names it
