@@ -4,7 +4,7 @@ docsxai **publisher plugin** for Guru. Registers `guru:push`, which takes the en
 
 The engine emits projections only and performs no wiki egress. This plugin is the Guru egress path. Its manifest declares exactly one capability, `egress:api.getguru.com`, which the workspace's `plugin_capabilities` has to opt into. All HTTP uses the built-in `fetch`.
 
-> **Repo-only.** `@docsxai/plugin-guru` is not published to npm (`private: true`). A new publishable package needs an npm trusted-publisher binding first, and that is not set up. Build it from a checkout (`pnpm -r build`) and wire it by path: `{ "path": "<checkout>/packages/plugin-guru" }` (relative paths resolve from the workspace directory).
+> **Repo-only.** `@docsxai/plugin-guru` is not published to npm (`private: true`). Build it from a checkout (`pnpm -r build`) and wire it by path: `{ "path": "<checkout>/packages/plugin-guru" }` (relative paths resolve from the workspace directory).
 
 ## Wiring
 
