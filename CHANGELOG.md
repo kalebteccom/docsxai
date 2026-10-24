@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Fixed
+
+- **Landing page and burn theming guide no longer name `0.3.0-rc.4` as the installable prerelease.** The install note and the CLI card said `docsxai@next` is `0.3.0-rc.4`, and the availability note on the burn theming guide said `burn.theme` is available from it through `docsxai@next`; `next` is `0.3.0-rc.3`, as the README and Installation page say. They now name `0.3.0-rc.3` for `next` and say `burn.theme` is new in `0.3.0-rc.4`. New tests load every `burn` block in `docs/burn-theming.md` and the burn-theme example through the real theme loader, validate the manifest in `docs/pack-manifest.md`, parse the flow files in the README, quickstart and flow-file reference, and check the `docsxai` commands and flags of the guides and example READMEs against `docsxai --help`.
+
 ### Changed
 
 - **Landing page first-run section.** docsxai.dev gains a "First run" section after Install: `init --app-url`, `doctor`, calibrate through the Claude Code plugin with an example request, `run`, and `render` to open the viewer, each with a copy button and one line of expected output, then a link to the quickstart. The page now names `0.3.0-rc.4`, the `readable` preset, the second `display_width` for narrow captures, `--lang` and `pnpm setup` for a pnpm global install.
