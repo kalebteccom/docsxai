@@ -97,7 +97,16 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
       res.setHeader("Warning", `199 - "client API version ${reqVersion} != server ${API_VERSION}"`);
     }
 
-    const matched = matchRoute(method, url.pathname);
+    let matched: ReturnType<typeof matchRoute>;
+    try {
+      matched = matchRoute(method, url.pathname);
+    } catch (e) {
+      if (!(e instanceof URIError)) throw e;
+      return sendJson(res, 400, {
+        error: "bad_request",
+        message: "malformed percent-encoding in the request path",
+      });
+    }
     if (matched === null)
       return sendJson(res, 404, {
         error: "not_found",
