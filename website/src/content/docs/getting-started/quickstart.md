@@ -1,16 +1,14 @@
 ---
 title: Quickstart
-description: Scaffold a workspace, capture an authed session if your app needs login, author a first flow-file, run it deterministically, and open the rendered viewer.
+description: Install docsxai, scaffold a workspace, capture an authed session if your app needs login, author a first flow-file, run it deterministically, and open the rendered viewer.
 next:
   link: /reference/flow-file/
   label: Flow-file format
 ---
 
-This page takes you from nothing to a rendered doc pack against your own app.
-It assumes `docsxai` and Chromium are installed ([Installation](/getting-started/installation/);
-`docsxai doctor` checks both) and your app is running somewhere reachable, say
-`http://localhost:3000`. To try it first without an app, three commands document
-`example.com`:
+This page takes you from nothing to a rendered doc pack against your own app,
+running somewhere reachable, say `http://localhost:3000`. To try it first
+without an app, finish step 1, then three commands document `example.com`:
 
 ```sh
 docsxai init ~/docsxai/hello --example
@@ -23,7 +21,19 @@ To **calibrate** is to write that flow the first time, by hand or with an AI
 agent. The **doc pack** is what a run writes into your workspace: annotations
 and screenshots per flow.
 
-## 1. Scaffold a workspace
+## 1. Install
+
+```sh
+npm install -g docsxai@next
+npx playwright-core install chromium
+docsxai doctor
+```
+
+`@next` is the current prerelease. It needs Node 26 or newer. Chromium is a
+separate download, and `doctor` checks both. For pnpm or a source checkout, see
+[Installation](/getting-started/installation/).
+
+## 2. Scaffold a workspace
 
 A workspace holds everything docsxai produces. Put it **outside** the app's
 source repo - docsxai documents a running app from the outside and never
@@ -33,9 +43,9 @@ writes into the app's checkout:
 docsxai init ~/docsxai/my-app --app-url http://localhost:3000 --auth manual-capture --ttl 1h
 ```
 
-`--auth manual-capture` means you log in by hand once in step 2. `--ttl 1h` is
+`--auth manual-capture` means you log in by hand once in step 3. `--ttl 1h` is
 the fallback expiry of that cached session. If the app has no login, use
-`--auth none` instead and skip step 2.
+`--auth none` instead and skip step 3.
 
 The command prints `init: workspace at <dir>`, the list of what it created, and
 a `next:` line with the follow-up commands. It creates `flows/`, `docs/`,
@@ -43,7 +53,7 @@ a `next:` line with the follow-up commands. It creates `flows/`, `docs/`,
 holding `app_url`, so later commands need no flags. Add `--ignore-https-errors`
 if the app runs on a self-signed dev cert.
 
-## 2. Capture an authed session (skip if the app has no login)
+## 3. Capture an authed session (skip if the app has no login)
 
 ```sh
 docsxai capture-auth ~/docsxai/my-app
@@ -57,7 +67,7 @@ true expiry: `docsxai capture-auth ~/docsxai/my-app --auth-cookie session`.
 The full auth story, including ten scripted strategies for unattended CI
 re-auth, is in [Auth strategies](/reference/auth-strategies/).
 
-## 3. Author a first flow
+## 4. Author a first flow
 
 A flow-file is YAML: named locators, ordered steps, optional waits and
 success checks. `init` left a commented example in
@@ -97,7 +107,7 @@ running, catch authoring mistakes statically:
 docsxai lint ~/docsxai/my-app
 ```
 
-## 4. Run it
+## 5. Run it
 
 ```sh
 docsxai run ~/docsxai/my-app --flow open-reports
@@ -121,7 +131,7 @@ the cause in square brackets and prints a `next:` line naming the command to run
 `run --flow open-reports --stop-after open-app --pause` keeps the headed
 browser open mid-flow.
 
-## 5. Render and open the viewer
+## 6. Render and open the viewer
 
 ```sh
 docsxai render ~/docsxai/my-app
