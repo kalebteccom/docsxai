@@ -11,7 +11,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
-    "test": "node --test scripts/check-scrollbars.test.mjs scripts/transcripts.test.mjs scripts/check-netlify-headers.test.mjs ../scripts/landing-showcase-plan.test.mjs",
+    "test": "node --test scripts/check-scrollbars.test.mjs scripts/transcripts.test.mjs scripts/check-flow-contrast.test.mjs scripts/check-netlify-headers.test.mjs ../scripts/landing-showcase-plan.test.mjs",
     "og": "node scripts/gen-og.mjs"
   },
   "devDependencies": {
