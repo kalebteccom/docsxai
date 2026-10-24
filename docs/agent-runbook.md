@@ -57,7 +57,7 @@ docsxai init "$WORKSPACE" --app-url "$APP_URL_PLACEHOLDER" --ignore-https-errors
 
 (If you don't know `$APP_URL` yet, run `docsxai init "$WORKSPACE" --auth manual-capture --ttl 1h` now and add `app_url` to `$WORKSPACE/.docsxai.json` after step 2 — or just pass `--base-url` on later commands.)
 
-This creates `$WORKSPACE/{flows,docs,auth,.auth,.viewer}`, a `.gitignore` (`.auth/`, `.viewer/`), `auth/strategy.yaml` (`manual-capture`, `store: local`, `ttl: 1h`), a sample flow-file (`flows/example.flow.yaml.sample`, ignored until calibrated), a `README.md` (with an optional `burn.theme` section), and `.docsxai.json` (holds `app_url` + `ignore_https_errors`, so subsequent `run`/`capture-auth` need no flags). For a fully ephemeral workspace instead: `docsxai init --persist tmp …` (it prints the temp dir; `rm -rf` it when done).
+This creates `$WORKSPACE/{flows,docs,auth,.auth,.viewer}`, a `.gitignore` (`.auth/`, `.viewer/`), `auth/strategy.yaml` (`manual-capture`, `store: local`, `ttl: 1h`), a sample flow-file (`flows/example.flow.yaml.sample`, ignored until you add it with `add-flow`), a `README.md` (with an optional `burn.theme` section), and `.docsxai.json` (holds `app_url` + `ignore_https_errors`, so subsequent `run`/`capture-auth` need no flags). For a fully ephemeral workspace instead: `docsxai init --persist tmp …` (it prints the temp dir; `rm -rf` it when done).
 
 ## Step 2 — run the app from a disposable worktree
 
@@ -127,17 +127,17 @@ docsxai capture-auth "$WORKSPACE" --auth-cookie "<the-cookie-you-identified>"   
 
 Every strategy reports `expiresAt` when it is derivable (the named / lone real-expiry cookie via the jar, the JWT `exp` claim, the token endpoint's `expires_in`); otherwise the cache's `auth_cookie` / `ttl` rules above take over. Plugins can add schemes or replace a built-in via `registerAuthStrategy(name, impl)` (consulted before the built-ins); `email-otp` inboxes beyond the Mailpit-style `http-json` poller register via `registerInboxProvider(name, factory)`.
 
-## Step 4 — get the flow-files (calibrate)
+## Step 4 — get the flow-files (add-flow)
 
 - **If the human has a structured flow-guide** (a `.flow.yaml`, or a `.md` with a ```yaml fenced block: prerequisites + locators + per-step actions + success criteria):
 
   ```bash
-  docsxai calibrate "$WORKSPACE" --from path/to/flow-guide.md     # writes $WORKSPACE/flows/<name>.flow.yaml + a default docs/style.yaml
+  docsxai add-flow "$WORKSPACE" --from path/to/flow-guide.md     # writes $WORKSPACE/flows/<name>.flow.yaml + a default docs/style.yaml
   ```
 
-- **If the description is loose prose, or a manual-testing-guide** (whose fenced blocks are numbered prose pseudo-steps — `1. SETUP …`, `VERIFY …` — not flow-file YAML, so `--from` _won't_ take them), or you need to pin elements against the live page: author the flow-file yourself. Walk each step on the live app, pick **one canonical locator per step** (prefer role/text/`data-testid`), add `wait_for`/`success`, and write `$WORKSPACE/flows/<flow>.flow.yaml` by hand. To inspect the _authed_ live page for locators — note you **can't** load the captured session into a browser your MCP/automation controls (the app's auth cookie is usually `httpOnly`, so not settable via `document.cookie`) — use **`docsxai inspect "$WORKSPACE"`**: it opens the app headless with `.auth/<role>.json` loaded and prints the page's `[data-testid]` elements (✓ = visible); `--selector '<css>'` dumps matching elements' HTML; `--headed` watches; `--url <url>` for a sub-page. Iterate: `inspect` → write a step → `docsxai run` → repeat. The full playbook is `$TOOL_REPO/packages/plugin/skills/calibrate/SKILL.md`. (There is no one-command calibration: `/docsxai:calibrate` is the plugin skill that drives this playbook, and `@docsxai/mcp` exposes the engine operations as MCP tools.)
+- **If the description is loose prose, or a manual-testing-guide** (whose fenced blocks are numbered prose pseudo-steps — `1. SETUP …`, `VERIFY …` — not flow-file YAML, so `--from` _won't_ take them), or you need to pin elements against the live page: author the flow-file yourself. Walk each step on the live app, pick **one canonical locator per step** (prefer role/text/`data-testid`), add `wait_for`/`success`, and write `$WORKSPACE/flows/<flow>.flow.yaml` by hand. To inspect the _authed_ live page for locators — note you **can't** load the captured session into a browser your MCP/automation controls (the app's auth cookie is usually `httpOnly`, so not settable via `document.cookie`) — use **`docsxai inspect "$WORKSPACE"`**: it opens the app headless with `.auth/<role>.json` loaded and prints the page's `[data-testid]` elements (✓ = visible); `--selector '<css>'` dumps matching elements' HTML; `--headed` watches; `--url <url>` for a sub-page. Iterate: `inspect` → write a step → `docsxai run` → repeat. The full playbook is `$TOOL_REPO/packages/plugin/skills/add-flow/SKILL.md`. (There is no one-command calibration: `/docsxai:add-flow` (formerly `/docsxai:calibrate`) is the plugin skill that drives this playbook, and `@docsxai/mcp` exposes the engine operations as MCP tools.)
 
-The flow-file format (validate by running `calibrate` or `run`):
+The flow-file format (validate by running `add-flow` or `run`):
 
 ```yaml
 name: <flow-name>
@@ -393,7 +393,7 @@ git -C "$APP_REPO" status        # MUST be clean. If not, you broke the no-trace
 
 ## Caveats to surface to the human
 
-- The engine has no discovery → mapping → commit stage functions to call and resume. Calibration is you following the playbook with browxai for live-page discovery, so step 4 for loose prose is a flow-file authoring task. `docsxai calibrate --from` takes structured flow-guides only.
+- The engine has no discovery → mapping → commit stage functions to call and resume. Calibration is you following the playbook with browxai for live-page discovery, so step 4 for loose prose is a flow-file authoring task. `docsxai add-flow --from` takes structured flow-guides only.
 - `claude plugin install` from a monorepo subdir (`$TOOL_REPO/packages/plugin`) isn't validated yet — if it doesn't register, use the CLIs + the playbook files directly.
 - `manual-capture` sessions are short (≈ the app's auth-cookie lifetime). Pin `cache.auth_cookie` (Step 3) so the cache's expiry tracks the real cookie rather than the `ttl` guess. A callable login / test-only login endpoint on the app would make `run` unattended; absent that, expect to re-`capture-auth` (re-login) periodically.
 - HTTPS dev certs: `--ignore-https-errors` (already baked into `.docsxai.json` if you passed it to `init`) accepts them. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot (Step 2).

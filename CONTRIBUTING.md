@@ -116,7 +116,7 @@ What 1.0 gates, as the project docs already state it: the semver guarantee on th
 
 To contribute to the Claude Code plugin (`@docsxai/plugin`):
 
-1. Confirm the contribution is plugin-shaped, not engine-shaped. New capability lives in the engine; the plugin exposes it. A pure plugin-only change is something like adding a skill, refining the calibrate workflow, or adjusting command UX.
+1. Confirm the contribution is plugin-shaped, not engine-shaped. New capability lives in the engine; the plugin exposes it. A pure plugin-only change is something like adding a skill, refining the add-flow workflow, or adjusting command UX.
 2. Plugin skills live under `packages/plugin/skills/`; plugin commands live under `packages/plugin/commands/`. Follow the existing structure.
 3. Plugin skills emit structured questions through Claude Code's question API and shell out to `docsxai`. They do not embed their own runtime; the engine binary is the single source of behaviour.
 4. Plugin commands are deterministic `docsxai` invocations. They wrap the CLI; they don't reach into the engine's internals.
@@ -131,7 +131,7 @@ The plugin's job is to be the recommended invocation surface — not to add capa
 - Reproducer minimal? Good.
 - For engine issues: mention the engine version (`pnpm -C packages/engine list` or `docsxai --version`), Node version, and platform.
 - For browser-related issues: include the Playwright version and whether you're attached over CDP (`--cdp http://localhost:9222`) or launched fresh.
-- For plugin issues: include the plugin manifest version, the Claude Code version, and the calibrate-skill output that caused the failure.
+- For plugin issues: include the plugin manifest version, the Claude Code version, and the add-flow skill output that caused the failure.
 - For viewer issues: include a screenshot of the rendered viewer, the doc-pack `annotations.json`, and the browser + version you opened it in.
 - For backend issues: include the backend version, the request payload (with secrets redacted), and the response.
 

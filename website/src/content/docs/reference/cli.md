@@ -14,7 +14,7 @@ command is not.
 docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>] [--ttl <dur>]
                                [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
                                [--persist tmp] [--force] [--example]
-docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
+docsxai add-flow <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
 docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
 docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>] [--device-scale-factor <1-4>]
 docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|md|json] [--flow <name>] [--base-url <url>] [--concurrency <N>]
@@ -76,7 +76,7 @@ line; `docsxai --help` lists every flag.
 Running `docsxai` with no argument prints three first steps (`init --example`, `run`,
 `render --open`) and the commands by purpose. `help <command>` and `<command> --help` print
 only that command's usage and one example, and exit 0. A mistyped command exits 2
-and names the closest command when one is within two edits. `run`, `calibrate`, `burn`, `pack`,
+and names the closest command when one is within two edits. `run`, `add-flow`, `burn`, `pack`,
 `zip`, `baseline`, `push`, `pull` and `doctor` end with one line that starts
 with the command name and gives the counts and where the output went. Use
 `--format json` where a command offers it when a script reads the output: the
@@ -95,7 +95,7 @@ include it when you report the bug.
 
 Scaffolds the workspace: `flows/`, `docs/`, `auth/`, `.auth/`, `.viewer/`, a
 `.gitignore`, a `README.md`, `auth/strategy.yaml`, a sample flow-file
-(`flows/example.flow.yaml.sample`, ignored until you calibrate it), and
+(`flows/example.flow.yaml.sample`, ignored until you add it with `add-flow`), and
 `.docsxai.json` (holding `app_url` plus `ignore_https_errors` so later commands
 need no flags). `--auth` must be `manual-capture` (the default) or `none`, which
 writes no `auth/strategy.yaml` and suits an app that needs no login; `--ttl <dur>` sets the
@@ -125,7 +125,7 @@ init: workspace at ~/docsxai/hello
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
 init: workspace at ~/docsxai/my-app
   created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, auth/strategy.yaml, flows/example.flow.yaml.sample, README.md
-  next: docsxai capture-auth ~/docsxai/my-app  →  docsxai calibrate ~/docsxai/my-app --from <flow.yaml>  →  docsxai run ~/docsxai/my-app  →  docsxai render ~/docsxai/my-app
+  next: docsxai capture-auth ~/docsxai/my-app  →  docsxai add-flow ~/docsxai/my-app --from <flow.yaml>  →  docsxai run ~/docsxai/my-app  →  docsxai render ~/docsxai/my-app
 ```
 
 ### `docsxai capture-auth`
@@ -171,19 +171,23 @@ capture-auth: cached editor → ~/docsxai/my-app/.auth/editor.json
 If the expiry line says `(from ttl)` instead, the named cookie was not in the
 jar - pick the app's real session cookie from the printed list and re-run.
 
-### `docsxai calibrate`
+### `docsxai add-flow`
+
+Formerly `calibrate`. The old name is deprecated since 0.3.0 and will be removed
+in 0.5.0. Until then it prints one line on stderr saying so and runs `add-flow`
+with the same arguments.
 
 Takes a _structured flow-guide_ (a flow-file in YAML, or a `.md` with a
 `yaml` fenced block) and writes `flows/<name>.flow.yaml` plus a default
 `docs/style.yaml`. Loose-prose descriptions and live element-picking need the
-host agent - that is the plugin's calibrate skill, which then produces the
+host agent - that is the plugin's add-flow skill (`/docsxai:add-flow`), which then produces the
 flow-file; this CLI command covers only the deterministic structured-input
 case. `--name <flow>` overrides the flow name.
 
 ```text wrap preserveIndent=false hangingIndent=4
-$ docsxai calibrate ~/docsxai/my-app --from ./guides/publish-post.md
-calibrate: wrote ~/docsxai/my-app/flows/publish-post.flow.yaml  (5 steps)
-calibrate: wrote default ~/docsxai/my-app/docs/style.yaml
+$ docsxai add-flow ~/docsxai/my-app --from ./guides/publish-post.md
+add-flow: wrote ~/docsxai/my-app/flows/publish-post.flow.yaml  (5 steps)
+add-flow: wrote default ~/docsxai/my-app/docs/style.yaml
   next: docsxai run ~/docsxai/my-app  (then: docsxai render ~/docsxai/my-app)
 ```
 
@@ -684,7 +688,7 @@ code executed** - where the viewer was found, and environment settings. Exit 1 o
 
 The first line is the docsxai version. When every check passes, the last line names the
 next command for the workspace: `init <workspace-dir> --example` outside a workspace,
-`calibrate` with an empty `flows/`, `run` with flows and nothing captured, and
+`add-flow` with an empty `flows/`, `run` with flows and nothing captured, and
 `render --open` once `docs/` holds annotations. `--format json` prints one document instead
 of the lines: `schema` (`docsxai/doctor@1`), `version`, `ok`, `checks` (each with `name`,
 `ok`, `info`, `detail` and `next`, which is `null` without a follow-up) and `next`. Every

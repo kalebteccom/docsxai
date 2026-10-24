@@ -10,7 +10,7 @@ The flow-file parser + deterministic runtime + the `docsxai` CLI. The biggest pa
 
 ### `packages/engine/src/cli.ts`
 
-The `docsxai` bin. Subcommands: `init`, `capture-auth`, `calibrate`, `inspect`, `run`, `render`, `burn`, `pack` (and `pack --check`), `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `export` (`adf`, `playwright`), `plugins`, `login`, `push`, `pull`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
+The `docsxai` bin. Subcommands: `init`, `capture-auth`, `add-flow` (formerly `calibrate`, a deprecated alias until 0.5.0), `inspect`, `run`, `render`, `burn`, `pack` (and `pack --check`), `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `export` (`adf`, `playwright`), `plugins`, `login`, `push`, `pull`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
 
 ### `packages/engine/src/flow-file.ts`
 
@@ -42,7 +42,7 @@ Auth strategy descriptor (`auth/strategy.yaml`) + the `manual-capture` strategy.
 
 ### `packages/engine/src/calibrate.ts`
 
-The `calibrate` command — extracts a flow-file from a structured guide. Calibration-time helper; deterministic given the same guide. The host agent supplies inference _before_ this stage by writing the guide; the engine never calls a model API.
+The `add-flow` command (formerly `calibrate`) — extracts a flow-file from a structured guide. Calibration-time helper; deterministic given the same guide. The host agent supplies inference _before_ this stage by writing the guide; the engine never calls a model API.
 
 ### `packages/engine/src/flow-lint.ts`
 

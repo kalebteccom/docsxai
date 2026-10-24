@@ -23,7 +23,7 @@ The engine **never** calls a model API. Calibration-time inference is supplied b
 ```
 init           scaffold a workspace
 capture-auth   cache an authed session
-calibrate      extract a flow-file from a structured guide
+add-flow       extract a flow-file from a structured guide (formerly calibrate, removed in 0.5.0)
 inspect        discover [data-testid] locators on the live page
 run            execute flows headless; emit annotations + screenshots (`--verify-determinism` byte-compares N isolated runs)
 render         build the static viewer (spawns the @docsxai/viewer bin; `--lang es` for Spanish page text)

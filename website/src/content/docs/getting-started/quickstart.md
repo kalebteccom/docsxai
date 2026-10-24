@@ -17,8 +17,8 @@ docsxai render ~/docsxai/hello --open
 ```
 
 Three terms. A **flow** is a YAML file listing the steps of one user journey.
-To **calibrate** is to write that flow the first time, by hand or with an AI
-agent. The **doc pack** is what a run writes into your workspace: annotations
+To **add a flow** is to write it the first time, by hand or with an AI
+agent, and put it in the workspace with `docsxai add-flow` (formerly `calibrate`). The **doc pack** is what a run writes into your workspace: annotations
 and screenshots per flow.
 
 ## 1. Install
@@ -72,7 +72,7 @@ re-auth, is in [Auth strategies](/reference/auth-strategies/).
 A flow-file is YAML: named locators, ordered steps, optional waits and
 success checks. `init` left a commented example in
 `flows/example.flow.yaml.sample`, which `run` ignores until
-`docsxai calibrate ~/docsxai/my-app --from ~/docsxai/my-app/flows/example.flow.yaml.sample`
+`docsxai add-flow ~/docsxai/my-app --from ~/docsxai/my-app/flows/example.flow.yaml.sample`
 turns it into `flows/example.flow.yaml`. For your own first flow, write
 `~/docsxai/my-app/flows/open-reports.flow.yaml`:
 
