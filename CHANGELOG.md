@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **Annotation placement guide.** `docs/annotation-placement.md`, published as Guides, Placing burned annotations: the annotation record keys, how `arrow_style` and `placement.side` hint a side, `obstacles`, the badge, `scale` and `display_width`, per-image theme overrides through `options.theme`, and a troubleshooting table.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
