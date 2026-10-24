@@ -4,6 +4,14 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **First-run help.** `docsxai` with no argument prints three first steps (`init`, `calibrate`, `run`) and the commands grouped by purpose, each with a one-line description. `docsxai --help` starts with the same block, then prints the full usage text. `docsxai help <command>` and `docsxai <command> --help` print that command's usage and one example. A mistyped command exits 2 with `did you mean \`docsxai run\`?` when a command is within two edits, plus the `docsxai --help` pointer.
+
+### Changed
+
+- **Usage lines wrap under 100 columns.** The `Usage:` block of `docsxai --help` breaks long entries onto indented continuation lines. Commands, flags and their order are unchanged. The `Examples:` block gains one line for each command that had none.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
