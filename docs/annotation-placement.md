@@ -1,0 +1,91 @@
+# Placing burned annotations
+
+`docsxai burn` and `docsxai pack` put each callout next to its target. This page covers the record fields that steer where it lands, and what to do when it lands badly. Colours, fonts and sizes are in [Theming burned captions](burn-theming.md).
+
+## What an annotation record holds
+
+Records live in `annotations.json` (`docsxai/annotations@1`), one per annotated element. The burner reads these keys:
+
+| Key            | What it does                                                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `bounding_box` | The target, in screenshot pixels. Without it the annotation is skipped with a warning.                                             |
+| `copy`         | The callout text. Without it only the halo and badge are drawn.                                                                    |
+| `index`        | 1-based number on the badge. Set only when a screenshot has more than one annotation.                                              |
+| `arrow_style`  | `top`, `bottom`, `left`, `right`, or a corner such as `top-left`. The part before the dash names the preferred side.               |
+| `nudge`        | `{ x, y }` px added to callout and arrow after placement. The halo stays put.                                                      |
+| `obstacles`    | Up to 40 boxes of page content to keep clear, in screenshot pixels.                                                                |
+| `placement`    | `inside`, `side`, `align`, `pin_arrow` and `max_width` (120 to 560 px). `obstacle_radius` and `obstacle_limit` steer capture only. |
+
+With `annotations.obstacles` on in `.docsxai.json`, `docsxai run` records `obstacles` for you. A pipeline that knows the layout can write them by hand. The interactive viewer ignores `obstacles` and `placement`.
+
+## Side hints
+
+The preferred side is `placement.side`, else the side in `arrow_style`, else `top`.
+
+- With no `obstacles` and no `placement` key, the burner puts the callout on the preferred side if it fits inside the image, then tries the others.
+- With `obstacles` or a `placement` key, the burner scores positions on all four sides. Both `arrow_style` and `placement.side` earn a bonus for their side. When that side is clear it wins. A small overlap does not stop it: the bonus outweighs about 2 px of content along the callout's width. A side that covers more than that, or has no room, loses.
+- `placement.side` goes further. The burner tries only that side first, and falls back to the others when nothing fits inside the image.
+
+## Obstacles
+
+List the neighbours of the target: text blocks, logos, icons, other halos. Do not list the target. A box that contains the target cannot be avoided.
+
+The burner moves the callout out along the side, adds a stem back to the arrow, and slides it along the target's edge. It keeps the spot that covers the least. A stem that crosses content costs more than a callout that covers the same area. Other halos, badges and earlier callouts count as obstacles too.
+
+When no spot is clear:
+
+1. It tries narrower callouts, down to 168 px. That applies on a narrow image, where the widest callout (the smaller of 280 px and `max_width_ratio`, 0.62 by default, of the image width) is under 280 px, and whenever `placement.max_width` is set.
+2. It cuts the callout's side padding by up to 6 px, never below 8 px, and keeps that box if it fits clear.
+3. Otherwise it draws the spot with the least overlap, the widest among equals.
+
+`docsxai burn <workspace-dir> --report report.json` lists each callout's `overlap_ratio` and flags `unplaceable` above 0.1. `docsxai-viewer burn` takes `--max-overlap` to move that threshold.
+
+## The badge
+
+A numbered badge sits 8 px up and left of the halo. When the annotation has `obstacles`, the burner also tries the other three corners and offsets of 14, 20 and 26 px, and keeps the one that covers the least content, then the least of the target. With obstacles the badge ends fully inside the image, 2 px from each edge. Without them it is clamped by its 22 px inner circle, so the white border can touch the edge.
+
+## Scale and display_width
+
+A screenshot wider than its column shrinks, and the caption shrinks with it. `scale` multiplies every caption dimension, and `"auto"` uses `max(1, imageWidth / display_width)`, at most 4. On the page a length ends up as:
+
+```text
+on-screen px = fontSize x auto x displayWidth / imageWidth
+```
+
+A 1440 px capture shown at 720 px gets auto 2. With `auto = imageWidth / displayWidth` the text shows at `fontSize`. Set `display_width` to the column width. Screenshots narrower than it keep base size. The `readable` preset turns on `scale: "auto"`.
+
+## Different themes for wide and narrow images
+
+A `.docsxai.json` holds one `burn.theme`. Per-flow themes are not supported. To vary by image, pass `options.theme` per call. It wins over the workspace's block. `burnWithWorkspaceTheme` caches the workspace load, so the base theme is read once.
+
+```ts
+import {
+  burnWithWorkspaceTheme,
+  loadBurnTheme,
+  DEFAULT_BURN_THEME,
+  type BurnTheme,
+} from "@docsxai/viewer";
+
+const base = (await loadBurnTheme(workspace))?.theme ?? DEFAULT_BURN_THEME;
+const theme: BurnTheme = imageWidth < 600 ? { ...base, scale: "auto", displayWidth: 358 } : base;
+const png = await burnWithWorkspaceTheme({
+  workspace,
+  screenshotBuffer,
+  annotations,
+  options: { theme },
+});
+```
+
+`options.theme` takes the resolved `BurnTheme`, so its keys are camelCase (`displayWidth`, `fontSize`).
+
+## Troubleshooting
+
+| Symptom                             | Fix                                                                                |
+| ----------------------------------- | ---------------------------------------------------------------------------------- |
+| Callout covers text                 | Add that text's box to `obstacles`, or shorten `copy`.                             |
+| Arrow or stem crosses content       | Give a side hint: `arrow_style` or `placement.side`, on the side with clear space. |
+| Callout sits on the wrong side      | Set `placement.side` to try only that side first.                                  |
+| Badge covers neighbouring text      | Add those boxes to `obstacles` so the badge can pick another corner.               |
+| Badge touches the image edge        | Add at least one box to `obstacles`. The badge then stays 2 px inside.             |
+| Captions too small on the page      | Set `display_width` to the column width and `scale` to `"auto"`.                   |
+| Callout too wide for a narrow image | Lower `placement.max_width`, or `max_width_ratio` in the theme.                    |

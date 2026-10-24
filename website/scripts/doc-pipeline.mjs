@@ -56,6 +56,13 @@ export const htmlPages = [
     ],
   },
   {
+    src: "docs/annotation-placement.md",
+    out: "guides/annotation-placement.md",
+    title: "Placing burned annotations",
+    description:
+      "Steer where burned callouts land: the annotation record keys, side hints, obstacles, the badge, scale and display_width, and what to do when a callout covers text.",
+  },
+  {
     src: "docs/security-best-practices-for-adopters.md",
     out: "guides/security-best-practices.md",
     title: "Security best practices",

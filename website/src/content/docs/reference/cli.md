@@ -59,7 +59,11 @@ Reports and data go to stdout. Progress lines and warnings go to stderr where
 a command already splits them, and nothing is coloured. A failing command
 prints `<command>: what failed` and, when a command can fix it, a second line
 `  next: <command to run>`. A usage error also prints that command's own usage
-line; `docsxai --help` lists every flag. `run`, `calibrate`, `burn`, `pack`,
+line; `docsxai --help` lists every flag.
+Running `docsxai` with no argument prints three first steps (`init`, `calibrate`,
+`run`) and the commands by purpose. `help <command>` and `<command> --help` print
+only that command's usage and one example, and exit 0. A mistyped command exits 2
+and names the closest command when one is within two edits. `run`, `calibrate`, `burn`, `pack`,
 `zip`, `baseline`, `push`, `pull` and `doctor` end with one line that starts
 with the command name and gives the counts and where the output went. Use
 `--format json` where a command offers it when a script reads the output: the

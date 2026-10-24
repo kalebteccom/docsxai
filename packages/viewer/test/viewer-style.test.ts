@@ -211,6 +211,12 @@ describe("motion", () => {
 });
 
 describe("mobile", () => {
+  it("breaks long ids and code so a 390 px page does not scroll sideways", () => {
+    expect(VIEWER_STYLE).toContain(
+      ".sd-id, .md code, .shot-missing code { overflow-wrap: anywhere; }",
+    );
+  });
+
   it("tightens the page padding and stacks flow cards on narrow screens", () => {
     expect(VIEWER_STYLE).toMatch(
       /@media \(max-width: 600px\) \{\s*body \{ padding: 1rem; \}[^@]*\.flow-grid \{ grid-template-columns: 1fr; \}/,
@@ -246,6 +252,6 @@ describe("print", () => {
 
   it("keeps a figure on one page and a step heading with its figure", () => {
     expect(print).toContain(".shot-figure { break-inside: avoid; }");
-    expect(print).toContain("h2 { break-after: avoid; }");
+    expect(print).toContain("h2, .id-row { break-after: avoid; }");
   });
 });

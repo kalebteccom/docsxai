@@ -39,7 +39,7 @@ describe("docsxai plugins — argument edge", () => {
 
   it("plugins --help exits 0", async () => {
     expect(await main(["plugins", "--help"])).toBe(0);
-    expect(out).toMatch(/plugins sync/);
+    expect(out).toMatch(/docsxai plugins <list\|info\|sync/);
   });
 
   it("unknown subcommand exits 2", async () => {

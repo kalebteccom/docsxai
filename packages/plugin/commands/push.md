@@ -19,3 +19,5 @@ Every failure names the command to run next. The common ones:
 - `no bearer token`, or a 401 or 403: set `DOCSX_TOKEN` or run `docsxai login --backend-url '<url>' --oauth '<workspace-dir>'`.
 - `cannot reach <url>`: check `backend_url` and that the backend is running.
 - A 404 means `backend_workspace_id` or `backend_project_id` drifted. Remove both from `.docsxai.json` and push again to bind a new pair.
+
+Any other failure: run `docsxai doctor '<workspace-dir>'` and follow the `next:` line of each `fail:` line.

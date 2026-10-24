@@ -19,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { expectJsonSnapshot, readSource } from "../../../../scripts/contract-support.js";
 import { main } from "../../src/cli.js";
 import { USAGE } from "../../src/cli-usage.js";
+import { fullHelp, startScreen } from "../../src/cli-help.js";
 import { RETIRED_COMMANDS } from "../../src/cli-retired.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -98,10 +99,11 @@ describe("retired commands", () => {
 describe("CLI exit-code contract", () => {
   it("prints the help and exits 0 with no command or with --help", async () => {
     expect(await main([])).toBe(0);
-    expect(out).toBe(USAGE + "\n");
+    expect(out).toBe(startScreen());
     out = "";
     expect(await main(["--help"])).toBe(0);
-    expect(out).toBe(USAGE + "\n");
+    expect(out).toBe(fullHelp());
+    expect(out).toContain(USAGE.split("\n").slice(1).join("\n").trimEnd());
   });
 
   it("exits 2 on an unknown command and names it on stderr", async () => {
