@@ -17,6 +17,7 @@ import * as path from "node:path";
 import { mixHex } from "./color.js";
 import { annotatedShotAstro, copyIdAstro } from "./starlight-components.js";
 import { accentContrastWarnings } from "./starlight-contrast.js";
+import { pruneStale } from "./starlight-prune.js";
 import { SCROLLBARS_CSS, SCROLLBARS_CSS_PATH } from "./starlight-scrollbars.js";
 import {
   flowSlugs,
@@ -454,6 +455,7 @@ export async function emitStarlightSite(
   }
 
   const files = [...textFiles.keys(), ...copies.keys()].sort();
+  await pruneStale(opts.outDir, new Set(files));
   for (const rel of files) {
     const dest = path.join(opts.outDir, rel);
     await fs.mkdir(path.dirname(dest), { recursive: true });
