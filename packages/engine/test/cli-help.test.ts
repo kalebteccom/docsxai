@@ -26,14 +26,15 @@ afterEach(() => {
 });
 
 describe("no-argument screen", () => {
-  it("leads with init, calibrate and run, then groups the commands", async () => {
+  it("leads with init --example, run and render --open, then groups the commands", async () => {
     expect(await main([])).toBe(0);
     const lines = out.split("\n");
-    expect(lines.slice(2, 6)).toEqual([
-      "Start here:",
-      "  1. docsxai init <workspace-dir> --app-url <url>",
-      "  2. docsxai calibrate <workspace-dir> --from <flow.yaml>",
-      "  3. docsxai run <workspace-dir>",
+    expect(lines.slice(2, 7)).toEqual([
+      "Start here (an example flow on example.com):",
+      "  1. docsxai init <workspace-dir> --example",
+      "  2. docsxai run <workspace-dir>",
+      "  3. docsxai render <workspace-dir> --open",
+      "Your own app: docsxai init <workspace-dir> --app-url <url>, then calibrate a flow.",
     ]);
     const titles = ["Getting started", "Run and verify", "Publish", "Packs", "Auth", "Plugins"];
     for (const title of [...titles, "Diagnostics"]) expect(out).toContain(`\n${title}:\n`);

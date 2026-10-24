@@ -1,7 +1,7 @@
 // Doc-pack ops — the commands that package, render, snapshot, and compare the produced doc pack.
 // They read the rendered artifacts (flows/docs/screenshots) and emit something derived; none of
 // them drive a live browser:
-//   render    — build the static viewer by spawning the docsxai-viewer bin
+//   render    — build the static viewer by spawning the docsxai-viewer bin (--open shows it)
 //   burn      — bake the annotations into PNG copies by spawning the same bin
 //   zip       — deterministic single-archive hand-off bundle
 //   export    — project the doc pack to ADF (Confluence) or self-contained Playwright specs
@@ -22,6 +22,7 @@ import { projectDocPackToAdf, type AdfExportMode } from "./export/adf.js";
 import { exportWorkspaceFlowsAsPlaywrightTests } from "./export/playwright-test.js";
 import { writeFileAtomic } from "./atomic-write.js";
 import { runViewerBin } from "./viewer-bin.js";
+import { openInBrowser } from "./open-in-browser.js";
 import { ZipError, zipDocPack } from "./zip.js";
 import { resolveWorkspacePath } from "./workspace.js";
 import { bareValueFlagExit, flagMissingValue, workspaceDirProblem } from "./cli-shared.js";
@@ -31,7 +32,7 @@ import { describeFsError, shellQuote, usageError, withNext } from "./cli-message
 export async function cmdRender(args: string[]): Promise<number> {
   const parsed = parseCommandFlags("render", args);
   if (typeof parsed === "number") return parsed;
-  const { positionals } = parsed;
+  const { positionals, flags } = parsed;
   const projectDir = positionals[0];
   if (!projectDir) return usageError("render", "missing <workspace-dir>");
   const docsDir = resolveWorkspacePath(projectDir, "docs");
@@ -49,12 +50,16 @@ export async function cmdRender(args: string[]): Promise<number> {
     process.stderr.write(`render: ${note}\n`);
   }
   const code = await runViewerBin("render", ["build", docsDir, outDir]);
-  if (code === 0) {
-    process.stdout.write(
-      `render: open ${path.join(outDir, "index.html")}  (the index links the flows; each flow page shows the screenshots, hover a pulsing halo to read its callout)\n`,
-    );
+  if (code !== 0) return code;
+  const index = path.join(outDir, "index.html");
+  process.stdout.write(
+    `render: open ${index}  (the index links the flows; each flow page shows the screenshots, hover a pulsing halo to read its callout)\n`,
+  );
+  if (flags.get("open") === true) {
+    if (await openInBrowser(index)) process.stdout.write("render: opened it in your browser\n");
+    else process.stderr.write(`render: couldn't open a browser here, open ${index} yourself\n`);
   }
-  return code;
+  return 0;
 }
 
 /** A flow name as `burn` passes it on: no separators, and no leading dot, so it can't name a parent or hidden path. */

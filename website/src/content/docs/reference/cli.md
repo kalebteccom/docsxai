@@ -13,7 +13,7 @@ command is not.
 ```text wrap preserveIndent=false hangingIndent=4
 docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>] [--ttl <dur>]
                                [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
-                               [--persist tmp] [--force]
+                               [--persist tmp] [--force] [--example]
 docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
 docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
 docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>] [--device-scale-factor <1-4>]
@@ -32,7 +32,7 @@ docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|js
 docsxai login --backend-url <url> [--oauth <workspace-dir>]
 docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 docsxai pull <workspace-dir> [--rev <id>]
-docsxai render <workspace-dir>
+docsxai render <workspace-dir> [--open]
 docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline] [--strict-glyphs]
 docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
 docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
@@ -72,8 +72,8 @@ a command already splits them, and nothing is coloured. A failing command
 prints `<command>: what failed` and, when a command can fix it, a second line
 `  next: <command to run>`. A usage error also prints that command's own usage
 line; `docsxai --help` lists every flag.
-Running `docsxai` with no argument prints three first steps (`init`, `calibrate`,
-`run`) and the commands by purpose. `help <command>` and `<command> --help` print
+Running `docsxai` with no argument prints three first steps (`init --example`, `run`,
+`render --open`) and the commands by purpose. `help <command>` and `<command> --help` print
 only that command's usage and one example, and exit 0. A mistyped command exits 2
 and names the closest command when one is within two edits. `run`, `calibrate`, `burn`, `pack`,
 `zip`, `baseline`, `push`, `pull` and `doctor` end with one line that starts
@@ -106,6 +106,19 @@ a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
 `https://` URL, or `init` exits 2 with its usage line. A path that is a file stops with
 `<path> is a file, not a directory`, and a `mkdir` the filesystem refuses points
 `chmod` at the existing parent directory.
+
+`--example` makes a workspace for `https://example.com` with no login and writes
+`flows/hello.flow.yaml` (one step: open the home page, point at its heading) plus
+`docs/style.yaml`, so `run` and `render --open` are all that's left. It can't be
+combined with `--app-url`, `--auth`, `--role`, `--ttl`, `--capture-trigger` or
+`--auth-cookie` (exit 2).
+
+```text wrap preserveIndent=false hangingIndent=4
+$ docsxai init ~/docsxai/hello --example
+init: workspace at ~/docsxai/hello
+  created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, flows/example.flow.yaml.sample, README.md, flows/hello.flow.yaml, docs/style.yaml
+  next: docsxai run ~/docsxai/hello  →  docsxai render ~/docsxai/hello --open
+```
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
@@ -352,8 +365,10 @@ screenshot after the annotated steps, and numbered ids sort by value (`step-2` b
 lists the screenshots without callouts; one that cannot be read (permissions, a
 directory in its place) stops `render` with an error that names the file. A page with a
 missing screenshot offers the command that captures it again; a flow name or step id
-with a space, quote or `$` is single-quoted in it, so it pastes as one word. `render`
-takes no flags; `docsxai-viewer build --flow <name>` also renders the variant folders of
+with a space, quote or `$` is single-quoted in it, so it pastes as one word. `--open`
+opens `.viewer/index.html` in the default browser after a good build (`open` on macOS,
+`xdg-open` on Linux, Explorer on Windows); where none can be opened, such as a server
+with no display, it prints the path and still exits 0. `docsxai-viewer build --flow <name>` also renders the variant folders of
 a matrix flow, and `docsxai-viewer build --lang fr` warns that only `en` and `es` have
 text tables and writes English.
 
@@ -361,6 +376,9 @@ text tables and writes English.
 $ docsxai render ~/docsxai/my-app
 render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; each flow page
 shows the screenshots, hover a pulsing halo to read its callout)
+$ docsxai render ~/docsxai/my-app --open
+render: open ~/docsxai/my-app/.viewer/index.html  (…)
+render: opened it in your browser
 ```
 
 ### `docsxai burn`

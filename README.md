@@ -70,11 +70,21 @@ Four words you will meet:
 This walkthrough documents `example.com`, so it needs no login and no app of your own.
 
 ```bash
-# 1. Make a workspace. --auth none means no login is needed.
-docsxai init ~/docsxai/hello --app-url https://example.com --auth none
+# 1. Make a workspace with the example flow. No login needed.
+docsxai init ~/docsxai/hello --example
 
-# 2. Write a flow. One step: open the home page and point at its heading.
-cat > hello.flow.yaml <<'YAML'
+# 2. Run it. This launches headless Chromium, so the Chromium download from Install must be done.
+docsxai run ~/docsxai/hello
+
+# 3. Build the viewer and open it in your browser.
+docsxai render ~/docsxai/hello --open
+```
+
+A good run prints `run: 1 of 1 flow ok, outputs in …/docs`. The screenshot and `annotations.json` are in `~/docsxai/hello/docs/hello/`. In the viewer, hover the pulsing halo to read the callout.
+
+The flow `init` wrote is `~/docsxai/hello/flows/hello.flow.yaml`. One step opens the home page and points at its heading:
+
+```yaml
 name: hello
 locators:
   heading: "h1"
@@ -85,22 +95,9 @@ steps:
     wait_for: load
     success: { visible: $heading }
     annotation: { copy: "This is the page title", target: $heading, arrow: bottom }
-YAML
-
-# 3. Add it to the workspace. This checks the file and writes flows/hello.flow.yaml.
-docsxai calibrate ~/docsxai/hello --from hello.flow.yaml
-
-# 4. Run it. This launches headless Chromium, so the Chromium download from Install must be done.
-docsxai run ~/docsxai/hello
-
-# 5. Build the viewer and open it (macOS: open, Linux: xdg-open, Windows: start).
-docsxai render ~/docsxai/hello
-open ~/docsxai/hello/.viewer/index.html
 ```
 
-A good run prints `run: 1 of 1 flow ok, outputs in …/docs`. The screenshot and `annotations.json` are in `~/docsxai/hello/docs/hello/`. In the viewer, hover the pulsing halo to read the callout.
-
-To document your own app, change step 1 and add a login capture:
+To document your own app, make the workspace with your app's URL and add a login capture:
 
 ```bash
 # Add --ignore-https-errors if the app runs on a self-signed dev certificate.

@@ -34,7 +34,7 @@ const RUN_VALUE = [
 export const COMMAND_FLAGS: Readonly<Record<string, CommandFlags>> = {
   init: {
     value: ["app-url", "auth", "role", "ttl", "capture-trigger", "auth-cookie", "persist"],
-    bool: ["ignore-https-errors", "force"],
+    bool: ["ignore-https-errors", "force", "example"],
   },
   calibrate: { value: ["from", "name"], bool: [] },
   inspect: {
@@ -57,7 +57,7 @@ export const COMMAND_FLAGS: Readonly<Record<string, CommandFlags>> = {
   "export playwright": { value: ["flow", "out"], bool: [] },
   plugins: { value: ["format"], bool: [] },
   doctor: { value: ["format"], bool: ["offline"] },
-  render: { value: [], bool: [] },
+  render: { value: [], bool: ["open"] },
   login: { value: ["backend-url"], bool: [], loose: ["oauth"] },
   push: { value: ["kind", "author"], bool: [] },
   pull: { value: ["rev"], bool: [] },

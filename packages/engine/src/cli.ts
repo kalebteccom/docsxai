@@ -10,7 +10,8 @@
 //   • cli-help.ts              — help screens, per-command help and "did you mean"
 //   • cli-version.ts           — --version / -v
 //   • cli-shared.ts            — parseFlags + listFlowFiles (the shared leaf)
-//   • cli-commands-session.ts  — init / calibrate / run (live-browser + scaffolding)
+//   • cli-commands-init.ts     — init (scaffolding, --example)
+//   • cli-commands-session.ts  — calibrate / run (live-browser)
 //   • cli-commands-auth.ts     — capture-auth
 //   • cli-commands-authoring.ts — inspect / lint / flow-tree / diagnose (calibration aids)
 //   • cli-commands-style.ts    — style (docs/style.yaml + the jargon check)
@@ -27,7 +28,8 @@ import { bareValueFlag } from "./cli-value-flags.js";
 import { runAsBin } from "./cli-unexpected.js";
 import { isMainModule } from "./main-module.js";
 import { cmdCaptureAuth } from "./cli-commands-auth.js";
-import { cmdCalibrate, cmdInit, cmdRun } from "./cli-commands-session.js";
+import { cmdCalibrate, cmdRun } from "./cli-commands-session.js";
+import { cmdInit } from "./cli-commands-init.js";
 import { cmdDiagnose, cmdFlowTree, cmdInspect, cmdLint } from "./cli-commands-authoring.js";
 import { cmdStyle } from "./cli-commands-style.js";
 import {

@@ -7,7 +7,7 @@ export const USAGE = `docsxai: deterministic execution CLI
 Usage:
   docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>]
       [--ttl <dur>] [--capture-trigger console|button] [--auth-cookie <name>]
-      [--ignore-https-errors] [--persist tmp] [--force]
+      [--ignore-https-errors] [--persist tmp] [--force] [--example]
   docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>]
       [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
@@ -33,7 +33,7 @@ Usage:
   docsxai login --backend-url <url> [--oauth <workspace-dir>]
   docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
   docsxai pull <workspace-dir> [--rev <id>]
-  docsxai render <workspace-dir>
+  docsxai render <workspace-dir> [--open]
   docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>]
       [--no-connector-outline] [--strict-glyphs]
   docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>]
@@ -49,6 +49,9 @@ Notes:
   • A *workspace* (created by \`init\`) holds flows/<flow>.flow.yaml, docs/, auth/strategy.yaml, .auth/, .viewer/,
     and a .docsxai.json config. Put it OUTSIDE the app's source repo, docsxai documents a running app from
     outside and never writes into the app repo.
+  • init --example makes a workspace for https://example.com with no login and writes
+    flows/hello.flow.yaml, so run and render --open are all that's left. It can't be combined with
+    --app-url, --auth, --role, --ttl, --capture-trigger or --auth-cookie.
   • run / capture-auth read app_url + ignore_https_errors from .docsxai.json if you don't pass the flags.
   • run launches Chromium; if no browser binary is present, install one:  npx playwright-core install chromium
     (source checkout: pnpm -C packages/engine exec playwright-core install chromium)
@@ -166,7 +169,8 @@ Notes:
     files say so in a header: regenerate, don't hand-edit.
   • render builds the static viewer by spawning the docsxai-viewer bin, resolved in order: the
     DOCSX_VIEWER_BIN env var (path to the viewer's bin script), the @docsxai/viewer
-    package installed next to the engine, then \`docsxai-viewer\` on PATH.
+    package installed next to the engine, then \`docsxai-viewer\` on PATH. --open then opens
+    .viewer/index.html in the default browser; where none can be opened it prints the path instead.
   • burn bakes each flow's annotations (halo, badge, callout) into copies of its clean screenshots, for
     surfaces that can't run the interactive viewer, via the same viewer bin as render. Reads
     <ws>/docs/<flow>/annotations.json and writes docs/<flow>/burned/<step>.png (or <out>/<flow>/<step>.png
