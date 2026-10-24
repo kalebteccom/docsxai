@@ -50,7 +50,7 @@ describe("parseCliArgs", () => {
     },
   );
 
-  it("rejects an unknown flag instead of ignoring it", () => {
+  it("rejects an unknown flag", () => {
     expect(parseCliArgs(["--data-dri=/x"], {})).toEqual({
       ok: false,
       message: 'unknown argument "--data-dri=/x"',

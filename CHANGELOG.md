@@ -74,6 +74,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Backend: run history is capped at 1000 records per project.** `runs.json` and the in-memory list grew with every run, and each append rewrote the whole file. Appending past 1000 now drops the oldest record.
 - **Backend: a webhook run's summary is the engine's last line.** The runner kept the first 64 KiB of engine output and read the last line of that, so a run that printed more than 64 KiB recorded a line from the middle. It now keeps the last 64 KiB.
 - **Backend: a webhook run removes its temp workspace when run history cannot be written.** If recording the run threw, the materialized workspace (flows, screenshots, rendered output) stayed in the temp dir.
+- **Backend: an over-limit chunked upload answers 413.** A body sent without `Content-Length` that grew past the 10 MB or 25 MB limit destroyed the connection, so the client saw a connection reset and no 413 `payload_too_large` body. The server now answers 413 and drops the rest of the upload.
 
 ## [0.3.0-rc.3] - 2026-10-09
 

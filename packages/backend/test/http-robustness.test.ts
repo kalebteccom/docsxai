@@ -24,7 +24,7 @@ afterAll(async () => {
 });
 
 describe("request path handling", () => {
-  it("400s a malformed percent-encoding instead of failing with a 500", async () => {
+  it("400s a malformed percent-encoding in the path", async () => {
     const r = await fetch(`${base}/v1/workspaces/%E0%A4%A`, { headers: h() });
     expect(r.status).toBe(400);
     expect(r.headers.get("content-type")).toContain("application/json");
@@ -70,7 +70,7 @@ function postChunked(urlPath: string, mib: number): Promise<{ status: number; bo
 }
 
 describe("body limits on chunked uploads", () => {
-  it("413s with the JSON error body instead of resetting the connection", async () => {
+  it("413s with the JSON error body", async () => {
     const mib = JSON_BODY_LIMIT_BYTES / (1024 * 1024) + 1;
     const r = await postChunked("/v1/workspaces", mib);
     expect(r.status).toBe(413);
@@ -86,7 +86,7 @@ describe("400 versus 500 for bad input and damaged data", () => {
       body,
     });
 
-  it("names the missing field instead of calling the body invalid JSON", async () => {
+  it("names the missing field in the 400 message", async () => {
     const r = await post("{}");
     expect(r.status).toBe(400);
     expect(((await r.json()) as { message: string }).message).toBe(

@@ -5,8 +5,7 @@ export const CLI_USAGE = "usage: docsxai-backend [--port=<0-65535>] [--data-dir=
 export const DEFAULT_PORT = 4477;
 
 export type CliParse =
-  | { ok: true; port: number; dataDir: string | undefined }
-  | { ok: false; message: string };
+  { ok: true; port: number; dataDir: string | undefined } | { ok: false; message: string };
 
 /** Value of `--name=<v>` or `--name <v>` at `argv[i]`; `undefined` when `argv[i]` is another flag. */
 function flagValue(
