@@ -162,7 +162,7 @@ export const VIEWER_STYLE = `
   /* Copy buttons: "Copy", "Copied" and "Press Ctrl+C" share one grid cell, so the widest sets the width and no state moves the page. */
   .id-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .75rem; }
   .step .id-row { margin-top: 2.5rem; } .step .id-row h2 { margin: 0; }
-  .sd-id { overflow-wrap: anywhere; }
+  .sd-id, .md code, .shot-missing code { overflow-wrap: anywhere; }
   .sd-copyable { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; justify-content: center; }
   .sd-copy { display: inline-grid; place-items: center; font: inherit; font-size: .85rem; color: var(--fg); background: var(--bg); border: 1px solid var(--fg); border-radius: 6px; padding: 0 .75rem; min-height: 44px; min-width: 44px; cursor: pointer; }
   .sd-copy:hover { background: var(--surface); }
@@ -192,7 +192,7 @@ export const VIEWER_STYLE = `
     body { max-width: none; padding: 0; }
     .skip-link, .site-header, .sd-ann, .shot-error { display: none !important; }
     .sd-copy { display: none !important; }
-    h2 { break-after: avoid; }
+    h2, .id-row { break-after: avoid; }
     .shot-figure { break-inside: avoid; }
     .md { border: 1px solid var(--border); }
   }

@@ -377,6 +377,8 @@ describe("emitStarlightSite micro-states", () => {
     expect(copy).toContain('role="status" aria-live="polite"');
     expect(copy).toContain("min-height: 44px;");
     expect(copy).toContain(":focus-visible");
+    // the ring follows the text colour, so a custom accent cannot drop it under 3:1
+    expect(copy).toMatch(/:focus-visible \{\s*outline: 3px solid var\(--sl-color-white\);/);
     expect(copy).toContain("navigator.clipboard");
     expect(copy).not.toMatch(/transition|animation/);
     // theme variables only: no hard-coded colours
@@ -397,6 +399,8 @@ describe("emitStarlightSite micro-states", () => {
     expect(shot).toContain("--start-from");
     expect(shot).toContain("min-height: 160px;");
     expect(shot).toContain('<CopyId value={alt} kind="step id" />');
+    expect(shot).toContain("alt={`Screenshot of step ${alt}`}");
+    expect(shot).toMatch(/:focus-visible \{\s*outline: 3px solid var\(--sl-color-white\);/);
     expect(shot).not.toMatch(/transition|animation/);
     expect(shot).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
   });

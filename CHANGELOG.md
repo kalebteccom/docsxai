@@ -4,10 +4,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Changed
-
-- **Plugin and vendored skill review.** `/docsxai:doctor` frontmatter is valid YAML (quoted description and argument-hint), the commands point at `docsxai doctor` and `diagnose` on failure, `run` documents its starting and interrupted lines, `calibrate` gains a setup order and a burned-captions section (`burn.theme` `readable` preset and `display_width`), and the plugin README is the one place that names the install command.
-
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
@@ -34,6 +30,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **`docsxai doctor` prints `ok:` and `fail:` lines.** Every line starts with `ok:` or `fail:` and carries a `next:` step where there is one; the `✓`, `✗` and `−` glyphs and the header are gone, and the last line is `ok: doctor: ...` or `fail: doctor: ...`. Exit 1 on any `fail:` line, as before.
 - **The scaffolded `README.md` follows the auth choice.** An `--auth none` workspace no longer lists `capture-auth` or `auth/strategy.yaml`, and the default one points at `--auth none` for an app without a login.
 - **`readable` caption preset and `scale: auto`.** The auto factor is capped at 4 (was 3), so a 1440 px screenshot shown at 360 px keeps about 15 px captions, it rounds up to two decimals, and `readable` limits the callout to 55 percent of the image width. Burned output without a theme and with the other presets is unchanged.
+- **Plugin and vendored skill review.** `/docsxai:doctor` frontmatter is valid YAML (quoted description and argument-hint), the commands point at `docsxai doctor` and `diagnose` on failure, `run` documents its starting and interrupted lines, `calibrate` gains a setup order and a burned-captions section (`burn.theme` `readable` preset and `display_width`), and the plugin README is the one place that names the install command.
 
 ### Fixed
 
@@ -46,6 +43,7 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Burned callout, arrow and badge placement on dense screens.** A stem or arrow that ran through text or a neighbouring halo is now charged per px crossed, so a callout sits near its target and covers a few px of text before a long stem crosses six rows. An `arrow_style` or `placement.side` hint now wins over a side that is only a sliver cleaner, where a few px of overlap used to throw it away. A numbered badge no longer crosses the bottom or right edge of the screenshot: it stays inside with a 2 px margin. A callout that overran a narrow gap by a few px retries with its side padding cut by up to 6 px (never below 8 px) and keeps that box when it fits clear. Annotations without `obstacles` and hint burn the same bytes as before. Guide: `docs/burn-theming.md`.
 - **CI examples.** The GitHub Actions nightly recipe now runs its `tee` steps under `shell: bash`, so a failing `docsxai run` or `docsxai diff` fails the job (the default shell has no pipefail). The weekly GitHub and GitLab refresh recipes in `docs/ci-recipes.md` install `docsxai@next` with npm: they used `pnpm/action-setup` without a pnpm version and `corepack`, which Node 26 images do not ship. Added `examples/burn-theme/` and a README for `examples/ci/sample-repo/`.
 - Docs site: a print stylesheet that drops the site chrome, and readable dark text on the landing-page mock buttons.
+- **Emitted output accessibility.** Viewer print keeps a step heading row with its figure, and long ids and code in write-ups and placeholders wrap at 390 px. The Starlight copy and Retry focus ring uses the theme text colour (17:1 or more on both themes) in place of the accent, which a custom accent could push under 3:1, and the step image alt reads "Screenshot of step <id>".
 
 ## [0.3.0-rc.3] - 2026-10-09
 
