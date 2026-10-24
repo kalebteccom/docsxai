@@ -32,6 +32,19 @@ describe("request path handling", () => {
   });
 });
 
+describe("HEAD on the liveness probe", () => {
+  it("answers 200 with no body and no credentials", async () => {
+    const r = await fetch(`${base}/v1/health`, { method: "HEAD" });
+    expect(r.status).toBe(200);
+    expect(await r.text()).toBe("");
+  });
+
+  it("keeps HEAD a 405 on the other GET routes", async () => {
+    const r = await fetch(`${base}/v1/workspaces`, { method: "HEAD", headers: h() });
+    expect(r.status).toBe(405);
+  });
+});
+
 describe("405 responses", () => {
   it("list the served methods in Allow", async () => {
     const del = await fetch(`${base}/v1/workspaces`, { method: "DELETE", headers: h() });
