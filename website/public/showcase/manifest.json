@@ -1,0 +1,237 @@
+{
+  "schema": "docsxai/landing-showcase@1",
+  "shots": {
+    "pipeline": {
+      "dark": {
+        "files": {
+          "1280.png": {
+            "name": "pipeline-dark-1280.7eda72cb.png",
+            "width": 1280,
+            "height": 518,
+            "bytes": 43393
+          },
+          "1280.webp": {
+            "name": "pipeline-dark-1280.7eda72cb.webp",
+            "width": 1280,
+            "height": 518,
+            "bytes": 36236
+          },
+          "390.png": {
+            "name": "pipeline-dark-390.6c366578.png",
+            "width": 390,
+            "height": 764,
+            "bytes": 27868
+          },
+          "390.webp": {
+            "name": "pipeline-dark-390.6c366578.webp",
+            "width": 390,
+            "height": 764,
+            "bytes": 13442
+          }
+        },
+        "picture": {
+          "sources": [
+            {
+              "media": "(max-width: 34rem)",
+              "type": "image/webp",
+              "srcset": "/showcase/pipeline-dark-390.6c366578.webp",
+              "width": 390,
+              "height": 764
+            },
+            {
+              "media": "(max-width: 34rem)",
+              "type": "image/png",
+              "srcset": "/showcase/pipeline-dark-390.6c366578.png",
+              "width": 390,
+              "height": 764
+            },
+            {
+              "type": "image/webp",
+              "srcset": "/showcase/pipeline-dark-1280.7eda72cb.webp",
+              "width": 1280,
+              "height": 518
+            }
+          ],
+          "img": {
+            "src": "/showcase/pipeline-dark-1280.7eda72cb.png",
+            "width": 1280,
+            "height": 518
+          }
+        }
+      },
+      "light": {
+        "files": {
+          "1280.png": {
+            "name": "pipeline-light-1280.72f95ce5.png",
+            "width": 1280,
+            "height": 518,
+            "bytes": 44777
+          },
+          "1280.webp": {
+            "name": "pipeline-light-1280.72f95ce5.webp",
+            "width": 1280,
+            "height": 518,
+            "bytes": 36738
+          },
+          "390.png": {
+            "name": "pipeline-light-390.e514c1ac.png",
+            "width": 390,
+            "height": 764,
+            "bytes": 28477
+          },
+          "390.webp": {
+            "name": "pipeline-light-390.e514c1ac.webp",
+            "width": 390,
+            "height": 764,
+            "bytes": 13730
+          }
+        },
+        "picture": {
+          "sources": [
+            {
+              "media": "(max-width: 34rem)",
+              "type": "image/webp",
+              "srcset": "/showcase/pipeline-light-390.e514c1ac.webp",
+              "width": 390,
+              "height": 764
+            },
+            {
+              "media": "(max-width: 34rem)",
+              "type": "image/png",
+              "srcset": "/showcase/pipeline-light-390.e514c1ac.png",
+              "width": 390,
+              "height": 764
+            },
+            {
+              "type": "image/webp",
+              "srcset": "/showcase/pipeline-light-1280.72f95ce5.webp",
+              "width": 1280,
+              "height": 518
+            }
+          ],
+          "img": {
+            "src": "/showcase/pipeline-light-1280.72f95ce5.png",
+            "width": 1280,
+            "height": 518
+          }
+        }
+      }
+    },
+    "terminal": {
+      "dark": {
+        "files": {
+          "1280.png": {
+            "name": "terminal-dark-1280.75cd0a6b.png",
+            "width": 1280,
+            "height": 644,
+            "bytes": 48181
+          },
+          "1280.webp": {
+            "name": "terminal-dark-1280.75cd0a6b.webp",
+            "width": 1280,
+            "height": 644,
+            "bytes": 14826
+          },
+          "390.png": {
+            "name": "terminal-dark-390.67786859.png",
+            "width": 390,
+            "height": 548,
+            "bytes": 10689
+          },
+          "390.webp": {
+            "name": "terminal-dark-390.67786859.webp",
+            "width": 390,
+            "height": 548,
+            "bytes": 6040
+          }
+        },
+        "picture": {
+          "sources": [
+            {
+              "media": "(max-width: 34rem)",
+              "type": "image/webp",
+              "srcset": "/showcase/terminal-dark-390.67786859.webp",
+              "width": 390,
+              "height": 548
+            },
+            {
+              "media": "(max-width: 34rem)",
+              "type": "image/png",
+              "srcset": "/showcase/terminal-dark-390.67786859.png",
+              "width": 390,
+              "height": 548
+            },
+            {
+              "type": "image/webp",
+              "srcset": "/showcase/terminal-dark-1280.75cd0a6b.webp",
+              "width": 1280,
+              "height": 644
+            }
+          ],
+          "img": {
+            "src": "/showcase/terminal-dark-1280.75cd0a6b.png",
+            "width": 1280,
+            "height": 644
+          }
+        }
+      },
+      "light": {
+        "files": {
+          "1280.png": {
+            "name": "terminal-light-1280.f767c171.png",
+            "width": 1280,
+            "height": 644,
+            "bytes": 48200
+          },
+          "1280.webp": {
+            "name": "terminal-light-1280.f767c171.webp",
+            "width": 1280,
+            "height": 644,
+            "bytes": 14856
+          },
+          "390.png": {
+            "name": "terminal-light-390.916ddb22.png",
+            "width": 390,
+            "height": 548,
+            "bytes": 10683
+          },
+          "390.webp": {
+            "name": "terminal-light-390.916ddb22.webp",
+            "width": 390,
+            "height": 548,
+            "bytes": 6042
+          }
+        },
+        "picture": {
+          "sources": [
+            {
+              "media": "(max-width: 34rem)",
+              "type": "image/webp",
+              "srcset": "/showcase/terminal-light-390.916ddb22.webp",
+              "width": 390,
+              "height": 548
+            },
+            {
+              "media": "(max-width: 34rem)",
+              "type": "image/png",
+              "srcset": "/showcase/terminal-light-390.916ddb22.png",
+              "width": 390,
+              "height": 548
+            },
+            {
+              "type": "image/webp",
+              "srcset": "/showcase/terminal-light-1280.f767c171.webp",
+              "width": 1280,
+              "height": 644
+            }
+          ],
+          "img": {
+            "src": "/showcase/terminal-light-1280.f767c171.png",
+            "width": 1280,
+            "height": 644
+          }
+        }
+      }
+    }
+  }
+}
