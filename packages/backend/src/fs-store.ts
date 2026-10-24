@@ -318,7 +318,11 @@ export class FsStore implements BackendStore {
     } catch {
       return undefined;
     }
-    return JSON.parse(text) as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch (e) {
+      throw new Error(`data file ${path.relative(this.root, p)} is not valid JSON`, { cause: e });
+    }
   }
 
   private readWorkspaces(): Workspace[] {

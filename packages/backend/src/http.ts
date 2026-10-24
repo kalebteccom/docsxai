@@ -75,6 +75,14 @@ export class PayloadTooLargeError extends Error {
   }
 }
 
+/** A request the client got wrong (unparsable JSON, a missing field); answered with 400. */
+export class BadRequestError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BadRequestError";
+  }
+}
+
 /**
  * Read a request body, rejecting with {@link PayloadTooLargeError} past `limit`. Reads through
  * `data` events: breaking out of `for await` destroys the request and its socket, which would
@@ -110,7 +118,11 @@ export function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
 export async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   const raw = (await readBody(req, JSON_BODY_LIMIT_BYTES)).toString("utf8");
   if (!raw) return undefined;
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    throw new BadRequestError(`invalid JSON body: ${(e as Error).message}`);
+  }
 }
 
 export function sendJson(res: ServerResponse, status: number, body: unknown): void {

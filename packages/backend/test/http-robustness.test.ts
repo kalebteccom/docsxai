@@ -1,4 +1,7 @@
+import * as fs from "node:fs";
 import * as http from "node:http";
+import * as os from "node:os";
+import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { JSON_BODY_LIMIT_BYTES } from "../src/api.js";
 import { createBackendStub } from "../src/index.js";
@@ -72,5 +75,43 @@ describe("body limits on chunked uploads", () => {
     const r = await postChunked("/v1/workspaces", mib);
     expect(r.status).toBe(413);
     expect((JSON.parse(r.body) as { error: string }).error).toBe("payload_too_large");
+  });
+});
+
+describe("400 versus 500 for bad input and damaged data", () => {
+  const post = (body: string) =>
+    fetch(`${base}/v1/workspaces`, {
+      method: "POST",
+      headers: h({ "content-type": "application/json" }),
+      body,
+    });
+
+  it("names the missing field instead of calling the body invalid JSON", async () => {
+    const r = await post("{}");
+    expect(r.status).toBe(400);
+    expect(((await r.json()) as { message: string }).message).toBe(
+      "body requires a non-empty { name }",
+    );
+  });
+
+  it("still reports unparsable JSON as a 400", async () => {
+    const r = await post("{");
+    expect(r.status).toBe(400);
+    expect(((await r.json()) as { message: string }).message).toMatch(/^invalid JSON body:/);
+  });
+
+  it("answers 500, not 400, when a stored data file is damaged", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "docsxai-damaged-"));
+    fs.writeFileSync(path.join(dir, "workspaces.json"), "");
+    const fsStub = createBackendStub({ token: TOKEN, dataDir: dir });
+    try {
+      const url = await fsStub.listen(0);
+      const r = await fetch(`${url}/v1/workspaces`, { headers: h() });
+      expect(r.status).toBe(500);
+      expect(((await r.json()) as { message: string }).message).toContain("workspaces.json");
+    } finally {
+      await fsStub.close();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

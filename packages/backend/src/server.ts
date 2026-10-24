@@ -18,6 +18,7 @@ import { appUrlProblem, denyPrivateAppUrl } from "./app-url.js";
 import { FsStore } from "./fs-store.js";
 import {
   allowedMethods,
+  BadRequestError,
   bearerToken,
   matchRoute,
   PayloadTooLargeError,
@@ -321,11 +322,8 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
         return sendJson(res, 409, { error: "revision-finalized", message: e.message });
       if (e instanceof NotFoundError)
         return sendJson(res, 404, { error: "not_found", message: e.message });
-      if (e instanceof SyntaxError)
-        return sendJson(res, 400, {
-          error: "bad_request",
-          message: `invalid JSON body: ${e.message}`,
-        });
+      if (e instanceof BadRequestError)
+        return sendJson(res, 400, { error: "bad_request", message: e.message });
       throw e;
     }
   }
@@ -333,7 +331,7 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
   function reqName(body: unknown): string {
     const name = (body as { name?: unknown } | undefined)?.name;
     if (typeof name !== "string" || !name.trim())
-      throw new SyntaxError("body requires a non-empty { name }");
+      throw new BadRequestError("body requires a non-empty { name }");
     return name;
   }
 
