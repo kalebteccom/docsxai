@@ -14,6 +14,7 @@ export * from "./obstacles.js";
 export * from "./flow-lint.js";
 export * from "./flow-tree.js";
 export * from "./auth.js";
+export * from "./browser-launch-error.js";
 export * from "./backend-client.js";
 export * from "./calibrate.js";
 export * from "./diagnose.js";

@@ -5,6 +5,7 @@
 
 import { promises as fs } from "node:fs";
 import {
+  describeBrowserLaunch,
   FlowExecutionError,
   inferHaltCause,
   launchPlaywrightSession,
@@ -225,16 +226,12 @@ export const runFlowsTool = defineTool({
           ...(egressGuard ? { egressGuard } : {}),
         });
       } catch (e) {
-        const msg = (e as Error).message;
-        const noChromium = /Executable doesn't exist|browserType\.launch|playwright install/i.test(
-          msg,
-        );
+        const problem = describeBrowserLaunch((e as Error).message, args.cdp);
         return {
           flow: flow.name,
           ok: false,
-          error: noChromium
-            ? "no Chromium binary found — install one: npx playwright-core install chromium (source checkout: pnpm -C packages/engine exec playwright-core install chromium)"
-            : `failed to launch browser: ${msg}`,
+          error: problem.reason,
+          ...(problem.next ? { hint: problem.next } : {}),
         };
       }
       try {
