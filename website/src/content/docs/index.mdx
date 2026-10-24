@@ -7,6 +7,8 @@ editUrl: false
 lastUpdated: false
 ---
 
+import CopyCommand from "../../components/CopyCommand.astro";
+
 <div class="docsx-hero not-content">
   <div class="docsx-hero-copy">
     <p class="docsx-kicker">Deterministic screenshot docs</p>
@@ -20,9 +22,7 @@ lastUpdated: false
       <a href="/getting-started/introduction/" class="docsx-btn docsx-btn--primary">Get started</a>
       <a href="/getting-started/quickstart/" class="docsx-btn docsx-btn--ghost">Quickstart</a>
     </div>
-    <div class="docsx-install">
-      <span class="pfx">$</span> pnpm add -g docsxai@next
-    </div>
+    <CopyCommand variant="hero" command="pnpm add -g docsxai@next" label="Copy install command" />
     <p class="docsx-install-note">
       Installs 0.3.0-rc.3, the current prerelease. <code>latest</code> is still 0.2.0.
       <a href="/getting-started/installation/">Install steps</a>
@@ -217,11 +217,10 @@ lastUpdated: false
     <div class="docsx-card">
       <span class="docsx-card-mark">// cli</span>
       <h3>The docsxai CLI</h3>
-      <pre class="docsx-code">
-        <code>
-          {"pnpm add -g docsxai@next\nnpx playwright-core install chromium\ndocsxai doctor"}
-        </code>
-      </pre>
+      <CopyCommand
+        command={"pnpm add -g docsxai@next\nnpx playwright-core install chromium\ndocsxai doctor"}
+        label="Copy the CLI install commands"
+      />
       <div class="docsx-card-text">
         <code>docsxai@next</code> is 0.3.0-rc.3 today. Without a tag you get 0.2.0, which has no{" "}
         <code>burn</code>, <code>pack</code>, or matrix flows.
@@ -230,11 +229,10 @@ lastUpdated: false
     <div class="docsx-card">
       <span class="docsx-card-mark">// claude code</span>
       <h3>The Claude Code plugin</h3>
-      <pre class="docsx-code">
-        <code>
-          {"/plugin marketplace add kalebteccom/docsxai\n/plugin install docsxai@docsxai"}
-        </code>
-      </pre>
+      <CopyCommand
+        command={"/plugin marketplace add kalebteccom/docsxai\n/plugin install docsxai@docsxai"}
+        label="Copy the Claude Code plugin commands"
+      />
       <div class="docsx-card-text">
         Optional. Adds the calibration skills and the
         <code>/docsxai:*</code> commands. The CLI works without it.

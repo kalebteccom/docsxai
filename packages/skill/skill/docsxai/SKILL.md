@@ -24,7 +24,7 @@ docsxai burn '<workspace-dir>'
 docsxai pack '<workspace-dir>' --out '<pack-dir>'
 ```
 
-- When a command fails, its last line is `next: <command>`; run that. `doctor` first when anything fails to start. Each `fail:` line carries a `next:` step.
+- When a command fails, its error carries an indented `next: <command>` line when there is one; run that. A halted `run` prints a `<flow>: next: <command>` line per failed flow instead. `doctor` first when anything fails to start. Each `fail:` line carries a `next:` step.
 - A halted `run` is drift. Do not retry it. Run the `docsxai diagnose` command from the `next:` line under the failed flow, read the recommendation, and edit the flow-file by hand with one canonical locator per step.
 - A missing or expired session needs a human: `docsxai capture-auth '<workspace-dir>'` opens a headed browser to log in.
 - `render` builds the interactive viewer. `burn` bakes annotations into PNG copies. `pack` builds the screenshot pack, and `pack --check --against '<pack-dir>'` compares it with a committed one.

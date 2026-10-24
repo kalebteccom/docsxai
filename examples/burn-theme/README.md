@@ -19,7 +19,7 @@ A `.docsxai.json` that themes the captions `docsxai burn` and `docsxai pack` dra
 - `en.light.390` shown at its own 390 px: auto factor 1, base size.
 - A 780 px phone capture shown at 358 px needs `display_width: 358`: auto factor 2.18, 15 px.
 
-A screenshot narrower than `display_width` keeps base size, so one block serves desktop and mobile captures that the page shows at 720 px or their own width. If your mobile captures are shown in a narrower column than their pixel width, a `display_width` that fits them enlarges the desktop ones (up to the cap of 4), so keep those variants in a separate workspace with its own `display_width`.
+A screenshot narrower than `display_width` keeps base size, so one block serves desktop and mobile captures that the page shows at 720 px or their own width. If your mobile captures are shown in a narrower column than their pixel width, a `display_width` that fits them enlarges the desktop ones (up to the cap of 4). To serve both, give `display_width` an object, `{ "default": 720, "narrow": 358, "narrow_below": 900 }`: screenshots narrower than 900 px use 358 and the others 720 (see `docs/burn-theming.md`).
 
 ## Run it
 

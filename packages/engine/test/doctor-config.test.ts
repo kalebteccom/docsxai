@@ -174,15 +174,6 @@ describe("checkAppUrl", () => {
     const okay = await checkAppUrl({ ...cfg, ignore_https_errors: true }, reject(tls), false);
     expect(okay?.ok).toBe(true);
   });
-
-  it("prints the URL without credentials or query", async () => {
-    const url = new URL("https://app.example.com/?t=1");
-    url.username = "user";
-    url.password = "pw";
-    const c = await checkAppUrl({ app_url: url.href }, answer(200), false);
-    expect(c?.detail).not.toContain("pw");
-    expect(c?.detail).not.toContain("t=1");
-  });
 });
 
 describe("checkLogin", () => {

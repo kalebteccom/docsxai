@@ -12,7 +12,8 @@ the cross-repo contracts are [`actionability-contract.md`](actionability-contrac
 and [`browxai-asks.md`](browxai-asks.md). The look of burned captions and the viewer overlay
 (`burn.theme` in `.docsxai.json`, presets, tokens file) is in
 [`burn-theming.md`](burn-theming.md); where callouts land (side hints,
-`obstacles`, the badge) is in [`annotation-placement.md`](annotation-placement.md). What counts as public surface, how
+`obstacles`, the badge) is in [`annotation-placement.md`](annotation-placement.md); the `manifest.json` that `pack` writes is in
+[`pack-manifest.md`](pack-manifest.md). What counts as public surface, how
 stable each item is, and the deprecation policy are in
 [`public-surface.md`](public-surface.md).
 

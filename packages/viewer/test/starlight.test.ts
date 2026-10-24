@@ -495,6 +495,54 @@ describe("emitStarlightSite — config generation", () => {
     expect(await read(out, "src/styles/theme.css")).toContain("--sl-color-accent: #c2185b;");
   });
 
+  describe("accent contrast", () => {
+    const emitWith = async (accent: string | undefined) => {
+      const ws = await makeWorkspace({ flows: [] });
+      const out = await outDir();
+      const r = await emitStarlightSite({
+        workspaceDir: ws,
+        outDir: out,
+        ...(accent !== undefined ? { config: { accent } } : {}),
+      });
+      return { r, out };
+    };
+
+    it("warns on the light background with both ratios when the accent fails link text and UI", async () => {
+      const { r } = await emitWith("#e0b000");
+      expect(r.warnings).toEqual([
+        "accent #e0b000 on light background is 2.0:1, WCAG AA needs 4.5:1 for link text and 3:1 for the focus ring and buttons",
+      ]);
+    });
+
+    it("warns for link text only when the light ratio is between 3:1 and 4.5:1", async () => {
+      const { r } = await emitWith("#777777");
+      expect(r.warnings).toEqual([
+        "accent #777777 on light background is 4.4:1, WCAG AA needs 4.5:1 for link text",
+      ]);
+    });
+
+    it("warns on the dark background when the accent fails UI contrast there", async () => {
+      const { r } = await emitWith("#1e3a8a");
+      expect(r.warnings).toEqual([
+        "accent #1e3a8a on dark background is 1.7:1, WCAG AA needs 3:1 for the focus ring and buttons",
+      ]);
+    });
+
+    it("is silent for an accent that passes, and for no accent", async () => {
+      expect((await emitWith("#2563eb")).r.warnings).toEqual([]);
+      expect((await emitWith(undefined)).r.warnings).toEqual([]);
+    });
+
+    it("never changes the emitted files or colours", async () => {
+      const low = await emitWith("#e0b000");
+      const good = await emitWith("#2563eb");
+      expect(low.r.files).toEqual(good.r.files);
+      const css = await read(low.out, "src/styles/theme.css");
+      expect(css).toContain("--sl-color-accent: #e0b000;");
+      expect(await read(good.out, "src/styles/theme.css")).toContain("--sl-color-accent: #2563eb;");
+    });
+  });
+
   it("warns and skips theme CSS when the style artifact accent is unparsable", async () => {
     const ws = await makeWorkspace({ flows: [], visual: { brand_color: "cornflower" } });
     const out = await outDir();
@@ -801,6 +849,17 @@ describe("site CLI subcommand", () => {
     const config = await read(dest, "astro.config.mjs");
     expect(config).toContain('title: "Acme Guide",');
     expect(await read(dest, "src/styles/theme.css")).toContain("--sl-color-accent: #0a0a0a;");
+  });
+
+  it("prints an accent contrast warning on stderr and still exits 0", async () => {
+    const ws = await makeWorkspace(goldenSpec());
+    const dest = path.join(await outDir(), "site");
+    const code = await runViewerCli(["site", ws, "--out", dest, "--accent", "#e0b000"]);
+    expect(code).toBe(0);
+    const lines = err.mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(lines).toContain(
+      "site: warning: accent #e0b000 on light background is 2.0:1, WCAG AA needs 4.5:1 for link text and 3:1 for the focus ring and buttons\n",
+    );
   });
 
   it("defaults --out to <workspace>/site", async () => {

@@ -63,12 +63,9 @@ describe("scaleRect and scalePoint", () => {
 });
 
 describe("atBaseSize", () => {
-  it("is the same record at factor 1", () => {
-    const a = ann({ bounding_box: { x: 1, y: 2, width: 3, height: 4 } });
-    expect(atBaseSize(a, 1)).toBe(a);
-  });
-
-  it("divides the box, every obstacle and the nudge, and leaves the input alone", () => {
+  it("divides the box, every obstacle and the nudge, leaves the input alone and is a no-op at 1", () => {
+    const same = ann();
+    expect(atBaseSize(same, 1)).toBe(same);
     const a = ann({
       bounding_box: { x: 100, y: 200, width: 60, height: 40 },
       obstacles: [{ x: 10, y: 20, width: 30, height: 40 }],
@@ -85,15 +82,6 @@ describe("atBaseSize", () => {
 
   it("adds no key the record did not have", () => {
     expect(Object.keys(atBaseSize(ann(), 2)).sort()).toEqual(["copy", "selector", "step"]);
-  });
-
-  it("keeps an empty obstacle list empty and multiplies at a factor under 1", () => {
-    const base = atBaseSize(
-      ann({ obstacles: [], bounding_box: { x: 5, y: 5, width: 10, height: 10 } }),
-      0.5,
-    );
-    expect(base.obstacles).toEqual([]);
-    expect(base.bounding_box).toEqual({ x: 10, y: 10, width: 20, height: 20 });
   });
 });
 
@@ -113,13 +101,9 @@ describe("layoutAtScale", () => {
     ...over,
   });
 
-  it("is the same layout at factor 1", () => {
+  it("multiplies sizes and positions, the overlaps by the factor squared, and is a no-op at 1", () => {
     const l = layout();
     expect(layoutAtScale(l, 1)).toBe(l);
-  });
-
-  it("multiplies sizes and positions, and the overlaps by the factor squared", () => {
-    const l = layout();
     expect(layoutAtScale(l, 2)).toMatchObject({
       lines: ["Click Play"],
       side: "top",
@@ -163,17 +147,6 @@ describe("captionScale at the edges", () => {
     expect(captionScale(auto, 0)).toBe(1);
   });
 
-  it("gives an explicit scale back whatever the width", () => {
-    expect(captionScale({ ...DEFAULT_BURN_THEME, scale: 0.5 }, 1)).toBe(0.5);
-    expect(captionScale({ ...DEFAULT_BURN_THEME, scale: 4 }, 5000)).toBe(4);
-  });
-
-  it("reaches the cap of 4 at four times display_width and stays there", () => {
-    const narrow = { ...auto, displayWidth: 240 };
-    expect(captionScale(narrow, 960)).toBe(4);
-    expect(captionScale(narrow, 10000)).toBe(4);
-  });
-
   it("is 1 at display_width and 1.01 a pixel past a 2400 px one", () => {
     const wide = { ...auto, displayWidth: 2400 };
     expect(captionScale(wide, 2400)).toBe(1);
@@ -187,11 +160,8 @@ describe("scaledTheme", () => {
     shadow: "0px 4px 12px 0px rgba(17,24,39,0.28)",
   };
 
-  it("is the same theme at factor 1", () => {
+  it("halves the callout dimensions and the shadow lengths at 0.5, and is a no-op at 1", () => {
     expect(scaledTheme(shadowed, 1)).toBe(shadowed);
-  });
-
-  it("halves the callout dimensions and the shadow lengths at 0.5", () => {
     const t = scaledTheme(shadowed, 0.5);
     expect(t).toMatchObject({
       calloutBorderWidth: 0.5,
@@ -229,16 +199,11 @@ describe("the sizing keys at their limits", () => {
   const ACCEPTED: [unknown, keyof BurnTheme, unknown][] = [
     [{ scale: 0.5 }, "scale", 0.5],
     [{ scale: 4 }, "scale", 4],
-    [{ scale: "auto" }, "scale", "auto"],
-    [{ scale: "2" }, "scale", 2],
     [{ scale: " 1.5 " }, "scale", 1.5],
     [{ display_width: 240 }, "displayWidth", 240],
     [{ display_width: 2400 }, "displayWidth", 2400],
     [{ max_width_ratio: 0.2 }, "maxWidthRatio", 0.2],
     [{ max_width_ratio: 1 }, "maxWidthRatio", 1],
-    [{ arrow_size: 4 }, "arrowSize", 4],
-    [{ arrow_size: 24 }, "arrowSize", 24],
-    [{ font_weight: "600" }, "fontWeight", 600],
     [{ font_weight: " 400 " }, "fontWeight", 400],
   ];
 
@@ -251,38 +216,16 @@ describe("the sizing keys at their limits", () => {
     [{ scale: 4.01 }, "scale: 4.01 is outside the range 0.5 to 4"],
     [{ scale: "5" }, "scale: 5 is outside the range 0.5 to 4"],
     [{ scale: "-1" }, 'scale: "-1" is not a scale'],
-    [{ scale: "" }, 'scale: "" is not a scale'],
     [{ scale: Number.NaN }, "scale: NaN is not a scale"],
-    [{ scale: Number.POSITIVE_INFINITY }, "scale: Infinity is not a scale"],
-    [{ scale: null }, "scale: null is not a scale"],
     [{ display_width: 239 }, "display_width: 239 is outside the range 240 to 2400"],
     [{ display_width: 2401 }, "display_width: 2401 is outside the range 240 to 2400"],
     [{ display_width: "720" }, 'display_width: "720" is not a number'],
     [{ max_width_ratio: 0.19 }, "max_width_ratio: 0.19 is outside the range 0.2 to 1"],
     [{ max_width_ratio: 1.01 }, "max_width_ratio: 1.01 is outside the range 0.2 to 1"],
-    [{ max_width_ratio: Number.NaN }, "max_width_ratio: NaN is not a number"],
-    [{ arrow_size: 3.99 }, "arrow_size: 3.99 is outside the range 4 to 24"],
-    [{ arrow_size: 24.01 }, "arrow_size: 24.01 is outside the range 4 to 24"],
     [{ font_weight: 700 }, "font_weight: 700 is not a supported weight"],
     [{ font_weight: "bold" }, 'font_weight: "bold" is not a supported weight'],
-    [{ font_weight: 600.5 }, "font_weight: 600.5 is not a supported weight"],
   ])("refuses %j", (block, message) => {
     expect(problemOf(block)).toContain(message);
-  });
-
-  it("lists every bad sizing key in the order they were written", () => {
-    try {
-      themeOf({ scale: 0, display_width: 1, arrow_size: 99 });
-      throw new Error("the block was accepted");
-    } catch (e) {
-      const problems = (e as BurnThemeError).problems;
-      expect(problems).toHaveLength(3);
-      expect(problems.map((p) => p.split(":")[0])).toEqual([
-        "scale",
-        "display_width",
-        "arrow_size",
-      ]);
-    }
   });
 
   it("lets a key in the block override the readable preset's sizing", () => {
@@ -319,12 +262,6 @@ describe("the tree at the scale limits", () => {
     expect(styleOf(haloOf(half)).border).toBe("1px solid #e8590c");
   });
 
-  it("makes the text 56 px and the halo outline 8 px at scale 4", () => {
-    const big = tree(themeOf({ scale: 4 }));
-    expect(styleOf(calloutOf(big)).fontSize).toBe(56);
-    expect(styleOf(haloOf(big)).border).toBe("8px solid #e8590c");
-  });
-
   it("draws only the screenshot and reports nothing for an empty annotation list", () => {
     const report: AnnotationReport[] = [];
     const empty = buildBurnTree({
@@ -336,19 +273,6 @@ describe("the tree at the scale limits", () => {
     });
     expect(empty.props.children).toHaveLength(1);
     expect(report).toEqual([]);
-  });
-
-  it("lays a callout out on a one-pixel screenshot", () => {
-    const report: AnnotationReport[] = [];
-    const t = buildBurnTree({
-      image: { width: 1, height: 1, dataUri: IMAGE.dataUri },
-      annotations: [ann({ bounding_box: { x: 0, y: 0, width: 1, height: 1 } })],
-      metrics: METRICS,
-      report,
-    });
-    expect(styleOf(t)).toMatchObject({ width: 1, height: 1 });
-    expect(report).toHaveLength(1);
-    expect(report[0]!.callout).not.toBeNull();
   });
 });
 

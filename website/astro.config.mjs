@@ -4,6 +4,7 @@ import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
 import rehypeStripAgentAsides from "./plugins/rehype-strip-agent-asides.mjs";
 import rehypeWrapTables from "./plugins/rehype-wrap-tables.mjs";
+import remarkSplitTranscripts from "./plugins/remark-split-transcripts.mjs";
 
 // The docsxai documentation site, served at docsxai.dev.
 // Static Astro + Starlight. The published content lives in
@@ -15,7 +16,10 @@ export default defineConfig({
   // Remove "For agents" asides from the rendered HTML. The same guidance stays
   // in the page source and is served from the plaintext .md endpoint, so the
   // human site stays end-user-focused while agents still get it via llms.txt.
+  // A `$ command` transcript becomes a command block and an output block, so the copy button
+  // copies the command without its prompt.
   markdown: {
+    remarkPlugins: [remarkSplitTranscripts],
     rehypePlugins: [rehypeStripAgentAsides, rehypeWrapTables],
   },
   integrations: [
@@ -169,6 +173,7 @@ export default defineConfig({
             { label: "MCP tools", slug: "reference/mcp-tools" },
             { label: "Backend API", slug: "reference/backend-api" },
             { label: "Actionability contract", slug: "reference/actionability" },
+            { label: "Screens pack manifest", slug: "reference/pack-manifest" },
           ],
         },
         {

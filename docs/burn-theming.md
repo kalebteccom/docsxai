@@ -61,7 +61,7 @@ The callout outline colour follows `ink` until a preset, the tokens file or the 
 | `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Arrow length. Its base is 7/4 of that wide.                         |
 | `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, see [Scale](#scale).   |
 | `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | `1`               | Multiplies every caption dimension, see [Scale](#scale).            |
-| `display_width`        | number             | 240 to 2400 px                                  | `720`             | CSS px the screenshot is shown at. Read by `scale: "auto"`.         |
+| `display_width`        | number or object   | 240 to 2400 px, or an object                    | `720`             | CSS px shown at, or a wide and narrow pair, see [Scale](#scale).    |
 
 Numbers are plain values without a unit: px for sizes, a share for `max_width_ratio`, a factor for `scale`. Colours are stored as lowercase `#rrggbb`.
 
@@ -74,7 +74,7 @@ A screenshot wider than the column it is shown in gets scaled down by the page, 
 - A number such as `1.5` or `2` is used as written.
 - `"auto"` uses `max(1, screenshot width / display_width)`, at most 4, so a screenshot wider than its column gets a larger caption and a narrower one keeps base size. A 1440 px screenshot with the default `display_width` of 720 gives 2. A 390 px screenshot gives 1.
 
-`display_width` is the width in CSS px the page shows the screenshot at. It only matters for `"auto"`.
+`display_width` is the width in CSS px the page shows the screenshot at. It only matters for `"auto"`. Wide and narrow screenshots shown at different widths take an object, see [Wide and narrow images](#wide-and-narrow-images).
 
 When the page shows the screenshot at `displayWidth` CSS px, a caption length ends up on screen as:
 
@@ -87,6 +87,30 @@ With `auto = imageWidth / displayWidth` that is `fontSize` itself, so `readable`
 `max_width_ratio` limits the callout's outer width to that share of the screenshot. At the default 0.62 it only applies when obstacles limit the callout, and callouts otherwise stop at 280 px at base size. A ratio under 0.62 applies to every callout. The callout sits beside its target and moves along the edge, so it covers the target only when no side of the screenshot has room for it.
 
 `scale`, `arrow_size` and `max_width_ratio` apply to burned images. The interactive viewer shows the screenshot at its own size and keeps its arrow, so it reads `font_weight` and the other keys but not these three.
+
+## Wide and narrow images
+
+A docs site often shows a wide desktop capture and a phone capture at different widths: 1440 px shown at 720, 780 px shown at 358. One number cannot fit both, and `display_width: 720` gives the phone capture an auto factor of 1.08 and 7.5 px text. `display_width` also takes an object:
+
+```json
+{
+  "burn": {
+    "theme": {
+      "preset": "readable",
+      "display_width": { "default": 720, "narrow": 358, "narrow_below": 900 }
+    }
+  }
+}
+```
+
+A screenshot narrower than `narrow_below` image pixels (default 900) uses `narrow`, any other uses `default` (720 when absent). With that block a 780 px capture gets auto 2.18 and a 1440 px capture gets 2, so both read at 15 px on the page.
+
+- `narrow` is required. `default` and `narrow_below` must be positive numbers when written.
+- Unknown keys, a non-number and a non-positive value stop the command and name the key path, such as `display_width.narrow`.
+- The number form is unchanged and has no narrow width. A number written in the block replaces an object from a lower layer.
+- A tokens file can supply the object through `tokens`, as the value of the mapped token.
+- It only changes `scale: "auto"`. An explicit `scale` ignores it, and the viewer's CSS variables do not read `display_width`.
+- In code the resolved theme carries `displayWidth`, `displayWidthNarrow` and `narrowBelow` (the last two are `null` for the number form), and `captionScale(theme, imageWidth)` picks the width.
 
 ## Making captions legible on a docs site
 
@@ -108,7 +132,7 @@ With `auto = imageWidth / displayWidth` that is `fontSize` itself, so `readable`
 }
 ```
 
-Screenshots narrower than `display_width` keep base size, so one block serves mobile captures and wide desktop ones.
+Screenshots narrower than `display_width` keep base size, so one block serves mobile captures and wide desktop ones. When the phone captures are shown narrower than their pixel width, use the object form from [Wide and narrow images](#wide-and-narrow-images).
 
 ## Placement priorities
 

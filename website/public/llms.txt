@@ -40,6 +40,7 @@ Every page below is served as plaintext Markdown. The rendered site at https://d
 - [MCP tools](https://docsxai.dev/reference/mcp-tools.md): the fourteen docsxai-mcp tools and their structured result contract
 - [Backend API](https://docsxai.dev/reference/backend-api.md): every endpoint - revisions, blobs, the auth-cache relay, OAuth 2.1, and the GitHub webhook
 - [Actionability contract](https://docsxai.dev/reference/actionability.md): the portable element-state vocabulary shared with browxai
+- [Screens pack manifest](https://docsxai.dev/reference/pack-manifest.md): the `docsxai/screens-pack@2` manifest field by field, the `pack.json` that feeds it, and the version policy
 
 ## Packages
 

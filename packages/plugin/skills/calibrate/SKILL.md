@@ -24,7 +24,7 @@ Skip this when a workspace (a directory with `.docsxai.json`) exists. If the `do
 3. `docsxai capture-auth '<workspace-dir>'` when the app needs a login. It opens a headed browser and needs a human, so ask the user to do it. Skip it for `--auth none`.
 4. Stage 1 below, then `docsxai calibrate '<workspace-dir>' --from '<flow.yaml>'` once the flow-file exists. `flows/example.flow.yaml.sample` in a new workspace is a flow-file to start from.
 
-When a command fails, its last line is `next: <command>`; run that. For anything the message doesn't explain, run `docsxai doctor '<workspace-dir>'`, and for a halted `run`, `docsxai diagnose` (`/docsxai:diagnose`).
+When a command fails, its error carries an indented `next: <command>` line when there is one; run that. A halted `run` prints a `<flow>: next: <command>` line per failed flow instead. For anything the message doesn't explain, run `docsxai doctor '<workspace-dir>'`, and for a halted `run`, `docsxai diagnose` (`/docsxai:diagnose`).
 
 ## 1. Discovery — walk the live site
 

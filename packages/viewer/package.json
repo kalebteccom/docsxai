@@ -28,11 +28,13 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./schemas/*.json": "./schemas/*.json"
   },
   "files": [
     "dist",
-    "assets"
+    "assets",
+    "schemas"
   ],
   "bin": {
     "docsxai-viewer": "./dist/index.js"

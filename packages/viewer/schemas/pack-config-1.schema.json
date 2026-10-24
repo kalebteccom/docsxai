@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docsxai.dev/schemas/pack-config-1.json",
+  "title": "docsxai/pack-config@1",
+  "description": "The pack.json that sits beside docs/ in a workspace. Mirrors parsePackConfig in @docsxai/viewer (src/pack-workspace.ts, src/pack-matrix.ts). Unknown keys are ignored there, so they are allowed here. Text rules (locale tags, lengths, alt coverage) belong to the screens-pack@2 schema.",
+  "type": "object",
+  "required": ["schema", "flows"],
+  "properties": {
+    "schema": { "const": "docsxai/pack-config@1" },
+    "sources": {
+      "description": "Capture flow name (docs/<name>/) to where its screenshots go in the pack. Names __proto__, constructor and prototype are refused.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/captureFlow",
+        "not": { "enum": ["__proto__", "constructor", "prototype"] }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "if": { "required": ["matrix"] },
+        "then": { "$ref": "#/$defs/matrixSource" },
+        "else": { "$ref": "#/$defs/flatSource" }
+      }
+    },
+    "matrixFlow": { "$ref": "#/$defs/matrixFlow" },
+    "flows": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["steps"],
+        "properties": {
+          "title": { "$ref": "#/$defs/localized" },
+          "steps": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["alt"],
+              "properties": {
+                "alt": { "$ref": "#/$defs/localized" },
+                "caption": { "$ref": "#/$defs/localized" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "anyOf": [
+    { "required": ["matrixFlow"] },
+    { "required": ["sources"], "properties": { "sources": { "minProperties": 1 } } }
+  ],
+  "$defs": {
+    "id": {
+      "description": "A pack flow id.",
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(?:[-_][a-z0-9]+)*$"
+    },
+    "captureFlow": {
+      "description": "A capture flow's directory name under docs/.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*$"
+    },
+    "matrixId": {
+      "description": "A matrix variant directory name: <locale>.<color scheme>.<viewport name>.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "not": { "const": "screenshots" }
+    },
+    "variantKey": {
+      "description": "A pack variant key: <locale>.<theme>.<viewport width>.",
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,2}\\.[a-z][a-z0-9-]{0,23}\\.[1-9][0-9]{2,3}$"
+    },
+    "localized": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "flatSource": {
+      "type": "object",
+      "required": ["flow", "variant"],
+      "properties": {
+        "flow": { "$ref": "#/$defs/id" },
+        "variant": { "$ref": "#/$defs/variantKey" }
+      }
+    },
+    "matrixSource": {
+      "description": "One matrix variant directory. Without packFlow, flow must itself be a pack flow id.",
+      "type": "object",
+      "required": ["flow", "matrix", "variant"],
+      "properties": {
+        "flow": { "$ref": "#/$defs/captureFlow" },
+        "matrix": { "$ref": "#/$defs/matrixId" },
+        "variant": { "$ref": "#/$defs/variantKey" },
+        "packFlow": { "$ref": "#/$defs/id" }
+      },
+      "anyOf": [
+        { "required": ["packFlow"] },
+        { "properties": { "flow": { "$ref": "#/$defs/id" } } }
+      ]
+    },
+    "matrixFlow": {
+      "description": "Every variant directory of one matrix flow. Needs map entries or auto true. Without packFlow, flow must itself be a pack flow id.",
+      "type": "object",
+      "required": ["flow"],
+      "properties": {
+        "flow": { "$ref": "#/$defs/captureFlow" },
+        "packFlow": { "$ref": "#/$defs/id" },
+        "auto": { "type": "boolean" },
+        "map": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/matrixId" },
+          "additionalProperties": { "$ref": "#/$defs/variantKey" }
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            { "required": ["packFlow"] },
+            { "properties": { "flow": { "$ref": "#/$defs/id" } } }
+          ]
+        },
+        {
+          "anyOf": [
+            { "required": ["auto"], "properties": { "auto": { "const": true } } },
+            { "required": ["map"], "properties": { "map": { "minProperties": 1 } } }
+          ]
+        }
+      ]
+    }
+  }
+}

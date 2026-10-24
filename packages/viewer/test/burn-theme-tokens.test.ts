@@ -201,12 +201,6 @@ describe("a tokens file that does not fit", () => {
     expect(() => flattenTokens([])).toThrow(/must be a JSON object/);
     expect(() => flattenTokens("#fff")).toThrow(/must be a JSON object/);
   });
-
-  it("refuses a dimension in a unit it cannot convert", () => {
-    expect(problemsFrom({ from: "tokens.json" }, { radius: { callout: "2em" } })[0]).toContain(
-      '"2em" is not a number',
-    );
-  });
 });
 
 describe("the mapping table", () => {

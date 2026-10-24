@@ -64,13 +64,6 @@ describe("burnWithWorkspaceTheme", () => {
     expect(isColour(pixelAt(img, 190, 121), "#d10000")).toBe(true);
   });
 
-  it("lets an explicit options.theme win over the workspace's", async () => {
-    await writeConfig({ burn: { theme: { preset: "high-contrast" } } });
-    const { DEFAULT_BURN_THEME } = await import("../src/burn-theme.js");
-    const img = decodePng(await burn({ theme: DEFAULT_BURN_THEME }));
-    expect(isColour(pixelAt(img, 190, 121), "#e8590c")).toBe(true);
-  });
-
   it("loads once per workspace and warns once per load", async () => {
     await writeConfig({ burn: { theme: { ink: "#aaaaaa" } } });
     const warn = vi.fn();

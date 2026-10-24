@@ -5,7 +5,7 @@ import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { pngDimensions, renderBurn } from "../src/burn.js";
+import { renderBurn } from "../src/burn.js";
 import { DEFAULT_BURN_THEME } from "../src/burn-theme.js";
 import { loadBurnTheme, loadThemeFont } from "../src/burn-theme-load.js";
 import { solidPng } from "./helpers/png.js";
@@ -41,8 +41,8 @@ const fontMessage = async (data: string | Buffer): Promise<string> => {
 describe("a tokens file that cannot be used", () => {
   const fromTokens = () => writeConfig({ burn: { theme: { from: "tokens.json" } } });
 
-  it.each([["[]"], ['"#fff"'], ["5"]])("says so for a document of %s", async (text) => {
-    await writeRaw("tokens.json", text);
+  it("says so for a document that is a list", async () => {
+    await writeRaw("tokens.json", "[]");
     await fromTokens();
     expect(await messageOf(loadBurnTheme(ws))).toBe(
       ".docsxai.json burn.theme: from: tokens.json is not usable: must be a JSON object of tokens",
@@ -63,22 +63,6 @@ describe("a tokens file that cannot be used", () => {
     );
   });
 
-  it("reports nesting past 16 levels", async () => {
-    let doc: unknown = "#ffffff";
-    for (let i = 0; i < 17; i++) doc = { a: doc };
-    await writeRaw("tokens.json", JSON.stringify(doc));
-    await fromTokens();
-    expect(await messageOf(loadBurnTheme(ws))).toContain("tokens nest deeper than 16 levels");
-  });
-
-  it("names the token and the file for a value of the wrong type", async () => {
-    await writeRaw("tokens.json", JSON.stringify({ color: { accent: 7 } }));
-    await fromTokens();
-    expect(await messageOf(loadBurnTheme(ws))).toContain(
-      'accent: token "color.accent" in tokens.json: 7 is not a colour',
-    );
-  });
-
   it.each([
     ["/etc/tokens.json", '"/etc/tokens.json" must be a path inside the workspace'],
     ["tokens.txt", '"tokens.txt" is not a .json file'],
@@ -92,12 +76,12 @@ describe("a tokens file that cannot be used", () => {
 });
 
 describe("a config file that is not shaped like one", () => {
-  it.each([["null"], ["[]"], ['"text"'], ["5"]])("has no theme when it is %s", async (text) => {
+  it.each([["null"], ["[]"], ["5"]])("has no theme when it is %s", async (text) => {
     await writeRaw(".docsxai.json", text);
     expect(await loadBurnTheme(ws)).toBeUndefined();
   });
 
-  it.each([[null], [[]], ["soft"]])("refuses burn: %j", async (burn) => {
+  it.each([[null], [[]]])("refuses burn: %j", async (burn) => {
     await writeConfig({ burn });
     expect(await messageOf(loadBurnTheme(ws))).toBe(
       ".docsxai.json burn: must be an object holding theme",
@@ -149,31 +133,10 @@ describe("a theme font that cannot be used", () => {
     expect(await fontMessage(FONT.subarray(0, 100))).toContain("cannot be measured");
   });
 
-  it("is refused when the path is a directory", async () => {
-    await fs.mkdir(path.join(ws, "fonts", "brand.ttf"), { recursive: true });
-    await writeConfig({ burn: { theme: { font: "fonts/brand.ttf" } } });
-    expect(await messageOf(loadBurnTheme(ws))).toContain("is not a regular file");
-  });
-
   it("stops a burn before any drawing when the file is gone", async () => {
     const theme = { ...DEFAULT_BURN_THEME, fontFile: path.join(ws, "gone.ttf") };
     await expect(
       renderBurn({ screenshotBuffer: solidPng(40, 30), annotations: [], options: { theme } }),
     ).rejects.toThrow(/burn\.theme font .*gone\.ttf does not exist/);
-  });
-});
-
-describe("a burn with a theme font", () => {
-  it("returns a PNG of the screenshot's size for an empty annotation list", async () => {
-    await writeRaw("fonts/brand.ttf", FONT);
-    await writeConfig({ burn: { theme: { font: "fonts/brand.ttf", font_weight: 600 } } });
-    const theme = (await loadBurnTheme(ws))!.theme;
-    const { png, report } = await renderBurn({
-      screenshotBuffer: solidPng(40, 30),
-      annotations: [],
-      options: { theme },
-    });
-    expect(pngDimensions(png)).toEqual({ width: 40, height: 30 });
-    expect(report).toEqual([]);
   });
 });

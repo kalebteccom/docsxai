@@ -8,6 +8,7 @@ import {
   THEME_FIELDS,
   THEME_KEYS,
   ThemeValueError,
+  parseField,
   type ThemeField,
   type ThemeKey,
 } from "./burn-theme-fields.js";
@@ -141,10 +142,10 @@ export function tokenLayer(
     }
     found++;
     try {
-      layer[field.prop] = field.parse(convert(leaves, key, leaves.get(tokenPath)));
+      Object.assign(layer, parseField(field, convert(leaves, key, leaves.get(tokenPath))));
     } catch (e) {
       if (!(e instanceof ThemeValueError)) throw e;
-      problems.push(`${key}: token "${tokenPath}" in ${file}: ${e.message}`);
+      problems.push(`${key}${e.subkey}: token "${tokenPath}" in ${file}: ${e.message}`);
     }
   }
   if (found === 0 && problems.length === 0) {

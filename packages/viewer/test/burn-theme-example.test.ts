@@ -20,6 +20,7 @@ describe("examples/burn-theme", () => {
     expect(cfg.schema).toBe("docsxai/workspace@1");
     const theme = parseThemeConfig(cfg.burn.theme);
     expect(theme.preset).toBe("readable");
-    expect(Object.keys(theme.inline)).toHaveLength(2);
+    // A plain number display_width also resets the narrow pair, so the layer holds those keys too.
+    expect(theme.inline).toMatchObject({ displayWidth: 720, accent: "#0b6e4f" });
   });
 });

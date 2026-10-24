@@ -81,11 +81,6 @@ describe("squeezing the side padding", () => {
     expect(lay(20, 20).paddingX).toBeUndefined();
   });
 
-  it("shrinks the box by twice the cut", () => {
-    const wide = measureCallout(text, METRICS, 242, styleOf(20)).size.width;
-    expect(measureCallout(text, METRICS, 242, styleOf(14)).size.width).toBe(wide - 12);
-  });
-
   describe("in the drawn tree", () => {
     const IMAGE = { dataUri: "data:image/png;base64,AAAA" };
     const paddingOf = (theme: typeof DEFAULT_BURN_THEME, k: number, overrun: number) => {

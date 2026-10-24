@@ -62,7 +62,17 @@ export interface BurnTheme {
   scale: number | "auto";
   /** CSS px the screenshot is shown at on the page. Read by `scale: "auto"`. */
   displayWidth: number;
+  /**
+   * CSS px a screenshot narrower than `narrowBelow` is shown at (a phone capture in a narrow
+   * column). null uses `displayWidth` for every screenshot.
+   */
+  displayWidthNarrow: number | null;
+  /** Screenshot width in px under which `displayWidthNarrow` applies; null means {@link NARROW_BELOW_DEFAULT}. */
+  narrowBelow: number | null;
 }
+
+/** Screenshot width in px under which `displayWidthNarrow` applies when the config names no threshold. */
+export const NARROW_BELOW_DEFAULT = 900;
 
 export const FONT_WEIGHTS = [400, 600] as const;
 export type FontWeight = (typeof FONT_WEIGHTS)[number];
@@ -94,6 +104,8 @@ export const DEFAULT_BURN_THEME: BurnTheme = {
   maxWidthRatio: 0.62,
   scale: 1,
   displayWidth: 720,
+  displayWidthNarrow: null,
+  narrowBelow: null,
 };
 
 export type ThemeLayer = Partial<BurnTheme>;
@@ -105,6 +117,8 @@ const PLAIN_SIZING = {
   maxWidthRatio: 0.62,
   scale: 1,
   displayWidth: 720,
+  displayWidthNarrow: null,
+  narrowBelow: null,
 } as const;
 
 /** Every preset sets every field except `fontFile`, so a preset never inherits the default look. */
@@ -188,10 +202,18 @@ export const haloRadius = (theme: BurnTheme): number => Math.round((theme.radius
 export const connectorColor = (theme: BurnTheme): string =>
   theme.calloutBorderWidth > 0 ? theme.calloutBorderColor : theme.ink;
 
-/** The factor `theme.scale` gives a screenshot `imageWidth` px wide: 1 for a screenshot at or under `displayWidth`. */
+/** CSS px the page shows a screenshot `imageWidth` px wide at: `displayWidthNarrow` under `narrowBelow`, else `displayWidth`. */
+export function displayWidthFor(theme: BurnTheme, imageWidth: number): number {
+  const narrow = theme.displayWidthNarrow;
+  return narrow !== null && imageWidth < (theme.narrowBelow ?? NARROW_BELOW_DEFAULT)
+    ? narrow
+    : theme.displayWidth;
+}
+
+/** The factor `theme.scale` gives a screenshot `imageWidth` px wide: 1 for a screenshot at or under its display width. */
 export function captionScale(theme: BurnTheme, imageWidth: number): number {
   if (theme.scale !== "auto") return theme.scale;
-  const factor = imageWidth / theme.displayWidth;
+  const factor = imageWidth / displayWidthFor(theme, imageWidth);
   // Rounded up to 2 decimals, so on-screen sizes are never a hair under their base size.
   return Math.min(AUTO_SCALE_MAX, Math.max(1, Math.ceil(factor * 100 - 1e-9) / 100));
 }

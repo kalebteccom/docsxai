@@ -15,8 +15,10 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord, AnnotationsFile } from "./annotations.js";
+import { mixHex } from "./color.js";
 import { discoverFlows } from "./render.js";
 import { ANNOTATED_SHOT_ASTRO, COPY_ID_ASTRO } from "./starlight-components.js";
+import { accentContrastWarnings } from "./starlight-contrast.js";
 import { SCROLLBARS_CSS, SCROLLBARS_CSS_PATH } from "./starlight-scrollbars.js";
 
 /** Exact versions pinned into the emitted site's package.json — verified to install + build. */
@@ -96,15 +98,6 @@ export function normalizeAccent(input: string): string {
     return `#${r!}${r!}${g!}${g!}${b!}${b!}`;
   }
   throw new Error(`invalid accent color "${input}" — expected a hex color like #2563eb`);
-}
-
-function mixHex(a: string, b: string, t: number): string {
-  const ch = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
-  const out = [0, 1, 2]
-    .map((i) => Math.round(ch(a, i) * (1 - t) + ch(b, i) * t))
-    .map((v) => v.toString(16).padStart(2, "0"))
-    .join("");
-  return `#${out}`;
 }
 
 /** The `--sl-color-accent-*` scale for both themes, derived deterministically from one hex. */
@@ -493,5 +486,6 @@ export async function emitStarlightSite(
     else await fs.copyFile(copies.get(rel)!, dest);
   }
 
+  if (accent !== null) warnings.push(...accentContrastWarnings(accent));
   return { files, flows, title, accent, logo: logoRel, warnings };
 }
