@@ -62,6 +62,127 @@ describe("launchPlaywrightSession, setup failure", () => {
   });
 });
 
+/** A fake CDP-attached browser: records which handles were released, in order. */
+function fakeCdpBrowser(opts: {
+  contexts?: unknown[];
+  newContext?: () => Promise<unknown>;
+  closeBrowser?: () => Promise<void>;
+}) {
+  const released: string[] = [];
+  const browser = {
+    contexts: () => opts.contexts ?? [],
+    newContext:
+      opts.newContext ??
+      (async () => ({
+        pages: () => [],
+        newPage: async () => {
+          throw new Error("page refused");
+        },
+        close: async () => void released.push("context"),
+      })),
+    close: opts.closeBrowser ?? (async () => void released.push("browser")),
+  };
+  return { browser, released };
+}
+
+describe("launchPlaywrightSession, CDP attach", () => {
+  const attach = (browser: unknown) =>
+    vi.spyOn(chromium, "connectOverCDP").mockResolvedValue(browser as never);
+
+  it("disconnects when the browser has no context and one cannot be created", async () => {
+    const { browser, released } = fakeCdpBrowser({
+      newContext: async () => {
+        throw new Error("context refused");
+      },
+    });
+    const spy = attach(browser);
+    try {
+      await expect(
+        launchPlaywrightSession({ connectOverCdp: "http://localhost:9222" }),
+      ).rejects.toThrow("context refused");
+      expect(released).toEqual(["browser"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("closes a context it created and disconnects when the page cannot be opened", async () => {
+    const { browser, released } = fakeCdpBrowser({});
+    const spy = attach(browser);
+    try {
+      await expect(
+        launchPlaywrightSession({ connectOverCdp: "http://localhost:9222" }),
+      ).rejects.toThrow("page refused");
+      expect(released).toEqual(["context", "browser"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("disconnects but leaves the operator's own context open when setup fails", async () => {
+    const released: string[] = [];
+    const own = {
+      pages: () => [],
+      newPage: async () => {
+        throw new Error("page refused");
+      },
+      close: async () => void released.push("context"),
+    };
+    const { browser } = fakeCdpBrowser({
+      contexts: [own],
+      closeBrowser: async () => void released.push("browser"),
+    });
+    const spy = attach(browser);
+    try {
+      await expect(
+        launchPlaywrightSession({ connectOverCdp: "http://localhost:9222" }),
+      ).rejects.toThrow("page refused");
+      expect(released).toEqual(["browser"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("close() disconnects once and never closes the operator's context or pages", async () => {
+    const released: string[] = [];
+    const page = { url: () => "https://app.test/", close: async () => void released.push("page") };
+    const own = {
+      pages: () => [page],
+      close: async () => void released.push("context"),
+    };
+    const { browser } = fakeCdpBrowser({
+      contexts: [own],
+      closeBrowser: async () => void released.push("browser"),
+    });
+    const spy = attach(browser);
+    try {
+      const session = await launchPlaywrightSession({ connectOverCdp: "http://localhost:9222" });
+      await session.close();
+      await session.close();
+      expect(released).toEqual(["browser"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("close() swallows a failed disconnect", async () => {
+    const own = { pages: () => [{ url: () => "https://app.test/" }], close: async () => {} };
+    const { browser } = fakeCdpBrowser({
+      contexts: [own],
+      closeBrowser: async () => {
+        throw new Error("already gone");
+      },
+    });
+    const spy = attach(browser);
+    try {
+      const session = await launchPlaywrightSession({ connectOverCdp: "http://localhost:9222" });
+      await expect(session.close()).resolves.toBeUndefined();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
 describe.skipIf(!chromiumAvailable)(
   "PlaywrightDriver.boundingBox — device-pixel space (bug 1: dpr ≠ 1 mispositioning)",
   () => {

@@ -182,7 +182,8 @@ export async function cmdInspect(args: string[]): Promise<number> {
     process.stderr.write(`inspect: ${(e as Error).message}\n`);
     return 1;
   } finally {
-    if (!headed) await session.close();
+    // A headed launch stays open for the operator; an attach has nothing to keep open.
+    if (!headed || cdp) await session.close();
   }
 }
 

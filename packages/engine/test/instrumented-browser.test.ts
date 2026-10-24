@@ -1,5 +1,6 @@
 import * as vm from "node:vm";
-import { describe, expect, it } from "vitest";
+import { chromium } from "playwright-core";
+import { describe, expect, it, vi } from "vitest";
 import { ManualCaptureStrategy } from "../src/auth.js";
 import {
   helperScript,
@@ -38,6 +39,93 @@ describe("PlaywrightInstrumentedBrowser", () => {
       () => new PlaywrightInstrumentedBrowser({ headless: true }),
     );
     expect(s.name).toBe("manual-capture");
+  });
+});
+
+describe("PlaywrightInstrumentedBrowser, CDP attach", () => {
+  const CDP = "http://localhost:9222";
+
+  /** A fake attached Chrome whose handles log their release. */
+  function fakeChrome(opts: { exposeFails?: boolean; ownsContext?: boolean } = {}) {
+    const released: string[] = [];
+    const page = { url: () => "https://app.test/", goto: async () => undefined };
+    const context = {
+      exposeFunction: async () => {
+        if (opts.exposeFails) throw new Error("binding refused");
+      },
+      pages: () => [page],
+      close: async () => void released.push("context"),
+    };
+    const browser = {
+      contexts: () => (opts.ownsContext ? [] : [context]),
+      newContext: async () => context,
+      close: async () => void released.push("browser"),
+    };
+    const spy = vi.spyOn(chromium, "connectOverCDP").mockResolvedValue(browser as never);
+    return { released, spy };
+  }
+
+  it("disconnects when open() fails after the connection is made", async () => {
+    const { released, spy } = fakeChrome({ exposeFails: true });
+    try {
+      const b = new PlaywrightInstrumentedBrowser({ connectOverCdp: CDP });
+      await expect(b.open("https://app.test/")).rejects.toThrow("binding refused");
+      expect(released).toEqual(["browser"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("close() disconnects once, leaves the operator's context open and can be repeated", async () => {
+    const { released, spy } = fakeChrome();
+    try {
+      const b = new PlaywrightInstrumentedBrowser({ connectOverCdp: CDP });
+      await b.open("https://app.test/");
+      await b.close();
+      await b.close();
+      expect(released).toEqual(["browser"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("close() closes a context it created before it disconnects", async () => {
+    const { released, spy } = fakeChrome({ ownsContext: true });
+    try {
+      const b = new PlaywrightInstrumentedBrowser({ connectOverCdp: CDP });
+      await b.open("https://app.test/");
+      await b.close();
+      expect(released).toEqual(["context", "browser"]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+describe("PlaywrightInstrumentedBrowser, launched browser", () => {
+  it("closes the launched browser when the first navigation fails", async () => {
+    const released: string[] = [];
+    const context = {
+      exposeFunction: async () => undefined,
+      newPage: async () => ({
+        goto: async () => {
+          throw new Error("net::ERR_CONNECTION_REFUSED");
+        },
+      }),
+      close: async () => void released.push("context"),
+    };
+    const browser = {
+      newContext: async () => context,
+      close: async () => void released.push("browser"),
+    };
+    const spy = vi.spyOn(chromium, "launch").mockResolvedValue(browser as never);
+    try {
+      const b = new PlaywrightInstrumentedBrowser({ headless: true });
+      await expect(b.open("http://localhost:1/")).rejects.toThrow("ERR_CONNECTION_REFUSED");
+      expect(released).toEqual(["context", "browser"]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
