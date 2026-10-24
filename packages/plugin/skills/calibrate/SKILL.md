@@ -15,6 +15,17 @@ The workflow has three stages: discovery, mapping + testing, commit. The engine 
 
 Ambiguity is resolved in the conversation: when a step could match several elements, or the prose does not pin one, show the user the candidates and your evidence, then record their pick in the flow-file. One ambiguity per turn. Persist intermediate state in the workspace as you go (flow-files on disk, `run --stop-after` prefixes), so a dropped session resumes from the files.
 
+## 0. Set up the workspace
+
+Skip this when a workspace (a directory with `.docsxai.json`) exists. If the `docsxai` command isn't found, ask the user to install it as the plugin README's Install section says; don't install it yourself. Then, in this order:
+
+1. `docsxai init '<workspace-dir>' --app-url '<url>'`, with `--auth none` for an app that needs no login. Put the workspace outside the app's repo. Its `next:` line lists the rest of this order.
+2. `docsxai doctor '<workspace-dir>'`. Fix each `fail:` line from its `next:` step before going on.
+3. `docsxai capture-auth '<workspace-dir>'` when the app needs a login. It opens a headed browser and needs a human, so ask the user to do it. Skip it for `--auth none`.
+4. Stage 1 below, then `docsxai calibrate '<workspace-dir>' --from '<flow.yaml>'` once the flow-file exists. `flows/example.flow.yaml.sample` in a new workspace is a flow-file to start from.
+
+When a command fails, its last line is `next: <command>`; run that. For anything the message doesn't explain, run `docsxai doctor '<workspace-dir>'`, and for a halted `run`, `docsxai diagnose` (`/docsxai:diagnose`).
+
 ## 1. Discovery — walk the live site
 
 Drive the operator's live browser through a **host-agent-drivable browser API over MCP** (the BYOB pattern: the engineer is already authenticated to the target site there — never ask for credentials, never put credentials anywhere). The canonical, model-agnostic driver is **[browxai](https://github.com/kalebteccom/browxai)** — an MCP-native browser bridge with a capability system, allowlist, confirm hooks, and a managed-Chrome lifecycle. **Setup:** `browxai init "$WORKSPACE/.browxai"` bootstraps the workspace and writes both managed + BYOB MCP entries; `browxai chrome start --insecure` owns the `--cdp` Chrome lifecycle (a one-command alternative to a manual `--remote-debugging-port` invocation); `browxai doctor` health-checks the environment. For an authed target, pick the `browxai-attached` MCP entry once Step-3's Chrome is up. The host agent gets `find(query)` (ranked candidate locators with `selectorHint` + `stability` + visible-rect bbox + `actionable`), `snapshot()` (a11y tree augmented with DOM-walk; `[from-dom]`/`[from-both]` markers), persistent refs + `name_ref`/`named:` for cross-snapshot bindings, `find_feedback` for session-scoped learned ranking, action primitives that report what changed, `await_human` (kinds: `acknowledge`/`confirm`/`choose`/`input`), `start_recording`/`end_recording` to record a calibration walk and emit a draft docsxai flow-file YAML, plus screenshots / console / network reads. **Read `<browxai>/AGENT-RUNBOOK.md` for the full tool surface, snapshot output legend, locator-disambiguation idioms (`:visible`, `nth-match`), `stability` semantics, and capability/security knobs — docsxai doesn't duplicate that content.** Integration contract: `docs/browxai-asks.md` in the engine repo. Fallbacks if browxai misbehaves on a specific page: `docsxai inspect "$WORKSPACE" --cdp <endpoint>` or `chromium.connectOverCDP(...)` directly. _Legacy:_ Anthropic's **Claude in Chrome** extension (`mcp__claude-in-chrome__*`) is still a valid Claude-Code-only driver but isn't the canonical path. For each flow in the description:
@@ -44,6 +55,21 @@ Output of discovery: candidate flow steps + locators + screenshots, with ambigui
 ## Persistence & delivery
 
 Persist the doc pack to a backend with `/docsxai:push` (OAuth or `DOCSX_TOKEN` auth, workspace-scoped, linear immutable revisions). `docsxai init --persist tmp` makes a throwaway workspace for sandbox or eval runs. Then build the viewer (`/docsxai:render`). For a static delivery, `docsxai burn` bakes the annotations into PNG copies and `docsxai pack` builds the screenshot pack a docs site ships (`pack --check --against <pack-dir>` compares it with a committed one); neither has a slash command. For an ad-hoc client delivery (the first-consumer pattern), compose the output into the client's docs surface via the relevant MCP (e.g. Confluence MCP) with credentials they provide at hand-off — we never hold long-lived client credentials, and the engine has no Confluence dependency.
+
+## Burned captions
+
+`docsxai burn` and `docsxai pack` draw the halo, badge and callout into the screenshot, and the page then scales the whole image to its column. A 1440 px screenshot in a 720 px column shows 14 px text at 7 px. When you see captions that look small, set `burn.theme` in the workspace's `.docsxai.json`: the `readable` preset, and `display_width` to the width in CSS px the page shows the screenshot at.
+
+```json
+{ "burn": { "theme": { "preset": "readable", "display_width": 720 } } }
+```
+
+- `readable` sets `scale` to `"auto"`: the factor is screenshot width over `display_width` (at least 1, at most 4), so the caption reads at its set size once scaled down. It sets 15 px text, ink on near-white at WCAG AA.
+- `display_width` is 240 to 2400 and defaults to 720. A 780 px phone screenshot shown at 358 px needs 358, since the default gives it 7.5 px text.
+- Screenshots narrower than `display_width` keep base size, so one block serves phone and desktop captures.
+- Any key in the block overrides the preset. `burn`, `pack` and `render` print a warning when a text pair falls under WCAG AA.
+
+Full key list and the tokens file: `docs/burn-theming.md` in the docsxai repository.
 
 ## When a calibrated flow later breaks
 
