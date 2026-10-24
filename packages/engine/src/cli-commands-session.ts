@@ -95,6 +95,9 @@ export async function cmdRun(args: string[]): Promise<number> {
   const projectDir: string = positionals[0];
   const bare = flagMissingValue(flags, RUN_VALUE_FLAGS);
   if (bare) return usageError("run", `--${bare} needs a value`);
+  // An empty value is falsy downstream, so `--flow ""` would run every flow and `--variant ""` every variant.
+  const empty = RUN_VALUE_FLAGS.find((n) => flags.get(n) === "" && n !== "device-scale-factor");
+  if (empty) return usageError("run", `--${empty} needs a value (got an empty string)`);
   const concurrencyFlag = flags.get("concurrency");
   if (typeof concurrencyFlag === "string" && !/^[1-9]\d*$/.test(concurrencyFlag)) {
     return usageError(

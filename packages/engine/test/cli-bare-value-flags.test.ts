@@ -71,6 +71,16 @@ describe("a bare value flag exits 2", () => {
   });
 });
 
+describe("an empty value for a run flag exits 2", () => {
+  it.each(["--flow", "--variant", "--stop-after", "--start-from", "--cdp", "--concurrency"])(
+    "%s",
+    async (flag) => {
+      expect(await main(["run", WS, flag, ""])).toBe(2);
+      expect(err).toMatch(new RegExp(`run: ${flag} (needs a value|must be)`));
+    },
+  );
+});
+
 describe("values that name nothing usable", () => {
   it("inspect --wait takes whole milliseconds", async () => {
     expect(await main(["inspect", WS, "--wait", "soon"])).toBe(2);
