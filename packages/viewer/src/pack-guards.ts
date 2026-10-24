@@ -1,5 +1,5 @@
-// Publish guards: text that must never reach a public screenshot pack. Runs over every string a
-// reader sees (title, caption, alt, callout copy). A hit names the manifest path and the rule,
+// Publish guards: text that must never reach a public screenshot pack. Runs over every string the
+// manifest publishes (title, caption, alt, callout copy, generated_for). A hit names the manifest path and the rule,
 // never the matched text, so a leaked secret is not printed into a CI log.
 
 import type { ScreensPack } from "./pack-schema.js";
@@ -87,6 +87,7 @@ export function scanText(text: string): string[] {
 }
 
 function* strings(pack: ScreensPack): Generator<[string, string]> {
+  if (pack.generated_for !== undefined) yield ["generated_for", pack.generated_for];
   for (const [flowId, flow] of Object.entries(pack.flows)) {
     const flowAt = `flows["${flowId}"]`;
     for (const [locale, text] of Object.entries(flow.title ?? {}))

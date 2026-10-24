@@ -160,6 +160,12 @@ describe("guardPack", () => {
     ]);
   });
 
+  it("scans generated_for, which the manifest publishes", () => {
+    const pack = { ...packWith({}), generated_for: `build ${"ghp_" + "a".repeat(36)}` };
+    expect(guardPack(pack)).toEqual(["generated_for: GitHub token"]);
+    expect(guardPack({ ...packWith({}), generated_for: "3f2a9c1" })).toEqual([]);
+  });
+
   it("never prints the text it matched", () => {
     const secret = "hunter2hunter2";
     const leaks = guardPack(packWith({ copy: `password: ${secret}` }));
