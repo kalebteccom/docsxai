@@ -7,7 +7,7 @@ description: Use when a repo has a docsxai workspace (a `.docsxai.json`) or the 
 
 This is the secondary path, pinned into a repo for teams that cannot install the plugin. The first-class surface is the **@docsxai/plugin Claude Code plugin**. If `/docsxai:run` and friends exist in this session, use them and ignore the rest of this file.
 
-Without the plugin, drive the `docsxai` CLI directly. `docsxai --help` is the reference for every flag. Terms: a _workspace_ is the directory `docsxai init` creates (`flows/`, `docs/`, `.auth/`, `.docsxai.json`); a _flow_ is one `flows/<name>.flow.yaml`; a _step_ is one entry in a flow; a flow with a `matrix:` expands into one _variant_ per locale, color scheme and viewport; the _doc pack_ is what `run` writes under `docs/`; the _pack_ is the screenshot pack `docsxai pack` builds for a docs site.
+Without the plugin, drive the `docsxai` CLI directly. `docsxai --help` is the reference for every flag. Terms: a _workspace_ is the directory `docsxai init` creates (`flows/`, `docs/`, `.auth/`, `.docsxai.json`); a _flow_ is one `flows/<name>.flow.yaml`; a _step_ is one entry in a flow; a flow with a `matrix:` expands into one _variant_ per combination of its locales, color schemes and viewports; the _doc pack_ is what `run` writes under `docs/`; the _pack_ is the screenshot pack `docsxai pack` builds for a docs site.
 
 If `docsxai` isn't found, ask the user to install it as the Install section of the plugin README (`packages/plugin/README.md` in the docsxai repository) says.
 

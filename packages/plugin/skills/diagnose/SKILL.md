@@ -33,7 +33,7 @@ The recommendation taxonomy maps to common drift shapes — see [`docs/actionabi
 | `selector` (e.g. live probe = `not-found` / `multiple-matches`)      | Re-discover the element via browxai's `find()` / `docsxai inspect`; commit a new canonical locator (or scope the existing one with `:visible` / `:nth-match`). |
 | `wait_for` (`not-visible` after a long-async action)                 | Add or strengthen `wait_for: { selector: <sel>, timeout_ms: <ms> }`.                                                                                           |
 | `annotation_target` (`detached` — the action target unmounted)       | Set `annotation.target` to a surviving element in the resulting state. The action's `target` stays the same.                                                   |
-| `split_step` (`off-screen` / `covered`)                              | Insert a step before the action — scroll-into-view, dismiss-overlay, ESC-key.                                                                                  |
+| `split_step` (`off-screen` / `covered`)                              | Insert a step before the action — scroll-into-view, dismiss-overlay, ESC-key. If an earlier `hide` step hid the target, add a `show` step before it.           |
 | `success` (the `success` clause looks fragile, e.g. `text_contains`) | Replace with a structural criterion where stable; or update the expected text.                                                                                 |
 | `investigate` (live probe = `actionable` / `disabled`)               | Race / flakiness in the original run; or a product-state decision (`disabled` may be intentional). Don't auto-edit.                                            |
 
