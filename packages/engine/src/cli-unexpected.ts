@@ -10,6 +10,7 @@ import {
   shellQuote,
   withNext,
 } from "./cli-messages.js";
+import { forwardSignalToViewer } from "./viewer-bin.js";
 
 const ISSUES = "https://github.com/kalebteccom/docsxai/issues";
 
@@ -40,7 +41,8 @@ export function interruptedText(signal: string, argv: string[]): string {
 
 /**
  * Run `main` as the bin does: an error it throws becomes exit 1 and {@link unexpectedErrorText}, and
- * Ctrl-C or SIGTERM ends the process with {@link interruptedText} and exit 130 or 143.
+ * Ctrl-C or SIGTERM prints {@link interruptedText} and ends the process with exit 130 or 143. While
+ * a viewer child runs, the signal goes to it and the process exits with the child's exit code.
  */
 export async function runAsBin(
   main: (argv: string[]) => Promise<number>,
@@ -51,7 +53,8 @@ export async function runAsBin(
   const handlers = (Object.keys(signals) as Array<keyof typeof signals>).map((sig) => {
     const handler = () => {
       process.stderr.write(interruptedText(sig, argv));
-      process.exit(signals[sig]);
+      // A render, burn or pack child gets the signal and ends the run itself, so its writes finish.
+      if (!forwardSignalToViewer(sig)) process.exit(signals[sig]);
     };
     process.once(sig, handler);
     return [sig, handler] as const;
