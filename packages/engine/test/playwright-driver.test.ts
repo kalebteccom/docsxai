@@ -43,7 +43,7 @@ describe("PlaywrightDriver.screenshot — capture options (bug 3: mid-transition
   });
 });
 
-describe("launchPlaywrightSession — setup failure", () => {
+describe("launchPlaywrightSession, setup failure", () => {
   it("closes the launched browser when the context cannot be created", async () => {
     const close = vi.fn(async () => undefined);
     const browser = {

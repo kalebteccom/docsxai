@@ -195,6 +195,15 @@ describe("diffDocPacks", () => {
     });
   });
 
+  it("an unreadable screenshot is reported by its path", async () => {
+    const good = solidPng(10, 10, WHITE);
+    const a = await makePack({ screenshots: { "pay.png": good } });
+    const b = await makePack({ screenshots: { "pay.png": Buffer.from("not a png") } });
+    await expect(diffDocPacks(a, b)).rejects.toThrow(
+      /docs\/checkout\/screenshots\/pay\.png: not a readable PNG/,
+    );
+  });
+
   it("step add/remove/field-change matrix (id-keyed deltas)", async () => {
     const a = await makePack({});
     const b = await makePack({

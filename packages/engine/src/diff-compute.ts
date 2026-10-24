@@ -277,7 +277,14 @@ async function diffScreenshots(
     const regions = ignoreRegions
       .filter((r) => r.flow === flow && r.step === step)
       .map((r) => r.region);
-    const diff = diffPngBuffers(aPng, bPng, regions);
+    let diff: PngDiffResult;
+    try {
+      diff = diffPngBuffers(aPng, bPng, regions);
+    } catch (e) {
+      throw new DriftError(
+        `docs/${flow}/screenshots/${name}: not a readable PNG (${(e as Error).message})`,
+      );
+    }
     if (diff.kind === "dimension-change") {
       out.push({
         step,

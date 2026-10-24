@@ -14,6 +14,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`baseline --out <workspace>` deleted the workspace's `flows/` and `docs/`.** A refresh clears `<out>/flows` and `<out>/docs` before copying, so an `--out` equal to the workspace removed the sources it was about to snapshot. The command now exits 2 and touches nothing.
 - **`push` payload order followed the disk.** The flows, annotations and screenshots entries of a pushed doc pack were added in the order the file system listed them, which differs between machines. They are now sorted, so the same workspace produces the same payload everywhere.
 - **`style --check` listed jargon hits in disk order.** The hits were reported flow by flow and file by file in the order the file system listed them, so the output differed between machines. They are now in name order.
+- **`diff` named no file for an unreadable screenshot.** A screenshot that was cut short or not a PNG (an interrupted run, a failed copy) made `diff` print the PNG decoder's own message, such as `Invalid file signature`, with no hint of which file. The error now starts with `docs/<flow>/screenshots/<file>`.
 
 ## [0.3.0-rc.4] - 2026-10-24
 
