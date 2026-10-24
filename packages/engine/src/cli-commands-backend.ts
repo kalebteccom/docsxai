@@ -10,6 +10,7 @@ import {
   BackendClient,
   createBackendClient,
   oauthLogin,
+  type RevisionArtifact,
   saveBackendTokenFile,
 } from "./backend-client.js";
 import {
@@ -237,6 +238,15 @@ export async function cmdPush(args: string[]): Promise<number> {
   }
 }
 
+/** The artifact slots a revision holds; any other name in a revision is not requested. */
+const KNOWN_ARTIFACTS: readonly RevisionArtifact[] = [
+  "flows",
+  "annotations",
+  "screenshots",
+  "style",
+  "locators",
+];
+
 export async function cmdPull(args: string[]): Promise<number> {
   const { positionals, flags } = parseFlags(args);
   if (!positionals[0]) return usageError("pull", "missing <workspace-dir>");
@@ -275,6 +285,12 @@ export async function cmdPull(args: string[]): Promise<number> {
     );
     const payloads: Partial<DocPackPayloads> = {};
     for (const artifact of rev.artifacts) {
+      if (!KNOWN_ARTIFACTS.includes(artifact)) {
+        process.stderr.write(
+          `pull: warning — revision lists the artifact ${JSON.stringify(sanitizeForTerminal(String(artifact)))}, which this docsxai does not know; skipped\n`,
+        );
+        continue;
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (payloads as any)[artifact] = await client.getArtifact(
         wsCfg.backend_workspace_id,
