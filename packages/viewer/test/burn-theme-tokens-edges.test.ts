@@ -68,7 +68,7 @@ describe("a token of the wrong type", () => {
 });
 
 describe("a mapped token", () => {
-  it("is missing when the path names a group instead of a token", () => {
+  it("is missing when the path names a group", () => {
     expect(
       problemsFrom({ ...FROM, tokens: { accent: "color" } }, { color: { accent: "#0b6e4f" } }),
     ).toEqual(['accent: burn.theme.tokens maps it to "color", but tokens.json has no such token']);
