@@ -67,10 +67,16 @@ describe("a union nested in the steps", () => {
   });
 
   it("prints every issue of the winning branch, each under the union's path", () => {
+    const msg = messageOf(flow("", hover("s1", "    success: { visible: 5, bogus: 1 }\n")));
+    expect(lines(msg)).toHaveLength(2);
+    expect(msg).toContain("  • steps.0.success.visible: ");
+    expect(msg).toMatch(/ {2}• steps\.0\.success: Unrecognized key.*bogus/);
+  });
+
+  it("prints a branch that failed only on an unknown key as that one issue", () => {
     const msg = messageOf(flow("", hover("s1", "    success: { visible: 5, hidden: $btn }\n")));
-    expect(msg).toContain("steps.0.success.visible:");
-    expect(msg).toMatch(/steps\.0\.success: Unrecognized key/);
-    expect(msg).toContain("hidden");
+    expect(lines(msg)).toHaveLength(1);
+    expect(lines(msg)[0]).toMatch(/^ {2}• steps\.0\.success: Unrecognized key.*visible/);
   });
 
   it("reports two unions in two steps on two lines", () => {
