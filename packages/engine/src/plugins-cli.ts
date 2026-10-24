@@ -123,20 +123,25 @@ async function cmdSync(workspaceDir: string, format: "text" | "json"): Promise<n
   const resolutions = await resolvePluginSources(workspaceDir, cfg.sources);
   const failures: Array<{ source: string; reason: string }> = [];
   const lock: PluginsLockFile = { schema: PLUGINS_LOCK_SCHEMA, plugins: {} };
+  const claimed = new Map<string, string>();
   for (const r of resolutions) {
     if (!r.ok) {
       failures.push({ source: r.record.source, reason: r.record.statusReason ?? "unresolvable" });
       continue;
     }
     const ns = r.candidate.manifest.namespace;
-    if (lock.plugins[ns]) {
-      failures.push({
-        source: r.candidate.source,
-        reason: `namespace "${ns}" is claimed by more than one configured plugin — cannot lock`,
-      });
-      delete lock.plugins[ns];
+    const reason = `namespace "${ns}" is claimed by more than one configured plugin — cannot lock`;
+    const firstSource = claimed.get(ns);
+    if (firstSource !== undefined) {
+      // The first claimant was locked before this one showed up: take it back out, once.
+      if (lock.plugins[ns]) {
+        delete lock.plugins[ns];
+        failures.push({ source: firstSource, reason });
+      }
+      failures.push({ source: r.candidate.source, reason });
       continue;
     }
+    claimed.set(ns, r.candidate.source);
     let bytes: Uint8Array;
     try {
       bytes = await fs.readFile(r.candidate.registerPath);

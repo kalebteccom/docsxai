@@ -15,6 +15,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 - **A side hint no longer pulls a short callout onto a neighbour.** The bonus `arrow_style` or `placement.side` gives its side now outweighs at most a 2 px strip of content along the callout's width. A 60 px label on a phone screenshot used to keep its hinted side over 6 px of a neighbouring control. Callouts 200 px wide or more score as before.
 
+### Fixed
+
+- **`plugins sync` with three plugins on one namespace.** It locked the last of them and named only the second as not locked. It now locks none of them and names every claimant.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

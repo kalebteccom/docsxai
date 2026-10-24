@@ -191,6 +191,27 @@ describe("docsxai plugins sync", () => {
     expect(Object.keys(lock.plugins)).toEqual(["multi"]);
   });
 
+  it("locks none of the plugins when three claim one namespace", async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-dupns-"));
+    try {
+      const dirs: string[] = [];
+      for (const n of ["a", "b", "c"]) {
+        const parent = path.join(tmp, n);
+        await fs.mkdir(parent);
+        dirs.push(await writeTempPlugin(parent, { namespace: "shared", name: `plugin-${n}` }));
+      }
+      const ws = await makeWorkspace({ plugins: dirs.map((d) => ({ path: d })) });
+      expect(await main(["plugins", "sync", ws])).toBe(1);
+      const lock = JSON.parse(await fs.readFile(path.join(ws, "plugins-lock.json"), "utf8")) as {
+        plugins: Record<string, unknown>;
+      };
+      expect(Object.keys(lock.plugins)).toEqual([]);
+      expect(err.match(/NOT locked/g)?.length).toBe(3);
+    } finally {
+      await fs.rm(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("--format json emits lockPath, lock, and failures", async () => {
     const ws = await makeWorkspace({ plugins: [{ path: fixturePlugin("multi-kind") }] });
     expect(await main(["plugins", "sync", ws, "--format", "json"])).toBe(0);
