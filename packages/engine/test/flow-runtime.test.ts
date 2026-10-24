@@ -709,6 +709,30 @@ steps:
     );
   });
 
+  it("an unresolved locator ref halts as a FlowExecutionError that names the step", async () => {
+    const flow = parseFlowFile(
+      `name: f\nlocators: { a: '#a' }\nsteps:\n  - id: s1\n    action: click\n    target: $a\n`,
+    );
+    const d = new FakeDriver();
+    await expect(runFlow(flow, d, { resolveLocator: () => undefined })).rejects.toMatchObject({
+      name: "FlowExecutionError",
+      stepId: "s1",
+      message: expect.stringMatching(/step "s1" \(click\).*unresolved locator \$a/s),
+    });
+    expect(d.screenshots.map((x) => x.path)).toEqual(["docs/f/halts/s1.png"]);
+  });
+
+  it("takes no halt screenshot when a redaction selector cannot be resolved", async () => {
+    const flow = parseFlowFile(
+      `name: f\nlocators: { a: '#a', secret: '#secret' }\nredactions:\n  - { selector: $secret }\nsteps:\n  - id: s1\n    action: click\n    target: $a\n`,
+    );
+    const d = new FakeDriver();
+    await expect(
+      runFlow(flow, d, { resolveLocator: (n) => (n === "secret" ? undefined : `#${n}`) }),
+    ).rejects.toMatchObject({ name: "FlowExecutionError", stepId: "s1" });
+    expect(d.screenshots).toEqual([]);
+  });
+
   it("prepends a `[cause: …]` prefix to the halt message when the underlying error names a Playwright actionability state", async () => {
     class DisabledDriver extends FakeDriver {
       override async fill(s: string, _v: string) {

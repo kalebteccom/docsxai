@@ -11,6 +11,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`render`, `burn` and `pack` forward SIGTERM and SIGINT to the viewer.** The command passes the signal to the viewer child and waits for it, then exits with the child's exit code, or 128 plus the signal number when the signal ended it. Before, the command exited at once and the child kept running and writing.
 - **`run --pause` and `inspect --headed` no longer hang when the browser is already closed.** The wait resolves at once for a browser that disconnected during the last step, and the session is closed and the command exits.
 - **`run --stop-after` with an unknown step id fails before any step runs.** It named no step and so ran the whole flow and overwrote its annotations; it now fails with `stopAfter: no step with id ...`, as `--start-from` already did.
+- **An unresolved locator ref halts as a step failure.** With a custom `resolveLocator`, a `target` or redaction `$ref` that resolved to nothing threw a plain error with no step id and no halt screenshot. It now halts as a `FlowExecutionError` that names the step. When a redaction cannot be resolved, no halt screenshot is taken, since it would go out unmasked.
 
 ## [0.3.0-rc.4] - 2026-10-24
 

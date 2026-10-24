@@ -353,9 +353,14 @@ export async function runFlow(
       if (step.id === opts.startFrom) skipping = false;
       else continue;
     }
-    const selector = step.target ? resolve(step.target) : null;
-    const redactions = redactionsFor(step);
+    let selector: string | null = null;
+    let redactions: ResolvedRedaction[] = [];
+    let redactionsResolved = false;
     try {
+      // Resolved inside the try so an unresolved ref halts with the step id like any other failure.
+      redactions = redactionsFor(step);
+      redactionsResolved = true;
+      selector = step.target ? resolve(step.target) : null;
       await executeAction(driver, step, selector);
       if (step.wait_for) {
         if (step.wait_for === "element_stable" && selector)
@@ -384,8 +389,10 @@ export async function runFlow(
       //  to know why), then surface step id + url + halt-shot path uniformly.
       const haltShot = `${variantDocDir(flow.name, variantId)}/halts/${step.id}.png`;
       // Halt shots can capture the same sensitive UI as step shots — same redactions apply.
-      if (captureDocs) await driver.screenshot(haltShot, redactions).catch(() => undefined);
-      const suffix = captureDocs ? ` (halt screenshot: ${haltShot})` : "";
+      // With the redactions unresolved the shot would go out unmasked, so none is taken.
+      const haltShotWanted = captureDocs && redactionsResolved;
+      if (haltShotWanted) await driver.screenshot(haltShot, redactions).catch(() => undefined);
+      const suffix = haltShotWanted ? ` (halt screenshot: ${haltShot})` : "";
       const cause = inferHaltCause((e as Error).message ?? "");
       const causePrefix = cause ? `[${cause}] ` : "";
       const variantTag = variantId ? `[variant ${variantId}] ` : "";
