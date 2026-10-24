@@ -190,6 +190,25 @@ To compare the looks, run `node scripts/burn-trackxai-sample.mjs` after `pnpm --
 
 The burn report marks each badge-only annotation with `"caption_style": "badge"`, whether `badge` or the `auto` fallback chose it.
 
+## Checking a whole capture folder
+
+`node scripts/burn-probe-batch.mjs --raw <dir> --out <dir>` burns every frame of a raw capture folder with the trackxai tokens and writes a report of where each caption, connector and badge landed. It lives in `scripts/` of a docsxai checkout, so run it from one after `pnpm --filter @docsxai/viewer build`.
+
+```sh
+node scripts/burn-probe-batch.mjs --raw raw --out probe --theme dark --locale en --widths 1280,390
+```
+
+`--raw` is read in either layout, detected from the file names. Other files (manifests, READMEs, step metadata) are ignored:
+
+- Flat: `<screen>.<locale>.<theme>.<width>.png` with a `.json` sidecar beside it (`trackxai/raw-capture-sidecar@1`, annotations with `bounding_box`).
+- Rawcap: `<flow>/<step>/<locale>.<theme>.<viewport>.png` with a `.json` sidecar beside it (`width`, `height`, annotations with `index`, `copy`, `bbox` and optional `obstacles`). A viewport is a width (`390`) or a name that ends in one (`mobile-390`).
+
+`--theme` (default `dark`), `--locale` (default `en`) and `--widths` (default `1280,390`) pick the frames. The tokens file is `--tokens-dark` or `--tokens-light`, else `examples/burn-theme/trackxai-<theme>.tokens.json`. Captures under 900 px burn with `caption_style: "auto"`, the others with `full`.
+
+`<out>/previews/` holds the burned PNG of each frame, and `<out>/report.md` the summary (frames, annotations, OK, CHECK, skipped for no `bounding_box`), the CHECK rows, then one row per frame and annotation: mode (`full`, `badge` or `skipped`), side, connector length in px, px² of the caption over listed text and over the phone header and bottom nav, whether the connector crosses listed text, whether the badge sits next to its target, and the verdict.
+
+A row is CHECK when the caption covers listed text or the phone header or nav, the burn marked it `unplaceable`, it covers another annotation's target, caption or badge, its badge is on its target, on listed text or the phone chrome, or more than 6 px from the target, or (phone captures only) its connector crosses listed text. Desktop rows show the crossing without holding it against the verdict.
+
 ## Phone captures
 
 A portrait capture under 900 px wide is treated as a phone screen. Its top 56 px (the header), bottom 56 px (the nav bar), the floating action button above the nav bar's right end (76 by 80 px) and a 16 px strip on each side are content. Captions stay off them, and badges stay off the header, nav bar and button. A caption docks 64 px from the top or bottom edge, under the header or above the nav bar. On a screenshot under 900 px wide the smaller text step is compact: 16 px lines for the 14 px text, 4 px of vertical padding and 8 px of horizontal padding.
