@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { emitStarlightSite } from "../src/starlight.js";
+import { pruneStale } from "../src/starlight-prune.js";
 
 let tmp = "";
 const site = () => path.join(tmp, "site");
@@ -72,4 +73,22 @@ describe("emitting a site over an earlier one", () => {
     expect(await exists("notes.md")).toBe(true);
     expect(await exists("src/pages/own.astro")).toBe(true);
   });
+});
+
+describe("pruning a generated folder that is a symlink", () => {
+  it.skipIf(process.platform === "win32").each(["src/content/docs/flows", "src/assets"])(
+    "leaves the files behind a symlinked %s alone",
+    async (linked) => {
+      const outside = path.join(tmp, "outside");
+      await fs.mkdir(path.join(outside, "flows"), { recursive: true });
+      await fs.writeFile(path.join(outside, "victim.mdx"), "keep");
+      await fs.writeFile(path.join(outside, "flows", "victim.png"), "keep");
+      await fs.mkdir(path.dirname(path.join(site(), linked)), { recursive: true });
+      await fs.symlink(outside, path.join(site(), linked));
+
+      expect(await pruneStale(site(), new Set())).toEqual([]);
+      expect(await fs.readFile(path.join(outside, "victim.mdx"), "utf8")).toBe("keep");
+      expect(await fs.readFile(path.join(outside, "flows", "victim.png"), "utf8")).toBe("keep");
+    },
+  );
 });

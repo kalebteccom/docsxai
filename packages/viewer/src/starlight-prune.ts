@@ -23,14 +23,27 @@ async function walk(dir: string, base: string): Promise<{ files: string[]; dirs:
   return { files, dirs };
 }
 
+/** True when `root` or a folder on the way to it from `outDir` is a symlink. */
+async function linkedOnTheWay(outDir: string, root: string): Promise<boolean> {
+  let at = outDir;
+  for (const seg of root.split("/")) {
+    at = path.join(at, seg);
+    const st = await fs.lstat(at).catch(() => null);
+    if (st?.isSymbolicLink()) return true;
+  }
+  return false;
+}
+
 /**
  * Removes what an earlier emit left under the generated folders and this emit does not write
  * (`keep`: POSIX paths relative to `outDir`), then the folders that end up empty. Returns the
- * removed files.
+ * removed files. A generated folder reached through a symlink is skipped.
  */
 export async function pruneStale(outDir: string, keep: ReadonlySet<string>): Promise<string[]> {
   const removed: string[] = [];
   for (const root of GENERATED_DIRS) {
+    // A linked folder leads out of the site: pruning through it would delete someone else's files.
+    if (await linkedOnTheWay(outDir, root)) continue;
     const { files, dirs } = await walk(path.join(outDir, root), root);
     for (const rel of files.sort()) {
       if (keep.has(rel)) continue;
