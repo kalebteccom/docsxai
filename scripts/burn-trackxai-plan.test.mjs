@@ -115,7 +115,7 @@ test("the manifest merge replaces only the burned variants and keeps alt text", 
     "/screens/desktop-1280/board.bbbbbbbb.png",
   );
   assert.deepEqual(manifest.screens.waiting, before.screens.waiting);
-  assert.deepEqual(Object.keys(manifest.screens), ["board", "progress", "waiting"]);
+  assert.deepEqual(Object.keys(manifest.screens), ["board", "waiting", "progress"]);
   assert.deepEqual(superseded, ["/screens/desktop-1280/board.aaaaaaaa.png"]);
   assert.equal(before.screens.board.variants["en.dark.1280"].src.endsWith("aaaaaaaa.png"), true);
   assert.throws(() => mergeManifest({ schema: "x" }, []), /manifest: schema/);

@@ -143,12 +143,22 @@ When an annotation carries `obstacles`, the burner scores every callout position
 
 `connector_style` sets what joins a callout to its target:
 
-- `line`: a thin line from the middle of the caption edge that faces the target to the target's edge, ending in a small dot on the halo. It starts on the caption's outer edge, so there is no gap and it does not run under the caption. The start keeps clear of the caption's rounded corners. When the target is off the caption's span the line takes one right-angle elbow halfway.
+- `line`: a thin line from the middle of the caption edge that faces the target to the outside of the halo ring, ending in a small dot there. It starts on the caption's outer edge, so there is no gap and it does not run under the caption. The start keeps clear of the caption's rounded corners. When the target is off the caption's span the line takes one right-angle elbow halfway.
 - `chevron`: the same line ending in a small open chevron.
 - `arrow`: the filled triangle and stem docsxai always drew.
 - `auto`, the default: `line` for a burn with a theme, `arrow` for a burn without one.
 
-The line is 2 px wide, the dot 3 px in radius and the chevron arms 5 px, all multiplied by `scale`. A line-joined callout rests 14 px from its target. When `obstacles` push it out, it moves at most 64 px away; a callout that cannot clear the content within that sits closer and covers some of it. A pinned arrow (`placement.pin_arrow`) is not capped, since its nudge sets the distance. The side hint in `arrow_style` works as before.
+The line is 2 px wide, the dot 2 px in radius and the chevron arms 5 px, all multiplied by `scale`.
+
+The line comes with a clean look for the halo and badge. The halo ring is drawn 3 px outside the target, so it never covers text inside it, and the numbered badge sits diagonally off the target's corner, clear of the element.
+
+Placement, with the line:
+
+- A caption rests 20 px from its target, so 15 px of line show past the ring.
+- The burner estimates text from the screenshot's pixels around the target (dense sharp luminance steps, in 8 px cells) and adds those boxes to the annotation's `obstacles`. A capture sidecar lists at most 40 boxes, and a burn without `obstacles` gets the same protection.
+- A caption that would cover text moves out up to 176 px to empty space. Clear space wins over a short line: a long thin line is fine, a covered label is not.
+- When nothing within 176 px is clear, the caption may dock in a band 12 px from the top or bottom edge of the image, joined by a straight line. A line that crosses text costs more than one through a gutter, so docking takes the gutter when there is one.
+- A pinned arrow (`placement.pin_arrow`) is not capped, since its nudge sets the distance. The side hint in `arrow_style` works as before.
 
 The line takes `callout_border_color`, or `ink` when `callout_border_width` is 0. The burner averages the screenshot under the line and checks that colour against it. Under 3:1 it switches to whichever of `ink` and `callout_background` has the most contrast there. There is no outline.
 

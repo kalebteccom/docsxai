@@ -30,7 +30,7 @@ The preferred side is `placement.side`, else the side in `arrow_style`, else `to
 
 List the neighbours of the target: text blocks, logos, icons, other halos. Do not list the target. A box that contains the target cannot be avoided.
 
-The burner moves the callout out along the side, adds a stem back to the arrow, and slides it along the target's edge. With a theme the connector is a thin line instead, and the callout moves at most 64 px from its target (see [burn-theming.md](burn-theming.md#connectors)). It keeps the spot that covers the least. A stem that crosses content costs more than a callout that covers the same area. Other halos, badges and earlier callouts count as obstacles too.
+The burner moves the callout out along the side, adds a stem back to the arrow, and slides it along the target's edge. With a theme the connector is a thin line instead: the callout moves up to 176 px out to empty space, or docks along the top or bottom edge, and text found in the pixels counts as an obstacle (see [burn-theming.md](burn-theming.md#connectors)). It keeps the spot that covers the least. A stem that crosses content costs more than a callout that covers the same area. Other halos, badges and earlier callouts count as obstacles too.
 
 When no spot is clear:
 

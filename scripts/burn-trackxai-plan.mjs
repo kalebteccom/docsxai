@@ -93,7 +93,7 @@ export function calloutTexts(records) {
 
 /**
  * `manifest` with `entries` added or replacing the variants they name. Other screens, other
- * variants and every `alt` stay. Returns the new manifest and the `src` paths it no longer names.
+ * variants and every `alt` stay, in their order; new screens and variants go last. Returns the new manifest and the `src` paths it no longer names.
  * Each entry: `{ screen, variant, value }`, `value` the variant object.
  */
 export function mergeManifest(manifest, entries) {
@@ -110,11 +110,7 @@ export function mergeManifest(manifest, entries) {
     const old = entry.variants?.[variant];
     if (old && old.src !== value.src) superseded.push(old.src);
     entry.variants = { ...entry.variants, [variant]: value };
-    entry.variants = Object.fromEntries(
-      Object.entries(entry.variants).sort(([a], [b]) => a.localeCompare(b)),
-    );
     screens[screen] = entry;
   }
-  const sorted = Object.fromEntries(Object.entries(screens).sort(([a], [b]) => a.localeCompare(b)));
-  return { manifest: { ...base, screens: sorted }, superseded };
+  return { manifest: { ...base, screens }, superseded };
 }

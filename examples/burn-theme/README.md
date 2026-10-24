@@ -32,6 +32,17 @@ Expect `burned/<flow>/<step>.png` for every flow with an `annotations.json`, and
 
 ## trackxai tokens pair
 
-`trackxai-light.tokens.json` and `trackxai-dark.tokens.json` are W3C tokens files for a light and a dark app: Kalebtec violet on paper, and light violet on ink. Each sets the callout, badge and halo colours, 14 px text and `shape.connector: "line"`. Point a workspace at one with `"burn": { "theme": { "from": "trackxai-light.tokens.json" } }`.
+`trackxai-light.tokens.json` and `trackxai-dark.tokens.json` are W3C tokens files for a light and a dark app: Kalebtec violet on paper, and light violet on ink. Each sets the callout, badge and halo colours, 15 px text, `shape.connector: "line"`, and under `render` a `scale` of `auto` with a `display_width` of 1100 (350 under 900 px), the widths the landing shows its captures at. That gives 17.6 px burned text on a 1280 capture and 16.8 px on a 390 one, 15 px on the page for both. `render` has no default token path, so map it:
 
-`node scripts/burn-trackxai-sample.mjs` burns three synthetic screens with both files, with the old triangle connector and with the line, and prints the paths of the before and after PNGs.
+```json
+{
+  "burn": {
+    "theme": {
+      "from": "trackxai-dark.tokens.json",
+      "tokens": { "scale": "render.scale", "display_width": "render.display-width" }
+    }
+  }
+}
+```
+
+`node scripts/burn-trackxai-sample.mjs` burns synthetic screens with both files, with the old triangle connector and with the line, and prints the before and after paths. `node scripts/burn-trackxai.mjs --raw <dir> --out <dir>` burns raw captures (`<screen>.<locale>.<theme>.<width>.png` with a `trackxai/raw-capture-sidecar@1` sidecar) into a screens pack and merges its `manifest.json`; see the script's header for `--rename`, `--screens` and `--compare`.
