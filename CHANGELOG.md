@@ -44,6 +44,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **Ctrl-C and SIGTERM during `render`, `burn` or `pack`.** The signal went to the viewer child and docsxai waited for it with no limit: a child that ignored the signal hung the command, a second Ctrl-C did nothing, and a child that exited 0 on the signal made docsxai exit 0 after printing `interrupted`. The child now gets SIGKILL 10 s after the first signal, a second signal ends docsxai at once with 130 or 143, and an exit 0 after a signal becomes 130 or 143.
 - **`run --start-from` or `--stop-after` with a step id that does not exist.** The browser launched first and the run then ended as a failed flow, exit 1 with a `doctor` hint. Both flags now check the id against the selected flows before anything launches, exit 2 and list the steps the flow has. `--stop-after` still runs when at least one selected flow has the step.
 
+### Fixed
+
+- **Viewer links and images for names with `#`, `?` or `%`.** `docsxai render` percent-encodes these characters in the screenshot, flow-card, thumbnail and previous/next flow URLs. A step id such as `a#b` used to point at `a` and show a broken image.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

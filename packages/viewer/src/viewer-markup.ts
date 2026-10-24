@@ -13,6 +13,14 @@ import type { ThemeStyle } from "./burn-theme-css.js";
 
 export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/**
+ * A relative path as a URL path: `%`, `#` and `?` are percent-encoded, so a name holding one still
+ * names the file (a bare `#` or `?` would start the URL's fragment or query). Then HTML-escaped.
+ */
+const urlPath = (p: string) =>
+  esc(
+    p.replace(/[%#?]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`),
+  );
 /** For values inside a single-quoted HTML attribute: escape `&`, `<`, `>`, `'` — leave `"` (JSON uses it). */
 const escAttrSingle = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;");
@@ -122,7 +130,7 @@ function stepShot(s: ViewerStep, flow: string | undefined, ui: UiStrings): strin
   const dims = s.size ? ` width="${s.size.width}" height="${s.size.height}"` : "";
   const data = s.anns.length ? ` data-anns='${escAttrSingle(JSON.stringify(s.anns))}'` : "";
   const alt = fmt(ui.step.shotAlt, { id: esc(s.id) });
-  return `<div class="shot"${data}><img src="${esc(s.screenshot)}" alt="${alt}"${dims}></div>${shotError(s.id, s.screenshot, ui)}`;
+  return `<div class="shot"${data}><img src="${urlPath(s.screenshot)}" alt="${alt}"${dims}></div>${shotError(s.id, s.screenshot, ui)}`;
 }
 
 function stepSection(s: ViewerStep, n: number, flow: string | undefined, ui: UiStrings): string {
@@ -169,7 +177,7 @@ const LIVE_REGION =
 function flowNav(flow: string, nb: FlowNeighbours, ui: UiStrings): string {
   const up = "../".repeat(flow.split("/").length);
   const link = (rel: "prev" | "next", name: string) =>
-    `<li><a rel="${rel}" href="${up}${esc(name)}/index.html">${fmt(ui.nav[rel], { name: esc(name) })}</a></li>`;
+    `<li><a rel="${rel}" href="${up}${urlPath(name)}/index.html">${fmt(ui.nav[rel], { name: esc(name) })}</a></li>`;
   const items = [
     `<li><a href="${up}index.html"><span aria-hidden="true">← </span>${ui.nav.all}</a></li>`,
     nb.prev !== undefined ? link("prev", nb.prev) : "",
@@ -227,10 +235,10 @@ function cardCounts(m: FlowSummary, ui: UiStrings): string {
 
 function flowCard(m: FlowSummary, ui: UiStrings): string {
   const img = m.thumb
-    ? `<img src="${esc(m.thumb)}" alt="" loading="lazy" decoding="async">`
+    ? `<img src="${urlPath(m.thumb)}" alt="" loading="lazy" decoding="async">`
     : `<div class="thumb-missing">${ui.shot.thumbMissing}</div>`;
   const sub = cardCounts(m, ui);
-  return `<li class="flow-item"><a class="flow-card" href="./${esc(m.flow)}/index.html">${img}<div class="flow-card-meta"><strong class="sd-id">${esc(m.flow)}</strong><span>${sub}</span></div></a>${copyButton(m.flow, "flow id", ui)}</li>`;
+  return `<li class="flow-item"><a class="flow-card" href="./${urlPath(m.flow)}/index.html">${img}<div class="flow-card-meta"><strong class="sd-id">${esc(m.flow)}</strong><span>${sub}</span></div></a>${copyButton(m.flow, "flow id", ui)}</li>`;
 }
 
 export function indexHtml(
