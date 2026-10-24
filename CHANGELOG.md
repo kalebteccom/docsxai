@@ -8,6 +8,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 - **Landing page first-run section.** docsxai.dev gains a "First run" section after Install: `init`, `doctor`, calibrate through the Claude Code plugin, and `run`, each with a copy button and one line of expected output, then a link to the quickstart. The page now names `0.3.0-rc.4`, the `readable` preset, the second `display_width` for narrow captures and `--lang`.
 
+### Fixed
+
+- **A side hint no longer pulls a short callout onto a neighbour.** The bonus `arrow_style` or `placement.side` gives its side now outweighs at most a 2 px strip of content along the callout's width. A 60 px label on a phone screenshot used to keep its hinted side over 6 px of a neighbouring control. Callouts 200 px wide or more score as before.
+
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.

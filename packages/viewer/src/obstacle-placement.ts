@@ -96,7 +96,17 @@ const BOUNDS_WEIGHT = 50; // callout px² outside the image
 const STEM_COST = 1.5; // per px of stem
 const SLIDE_COST = 0.5; // per px the callout leaves its centred spot
 const SIDE_SWITCH_COST = 120; // leaving the preferred side
-const HINT_BONUS = 4000; // off a candidate on the hinted side: outweighs a ~2 px sliver of content
+const HINT_BONUS = 4000; // off a candidate on the hinted side: a 2 px strip along a 200 px callout
+/** Depth in px of the content sliver the hint outweighs, along the callout's width. */
+const HINT_SLIVER = 2;
+
+/**
+ * The hint bonus for a callout `width` px wide: {@link HINT_BONUS}, but never more than a
+ * {@link HINT_SLIVER} px strip of content along that width costs. A short label on a phone
+ * screenshot (60 px wide) would otherwise let its hint beat 6 px of a neighbouring control.
+ */
+export const hintBonus = (width: number): number =>
+  Math.min(HINT_BONUS, Math.round(CONTENT_WEIGHT * HINT_SLIVER * width));
 
 export function overlapArea(a: Rect, b: Rect): number {
   const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
@@ -288,7 +298,7 @@ function* candidates(inp: PlanInput, order: Side[], gap: number): Generator<Scor
           { callout: placed, connector, stem: stemBox },
           ctx,
         );
-        const bonus = inp.hinted && rank === 0 ? HINT_BONUS : 0;
+        const bonus = inp.hinted && rank === 0 ? hintBonus(c.width) : 0;
         // Travel is measured from the un-nudged candidate, so a nudge is not charged as a detour.
         const travel = extra * STEM_COST + Math.abs(baseStart - centred) * SLIDE_COST;
         yield {
