@@ -1,9 +1,8 @@
-// Viewer markup edges: copy buttons for odd values, the live-region text of every state, the
-// missing-screenshot and failed-image blocks with hostile ids, and the annotation data attribute.
+// Viewer markup edges that viewer-markup.test.ts does not reach: copy buttons for odd values,
+// hostile ids in the missing-screenshot block, and the annotation data attribute.
 
 import { describe, expect, it } from "vitest";
 import { copyAnnouncement, copyButton } from "../src/viewer-copy.js";
-import type { CopyKind } from "../src/viewer-copy.js";
 import { flowPageHtml, stepHtml, type ViewerStep } from "../src/viewer-markup.js";
 
 const AT = "@docsxai/viewer 1.2.3";
