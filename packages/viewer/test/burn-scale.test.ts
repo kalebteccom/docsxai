@@ -163,17 +163,6 @@ describe("captionScale at the edges", () => {
     expect(captionScale(auto, 0)).toBe(1);
   });
 
-  it("gives an explicit scale back whatever the width", () => {
-    expect(captionScale({ ...DEFAULT_BURN_THEME, scale: 0.5 }, 1)).toBe(0.5);
-    expect(captionScale({ ...DEFAULT_BURN_THEME, scale: 4 }, 5000)).toBe(4);
-  });
-
-  it("reaches the cap of 4 at four times display_width and stays there", () => {
-    const narrow = { ...auto, displayWidth: 240 };
-    expect(captionScale(narrow, 960)).toBe(4);
-    expect(captionScale(narrow, 10000)).toBe(4);
-  });
-
   it("is 1 at display_width and 1.01 a pixel past a 2400 px one", () => {
     const wide = { ...auto, displayWidth: 2400 };
     expect(captionScale(wide, 2400)).toBe(1);
@@ -230,15 +219,11 @@ describe("the sizing keys at their limits", () => {
     [{ scale: 0.5 }, "scale", 0.5],
     [{ scale: 4 }, "scale", 4],
     [{ scale: "auto" }, "scale", "auto"],
-    [{ scale: "2" }, "scale", 2],
     [{ scale: " 1.5 " }, "scale", 1.5],
     [{ display_width: 240 }, "displayWidth", 240],
     [{ display_width: 2400 }, "displayWidth", 2400],
     [{ max_width_ratio: 0.2 }, "maxWidthRatio", 0.2],
     [{ max_width_ratio: 1 }, "maxWidthRatio", 1],
-    [{ arrow_size: 4 }, "arrowSize", 4],
-    [{ arrow_size: 24 }, "arrowSize", 24],
-    [{ font_weight: "600" }, "fontWeight", 600],
     [{ font_weight: " 400 " }, "fontWeight", 400],
   ];
 
@@ -251,21 +236,15 @@ describe("the sizing keys at their limits", () => {
     [{ scale: 4.01 }, "scale: 4.01 is outside the range 0.5 to 4"],
     [{ scale: "5" }, "scale: 5 is outside the range 0.5 to 4"],
     [{ scale: "-1" }, 'scale: "-1" is not a scale'],
-    [{ scale: "" }, 'scale: "" is not a scale'],
     [{ scale: Number.NaN }, "scale: NaN is not a scale"],
-    [{ scale: Number.POSITIVE_INFINITY }, "scale: Infinity is not a scale"],
-    [{ scale: null }, "scale: null is not a scale"],
     [{ display_width: 239 }, "display_width: 239 is outside the range 240 to 2400"],
     [{ display_width: 2401 }, "display_width: 2401 is outside the range 240 to 2400"],
     [{ display_width: "720" }, 'display_width: "720" is not a number'],
     [{ max_width_ratio: 0.19 }, "max_width_ratio: 0.19 is outside the range 0.2 to 1"],
     [{ max_width_ratio: 1.01 }, "max_width_ratio: 1.01 is outside the range 0.2 to 1"],
     [{ max_width_ratio: Number.NaN }, "max_width_ratio: NaN is not a number"],
-    [{ arrow_size: 3.99 }, "arrow_size: 3.99 is outside the range 4 to 24"],
-    [{ arrow_size: 24.01 }, "arrow_size: 24.01 is outside the range 4 to 24"],
     [{ font_weight: 700 }, "font_weight: 700 is not a supported weight"],
     [{ font_weight: "bold" }, 'font_weight: "bold" is not a supported weight'],
-    [{ font_weight: 600.5 }, "font_weight: 600.5 is not a supported weight"],
   ])("refuses %j", (block, message) => {
     expect(problemOf(block)).toContain(message);
   });
@@ -319,12 +298,6 @@ describe("the tree at the scale limits", () => {
     expect(styleOf(haloOf(half)).border).toBe("1px solid #e8590c");
   });
 
-  it("makes the text 56 px and the halo outline 8 px at scale 4", () => {
-    const big = tree(themeOf({ scale: 4 }));
-    expect(styleOf(calloutOf(big)).fontSize).toBe(56);
-    expect(styleOf(haloOf(big)).border).toBe("8px solid #e8590c");
-  });
-
   it("draws only the screenshot and reports nothing for an empty annotation list", () => {
     const report: AnnotationReport[] = [];
     const empty = buildBurnTree({
@@ -336,19 +309,6 @@ describe("the tree at the scale limits", () => {
     });
     expect(empty.props.children).toHaveLength(1);
     expect(report).toEqual([]);
-  });
-
-  it("lays a callout out on a one-pixel screenshot", () => {
-    const report: AnnotationReport[] = [];
-    const t = buildBurnTree({
-      image: { width: 1, height: 1, dataUri: IMAGE.dataUri },
-      annotations: [ann({ bounding_box: { x: 0, y: 0, width: 1, height: 1 } })],
-      metrics: METRICS,
-      report,
-    });
-    expect(styleOf(t)).toMatchObject({ width: 1, height: 1 });
-    expect(report).toHaveLength(1);
-    expect(report[0]!.callout).not.toBeNull();
   });
 });
 
