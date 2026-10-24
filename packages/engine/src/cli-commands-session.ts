@@ -33,6 +33,7 @@ import {
   claimFlowName,
   flagMissingValue,
   isHttpUrl,
+  isRunnableUrl,
   listFlowFiles,
 } from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
@@ -113,14 +114,14 @@ export async function cmdRun(args: string[]): Promise<number> {
   if (!wsCfg) await warnUnusableConfig("run", projectDir);
   const baseUrlFlag =
     typeof flags.get("base-url") === "string" ? (flags.get("base-url") as string) : undefined;
-  if (baseUrlFlag !== undefined && !isHttpUrl(baseUrlFlag)) {
-    return usageError("run", "--base-url must be an http:// or https:// URL");
+  if (baseUrlFlag !== undefined && !isRunnableUrl(baseUrlFlag)) {
+    return usageError("run", "--base-url must be an http://, https:// or file:// URL");
   }
   const baseURL = baseUrlFlag ?? wsCfg?.app_url;
-  if (baseUrlFlag === undefined && wsCfg?.app_url !== undefined && !isHttpUrl(wsCfg.app_url)) {
+  if (baseUrlFlag === undefined && wsCfg?.app_url !== undefined && !isRunnableUrl(wsCfg.app_url)) {
     const file = resolveWorkspacePath(projectDir, ".docsxai.json");
     const note = withNext(
-      `app_url in ${file} is not an http:// or https:// URL`,
+      `app_url in ${file} is not an http://, https:// or file:// URL`,
       `fix app_url in ${file}, or pass --base-url <url>`,
     );
     process.stderr.write(`run: ${note}\n`);

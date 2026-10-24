@@ -122,14 +122,29 @@ describe("run start-up", () => {
     const cfg = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, unknown>;
     await fs.writeFile(file, JSON.stringify({ ...cfg, app_url: "localhost:3000" }));
     expect(await main(["run", ws])).toBe(1);
-    expect(err).toContain(`run: app_url in ${file} is not an http:// or https:// URL`);
+    expect(err).toContain(`run: app_url in ${file} is not an http://, https:// or file:// URL`);
     expect(err).toContain(`next: fix app_url in ${file}, or pass --base-url <url>`);
   });
 
   it("a --base-url that is not a URL is a usage error", async () => {
     const ws = await workspace("--auth", "none");
     expect(await main(["run", ws, "--base-url", "localhost:3000"])).toBe(2);
-    expect(err).toContain("run: --base-url must be an http:// or https:// URL");
+    expect(err).toContain("run: --base-url must be an http://, https:// or file:// URL");
+  });
+
+  it.each(["ftp://host/x", "javascript:alert(1)", "data:text/html,hi", "mailto:a@b.c"])(
+    "a --base-url of %s is a usage error",
+    async (bad) => {
+      const ws = await workspace("--auth", "none");
+      expect(await main(["run", ws, "--base-url", bad])).toBe(2);
+      expect(err).toContain("run: --base-url must be an http://, https:// or file:// URL");
+    },
+  );
+
+  it("a file:// --base-url passes URL validation", async () => {
+    const ws = await workspace("--auth", "none");
+    await main(["run", ws, "--base-url", "file:///nonexistent/site/index.html"]);
+    expect(err).not.toContain("--base-url must be");
   });
 
   it("a cached session that is not valid JSON is called corrupt, not expired", async () => {
@@ -154,6 +169,7 @@ describe("run start-up", () => {
     async () => {
       const ws = await workspace("--auth", "none");
       const file = path.join(ws, ".docsxai.json");
+      await fs.rm(path.join(ws, "flows"), { recursive: true, force: true });
       await fs.chmod(file, 0o000);
       try {
         expect(await main(["run", ws])).toBe(1);
