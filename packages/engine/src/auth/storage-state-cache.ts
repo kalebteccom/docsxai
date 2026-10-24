@@ -151,7 +151,7 @@ export class LocalStorageStateCache {
       source = `auth-cookie "${authCookieName}"`;
     } else if (authCookieName) {
       expiresAt = typeof ttlMs === "number" ? now + ttlMs : now + 3_600_000;
-      source = `ttl (fallback — auth-cookie "${authCookieName}" not in the jar or has no expiry)`;
+      source = `ttl (fallback: auth-cookie "${authCookieName}" not in the jar or has no expiry)`;
     } else if (typeof ttlMs === "number") {
       expiresAt = now + ttlMs;
       source = "ttl";
@@ -163,7 +163,7 @@ export class LocalStorageStateCache {
     }
     if (expiresAt <= now) {
       throw new AuthStrategyConfigError(
-        `computed cache expiry (${new Date(expiresAt).toISOString()}, from ${source}) is not in the future — refusing to cache a dead session`,
+        `computed cache expiry (${new Date(expiresAt).toISOString()}, from ${source}) is not in the future; refusing to cache a dead session`,
       );
     }
     const entry: CachedState = { storageState: result.storageState, writtenAt: now, expiresAt };
@@ -201,7 +201,7 @@ export async function resolveStateCache(
     const cfg = await loadWorkspaceConfig(workspaceDir);
     if (!cfg?.backend_url || !cfg.backend_workspace_id) {
       throw new AuthStrategyConfigError(
-        "cache.store: backend needs a backend-bound workspace — run `docsxai push` first (backend_url + backend_workspace_id in .docsxai.json)",
+        "cache.store: backend needs a backend-bound workspace: run `docsxai push` first (backend_url + backend_workspace_id in .docsxai.json)",
       );
     }
     const cacheKey = process.env.DOCSX_CACHE_KEY;

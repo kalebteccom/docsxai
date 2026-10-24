@@ -490,7 +490,7 @@ export class PlaywrightDriver implements BrowserDriver {
         const bbox = await this.boundingBox(r.selector, 1000);
         if (!bbox || bbox.width <= 0 || bbox.height <= 0) {
           process.stderr.write(
-            `screenshot: redaction selector ${r.selector} has no visible box — skipped\n`,
+            `screenshot: redaction selector ${r.selector} has no visible box, so it was skipped\n`,
           );
           continue;
         }

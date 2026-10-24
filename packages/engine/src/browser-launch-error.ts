@@ -52,3 +52,27 @@ export function describeBrowserLaunch(raw: string, cdp?: string): BrowserLaunchP
   if (blocked !== undefined) return notDirectoryProblem(blocked);
   return { reason: `failed to launch browser: ${sanitizeForTerminal(raw, true)}` };
 }
+
+const NET_ERROR = /net::(ERR_[A-Z_]+)/;
+const UNREACHABLE =
+  /^ERR_(?:CONNECTION_(?:REFUSED|RESET|TIMED_OUT)|NAME_NOT_RESOLVED|ADDRESS_UNREACHABLE|INTERNET_DISCONNECTED)$/;
+
+/**
+ * Why `page.goto(url)` failed, in one line: the address (without user:password or query), the
+ * network error code and what to change. Playwright's `page.goto:` prefix, call log and repeated
+ * URL are dropped. `inspect` prints it as a warning.
+ */
+export function describePageLoad(raw: string, url: string): string {
+  const where = redactUrl(url);
+  const code = NET_ERROR.exec(raw)?.[1];
+  if (code !== undefined && UNREACHABLE.test(code)) {
+    return `could not load ${where} (net::${code}): the app did not answer; start it, or fix --url or app_url in .docsxai.json`;
+  }
+  if (code !== undefined && /^ERR_(?:CERT|SSL)_/.test(code)) {
+    return `could not load ${where} (net::${code}): the TLS certificate was rejected; pass --ignore-https-errors`;
+  }
+  const first = sanitizeForTerminal(raw.split("\n")[0] ?? "")
+    .replace(/^page\.goto: /, "")
+    .replace(/ at https?:\/\/\S+$/, "");
+  return `could not load ${where}: ${first}; is the app running?`;
+}

@@ -147,11 +147,17 @@ async function loadAnnotations(dir: string, flow: string): Promise<AnnotationRec
   try {
     parsed = JSON.parse(raw.toString("utf8"));
   } catch (e) {
-    throw new DriftError(`docs/${flow}/annotations.json: not valid JSON — ${(e as Error).message}`);
+    throw new DriftError(`docs/${flow}/annotations.json: not valid JSON: ${(e as Error).message}`);
   }
   const result = AnnotationsFile.safeParse(parsed);
   if (!result.success) {
-    throw new DriftError(`docs/${flow}/annotations.json: invalid annotations file`);
+    const issues = result.error.issues
+      .slice(0, 3)
+      .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`);
+    const more = result.error.issues.length - issues.length;
+    throw new DriftError(
+      `docs/${flow}/annotations.json: invalid annotations file (${issues.join("; ")}${more > 0 ? `; and ${more} more` : ""})`,
+    );
   }
   return result.data.annotations;
 }

@@ -194,7 +194,7 @@ export class EmailOtpStrategy implements AuthStrategy {
         await page.waitForSelector(opts.otp_selector, { timeoutMs: opts.timeout_ms });
       } catch {
         throw new AuthStrategyConfigError(
-          `email-otp: the OTP prompt ("${opts.otp_selector}") did not appear within ${opts.timeout_ms}ms — check the credential env vars (values not shown) and the selectors`,
+          `email-otp: the OTP prompt ("${opts.otp_selector}") did not appear within ${opts.timeout_ms}ms; check the credential env vars (values not shown) and the selectors`,
         );
       }
 

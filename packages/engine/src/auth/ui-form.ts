@@ -195,7 +195,7 @@ export async function waitForLoginSuccess(
         ? `success_selector "${opts.success_selector}"`
         : `url matching /${opts.url_matches}/`;
     throw new AuthStrategyConfigError(
-      `${strategy}: login did not reach ${expected} within ${opts.timeout_ms}ms — check the credential env vars (values not shown) and the selectors`,
+      `${strategy}: login did not reach ${expected} within ${opts.timeout_ms}ms; check the credential env vars (values not shown) and the selectors`,
     );
   }
 }

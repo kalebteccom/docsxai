@@ -34,7 +34,8 @@ afterEach(async () => {
 describe("docsxai plugins — argument edge", () => {
   it("plugins with no subcommand exits 2 with usage", async () => {
     expect(await main(["plugins"])).toBe(2);
-    expect(out).toMatch(/docsxai plugins list/);
+    expect(err).toMatch(/plugins: missing subcommand/);
+    expect(err).toMatch(/usage: docsxai plugins <list\|info\|sync>/);
   });
 
   it("plugins --help exits 0", async () => {

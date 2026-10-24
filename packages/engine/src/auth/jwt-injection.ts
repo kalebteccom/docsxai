@@ -111,7 +111,7 @@ export class JwtInjectionStrategy implements AuthStrategy {
     });
     if (!response.ok) {
       throw new AuthStrategyConfigError(
-        `jwt-injection: token endpoint ${tokenUrl.href} answered ${response.status} (client_secret: ${maskSecret(clientSecret)} — value not shown)`,
+        `jwt-injection: token endpoint ${tokenUrl.href} answered ${response.status} (client_secret: ${maskSecret(clientSecret)}, value not shown)`,
       );
     }
     let body: { access_token?: string; expires_in?: number };

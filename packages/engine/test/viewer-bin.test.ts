@@ -103,7 +103,7 @@ describe("resolveViewerBin", () => {
     const msg = formatViewerBinFailure(r);
     expect(msg).toContain(`1. $${VIEWER_BIN_ENV}`);
     expect(msg).toContain(`2. ${VIEWER_PACKAGE} (installed package)`);
-    expect(msg).toContain("3. `docsxai-viewer` on PATH — not found");
+    expect(msg).toContain("3. `docsxai-viewer` on PATH: not found");
     expect(msg).toContain(`Install ${VIEWER_PACKAGE}`);
   });
 });

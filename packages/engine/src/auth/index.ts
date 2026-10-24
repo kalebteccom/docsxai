@@ -56,7 +56,7 @@ export function parseAuthStrategyFile(
   try {
     raw = parseYaml(yamlText);
   } catch (e) {
-    throw new AuthStrategyConfigError(`${source}: not valid YAML — ${(e as Error).message}`, e);
+    throw new AuthStrategyConfigError(`${source}: not valid YAML: ${(e as Error).message}`, e);
   }
   const r = AuthStrategyDescriptor.safeParse(raw);
   if (!r.success) {

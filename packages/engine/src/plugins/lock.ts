@@ -67,13 +67,13 @@ export async function readPluginsLock(workspaceDir: string): Promise<PluginsLock
     raw = JSON.parse(text);
   } catch {
     throw new PluginsLockError(
-      `${p} is not valid JSON — fix or delete it, then run \`docsxai plugins sync\``,
+      `${p} is not valid JSON: fix or delete it, then run \`docsxai plugins sync\``,
     );
   }
   const result = lockSchema.safeParse(raw);
   if (!result.success) {
     throw new PluginsLockError(
-      `${p} does not match schema "${PLUGINS_LOCK_SCHEMA}" — delete it and run \`docsxai plugins sync\``,
+      `${p} does not match schema "${PLUGINS_LOCK_SCHEMA}": delete it and run \`docsxai plugins sync\``,
     );
   }
   return result.data;
@@ -106,16 +106,16 @@ export function verifyLock(
 ): string | null {
   const entry = lock.plugins[namespace];
   if (!entry) {
-    return `plugin "${namespace}" is not in ${PLUGINS_LOCK_FILE} — run \`docsxai plugins sync\``;
+    return `plugin "${namespace}" is not in ${PLUGINS_LOCK_FILE}: run \`docsxai plugins sync\``;
   }
   if (registerBytes === null) {
-    return `plugin "${namespace}" register module is unreadable — reinstall it, then run \`docsxai plugins sync\``;
+    return `plugin "${namespace}" register module is unreadable: reinstall it, then run \`docsxai plugins sync\``;
   }
   const actual = sha256Hex(registerBytes);
   if (actual !== entry.sha256) {
     return (
       `lock mismatch for plugin "${namespace}": register module sha256 ${actual} does not match ` +
-      `${PLUGINS_LOCK_FILE} (${entry.sha256}) — if the change is intentional, run \`docsxai plugins sync\``
+      `${PLUGINS_LOCK_FILE} (${entry.sha256}): if the change is intentional, run \`docsxai plugins sync\``
     );
   }
   return null;
@@ -177,7 +177,7 @@ export async function readWorkspacePluginsConfig(
     const shapes = result.error.issues.some((i) => i.path[0] === "plugins")
       ? '; each "plugins" entry is {"package": "<name>"} or {"path": "<dir>"}'
       : "";
-    throw new PluginsConfigError(`${p}: invalid plugin configuration — ${detail}${shapes}`);
+    throw new PluginsConfigError(`${p}: invalid plugin configuration: ${detail}${shapes}`);
   }
   return { sources: result.data.plugins, capabilities: result.data.plugin_capabilities };
 }

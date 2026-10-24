@@ -16,7 +16,7 @@ export async function checkSuccess(
     const sel = resolve(success.visible);
     if (!(await driver.isVisible(sel))) {
       throw new FlowExecutionError(
-        `expected ${success.visible} to be visible — ${await at()}; ${await driver.count(sel).catch(() => "?")} element(s) match the selector`,
+        `expected ${success.visible} to be visible: ${await at()}; ${await driver.count(sel).catch(() => "?")} element(s) match the selector`,
         stepId,
       );
     }
@@ -26,7 +26,7 @@ export async function checkSuccess(
     const sel = resolve(success.hidden);
     if (await driver.isVisible(sel)) {
       throw new FlowExecutionError(
-        `expected ${success.hidden} to be hidden but a match is visible — ${await at()}; ${await driver.count(sel).catch(() => "?")} element(s) match`,
+        `expected ${success.hidden} to be hidden but a match is visible: ${await at()}; ${await driver.count(sel).catch(() => "?")} element(s) match`,
         stepId,
       );
     }
@@ -35,7 +35,7 @@ export async function checkSuccess(
   if ("url_matches" in success) {
     if (!(await driver.urlMatches(success.url_matches))) {
       throw new FlowExecutionError(
-        `expected URL to match /${success.url_matches}/ — actual: ${await driver.currentUrl().catch(() => "?")}`,
+        `expected URL to match /${success.url_matches}/; actual: ${await driver.currentUrl().catch(() => "?")}`,
         stepId,
       );
     }
@@ -50,7 +50,7 @@ export async function checkSuccess(
         .trim()
         .slice(0, 200);
       throw new FlowExecutionError(
-        `expected ${selector} to contain ${JSON.stringify(text)} — ${await at()}; actual text: ${JSON.stringify(actual)}`,
+        `expected ${selector} to contain ${JSON.stringify(text)}: ${await at()}; actual text: ${JSON.stringify(actual)}`,
         stepId,
       );
     }

@@ -15,7 +15,7 @@ import { PlaywrightInstrumentedBrowser } from "./playwright-instrumented-browser
 import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import { bareValueFlagExit } from "./cli-shared.js";
 import { parseCommandFlags } from "./cli-flags.js";
-import { usageError, withNext } from "./cli-messages.js";
+import { shellQuote, usageError, withNext } from "./cli-messages.js";
 import { warnUnusableConfig } from "./cli-backend-errors.js";
 
 export async function cmdCaptureAuth(args: string[]): Promise<number> {
@@ -76,7 +76,9 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
     }
     roleAuth = ra;
   } catch (e) {
-    process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
+    process.stderr.write(
+      `capture-auth: ${withNext((e as Error).message, `fix ${shellQuote(descriptorPath)}, then docsxai capture-auth ${shellQuote(projectDir)}`)}\n`,
+    );
     return 1;
   }
 
@@ -84,7 +86,9 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
   try {
     creds = resolveCredsEnv(roleAuth);
   } catch (e) {
-    process.stderr.write(`capture-auth: ${(e as Error).message}\n`);
+    process.stderr.write(
+      `capture-auth: ${withNext((e as Error).message, `export the variables named above, then docsxai capture-auth ${shellQuote(projectDir)}`)}\n`,
+    );
     return 1;
   }
 

@@ -29,7 +29,7 @@ export class BackendClient {
     this.doFetch = opts.fetch ?? globalThis.fetch;
     if (!this.token) {
       throw new BackendClientError(
-        "no bearer token — set DOCSX_TOKEN env var or pass `token`. Run `docsxai login` to validate.",
+        "no bearer token: set DOCSX_TOKEN env var or pass `token`. Run `docsxai login` to validate.",
       );
     }
   }

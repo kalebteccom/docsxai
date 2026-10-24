@@ -51,7 +51,7 @@ export function parseFlowFile(yamlText: string, source = "<flow-file>"): FlowFil
   try {
     raw = parseYaml(yamlText);
   } catch (e) {
-    throw new FlowFileError(`${source}: not valid YAML — ${(e as Error).message}`, e);
+    throw new FlowFileError(`${source}: not valid YAML: ${(e as Error).message}`, e);
   }
   const result = FlowFile.safeParse(raw);
   if (!result.success) {
@@ -193,6 +193,12 @@ export async function resolveFlowExtends(
   try {
     parentRaw = await loadFlowFile(flow.extends);
   } catch (e) {
+    if ((e as NodeJS.ErrnoException)?.code === "ENOENT") {
+      throw new FlowFileError(
+        `flow "${flow.name}" extends "${flow.extends}", but flows/${flow.extends}.flow.yaml does not exist`,
+        e,
+      );
+    }
     throw e instanceof FlowFileError
       ? e
       : new FlowFileError(

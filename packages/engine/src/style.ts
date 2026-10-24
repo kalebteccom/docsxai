@@ -94,12 +94,12 @@ export async function loadStyle(workspace: string): Promise<StyleArtifact | null
   try {
     raw = parseYaml(text);
   } catch (e) {
-    throw new StyleError(`${yamlPath}: invalid YAML — ${(e as Error).message}`, e);
+    throw new StyleError(`${yamlPath}: invalid YAML: ${(e as Error).message}`, e);
   }
   const parsed = StyleArtifact.safeParse(raw);
   if (!parsed.success) {
     throw new StyleError(
-      `${yamlPath}: schema validation failed — ${parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ")}`,
+      `${yamlPath}: schema validation failed: ${parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ")}`,
     );
   }
   return parsed.data;

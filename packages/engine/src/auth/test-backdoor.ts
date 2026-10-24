@@ -53,7 +53,7 @@ export class TestBackdoorStrategy implements AuthStrategy {
 
     if (result.status >= 400) {
       throw new AuthStrategyConfigError(
-        `test-backdoor: ${url.href} answered ${result.status} (secret: ${maskSecret(secret)} — value not shown)`,
+        `test-backdoor: ${url.href} answered ${result.status} (secret: ${maskSecret(secret)}, value not shown)`,
       );
     }
     if (opts.success_cookie && !result.jar.has(opts.success_cookie)) {
@@ -63,7 +63,7 @@ export class TestBackdoorStrategy implements AuthStrategy {
     }
     if (result.jar.cookies().length === 0) {
       throw new AuthStrategyConfigError(
-        `test-backdoor: ${url.href} answered ${result.status} but set no cookies — nothing to capture`,
+        `test-backdoor: ${url.href} answered ${result.status} but set no cookies, so there is nothing to capture`,
       );
     }
 

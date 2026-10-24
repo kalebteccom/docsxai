@@ -70,11 +70,11 @@ export function inferHaltCause(rawError: string): string | undefined {
     [/intercepts? pointer events\b/i, "target is covered by another element"],
     [
       /strict mode violation\b/i,
-      "selector matched multiple elements (strict-mode violation) — scope with :visible / :nth-match",
+      "selector matched multiple elements (strict-mode violation); scope with :visible / :nth-match",
     ],
     [
       /timeout .* exceeded.*waiting for/is,
-      "timeout waiting for selector — element didn't appear in time (consider raising timeout_ms or revisiting the locator)",
+      "timeout waiting for selector: element didn't appear in time (consider raising timeout_ms or revisiting the locator)",
     ],
   ];
   for (const [re, msg] of hints) {

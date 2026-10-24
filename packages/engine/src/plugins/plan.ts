@@ -119,7 +119,7 @@ export async function resolvePluginSources(
           record: failureRecord(
             spec.package,
             label,
-            `cannot resolve package "${spec.package}" — is it installed? (${(e as Error).message})`,
+            `cannot resolve package "${spec.package}" (is it installed? ${(e as Error).message})`,
           ),
         });
         continue;
@@ -236,7 +236,7 @@ export async function planPlugins(opts: ResolvePluginsOptions): Promise<PluginPl
           candidateRecord(
             c,
             "load-error",
-            `plugin package "${name}" is configured more than once (${group.map((g) => g.source).join(", ")}) — remove the duplicate`,
+            `plugin package "${name}" is configured more than once (${group.map((g) => g.source).join(", ")}); remove the duplicate`,
           ),
         );
       }
@@ -252,7 +252,7 @@ export async function planPlugins(opts: ResolvePluginsOptions): Promise<PluginPl
         c,
         "load-error",
         `plugin apiVersion "${c.manifest.apiVersion}" is incompatible with the runtime apiVersion "${RUNTIME_API_VERSION}" ` +
-          `(requires same major and minor ≤ runtime) — upgrade the plugin or the engine`,
+          `(requires same major and minor ≤ runtime); upgrade the plugin or the engine`,
       ),
     );
     return false;
@@ -288,7 +288,7 @@ export async function planPlugins(opts: ResolvePluginsOptions): Promise<PluginPl
           candidateRecord(
             c,
             "disabled-by-namespace-conflict",
-            `namespace "${ns}" is claimed by ${group.map((g) => `"${g.name}"`).join(" and ")} — namespaces must be unique; rename one`,
+            `namespace "${ns}" is claimed by ${group.map((g) => `"${g.name}"`).join(" and ")}; namespaces must be unique, so rename one`,
           ),
         );
       }
@@ -305,7 +305,7 @@ export async function planPlugins(opts: ResolvePluginsOptions): Promise<PluginPl
         const target = live.get(dep.plugin);
         let reason: string | undefined;
         if (!target) {
-          reason = `dependsOn "${dep.plugin}" is not loadable — configure it in the workspace "plugins" and ensure it resolves`;
+          reason = `dependsOn "${dep.plugin}" is not loadable; configure it in the workspace "plugins" and ensure it resolves`;
         } else if (!satisfiesRange(target.version, dep.version)) {
           reason = `dependsOn "${dep.plugin}" version ${target.version} does not satisfy the declared range "${dep.version}"`;
         }
@@ -341,7 +341,7 @@ export async function planPlugins(opts: ResolvePluginsOptions): Promise<PluginPl
           candidateRecord(
             live.get(name)!,
             "disabled-by-cycle",
-            `dependsOn cycle: ${cycle.join(" → ")} → ${cycle[0]!} — break the cycle; none of its members load`,
+            `dependsOn cycle: ${cycle.join(" → ")} → ${cycle[0]!}; break the cycle, none of its members load`,
           ),
         );
         live.delete(name);

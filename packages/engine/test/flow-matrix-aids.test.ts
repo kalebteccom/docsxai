@@ -103,7 +103,9 @@ describe("lint", () => {
       ),
     );
     expect(await main(["lint", ws])).toBe(1);
-    expect(err).toMatch(/parse error/);
+    expect(err).toContain("tour.flow.yaml: ");
+    expect(err).toContain("steps.0.only.color_scheme.0: Invalid option");
+    expect(err).toContain("next: fix the flow-file, then docsxai lint ");
   });
 });
 

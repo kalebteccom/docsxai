@@ -239,7 +239,7 @@ export async function initWorkspace(opts: InitWorkspaceOptions): Promise<InitWor
     if (!opts.dir) throw new Error("init: a target directory is required (or use --persist tmp)");
     dir = path.resolve(opts.dir);
     if (!opts.force && (await isNonEmptyDir(dir))) {
-      throw new Error(`init: ${dir} exists and is not empty — pick another dir or pass --force`);
+      throw new Error(`init: ${dir} exists and is not empty; pick another dir or pass --force`);
     }
   }
 

@@ -43,7 +43,7 @@ export async function cmdRender(args: string[]): Promise<number> {
     ))
   ) {
     const note = withNext(
-      `warning — ${docsDir} does not exist, so the viewer will be empty`,
+      `warning: ${docsDir} does not exist, so the viewer will be empty`,
       `docsxai run ${shellQuote(projectDir)}`,
     );
     process.stderr.write(`render: ${note}\n`);
@@ -188,8 +188,8 @@ export async function cmdExport(args: string[]): Promise<number> {
       return usageError(
         "export",
         format === undefined
-          ? "missing format — supported: adf, playwright"
-          : `unknown format "${format}" — supported: adf, playwright`,
+          ? "missing format (supported: adf, playwright)"
+          : `unknown format "${format}" (supported: adf, playwright)`,
       );
   }
 }
@@ -380,7 +380,7 @@ export async function cmdBaseline(args: string[]): Promise<number> {
     );
     if (copied === 0) {
       const note = withNext(
-        "warning — no flows/ or docs/ files found to snapshot",
+        "warning: no flows/ or docs/ files found to snapshot",
         `docsxai run ${shellQuote(projectDir)}`,
       );
       process.stderr.write(`baseline: ${note}\n`);
@@ -436,7 +436,10 @@ export async function cmdDiff(args: string[]): Promise<number> {
   }
 
   try {
-    const report = await diffDocPacks(againstDir, projectDir);
+    // The report is pasted into pull requests: print the baseline as it was typed, not as an absolute path.
+    const shownBaseline =
+      typeof againstFlag === "string" ? againstFlag : path.join(projectDir, ".baseline");
+    const report = { ...(await diffDocPacks(againstDir, projectDir)), a: shownBaseline };
     if (format === "json") process.stdout.write(JSON.stringify(report, null, 2) + "\n");
     else if (format === "md") process.stdout.write(formatDriftReportMarkdown(report));
     else process.stdout.write(formatDriftReportText(report));

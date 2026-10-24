@@ -120,7 +120,7 @@ describe("keys, records and the root", () => {
     for (const text of ["", "- a\n", "just text\n"]) {
       expect(messageOf(text)).toContain("  • (root): Invalid input: expected object");
     }
-    expect(messageOf("roles: [")).toMatch(/^strategy\.yaml: not valid YAML — /);
+    expect(messageOf("roles: [")).toMatch(/^strategy\.yaml: not valid YAML: /);
   });
 });
 

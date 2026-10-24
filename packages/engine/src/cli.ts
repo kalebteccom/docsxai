@@ -20,6 +20,8 @@
 import "./cli-node-guard.js";
 import { runDoctor } from "./doctor.js";
 import { tryHelp, unknownCommand } from "./cli-help.js";
+import { usageError } from "./cli-messages.js";
+import { bareValueFlag } from "./cli-value-flags.js";
 import { runAsBin } from "./cli-unexpected.js";
 import { isMainModule } from "./main-module.js";
 import { cmdCaptureAuth } from "./cli-commands-auth.js";
@@ -51,6 +53,8 @@ export async function main(argv: string[]): Promise<number> {
   }
   const helped = tryHelp(cmd, rest);
   if (helped !== undefined) return helped;
+  const bare = cmd === undefined ? undefined : bareValueFlag(cmd, rest);
+  if (bare) return usageError(bare.label, `--${bare.flag} needs a value`);
   switch (cmd) {
     case undefined:
     case "--help":
