@@ -30,6 +30,7 @@ import {
 } from "./doctor-checks-config.js";
 import { checkPlugins } from "./doctor-checks-plugins.js";
 import { commandUsage } from "./cli-messages.js";
+import { parseCommandFlags } from "./cli-flags.js";
 
 // Re-export the probe catalogue's public surface so importers keep reaching it
 // through ./doctor.js (its original home) — no importer or test changes. The
@@ -115,10 +116,12 @@ export async function runDoctor(args: string[]): Promise<number> {
     process.stdout.write(doctorHelp());
     return 0;
   }
-  const positionals = args.filter((a) => !a.startsWith("--"));
+  const parsed = parseCommandFlags("doctor", args);
+  if (typeof parsed === "number") return parsed;
+  const { positionals, flags } = parsed;
   const checks = await buildDoctorChecks({
     ...(positionals[0] ? { workspaceDir: positionals[0] } : {}),
-    offline: args.includes("--offline"),
+    offline: flags.get("offline") === true,
   });
   process.stdout.write(formatDoctorChecks(checks));
   return checks.every((c) => c.ok) ? 0 : 1;

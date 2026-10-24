@@ -46,6 +46,8 @@ describe("an unknown flag exits 2", () => {
     [["pull", WS], "--rve", "pull", "--rev"],
     [["render", WS], "--zzzzzz", "render", undefined],
     [["capture-auth", WS], "--headles", "capture-auth", "--headless"],
+    [["doctor", WS], "--ofline", "doctor", "--offline"],
+    [["doctor"], "--zzzzzz", "doctor", undefined],
   ])("%j %s", async (cmd, flag, label, near) => {
     expect(await main([...cmd, flag, "x"])).toBe(2);
     expect(err).toContain(`${label}: unknown flag ${flag}`);
@@ -63,6 +65,7 @@ describe("a repeated flag exits 2", () => {
     [["zip", WS, "--out", "a.zip", "--out", "b.zip"], "zip", "--out"],
     [["export", "adf", WS, "--flow", "a", "--flow", "b"], "export adf", "--flow"],
     [["push", WS, "--kind", "run", "--kind", "edit"], "push", "--kind"],
+    [["doctor", WS, "--offline", "--offline"], "doctor", "--offline"],
   ])("%j", async (argv, label, flag) => {
     expect(await main(argv)).toBe(2);
     expect(err).toContain(`${label}: ${flag} given more than once`);
@@ -91,6 +94,22 @@ describe("a boolean flag takes no value", () => {
   it("a boolean flag given a value exits 2", async () => {
     expect(await main(["run", WS, "--pause=yes"])).toBe(2);
     expect(err).toContain("run: --pause takes no value");
+  });
+
+  it("doctor --offline=yes exits 2", async () => {
+    expect(await main(["doctor", WS, "--offline=yes"])).toBe(2);
+    expect(err).toContain("doctor: --offline takes no value");
+  });
+
+  it("doctor --offline <workspace> reads the workspace and runs the checks", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-doctor-flags-"));
+    try {
+      const code = await main(["doctor", "--offline", dir]);
+      expect([0, 1]).toContain(code);
+      expect(err).not.toContain("unknown flag");
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
   });
 });
 
