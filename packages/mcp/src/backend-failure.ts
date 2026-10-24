@@ -50,7 +50,10 @@ export function backendFailure(e: unknown, ctx: ToolContext = {}): ToolFail | un
       );
     }
     if (status !== undefined && status >= 500) {
-      return fail(message, "the backend failed on its side; try again, then contact whoever runs the backend");
+      return fail(
+        message,
+        "the backend failed on its side; try again, then contact whoever runs the backend",
+      );
     }
     return fail(message, "check backend_url in .docsxai.json and that the backend is reachable");
   }
