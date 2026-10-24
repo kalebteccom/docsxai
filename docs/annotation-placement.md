@@ -52,11 +52,11 @@ A screenshot wider than its column shrinks, and the caption shrinks with it. `sc
 on-screen px = fontSize x auto x displayWidth / imageWidth
 ```
 
-A 1440 px capture shown at 720 px gets auto 2. With `auto = imageWidth / displayWidth` the text shows at `fontSize`. Set `display_width` to the column width. Screenshots narrower than it keep base size. The `readable` preset turns on `scale: "auto"`.
+A 1440 px capture shown at 720 px gets auto 2. With `auto = imageWidth / displayWidth` the text shows at `fontSize`. Set `display_width` to the column width, or to `{ default, narrow, narrow_below }` when narrow images are shown at a different width. Screenshots narrower than it keep base size. The `readable` preset turns on `scale: "auto"`.
 
 ## Different themes for wide and narrow images
 
-A `.docsxai.json` holds one `burn.theme`. Per-flow themes are not supported. To vary by image, pass `options.theme` per call. It wins over the workspace's block. `burnWithWorkspaceTheme` caches the workspace load, so the base theme is read once.
+A `.docsxai.json` holds one `burn.theme`. Per-flow themes are not supported. For wide and narrow images in one workspace, give `display_width` an object: `"display_width": { "default": 720, "narrow": 358, "narrow_below": 900 }` uses 358 for screenshots narrower than 900 px and 720 for the rest (see [burn-theming.md](burn-theming.md#wide-and-narrow-images)). For other per-image changes, pass `options.theme` per call. It wins over the workspace's block. `burnWithWorkspaceTheme` caches the workspace load, so the base theme is read once.
 
 ```ts
 import {
@@ -76,7 +76,7 @@ const png = await burnWithWorkspaceTheme({
 });
 ```
 
-`options.theme` takes the resolved `BurnTheme`, so its keys are camelCase (`displayWidth`, `fontSize`).
+`options.theme` takes the resolved `BurnTheme`, so its keys are camelCase (`displayWidth`, `displayWidthNarrow`, `narrowBelow`, `fontSize`).
 
 ## Troubleshooting
 

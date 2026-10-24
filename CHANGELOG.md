@@ -4,10 +4,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
-### Added
-
-- **Accent contrast warning for the Starlight site.** `docsxai-viewer site` checks the accent against Starlight's light (`#ffffff`) and dark (`#17181c`) backgrounds and prints a `site: warning:` line with the ratio when link text is under 4.5:1 or the focus ring and buttons are under 3:1. It never fails the command and the emitted colours stay as configured.
-
 ## [0.3.0-rc.4] - 2026-10-24
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds themeable burned captions and moves the burned-caption renderer to satori 0.63.
@@ -25,6 +21,8 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 - **Annotation placement guide.** `docs/annotation-placement.md`, published as Guides, Placing burned annotations: the annotation record keys, how `arrow_style` and `placement.side` hint a side, `obstacles`, the badge, `scale` and `display_width`, per-image theme overrides through `options.theme`, and a troubleshooting table.
 - **Screens pack manifest reference.** `docs/pack-manifest.md`, published as Reference, Screens pack manifest: the `docsxai/screens-pack@2` fields and limits, the `pack.json` keys, and the version policy.
 - **JSON Schema for the screens pack and `pack.json`.** `@docsxai/viewer` ships `schemas/screens-pack-2.schema.json` (`manifest.json`) and `schemas/pack-config-1.schema.json` (`pack.json`), draft 2020-12, importable as `@docsxai/viewer/schemas/<file>`. Patterns and limits are copied from `validatePack` and `parsePackConfig`, and a test checks each schema against the validator on the same good and bad documents. `docs/pack-manifest.md` lists the rules a schema cannot say.
+- **Accent contrast warning for the Starlight site.** `docsxai-viewer site` checks the accent against Starlight's light (`#ffffff`) and dark (`#17181c`) backgrounds and prints a `site: warning:` line with the ratio when link text is under 4.5:1 or the focus ring and buttons are under 3:1. It never fails the command and the emitted colours stay as configured.
+- **`burn.theme.display_width` takes a wide and a narrow width.** Besides a number it now accepts `{ "default": 720, "narrow": 358, "narrow_below": 900 }`: a screenshot narrower than `narrow_below` px (default 900) uses `narrow` for `scale: "auto"`, any other uses `default`. A 780 px phone capture shown at 358 px gets factor 2.18 while a 1440 px capture shown at 720 px keeps 2, in one workspace. Bad shapes stop the command with the key path (`display_width.narrow`). A number behaves as before and default output is unchanged. The resolved `BurnTheme` gains `displayWidthNarrow` and `narrowBelow` (`null` for the number form), and `@docsxai/viewer` exports `displayWidthFor` and `NARROW_BELOW_DEFAULT`. Guide: `docs/burn-theming.md`.
 
 ### Changed
 
