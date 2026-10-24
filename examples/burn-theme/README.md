@@ -29,3 +29,9 @@ docsxai pack ./docs-workspace --out ./docs-workspace/.screens
 ```
 
 Expect `burned/<flow>/<step>.png` for every flow with an `annotations.json`, and `.screens/manifest.json` from `pack`, with a halo in `#0b6e4f`, a numbered badge and a callout in the `readable` look on each. A bad key or value stops the command and lists each problem with its key. Text colours under WCAG AA print a warning.
+
+## trackxai tokens pair
+
+`trackxai-light.tokens.json` and `trackxai-dark.tokens.json` are W3C tokens files for a light and a dark app: Kalebtec violet on paper, and light violet on ink. Each sets the callout, badge and halo colours, 14 px text and `shape.connector: "line"`. Point a workspace at one with `"burn": { "theme": { "from": "trackxai-light.tokens.json" } }`.
+
+`node scripts/burn-trackxai-sample.mjs` burns three synthetic screens with both files, with the old triangle connector and with the line, and prints the paths of the before and after PNGs.
