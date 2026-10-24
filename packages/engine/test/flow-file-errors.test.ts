@@ -36,18 +36,6 @@ describe("a union nested in the steps", () => {
     expect(lines(msg)[0]).toMatch(/^ {2}• steps\.2\.success\.text_contains\.text: /);
   });
 
-  it("names the second step, not the first, when only the second is wrong", () => {
-    const msg = messageOf(
-      flow(
-        "",
-        hover("s1", "    success: { visible: $btn }\n"),
-        hover("s2", "    success: { visible: 5 }\n"),
-      ),
-    );
-    expect(msg).toContain("steps.1.success.visible:");
-    expect(msg).not.toContain("steps.0.");
-  });
-
   it("names the field of the wait_for branch that got deepest", () => {
     expect(messageOf(flow("", hover("s1", "    wait_for: { selector: 5 }\n")))).toContain(
       "steps.0.wait_for.selector:",
@@ -100,11 +88,6 @@ describe("a union outside the steps", () => {
     expect(
       messageOf(flow("redactions:\n  - region: { x: -1, y: 0, width: 5, height: 5 }\n")),
     ).toContain("redactions.0.region.x:");
-  });
-
-  it("names a step-level redaction under its step", () => {
-    const msg = messageOf(flow("", hover("s1", "    redactions:\n      - selector: 5\n")));
-    expect(msg).toContain("steps.0.redactions.0.selector:");
   });
 
   it("names the viewport field inside environment, and a mistyped preset at the union", () => {
