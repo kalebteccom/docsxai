@@ -152,7 +152,9 @@ export async function cmdZip(args: string[]): Promise<number> {
         ? `docsxai run ${shellQuote(projectDir)}`
         : /doesn't exist/.test(e.message)
           ? `docsxai init ${shellQuote(projectDir)}  (or fix the path)`
-          : undefined;
+          : /is a directory/.test(e.message)
+            ? `docsxai zip ${shellQuote(projectDir)} --out ${shellQuote(path.join(output, `${path.basename(path.resolve(projectDir))}.zip`))}`
+            : undefined;
       process.stderr.write(`zip: ${next ? withNext(e.message, next) : e.message}\n`);
       return 1;
     }
@@ -161,6 +163,18 @@ export async function cmdZip(args: string[]): Promise<number> {
     process.stderr.write(`zip: ${fsLine}\n`);
     return 1;
   }
+}
+
+/** The text after `<label>: ` for an export that failed: the disk's refusal, or the exporter's message once, with the command that helps. */
+function exportFailure(label: string, e: unknown, projectDir: string): string {
+  const fsLine = describeFsError(e);
+  if (fsLine !== undefined) return fsLine;
+  const message = (e as Error).message.replace(`${label}: `, "");
+  const dir = shellQuote(projectDir);
+  return withNext(
+    message,
+    /no flow named/.test(message) ? `docsxai flow-tree ${dir}` : `docsxai lint ${dir}`,
+  );
 }
 
 export async function cmdExport(args: string[]): Promise<number> {
@@ -233,9 +247,7 @@ async function cmdExportAdf(rest: string[]): Promise<number> {
     for (const w of projection.warnings) process.stderr.write(`export adf: warning: ${w}\n`);
     return 0;
   } catch (e) {
-    process.stderr.write(
-      `export adf: ${describeFsError(e) ?? withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
-    );
+    process.stderr.write(`export adf: ${exportFailure("export adf", e, projectDir)}\n`);
     return 1;
   }
 }
@@ -275,7 +287,7 @@ async function cmdExportPlaywright(rest: string[]): Promise<number> {
     return 0;
   } catch (e) {
     process.stderr.write(
-      `export playwright: ${describeFsError(e) ?? withNext((e as Error).message, `docsxai lint ${shellQuote(projectDir)}`)}\n`,
+      `export playwright: ${exportFailure("export playwright", e, projectDir)}\n`,
     );
     return 1;
   }

@@ -169,7 +169,9 @@ export function describeFsProblem(
   opts: { creating?: boolean } = {},
 ): FsProblem | undefined {
   const target = e instanceof Error ? (e as NodeJS.ErrnoException).path : undefined;
-  if (e instanceof Error && (e as NodeJS.ErrnoException).code === "ENOTDIR") {
+  const raw = e instanceof Error ? (e as NodeJS.ErrnoException) : undefined;
+  // `mkdir -p` over a path that runs through a file fails with EEXIST rather than ENOTDIR.
+  if (raw?.code === "ENOTDIR" || (raw?.code === "EEXIST" && raw.syscall === "mkdir")) {
     return notDirectoryProblem(target);
   }
   const code = fsErrorCode(e);
