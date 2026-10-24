@@ -322,6 +322,39 @@ const better = (a: Scored, b: Scored | undefined) =>
   a.cost < b.cost ||
   (a.cost === b.cost && (a.rank < b.rank || (a.rank === b.rank && a.travel < b.travel)));
 
+/** The cheapest spot one side offers, as {@link planCallout} scores it. */
+export interface SideVerdict {
+  side: Side;
+  /** 0 for the preferred side, then the order the sides were tried in. */
+  rank: number;
+  /** What the planner minimises, hint bonus and side switch included; null when no spot fits. */
+  cost: number | null;
+  /** Px² of callout, arrow and stem still on content or an avoided box. */
+  overlap: number;
+  /** Stem length in px; 0 when the callout sits at the arrow. */
+  stem: number;
+}
+
+/**
+ * The best spot on each side, in the order `planCallout` tries them, for a report of why one side
+ * won. Every side is listed; with `strictSide` the planner keeps the preferred one whenever it has
+ * a spot, whatever the others cost.
+ */
+export function sideVerdicts(inp: PlanInput): SideVerdict[] {
+  const gap = inp.gap ?? 10;
+  const preferred = inp.preferred ?? "top";
+  const order = [preferred, ...SIDES.filter((s) => s !== preferred)];
+  const best = new Map<Side, Scored>();
+  for (const cand of candidates(inp, order, gap)) {
+    if (better(cand, best.get(cand.side))) best.set(cand.side, cand);
+  }
+  return order.map((side, rank) => {
+    const b = best.get(side);
+    const stem = b?.stem ? Math.max(b.stem.width, b.stem.height) : 0;
+    return { side, rank, cost: b ? b.cost : null, overlap: b ? b.overlap : 0, stem };
+  });
+}
+
 /**
  * Pick the cheapest callout position for a target among sides, distances and slides. Falls back to
  * `placeCallout`'s clamped placement when no candidate fits inside the image.

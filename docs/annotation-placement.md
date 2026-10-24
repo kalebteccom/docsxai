@@ -89,3 +89,5 @@ const png = await burnWithWorkspaceTheme({
 | Badge touches the image edge        | Add at least one box to `obstacles`. The badge then stays 2 px inside.             |
 | Captions too small on the page      | Set `display_width` to the column width and `scale` to `"auto"`.                   |
 | Callout too wide for a narrow image | Lower `placement.max_width`, or `max_width_ratio` in the theme.                    |
+
+> **For agents:** to check a side hint against a raw capture before committing it, run `node scripts/burn-probe.mjs --screenshot raw.png --annotations raw.json` from a docsxai checkout after `pnpm --filter @docsxai/viewer build`. It prints, per callout, the side asked for and the side taken, each side's best score, the obstacles the callout, arrow, stem and badge touch, and whether the connector is drawn as ink, fill or outline. `--side 2=bottom` tries a hint without editing the file, `--theme` or `--workspace` burns with a theme, and `--out` writes the burned PNG.

@@ -8,7 +8,13 @@
 // narrower one wins only on strictly less overlap.
 
 import { placeCallout, type Rect, type Side } from "./placement.js";
-import { overlapArea, planCallout } from "./obstacle-placement.js";
+import {
+  overlapArea,
+  planCallout,
+  sideVerdicts,
+  type PlanInput,
+  type SideVerdict,
+} from "./obstacle-placement.js";
 import { fitsInside, INSIDE_MARGIN, MIN_INSIDE_WIDTH, planInside } from "./inside-placement.js";
 import { ARROW_LENGTH, arrowGeometry } from "./arrow.js";
 import { measureText, wrapText, type FontMetrics } from "./font-metrics.js";
@@ -209,6 +215,38 @@ function withOverlap(
   };
 }
 
+/** What the obstacle planner gets for a callout of `size`. */
+function planInput(inp: LayoutInput, size: Size): PlanInput {
+  const { ann, target, image, clear } = inp;
+  const placement = ann.placement;
+  const arrowLength = inp.arrowLength ?? ARROW_LENGTH;
+  return {
+    image,
+    target,
+    callout: size,
+    preferred: placement?.side ?? preferredSide(ann.arrow_style),
+    gap: arrowLength + 2,
+    obstacles: ann.obstacles ?? [],
+    avoid: clear,
+    nudge: { x: ann.nudge?.x ?? 0, y: ann.nudge?.y ?? 0 },
+    ...(placement?.side ? { strictSide: true } : {}),
+    ...(placement?.side !== undefined || hintsSide(ann.arrow_style) ? { hinted: true } : {}),
+    ...(placement?.align ? { align: placement.align } : {}),
+    ...(placement?.pin_arrow ? { pinArrow: true } : {}),
+    arrowLength,
+  };
+}
+
+/**
+ * How each side scored for the box `layout` ended with, for a placement probe. Empty for a callout
+ * inside its target, and for one laid out without obstacles or placement keys (no scoring ran).
+ */
+export function explainLayout(inp: LayoutInput, layout: CalloutLayout): SideVerdict[] {
+  const scored = steersBurner(inp.ann.placement) || (inp.ann.obstacles?.length ?? 0) > 0;
+  if (layout.mode === "inside" || !scored) return [];
+  return sideVerdicts(planInput(inp, layout.size));
+}
+
 function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutLayout {
   const { ann, target, image, metrics, clear } = inp;
   const style = inp.style ?? DEFAULT_CALLOUT_STYLE;
@@ -256,21 +294,14 @@ function layoutAtWidth(inp: LayoutInput, label: string, width: number): CalloutL
   }
 
   const { lines, size } = measureCallout(label, metrics, width, style);
-  const input = { image, target, callout: size, preferred, gap };
   const planned = steersBurner(placement) || obstacles.length > 0;
   const p = planned
-    ? planCallout({
-        ...input,
-        obstacles,
-        avoid: clear,
-        nudge,
-        ...(placement?.side ? { strictSide: true } : {}),
-        ...(placement?.side !== undefined || hintsSide(ann.arrow_style) ? { hinted: true } : {}),
-        ...(placement?.align ? { align: placement.align } : {}),
-        ...(placement?.pin_arrow ? { pinArrow: true } : {}),
-        arrowLength,
-      })
-    : { ...placeCallout(input), stem: null, nudgeBaked: false };
+    ? planCallout(planInput(inp, size))
+    : {
+        ...placeCallout({ image, target, callout: size, preferred, gap }),
+        stem: null,
+        nudgeBaked: false,
+      };
   return withOverlap(
     {
       lines,

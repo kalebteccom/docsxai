@@ -52,6 +52,7 @@ import {
   layoutCallout,
   type CalloutLayout,
   type CalloutStyle,
+  type LayoutInput,
 } from "./burn-callout.js";
 import {
   annotationReport,
@@ -114,6 +115,17 @@ export interface BurnTreeInput {
   pixels?: PixelGrid;
   /** The caption look. Default {@link DEFAULT_BURN_THEME}, today's. */
   theme?: BurnTheme;
+  /** Receives what each callout was laid out from and how, at base size, for placement probes. */
+  trace?: CalloutTrace[];
+}
+
+/** One callout's layout input and result at base size; `scale` multiplies them to screenshot px. */
+export interface CalloutTrace {
+  /** Position of the annotation in the input list. */
+  position: number;
+  input: LayoutInput;
+  layout: CalloutLayout;
+  scale: number;
 }
 
 /** Family name the theme's own font file is registered under in Satori. */
@@ -300,7 +312,7 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
     let calloutBox: Rect | null = null;
     if (ann.copy) {
       const clear = keepClear(baseAnnotations, ann, baseImage, input.metrics, placed, badges);
-      const planned = layoutCallout({
+      const layoutInput: LayoutInput = {
         ann,
         target: t,
         image: baseImage,
@@ -309,7 +321,9 @@ export function buildBurnTree(input: BurnTreeInput): BurnNode {
         style,
         arrowLength: base.arrowSize,
         maxWidthRatio: base.maxWidthRatio,
-      });
+      };
+      const planned = layoutCallout(layoutInput);
+      input.trace?.push({ position: i, input: layoutInput, layout: planned, scale: f });
       placed.push(...layoutBoxes(planned));
       layout = layoutAtScale(planned, f);
       const drawn = calloutNodes(layout, theme, f, themed, input.pixels);
