@@ -1,6 +1,9 @@
 ---
 title: Quickstart
 description: Scaffold a workspace, capture an authed session if your app needs login, author a first flow-file, run it deterministically, and open the rendered viewer.
+next:
+  link: /reference/flow-file/
+  label: Flow-file format
 ---
 
 This page takes you from nothing to a rendered doc pack against your own app.
