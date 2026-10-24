@@ -14,6 +14,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
+import { compareNatural } from "./natural-order.js";
 import { isSafeFlowName, isSafeStepId, showName } from "./safe-id.js";
 import { viewerStamp } from "./viewer-version.js";
 import { flowPageHtml, indexHtml, type FlowSummary, type ViewerStep } from "./viewer-markup.js";
@@ -249,7 +250,7 @@ export async function buildViewer(opts: BuildViewerOptions): Promise<BuildViewer
       stepIds = shots
         .filter((s) => s.endsWith(".png"))
         .map((s) => s.replace(/\.png$/, ""))
-        .sort();
+        .sort(compareNatural);
     }
 
     const steps: ViewerStep[] = [];

@@ -7,6 +7,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import type { AnnotationRecord } from "./annotations.js";
 import { discoverFlows, parseAnnotations } from "./render.js";
+import { compareNatural } from "./natural-order.js";
 import { isSafeFlowName, isSafeStepId, showName } from "./safe-id.js";
 
 export interface CaptionItem {
@@ -113,7 +114,7 @@ export async function readSteps(
     stepIds = shots
       .filter((s) => s.endsWith(".png"))
       .map((s) => s.replace(/\.png$/, ""))
-      .sort();
+      .sort(compareNatural);
   }
 
   const steps: StepPage[] = [];
