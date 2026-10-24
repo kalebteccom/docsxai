@@ -361,6 +361,37 @@ function visualString(visual: Record<string, unknown> | undefined, keys: string[
   return null;
 }
 
+/**
+ * The logo file to copy in, or null. The explicit `logo` option is the operator's and may be
+ * absolute. `visual.logo` comes from the doc pack, so it must name a file inside the workspace,
+ * after symlinks too: otherwise a pack could copy any file the builder can read into the site.
+ * One warning covers a missing and an outside file, so it says nothing about files outside.
+ */
+async function resolveLogo(
+  workspaceDir: string,
+  explicit: string | undefined,
+  fromStyle: string | null,
+  warnings: string[],
+): Promise<string | null> {
+  if (explicit !== undefined) {
+    const resolved = path.resolve(workspaceDir, explicit);
+    if (await exists(resolved)) return resolved;
+    warnings.push(`logo not found: ${resolved}, emitting without a logo`);
+    return null;
+  }
+  if (fromStyle === null) return null;
+  const resolved = path.resolve(workspaceDir, fromStyle);
+  const real = path.isAbsolute(fromStyle) ? null : await fs.realpath(resolved).catch(() => null);
+  if (real !== null && (await fs.stat(real)).isFile()) {
+    const rel = path.relative(await fs.realpath(workspaceDir), real);
+    if (rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel)) return resolved;
+  }
+  warnings.push(
+    `style.json visual.logo ${JSON.stringify(fromStyle)} ignored: it must name a file inside the workspace, so the site has no logo`,
+  );
+  return null;
+}
+
 /** Write a complete, buildable Astro Starlight project for the workspace's doc pack. */
 export async function emitStarlightSite(
   opts: EmitStarlightSiteOptions,
@@ -389,15 +420,12 @@ export async function emitStarlightSite(
     }
   }
 
-  let logoSrc: string | null = null;
-  const logoConfigured = config.logo ?? visualString(visual, ["logo"]);
-  if (logoConfigured !== null && logoConfigured !== undefined) {
-    const resolved = path.isAbsolute(logoConfigured)
-      ? logoConfigured
-      : path.join(opts.workspaceDir, logoConfigured);
-    if (await exists(resolved)) logoSrc = resolved;
-    else warnings.push(`logo not found: ${resolved}, emitting without a logo`);
-  }
+  const logoSrc = await resolveLogo(
+    opts.workspaceDir,
+    config.logo,
+    visualString(visual, ["logo"]),
+    warnings,
+  );
   const logoRel = logoSrc !== null ? `src/assets/logo${path.extname(logoSrc) || ".png"}` : null;
 
   const ui = uiStrings(config.lang);

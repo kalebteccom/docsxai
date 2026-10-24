@@ -744,12 +744,102 @@ describe("emitStarlightSite — config generation", () => {
     expect(await fs.readFile(path.join(out, "src/assets/logo.svg"), "utf8")).toBe("<svg/>");
   });
 
+  describe("visual.logo stays inside the workspace", () => {
+    const outside = async () => {
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-starlight-outside-"));
+      tempDirs.push(dir);
+      await fs.writeFile(path.join(dir, "secret.png"), BURNED_PNG);
+      return path.join(dir, "secret.png");
+    };
+    const expectNoLogo = async (ws: string, config: { logo?: string } = {}): Promise<string[]> => {
+      const out = await outDir();
+      const r = await emitStarlightSite({ workspaceDir: ws, outDir: out, config });
+      expect(r.logo).toBeNull();
+      expect(r.files.some((f) => f.includes("logo"))).toBe(false);
+      expect(await read(out, "astro.config.mjs")).not.toContain("logo:");
+      return r.warnings;
+    };
+
+    it("refuses an absolute path, naming the field", async () => {
+      const secret = await outside();
+      const ws = await makeWorkspace({ flows: [], visual: { logo: secret } });
+      const warnings = await expectNoLogo(ws);
+      expect(warnings).toEqual([
+        `style.json visual.logo ${JSON.stringify(secret)} ignored: it must name a file inside the workspace, so the site has no logo`,
+      ]);
+    });
+
+    it("refuses a .. path that leaves the workspace", async () => {
+      const secret = await outside();
+      const ws = await makeWorkspace({ flows: [], visual: { logo: "" } });
+      const rel = path.relative(ws, secret);
+      await fs.writeFile(
+        path.join(ws, "docs", "style.json"),
+        JSON.stringify({ visual: { logo: rel } }),
+      );
+      const warnings = await expectNoLogo(ws);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain("visual.logo");
+      expect(warnings[0]).toContain("inside the workspace");
+      // A missing file outside gets the same line, so the warning reveals nothing about it.
+      const missing = await makeWorkspace({ flows: [], visual: { logo: "../../nope/x.png" } });
+      expect(await expectNoLogo(missing)).toEqual([
+        'style.json visual.logo "../../nope/x.png" ignored: it must name a file inside the workspace, so the site has no logo',
+      ]);
+    });
+
+    it("refuses a symlink inside the workspace that points outside it", async () => {
+      const secret = await outside();
+      const ws = await makeWorkspace({ flows: [], visual: { logo: "assets/logo.png" } });
+      await fs.mkdir(path.join(ws, "assets"), { recursive: true });
+      await fs.symlink(secret, path.join(ws, "assets", "logo.png"));
+      const warnings = await expectNoLogo(ws);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain("visual.logo");
+    });
+
+    it("follows a symlink that stays inside the workspace", async () => {
+      const ws = await makeWorkspace({
+        flows: [],
+        visual: { logo: "assets/link.png" },
+        extraFiles: { "brand/logo.png": CLEAN_PNG },
+      });
+      await fs.mkdir(path.join(ws, "assets"), { recursive: true });
+      await fs.symlink(path.join(ws, "brand", "logo.png"), path.join(ws, "assets", "link.png"));
+      const out = await outDir();
+      const r = await emitStarlightSite({ workspaceDir: ws, outDir: out });
+      expect(r.logo).toBe("src/assets/logo.png");
+      expect(r.warnings).toEqual([]);
+    });
+
+    it("still takes an absolute path from the explicit logo option", async () => {
+      const secret = await outside();
+      const ws = await makeWorkspace({ flows: [] });
+      const out = await outDir();
+      const r = await emitStarlightSite({
+        workspaceDir: ws,
+        outDir: out,
+        config: { logo: secret },
+      });
+      expect(r.logo).toBe("src/assets/logo.png");
+      expect(r.warnings).toEqual([]);
+    });
+  });
+
   it("warns and emits without a logo when the configured logo file is missing", async () => {
     const ws = await makeWorkspace({ flows: [], visual: { logo: "assets/nope.png" } });
     const out = await outDir();
     const r = await emitStarlightSite({ workspaceDir: ws, outDir: out });
     expect(r.logo).toBeNull();
-    expect(r.warnings.some((w) => w.startsWith("logo not found:"))).toBe(true);
+    expect(r.warnings).toEqual([
+      'style.json visual.logo "assets/nope.png" ignored: it must name a file inside the workspace, so the site has no logo',
+    ]);
+    const r2 = await emitStarlightSite({
+      workspaceDir: ws,
+      outDir: out,
+      config: { logo: "assets/nope.png" },
+    });
+    expect(r2.warnings.some((w) => w.startsWith("logo not found:"))).toBe(true);
     expect(await read(out, "astro.config.mjs")).not.toContain("logo:");
   });
 
