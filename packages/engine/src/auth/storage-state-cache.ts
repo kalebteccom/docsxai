@@ -1,6 +1,6 @@
 // Local storageState cache (`.auth/<role>.json`) — used by expensive strategies (manual-capture, ui-form, ...).
 
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
 import { z } from "zod";
 import { BackendStateCache, resolveBackendToken } from "../backend-client.js";
@@ -170,12 +170,19 @@ export class LocalStorageStateCache {
     await fs.mkdir(resolveWorkspacePath(this.dir), { recursive: true });
     // Role names are operator-influenced — resolve with the symlink-aware variant before writing.
     const target = await resolveWorkspacePathReal(this.dir, this.fileName(role));
-    // The jar holds live session cookies: owner-only, also when an older copy was group-readable.
-    await fs.writeFile(target, JSON.stringify(entry, null, 2) + "\n", {
-      encoding: "utf8",
-      mode: 0o600,
-    });
-    await fs.chmod(target, 0o600);
+    // The jar holds live session cookies: a fresh owner-only file renamed over the old one, so an
+    // older group-readable copy never holds the new cookies.
+    const tmp = `${target}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
+    try {
+      await fs.writeFile(tmp, JSON.stringify(entry, null, 2) + "\n", {
+        encoding: "utf8",
+        mode: 0o600,
+        flag: "wx",
+      });
+      await fs.rename(tmp, target);
+    } finally {
+      await fs.rm(tmp, { force: true });
+    }
     return { expiresAt, source };
   }
 

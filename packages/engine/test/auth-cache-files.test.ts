@@ -76,3 +76,21 @@ describe("session cache files", () => {
     },
   );
 });
+
+describe("session cache replacement", () => {
+  it.skipIf(process.platform === "win32")(
+    "never writes new cookies into an existing group-readable file",
+    async () => {
+      const file = path.join(dir, ".auth", "editor.json");
+      await fs.mkdir(path.join(dir, ".auth"), { recursive: true });
+      await fs.writeFile(file, "{}", { mode: 0o644 });
+      // A second name for the old file: it shows whatever is written into the old inode.
+      await fs.link(file, path.join(dir, "old-jar"));
+      await cache.save("editor", { storageState: stateFor("fresh") }, roleAuth);
+      expect(await fs.readFile(path.join(dir, "old-jar"), "utf8")).toBe("{}");
+      expect((await fs.stat(file)).mode & 0o777).toBe(0o600);
+      expect((await cache.load("editor"))?.cookies[0]?.value).toBe("fresh");
+      expect((await fs.readdir(path.join(dir, ".auth"))).sort()).toEqual(["editor.json"]);
+    },
+  );
+});
