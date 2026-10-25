@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "documents",
-      "selector": "nav.dindex__scopes",
+      "selector": "nav.filters",
       "bounding_box": {
         "x": 280,
         "y": 155,
@@ -266,7 +266,7 @@
     },
     {
       "step": "documents",
-      "selector": "table.dtable th.dtable__version",
+      "selector": "table.grid th.col",
       "bounding_box": {
         "x": 1024,
         "y": 234,

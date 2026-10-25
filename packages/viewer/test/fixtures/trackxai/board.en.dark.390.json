@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "board",
-      "selector": "h1.page__title",
+      "selector": "h1.title",
       "bounding_box": {
         "x": 16,
         "y": 60,

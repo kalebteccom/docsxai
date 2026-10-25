@@ -19,7 +19,7 @@ Owns the release ritual end to end. This agent prepares each release; the owner 
 6. **Push tag.** `git push origin vX.Y.Z` on the merged release commit. The tag push starts nothing; it names the commit to release.
 7. **Release pipeline.** The owner starts the manual release pipeline for `vX.Y.Z`. It stages the seven packages: `docsxai` plus `@docsxai/{engine,plugin,backend,skill,viewer,plugin-sharepoint}` (the repo-only `@docsxai/{mcp,plugin-confluence,plugin-gitbook,plugin-guru,plugin-notion,plugin-starlight}` are excluded). The owner approves the staged versions, then creates the GitHub Release by hand (`gh release create`, see `RELEASING.md`).
 8. **Post-release smoke.** Install the published version in a scratch dir; run `docsxai --version` and a minimal `docsxai init` + `docsxai lint` on a toy workspace.
-9. **Announce.** Update README install snippet if the version is referenced by line; surface the closure entry to the owner for the internal planning archive.
+9. **Announce.** Update README install snippet if the version is referenced by line; surface the closure entry to the owner.
 
 ## Pre-release state (today)
 

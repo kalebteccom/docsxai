@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "connect",
-      "selector": "section.connect__pick",
+      "selector": "section.picker",
       "bounding_box": {
         "x": 16,
         "y": 244.5,
@@ -128,7 +128,7 @@
     },
     {
       "step": "connect",
-      "selector": "section.connect__card",
+      "selector": "section.panel",
       "bounding_box": {
         "x": 16,
         "y": 459,

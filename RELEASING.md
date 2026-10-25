@@ -37,7 +37,7 @@ npm has announced it will retire direct publishing with tokens that bypass 2FA, 
 
 ## Cutting a release (in order)
 
-1. **Pre-flight.** The release pull request (version bump plus CHANGELOG) is green on Woodpecker at its head commit. Full-history secret/identifier scan clean (the 2026-05-15 scrub holds; re-audit any docs added since).
+1. **Pre-flight.** The release pull request (version bump plus CHANGELOG) is green on Woodpecker at its head commit. Full-history secret/identifier scan clean (re-audit any docs added since the last scan).
 2. **Verify the publish set.** The seven publishable manifests (`packages/docsxai` + `packages/{engine,plugin,backend,skill,viewer,plugin-sharepoint}`) carry no `"private"` flag; `@docsxai/{mcp,plugin-confluence,plugin-gitbook,plugin-guru,plugin-notion,plugin-starlight}`, `@docsxai/website`, and the workspace root keep `"private": true`.
 3. **Finalise the CHANGELOG.** Promote `## [Unreleased]` to `## [X.Y.Z] - <date>`; add the compare link. Bump all seven publishable packages to the same `X.Y.Z` (the pipeline fails if any differs from the tag). Commit `chore(release): vX.Y.Z` in the release pull request.
 4. **Merge.** Merge the release pull request on a green Woodpecker run at its head commit.
@@ -75,7 +75,7 @@ With `--approve` it asks for a fresh 2FA code before each package and passes it 
 
 ## Pipeline behavior
 
-`.woodpecker/release.yaml` (Woodpecker runs every file in `.woodpecker/` as its own workflow; `ci.yaml` next to it is the merge gate). Workflow-level `when: event: manual`. Same image and gate slots as `ci.yaml`.
+`.woodpecker/release.yaml` (Woodpecker runs every file in `.woodpecker/` as its own workflow; `ci.yaml` next to it is the merge gate). Workflow-level `when: event: manual`. Same image as `ci.yaml`.
 
 - `setup`: prints the Node and npm versions, then `pnpm install --frozen-lockfile --ignore-scripts` with a store in the container's `/tmp` (no shared cache).
 - `build`: `pnpm build`.

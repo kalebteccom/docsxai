@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "ticket",
-      "selector": "h2.tread__title",
+      "selector": "h2.heading",
       "bounding_box": {
         "x": 312,
         "y": 160.421875,
@@ -266,7 +266,7 @@
     },
     {
       "step": "ticket",
-      "selector": "div.tbar__acts",
+      "selector": "div.actions",
       "bounding_box": {
         "x": 312,
         "y": 264.671875,
@@ -521,7 +521,7 @@
     },
     {
       "step": "ticket",
-      "selector": "h3#gaps-heading",
+      "selector": "h3#section-heading",
       "bounding_box": {
         "x": 312,
         "y": 524.921875,

@@ -27,7 +27,7 @@ For a diff that touches discipline:
 
 For a diff that moves spec / scope:
 
-- [ ] **Repo-local spec surfaces** (`AGENTS.md` repo map, `docs/`, `docs/ai-context/architecture/`) — updated; they are the spec source of truth. Scope/shape movement surfaced to the owner so the internal planning archive stays current.
+- [ ] **Repo-local spec surfaces** (`AGENTS.md` repo map, `docs/`, `docs/ai-context/architecture/`) — updated; they are the spec source of truth. Scope/shape movement surfaced to the owner.
 - [ ] **`PHASE-N.md`** — closure narrative updated if the phase boundary moved.
 
 ## Acceptable explicit skip

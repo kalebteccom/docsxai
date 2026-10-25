@@ -16,7 +16,7 @@ Workflow (when release is authorized):
 6. Push tag. `git push origin vX.Y.Z` on the merged release commit. The tag push starts nothing; it names the commit to release.
 7. Release pipeline: the owner starts it for `vX.Y.Z`. It stages the seven packages: `docsxai` plus `@docsxai/{engine,plugin,backend,skill,viewer,plugin-sharepoint}` (repo-only `@docsxai/{mcp,plugin-confluence,plugin-gitbook,plugin-guru,plugin-notion,plugin-starlight}` excluded). The owner approves the staged versions, then creates the GitHub Release by hand (`gh release create`, see `RELEASING.md`).
 8. Post-release smoke. Install in a scratch dir; run `docsxai --version` plus a minimal `docsxai init` + `docsxai lint` on a toy workspace.
-9. Announce. Update the README install snippet if the version is referenced by line; surface the closure entry to the owner for the internal planning archive.
+9. Announce. Update the README install snippet if the version is referenced by line; surface the closure entry to the owner.
 
 Pre-release state (today):
 - Releases run only through the owner-started release pipeline.

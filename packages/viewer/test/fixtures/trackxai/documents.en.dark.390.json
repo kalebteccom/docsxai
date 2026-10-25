@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "documents",
-      "selector": "table.dtable tbody tr >> nth=1",
+      "selector": "table.grid tbody tr >> nth=1",
       "bounding_box": {
         "x": 16,
         "y": 387,

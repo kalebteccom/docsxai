@@ -29,6 +29,7 @@ import {
   checkWritable,
 } from "./doctor-checks-config.js";
 import { checkPlugins } from "./doctor-checks-plugins.js";
+import { checkSite } from "./doctor-checks-site.js";
 import { commandUsage, usageError } from "./cli-messages.js";
 import { engineVersion } from "./cli-version.js";
 import { doctorNextStep } from "./doctor-next.js";
@@ -40,6 +41,7 @@ import { parseCommandFlags } from "./cli-flags.js";
 export * from "./doctor-checks.js";
 export * from "./doctor-checks-plugins.js";
 export * from "./doctor-checks-config.js";
+export * from "./doctor-checks-site.js";
 export { doctorNextStep } from "./doctor-next.js";
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,8 @@ export async function buildDoctorChecks(opts: DoctorOptions = {}): Promise<Docto
     checks.push(checkLogin(workspaceDir, ws.config, env));
     // A config that does not load already failed the workspace row; the plugins row would repeat it.
     if (ws.check.ok) checks.push(...(await checkPlugins(workspaceDir)));
+    const site = checkSite(workspaceDir);
+    if (site) checks.push(site);
   }
 
   checks.push(await checkViewer(env));
@@ -157,7 +161,7 @@ export function doctorHelp(): string {
     .join("")}
 Checks Node, Chromium, the workspace config (fields and burn.theme shape), write access, flow-files,
 cached sessions, a HEAD to app_url, the backend and login state (when backend_url is set), plugin
-declarations and lock, the viewer and environment settings. Runs no flow, no plugin code and no browser.
+declarations and lock, an emitted site folder with no astro installed, the viewer and environment settings. Runs no flow, no plugin code and no browser.
 
   ok: <check>: <detail> next: <what to do>     passed (next is present when there is a follow-up)
   fail: <check>: <detail> next: <what to do>   failed

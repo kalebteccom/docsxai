@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "agent-tokens-issued",
-      "selector": "p.plaintext",
+      "selector": "p.plain",
       "bounding_box": {
         "x": 16,
         "y": 249.5,
@@ -176,7 +176,7 @@
     },
     {
       "step": "agent-tokens-issued",
-      "selector": "p.token-issued__copy button",
+      "selector": "p.note button",
       "bounding_box": {
         "x": 16,
         "y": 300,
