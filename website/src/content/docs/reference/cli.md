@@ -617,11 +617,13 @@ Exit 1 if any issues.
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai flow-tree ~/docsxai/my-app
 preamble    [3 steps]
-├── publish-post    [5 steps]
-└── invite-user    [4 steps]
+├── publish-post    [+5 steps]
+└── invite-user    [+4 steps]
 
-3 flows, max chain depth 1
+3 flows, max chain depth 2
 ```
+
+A flow below its parent shows `[+N steps]`, the steps it adds to the parent's.
 
 A flow with a [matrix](/reference/flow-file/#matrix) lists its variants after the
 step count: `tour    [4 steps]    {4 variants: en-US.light, en-US.dark, es-ES.light, es-ES.dark}`.
