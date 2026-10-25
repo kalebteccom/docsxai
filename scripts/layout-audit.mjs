@@ -12,7 +12,7 @@
 //
 // `--engine chromium|webkit|firefox` picks the browser (default chromium). Install the others with
 // `npx playwright-core install webkit firefox`. Firefox has no mobile emulation, so below 768 px
-// it runs with touch but without the mobile viewport meta handling the other two apply.
+// it runs with touch but without the mobile viewport.
 //
 // `--mode states` checks that status, helper, error and progress lines never shift layout. For each
 // entry in the config's "states" list it loads the page once per state, runs that state's steps
