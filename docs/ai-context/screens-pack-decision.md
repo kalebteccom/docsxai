@@ -1,6 +1,6 @@
 # Screenshot pack: decision note
 
-Two consumers each built their own copy of the same pipeline (burn, optimise, hash, manifest, drift check): `workspaces/trackxai-docs/scripts/build-screens.mjs` (`docsxai/screens-pack@1`) and remotxai's `website/scripts/screens/` (`docsxai/screens-manifest@1`). This note records what the product feature, `docsxai pack` and `docsxai pack --check`, takes from each and what it drops.
+Two downstream sites each built their own copy of the same pipeline (burn, optimise, hash, manifest, drift check), one emitting `docsxai/screens-pack@1` and one `docsxai/screens-manifest@1`. This note records what the product feature, `docsxai pack` and `docsxai pack --check`, takes from each and what it drops.
 
 ## One schema: `docsxai/screens-pack@2`
 
@@ -24,8 +24,8 @@ The viewer owns it (`packages/viewer/src/pack-*.ts`), next to `burnAnnotations`,
 
 ## Inputs
 
-- Raw capture directory (remotxai shape): `<root>/<flow>/<step>/<locale>.<theme>.<viewport>.png` with a `.json` sidecar (`width`, `height`, `annotations[]`), `step.json` (`alt`, `caption?`) and `flow.json` (`title?`).
-- Workspace (trackxai shape): `<ws>/docs/<capture-flow>/screenshots/<step>.png` and `annotations.json`, plus `<ws>/pack.json` (`docsxai/pack-config@1`) mapping each capture flow to a logical flow and a variant key and carrying alt text. A workspace that has `docs/` is read as one; `--from-raw` forces the raw reader. Clean screenshots are burned in memory, so `docs/<flow>/burned/` is not needed.
+- Raw capture directory (raw shape): `<root>/<flow>/<step>/<locale>.<theme>.<viewport>.png` with a `.json` sidecar (`width`, `height`, `annotations[]`), `step.json` (`alt`, `caption?`) and `flow.json` (`title?`).
+- Workspace (workspace shape): `<ws>/docs/<capture-flow>/screenshots/<step>.png` and `annotations.json`, plus `<ws>/pack.json` (`docsxai/pack-config@1`) mapping each capture flow to a logical flow and a variant key and carrying alt text. A workspace that has `docs/` is read as one; `--from-raw` forces the raw reader. Clean screenshots are burned in memory, so `docs/<flow>/burned/` is not needed.
 
 ## Optimise and hash
 

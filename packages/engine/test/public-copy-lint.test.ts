@@ -322,7 +322,7 @@ describe("public copy: mirrored docs (report only)", () => {
 
   it("helper finds planted secret names, providers, paths and ai-context pointers", () => {
     const hits = reportHits(
-      "set GITEA_API_TOKEN on Hetzner, copy to /srv/x, see docs/ai-context/a.md and /home/bob/y",
+      "set EXAMPLE_API_TOKEN on Vercel, copy to /srv/x, see docs/ai-context/a.md and /home/bob/y",
     );
     for (const rule of ["secret name", "hosting provider", "server path", "ai-context pointer"]) {
       expect(hits.some((h) => h.startsWith(rule + " "))).toBe(true);
@@ -339,9 +339,9 @@ describe("public copy: matcher", () => {
     expect(findLeaks("DOCSX_EGRESS_GUARD=0 or INTERNAL_KNOB", "mcp").map((f) => f.match)).toEqual([
       "INTERNAL_KNOB",
     ]);
-    expect(findLeaks("DOCSX_TOKEN SIGINT ops.kalebtec.com", "site").map((f) => f.match)).toEqual([
+    expect(findLeaks("DOCSX_TOKEN SIGINT x.kalebtec.com", "site").map((f) => f.match)).toEqual([
       "DOCSX_TOKEN",
-      "ops.kalebtec.com",
+      "x.kalebtec.com",
     ]);
   });
 
@@ -393,7 +393,7 @@ describe("public copy: matcher", () => {
   });
 
   it("flags internal hostnames and keeps public links", () => {
-    expect(rules("see https://ops.kalebtec.com/x", "site")).toEqual(["internal hostname"]);
+    expect(rules("see https://x.kalebtec.com/x", "site")).toEqual(["internal hostname"]);
     expect(
       rules(
         "https://docsxai.dev https://kalebtec.com https://github.com/kalebteccom/docsxai",
@@ -403,7 +403,7 @@ describe("public copy: matcher", () => {
   });
 
   it("flags private IPs", () => {
-    for (const ip of ["10.0.4.7", "192.168.1.20", "172.16.0.9", "172.31.255.1"]) {
+    for (const ip of ["10.0.0.1", "192.168.1.20", "172.16.0.9", "172.31.255.1"]) {
       expect(rules(`host ${ip}`, "cli")).toEqual(["private IP"]);
     }
     expect(rules("172.32.0.1 and 8.8.8.8", "cli")).toEqual([]);
