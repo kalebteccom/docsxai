@@ -56,7 +56,6 @@ Notes:
     --app-url, --auth, --role, --ttl, --capture-trigger or --auth-cookie.
   • run / capture-auth read app_url + ignore_https_errors from .docsxai.json if you don't pass the flags.
   • run launches Chromium; if no browser binary is present, install one:  npx playwright-core install chromium
-    (source checkout: pnpm -C packages/engine exec playwright-core install chromium)
   • --ignore-https-errors accepts self-signed/invalid TLS (e.g. an app's local HTTPS dev cert)
   • run --stop-after <step-id> runs only a prefix of the flow (up to & incl. that step); --pause keeps the
     (headed) browser open at the last step run, so you can inspect the live state mid-flow when calibrating

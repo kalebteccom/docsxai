@@ -89,7 +89,7 @@ describe("checkChromium", () => {
     const c = await checkChromium(async () => ({ ok: false, detail: "no binary cached" }));
     expect(c.ok).toBe(false);
     expect(c.fix).toMatch(/npx playwright-core install chromium/);
-    expect(c.fix).toMatch(/pnpm -C packages\/engine exec playwright-core install chromium/);
+    expect(c.fix).not.toMatch(/source checkout/);
   });
 
   it.skipIf(!chromiumAvailable)("real probe finds the installed Chromium", () => {

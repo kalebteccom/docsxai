@@ -10,8 +10,7 @@ const MISSING_BINARY = /Executable doesn't exist|playwright install/i;
 const NOT_A_DIRECTORY = /ENOTDIR: not a directory, \w+ '([^'\n]+)'/;
 
 /** The command that installs the Chromium binary Playwright looks for. */
-export const CHROMIUM_INSTALL =
-  "npx playwright-core install chromium  (source checkout: pnpm -C packages/engine exec playwright-core install chromium)";
+export const CHROMIUM_INSTALL = "npx playwright-core install chromium";
 
 /** The start of the reason `describeBrowserLaunch` gives for a refused `--cdp` endpoint. */
 export const CDP_UNREACHABLE = "cannot attach to the browser at";

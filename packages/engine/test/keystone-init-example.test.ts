@@ -42,7 +42,9 @@ describe.skipIf(!ready)("keystone: init --example, run, render --open", () => {
   beforeAll(async () => {
     server = createServer((_req, res) => {
       res.writeHead(200, { "content-type": "text/html" });
-      res.end("<!doctype html><title>Example</title><h1>Example Domain</h1><p>Hello.</p>");
+      res.end(
+        '<!doctype html><title>Example</title><p lang="en">Example text.</p><p lang="fr">Texte.</p>',
+      );
     });
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     baseURL = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -73,7 +75,7 @@ describe.skipIf(!ready)("keystone: init --example, run, render --open", () => {
         await fs.readFile(path.join(ws, "docs", "hello", "annotations.json"), "utf8"),
       ) as { annotations: Array<{ step: string; copy: string }> };
       expect(annotations.annotations.map((a) => [a.step, a.copy])).toEqual([
-        ["open-home", "This is the page title"],
+        ["open-home", "This is the page text"],
       ]);
       expect(existsSync(path.join(ws, "docs", "hello", "screenshots", "open-home.png"))).toBe(true);
       const index = path.join(ws, ".viewer", "index.html");
