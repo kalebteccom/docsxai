@@ -120,6 +120,18 @@ test("the config keeps well-formed entries only", () => {
   });
   assert.deepEqual(
     readConfig({
+      center: [
+        { parent: ".a", child: ".b", maxViewport: 799 },
+        { parent: ".c", child: ".d", maxViewport: "x" },
+      ],
+    }).center,
+    [
+      { parent: ".a", child: ".b", maxViewport: 799 },
+      { parent: ".c", child: ".d" },
+    ],
+  );
+  assert.deepEqual(
+    readConfig({
       paths: ["/", 3],
       center: [{ parent: ".a", child: ".b" }, { parent: ".a" }],
       ignore: [".skip"],

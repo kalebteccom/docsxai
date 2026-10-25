@@ -29,6 +29,8 @@
 // "ignore": ["css"], "states": [{ "element": "css", "states": [{ "name": "idle", "steps": [] },
 // { "name": "copied", "steps": [{ "set": "css", "attr": "data-state", "value": "copied" }] }] }],
 // "pageStates": [{ "name": "lightbox", "click": "css", "scroll": "bottom", "wait": "css" }] }.
+// A center pair takes an optional "maxViewport" (px): it is checked only at viewport widths up to
+// that, for icons that are centred in a narrow layout and sit beside a label in a wide one.
 // A step is one of { "set", "attr", "value" }, { "remove", "attr" }, { "eval": "js" },
 // { "click": "css" } or { "wait": ms }. Paths given with --path win over the config's.
 //
@@ -147,7 +149,11 @@ export function readConfig(raw) {
   const cfg = raw && typeof raw === "object" ? raw : {};
   const list = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === "string") : []);
   const center = Array.isArray(cfg.center)
-    ? cfg.center.filter((c) => c && typeof c.parent === "string" && typeof c.child === "string")
+    ? cfg.center
+        .filter((c) => c && typeof c.parent === "string" && typeof c.child === "string")
+        .map(({ parent, child, maxViewport }) =>
+          Number.isFinite(maxViewport) ? { parent, child, maxViewport } : { parent, child },
+        )
     : [];
   return {
     paths: list(cfg.paths),
@@ -298,6 +304,9 @@ function collect({ center, ignore }) {
   const elements = [];
   for (const el of document.body.querySelectorAll("*")) {
     if (!visible(el) || ignored(el) || clippedByAncestor(el)) continue;
+    const r = el.getBoundingClientRect();
+    // The 1 px clipped box of the visually-hidden recipe is not on screen.
+    if (r.width <= 1 && r.height <= 1) continue;
     elements.push({ name: name(el), box: box(el) });
   }
   const pairs = [];
@@ -306,10 +315,11 @@ function collect({ center, ignore }) {
     const child = sel ? el.querySelector(sel) : el.firstElementChild;
     if (child) pairs.push({ name: name(el), parent: box(el), child: box(child) });
   }
-  for (const { parent, child } of center) {
+  for (const { parent, child, maxViewport } of center) {
+    if (maxViewport !== undefined && globalThis.innerWidth > maxViewport) continue;
     for (const p of document.querySelectorAll(parent)) {
       const c = p.querySelector(child);
-      if (c && visible(p))
+      if (c && visible(p) && visible(c))
         pairs.push({ name: `${name(p)} > ${child}`, parent: box(p), child: box(c) });
     }
   }

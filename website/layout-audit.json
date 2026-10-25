@@ -9,8 +9,8 @@
   "center": [
     { "parent": "button.sl-menu-button", "child": "svg.open-menu" },
     { "parent": "button.sl-menu-button", "child": "svg.close-menu" },
-    { "parent": "starlight-theme-select label", "child": "svg" },
+    { "parent": "starlight-theme-select label", "child": "svg", "maxViewport": 799 },
     { "parent": ".expressive-code .copy button", "child": "div" }
   ],
-  "ignore": [".sr-only", "starlight-theme-select select", ".sidebar-pane"]
+  "ignore": [".sr-only", "starlight-theme-select select", ".sidebar-pane", ".right-sidebar"]
 }
