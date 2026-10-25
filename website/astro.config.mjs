@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
 import rehypeStripAgentAsides from "./plugins/rehype-strip-agent-asides.mjs";
@@ -18,9 +19,16 @@ export default defineConfig({
   // human site stays end-user-focused while agents still get it via llms.txt.
   // A `$ command` transcript becomes a command block and an output block, so the copy button
   // copies the command without its prompt.
+  //
+  // Smart punctuation is off. It turned `--flow` and `--fail-on` into an em dash plus the flag name
+  // in the landing hero and in any code span the parser did not close, and the site's own copy
+  // uses straight quotes and no typographic dashes.
   markdown: {
-    remarkPlugins: [remarkSplitTranscripts],
-    rehypePlugins: [rehypeStripAgentAsides, rehypeWrapTables],
+    processor: unified({
+      remarkPlugins: [remarkSplitTranscripts],
+      rehypePlugins: [rehypeStripAgentAsides, rehypeWrapTables],
+      smartypants: false,
+    }),
   },
   integrations: [
     starlight({
