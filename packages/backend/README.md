@@ -101,7 +101,7 @@ separate worker. Signature verification is raw `node:crypto` HMAC; GitHub API ca
 `fetch`. Install-and-go: user repos carry **zero YAML** — everything per-project lives in the
 backend's webhook config.
 
-```
+```text wrap=false
 GitHub push/PR ──▶ POST /v1/github/webhook          (no bearer auth; HMAC-verified)
                      │  repo → project (webhook configs)
                      │  X-Hub-Signature-256 against env[secret_env] (constant-time)

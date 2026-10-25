@@ -1396,8 +1396,21 @@ main:has(.docsx-404) > .content-panel {
 .sl-markdown-content :not(pre) > code {
   overflow-wrap: anywhere;
 }
-.sl-markdown-content :is(p, li):not(:where(.not-content *)) {
-  max-width: 75ch;
+/* Wrapped code (every fence, see expressiveCode.defaultProps in astro.config.mjs). Expressive Code
+   sets `break-word`, which does not lower a line's minimum width, so one long token (a path, a
+   URL) kept a YAML block 14 px wider than its frame at 320 px. It also gives each line a
+   `min-width` of 20ch on a content box that already carries the line's indent as padding, so a
+   JSON block nested three levels deep kept 351 px at 320 px. Both go. */
+.sl-markdown-content .expressive-code pre.wrap .ec-line .code {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+/* The cap starts with the sidebar layout. Below 50rem the column is the page, and a capped
+   paragraph beside full-width blocks left unequal insets (16 and 26 px at 799 px). */
+@media (min-width: 50rem) {
+  .sl-markdown-content :is(p, li):not(:where(.not-content *)) {
+    max-width: 75ch;
+  }
 }
 
 /* Reference tables: top-align cells and tighten type. Starlight keeps tables

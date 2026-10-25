@@ -135,15 +135,12 @@ export default defineConfig({
         // Code blocks take the site-wide scrollbar from brand.css; the theme's own webkit
         // scrollbar rules would override it in Safari with a fainter thumb.
         useThemedScrollbars: false,
-        // Shell commands wrap at phone width, with continuation lines indented, so a long
-        // `docsxai init ... --auth manual-capture` reads without a sideways scroll. The copy
-        // button still copies the command as one line. YAML, JSON and command output keep
-        // their own line breaks and scroll, because wrapping them would break the alignment.
-        defaultProps: {
-          overridesByLang: {
-            "sh,bash,shell,zsh,console,powershell": { wrap: true, preserveIndent: true },
-          },
-        },
+        // Every code block wraps at phone width, with continuation lines indented, so a long
+        // `docsxai init ... --auth manual-capture`, a transcript line or a JSON key reads without a
+        // sideways scroll. The copy button still copies the text as written. A block that must
+        // keep its columns (a table, ascii art) opts out with `wrap=false` on its fence, and
+        // scripts/check-site-qa.test.mjs lists each one.
+        defaultProps: { wrap: true, preserveIndent: true },
         styleOverrides: {
           borderRadius: "0.5rem",
           borderColor: "var(--docsx-code-border)",
