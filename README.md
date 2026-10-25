@@ -82,19 +82,19 @@ docsxai render ~/docsxai/hello --open
 
 A good run prints `run: 1 of 1 flow ok, outputs in …/docs`. The screenshot and `annotations.json` are in `~/docsxai/hello/docs/hello/`. In the viewer, hover the pulsing halo to read the callout.
 
-The flow `init` wrote is `~/docsxai/hello/flows/hello.flow.yaml`. One step opens the home page and points at its heading:
+The flow `init` wrote is `~/docsxai/hello/flows/hello.flow.yaml`. One step opens the home page and points at its text:
 
 ```yaml
 name: hello
 locators:
-  heading: "h1"
+  text: 'p[lang="en"]'
 steps:
   - id: open-home
     action: navigate
     value: /
     wait_for: load
-    success: { visible: $heading }
-    annotation: { copy: "This is the page title", target: $heading, arrow: bottom }
+    success: { visible: $text }
+    annotation: { copy: "This is the page text", target: $text, arrow: bottom }
 ```
 
 To document your own app, make the workspace with your app's URL and add a login capture:
