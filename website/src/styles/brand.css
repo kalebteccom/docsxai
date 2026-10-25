@@ -1908,13 +1908,20 @@ mobile-starlight-toc nav {
   .site-title {
     min-height: var(--docsx-tap);
   }
-  /* Heading anchors: padding grows the box to 44 px and the same negative margin takes it back,
-     so the icon and the heading line stay where they were. Starlight's own start margin
-     (minus the icon size) moves the link over the heading's end padding. */
+  /* Heading anchors: padding grows the link to a 44 px target. The heading's end padding grows by
+     the same amount and the link's margin pulls its box back over that padding, so the target
+     ends where the heading box ends and never overhangs the column (an overhang scrolled the page
+     sideways at 320 and 360 px). The icon and the heading line stay where they were. */
+  .sl-markdown-content .sl-heading-wrapper {
+    --docsx-anchor-pad: calc((var(--docsx-tap) - var(--sl-anchor-icon-size)) / 2);
+  }
+  .sl-markdown-content .sl-heading-wrapper > :first-child:not([hidden]) {
+    padding-inline-end: calc(var(--sl-anchor-icon-space) + var(--docsx-anchor-pad));
+  }
   .sl-markdown-content .sl-anchor-link {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem var(--docsx-anchor-pad);
     margin-block: -0.75rem;
-    margin-inline: calc(-1 * var(--sl-anchor-icon-size) - 1rem) -1rem;
+    margin-inline: calc(-1 * (var(--sl-anchor-icon-size) + 2 * var(--docsx-anchor-pad))) 0;
   }
 }
 @media (max-width: 49.99rem) {

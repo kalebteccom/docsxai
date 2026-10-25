@@ -212,9 +212,27 @@ describe("touch targets (QA #9)", () => {
   it("grows the logo link to 44 px", () => {
     assert.equal(valueOf(".site-title", "min-height"), "var(--docsx-tap)");
   });
-  it("pads heading anchors to 44 px and takes it back with a negative margin", () => {
-    assert.equal(valueOf(".sl-markdown-content .sl-anchor-link", "padding"), "0.75rem 1rem");
-    assert.equal(valueOf(".sl-markdown-content .sl-anchor-link", "margin-block"), "-0.75rem");
+  it("pads heading anchors to a 44 px target that ends inside the heading box", () => {
+    const link = ".sl-markdown-content .sl-anchor-link";
+    assert.match(valueOf(link, "padding") ?? "", /^0\.75rem var\(--docsx-anchor-pad\)$/);
+    assert.equal(valueOf(link, "margin-block"), "-0.75rem");
+    // The end margin is 0: a negative one let the link's padding hang past the column and scrolled
+    // the page sideways (QA round 2, N3).
+    assert.match(valueOf(link, "margin-inline") ?? "", /\) 0$/);
+    assert.doesNotMatch(valueOf(link, "margin-inline") ?? "", /-1rem/);
+    assert.match(
+      valueOf(".sl-markdown-content .sl-heading-wrapper", "--docsx-anchor-pad") ?? "",
+      /var\(--docsx-tap\) - var\(--sl-anchor-icon-size\)/,
+    );
+  });
+  it("reserves the target's padding at the end of the heading", () => {
+    assert.match(
+      valueOf(
+        ".sl-markdown-content .sl-heading-wrapper > :first-child:not([hidden])",
+        "padding-inline-end",
+      ) ?? "",
+      /var\(--sl-anchor-icon-space\) \+ var\(--docsx-anchor-pad\)/,
+    );
   });
 });
 
