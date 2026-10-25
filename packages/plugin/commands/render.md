@@ -11,7 +11,7 @@ Pass every value as its own single-quoted shell word (an embedded `'` is written
 docsxai render '<workspace-dir>' [--lang '<locale>'] [--open]
 ```
 
-It reads `<workspace-dir>/docs`, writes `<workspace-dir>/.viewer`, and prints a last line that starts `render: open <workspace-dir>/.viewer/index.html`. Report that path. When the user asks to open the viewer, add `--open`: it opens that page in their default browser, or says it couldn't.
+It reads `<workspace-dir>/docs`, writes `<workspace-dir>/.viewer`, and prints `viewer: wrote <n> page(s) to <workspace-dir>/.viewer` then a line that starts `render: open <workspace-dir>/.viewer/index.html`. Report that path. When the user asks to open the viewer, add `--open`: it opens that page in their default browser and prints `render: opened it in your browser`, or prints the path when no browser can open.
 
 - `docs/` missing: the viewer comes out empty. Run `docsxai run '<workspace-dir>'` first.
 - Page text is English by default. `--lang es` gives Spanish labels and notices. A matrix variant flow uses the locale in its variant id.

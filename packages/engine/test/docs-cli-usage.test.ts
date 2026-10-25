@@ -6,7 +6,7 @@
 // exact usage lines `docsxai --help` prints, and the public-surface table to the code. The viewer's own
 // commands are checked in packages/viewer/test/docs-cli-usage.test.ts.
 
-import { readFileSync, readdirSync  } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -141,6 +141,32 @@ describe("shell blocks in the docs", () => {
   }
 });
 
+describe("the lint rule table in the troubleshooting guide", () => {
+  /** `code: "R004", severity: "info"` pairs in the two modules that emit rules. */
+  function emitted(): Map<string, string> {
+    const out = new Map<string, string>();
+    for (const file of ["flow-lint.ts", "flow-matrix-lint.ts"]) {
+      const src = read(`packages/engine/src/${file}`);
+      for (const m of src.matchAll(/code: "(R\d{3})",\s*severity: "(\w+)"/g)) out.set(m[1]!, m[2]!);
+    }
+    return out;
+  }
+
+  it("has a row for every rule the linter emits, with the severity it emits", () => {
+    const md = read("website/src/content/docs/guides/troubleshooting.md");
+    const shown = new Map(
+      [...md.matchAll(/^\| (R\d{3}) +\| (\w+) +\|/gm)].map((m) => [m[1]!, m[2]!] as const),
+    );
+    expect(shown).toEqual(emitted());
+  });
+
+  it("is the table the CLI reference points at", () => {
+    const md = read("website/src/content/docs/reference/cli.md");
+    const last = [...emitted().keys()].sort().pop()!;
+    expect(md).toContain(`R001-${last}`);
+  });
+});
+
 describe("docs/public-surface.md", () => {
   const md = read("docs/public-surface.md");
   const rows = md
@@ -194,7 +220,6 @@ describe("docs/public-surface.md", () => {
     expect(problems).toEqual([]);
   });
 });
-
 
 /** The text of every `.ts` file under a repo-relative directory. */
 function docsSource(dir: string): string[] {
