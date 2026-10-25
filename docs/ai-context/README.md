@@ -58,4 +58,4 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 - `AGENTS.md` (repo root) — operating rules + repo map + trust posture. The agent-agnostic entry point. Every harness loads it.
 - `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — the recorded decision history behind the engine's fixed boundaries. Consult `PHASE-1.md` for the rationale behind the agent-integration contract; the standing spec and scope live in `AGENTS.md`, `docs/`, and this subtree, not here.
 
-Repo-local docs (`AGENTS.md`, `docs/`, this subtree) are the public source of truth for spec and scope. Pre-public planning history lives in the maintainer's internal planning archive and is not needed to work here.
+Repo-local docs (`AGENTS.md`, `docs/`, this subtree) are the public source of truth for spec and scope.

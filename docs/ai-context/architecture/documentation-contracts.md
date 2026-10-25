@@ -40,7 +40,7 @@ Agent-agnostic, authoritative. Every harness loads this file. Per-harness pointe
 
 ## Spec + scope — repo-local
 
-The repo-local docs above are the **source of truth for spec/scope**: `AGENTS.md` for the operating shape, `docs/` for the adopter contract, this subtree for rationale. The archived `docs/archive/phase-plans/PHASE-N.md` files snapshot how each phase closed. (Pre-public planning history lives in the maintainer's internal planning archive; surface scope/shape movement to the owner so it stays current — nothing load-bearing lives only there.)
+The repo-local docs above are the **source of truth for spec/scope**: `AGENTS.md` for the operating shape, `docs/` for the adopter contract, this subtree for rationale. The archived `docs/archive/phase-plans/PHASE-N.md` files snapshot how each phase closed. Surface scope/shape movement to the owner.
 
 ## What this means for a behavior-change diff
 
@@ -50,7 +50,7 @@ For a diff that touches the public surface:
 2. Update the package README if the package's promised surface changed.
 3. Append an entry to `CHANGELOG.md` under `## Unreleased` in the right section.
 4. Update `AGENTS.md` only if a cross-harness rule changed.
-5. Surface scope/shape movement to the owner (internal planning archive).
+5. Surface scope/shape movement to the owner.
 
 For a diff that touches discipline:
 

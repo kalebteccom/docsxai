@@ -1,8 +1,6 @@
 #!/bin/bash
 # Block (or prompt on) commands the agent must not run.
 # Canonical rule table: AGENTS.md "Commands the agent must not run".
-# Universal-baseline rule numbers refer to
-# projects/oss-security/guidelines/universal-baseline.md.
 
 COMMAND=$(cat | jq -r '.tool_input.command // empty')
 

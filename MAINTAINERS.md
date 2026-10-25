@@ -4,7 +4,7 @@
 
 - **@rowinbot** (Rowin Hernandez, Kalebtec) — sole merge authority and sole release authority. Owns the engine, plugin, and backend surfaces.
 
-Breakglass owner exists per universal-baseline A3. No further detail published.
+A breakglass owner exists. No further detail published.
 
 ## Backing
 
@@ -48,8 +48,7 @@ review and contribution:
 ## How to influence direction
 
 - Open an issue with a clear problem statement and reproducer.
-- Substantial proposals get a portfolio-level decisions-log entry
-  whether accepted or not.
+- Substantial proposals get a written decision, accepted or not.
 - PRs against committed roadmap phases are highest-priority for
   review.
 

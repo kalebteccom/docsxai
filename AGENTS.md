@@ -117,7 +117,7 @@ Three doc surfaces with distinct contracts:
 - **Colocated `README.md`** — per-package internal contracts (`packages/engine/README.md`, `packages/plugin/README.md`, …). Each package describes its own surface, not the whole repo.
 - **`docs/archive/phase-plans/PHASE-N.md`** — recorded decision history. The source of truth for current spec and scope is the repo-local docs (`AGENTS.md`, `docs/`, `docs/ai-context/`); these archives hold the rationale behind fixed boundaries, not live references.
 
-Every behavior-change diff includes a docs-impact pass: update the relevant runbook, update `CHANGELOG.md`, update `AGENTS.md` if a rule changed, and surface scope/shape movement to the owner so the internal planning archive stays current.
+Every behavior-change diff includes a docs-impact pass: update the relevant runbook, update `CHANGELOG.md`, update `AGENTS.md` if a rule changed, and surface scope/shape movement to the owner.
 
 ## What to read first
 
@@ -192,7 +192,7 @@ Every behavior-change diff verifies this gate locally before pushing — never p
 - Pipeline steps: setup, build, typecheck, lint, format-check, architecture (depcruise, jscpd, the screenshot plan test), test, audit (`pnpm audit:prod`, licenses, lockfile lint), package-contents (`scripts/audit-package-contents.mjs`) and secret-scan (trufflehog over the pushed commit range, `scripts/secret-scan-range.sh`).
 - `build` also builds the docs site (the website package is part of `pnpm build`, with its prose, agent-surface and accessibility checks), so there is no separate docs step. The keystone suite skips itself in the `test` step because the CI image has no Chromium binary; there is no separate keystone step.
 - Releases run in `.woodpecker/release.yaml`, a separate Woodpecker workflow on the `manual` event only. The owner, or an agent the owner authorises, starts it with `RELEASE_TAG`; after verify and dry-run it stages the seven packages on npm with a stage-only token (no provenance); the owner approves each staged version with 2FA, in one command with `scripts/release-approve.mjs`. Its `publish` step is the only place the publish secret is named, and the secret is restricted to the `manual` event. See `RELEASING.md`.
-- `.woodpecker/visual-captures.yaml` is an informational job, not a required check: on pushes to branches other than `main` that change `website/`, `packages/viewer/` or `scripts/visual-*.mjs`, it renders the docs site and a sample viewer pack in Chromium (390 and 1280 px, light and dark) on the `browser-runner` agent, and its capture step has `failure: ignore`.
+- `.woodpecker/visual-captures.yaml` is an informational job, not a required check: on pushes to branches other than `main` that change `website/`, `packages/viewer/` or `scripts/visual-*.mjs`, it renders the docs site and a sample viewer pack in Chromium (390 and 1280 px, light and dark) on a CI runner, and its capture step has `failure: ignore`.
 - Its screenshots land in a host folder per pipeline number, folders older than 14 days are pruned, and the `publish` step prints the folder and the file list in the log. See `docs/ai-context/ux/visual-captures.md`.
 - No GitHub Actions workflow remains. CI and releases run on Woodpecker.
 
