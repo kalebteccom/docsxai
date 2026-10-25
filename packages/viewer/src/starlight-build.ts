@@ -9,6 +9,7 @@ import { spawn } from "node:child_process";
 import { promises as fs, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import * as path from "node:path";
+import { shellQuote, withNext } from "./cli-failure.js";
 import { exists } from "./starlight-emit.js";
 
 // ---------------------------------------------------------------------------
@@ -97,7 +98,19 @@ export function resolveAstroBin(): string {
 export async function buildStarlightSite(
   opts: BuildStarlightSiteOptions,
 ): Promise<BuildStarlightSiteResult> {
-  const astroBin = opts.astroBin ?? resolveAstroBin();
+  let astroBin = opts.astroBin;
+  if (astroBin === undefined) {
+    try {
+      astroBin = resolveAstroBin();
+    } catch {
+      throw new Error(
+        withNext(
+          `astro is not installed, so ${opts.siteDir} did not build`,
+          `cd ${shellQuote(opts.siteDir)} && npm install, then npm run build`,
+        ),
+      );
+    }
+  }
   const distDir = path.join(opts.siteDir, "dist");
   if (!(await exists(opts.siteDir))) {
     return {
