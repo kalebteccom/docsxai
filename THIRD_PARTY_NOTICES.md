@@ -16,8 +16,22 @@ docsxai's runtime dependencies (production-only):
 - `micromark` — MIT
 - `satori` — MPL-2.0
 
-Vendored asset: Inter Regular (`assets/fonts/inter-regular.ttf`) — SIL Open
-Font License 1.1, license text colocated at `assets/fonts/LICENSE.txt`.
+Vendored fonts in `packages/viewer/assets/fonts/`, all SIL Open Font License
+1.1 with no Reserved Font Name:
+
+| File                               | Font                         | Version | Size (bytes) | License text       |
+| ---------------------------------- | ---------------------------- | ------- | ------------ | ------------------ |
+| `inter-regular.ttf`                | Inter Regular                | 4.1     | 411,640      | `LICENSE.txt`      |
+| `noto-sans-arabic-regular.ttf`     | Noto Sans Arabic Regular     | 2.013   | 67,496       | `LICENSE-noto.txt` |
+| `noto-sans-hebrew-regular.ttf`     | Noto Sans Hebrew Regular     | 3.001   | 14,036       | `LICENSE-noto.txt` |
+| `noto-sans-thai-regular.ttf`       | Noto Sans Thai Regular       | 2.002   | 17,740       | `LICENSE-noto.txt` |
+| `noto-sans-devanagari-regular.ttf` | Noto Sans Devanagari Regular | 2.007   | 160,128      | `LICENSE-noto.txt` |
+
+The Noto files are the unhinted builds from
+[notofonts.github.io](https://github.com/notofonts/notofonts.github.io),
+subsetted with fontTools `pyftsubset` to their script's Unicode blocks plus
+space, the bidi and joiner controls and U+25CC, with every OpenType layout
+feature kept. Names and copyright notices are unchanged.
 
 ## `@docsxai/backend`
 

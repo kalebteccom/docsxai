@@ -144,6 +144,11 @@ export interface BurnThemeConfig {
   padding_y?: number;
   /** TTF or OTF file inside the workspace; the bundled Inter when unset. */
   font?: string;
+  /**
+   * Up to 8 TTF or OTF files inside the workspace, tried in order for characters `font` lacks,
+   * before the bundled Noto Sans Arabic, Hebrew, Thai and Devanagari. Burned images only.
+   */
+  font_fallback?: string[];
   /** 400 or 600; the font file must have that weight (the bundled Inter is 400 only). */
   font_weight?: number;
   /** `auto`, `line`, `chevron` or `arrow`: how a callout joins its target. */

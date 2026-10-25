@@ -202,6 +202,8 @@ A wide screenshot shown in a narrow column shrinks its caption with it: a 1440 p
 
 `assets/fonts/inter-regular.ttf`: Inter Regular v4.1 from the official [rsms/inter](https://github.com/rsms/inter) release, licensed under the SIL Open Font License 1.1 (`assets/fonts/LICENSE.txt`). Satori needs raw font bytes; only the Regular weight ships, so bold-ish elements (the badge) render in Regular.
 
+`assets/fonts/noto-sans-{arabic,hebrew,thai,devanagari}-regular.ttf`: Noto Sans Regular for four scripts, subsetted to them (259 kB together, OFL 1.1, `assets/fonts/LICENSE-noto.txt`). `src/burn-fonts.ts` builds the chain a caption character is looked up in: `font` or Inter, then `burn.theme.font_fallback`, then these four. Satori gets only the fallbacks a burn's captions use, so a Latin burn renders with one font and keeps its bytes. A caption whose first letter is Arabic or Hebrew is set `direction: rtl` and its badge prefers the target's right corners. Versions and sizes: `THIRD_PARTY_NOTICES.md`.
+
 ## License
 
-[Apache-2.0](../../LICENSE). Runtime deps: `satori` (MPL-2.0), `@resvg/resvg-js` (MPL-2.0), `micromark` (MIT); vendored Inter font (OFL-1.1).
+[Apache-2.0](../../LICENSE). Runtime deps: `satori` (MPL-2.0), `@resvg/resvg-js` (MPL-2.0), `micromark` (MIT); vendored Inter and Noto Sans fonts (OFL-1.1).

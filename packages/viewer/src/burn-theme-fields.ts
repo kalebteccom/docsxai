@@ -214,7 +214,7 @@ export const MAX_FONT_FALLBACK = 8;
 function fontPaths(value: unknown): string[] {
   if (!Array.isArray(value)) {
     throw new ThemeValueError(
-      `${shown(value)} is not a list of font files; write ["fonts/NotoSansJP-Regular.ttf"]`,
+      `${shown(value)} is not a list of font files; write ["fonts/NotoSansJP-Regular.otf"]`,
     );
   }
   if (value.length > MAX_FONT_FALLBACK) {

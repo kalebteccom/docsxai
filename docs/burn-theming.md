@@ -57,6 +57,7 @@ The callout outline colour follows `ink` until a preset, the tokens file or the 
 | `padding_x`            | number             | 0 to 40 px                                      | `11`              | Callout horizontal padding.                                                   |
 | `padding_y`            | number             | 0 to 40 px                                      | `8`               | Callout vertical padding.                                                     |
 | `font`                 | string             | path to a `.ttf` or `.otf` inside the workspace | the bundled Inter | Callout and badge font, see [Font](#font).                                    |
+| `font_fallback`        | list of strings    | up to 8 `.ttf` or `.otf` paths in the workspace | none              | Fonts for characters `font` lacks, see [Other scripts](#other-scripts).       |
 | `font_weight`          | number             | `400` or `600`                                  | `400`             | Callout text weight. The font file must have it, see [Font](#font).           |
 | `connector_style`      | string             | `auto`, `line`, `chevron`, `arrow`              | `auto`            | How a callout joins its target, see [Connectors](#connectors).                |
 | `caption_style`        | string             | `full`, `badge`, `auto`                         | `full`            | Caption, or badge only, see [Caption style](#caption-style).                  |
@@ -341,15 +342,49 @@ The file is refused when it does not exist, is a symlink, is over 16 MiB, is a c
 
 In the interactive viewer the font is embedded in each flow page as a `data:` URI, and the page's content security policy gains `font-src data:` and nothing else. A page built without a font file keeps the policy it always had.
 
-### Characters the font can't draw
+### Other scripts
 
-The burner uses one font and no fallback. The bundled Inter covers Latin, Greek and Cyrillic, but not Chinese, Japanese, Korean, Arabic, Hebrew, Thai, Devanagari or emoji. Those characters would burn as empty boxes, so the burner checks every drawn caption against the font's character map first. A miss prints a warning naming the annotation and the script:
+A caption character takes the first font in this chain that has it:
 
-```text
-burn: annotation "#login" on step "open": the caption has Katakana, Han characters the font can't draw (ロ グ 設 定), so they burn as empty boxes. Set burn.theme.font to a font that covers them
+1. `font`, or the bundled Inter (Latin, Greek, Cyrillic).
+2. The `font_fallback` files, in the order written.
+3. The bundled Noto Sans Arabic, Hebrew, Thai and Devanagari.
+
+Arabic, Hebrew, Thai and Devanagari captions burn with no setup. A Chinese, Japanese or Korean font is 4.5 MB (Noto Sans JP) to 16 MB (all of Noto Sans CJK), so none ships: add one to `font_fallback`. For Japanese, download `NotoSansJP-Regular.otf` from the `Sans/SubsetOTF/JP` folder of [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) (SIL OFL 1.1), put it in the workspace and list it:
+
+```json
+{
+  "burn": {
+    "theme": {
+      "font_fallback": ["fonts/NotoSansJP-Regular.otf"]
+    }
+  }
+}
 ```
 
-The image is still written. The report entry gets `missing_glyphs` with the Unicode script names (`["Katakana", "Han"]`; `Emoji` and `Symbols` for the rest). `docsxai burn --strict-glyphs` exits 1 when any caption has one, for CI. To fix it, set `font` to a TTF or OTF that covers the script, such as a Noto Sans file for the language. Arabic and Hebrew captions are still laid out left to right, even with a font that covers them.
+`NotoSansSC`, `NotoSansTC` and `NotoSansKR` in the folders next to it work the same way. A `.ttc` collection or a WOFF file is refused, as for `font`.
+
+- The fallback files follow the rules of `font`: inside the workspace, at most 16 MiB each, no symlink.
+- The bytes stay stable. Only the fallbacks a burn's captions use are loaded, in chain order, so a Latin caption burns exactly as it did without `font_fallback`.
+- Each fallback is drawn at its own weight. With `font_weight: 600`, a regular fallback stays regular.
+- A word wider than the line breaks between characters, never inside one. Thai breaks between dictionary words.
+- `font_fallback` applies to burned images only. The interactive viewer uses the reader's browser fonts for other scripts.
+
+### Right to left
+
+A caption whose first letter is Arabic or Hebrew (also Syriac, Thaana or N'Ko) is set right to left: lines start at the right edge and the short last line ends there too. A Latin word or a number inside keeps its own order. Its numbered badge moves to the target's top-right corner and tries the right corners first. A caption that starts with a Latin letter stays left to right, whatever follows.
+
+The connector joins the caption at the point nearest the target either way, so it doesn't change.
+
+### Characters the font can't draw
+
+Characters no font in the chain has would burn as empty boxes, so the burner checks every drawn caption first. A miss prints a warning naming the annotation and the script:
+
+```text
+burn: annotation "#login" on step "open": the caption has Katakana, Han characters the font can't draw (ロ グ 設 定), so they burn as empty boxes. Add a font that covers them to burn.theme.font_fallback
+```
+
+The image is still written. The report entry gets `missing_glyphs` with the Unicode script names (`["Katakana", "Han"]`; `Emoji` and `Symbols` for the rest). `docsxai burn --strict-glyphs` exits 1 when any caption has one, for CI. To fix it, add a font for the script to `font_fallback`, see [Other scripts](#other-scripts). Emoji have no fallback.
 
 ## Contrast
 
