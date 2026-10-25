@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "progress",
-      "selector": "div.lsum__bar",
+      "selector": "div.bar",
       "bounding_box": {
         "x": 16,
         "y": 262,

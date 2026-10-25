@@ -6,10 +6,10 @@
   "locale": "en",
   "annotations": [
     {
-      "step": "yolo-enabled",
-      "selector": "[data-testid=yolo-pill]",
+      "step": "status-enabled",
+      "selector": "[data-test=status-pill]",
       "index": 1,
-      "copy": "Yolo is on",
+      "copy": "Mode is on",
       "bounding_box": {
         "x": 372,
         "y": 35.09,

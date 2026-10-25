@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "connect",
-      "selector": "section.connect__pick",
+      "selector": "section.picker",
       "bounding_box": {
         "x": 280,
         "y": 144,
@@ -230,7 +230,7 @@
     },
     {
       "step": "connect",
-      "selector": "section.connect__card",
+      "selector": "section.panel",
       "bounding_box": {
         "x": 280,
         "y": 278.5,
@@ -485,7 +485,7 @@
     },
     {
       "step": "connect",
-      "selector": "section.connect__url .connect__copy",
+      "selector": "section.link .action",
       "bounding_box": {
         "x": 280,
         "y": 730.59375,

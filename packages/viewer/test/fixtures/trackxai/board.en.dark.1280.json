@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "board",
-      "selector": "h1.page__title",
+      "selector": "h1.title",
       "bounding_box": {
         "x": 280,
         "y": 60,
@@ -254,7 +254,7 @@
     },
     {
       "step": "board",
-      "selector": "nav.etabs",
+      "selector": "nav.tabs",
       "bounding_box": {
         "x": 280,
         "y": 101.5,
@@ -509,7 +509,7 @@
     },
     {
       "step": "board",
-      "selector": "section.column:is([aria-label=\"In progress\"], [aria-label=\"En curso\"]) h2.column__heading",
+      "selector": "section.column h2.heading >> nth=1",
       "bounding_box": {
         "x": 609,
         "y": 215.296875,

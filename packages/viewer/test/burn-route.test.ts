@@ -100,10 +100,10 @@ function crossed(points: Pt[], boxes: Rect[]): Rect[] {
 
 const theme = await remotxaiDark();
 
-describe.each(["en", "es"])("remotxai yolo-enabled, %s, 1280", (locale) => {
+describe.each(["en", "es"])("remotxai status-enabled, %s, 1280", (locale) => {
   it("routes the line around the listed text and keeps the caption clear", async () => {
     const doc = JSON.parse(
-      await fs.readFile(new URL(`yolo-enabled.${locale}.dark.1280.json`, FIXTURES), "utf8"),
+      await fs.readFile(new URL(`status-enabled.${locale}.dark.1280.json`, FIXTURES), "utf8"),
     );
     const records = doc.annotations as AnnotationRecord[];
     const { width, height } = doc.viewport as { width: number; height: number };
@@ -191,7 +191,7 @@ describe("routeLine", () => {
 
 it("renders the routed frame from a PNG and reports the route", async () => {
   const doc = JSON.parse(
-    await fs.readFile(new URL("yolo-enabled.en.dark.1280.json", FIXTURES), "utf8"),
+    await fs.readFile(new URL("status-enabled.en.dark.1280.json", FIXTURES), "utf8"),
   );
   const records = doc.annotations as AnnotationRecord[];
   const grid = screen(

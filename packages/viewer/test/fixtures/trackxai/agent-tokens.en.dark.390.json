@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "agent-tokens",
-      "selector": "#token-name",
+      "selector": "#field-name",
       "bounding_box": {
         "x": 16,
         "y": 260.5,

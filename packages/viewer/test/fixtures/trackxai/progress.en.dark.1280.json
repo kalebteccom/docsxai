@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "progress",
-      "selector": "div.lsum__bar",
+      "selector": "div.bar",
       "bounding_box": {
         "x": 280,
         "y": 244,
@@ -266,7 +266,7 @@
     },
     {
       "step": "progress",
-      "selector": "nav.llist li.ledrow >> nth=0",
+      "selector": "nav.list li.item >> nth=0",
       "bounding_box": {
         "x": 280,
         "y": 350.5,
@@ -521,7 +521,7 @@
     },
     {
       "step": "progress",
-      "selector": "li.lcard >> nth=0",
+      "selector": "li.card >> nth=0",
       "bounding_box": {
         "x": 768,
         "y": 510.25,

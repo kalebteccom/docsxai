@@ -11,7 +11,7 @@
   "annotations": [
     {
       "step": "ticket",
-      "selector": "h2.tread__title",
+      "selector": "h2.heading",
       "bounding_box": {
         "x": 32,
         "y": 171.796875,
