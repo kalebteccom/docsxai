@@ -115,7 +115,7 @@ The engine hosts a workspace plugin runtime (v1) with four extension points: **p
     "kinds": ["publisher"],
     "capabilities": ["egress:*.atlassian.net"],
     "dependsOn": [],
-    "trust": "kalebtec"
+    "trust": "example-org"
   }
 }
 ```

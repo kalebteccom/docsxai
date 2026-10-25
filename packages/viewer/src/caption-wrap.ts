@@ -8,7 +8,7 @@
 // after them. A word wider than the line breaks after a `/`, `-`, `_`, `.` or `:` before it breaks
 // between letters, so a path splits at its separators. Pure and deterministic.
 
-import { measureText, type FontMetrics } from "./font-metrics.js";
+import { breakPieces, measureText, type FontMetrics } from "./font-metrics.js";
 
 /** Characters a too-wide word may break after: paths, URLs, kebab and snake names, dotted names. */
 const SOFT_BREAK = /(?<=[/\-_.:\\])/u;
@@ -17,7 +17,7 @@ const CLINGS = /^(?:[\p{L}\p{N}]|\d+\.)$/u;
 
 type Fits = (s: string) => boolean;
 
-/** Pieces of a word wider than the line: its soft-break parts packed greedily, then code points. */
+/** Pieces of a word wider than the line: its soft-break parts packed greedily, then characters. */
 export function breakWord(word: string, fits: Fits): string[] {
   const pieces: string[] = [];
   let chunk = "";
@@ -32,7 +32,7 @@ export function breakWord(word: string, fits: Fits): string[] {
       chunk = part;
       return;
     }
-    for (const ch of part) {
+    for (const ch of breakPieces(part, fits)) {
       if (chunk && !fits(chunk + ch)) {
         pieces.push(chunk);
         chunk = ch;

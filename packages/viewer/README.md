@@ -86,7 +86,7 @@ What gets emitted:
 - **Site language**: `--lang es` (or `es-ES`, `es_MX`) sets Starlight's root locale and puts the text of `CopyId` and `AnnotatedShot` in Spanish; the default is English, and the English output is unchanged. See [Page language](#page-language).
 - **Deterministic** — same doc pack + same config → byte-identical file tree (no timestamps, sorted writes), asserted by a two-emit golden test. Files under `src/content/docs/flows/` and `src/assets/flows/` that an earlier emit wrote and this one does not are removed.
 
-`buildStarlightSite({ siteDir })` runs `astro build` programmatically: it resolves the astro bin from this package's own install and, when the emitted site has no `node_modules`, symlinks the astro + starlight installs in individually, so building never touches the network. A build that never ran says why on a `site:` line: the site directory is missing, the build hit the 10 minute limit, or the process could not start. `ASTRO_TELEMETRY_DISABLED=1` is always set. That zero-install shortcut requires the site directory to share a filesystem ancestor with the docsxai install (the normal case: the site is emitted inside the repo that installed it); for a fully detached site directory, `npm install` inside the emitted site and build there. The real-build E2E test is opt-in via `DOCSX_STARLIGHT_BUILD=1` (the default test run never invokes astro).
+`buildStarlightSite({ siteDir })` runs `astro build` programmatically: it resolves the astro bin from this package's own install and, when the emitted site has no `node_modules`, symlinks the astro + starlight installs in individually, so building never touches the network. A build that never ran says why on a `site:` line: the site directory is missing, the build hit the 10 minute limit, or the process could not start. `ASTRO_TELEMETRY_DISABLED=1` is always set. That zero-install shortcut requires the site directory to share a filesystem ancestor with the docsxai install (the normal case: the site is emitted inside the repo that installed it); for a fully detached site directory, `npm install` inside the emitted site and build there.
 
 ## Accessibility and keyboard
 
@@ -202,6 +202,8 @@ A wide screenshot shown in a narrow column shrinks its caption with it: a 1440 p
 
 `assets/fonts/inter-regular.ttf`: Inter Regular v4.1 from the official [rsms/inter](https://github.com/rsms/inter) release, licensed under the SIL Open Font License 1.1 (`assets/fonts/LICENSE.txt`). Satori needs raw font bytes; only the Regular weight ships, so bold-ish elements (the badge) render in Regular.
 
+`assets/fonts/noto-sans-{arabic,hebrew,thai,devanagari}-regular.ttf`: Noto Sans Regular for four scripts, subsetted to them (259 kB together, OFL 1.1, `assets/fonts/LICENSE-noto.txt`). `src/burn-fonts.ts` builds the chain a caption character is looked up in: `font` or Inter, then `burn.theme.font_fallback`, then these four. Satori gets only the fallbacks a burn's captions use, so a Latin burn renders with one font and keeps its bytes. A caption whose first letter is Arabic or Hebrew is set `direction: rtl` and its badge prefers the target's right corners. Versions and sizes: `THIRD_PARTY_NOTICES.md`.
+
 ## License
 
-[Apache-2.0](../../LICENSE). Runtime deps: `satori` (MPL-2.0), `@resvg/resvg-js` (MPL-2.0), `micromark` (MIT); vendored Inter font (OFL-1.1).
+[Apache-2.0](../../LICENSE). Runtime deps: `satori` (MPL-2.0), `@resvg/resvg-js` (MPL-2.0), `micromark` (MIT); vendored Inter and Noto Sans fonts (OFL-1.1).

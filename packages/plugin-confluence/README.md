@@ -48,7 +48,7 @@ Every published page carries a `docsxai-content-sha` content-property: the sha25
 
 - Attachment upload posts multipart (`file`, `comment` = `docsxai-sha256:<hex>`, `minorEdit=true`, header `X-Atlassian-Token: no-check`) to `POST /wiki/rest/api/content/{pageId}/child/attachment`. The v2 attachments resource is read-only on Cloud (a POST answers 405), so v2 is only used to list existing attachments. Replacing an attachment of the same name posts to `…/child/attachment/{attachmentId}/data`, because v1 refuses a second attachment with the same file name. The media file id patched into the page body is `extensions.fileId` from the upload response.
 - A failed publish throws a `ConfluencePublishError` whose `partial.pages` lists the pages written before the failure (same shape as `pages[]`: `id`, `url`, `action`, `section`), and logs them as a `page_map` fragment. If a page was created and an upload then failed, merge `{ [section]: id }` into `page_map` and publish again: the retry finds the page without its `docsxai-content-sha` property, updates it in place (uploading only the missing attachments) and creates no duplicate.
-- The plugin is in-process and unsandboxed, like every docsxai plugin — `trust: "kalebtec"` is a review signal, not a boundary.
+- The plugin is in-process and unsandboxed, like every docsxai plugin — `trust: "<publisher>"` is a review signal, not a boundary.
 
 ## Tests
 

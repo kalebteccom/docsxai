@@ -2,12 +2,13 @@
 // which lays annotations out and runs the render.
 
 import type { Rect } from "./placement.js";
-import { badgeRadius, connectorColor, type BurnTheme } from "./burn-theme.js";
+import { badgeRadius, connectorColor, effectiveWeight, type BurnTheme } from "./burn-theme.js";
 import { connectorNodes } from "./burn-connector.js";
 import { lineNodes, type DrawnStyle } from "./burn-line.js";
 import { CONNECTOR_HALO, type PixelGrid } from "./connector-contrast.js";
 import { BADGE_BORDER, BADGE_FONT_SIZE } from "./burn-badge.js";
 import { layoutBoxes, type CalloutLayout, type CalloutStyle } from "./burn-callout.js";
+import { captionDirection } from "./burn-fonts.js";
 import type { BurnNode } from "./burn.js";
 
 export function div(
@@ -16,10 +17,6 @@ export function div(
 ): BurnNode {
   return { type: "div", props: { style, ...(children !== undefined ? { children } : {}) } };
 }
-
-/** Weight the callout text is drawn in: the theme's, when its own font file can supply it. */
-export const effectiveWeight = (theme: BurnTheme): number =>
-  theme.fontFile !== null ? theme.fontWeight : 400;
 
 /**
  * What sizes a callout box under `theme`. A burn given a theme balances its lines; one without
@@ -84,6 +81,8 @@ export function calloutNodes(
         fontSize: theme.fontSize,
         ...(effectiveWeight(theme) !== 400 ? { fontWeight: effectiveWeight(theme) } : {}),
         ...(theme.shadow !== null ? { boxShadow: theme.shadow } : {}),
+        // Arabic and Hebrew captions start at the right; Satori runs the bidi algorithm per line.
+        ...(captionDirection(lines.join(" ")) === "rtl" ? { direction: "rtl" } : {}),
       },
       lines.map((line) =>
         div(

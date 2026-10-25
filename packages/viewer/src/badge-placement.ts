@@ -25,6 +25,13 @@ const TARGET_WEIGHT = 0.5;
 /** Gap a planned badge keeps from the image edge, so its border is never cut off. */
 const EDGE_MARGIN = 2;
 const CORNERS: readonly BadgeCorner[] = ["top-left", "top-right", "bottom-left", "bottom-right"];
+/** The order for a right-to-left caption: its reading start, the top right, first. */
+const CORNERS_RTL: readonly BadgeCorner[] = [
+  "top-right",
+  "top-left",
+  "bottom-right",
+  "bottom-left",
+];
 
 type Size = { width: number; height: number };
 
@@ -37,6 +44,8 @@ export interface BadgeInput {
   obstacles: Rect[];
   /** Further boxes to keep clear: other annotations' halos, callouts already placed. */
   avoid?: Rect[];
+  /** The caption reads right to left: right corners are tried before left ones. */
+  rtl?: boolean;
 }
 
 /**
@@ -86,14 +95,14 @@ const covered = (box: Rect, against: Rect[]) =>
  * area covering an obstacle or avoided box plus half the area covering the target itself (the
  * target's own first letter is what a flush-text badge hides). Obstacles outweigh the target, so a
  * badge only sits on the target to clear a neighbour. Ties go to enumeration order: nearest
- * offset first, then up-left (today's position), up-right, down-left, down-right. Every candidate
- * lies fully inside the image.
+ * offset first, then up-left (today's position), up-right, down-left, down-right, with left and
+ * right swapped for a right-to-left caption. Every candidate lies fully inside the image.
  */
 export function planBadge(inp: BadgeInput): Rect {
   const avoid = inp.avoid ?? [];
   let best: { box: Rect; cost: number } | undefined;
   for (const offset of OFFSETS) {
-    for (const corner of CORNERS) {
+    for (const corner of inp.rtl ? CORNERS_RTL : CORNERS) {
       const anchored = anchorBadge(inp.target, corner, offset, inp.size, inp.image);
       const box = insideImage(anchored, inp.image);
       const cost =

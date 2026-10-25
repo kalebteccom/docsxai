@@ -2,6 +2,7 @@
 
 import type { Rect } from "./placement.js";
 import { anchorBadge, BADGE_DEFAULT_OFFSET, BADGE_INNER } from "./badge-placement.js";
+import { captionDirection } from "./burn-fonts.js";
 import { growRect } from "./arrow.js";
 import { measureText, type FontMetrics } from "./font-metrics.js";
 import type { Size } from "./burn-callout.js";
@@ -31,9 +32,14 @@ export function badgeAnchor(t: BoundingBox, size: Size, outside = false): Rect {
   return outside ? growRect(t, size.width - BADGE_DEFAULT_OFFSET + 1) : t;
 }
 
+/** Whether an annotation's caption reads right to left, which moves its badge to the right. */
+export const rtlCaption = (ann: Pick<AnnotationRecord, "copy">): boolean =>
+  captionDirection(ann.copy ?? "") === "rtl";
+
 /**
- * Default box of the numbered badge: top-left of the halo, pulled slightly outside it, clamped to
- * the image. With `outside`, diagonally off the target's top-left corner (see {@link badgeAnchor}).
+ * Default box of the numbered badge: top-left of the halo (top-right for a right-to-left
+ * caption), pulled slightly outside it, clamped to the image. With `outside`, diagonally off the
+ * target's corner (see {@link badgeAnchor}).
  */
 export function badgeBox(
   t: BoundingBox,
@@ -41,9 +47,11 @@ export function badgeBox(
   image: Size,
   metrics: FontMetrics,
   outside = false,
+  rtl = false,
 ): Rect {
   const size = badgeSize(index, metrics);
-  return anchorBadge(badgeAnchor(t, size, outside), "top-left", BADGE_DEFAULT_OFFSET, size, image);
+  const corner = rtl ? "top-right" : "top-left";
+  return anchorBadge(badgeAnchor(t, size, outside), corner, BADGE_DEFAULT_OFFSET, size, image);
 }
 
 /** Margin around a halo drawn outside its target (gap, ring and glow, plus slack). */
@@ -80,7 +88,9 @@ export function keepClear(
     if (!box) continue;
     if (other !== self) clear.push(growRect(box, outside ? OUTSIDE_HALO_MARGIN : HALO_MARGIN));
     if (typeof other.index === "number") {
-      clear.push(badges.get(other) ?? badgeBox(box, other.index, image, metrics, outside));
+      clear.push(
+        badges.get(other) ?? badgeBox(box, other.index, image, metrics, outside, rtlCaption(other)),
+      );
     }
   }
   return [...clear, ...placed];

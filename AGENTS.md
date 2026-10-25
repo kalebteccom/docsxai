@@ -55,7 +55,7 @@ Enforcement is idiomatic per harness: hard-blocks land in the Claude Code `PreTo
 - `packages/plugin-notion/` — `@docsxai/plugin-notion`. First-party publisher plugin (`notion:push`): idempotent page push under a Notion page or into a database, screenshots uploaded through the Notion file upload API, behind the `egress:api.notion.com` capability. Repo-only (`private: true`).
 - `packages/plugin-sharepoint/` — `@docsxai/plugin-sharepoint`. First-party publisher plugin (`sharepoint:push`): idempotent markdown + image push into a SharePoint Online document library via Microsoft Graph behind eight `egress:` capabilities, one per Graph host and SharePoint download domain (public and national clouds). Published to npm, experimental, in the release set since `0.3.0-rc.3`.
 - `packages/plugin-starlight/` — `@docsxai/plugin-starlight`. First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter.
-- `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `agent-guidance.md` (the reach-for-this-not-that footgun map for calibration agents), `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers), `browxai-asks.md` (integration contract with the discovery driver).
+- `docs/` — runbooks + cross-repo contracts: `agent-runbook.md`, `agent-guidance.md` (the reach-for-this-not-that footgun map for calibration agents), `running-against-an-app-repo.md`, `actionability-contract.md` (portable `actionable()` predicate contract for browser-bridge consumers).
 - `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — recorded decision history. Consult for the rationale behind a fixed boundary; the standing spec and scope live in `AGENTS.md`, `docs/`, and `docs/ai-context/`, not here.
 - `RELEASING.md` — release checklist (Woodpecker release pipeline with an npm stage-only token).
 
@@ -89,7 +89,7 @@ The engine has two modes — **calibration** (AI-assisted, rare) and **execution
 
 - The engine **never** calls a model API. The host agent supplies inference at calibration time; execution has no agent in the loop.
 - `docsxai run` reproduces a doc pack byte-identically from the same flow-file + same target state. The keystone test asserts this against a real browser.
-- Adding model-provider code anywhere in `packages/{engine,plugin,backend,viewer,skill}/` is a contract violation. The future commercial SaaS surface is the only place provider SDKs live, and it's not in this repo.
+- Adding model-provider code anywhere in `packages/{engine,plugin,backend,viewer,skill}/` is a contract violation.
 
 Write-time signal beats run-time control. `actionable()`, the halt-cause prefix, `lint`, `diagnose`, `flow-tree` — these let the calibration agent decide _before_ committing a step whether it'll hold. Future contract work biases here. Agent orchestration belongs in the agent's tooling layer; the engine is the deterministic floor (parse, run, emit) plus write-time signal. Do not re-introduce in-engine agent-orchestration state machines — the engine carries no `DiscoveryStage`/`MappingStage`/`CommitStage`-style pipeline (rationale recorded in `docs/archive/phase-plans/PHASE-1.md`).
 
@@ -113,7 +113,7 @@ Parallel agents that modify the same working tree collide. Dispatch multi-agent 
 
 Three doc surfaces with distinct contracts:
 
-- **`docs/`** — public adopter contract. Runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`) and cross-repo contracts (`actionability-contract.md`, `browxai-asks.md`). Every public behavior change updates the relevant runbook. The rendered docs site is for end users: agent-only notes go in a `**For agents:**` blockquote (or a `:::caution[For agents]` aside in `website/src/content/`), which the HTML build strips and the plaintext `.md` twin linked from `llms.txt` keeps. `agent-runbook.md` and `agent-guidance.md` render as `.md` only. See `docs/README.md`.
+- **`docs/`** — public adopter contract. Runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`) and cross-repo contracts (`actionability-contract.md`). Every public behavior change updates the relevant runbook. The rendered docs site is for end users: agent-only notes go in a `**For agents:**` blockquote (or a `:::caution[For agents]` aside in `website/src/content/`), which the HTML build strips and the plaintext `.md` twin linked from `llms.txt` keeps. `agent-runbook.md` and `agent-guidance.md` render as `.md` only. See `docs/README.md`.
 - **Colocated `README.md`** — per-package internal contracts (`packages/engine/README.md`, `packages/plugin/README.md`, …). Each package describes its own surface, not the whole repo.
 - **`docs/archive/phase-plans/PHASE-N.md`** — recorded decision history. The source of truth for current spec and scope is the repo-local docs (`AGENTS.md`, `docs/`, `docs/ai-context/`); these archives hold the rationale behind fixed boundaries, not live references.
 
@@ -130,7 +130,7 @@ For a new agent session in this repo, read in order:
 4. For tests, read the testing doctrine trio: `docs/ai-context/testing/tdd-and-test-strategy.md` (test-first workflow + the layers), `docs/ai-context/testing/qa-patterns.md` (the QA playbook), and `docs/ai-context/testing/unit-vs-keystone.md` (why boundary behavior is keystone-tested against a real browser). The keystone test is the regression gate; these docs govern what to test, at which layer, and why.
 5. `docs/agent-runbook.md` — the hand-to-an-agent workflow for calibration.
 6. The package READMEs under `packages/*/README.md` for the area you're touching.
-7. `docs/actionability-contract.md` + `docs/browxai-asks.md` for browser-bridge work.
+7. `docs/actionability-contract.md` for browser-bridge work.
 8. `docs/archive/phase-plans/PHASE-1.md` — recorded decision history; consult when you need the rationale behind a fixed boundary, not as primary onboarding.
 
 ## UI and copy rules

@@ -26,7 +26,7 @@ export default defineConfig({
     starlight({
       title: "docsxai",
       description:
-        "Deterministic screenshot docs for web apps. Write a flow once and docsxai walks your app, captures annotated screenshots, and replays it forever - agent-free, in CI.",
+        "Deterministic screenshot docs for web apps. Write a flow once, replay it forever: docsxai turns written flows into screenshot docs that re-render byte-identically in CI.",
       // Fail the build on broken internal links or heading anchors, so dead
       // links can never ship. This is the build-time "error boundary" for a
       // static docs site.
@@ -80,7 +80,7 @@ export default defineConfig({
             "@type": "SoftwareApplication",
             name: "docsxai",
             description:
-              "Deterministic documentation engine: walks a web app, follows written flows, and emits screenshot-rich user docs that replay agent-free in CI.",
+              "Deterministic screenshot docs for web apps. Write a flow once, replay it forever: docsxai turns written flows into screenshot docs that re-render byte-identically in CI.",
             applicationCategory: "DeveloperApplication",
             operatingSystem: "Node.js (>=26)",
             url: "https://docsxai.dev",

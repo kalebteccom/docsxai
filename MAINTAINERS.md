@@ -9,9 +9,8 @@ Breakglass owner exists per universal-baseline A3. No further detail published.
 ## Backing
 
 Kalebtec sponsors development time. docsxai is an Apache-2.0 licensed
-project. The OSS engine + plugin + backend are the open surface;
-a future commercial SaaS is the only place model-provider SDKs and
-hosted deployment live, and it is not in this repo.
+project. The engine, plugin and backend in this repo are the open surface.
+It holds no model-provider SDKs.
 
 ## How decisions are made
 

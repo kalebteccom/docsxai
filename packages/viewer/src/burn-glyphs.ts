@@ -1,7 +1,7 @@
-// Caption characters the burn font has no glyph for. resvg draws them as empty boxes, so the
+// Caption characters no font of the burn has a glyph for. resvg draws them as empty boxes, so the
 // burner finds them first: a warning naming the annotation and the script, `missing_glyphs` in the
-// report entry, and `burn --strict-glyphs` exits 1. Font fallback and right-to-left layout are not
-// handled here.
+// report entry, and `burn --strict-glyphs` exits 1. The metrics checked are the whole font chain
+// (burn-fonts.ts), so a script a fallback covers passes.
 
 import type { AnnotationRecord } from "./annotations.js";
 import type { FlowBurnReport } from "./burn-report.js";
@@ -83,7 +83,7 @@ export function glyphReport(
   if (scripts.length === 0) return {};
   const sample = characters.slice(0, 4).join(" ");
   warn(
-    `burn: annotation "${ann.selector}" on step "${ann.step}": the caption has ${scripts.join(", ")} characters the font can't draw (${sample}), so they burn as empty boxes. Set burn.theme.font to a font that covers them`,
+    `burn: annotation "${ann.selector}" on step "${ann.step}": the caption has ${scripts.join(", ")} characters the font can't draw (${sample}), so they burn as empty boxes. Add a font that covers them to burn.theme.font_fallback`,
   );
   return { missing_glyphs: scripts };
 }
@@ -93,5 +93,5 @@ export function strictGlyphsNote(reports: FlowBurnReport[]): string | null {
   const n = reports.flatMap((r) => r.annotations).filter((a) => a.missing_glyphs).length;
   if (n === 0) return null;
   const captions = n === 1 ? "1 caption has" : `${n} captions have`;
-  return `${captions} characters the font can't draw (--strict-glyphs). Set burn.theme.font to a font that covers them, or rewrite the copy`;
+  return `${captions} characters the font can't draw (--strict-glyphs). Add a font that covers them to burn.theme.font_fallback, or rewrite the copy`;
 }

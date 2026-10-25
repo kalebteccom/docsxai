@@ -207,6 +207,29 @@ function fontPath(value: unknown): string {
   return file;
 }
 
+/** Most `font_fallback` files a theme may list. */
+export const MAX_FONT_FALLBACK = 8;
+
+/** A list of TTF or OTF paths relative to the workspace, tried in order. */
+function fontPaths(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    throw new ThemeValueError(
+      `${shown(value)} is not a list of font files; write ["fonts/NotoSansJP-Regular.otf"]`,
+    );
+  }
+  if (value.length > MAX_FONT_FALLBACK) {
+    throw new ThemeValueError(`${value.length} files; at most ${MAX_FONT_FALLBACK} are allowed`);
+  }
+  return value.map((item, i) => {
+    try {
+      return fontPath(item);
+    } catch (e) {
+      if (e instanceof ThemeValueError) throw new ThemeValueError(e.message, `[${i}]`);
+      throw e;
+    }
+  });
+}
+
 const SHADOW_LAYERS = 3;
 const LENGTH = /^(-?\d+(?:\.\d+)?)(?:px)?$/;
 const RGB =
@@ -345,6 +368,7 @@ export const THEME_FIELDS = {
     parse: numberIn(0, 40),
   },
   font: { prop: "fontFile", token: "font.file", kind: "text", parse: fontPath },
+  font_fallback: { prop: "fontFallback", kind: "text", parse: fontPaths },
   font_weight: {
     prop: "fontWeight",
     token: "font.weight.caption",

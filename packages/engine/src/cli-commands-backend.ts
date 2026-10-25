@@ -97,7 +97,7 @@ export async function cmdLogin(args: string[]): Promise<number> {
     if (!h.ok) {
       const note = withNext(
         `backend health-check at ${redactUrl(backendUrl)} returned ok=false`,
-        "check the backend's logs, then retry",
+        "try again, then contact whoever runs the backend",
       );
       process.stderr.write(`login: ${note}\n`);
       return 1;

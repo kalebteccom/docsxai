@@ -185,7 +185,7 @@ The unscoped batteries-included CLI install: `bin.mjs` resolves `@docsxai/engine
 
 ## `docs/`, `scripts/`
 
-- `docs/` — public adopter runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md`, `browxai-asks.md`).
+- `docs/` — public adopter runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md`).
 - `scripts/` — repo-level scripts (CI helpers, audit utilities). Not part of the published surface.
 
 Keystone-test fixtures live at `packages/engine/test/fixtures/toy-site/`, alongside the test that consumes them.
