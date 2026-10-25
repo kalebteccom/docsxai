@@ -11,6 +11,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { USAGE } from "../src/cli-usage.js";
+import { KNOWN_DOCSX_ENV_VARS } from "../src/doctor-checks.js";
 import {
   docInvocations,
   docsMarkdownFiles,
@@ -164,6 +165,16 @@ describe("the lint rule table in the troubleshooting guide", () => {
     const md = read("website/src/content/docs/reference/cli.md");
     const last = [...emitted().keys()].sort().pop()!;
     expect(md).toContain(`R001-${last}`);
+  });
+});
+
+describe("the doctor env row", () => {
+  it("lists in the CLI reference the variable names the code knows", () => {
+    const md = read("website/src/content/docs/reference/cli.md").replace(/\s+/g, " ");
+    const sentence = /the names it knows are (.+?)\. And the/.exec(md)?.[1];
+    expect(sentence, "no `the names it knows are ...` sentence in reference/cli.md").toBeDefined();
+    const shown = [...sentence!.matchAll(/`(DOCSX_[A-Z0-9_]+)`/g)].map((m) => m[1]!);
+    expect([...shown].sort()).toEqual([...KNOWN_DOCSX_ENV_VARS].sort());
   });
 });
 
