@@ -149,7 +149,7 @@ Two optional `.docsxai.json` keys wire plugins into a workspace (a third, `annot
 
 ```
 docsxai plugins list <workspace>             status table (loaded / disabled reasons); exit 1 if any plugin isn't loaded
-docsxai plugins info <workspace> <namespace> manifest + registered artifact names
+docsxai plugins info <workspace> <namespace>  manifest + registered artifact names
 docsxai plugins sync <workspace>             (re)write plugins-lock.json — never executes plugin code
 ```
 
