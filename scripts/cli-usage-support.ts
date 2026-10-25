@@ -252,8 +252,11 @@ export function docsMarkdownFiles(repo: string): string[] {
     if (entry.isFile() && entry.name.endsWith(".md")) out.push(`docs/${entry.name}`);
   }
   out.push("README.md");
-  return out.filter((f) => !f.includes("/test/")).sort();
+  return out.filter((f) => !f.includes("/test/") && f !== GENERATED_CHANGELOG).sort();
 }
+
+/** The site's changelog page is built from CHANGELOG.md in CI and describes past releases. */
+const GENERATED_CHANGELOG = "website/src/content/docs/project/changelog.md";
 
 const SKIPPED_DIRS = new Set(["node_modules", "dist", "test", ".astro"]);
 
