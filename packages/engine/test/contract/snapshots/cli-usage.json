@@ -1,5 +1,5 @@
 [
-  "docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>] [--ttl <dur>] [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors] [--persist tmp] [--force]",
+  "docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>] [--ttl <dur>] [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors] [--persist tmp] [--force] [--example]",
   "docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]",
   "docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]",
   "docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>] [--device-scale-factor <1-4>]",
@@ -7,7 +7,7 @@
   "docsxai lint <workspace-dir> [--flow <name>] [--format text|json]",
   "docsxai flow-tree <workspace-dir> [--format text|json]",
   "docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]",
-  "docsxai doctor [<workspace-dir>] [--offline]",
+  "docsxai doctor [<workspace-dir>] [--offline] [--format text|json]",
   "docsxai style <workspace-dir> [--check] [--format text|json]",
   "docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]",
   "docsxai baseline <workspace-dir> [--out <dir>]",
@@ -18,10 +18,12 @@
   "docsxai login --backend-url <url> [--oauth <workspace-dir>]",
   "docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]",
   "docsxai pull <workspace-dir> [--rev <id>]",
-  "docsxai render <workspace-dir>",
+  "docsxai render <workspace-dir> [--lang <locale>] [--open]",
   "docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline] [--strict-glyphs]",
+  "docsxai site <workspace-dir> [--out <dir>] [--build] [--title <text>] [--accent <hex>] [--lang <locale>] [--flow <name>]",
   "docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]",
   "docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]",
   "docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]",
-  "docsxai --help"
+  "docsxai --help",
+  "docsxai --version"
 ]

@@ -454,12 +454,11 @@ describe("checkPlugins", () => {
 });
 
 describe("checkViewer", () => {
-  it("names layer 1 when DOCSX_VIEWER_BIN resolves", async () => {
+  it("names the path, not the variable, when the viewer bin variable resolves", async () => {
     const bin = path.join(tmp, "viewer.mjs");
     await fs.writeFile(bin, "export {};\n", "utf8");
     const c = await checkViewer({ DOCSX_VIEWER_BIN: bin, PATH: "" });
-    expect(c.ok).toBe(true);
-    expect(c.detail).toContain("layer 1: env override");
+    expect(c).toEqual({ name: "viewer", ok: true, detail: `found at ${bin}` });
   });
 
   it("names layer 2 when the package is installed next to the engine", async () => {
@@ -472,8 +471,11 @@ describe("checkViewer", () => {
     );
     await fs.writeFile(path.join(pkgDir, "dist", "index.js"), "", "utf8");
     const c = await checkViewer({ PATH: "" }, [tmp]);
-    expect(c.ok).toBe(true);
-    expect(c.detail).toContain("layer 2: installed package");
+    expect(c).toEqual({
+      name: "viewer",
+      ok: true,
+      detail: `found at ${path.join(pkgDir, "dist", "index.js")}`,
+    });
   });
 
   it("names layer 3 when the bin is on PATH", async () => {
@@ -481,15 +483,19 @@ describe("checkViewer", () => {
     await fs.mkdir(binDir, { recursive: true });
     await fs.writeFile(path.join(binDir, "docsxai-viewer"), "#!/bin/sh\n", { mode: 0o755 });
     const c = await checkViewer({ PATH: binDir }, [path.join(tmp, "empty")]);
-    expect(c.ok).toBe(true);
-    expect(c.detail).toContain("layer 3: PATH");
+    expect(c).toEqual({
+      name: "viewer",
+      ok: true,
+      detail: `found at ${path.join(binDir, "docsxai-viewer")}`,
+    });
   });
 
-  it("fails with all three layers named when nothing resolves", async () => {
+  it("fails with an install hint and no variable name when nothing resolves", async () => {
     const c = await checkViewer({ PATH: path.join(tmp, "nothing") }, [path.join(tmp, "empty")]);
     expect(c.ok).toBe(false);
-    expect(c.detail).toMatch(/DOCSX_VIEWER_BIN.*@docsxai\/viewer.*PATH/);
-    expect(c.fix).toMatch(/install @docsxai\/viewer/);
+    expect(c.detail).toBe("not found");
+    expect(c.fix).toMatch(/npm install -g docsxai@next/);
+    expect(JSON.stringify(c)).not.toContain("DOCSX_");
   });
 });
 
@@ -500,12 +506,16 @@ describe("checkEnv", () => {
     expect(checks[0]!.info).toBe(true);
   });
 
-  it("lists recognised DOCSX_* vars without echoing values", () => {
+  it("counts recognised DOCSX_* vars without naming them or echoing values", () => {
     const checks = checkEnv({ DOCSX_TOKEN: "secret-token-value" });
-    expect(checks).toHaveLength(1);
-    expect(checks[0]!.ok).toBe(true);
-    expect(checks[0]!.detail).toBe("set: DOCSX_TOKEN");
+    expect(checks).toEqual([{ name: "env", ok: true, detail: "1 docsxai variable set" }]);
     expect(JSON.stringify(checks)).not.toContain("secret-token-value");
+  });
+
+  it("leaves out the viewer bin variable the docsxai bin sets itself", () => {
+    expect(checkEnv({ DOCSX_VIEWER_BIN: "/x/viewer.js" })).toEqual([
+      { name: "env", ok: true, info: true, detail: "no docsxai variables set, defaults apply" },
+    ]);
   });
 
   it("accepts a well-formed DOCSX_CACHE_KEY", () => {
@@ -525,7 +535,7 @@ describe("checkEnv", () => {
     const checks = checkEnv({ DOCSX_TOKN: "x" });
     const bad = checks.find((c) => !c.ok);
     expect(bad?.detail).toMatch(/DOCSX_TOKN/);
-    expect(bad?.fix).toMatch(/known: DOCSX_TOKEN/);
+    expect(bad?.fix).toBe("unset it or fix the spelling (the CLI reference lists the names)");
   });
 
   it.each([
@@ -554,9 +564,7 @@ describe("checkEnv", () => {
 
   it("lists the egress guard variables as known, not as typos", () => {
     const checks = checkEnv({ DOCSX_EGRESS_GUARD: "1", DOCSX_EGRESS_DENY_PRIVATE: "1" });
-    expect(checks).toEqual([
-      { name: "env", ok: true, detail: "set: DOCSX_EGRESS_DENY_PRIVATE, DOCSX_EGRESS_GUARD" },
-    ]);
+    expect(checks).toEqual([{ name: "env", ok: true, detail: "2 docsxai variables set" }]);
   });
 });
 
@@ -579,7 +587,7 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
       now: NOW,
     });
     expect(checks.every((c) => c.ok)).toBe(true);
-    const text = formatDoctorChecks(checks);
+    const text = formatDoctorChecks(checks, { next: "docsxai run ." });
     for (const name of ["node", "chromium", "workspace", "config", "writable", "flows", "viewer"]) {
       expect(text).toContain(`ok: ${name}: `);
     }
@@ -589,7 +597,7 @@ describe("buildDoctorChecks + formatDoctorChecks", () => {
     expect(text).toContain("ok: plugins: ");
     expect(text).not.toContain("fail:");
     expect(text).toMatch(
-      /\nok: doctor: all checks passed \(\d+ checks, \d+ informational\) next: .+\n$/,
+      /\nok: doctor: all checks passed \(\d+ checks, \d+ informational\) next: docsxai run \.\n$/,
     );
     // every line is an ok: or fail: line, with no glyphs or ANSI escapes
     for (const line of text.trimEnd().split("\n")) expect(line).toMatch(/^(ok|fail): /);
@@ -650,7 +658,9 @@ describe("doctor CLI dispatch", () => {
     for (const flag of ["--help", "-h"]) {
       out = "";
       expect(await main(["doctor", flag])).toBe(0);
-      expect(out).toContain("usage: docsxai doctor [<workspace-dir>] [--offline]\n");
+      expect(out).toContain(
+        "usage: docsxai doctor [<workspace-dir>] [--offline] [--format text|json]\n",
+      );
       expect(out).toContain("Exit 0 when no line starts with fail:, 1 otherwise.");
       expect(out).toContain("--offline");
       expect(out).not.toMatch(/^(ok|fail): doctor:/m);

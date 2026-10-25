@@ -47,7 +47,7 @@ Each command passes its arguments to the CLI as single-quoted shell words. The C
 | Command                                               | What                                                                                                                          |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `/docsxai:run <workspace-dir>`                        | Re-run the flows headlessly, refresh `annotations.json` and screenshots. `--variant` and `--verify-determinism` pass through. |
-| `/docsxai:render <workspace-dir>`                     | Build the interactive viewer.                                                                                                 |
+| `/docsxai:render <workspace-dir> [--lang <locale>]`   | Build the interactive viewer.                                                                                                 |
 | `/docsxai:push <workspace-dir>`                       | Upload the doc pack to the configured backend.                                                                                |
 | `/docsxai:pull <workspace-dir>`                       | Download the doc pack from the configured backend.                                                                            |
 | `/docsxai:login`                                      | Backend login: `--oauth` runs OAuth 2.1 + PKCE, CI uses `DOCSX_TOKEN`.                                                        |

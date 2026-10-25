@@ -1,15 +1,24 @@
 #!/usr/bin/env node
 // `docsxai` — the batteries-included CLI (meta-package bin). Resolves @docsxai/engine's
 // compiled CLI entry and runs it in-process (no child process). One global install of
-// `docsxai` puts this bin *and* the viewer's `docsxai-viewer` bin on the path, so
-// `docsxai render` and `docsxai burn` work out of the box.
+// `docsxai` puts this bin and `docsxai-viewer` (viewer-bin.mjs, a shim to the viewer's CLI) on
+// the path, so `docsxai render`, `docsxai burn` and `docsxai site` work out of the box.
 //
 // The engine finds the viewer next to itself, which a nested layout (pnpm's virtual store, a
 // workspace checkout) doesn't give it: the viewer is this package's dependency, not the engine's.
 // So when the operator hasn't pointed DOCSX_VIEWER_BIN anywhere, point it at the copy this
 // package resolves. An explicit value always wins.
 
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
+// `--version` names the package the user installed, so it reads this package's version.
+const first = process.argv[2];
+if (first === "--version" || first === "-v") {
+  const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+  process.stdout.write(`docsxai ${version}\n`);
+  process.exit(0);
+}
 
 if (!process.env.DOCSX_VIEWER_BIN) {
   try {

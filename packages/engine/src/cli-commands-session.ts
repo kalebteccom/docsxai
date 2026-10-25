@@ -1,5 +1,4 @@
 // Runtime / session commands — the ones that stand up a workspace or drive a live browser:
-//   init          — scaffold a workspace
 //   calibrate     — write flows/<name>.flow.yaml from a structured flow-guide
 //   run           — execute the workspace's flows against the live app, emitting annotations
 //
@@ -28,12 +27,11 @@ import { assertNoCaseCollision } from "./flow-name-rules.js";
 import { recordRunHistory } from "./backend-client.js";
 import { resolveDeviceScaleFactor } from "./device-scale-factor.js";
 import { runFlowsInSessions } from "./run-flows.js";
-import { initWorkspace, loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
+import { loadWorkspaceConfig, resolveWorkspacePath } from "./workspace.js";
 import {
   bareValueFlagExit,
   claimFlowName,
   flagMissingValue,
-  isHttpUrl,
   isRunnableUrl,
   listFlowFiles,
 } from "./cli-shared.js";
@@ -41,13 +39,7 @@ import { parseCommandFlags } from "./cli-flags.js";
 import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
-import {
-  describeFsError,
-  sanitizeForTerminal,
-  shellQuote,
-  usageError,
-  withNext,
-} from "./cli-messages.js";
+import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
 import { reportRun } from "./cli-run-summary.js";
 import { warnStaleMatrixOutputs } from "./cli-run-stale.js";
 import { warnUnusableConfig } from "./cli-backend-errors.js";
@@ -347,92 +339,6 @@ export async function cmdRun(args: string[]): Promise<number> {
   if (history.warning) process.stderr.write(`run: warning: ${history.warning}\n`);
 
   return anyFailed ? 1 : 0;
-}
-
-/** The flags of `init` that take a value. */
-const INIT_VALUE_FLAGS = [
-  "app-url",
-  "auth",
-  "role",
-  "ttl",
-  "capture-trigger",
-  "auth-cookie",
-  "persist",
-];
-
-export async function cmdInit(args: string[]): Promise<number> {
-  const parsed = parseCommandFlags("init", args);
-  if (typeof parsed === "number") return parsed;
-  const { positionals, flags } = parsed;
-  const persistTmp = flags.get("persist") === "tmp";
-  const dir = positionals[0];
-  const bareInit = bareValueFlagExit("init", flags, INIT_VALUE_FLAGS);
-  if (bareInit !== undefined) return bareInit;
-  const persist = flags.get("persist");
-  if (persist !== undefined && persist !== "tmp") {
-    return usageError("init", `--persist must be "tmp" (got "${String(persist)}")`);
-  }
-  if (!persistTmp && !dir)
-    return usageError("init", "missing <workspace-dir> (or use --persist tmp)");
-  const str = (k: string): string | undefined =>
-    typeof flags.get(k) === "string" ? (flags.get(k) as string) : undefined;
-  const auth = str("auth");
-  if (auth !== undefined && auth !== "manual-capture" && auth !== "none") {
-    return usageError(
-      "init",
-      `--auth must be manual-capture or none (got "${sanitizeForTerminal(auth)}")`,
-    );
-  }
-  const trigger = str("capture-trigger");
-  if (trigger !== undefined && trigger !== "console" && trigger !== "button") {
-    return usageError(
-      "init",
-      `--capture-trigger must be console or button (got "${sanitizeForTerminal(trigger)}")`,
-    );
-  }
-  const appUrl = str("app-url");
-  if (appUrl !== undefined && !isHttpUrl(appUrl)) {
-    return usageError("init", "--app-url must be an http:// or https:// URL");
-  }
-  const role = str("role");
-  const ttl = str("ttl");
-  const authCookie = str("auth-cookie");
-  if (dir && (await fs.stat(dir).catch(() => null))?.isFile()) {
-    const next = "docsxai init <new-dir>  (a workspace is a directory)";
-    process.stderr.write(
-      `init: ${withNext(`${path.resolve(dir)} is a file, not a directory`, next)}\n`,
-    );
-    return 1;
-  }
-  try {
-    const r = await initWorkspace({
-      ...(dir ? { dir } : {}),
-      persistTmp,
-      ...(appUrl ? { appUrl } : {}),
-      ...(auth ? { auth } : {}),
-      ...(role ? { role } : {}),
-      ...(ttl ? { ttl } : {}),
-      ...(trigger ? { captureTrigger: trigger } : {}),
-      ...(authCookie ? { authCookie } : {}),
-      ignoreHttpsErrors: flags.get("ignore-https-errors") === true,
-      force: flags.get("force") === true,
-    });
-    process.stdout.write(
-      `init: workspace ${r.ephemeral ? "(ephemeral) " : ""}at ${r.dir}\n  created: ${r.created.join(", ")}\n`,
-    );
-    const dirArg = shellQuote(r.dir);
-    // An `--auth none` workspace has no auth descriptor, so capture-auth has nothing to run.
-    const login = auth === "none" ? "" : `docsxai capture-auth ${dirArg}  →  `;
-    process.stdout.write(
-      `  next: ${appUrl ? "" : "(set app_url in .docsxai.json, then) "}${login}docsxai calibrate ${dirArg} --from <flow.yaml>  →  docsxai run ${dirArg}  →  docsxai render ${dirArg}\n`,
-    );
-    return 0;
-  } catch (e) {
-    process.stderr.write(
-      `init: ${describeFsError(e, { creating: true }) ?? (e as Error).message.replace(/^init: /, "")}\n`,
-    );
-    return 1;
-  }
 }
 
 export async function cmdCalibrate(args: string[]): Promise<number> {

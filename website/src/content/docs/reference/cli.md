@@ -13,7 +13,7 @@ command is not.
 ```text wrap preserveIndent=false hangingIndent=4
 docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>] [--ttl <dur>]
                                [--capture-trigger console|button] [--auth-cookie <name>] [--ignore-https-errors]
-                               [--persist tmp] [--force]
+                               [--persist tmp] [--force] [--example]
 docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
 docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>] [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
 docsxai run <workspace-dir> [--flow <name>] [--base-url <url>] [--headed] [--ignore-https-errors] [--stop-after <step-id>] [--start-from <step-id>] [--variant <id>] [--cdp <endpoint>] [--pause] [--concurrency <N>] [--device-scale-factor <1-4>]
@@ -21,7 +21,7 @@ docsxai run <workspace-dir> --verify-determinism [--runs <2-5>] [--format text|m
 docsxai lint <workspace-dir> [--flow <name>] [--format text|json]
 docsxai flow-tree <workspace-dir> [--format text|json]
 docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>] [--cdp <endpoint>] [--format text|json]
-docsxai doctor [<workspace-dir>] [--offline]
+docsxai doctor [<workspace-dir>] [--offline] [--format text|json]
 docsxai style <workspace-dir> [--check] [--format text|json]
 docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
 docsxai baseline <workspace-dir> [--out <dir>]
@@ -32,12 +32,14 @@ docsxai plugins <list|info|sync> <workspace-dir> [<namespace>] [--format text|js
 docsxai login --backend-url <url> [--oauth <workspace-dir>]
 docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
 docsxai pull <workspace-dir> [--rev <id>]
-docsxai render <workspace-dir>
+docsxai render <workspace-dir> [--lang <locale>] [--open]
 docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>] [--no-connector-outline] [--strict-glyphs]
+docsxai site <workspace-dir> [--out <dir>] [--build] [--title <text>] [--accent <hex>] [--lang <locale>] [--flow <name>]
 docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>] [--no-optimise] [--generated-for <text>]
 docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw] [--threshold <pct>]
 docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>] [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
 docsxai --help
+docsxai --version
 ```
 
 A _workspace_ (created by `init`) holds `flows/<flow>.flow.yaml`, `docs/`,
@@ -55,13 +57,13 @@ bad flag value) exit 2; operational failures (a halt, a lint warning, drift at
 the threshold) exit 1. A flag a command does not take exits 2 (`burn` and
 `pack` too), and most commands name the nearest flag when one is close:
 `run --flwo x` prints `unknown flag --flwo, did you mean --flow?`. Giving a
-flag twice exits 2 as well, except `burn --flow`, which repeats. A flag that
+flag twice exits 2 as well, except `burn --flow` and `site --flow`, which repeat. A flag that
 takes no value never reads the next argument, so `run --pause <workspace-dir>`
 keeps the workspace, and `--pause=yes` exits 2. A value flag with no value exits
 2 with `<flag> needs a value`. `doctor` follows the same rules: an unknown flag,
 `--offline` twice and `--offline=yes` all exit 2. Ctrl-C (SIGINT) or SIGTERM
 stops a command with one `docsxai: interrupted` line and a `next:` line, and
-exits 130 (SIGINT) or 143 (SIGTERM). While `render`, `burn` or `pack` runs, the
+exits 130 (SIGINT) or 143 (SIGTERM). While `render`, `burn`, `site` or `pack` runs, the
 signal goes to the viewer child and docsxai waits for it: the child gets SIGKILL
 after 10 seconds, and a second signal exits at once. The transcripts below show
 representative output; paths and counts vary with your workspace.
@@ -71,14 +73,16 @@ a command already splits them, and nothing is coloured. A failing command
 prints `<command>: what failed` and, when a command can fix it, a second line
 `  next: <command to run>`. A usage error also prints that command's own usage
 line; `docsxai --help` lists every flag.
-Running `docsxai` with no argument prints three first steps (`init`, `calibrate`,
-`run`) and the commands by purpose. `help <command>` and `<command> --help` print
+Running `docsxai` with no argument prints three first steps (`init --example`, `run`,
+`render --open`) and the commands by purpose. `help <command>` and `<command> --help` print
 only that command's usage and one example, and exit 0. A mistyped command exits 2
 and names the closest command when one is within two edits. `run`, `calibrate`, `burn`, `pack`,
 `zip`, `baseline`, `push`, `pull` and `doctor` end with one line that starts
 with the command name and gives the counts and where the output went. Use
 `--format json` where a command offers it when a script reads the output: the
 text formats are for people.
+
+`docsxai --version` (or `-v`) prints the installed version and exits 0. `docsxai-viewer --version` does the same for the viewer.
 
 An error that no command turned into a message is a bug in docsxai. The CLI
 prints `docsxai: unexpected error: <first line>` and a `next:` line, and exits 1.
@@ -103,6 +107,19 @@ a fully ephemeral workspace use `--persist tmp` (it prints the temp dir);
 `https://` URL, or `init` exits 2 with its usage line. A path that is a file stops with
 `<path> is a file, not a directory`, and a `mkdir` the filesystem refuses points
 `chmod` at the existing parent directory.
+
+`--example` makes a workspace for `https://example.com` with no login and writes
+`flows/hello.flow.yaml` (one step: open the home page, point at its heading) plus
+`docs/style.yaml`, so `run` and `render --open` are all that's left. It can't be
+combined with `--app-url`, `--auth`, `--role`, `--ttl`, `--capture-trigger` or
+`--auth-cookie` (exit 2).
+
+```text wrap preserveIndent=false hangingIndent=4
+$ docsxai init ~/docsxai/hello --example
+init: workspace at ~/docsxai/hello
+  created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, flows/example.flow.yaml.sample, README.md, flows/hello.flow.yaml, docs/style.yaml
+  next: docsxai run ~/docsxai/hello  →  docsxai render ~/docsxai/hello --open
+```
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai init ~/docsxai/my-app --app-url https://localhost:3000 --auth manual-capture --ttl 1h
@@ -349,15 +366,23 @@ screenshot after the annotated steps, and numbered ids sort by value (`step-2` b
 lists the screenshots without callouts; one that cannot be read (permissions, a
 directory in its place) stops `render` with an error that names the file. A page with a
 missing screenshot offers the command that captures it again; a flow name or step id
-with a space, quote or `$` is single-quoted in it, so it pastes as one word. `render`
-takes no flags; `docsxai-viewer build --flow <name>` also renders the variant folders of
-a matrix flow, and `docsxai-viewer build --lang fr` warns that only `en` and `es` have
-text tables and writes English.
+with a space, quote or `$` is single-quoted in it, so it pastes as one word.
+
+`--lang <locale>` sets the language of the text the viewer adds: `es` or `es-ES` gives
+Spanish, the default is `en`. A tag with no text table, `fr` say, prints a warning and
+writes English. A matrix variant flow uses the locale in its own variant id.
+`--open` opens `.viewer/index.html` in the default browser after a good build (`open` on
+macOS, `xdg-open` on Linux, Explorer on Windows); where none can be opened, such as a
+server with no display, it prints the path and still exits 0.
+`docsxai-viewer build --flow <name>` also renders the variant folders of a matrix flow.
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai render ~/docsxai/my-app
 render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; each flow page
 shows the screenshots, hover a pulsing halo to read its callout)
+$ docsxai render ~/docsxai/my-app --open
+render: open ~/docsxai/my-app/.viewer/index.html  (…)
+render: opened it in your browser
 ```
 
 ### `docsxai burn`
@@ -400,6 +425,26 @@ are new in the next release; see
 $ docsxai burn ~/docsxai/my-app --report burn-report.json
 burn: wrote 6 image(s) to ~/docsxai/my-app/docs/publish-post/burned
 burn: wrote report to ~/docsxai/my-app/burn-report.json (0 unplaceable)
+```
+
+### `docsxai site`
+
+Writes an Astro Starlight docs site project from `<workspace>/docs` and
+`<workspace>/flows`, preferring burned images. It runs the viewer's `site`
+through the same bin resolution as `render`, and its exit code is the command's.
+`--out <dir>` is the project directory (default `<workspace>/site`). `--build`
+also runs the Astro build into `<out>/dist`. `--title <text>` names the site
+(default `Documentation`). `--accent <hex>` sets the accent colour, `#2563eb`
+say, over the style artifact's colours. `--lang <locale>` sets the site's
+language, with the same rule as `render --lang`. `--flow <name>` limits it to
+named flows and can be repeated. `site` doesn't read the `burn.theme` block.
+Exit 1 when the workspace or its `docs/` folder is missing or the build fails;
+exit 2 for a bad flag or an `--accent` that isn't a hex colour.
+
+```text wrap preserveIndent=false hangingIndent=4
+$ docsxai site ~/docsxai/my-app --lang es --build
+site: emitted 9 file(s) to ~/docsxai/my-app/site
+site: built ~/docsxai/my-app/site/dist in 4210ms
 ```
 
 ### `docsxai pack`
@@ -627,9 +672,16 @@ freshness, a HEAD to `app_url` with a 3 s timeout (skipped with a clear line whe
 offline or with `--offline`), backend reachability and login state when `backend_url`
 is configured, the plugin declarations and lock through the same inspection
 `plugins list` runs - declared/installed/lock/capabilities, with **no plugin
-code executed** - viewer-bin resolution (naming which of the three layers
-hit), and `DOCSX_*` env sanity. Exit 1 on any `fail:` line, and 2 on a flag it does not
-know (`doctor --offine` used to probe the network).
+code executed** - where the viewer was found, and environment settings. Exit 1 on any
+`fail:` line, and 2 on a flag it does not know (`doctor --offine` used to probe the network).
+
+The first line is the docsxai version. When every check passes, the last line names the
+next command for the workspace: `init <workspace-dir> --example` outside a workspace,
+`calibrate` with an empty `flows/`, `run` with flows and nothing captured, and
+`render --open` once `docs/` holds annotations. `--format json` prints one document instead
+of the lines: `schema` (`docsxai/doctor@1`), `version`, `ok`, `checks` (each with `name`,
+`ok`, `info`, `detail` and `next`, which is `null` without a follow-up) and `next`. Every
+key is always present.
 
 The `workspace` and `flows` rows name why a workspace is unusable: a `.docsxai.json` it cannot read
 (`chmod u+r <file>`), one that holds an array, `null`, a string or a number, invalid JSON
@@ -637,7 +689,8 @@ The `workspace` and `flows` rows name why a workspace is unusable: a `.docsxai.j
 not exist or is a file, and a deleted `flows/` (`mkdir <dir>/flows`). The `plugins` row
 does not repeat a config failure the `workspace` row already printed.
 
-The env row checks three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
+The env row counts the docsxai variables you set and names none of them; the viewer path
+the `docsxai` bin sets for itself isn't counted. It fails on three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
 bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typo; the
 names it knows are `DOCSX_TOKEN`, `DOCSX_CACHE_KEY`, `DOCSX_VIEWER_BIN`,
 `DOCSX_ENGINE_BIN`, `DOCSX_DATA_DIR`, `DOCSX_OAUTH_AUTO_APPROVE`,
@@ -651,6 +704,7 @@ three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai doctor ~/docsxai/my-app
+ok: version: docsxai 0.3.0-rc.4
 ok: node: v26.1.0 (>= 26 required)
 ok: chromium: ~/Library/Caches/ms-playwright/chromium-1223/…/Google Chrome for Testing
 ok: workspace: ~/docsxai/my-app/.docsxai.json (docsxai/workspace@1, app_url https://localhost:3000)
@@ -663,8 +717,8 @@ ok: app_url: https://localhost:3000/ answered HTTP 200
 ok: backend: no backend_url configured, the workspace operates fully locally
 ok: login: no backend_url, so no backend login is needed
 ok: plugins: no plugins configured (add a "plugins" array to .docsxai.json)
-ok: viewer: @docsxai/viewer installed next to the engine → …/dist/index.js (layer 2: installed package)
-ok: env: no DOCSX_* variables set (defaults apply)
+ok: viewer: found at …/@docsxai/viewer/dist/index.js
+ok: env: no docsxai variables set, defaults apply
 fail: doctor: 1 of 10 checks failed next: fix the fail lines above, then run docsxai doctor again
 ```
 

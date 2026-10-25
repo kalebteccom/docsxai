@@ -31,8 +31,9 @@ const COMMANDS: Record<string, { flags: string[]; files: string[] }> = {
       "ignore-https-errors",
       "persist",
       "force",
+      "example",
     ],
-    files: ["cli-commands-session.ts"],
+    files: ["cli-commands-init.ts"],
   },
   calibrate: { flags: ["from", "name"], files: ["cli-commands-session.ts"] },
   inspect: {
@@ -64,7 +65,7 @@ const COMMANDS: Record<string, { flags: string[]; files: string[] }> = {
     flags: ["flow", "step", "variant", "cdp", "format"],
     files: ["cli-commands-authoring.ts"],
   },
-  doctor: { flags: ["offline"], files: ["doctor.ts"] },
+  doctor: { flags: ["offline", "format"], files: ["doctor.ts"] },
   style: { flags: ["check", "format"], files: ["cli-commands-style.ts"] },
   zip: { flags: ["out", "include-viewer"], files: ["cli-commands-docpack.ts"] },
   baseline: { flags: ["out"], files: ["cli-commands-docpack.ts"] },
@@ -75,10 +76,14 @@ const COMMANDS: Record<string, { flags: string[]; files: string[] }> = {
   login: { flags: ["backend-url", "oauth"], files: ["cli-commands-backend.ts"] },
   push: { flags: ["kind", "author"], files: ["cli-commands-backend.ts"] },
   pull: { flags: ["rev"], files: ["cli-commands-backend.ts"] },
-  render: { flags: [], files: ["cli-commands-docpack.ts"] },
+  render: { flags: ["lang", "open"], files: ["cli-commands-docpack.ts"] },
   burn: {
     flags: ["flow", "out", "report", "no-connector-outline", "strict-glyphs"],
     files: ["cli-commands-docpack.ts"],
+  },
+  site: {
+    flags: ["out", "build", "title", "accent", "lang", "flow"],
+    files: ["cli-commands-site.ts"],
   },
   pack: {
     flags: [

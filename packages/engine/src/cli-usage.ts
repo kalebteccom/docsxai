@@ -7,7 +7,7 @@ export const USAGE = `docsxai: deterministic execution CLI
 Usage:
   docsxai init <workspace-dir> [--app-url <url>] [--auth manual-capture|none] [--role <role>]
       [--ttl <dur>] [--capture-trigger console|button] [--auth-cookie <name>]
-      [--ignore-https-errors] [--persist tmp] [--force]
+      [--ignore-https-errors] [--persist tmp] [--force] [--example]
   docsxai calibrate <workspace-dir> --from <flow.md|.yaml> [--name <flow>]
   docsxai inspect <workspace-dir> [--url <url>] [--selector <css>] [--cdp <endpoint>]
       [--wait <ms>] [--wait-for <css>] [--headed] [--ignore-https-errors] [--role <role>]
@@ -21,7 +21,7 @@ Usage:
   docsxai flow-tree <workspace-dir> [--format text|json]
   docsxai diagnose <workspace-dir> --flow <name> --step <step-id> [--variant <id>]
       [--cdp <endpoint>] [--format text|json]
-  docsxai doctor [<workspace-dir>] [--offline]
+  docsxai doctor [<workspace-dir>] [--offline] [--format text|json]
   docsxai style <workspace-dir> [--check] [--format text|json]
   docsxai zip <workspace-dir> [--out <output.zip>] [--include-viewer]
   docsxai baseline <workspace-dir> [--out <dir>]
@@ -33,9 +33,11 @@ Usage:
   docsxai login --backend-url <url> [--oauth <workspace-dir>]
   docsxai push <workspace-dir> [--kind calibrate|run|edit] [--author <name>]
   docsxai pull <workspace-dir> [--rev <id>]
-  docsxai render <workspace-dir>
+  docsxai render <workspace-dir> [--lang <locale>] [--open]
   docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>]
       [--no-connector-outline] [--strict-glyphs]
+  docsxai site <workspace-dir> [--out <dir>] [--build] [--title <text>] [--accent <hex>]
+      [--lang <locale>] [--flow <name>]
   docsxai pack <workspace-or-raw-dir> [--from-raw] [--out <dir>] [--public-prefix <path>]
       [--no-optimise] [--generated-for <text>]
   docsxai pack <workspace-or-raw-dir> --check --against <pack-dir> [--from-raw]
@@ -43,11 +45,15 @@ Usage:
   docsxai capture-auth <workspace-dir> [--base-url <url>] [--role <role>] [--auth-cookie <name>]
       [--cdp <endpoint>] [--fresh] [--headless] [--ignore-https-errors]
   docsxai --help
+  docsxai --version
 
 Notes:
   • A *workspace* (created by \`init\`) holds flows/<flow>.flow.yaml, docs/, auth/strategy.yaml, .auth/, .viewer/,
     and a .docsxai.json config. Put it OUTSIDE the app's source repo, docsxai documents a running app from
     outside and never writes into the app repo.
+  • init --example makes a workspace for https://example.com with no login and writes
+    flows/hello.flow.yaml, so run and render --open are all that's left. It can't be combined with
+    --app-url, --auth, --role, --ttl, --capture-trigger or --auth-cookie.
   • run / capture-auth read app_url + ignore_https_errors from .docsxai.json if you don't pass the flags.
   • run launches Chromium; if no browser binary is present, install one:  npx playwright-core install chromium
     (source checkout: pnpm -C packages/engine exec playwright-core install chromium)
@@ -132,8 +138,10 @@ Notes:
     its output dirs, flow-file parses, auth descriptor + cached-session freshness, a short HEAD to
     app_url (--offline skips it), backend reachability and login state (when backend_url is set), the
     plugin declarations and lock (same inspection as \`plugins list\`, no plugin code is executed),
-    viewer-bin resolution (which of the three layers hit), and DOCSX_* env sanity. One \`ok:\` or
-    \`fail:\` line per check, with a \`next:\` step. Exit 1 if any line is \`fail:\`.
+    where the viewer was found, and environment settings. The first line is the docsxai version; one
+    \`ok:\` or \`fail:\` line per check follows, and the last line names the next command for the
+    workspace's state (init --example, calibrate, run or render --open). --format json prints one
+    document (schema docsxai/doctor@1). Exit 1 if any line is \`fail:\`.
   • style initialises docs/style.yaml + derived docs/style.json if absent (otherwise validates the
     existing YAML against the schema and rederives the JSON). --check additionally scans every
     docs/<flow>/<step>.md user-facing write-up for jargon leaks against the style's pruning_rules
@@ -163,7 +171,9 @@ Notes:
     files say so in a header: regenerate, don't hand-edit.
   • render builds the static viewer by spawning the docsxai-viewer bin, resolved in order: the
     DOCSX_VIEWER_BIN env var (path to the viewer's bin script), the @docsxai/viewer
-    package installed next to the engine, then \`docsxai-viewer\` on PATH.
+    package installed next to the engine, then \`docsxai-viewer\` on PATH. --lang sets the language of the
+    text the viewer adds, e.g. es or es-ES (default en; a tag with no translation gives en). --open then
+    opens .viewer/index.html in the default browser; where none can be opened it prints the path instead.
   • burn bakes each flow's annotations (halo, badge, callout) into copies of its clean screenshots, for
     surfaces that can't run the interactive viewer, via the same viewer bin as render. Reads
     <ws>/docs/<flow>/annotations.json and writes docs/<flow>/burned/<step>.png (or <out>/<flow>/<step>.png
@@ -175,6 +185,11 @@ Notes:
     the callout's outline colour, and no text is estimated from the pixels. A caption with characters the
     font can't draw (Japanese, Arabic, Hebrew, Thai with the bundled Inter) prints a warning naming the
     annotation and script and gets missing_glyphs in the report; --strict-glyphs makes it exit 1.
+  • site writes an Astro Starlight docs site project from <ws>/docs and <ws>/flows into --out (default
+    <ws>/site), preferring burned images. --build also runs the Astro build into <out>/dist. --title names
+    the site (default "Documentation"), --accent sets the accent colour as a hex value, --lang sets the
+    site's language (same rule as render), --flow limits it to named flows (repeatable). Runs the viewer's
+    \`site\` through the same bin resolution as render; its exit code is the command's.
   • pack builds the screenshot pack a docs site or README ships: it burns each step's annotations into its
     clean screenshot, optimises the PNG losslessly with the external \`oxipng\` binary (on PATH, or
     $DOCSX_OXIPNG_BIN; \`brew install oxipng\`; --no-optimise skips it), names it
@@ -210,7 +225,8 @@ Notes:
     Exit 0 success, 1 runtime failure, 2 usage error; Ctrl-C prints one line with the command to rerun and
     exits 130. An error no command handled is a bug: it prints one \`docsxai: unexpected error\` line; set
     DOCSX_DEBUG=1 to print its stack trace.
-  • --format json (lint, flow-tree, diagnose, style, diff, plugins, run --verify-determinism) is the
+  • --version (or -v) prints \`docsxai <version>\` and exits 0.
+  • --format json (lint, flow-tree, diagnose, style, diff, plugins, doctor, run --verify-determinism) is the
     machine-readable output; the text formats are for people and may change.
   • run, calibrate, burn, pack, zip, baseline, push, pull and doctor end with one line,
     \`<command>: <result> …\`, naming the counts and where the output went (run --verify-determinism
@@ -233,7 +249,9 @@ Examples:
   docsxai plugins list ~/docsxai/my-app
   docsxai login --backend-url https://docsxai.example.com
   docsxai render ~/docsxai/my-app
+  docsxai render ~/docsxai/my-app --lang es
   docsxai burn ~/docsxai/my-app --flow login --out ~/docsxai/my-app/burned
+  docsxai site ~/docsxai/my-app --title "Help centre" --build
   docsxai pack ~/docsxai/my-app --out ~/docsxai/my-app/.screens
   docsxai pack ~/docsxai/my-app --check --against ./public/screens
   docsxai baseline ~/docsxai/my-app

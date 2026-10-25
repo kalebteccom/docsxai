@@ -9,9 +9,14 @@ next:
 This page takes you from nothing to a rendered doc pack against your own app.
 It assumes `docsxai` and Chromium are installed ([Installation](/getting-started/installation/);
 `docsxai doctor` checks both) and your app is running somewhere reachable, say
-`http://localhost:3000`. Want to try it first without an app? The
-[README walkthrough](https://github.com/kalebteccom/docsxai#first-run-in-10-minutes)
-documents `example.com`.
+`http://localhost:3000`. To try it first without an app, three commands document
+`example.com`:
+
+```sh
+docsxai init ~/docsxai/hello --example
+docsxai run ~/docsxai/hello
+docsxai render ~/docsxai/hello --open
+```
 
 Three terms. A **flow** is a YAML file listing the steps of one user journey.
 To **calibrate** is to write that flow the first time, by hand or with an AI
@@ -127,6 +132,10 @@ open ~/docsxai/my-app/.viewer/index.html
 `open` is the macOS command; on Linux use `xdg-open`, on Windows `start`. The
 viewer index links each flow; every flow page shows the screenshots with
 pulsing halos. Hover, tap or tab to a halo to read its callout.
+
+Add `--lang es` for Spanish page text. For a docs site you can host, run
+`docsxai site ~/docsxai/my-app --build`. It writes an Astro Starlight project to
+`~/docsxai/my-app/site` and builds it into `site/dist`.
 
 ## Where to next
 

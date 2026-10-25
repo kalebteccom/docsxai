@@ -1,6 +1,6 @@
-// Executes the published bin (bin.mjs) as a real subprocess against a fixture workspace —
-// the regression gate for the meta-package wiring (`docsxai` bin → @docsxai/engine/cli,
-// run in-process). Requires the engine's dist to be built (`pnpm -r build`); the suite
+// Executes the published bins (bin.mjs, viewer-bin.mjs) as real subprocesses against a fixture
+// workspace — the regression gate for the meta-package wiring (`docsxai` bin → @docsxai/engine/cli
+// and `docsxai-viewer` → @docsxai/viewer's CLI, both run in-process). Requires the engine's dist to be built (`pnpm -r build`); the suite
 // skips loudly when it isn't, and CI always builds before testing.
 
 import { execFile } from "node:child_process";
@@ -15,6 +15,7 @@ const run = promisify(execFile);
 
 const pkgDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const binPath = path.join(pkgDir, "bin.mjs");
+const viewerBinPath = path.join(pkgDir, "viewer-bin.mjs");
 const engineDistCli = path.join(pkgDir, "node_modules", "@docsxai", "engine", "dist", "cli.js");
 const engineBuilt = existsSync(engineDistCli);
 const viewerDistBin = path.join(pkgDir, "node_modules", "@docsxai", "viewer", "dist", "index.js");
@@ -29,8 +30,16 @@ interface BinResult {
 }
 
 async function docsxai(...args: string[]): Promise<BinResult> {
+  return runBin(binPath, args);
+}
+
+async function viewer(...args: string[]): Promise<BinResult> {
+  return runBin(viewerBinPath, args);
+}
+
+async function runBin(bin: string, args: string[]): Promise<BinResult> {
   try {
-    const { stdout, stderr } = await run(process.execPath, [binPath, ...args]);
+    const { stdout, stderr } = await run(process.execPath, [bin, ...args]);
     return { code: 0, stdout, stderr };
   } catch (e) {
     const err = e as { code?: number; stdout?: string; stderr?: string };
@@ -65,6 +74,19 @@ describe.skipIf(!engineBuilt)("bare `docsxai` bin (meta-package wrapper)", () =>
     expect(r.stdout).toContain(
       "docsxai burn <workspace-dir> [--flow <name>] [--out <dir>] [--report <file>]",
     );
+    expect(r.stdout).toContain("docsxai render <workspace-dir> [--lang <locale>]");
+    expect(r.stdout).toContain("docsxai site <workspace-dir> [--out <dir>] [--build]");
+  });
+
+  it.each(["--version", "-v"])("%s prints this package's version and exits 0", async (flag) => {
+    const { version } = JSON.parse(
+      await fs.readFile(path.join(pkgDir, "package.json"), "utf8"),
+    ) as {
+      version: string;
+    };
+    const r = await docsxai(flag);
+    expect(r.code).toBe(0);
+    expect(r.stdout).toBe(`docsxai ${version}\n`);
   });
 
   it("init + lint round-trip against a fixture workspace", async () => {
@@ -141,6 +163,83 @@ describe.skipIf(!engineBuilt || !viewerBuilt)("`docsxai burn` through the bare b
     expect(r.stderr).toContain("burn:");
   });
 });
+
+describe.skipIf(!viewerBuilt)("bare `docsxai-viewer` bin (meta-package shim)", () => {
+  it("is in the package's bin map next to `docsxai`", async () => {
+    const manifest = JSON.parse(await fs.readFile(path.join(pkgDir, "package.json"), "utf8")) as {
+      bin: Record<string, string>;
+      files: string[];
+    };
+    expect(manifest.bin).toEqual({ docsxai: "./bin.mjs", "docsxai-viewer": "./viewer-bin.mjs" });
+    expect(manifest.files).toContain("viewer-bin.mjs");
+  });
+
+  it("--help prints the viewer's usage and exits 0", async () => {
+    const r = await viewer("--help");
+    expect(r.code).toBe(0);
+    expect(r.stdout).toContain("docsxai-viewer: static viewer generator");
+    expect(r.stdout).toContain("docsxai-viewer site <workspace>");
+  });
+
+  it("an unknown command exits 2, the viewer's own code", async () => {
+    const r = await viewer("no-such-command");
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain('unknown command "no-such-command"');
+  });
+});
+
+describe.skipIf(!engineBuilt || !viewerBuilt)(
+  "`docsxai render --lang` and `docsxai site` through the bare bin",
+  () => {
+    async function workspaceWithPack(): Promise<string> {
+      const ws = path.join(tmp, "ws");
+      await fs.cp(packFixture, path.join(ws, "docs"), { recursive: true });
+      return ws;
+    }
+
+    it("render --lang es writes a Spanish viewer", async () => {
+      const ws = await workspaceWithPack();
+      const r = await docsxai("render", ws, "--lang", "es");
+      expect(r.code, r.stderr).toBe(0);
+      const index = await fs.readFile(path.join(ws, ".viewer", "index.html"), "utf8");
+      expect(index).toContain('<html lang="es"');
+    });
+
+    it("render without --lang keeps the English viewer", async () => {
+      const ws = await workspaceWithPack();
+      const r = await docsxai("render", ws);
+      expect(r.code, r.stderr).toBe(0);
+      const index = await fs.readFile(path.join(ws, ".viewer", "index.html"), "utf8");
+      expect(index).toContain('<html lang="en"');
+    });
+
+    it("site --lang es --title emits a Starlight project under --out", async () => {
+      const ws = await workspaceWithPack();
+      const out = path.join(tmp, "site");
+      const r = await docsxai("site", ws, "--out", out, "--lang", "es", "--title", "Ayuda");
+      expect(r.code, r.stderr).toBe(0);
+      expect(r.stdout).toMatch(/site: emitted \d+ file\(s\) to /);
+      const config = await fs.readFile(path.join(out, "astro.config.mjs"), "utf8");
+      expect(config).toContain("Ayuda");
+      expect(config).toContain('lang: "es"');
+    });
+
+    it("site on a workspace with no docs/ exits 1", async () => {
+      const ws = path.join(tmp, "empty");
+      await fs.mkdir(ws);
+      const r = await docsxai("site", ws);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toContain("site:");
+    });
+
+    it("site with a bad --accent exits 2", async () => {
+      const ws = await workspaceWithPack();
+      const r = await docsxai("site", ws, "--accent", "blue-ish");
+      expect(r.code).toBe(2);
+      expect(r.stderr).toContain("--accent must be a hex colour");
+    });
+  },
+);
 
 describe.skipIf(!engineBuilt || !viewerBuilt)(
   "`docsxai pack` and `docsxai pack --check` through the bare bin",

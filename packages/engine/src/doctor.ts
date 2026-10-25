@@ -29,7 +29,9 @@ import {
   checkWritable,
 } from "./doctor-checks-config.js";
 import { checkPlugins } from "./doctor-checks-plugins.js";
-import { commandUsage } from "./cli-messages.js";
+import { commandUsage, usageError } from "./cli-messages.js";
+import { engineVersion } from "./cli-version.js";
+import { doctorNextStep } from "./doctor-next.js";
 import { parseCommandFlags } from "./cli-flags.js";
 
 // Re-export the probe catalogue's public surface so importers keep reaching it
@@ -38,6 +40,7 @@ import { parseCommandFlags } from "./cli-flags.js";
 export * from "./doctor-checks.js";
 export * from "./doctor-checks-plugins.js";
 export * from "./doctor-checks-config.js";
+export { doctorNextStep } from "./doctor-next.js";
 
 // ---------------------------------------------------------------------------
 // Assembly + CLI entry
@@ -75,9 +78,19 @@ export async function buildDoctorChecks(opts: DoctorOptions = {}): Promise<Docto
 
 const oneLine = (t: string): string => t.replace(/\s+/g, " ").trim();
 
+/** What the closing line suggests after a failure. */
+const FAILED_NEXT = "fix the fail lines above, then run docsxai doctor again";
+
+export interface DoctorFormatOptions {
+  /** The docsxai version, printed as the first row when given. */
+  version?: string;
+  /** The command the passing summary line suggests; omitted from the line when absent. */
+  next?: string;
+}
+
 /** One `ok:` or `fail:` line per check, then one summary line. Plain ASCII, no colour, no timings. */
-export function formatDoctorChecks(checks: DoctorCheck[]): string {
-  let out = "";
+export function formatDoctorChecks(checks: DoctorCheck[], opts: DoctorFormatOptions = {}): string {
+  let out = opts.version === undefined ? "" : `ok: version: docsxai ${opts.version}\n`;
   for (const c of checks) {
     out += `${c.ok ? "ok" : "fail"}: ${c.name}: ${oneLine(c.detail)}`;
     if (c.fix) out += ` next: ${oneLine(c.fix)}`;
@@ -86,11 +99,55 @@ export function formatDoctorChecks(checks: DoctorCheck[]): string {
   const failed = checks.filter((c) => !c.ok).length;
   const infos = checks.filter((c) => c.info).length;
   const scored = checks.length - infos;
+  const next = opts.next === undefined ? "" : ` next: ${opts.next}`;
   out +=
     failed === 0
-      ? `ok: doctor: all checks passed (${scored} checks, ${infos} informational) next: docsxai run <workspace-dir>\n`
-      : `fail: doctor: ${failed} of ${scored} checks failed next: fix the fail lines above, then run docsxai doctor again\n`;
+      ? `ok: doctor: all checks passed (${scored} checks, ${infos} informational)${next}\n`
+      : `fail: doctor: ${failed} of ${scored} checks failed next: ${FAILED_NEXT}\n`;
   return out;
+}
+
+/** The schema id of `doctor --format json`. */
+export const DOCTOR_JSON_SCHEMA = "docsxai/doctor@1";
+
+/** One check in `doctor --format json`. Every key is always present. */
+export interface DoctorJsonCheck {
+  name: string;
+  ok: boolean;
+  info: boolean;
+  detail: string;
+  next: string | null;
+}
+
+/** What `doctor --format json` prints. Every key is always present, in this order. */
+export interface DoctorJsonReport {
+  schema: typeof DOCTOR_JSON_SCHEMA;
+  version: string;
+  ok: boolean;
+  checks: DoctorJsonCheck[];
+  /** The suggested command after a pass, the fix-and-rerun hint after a failure, or null. */
+  next: string | null;
+}
+
+/** The `doctor --format json` document for `checks`. */
+export function doctorReport(
+  checks: DoctorCheck[],
+  opts: { version: string; next?: string },
+): DoctorJsonReport {
+  const ok = checks.every((c) => c.ok);
+  return {
+    schema: DOCTOR_JSON_SCHEMA,
+    version: opts.version,
+    ok,
+    checks: checks.map((c) => ({
+      name: c.name,
+      ok: c.ok,
+      info: c.info === true,
+      detail: oneLine(c.detail),
+      next: c.fix ? oneLine(c.fix) : null,
+    })),
+    next: ok ? (opts.next ?? null) : FAILED_NEXT,
+  };
 }
 
 /** What `docsxai doctor --help` prints: the usage line from `docsxai --help`, then what the rows mean. */
@@ -100,12 +157,13 @@ export function doctorHelp(): string {
     .join("")}
 Checks Node, Chromium, the workspace config (fields and burn.theme shape), write access, flow-files,
 cached sessions, a HEAD to app_url, the backend and login state (when backend_url is set), plugin
-declarations and lock, the viewer bin and DOCSX_* env. Runs no flow, no plugin code and no browser.
+declarations and lock, the viewer and environment settings. Runs no flow, no plugin code and no browser.
 
   ok: <check>: <detail> next: <what to do>     passed (next is present when there is a follow-up)
   fail: <check>: <detail> next: <what to do>   failed
 
-  --offline   do not probe app_url
+  --offline        do not probe app_url
+  --format json    one JSON document (schema docsxai/doctor@1) instead of the lines
 
 Exit 0 when no line starts with fail:, 1 otherwise.
 `;
@@ -120,10 +178,21 @@ export async function runDoctor(args: string[]): Promise<number> {
   const parsed = parseCommandFlags("doctor", args);
   if (typeof parsed === "number") return parsed;
   const { positionals, flags } = parsed;
+  const format = flags.get("format") ?? "text";
+  if (format !== "text" && format !== "json") {
+    return usageError("doctor", "--format must be text or json");
+  }
+  const dirArg = positionals[0] || undefined;
   const checks = await buildDoctorChecks({
-    ...(positionals[0] ? { workspaceDir: positionals[0] } : {}),
+    ...(dirArg ? { workspaceDir: dirArg } : {}),
     offline: flags.get("offline") === true,
   });
-  process.stdout.write(formatDoctorChecks(checks));
+  const version = engineVersion();
+  const next = await doctorNextStep(dirArg, dirArg ?? process.cwd());
+  process.stdout.write(
+    format === "json"
+      ? `${JSON.stringify(doctorReport(checks, { version, next }), null, 2)}\n`
+      : formatDoctorChecks(checks, { version, next }),
+  );
   return checks.every((c) => c.ok) ? 0 : 1;
 }

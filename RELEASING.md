@@ -70,7 +70,7 @@ With `--approve` it asks for a fresh 2FA code before each package and passes it 
 
 - `bin.mjs` resolves `@docsxai/engine`'s CLI entry (`@docsxai/engine/cli`) and runs it **in-process** — no spawn, no PATH dependence.
 - `index.mjs` / `index.d.mts` re-export the engine's library surface, so `import { parseFlowFile } from "docsxai"` works.
-- Its dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (`workspace:*` in-repo, real versions on publish). The viewer dependency is deliberate: one `npm i -g docsxai` puts the `docsxai-viewer` bin on the global path, so `docsxai render` works out of the box through the engine's layered viewer resolution.
+- Its dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (`workspace:*` in-repo, real versions on publish). The viewer dependency is deliberate: `docsxai render`, `burn`, `site` and `pack` find it through the engine's layered viewer resolution. A global install links only the top-level package's bins, so the meta package ships its own `docsxai-viewer` bin (`viewer-bin.mjs`, a shim to the viewer's CLI).
 - No build step; the regression gate is `packages/docsxai/test/bin.test.ts`, which executes the bin as a subprocess (init + lint against a fixture workspace) and the library re-export.
 
 ## Pipeline behavior

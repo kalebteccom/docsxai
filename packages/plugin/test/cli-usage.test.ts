@@ -251,18 +251,22 @@ describe("prose claims against engine, viewer and mcp source", () => {
     expect(skill).toContain('"narrow_below": 900');
   });
 
-  it("says `render` takes no --lang while the viewer bin's build and site do", async () => {
+  it("says `render` and `site` take --lang, as the viewer bin's build and site do", async () => {
     const entries = await usageEntries();
     const render = entries.find((e) => subcommandOf(e) === "render")!;
-    expect(render).not.toContain("--lang");
+    expect(render).toContain("--lang <locale>");
+    const site = entries.find((e) => subcommandOf(e) === "site")!;
+    expect(site).toContain("--lang <locale>");
     const viewerUsage = await src("viewer", "src", "index.ts");
     expect(viewerUsage).toMatch(
       /docsxai-viewer build <docs-dir> <out-dir>[^\n]*\[--lang <locale>\]/,
     );
     expect(viewerUsage).toMatch(/docsxai-viewer site <workspace>[^\n]*\[--lang <locale>\]/);
-    expect(await read(pluginDir, "commands", "render.md")).toMatch(/has no language flag/);
+    const renderMd = await read(pluginDir, "commands", "render.md");
+    expect(renderMd).toContain("--lang es");
+    expect(renderMd).not.toMatch(/has no language flag|docsxai-viewer build/);
     expect(await read(pluginDir, "skills", "calibrate", "SKILL.md")).toMatch(
-      /has no language flag.*docsxai-viewer build.*--lang es.*docsxai-viewer site/,
+      /docsxai render <workspace-dir> --lang es.*docsxai site <workspace-dir> --lang es/,
     );
   });
 

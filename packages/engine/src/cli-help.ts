@@ -6,10 +6,11 @@ import { USAGE } from "./cli-usage.js";
 import { commandUsage } from "./cli-messages.js";
 
 /** The first steps for a new user, printed before any long list. */
-export const START_HERE = `Start here:
-  1. docsxai init <workspace-dir> --app-url <url>
-  2. docsxai calibrate <workspace-dir> --from <flow.yaml>
-  3. docsxai run <workspace-dir>`;
+export const START_HERE = `Start here (an example flow on example.com):
+  1. docsxai init <workspace-dir> --example
+  2. docsxai run <workspace-dir>
+  3. docsxai render <workspace-dir> --open
+Your own app: docsxai init <workspace-dir> --app-url <url>, then calibrate a flow.`;
 
 /** Commands by purpose, each with a one-line description. Every dispatched command appears once. */
 export const COMMAND_GROUPS: ReadonlyArray<{
@@ -40,6 +41,7 @@ export const COMMAND_GROUPS: ReadonlyArray<{
     commands: [
       ["render", "build the static viewer"],
       ["burn", "bake annotations into copies of the screenshots"],
+      ["site", "write a Starlight docs site from the doc pack"],
       ["zip", "package the doc pack as one archive"],
       ["export", "write the flows as ADF or Playwright specs"],
       ["push", "upload the doc pack as a backend revision"],

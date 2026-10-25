@@ -363,6 +363,10 @@ export async function checkBackend(
   }
 }
 
+/**
+ * The viewer row. It names the path that resolved, never the variable or lookup order: the
+ * `docsxai` bin sets the variable itself, so naming it would show users a setting they never made.
+ */
 export async function checkViewer(
   env: NodeJS.ProcessEnv,
   resolveFrom?: string[],
@@ -371,37 +375,21 @@ export async function checkViewer(
     env: env,
     ...(resolveFrom ? { resolveFrom } : {}),
   });
-  if (resolution.source === "env") {
-    return {
-      name: "viewer",
-      ok: true,
-      detail: `$${VIEWER_BIN_ENV} → ${resolution.prefixArgs[0] ?? resolution.command} (layer 1: env override)`,
-    };
+  if (resolution.source === "env" || resolution.source === "package") {
+    const found = resolution.prefixArgs[0] ?? resolution.command;
+    return { name: "viewer", ok: true, detail: `found at ${found}` };
   }
-  if (resolution.source === "package") {
-    return {
-      name: "viewer",
-      ok: true,
-      detail: `${VIEWER_PACKAGE} installed next to the engine → ${resolution.prefixArgs[0]} (layer 2: installed package)`,
-    };
-  }
-  // Layer 3 is "trust PATH" — resolveViewerBin doesn't verify it, so doctor does.
+  // The PATH lookup is "trust PATH": resolveViewerBin doesn't verify it, so doctor does.
   for (const dir of (env.PATH ?? "").split(path.delimiter)) {
     if (!dir) continue;
     const candidate = path.join(dir, VIEWER_BIN_NAME);
-    if (existsSync(candidate)) {
-      return {
-        name: "viewer",
-        ok: true,
-        detail: `\`${VIEWER_BIN_NAME}\` on PATH → ${candidate} (layer 3: PATH)`,
-      };
-    }
+    if (existsSync(candidate)) return { name: "viewer", ok: true, detail: `found at ${candidate}` };
   }
   return {
     name: "viewer",
     ok: false,
-    detail: `\`${VIEWER_BIN_NAME}\` not resolvable, tried $${VIEWER_BIN_ENV}, the installed ${VIEWER_PACKAGE} package, and PATH`,
-    fix: `install ${VIEWER_PACKAGE} next to the engine (a global \`docsxai\` install ships it), or point ${VIEWER_BIN_ENV} at its bin script`,
+    detail: "not found",
+    fix: `npm install -g docsxai@next (it ships the viewer), or add ${VIEWER_PACKAGE} next to the engine`,
   };
 }
 
@@ -442,19 +430,27 @@ function misspelledFlags(env: NodeJS.ProcessEnv): DoctorCheck[] {
   }));
 }
 
+/**
+ * The env rows. A passing row counts the recognised variables and names none of them; the viewer
+ * bin variable is left out because the `docsxai` bin sets it. A failing row names the one variable
+ * the user set wrong, since that is what they have to fix.
+ */
 export function checkEnv(env: NodeJS.ProcessEnv): DoctorCheck[] {
   const set = Object.keys(env)
     .filter((k) => k.startsWith("DOCSX_"))
     .sort();
-  if (set.length === 0) {
-    return [
-      { name: "env", ok: true, info: true, detail: "no DOCSX_* variables set (defaults apply)" },
-    ];
-  }
+  const counted = set.filter((k) => KNOWN_DOCSX_ENV_VARS.includes(k) && k !== VIEWER_BIN_ENV);
   const checks: DoctorCheck[] = [];
-  const known = set.filter((k) => KNOWN_DOCSX_ENV_VARS.includes(k));
-  if (known.length > 0) {
-    checks.push({ name: "env", ok: true, detail: `set: ${known.join(", ")}` });
+  if (counted.length === 0 && set.every((k) => KNOWN_DOCSX_ENV_VARS.includes(k))) {
+    checks.push({
+      name: "env",
+      ok: true,
+      info: true,
+      detail: "no docsxai variables set, defaults apply",
+    });
+  } else if (counted.length > 0) {
+    const noun = counted.length === 1 ? "variable" : "variables";
+    checks.push({ name: "env", ok: true, detail: `${counted.length} docsxai ${noun} set` });
   }
   checks.push(...misspelledFlags(env));
   const cacheKey = env.DOCSX_CACHE_KEY;
@@ -475,7 +471,7 @@ export function checkEnv(env: NodeJS.ProcessEnv): DoctorCheck[] {
         name: "env",
         ok: false,
         detail: `${k} is not a DOCSX_* variable any docsxai package reads (typo?)`,
-        fix: `unset it or fix the spelling, known: ${KNOWN_DOCSX_ENV_VARS.join(", ")}`,
+        fix: "unset it or fix the spelling (the CLI reference lists the names)",
       });
     }
   }

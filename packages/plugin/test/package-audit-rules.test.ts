@@ -1,6 +1,6 @@
 // The tarball rules behind scripts/audit-package-contents.mjs: which paths a packed @docsxai/plugin,
-// @docsxai/skill and @docsxai/plugin-sharepoint must contain, and that the forbidden-path patterns
-// leave `.claude-plugin/` alone. Lives here because the plugin and skill trees are what the
+// @docsxai/skill, @docsxai/plugin-sharepoint and the docsxai meta package must contain, and that
+// the forbidden-path patterns leave `.claude-plugin/` alone. Lives here because the plugin and skill trees are what the
 // required list reads.
 
 import { promises as fs } from "node:fs";
@@ -16,6 +16,7 @@ import { listCommands, listSkills, pluginDir } from "../src/index.js";
 const skillDir = path.resolve(pluginDir, "..", "skill");
 const sharepointDir = path.resolve(pluginDir, "..", "plugin-sharepoint");
 const viewerDir = path.resolve(pluginDir, "..", "viewer");
+const metaDir = path.resolve(pluginDir, "..", "docsxai");
 const readPkg = async (dir: string) =>
   JSON.parse(await fs.readFile(path.join(dir, "package.json"), "utf8")) as {
     name: string;
@@ -59,6 +60,15 @@ describe("required tarball paths", () => {
     for (const file of required.filter((p) => p.startsWith("schemas/"))) {
       await expect(fs.access(path.join(viewerDir, file))).resolves.toBeUndefined();
       expect(forbidden(file), file).toEqual([]);
+    }
+  });
+
+  it("the docsxai meta package needs both bins, which its files list ships", async () => {
+    const pkg = await readPkg(metaDir);
+    expect(requiredPaths(metaDir, pkg)).toEqual(["index.mjs", "bin.mjs", "viewer-bin.mjs"]);
+    expect(pkg.files).toEqual(expect.arrayContaining(["bin.mjs", "viewer-bin.mjs", "index.mjs"]));
+    for (const file of ["bin.mjs", "viewer-bin.mjs"]) {
+      await expect(fs.access(path.join(metaDir, file))).resolves.toBeUndefined();
     }
   });
 

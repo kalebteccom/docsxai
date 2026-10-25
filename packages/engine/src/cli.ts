@@ -8,24 +8,29 @@
 // and the help text from cli-usage.ts — no cluster imports back from here, so there's no cycle.
 //   • cli-usage.ts             — the USAGE help-text constant
 //   • cli-help.ts              — help screens, per-command help and "did you mean"
+//   • cli-version.ts           — --version / -v
 //   • cli-shared.ts            — parseFlags + listFlowFiles (the shared leaf)
-//   • cli-commands-session.ts  — init / calibrate / run (live-browser + scaffolding)
+//   • cli-commands-init.ts     — init (scaffolding, --example)
+//   • cli-commands-session.ts  — calibrate / run (live-browser)
 //   • cli-commands-auth.ts     — capture-auth
 //   • cli-commands-authoring.ts — inspect / lint / flow-tree / diagnose (calibration aids)
 //   • cli-commands-style.ts    — style (docs/style.yaml + the jargon check)
 //   • cli-commands-docpack.ts  — render / zip / export / baseline / diff (doc-pack ops)
 //   • cli-commands-pack.ts     — pack / pack --check (screenshot pack + drift check, run by the viewer bin)
+//   • cli-commands-site.ts     — site (Starlight docs site, run by the viewer bin)
 //   • cli-commands-backend.ts  — login / push / pull / plugins (backend + sync)
 
 import "./cli-node-guard.js";
 import { runDoctor } from "./doctor.js";
 import { tryHelp, unknownCommand } from "./cli-help.js";
+import { tryVersion } from "./cli-version.js";
 import { usageError } from "./cli-messages.js";
 import { bareValueFlag } from "./cli-value-flags.js";
 import { runAsBin } from "./cli-unexpected.js";
 import { isMainModule } from "./main-module.js";
 import { cmdCaptureAuth } from "./cli-commands-auth.js";
-import { cmdCalibrate, cmdInit, cmdRun } from "./cli-commands-session.js";
+import { cmdCalibrate, cmdRun } from "./cli-commands-session.js";
+import { cmdInit } from "./cli-commands-init.js";
 import { cmdDiagnose, cmdFlowTree, cmdInspect, cmdLint } from "./cli-commands-authoring.js";
 import { cmdStyle } from "./cli-commands-style.js";
 import {
@@ -38,6 +43,7 @@ import {
 } from "./cli-commands-docpack.js";
 import { cmdLogin, cmdPlugins, cmdPull, cmdPush } from "./cli-commands-backend.js";
 import { cmdPack } from "./cli-commands-pack.js";
+import { cmdSite } from "./cli-commands-site.js";
 import { RETIRED_COMMANDS } from "./cli-retired.js";
 import { findRetired, warnDeprecated } from "./deprecation.js";
 
@@ -46,6 +52,8 @@ export { runAsBin };
 
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
+  const version = tryVersion(cmd);
+  if (version !== undefined) return version;
   const retired = cmd === undefined ? undefined : findRetired(RETIRED_COMMANDS, cmd);
   if (retired) {
     warnDeprecated(`the ${cmd} command`, retired);
@@ -73,6 +81,8 @@ export async function main(argv: string[]): Promise<number> {
       return cmdRender(rest);
     case "burn":
       return cmdBurn(rest);
+    case "site":
+      return cmdSite(rest);
     case "pack":
       return cmdPack(rest);
     case "capture-auth":
