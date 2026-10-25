@@ -212,6 +212,7 @@ inspect: https://localhost:3000/dashboard
     ✓ [data-testid="nav-account"]  <a>  "Account"
     ✓ [data-testid="new-post"]  <button>  "New post"
       [data-testid="upgrade-dialog"]  <div>  "Upgrade to Pro"
+  (--selector '<css>' dumps matching elements' HTML; --url <url> for a sub-page; --wait <ms> / --wait-for '<css>' to settle a slow SPA before snapshot; --cdp <endpoint> to attach to a running Chrome instead of launching; --headed to open it)
 ```
 
 ### `docsxai run`
@@ -378,9 +379,11 @@ server with no display, it prints the path and still exits 0.
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai render ~/docsxai/my-app
+viewer: wrote 2 page(s) to ~/docsxai/my-app/.viewer
 render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; each flow page
 shows the screenshots, hover a pulsing halo to read its callout)
 $ docsxai render ~/docsxai/my-app --open
+viewer: wrote 2 page(s) to ~/docsxai/my-app/.viewer
 render: open ~/docsxai/my-app/.viewer/index.html  (…)
 render: opened it in your browser
 ```
@@ -596,7 +599,7 @@ with exit 1 and name both files.
 $ docsxai lint ~/docsxai/my-app
 flow publish-post
   R004 [info] step 'open-editor': selector `[data-testid="new-post"]` is a bare `[data-*=…]` match; it may resolve to multiple DOM nodes (visible + hidden duplicate)
-    → scope it: `[data-testid="new-post"]:visible` or add a `:has-text(…)` qualifier
+    → if duplicates exist, scope with `:visible` or add a `:has-text(...)` qualifier
   R007 [warning] step 'confirm-live': terminal step has no `success` criterion
 
 0 errors, 1 warning, 1 info
@@ -614,11 +617,13 @@ Exit 1 if any issues.
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai flow-tree ~/docsxai/my-app
 preamble    [3 steps]
-├── publish-post    [5 steps]
-└── invite-user    [4 steps]
+├── publish-post    [+5 steps]
+└── invite-user    [+4 steps]
 
-3 flows, max chain depth 1
+3 flows, max chain depth 2
 ```
+
+A flow below its parent shows `[+N steps]`, the steps it adds to the parent's.
 
 A flow with a [matrix](/reference/flow-file/#matrix) lists its variants after the
 step count: `tour    [4 steps]    {4 variants: en-US.light, en-US.dark, es-ES.light, es-ES.dark}`.
@@ -727,7 +732,7 @@ ok: login: no backend_url, so no backend login is needed
 ok: plugins: no plugins configured (add a "plugins" array to .docsxai.json)
 ok: viewer: found at …/@docsxai/viewer/dist/index.js
 ok: env: no docsxai variables set, defaults apply
-fail: doctor: 1 of 10 checks failed next: fix the fail lines above, then run docsxai doctor again
+fail: doctor: 1 of 9 checks failed next: fix the fail lines above, then run docsxai doctor again
 ```
 
 Run it first when anything misbehaves - it answers the usual "is it my
@@ -743,7 +748,8 @@ write-up for jargon leaks against the style's `pruning_rules` (VERIFY, WAIT,
 `data-testid` leaking into user-facing prose, say). The engine never
 re-shapes prose itself; the agent does that at calibration time - this
 command is the enforcement layer. `--format json` for tooling. A workspace path
-that is not a directory exits 1 with `<path> is not a directory` and writes nothing.
+that is a file exits 1 with `<path> is a file, not a workspace directory`, and one
+that does not exist exits 1 with `workspace doesn't exist: <path>`. Neither writes anything.
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai style ~/docsxai/my-app --check
@@ -827,7 +833,7 @@ only once there is something to write.
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai zip ~/docsxai/my-app
-zip: wrote my-app.zip (38 entries, 1843.2 KB)
+zip: wrote ~/my-app.zip (38 entries, 1843.2 KB)
 ```
 
 ### `docsxai export adf`

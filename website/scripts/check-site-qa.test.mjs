@@ -3,7 +3,7 @@
 // website/layout-audit.json) measures the result; these checks need no build and no browser.
 // Run with `node --test` (the package's `test` script).
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -212,9 +212,27 @@ describe("touch targets (QA #9)", () => {
   it("grows the logo link to 44 px", () => {
     assert.equal(valueOf(".site-title", "min-height"), "var(--docsx-tap)");
   });
-  it("pads heading anchors to 44 px and takes it back with a negative margin", () => {
-    assert.equal(valueOf(".sl-markdown-content .sl-anchor-link", "padding"), "0.75rem 1rem");
-    assert.equal(valueOf(".sl-markdown-content .sl-anchor-link", "margin-block"), "-0.75rem");
+  it("pads heading anchors to a 44 px target that ends inside the heading box", () => {
+    const link = ".sl-markdown-content .sl-anchor-link";
+    assert.match(valueOf(link, "padding") ?? "", /^0\.75rem var\(--docsx-anchor-pad\)$/);
+    assert.equal(valueOf(link, "margin-block"), "-0.75rem");
+    // The end margin is 0: a negative one let the link's padding hang past the column and scrolled
+    // the page sideways (QA round 2, N3).
+    assert.match(valueOf(link, "margin-inline") ?? "", /\) 0$/);
+    assert.doesNotMatch(valueOf(link, "margin-inline") ?? "", /-1rem/);
+    assert.match(
+      valueOf(".sl-markdown-content .sl-heading-wrapper", "--docsx-anchor-pad") ?? "",
+      /var\(--docsx-tap\) - var\(--sl-anchor-icon-size\)/,
+    );
+  });
+  it("reserves the target's padding at the end of the heading", () => {
+    assert.match(
+      valueOf(
+        ".sl-markdown-content .sl-heading-wrapper > :first-child:not([hidden])",
+        "padding-inline-end",
+      ) ?? "",
+      /var\(--sl-anchor-icon-space\) \+ var\(--docsx-anchor-pad\)/,
+    );
   });
 });
 
@@ -249,5 +267,78 @@ describe("palette (QA #13, #14)", () => {
       valueOf(".starlight-aside--note", "background-color"),
       "var(--sl-color-accent-low)",
     );
+  });
+});
+
+describe("code blocks wrap everywhere (QA round 2, N3)", () => {
+  // Blocks that keep their columns and scroll instead. Each carries `wrap=false` on its fence and
+  // is listed here by page and first line, so a new one is a decision in a diff.
+  const NO_WRAP = [
+    { page: "packages/backend.md", firstLine: "GitHub push/PR ──▶ POST /v1/github/webhook" },
+  ];
+
+  /** Every fence of every published page, as { page, info, firstLine }. */
+  async function fences() {
+    const { htmlPages, transformBody } = await import("./doc-pipeline.mjs");
+    const pages = new Map();
+    for (const p of htmlPages) pages.set(p.out, transformBody(p));
+    const dir = join(site, "src", "content", "docs");
+    const walk = (d) =>
+      readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)],
+      );
+    for (const f of walk(dir)) {
+      const rel = f.slice(dir.length + 1);
+      if (/\.mdx?$/.test(rel) && !pages.has(rel)) pages.set(rel, readFileSync(f, "utf8"));
+    }
+    const out = [];
+    for (const [page, body] of pages) {
+      let open = false;
+      const lines = body.split("\n");
+      lines.forEach((line, i) => {
+        if (!/^\s*```/.test(line)) return;
+        if (!open) out.push({ page, info: line.trim().slice(3), firstLine: lines[i + 1] ?? "" });
+        open = !open;
+      });
+    }
+    return out;
+  }
+
+  it("turns wrapping and indent preservation on for every fence by default", async () => {
+    const src = readFileSync(join(site, "astro.config.mjs"), "utf8");
+    assert.match(src, /defaultProps:\s*\{\s*wrap:\s*true,\s*preserveIndent:\s*true\s*\}/);
+    assert.doesNotMatch(src, /overridesByLang/);
+  });
+
+  it("lets only the listed fences opt out with wrap=false", async () => {
+    const optOut = (await fences()).filter((f) => /\bwrap=false\b|\bwrap=\{false\}/.test(f.info));
+    const listed = NO_WRAP.map((e) => e.page).sort();
+    assert.deepEqual(optOut.map((f) => f.page).sort(), listed);
+    for (const e of NO_WRAP) {
+      const hit = optOut.find((f) => f.page === e.page);
+      assert.ok(hit.firstLine.startsWith(e.firstLine), `${e.page} opt-out block changed`);
+    }
+  });
+
+  it("breaks a long unbroken token inside a wrapped block", () => {
+    assert.equal(
+      valueOf(".sl-markdown-content .expressive-code pre.wrap .ec-line .code", "overflow-wrap"),
+      "anywhere",
+    );
+    assert.equal(
+      valueOf(".sl-markdown-content .expressive-code pre.wrap .ec-line .code", "min-width"),
+      "0",
+    );
+  });
+});
+
+describe("paragraph measure at 721 to 799 px (QA round 2, N2)", () => {
+  it("applies the 75 character cap only from the sidebar layout (50rem)", () => {
+    assert.match(
+      css,
+      /@media \(min-width: 50rem\)\s*\{\s*\.sl-markdown-content :is\(p, li\):not\(:where\(\.not-content \*\)\)\s*\{\s*max-width: 75ch;/,
+    );
+    const bare = [...css.matchAll(/[^{}]*:is\(p, li\)[^{}]*\{[^{}]*max-width: 75ch/g)];
+    assert.equal(bare.length, 1, "one 75ch rule, inside the media query");
   });
 });

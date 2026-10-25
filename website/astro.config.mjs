@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
 import rehypeStripAgentAsides from "./plugins/rehype-strip-agent-asides.mjs";
@@ -18,9 +19,16 @@ export default defineConfig({
   // human site stays end-user-focused while agents still get it via llms.txt.
   // A `$ command` transcript becomes a command block and an output block, so the copy button
   // copies the command without its prompt.
+  //
+  // Smart punctuation is off. It turned `--flow` and `--fail-on` into an em dash plus the flag name
+  // in the landing hero and in any code span the parser did not close, and the site's own copy
+  // uses straight quotes and no typographic dashes.
   markdown: {
-    remarkPlugins: [remarkSplitTranscripts],
-    rehypePlugins: [rehypeStripAgentAsides, rehypeWrapTables],
+    processor: unified({
+      remarkPlugins: [remarkSplitTranscripts],
+      rehypePlugins: [rehypeStripAgentAsides, rehypeWrapTables],
+      smartypants: false,
+    }),
   },
   integrations: [
     starlight({
@@ -127,15 +135,12 @@ export default defineConfig({
         // Code blocks take the site-wide scrollbar from brand.css; the theme's own webkit
         // scrollbar rules would override it in Safari with a fainter thumb.
         useThemedScrollbars: false,
-        // Shell commands wrap at phone width, with continuation lines indented, so a long
-        // `docsxai init ... --auth manual-capture` reads without a sideways scroll. The copy
-        // button still copies the command as one line. YAML, JSON and command output keep
-        // their own line breaks and scroll, because wrapping them would break the alignment.
-        defaultProps: {
-          overridesByLang: {
-            "sh,bash,shell,zsh,console,powershell": { wrap: true, preserveIndent: true },
-          },
-        },
+        // Every code block wraps at phone width, with continuation lines indented, so a long
+        // `docsxai init ... --auth manual-capture`, a transcript line or a JSON key reads without a
+        // sideways scroll. The copy button still copies the text as written. A block that must
+        // keep its columns (a table, ascii art) opts out with `wrap=false` on its fence, and
+        // scripts/check-site-qa.test.mjs lists each one.
+        defaultProps: { wrap: true, preserveIndent: true },
         styleOverrides: {
           borderRadius: "0.5rem",
           borderColor: "var(--docsx-code-border)",
