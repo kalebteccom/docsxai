@@ -42,7 +42,9 @@ describe.skipIf(!ready)("keystone: init --example, run, render --open", () => {
   beforeAll(async () => {
     server = createServer((_req, res) => {
       res.writeHead(200, { "content-type": "text/html" });
-      res.end("<!doctype html><title>Example</title><p lang=\"en\">Example text.</p><p lang=\"fr\">Texte.</p>");
+      res.end(
+        '<!doctype html><title>Example</title><p lang="en">Example text.</p><p lang="fr">Texte.</p>',
+      );
     });
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     baseURL = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

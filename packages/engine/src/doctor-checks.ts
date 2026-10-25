@@ -47,8 +47,7 @@ export interface DoctorOptions {
   offline?: boolean;
 }
 
-const CHROMIUM_FIX =
-  "npx playwright-core install chromium";
+const CHROMIUM_FIX = "npx playwright-core install chromium";
 
 /** Layer-3 default probe: does playwright-core have a cached Chromium binary?
  *  Synchronous - the sole work is the sanctioned `chromiumExecutablePath()`
