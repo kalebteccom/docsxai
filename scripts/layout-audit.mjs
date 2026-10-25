@@ -10,6 +10,10 @@
 //     the parent's centre on both axes, and the left and right insets must differ by at most 1 px.
 // It prints one table and exits 1 when it finds anything, 2 on a usage error.
 //
+// `--engine chromium|webkit|firefox` picks the browser (default chromium). Install the others with
+// `npx playwright-core install webkit firefox`. Firefox has no mobile emulation, so below 768 px
+// it runs with touch but without the mobile viewport meta handling the other two apply.
+//
 // `--mode states` checks that status, helper, error and progress lines never shift layout. For each
 // entry in the config's "states" list it loads the page once per state, runs that state's steps
 // (set or remove an attribute, run a snippet, click, wait), records the box of every element the
@@ -17,6 +21,7 @@
 // state's by more than 1 px. An entry whose selector matches nothing on a page is skipped there.
 //
 //   node scripts/layout-audit.mjs --url https://docsxai.dev/ [--path /getting-started/quickstart/]...
+//   node scripts/layout-audit.mjs --engine webkit --url https://docsxai.dev/
 //   node scripts/layout-audit.mjs --dir website/dist [--path /]... [--config layout.json]
 //   node scripts/layout-audit.mjs --mode states --dir website/dist --config scripts/layout-audit.states.json
 //
@@ -40,6 +45,9 @@ import { readFile, stat } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
+
+/** Browser engines `--engine` accepts. */
+export const ENGINES = ["chromium", "webkit", "firefox"];
 
 /** The audited widths, in CSS px. */
 export const WIDTHS = [320, 360, 390, 430, 768, 1024, 1280, 1920];
@@ -423,8 +431,13 @@ async function main() {
       path: { type: "string", multiple: true },
       config: { type: "string" },
       mode: { type: "string", default: "layout" },
+      engine: { type: "string", default: "chromium" },
     },
   });
+  if (!ENGINES.includes(values.engine)) {
+    console.error("layout-audit: --engine is chromium, webkit or firefox");
+    return 2;
+  }
   if (values.mode !== "layout" && values.mode !== "states") {
     console.error("layout-audit: --mode is layout or states");
     return 2;
@@ -441,10 +454,10 @@ async function main() {
   }
 
   const engineRequire = createRequire(new URL("../packages/engine/package.json", import.meta.url));
-  const { chromium } = engineRequire("playwright-core");
+  const playwright = engineRequire("playwright-core");
   const served = values.dir ? await serve(values.dir) : null;
   const origin = served ? served.origin : values.url.replace(/\/$/, "");
-  const browser = await chromium.launch();
+  const browser = await playwright[values.engine].launch();
   const findings = [];
   try {
     for (const viewport of allViewports()) {
@@ -452,7 +465,8 @@ async function main() {
         viewport: { width: viewport.width, height: viewport.height },
         reducedMotion: "reduce",
         hasTouch: viewport.width < 768,
-        isMobile: viewport.width < 768,
+        // Firefox has no mobile emulation, so it gets the touch flag and the viewport only.
+        ...(values.engine === "firefox" ? {} : { isMobile: viewport.width < 768 }),
       });
       const page = await context.newPage();
       const opts = { center: config.center, ignore: config.ignore };
