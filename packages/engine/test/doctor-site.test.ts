@@ -49,7 +49,7 @@ async function rows(): Promise<DoctorCheck[]> {
     env: {},
     offline: true,
     chromiumProbe: () => Promise.resolve({ ok: true, detail: "stub chromium" }),
-    fetchImpl: (() => Promise.reject(new Error("no network in tests"))),
+    fetchImpl: () => Promise.reject(new Error("no network in tests")),
     now: Date.parse("2026-06-12T12:00:00.000Z"),
   });
 }

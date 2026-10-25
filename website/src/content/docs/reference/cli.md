@@ -439,7 +439,9 @@ say, over the style artifact's colours. `--lang <locale>` sets the site's
 language, with the same rule as `render --lang`. `--flow <name>` limits it to
 named flows and can be repeated. `site` doesn't read the `burn.theme` block.
 Exit 1 when the workspace or its `docs/` folder is missing or the build fails;
-exit 2 for a bad flag or an `--accent` that isn't a hex colour.
+exit 2 for a bad flag or an `--accent` that isn't a hex colour. When astro isn't
+installed (a global install), `--build` still writes the site, exits 1 and says to
+run `npm install` and `npm run build` in the site folder.
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai site ~/docsxai/my-app --lang es --build
@@ -688,6 +690,12 @@ The `workspace` and `flows` rows name why a workspace is unusable: a `.docsxai.j
 (the position in the file, not `init --force`, which would rewrite it), a path that does
 not exist or is a file, and a deleted `flows/` (`mkdir <dir>/flows`). The `plugins` row
 does not repeat a config failure the `workspace` row already printed.
+
+A `site` row appears only when `<workspace>/site` holds an emitted site (a
+`package.json` and `astro.config.mjs`) with no astro installed in it. It reads
+`ok: site: <dir> has no astro installed next: cd <dir> && npm install, then npm run build`
+and never fails doctor. It has the same keys as every other row in `--format json`.
+With no site folder, or astro installed, doctor prints exactly what it did before.
 
 The env row counts the docsxai variables you set and names none of them; the viewer path
 the `docsxai` bin sets for itself isn't counted. It fails on three things. `DOCSX_CACHE_KEY`, when set, has to decode to 32
