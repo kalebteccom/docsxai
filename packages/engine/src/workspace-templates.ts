@@ -31,20 +31,20 @@ export const EXAMPLE_APP_URL = "https://example.com";
 /** Where `init --example` writes its flow. */
 export const EXAMPLE_FLOW_PATH = "flows/hello.flow.yaml";
 
-/** The README's hello flow: open the home page and point at its heading. */
+/** The README's hello flow: open the home page and point at its English paragraph (the page has no heading). */
 export const EXAMPLE_FLOW = `# Written by docsxai init --example. Run it, then build the viewer:
 #   docsxai run .
 #   docsxai render . --open
 name: hello
 locators:
-  heading: "h1"
+  text: 'p[lang="en"]'
 steps:
   - id: open-home
     action: navigate
     value: /
     wait_for: load
-    success: { visible: $heading }
-    annotation: { copy: "This is the page title", target: $heading, arrow: bottom }
+    success: { visible: $text }
+    annotation: { copy: "This is the page text", target: $text, arrow: bottom }
 `;
 
 export interface ReadmeOptions {
