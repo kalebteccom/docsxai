@@ -109,6 +109,8 @@ verification:
 ```
 $ docsxai plugins sync ~/docsxai/my-app
 plugins sync: wrote ~/docsxai/my-app/plugins-lock.json (2 plugin(s))
+  confluence  v0.1.0  3f9a1c07d2be…  package:@docsxai/plugin-confluence
+  demo  v0.0.1  c41e88a05b73…  path:../my-local-plugin
 
 $ docsxai plugins list ~/docsxai/my-app
 plugins (2 configured, 2 loaded):

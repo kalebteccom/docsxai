@@ -137,8 +137,13 @@ const SHAPES: Record<string, readonly Shape[]> = {
   zip: [[/^zip: wrote \S+ \(\d+ entries, [\d.]+ KB\)$/, "zip: wrote "]],
   export: [[/^export (?:adf|playwright): wrote .+$/, "export "]],
   plugins: [
+    [/^plugins sync: wrote \S+ \(\d+ plugin\(s\)\)$/, "plugins sync: wrote "],
+    [new RegExp(`^ {2}${NAME} {2}v\\S+ {2}[0-9a-f]+… {2}\\S+$`), "  ${"],
+    [/^ {2}(?:apiVersion|capabilities|dependsOn): .+$/, "  apiVersion: "],
+    [/^ {2}artifacts \((?:\d+)\):$/, "  artifacts ("],
+    [new RegExp(`^ {4}${NAME} {2}\\S+$`), "    "],
     [/^plugins \(\d+ configured, \d+ loaded\):$/, "plugins ("],
-    [new RegExp(`^ {2}${NAME} {2}(?:loaded|disabled).+$`), "  "],
+    [new RegExp(`^ {0,2}${NAME} {2}(?:loaded|disabled).+$`), "  "],
   ],
   login: [[/^login: ok\. \d+ workspaces? visible at \S+$/, "login: ok. "]],
   push: [
@@ -185,11 +190,13 @@ interface Transcript {
 /** The `$ docsxai ...` blocks of a markdown text: each `$ ` line with the lines up to the next one. */
 function transcriptsIn(md: string): Transcript[] {
   const found: Transcript[] = [];
-  const re = /```text[^\n]*\n([\s\S]*?)\n```/g;
+  const re = /```([^\n]*)\n([\s\S]*?)\n```/g;
   for (const m of md.matchAll(re)) {
+    const lang = m[1]!.trim().split(/\s+/)[0]!;
+    if (lang !== "" && lang !== "text") continue;
     const first = md.slice(0, m.index).split("\n").length + 1;
     let current: Transcript | null = null;
-    for (const [i, text] of m[1]!.split("\n").entries()) {
+    for (const [i, text] of m[2]!.split("\n").entries()) {
       const prompt = /^\$ (?:[A-Z_]+=\S+ )*docsxai (\S+)(?: (adf|playwright))?/.exec(text);
       if (prompt) {
         current = { line: first + i, command: prompt[1]!, output: [] };
@@ -224,42 +231,52 @@ describe("the line shapes", () => {
   });
 });
 
-describe("the transcripts in reference/cli.md", () => {
-  const md = readFileSync(path.join(repo, "website/src/content/docs/reference/cli.md"), "utf8");
-  const transcripts = transcriptsIn(md);
-  const source = sourceText();
+const PAGES = [
+  "website/src/content/docs/reference/cli.md",
+  "website/src/content/docs/reference/plugins.md",
+];
 
-  it("cover at least 20 commands", () => {
-    expect(new Set(transcripts.map((t) => t.command)).size).toBeGreaterThanOrEqual(20);
+describe("the transcripts in the CLI and plugins reference", () => {
+  const source = sourceText();
+  const all = PAGES.map((file) => ({
+    file,
+    transcripts: transcriptsIn(readFileSync(path.join(repo, file), "utf8")),
+  }));
+
+  it("cover at least 20 commands in the CLI reference", () => {
+    const cli = all[0]!.transcripts;
+    expect(new Set(cli.map((t) => t.command)).size).toBeGreaterThanOrEqual(20);
   });
 
-  it("print only lines the command prints", () => {
-    const problems: string[] = [];
-    for (const t of transcripts) {
-      const shapes = SHAPES[t.command];
-      if (shapes === undefined) {
-        problems.push(`cli.md:${t.line}: no line shapes for \`docsxai ${t.command}\``);
-        continue;
-      }
-      const matches = (text: string): boolean =>
-        shapes.some(([re]) => re.test(text)) || SHELL_LINES.some((re) => re.test(text));
-      let previous = "";
-      for (const { line, text } of t.output) {
-        if (matches(text)) previous = text;
-        // A line the page wrapped by hand continues the one before it.
-        else if (previous !== "" && matches(`${previous} ${text.trim()}`))
-          previous = `${previous} ${text.trim()}`;
-        else
-          problems.push(
-            `cli.md:${line}: \`docsxai ${t.command}\` does not print \`${text.trim()}\``,
-          );
-        // A hint line quotes the linter's wording.
-        const hint = /^ {4}→ (.+)$/.exec(text)?.[1];
-        if (hint !== undefined && ["lint"].includes(t.command) && !source.includes(hint)) {
-          problems.push(`cli.md:${line}: the lint hint \`${hint}\` is not in the linter`);
+  for (const { file, transcripts } of all) {
+    it(`${file}: print only lines the command prints`, () => {
+      const problems: string[] = [];
+      for (const t of transcripts) {
+        const shapes = SHAPES[t.command];
+        if (shapes === undefined) {
+          problems.push(`${file}:${t.line}: no line shapes for \`docsxai ${t.command}\``);
+          continue;
+        }
+        const matches = (text: string): boolean =>
+          shapes.some(([re]) => re.test(text)) || SHELL_LINES.some((re) => re.test(text));
+        let previous = "";
+        for (const { line, text } of t.output) {
+          if (matches(text)) previous = text;
+          // A line the page wrapped by hand continues the one before it.
+          else if (previous !== "" && matches(`${previous} ${text.trim()}`))
+            previous = `${previous} ${text.trim()}`;
+          else
+            problems.push(
+              `${file}:${line}: \`docsxai ${t.command}\` does not print \`${text.trim()}\``,
+            );
+          // A hint line quotes the linter's wording.
+          const hint = /^ {4}→ (.+)$/.exec(text)?.[1];
+          if (hint !== undefined && t.command === "lint" && !source.includes(hint)) {
+            problems.push(`${file}:${line}: the lint hint \`${hint}\` is not in the linter`);
+          }
         }
       }
-    }
-    expect(problems).toEqual([]);
-  });
+      expect(problems).toEqual([]);
+    });
+  }
 });
