@@ -94,7 +94,10 @@ Still needs a person:
 pnpm --filter @docsxai/website build
 pnpm -C packages/engine exec playwright-core install chromium
 node scripts/layout-audit.mjs --dir website/dist --path / --path /getting-started/quickstart/
+node scripts/layout-audit.mjs --engine webkit --url https://docsxai.dev/
 node scripts/layout-audit.mjs --dir /tmp/viewer --path /index.html --config layout.json
 ```
+
+`--engine chromium|webkit|firefox` picks the browser (default `chromium`, exit 2 on anything else). Firefox has no mobile emulation, so below 768 px it gets touch but not the mobile viewport.
 
 The config is JSON with optional `paths`, `center` (a list of `{ "parent": "<css>", "child": "<css>" }`), `ignore` (selectors whose subtrees are skipped), `pageStates` and, for `--mode states`, `states` (see docs/ui-rules.md). Each page state (`{ "name", "click", "scroll": "bottom", "wait" }`) audits every page again on a fresh load after scrolling to the bottom, clicking `click` and waiting for `wait` and the images; a page without the `click` element skips that state. `scripts/layout-audit.states.json` has a `lightbox` page state (opens the first site screenshot full size) and a `lazy` page state (scrolls a long viewer flow so lazy images load and overlays draw): `node scripts/layout-audit.mjs --dir <site>/dist --path /flows/<flow>/ --config scripts/layout-audit.states.json`. `scripts/layout-audit.test.mjs` covers the box maths and runs with the website package tests.
