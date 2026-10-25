@@ -33,7 +33,7 @@ afterEach(() => {
   for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-/** A workspace holding what the doc examples point at: a font and a tokens file. */
+/** A workspace holding what the doc examples point at: the fonts and a tokens file. */
 function workspaceWith(config: unknown): string {
   const dir = mkdtempSync(path.join(tmpdir(), "docs-snippets-"));
   scratch.push(dir);
@@ -41,6 +41,10 @@ function workspaceWith(config: unknown): string {
   cpSync(
     path.join(repo, "packages/viewer/assets/fonts/inter-regular.ttf"),
     path.join(dir, "fonts/brand-regular.ttf"),
+  );
+  cpSync(
+    path.join(repo, "packages/viewer/assets/fonts/inter-regular.ttf"),
+    path.join(dir, "fonts/NotoSansJP-Regular.otf"),
   );
   mkdirSync(path.join(dir, "design"));
   writeFileSync(
