@@ -118,8 +118,8 @@ describe("a Spanish site", () => {
     const index = tree["src/content/docs/index.mdx"]!;
     expect(index).toContain('title: "Documentación"');
     expect(index).toContain('description: "Flujos paso a paso con capturas anotadas."');
-    expect(index).toContain('description={"2 pasos, 2 anotaciones"}');
-    expect(index).toContain('description={"1 paso, 1 anotación"}');
+    expect(index).toContain('description="2 pasos, 2 anotaciones"');
+    expect(index).toContain('description="1 paso, 1 anotación"');
     expect(tree["src/content/docs/flows/login.mdx"]!).toContain(
       '<CopyId value={"login"} kind="ID del flujo" />',
     );
@@ -164,7 +164,7 @@ describe("English output", () => {
     expect(shot).toContain("width: 10ch;");
     const index = tree["src/content/docs/index.mdx"]!;
     expect(index).toContain('description: "Step-by-step flows with annotated screenshots."');
-    expect(index).toContain('description={"2 steps, 2 annotations"}');
+    expect(index).toContain('description="2 steps, 2 annotations"');
     expect(tree["src/content/docs/flows/login.mdx"]!).toContain(
       '<CopyId value={"login"} kind="flow id" />',
     );

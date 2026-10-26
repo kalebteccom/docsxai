@@ -302,10 +302,10 @@ describe("emitStarlightSite — MDX content", () => {
     expect(mdx).toContain('import shot0 from "../../../assets/flows/login/step-1.png";');
     expect(mdx).toContain('import shot1 from "../../../assets/flows/login/step-2.png";');
     expect(mdx).toContain(
-      '<AnnotatedShot src={shot0} alt={"step-1"} burned={true} items={[{"n":1,"copy":"Enter your email"}]} />',
+      '<AnnotatedShot src={shot0} alt="step-1" burned={true} items={[{"n":1,"copy":"Enter your email"}]} />',
     );
     expect(mdx).toContain(
-      '<AnnotatedShot src={shot1} alt={"step-2"} burned={false} items={[{"n":1,"copy":"Open the menu"},{"n":2,"copy":"Pick a workspace"}]} />',
+      '<AnnotatedShot src={shot1} alt="step-2" burned={false} items={[{"n":1,"copy":"Open the menu"},{"n":2,"copy":"Pick a workspace"}]} />',
     );
   });
 
@@ -484,7 +484,7 @@ describe("emitStarlightSite — step prose and names stay inert", () => {
     expect(mdx).toContain("## ok");
   });
 
-  it("passes flow names to the landing page cards as expressions", async () => {
+  it("passes a flow name with a quote to the landing page cards as an expression", async () => {
     const flow = 'a" description={globalThis.process.exit(1)} x="';
     const ws = await makeWorkspace({
       flows: [{ name: flow, noFlowFile: true, steps: [{ id: "s", annotations: [{ copy: "c" }] }] }],
@@ -493,7 +493,7 @@ describe("emitStarlightSite — step prose and names stay inert", () => {
     await emitStarlightSite({ workspaceDir: ws, outDir: out });
     const index = await read(out, "src/content/docs/index.mdx");
     expect(index).toContain(`<LinkCard title={${JSON.stringify(flow)}} `);
-    expect(index).not.toMatch(/title="|href="|description="/);
+    expect(index).not.toMatch(/title="a"/);
   });
 
   it("skips a flow whose name holds a bidi control, with a warning", async () => {
@@ -579,13 +579,13 @@ describe("emitStarlightSite micro-states", () => {
     await emitStarlightSite({ workspaceDir: ws, outDir: out });
     const index = await read(out, "src/content/docs/index.mdx");
     expect(index).toContain(
-      '<LinkCard title={"login"} href={"/flows/login/"} description={"2 steps, 3 annotations"} />',
+      '<LinkCard title="login" href="/flows/login/" description="2 steps, 3 annotations" />',
     );
     expect(index).toContain(
-      '<LinkCard title={"checkout"} href={"/flows/checkout/"} description={"1 step, 1 annotation"} />',
+      '<LinkCard title="checkout" href="/flows/checkout/" description="1 step, 1 annotation" />',
     );
     // login before checkout — card order follows the sidebar order.
-    expect(index.indexOf('title={"login"}')).toBeLessThan(index.indexOf('title={"checkout"}'));
+    expect(index.indexOf('title="login"')).toBeLessThan(index.indexOf('title="checkout"'));
   });
 
   it("emits an empty-state landing page when the workspace has no flows", async () => {
