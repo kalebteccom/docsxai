@@ -240,7 +240,7 @@ Everything below needs admin rights on the GitHub org and a public URL for the b
 | `DOCSX_DATA_DIR`                     | persist to this directory via `FsStore` (the `--data-dir=` flag / `dataDir` option take precedence)                |
 | `DOCSX_TOKEN`                        | the pre-issued CI bearer token; also the credential that auto-approves OAuth authorize requests                    |
 | `DOCSX_OAUTH_AUTO_APPROVE`           | `1` auto-approves OAuth authorize requests without a bearer (local dev / tests)                                    |
-| `DOCSX_CACHE_KEY`                    | client-side only: the base64 32-byte AES-256-GCM key for the auth-cache relay (the server never reads this)       |
+| `DOCSX_CACHE_KEY`                    | client-side only: the base64 32-byte AES-256-GCM key for the auth-cache relay (the server never reads this)        |
 | `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` | `1`, `true` or `yes` also refuses loopback and private-network `app_url` hosts and flow `navigate` targets         |
 | `DOCSX_EGRESS_GUARD`                 | passed to webhook runs as `1` unless set to `0`, `false` or `no`: the engine aborts requests to metadata addresses |
 | `DOCSX_EGRESS_DENY_PRIVATE`          | passed to webhook runs as `1` when `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` is on and this is unset                    |
