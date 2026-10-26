@@ -40,7 +40,7 @@ const noTrackerIdsInComments = {
     schema: [],
     messages: {
       trackerId:
-        'Tracker IDs (W-/Round-/ask #/JIRA-/LINEAR-/GEN-/T-/R-style) do not belong in code comments — they are project-management artifacts that rot and mean nothing to a future reader. State the actual reason instead. (Matched: "{{ match }}")',
+        'Tracker IDs (W-/Round-/ask #/JIRA-/LINEAR-/GEN-/T-/R-style) do not belong in code comments. They are project-management artifacts that rot and mean nothing to a future reader. State the actual reason instead. (Matched: "{{ match }}")',
     },
   },
   create(context) {
@@ -70,12 +70,12 @@ const noPageEvalStringifiedArrow = {
     type: "problem",
     docs: {
       description:
-        "Disallow string / template-literal first arg to page.evaluate / evaluateHandle / evaluateAll — pass a function instead.",
+        "Disallow string / template-literal first arg to page.evaluate / evaluateHandle / evaluateAll. Pass a function instead.",
     },
     schema: [],
     messages: {
       stringified:
-        "page.{{ name }}() called with a {{ kind }} first argument. Stringified arrows lose their closure and execute as opaque source — pass a function expression instead and forward captured values via the second argument.",
+        "page.{{ name }}() called with a {{ kind }} first argument. Stringified arrows lose their closure and execute as opaque source. Pass a function expression instead and forward captured values via the second argument.",
     },
   },
   create(context) {

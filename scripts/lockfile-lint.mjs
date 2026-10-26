@@ -121,7 +121,7 @@ function main() {
   }
 
   if (resolutionCount === 0) {
-    errors.push("no `resolution:` entries found — pnpm-lock.yaml may be empty or malformed");
+    errors.push("no `resolution:` entries found. pnpm-lock.yaml may be empty or malformed");
   }
 
   if (errors.length > 0) {

@@ -55,7 +55,7 @@ export const styleCheckTool = defineTool({
       clean: jargonLeaks.length === 0,
       ...(jargonLeaks.length
         ? {
-            hintForFixes: `reshape the flagged prose in ${path.join("docs", "<flow>", "<step>.md")} — the engine never rewrites prose itself`,
+            hintForFixes: `reshape the flagged prose in ${path.join("docs", "<flow>", "<step>.md")}. The engine never rewrites prose itself`,
           }
         : {}),
     });

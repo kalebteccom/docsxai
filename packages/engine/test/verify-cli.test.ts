@@ -242,14 +242,14 @@ describe("docsxai run --verify-determinism — CLI", () => {
 
   it("a plain run still writes into the workspace, with progress on stdout", async () => {
     stub.run = async (o) => {
-      o.progress("run: f — 1 step(s) executed, 0 annotation(s) written\n");
+      o.progress("run: f, 1 step(s) executed, 0 annotation(s) written\n");
       return { okCount: 1, failures: [] };
     };
     expect(await main(["run", ws])).toBe(0);
     expect(stub.calls).toHaveLength(1);
     expect(stub.calls[0]!.outputRoot).toBe(ws);
     expect(stub.calls[0]!.pause).toBe(false);
-    expect(out).toContain("run: f — 1 step(s) executed");
+    expect(out).toContain("run: f, 1 step(s) executed");
   });
 
   it("a plain run exits 1 when a flow fails", async () => {
