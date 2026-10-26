@@ -1,5 +1,5 @@
 {
-  "schema": "trackxai/raw-capture-sidecar@1",
+  "schema": "docsxai/raw-capture-sidecar@1",
   "step": "progress",
   "variant": "en.dark.1280",
   "matrix_id": "en-US.dark.desktop-1280",

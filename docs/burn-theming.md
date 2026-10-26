@@ -207,7 +207,7 @@ node scripts/burn-probe-batch.mjs --raw raw --out probe --theme dark --locale en
 
 `--raw` is read in either layout, detected from the file names. Other files (manifests, READMEs, step metadata) are ignored:
 
-- Flat: `<screen>.<locale>.<theme>.<width>.png` with a `.json` sidecar beside it (`trackxai/raw-capture-sidecar@1`, annotations with `bounding_box`).
+- Flat: `<screen>.<locale>.<theme>.<width>.png` with a `.json` sidecar beside it (`docsxai/raw-capture-sidecar@1`, annotations with `bounding_box`).
 - Rawcap: `<flow>/<step>/<locale>.<theme>.<viewport>.png` with a `.json` sidecar beside it (`width`, `height`, annotations with `index`, `copy`, `bbox` and optional `obstacles`). A viewport is a width (`390`) or a name that ends in one (`mobile-390`).
 
 `--theme` (default `dark`), `--locale` (default `en`) and `--widths` (default `1280,390`) pick the frames. The tokens file is `--tokens-dark` or `--tokens-light`, else `examples/burn-theme/<project>-<theme>.tokens.json`, where `--project trackxai|remotxai` (default `trackxai`) picks the pair. Captures under 900 px burn with `caption_style: "auto"`, the others with `full`.

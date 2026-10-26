@@ -53,7 +53,7 @@ test("content hashes are 8 hex digits and stable", () => {
 
 const box = { x: 1, y: 2, width: 3, height: 4 };
 const sidecar = (annotations) => ({
-  schema: "trackxai/raw-capture-sidecar@1",
+  schema: "docsxai/raw-capture-sidecar@1",
   step: "board",
   viewport: { width: 1280, height: 800 },
   annotations,
@@ -72,6 +72,23 @@ test("a good sidecar gives records and lists annotations without a box", () => {
   assert.equal(records[0].step, "board");
   assert.deepEqual(skipped, [2]);
   assert.deepEqual(calloutTexts(records), ["One"]);
+});
+
+test("both schema names parse, and only the earlier one is flagged", () => {
+  const f = "board.en.dark.1280.json";
+  const now = checkSidecar(sidecar([]), f);
+  assert.equal(now.legacy, false);
+  const old = checkSidecar({ ...sidecar([]), schema: "trackxai/raw-capture-sidecar@1" }, f);
+  assert.equal(old.legacy, true);
+  assert.deepEqual(old.records, now.records);
+});
+
+test("an unknown schema name fails with the file name", () => {
+  const f = "board.en.dark.1280.json";
+  assert.throws(
+    () => checkSidecar({ ...sidecar([]), schema: "other/raw-capture-sidecar@1" }, f),
+    /board\.en\.dark\.1280\.json: schema must be "docsxai\/raw-capture-sidecar@1"/,
+  );
 });
 
 test("a bad sidecar fails with its file name", () => {
