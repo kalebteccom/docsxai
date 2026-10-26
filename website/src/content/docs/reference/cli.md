@@ -708,8 +708,10 @@ bytes. A `DOCSX_*` name that no docsxai package reads is flagged as a likely typ
 names it knows are `DOCSX_TOKEN`, `DOCSX_CACHE_KEY`, `DOCSX_VIEWER_BIN`,
 `DOCSX_ENGINE_BIN`, `DOCSX_DATA_DIR`, `DOCSX_OAUTH_AUTO_APPROVE`,
 `DOCSX_WEBHOOK_SECRET`, `DOCSX_OXIPNG_BIN`, `DOCSX_BACKEND_DENY_PRIVATE_APP_URL`,
-`DOCSX_EGRESS_GUARD`, `DOCSX_EGRESS_DENY_PRIVATE`, `DOCSX_MCP_TOKEN`, `DOCSX_DEBUG` and
-`DOCSX_DEVICE_SCALE_FACTOR`. And the
+`DOCSX_EGRESS_GUARD`, `DOCSX_EGRESS_DENY_PRIVATE`, `DOCSX_MCP_TOKEN`, `DOCSX_DEBUG`,
+`DOCSX_DEVICE_SCALE_FACTOR`, `DOCSX_BACKEND_PLUGIN_DIRS`, `DOCSX_BACKEND_PUBLISHER_ORIGINS`,
+`DOCSX_BACKEND_PUBLISHER_ENV` and `DOCSX_OAUTH_REFRESH_TTL_DAYS`. The webhook secret name with an underscore and a suffix after it names a
+per-project secret and isn't flagged. And the
 three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD`,
 `DOCSX_EGRESS_DENY_PRIVATE`) fail the row when set to something other than `1`, `true`,
 `yes`, `0`, `false` or `no` (any case), because any other value reads as off.
@@ -970,9 +972,9 @@ checks every name in the revision and refuses the whole revision on one bad name
   they are one directory on a case-insensitive disk.
 
 A refused revision exits 1 with `refusing the pulled doc pack, nothing written`, and
-the `next:` line suggests an older `--rev`. Flow, annotation and screenshot files are
-also written through the workspace root, so a symlink inside the workspace that
-points out of it stops the pull.
+the `next:` line suggests an older `--rev`. Flow, annotation, screenshot, style and
+locator files are also written through the workspace root, so a symlink inside the
+workspace that points out of it stops the pull.
 
 The endpoint surface behind `login`/`push`/`pull` is documented in the
 [backend API reference](/reference/backend-api/).

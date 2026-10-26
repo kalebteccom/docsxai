@@ -195,6 +195,35 @@ describe("SpawnRunner", () => {
   });
 });
 
+describe("SpawnRunner run summary when the workspace cannot be laid out", () => {
+  it("keeps the reason a stored payload was refused", async () => {
+    const { store, ws, project, rev, job } = seed();
+    store.putArtifact(ws.id, project.id, rev.id, "flows", {
+      schema: "docsxai/flows@1",
+      files: { "bad name.flow.yaml": CHECKOUT_FLOW },
+    });
+    const runner = new SpawnRunner({ store, engineBin: FAKE_BIN, strategy: okStrategy([]) });
+    await expect(runner.executeRun(job)).rejects.toThrow();
+    const summary = store.listRuns(ws.id, project.id)[0]!.summary;
+    expect(summary).toContain("workspace could not be materialized: flows file name");
+  });
+
+  it("leaves server paths out of the summary", async () => {
+    const { store, ws, project, job } = seed();
+    const workRoot = path.join(os.tmpdir(), `docsxai-no-such-root-${Date.now()}`);
+    const runner = new SpawnRunner({
+      store,
+      engineBin: FAKE_BIN,
+      strategy: okStrategy([]),
+      workRoot,
+    });
+    await expect(runner.executeRun(job)).rejects.toThrow(workRoot);
+    const summary = store.listRuns(ws.id, project.id)[0]!.summary;
+    expect(summary).toContain("workspace could not be materialized");
+    expect(summary).not.toContain(os.tmpdir());
+  });
+});
+
 describe("resolveEngineBin", () => {
   it("prefers an existing DOCSX_ENGINE_BIN", () => {
     expect(resolveEngineBin({ [ENGINE_BIN_ENV]: FAKE_BIN })).toBe(FAKE_BIN);

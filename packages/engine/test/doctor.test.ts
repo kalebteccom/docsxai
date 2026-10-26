@@ -572,6 +572,19 @@ describe("checkEnv", () => {
   });
 });
 
+describe("checkEnv backend variables", () => {
+  it("lists the backend publisher and token variables as known, not as typos", () => {
+    const env = {
+      DOCSX_BACKEND_PLUGIN_DIRS: "/opt/publishers",
+      DOCSX_BACKEND_PUBLISHER_ORIGINS: "https://wiki.example.com",
+      DOCSX_BACKEND_PUBLISHER_ENV: "CONFLUENCE_TOKEN",
+      DOCSX_OAUTH_REFRESH_TTL_DAYS: "30",
+      DOCSX_WEBHOOK_SECRET_ACME: "x",
+    };
+    expect(checkEnv(env).every((c) => c.ok)).toBe(true);
+  });
+});
+
 describe("buildDoctorChecks + formatDoctorChecks", () => {
   it("assembles a fully green table for a healthy workspace", async () => {
     await fs.mkdir(path.join(tmp, "flows"), { recursive: true });

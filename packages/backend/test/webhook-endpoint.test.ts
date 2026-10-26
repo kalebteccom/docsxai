@@ -132,29 +132,39 @@ describe("POST /v1/github/webhook", () => {
   });
 
   it("fails closed when the configured secret env var is unset", async () => {
-    await putConfig({ secret_env: "UNSET_WEBHOOK_SECRET_ENV" });
+    await putConfig({ secret_env: "DOCSX_WEBHOOK_SECRET_UNSET" });
     expect((await deliver({})).status).toBe(401);
     expect(dispatched).toHaveLength(0);
   });
 
-  it("404s for a repo no project is configured for", async () => {
+  // Unknown repo, unparsable body and bad signature all get the same 401, so an unauthenticated
+  // caller cannot tell which repositories this backend serves.
+  const UNAUTHORIZED = { error: "unauthorized", message: "missing or invalid X-Hub-Signature-256" };
+
+  it("401s a repo no project is configured for with the bad-signature body", async () => {
     const payload = JSON.parse(PUSH_FIXTURE) as { repository: { full_name: string } };
     payload.repository.full_name = "octo-org/unknown-repo";
     const res = await deliver({ body: JSON.stringify(payload) });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual(UNAUTHORIZED);
+    const bad = await deliver({ signature: "sha256=" + "0".repeat(64) });
+    expect(bad.status).toBe(401);
+    expect(await bad.json()).toEqual(UNAUTHORIZED);
     expect(dispatched).toHaveLength(0);
   });
 
-  it("400s when the payload has no repository.full_name", async () => {
+  it("401s when the payload has no repository.full_name", async () => {
     const res = await deliver({ body: JSON.stringify({ zen: "Design for failure." }) });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual(UNAUTHORIZED);
   });
 
-  it.each(["null", "42", '"text"', "[]"])(
-    "400s a payload that is the JSON value %s",
+  it.each(["null", "42", '"text"', "[]", "{not json"])(
+    "401s a payload that is %s",
     async (body) => {
       const res = await deliver({ body });
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual(UNAUTHORIZED);
     },
   );
 

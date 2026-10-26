@@ -305,7 +305,9 @@ The `cache` block on each role controls reuse:
 
 - `enabled` - cache at all (default false).
 - `store: local` (default) caches to `<workspace>/.auth/<role>.json`, written
-  with file mode 0600. Local to your machine, gitignored. A role name with characters
+  with file mode 0600. A save writes a new file and renames it over the old one,
+  so an older copy with a looser mode never holds the new cookies. Local to your
+  machine, gitignored. A role name with characters
   outside `A-Za-z0-9_.-`, and the name `backend-token`, gets a hash suffix in its
   file name, so two roles never share a file and none overwrites the OAuth token
   file.

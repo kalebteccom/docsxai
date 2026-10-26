@@ -365,6 +365,151 @@ describe("emitStarlightSite — MDX content", () => {
   });
 });
 
+// Step prose and names come from the doc pack. MDX runs `import`/`export` lines and `{expr}` when
+// Astro builds the site, so none of it may reach an .mdx file as code.
+const EXPLOIT_MD = [
+  'export const pwned = (await import("node:child_process")).execSync("id");',
+  "",
+  'import fs from "node:fs";',
+  "",
+  "Total: {globalThis.process.exit(1)} and <Danger onClick={() => 1} />.",
+  "",
+].join("\n");
+
+const AUTHOR_MD = [
+  "### Before you start",
+  "",
+  "- Sign in first",
+  "- Pick a **workspace**",
+  "  1. nested item",
+  "",
+  "Call `useState({ open: false })` or `{name}` inline.",
+  "",
+  "```ts",
+  "const config = { retries: 3, onError: () => {} };",
+  "```",
+  "",
+  "> Note: braces {like these} are plain text.",
+  "",
+].join("\n");
+
+describe("emitStarlightSite — step prose and names stay inert", () => {
+  const proseSpec = (md: string, id = "step-1"): WorkspaceSpec => ({
+    flows: [{ name: "tour", steps: [{ id, annotations: [{ copy: "Here" }], md }] }],
+  });
+
+  it("turns MDX import/export lines, expressions and JSX in step prose into plain text", async () => {
+    const ws = await makeWorkspace(proseSpec(EXPLOIT_MD));
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const mdx = await read(out, "src/content/docs/flows/tour.mdx");
+    expect(mdx).toContain(
+      '&#101;xport const pwned = (await import("node:child_process")).execSync("id");',
+    );
+    expect(mdx).toContain('&#105;mport fs from "node:fs";');
+    expect(mdx).toContain(
+      "Total: \\{globalThis.process.exit(1)\\} and \\<Danger onClick=\\{() => 1\\} />.",
+    );
+    expect(mdx).not.toMatch(/^(import|export) (const pwned|fs)/m);
+  });
+
+  it("keeps author markdown byte-for-byte, braces in code included", async () => {
+    const ws = await makeWorkspace(proseSpec(AUTHOR_MD));
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const mdx = await read(out, "src/content/docs/flows/tour.mdx");
+    const expected = AUTHOR_MD.trim().replace("{like these}", "\\{like these\\}");
+    expect(mdx).toContain(`## step-1\n\n${expected}\n\n<AnnotatedShot `);
+  });
+
+  it("leaves an existing backslash escape alone and escapes the brace after an escaped backslash", async () => {
+    const ws = await makeWorkspace(proseSpec("a \\{b} c \\\\{d}"));
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const mdx = await read(out, "src/content/docs/flows/tour.mdx");
+    expect(mdx).toContain("a \\{b\\} c \\\\\\{d\\}");
+  });
+
+  it("escapes braces in an indented block and in a code span holding a pipe", async () => {
+    // MDX has no indented code, and a GFM table cell split on `|` can break a code span.
+    const md = "Intro.\n\n    {indented}\n\n| a | `{x|` |\n|---|---|\n";
+    const ws = await makeWorkspace(proseSpec(md));
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const mdx = await read(out, "src/content/docs/flows/tour.mdx");
+    expect(mdx).toContain("    \\{indented\\}");
+    expect(mdx).toContain("| a | `\\{x|` |");
+  });
+
+  it("keeps fence info strings and a fence nested in a list as written", async () => {
+    const md = "```js {1,3}\nconst a = {};\n```\n\n-\tlist\n\n\t```\n\t{x}\n\t```\n";
+    const ws = await makeWorkspace(proseSpec(md));
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const mdx = await read(out, "src/content/docs/flows/tour.mdx");
+    expect(mdx).toContain("```js {1,3}\nconst a = {};\n```");
+    expect(mdx).toContain("-\tlist\n\n\t```\n\t{x}\n\t```");
+  });
+
+  it("passes a step id with a double quote as an expression, so it cannot add attributes", async () => {
+    const id = 'pay" burned={globalThis.process.exit(1)} x="';
+    const ws = await makeWorkspace(proseSpec("Text.", id));
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const mdx = await read(out, "src/content/docs/flows/tour.mdx");
+    expect(mdx).toContain(`alt={${JSON.stringify(id)}}`);
+    expect(mdx).not.toContain('alt="');
+  });
+
+  it("skips a step id that would read outside the pack, with a warning", async () => {
+    const ws = await makeWorkspace({
+      flows: [{ name: "tour", steps: [{ id: "ok", annotations: [{ copy: "Here" }] }] }],
+      extraFiles: {
+        "docs/secret.md": Buffer.from("TOP-SECRET-PROSE"),
+        "docs/secret.png": CLEAN_PNG,
+      },
+    });
+    const annPath = path.join(ws, "docs", "tour", "annotations.json");
+    const ann = JSON.parse(await fs.readFile(annPath, "utf8")) as {
+      annotations: Array<Record<string, unknown>>;
+    };
+    ann.annotations.push({ ...ann.annotations[0], step: "../secret", copy: "Leak" });
+    await fs.writeFile(annPath, JSON.stringify(ann), "utf8");
+    const out = await outDir();
+    const r = await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    expect(r.warnings.some((w) => w.includes('step "../secret" skipped'))).toBe(true);
+    expect(r.files.some((f) => f.includes("secret"))).toBe(false);
+    const mdx = await read(out, "src/content/docs/flows/tour.mdx");
+    expect(mdx).not.toContain("secret");
+    expect(mdx).toContain("## ok");
+  });
+
+  it("passes a flow name with a quote to the landing page cards as an expression", async () => {
+    const flow = 'a" description={globalThis.process.exit(1)} x="';
+    const ws = await makeWorkspace({
+      flows: [{ name: flow, noFlowFile: true, steps: [{ id: "s", annotations: [{ copy: "c" }] }] }],
+    });
+    const out = await outDir();
+    await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    const index = await read(out, "src/content/docs/index.mdx");
+    expect(index).toContain(`<LinkCard title={${JSON.stringify(flow)}} `);
+    expect(index).not.toMatch(/title="a"/);
+  });
+
+  it("skips a flow whose name holds a bidi control, with a warning", async () => {
+    const ws = await makeWorkspace({
+      flows: [
+        { name: "tour\u202e", steps: [{ id: "s", annotations: [{ copy: "c" }] }] },
+        { name: "plain", steps: [{ id: "s", annotations: [{ copy: "c" }] }] },
+      ],
+    });
+    const out = await outDir();
+    const r = await emitStarlightSite({ workspaceDir: ws, outDir: out });
+    expect(r.flows).toEqual(["plain"]);
+    expect(r.warnings.some((w) => w.includes('flow "tour\\u202e" skipped'))).toBe(true);
+  });
+});
+
 describe("emitStarlightSite micro-states", () => {
   it("CopyId holds three stacked labels, names the button and has a polite status span", async () => {
     const ws = await makeWorkspace(goldenSpec());
@@ -599,12 +744,102 @@ describe("emitStarlightSite — config generation", () => {
     expect(await fs.readFile(path.join(out, "src/assets/logo.svg"), "utf8")).toBe("<svg/>");
   });
 
+  describe("visual.logo stays inside the workspace", () => {
+    const outside = async () => {
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-starlight-outside-"));
+      tempDirs.push(dir);
+      await fs.writeFile(path.join(dir, "secret.png"), BURNED_PNG);
+      return path.join(dir, "secret.png");
+    };
+    const expectNoLogo = async (ws: string, config: { logo?: string } = {}): Promise<string[]> => {
+      const out = await outDir();
+      const r = await emitStarlightSite({ workspaceDir: ws, outDir: out, config });
+      expect(r.logo).toBeNull();
+      expect(r.files.some((f) => f.includes("logo"))).toBe(false);
+      expect(await read(out, "astro.config.mjs")).not.toContain("logo:");
+      return r.warnings;
+    };
+
+    it("refuses an absolute path, naming the field", async () => {
+      const secret = await outside();
+      const ws = await makeWorkspace({ flows: [], visual: { logo: secret } });
+      const warnings = await expectNoLogo(ws);
+      expect(warnings).toEqual([
+        `style.json visual.logo ${JSON.stringify(secret)} ignored: it must name a file inside the workspace, so the site has no logo`,
+      ]);
+    });
+
+    it("refuses a .. path that leaves the workspace", async () => {
+      const secret = await outside();
+      const ws = await makeWorkspace({ flows: [], visual: { logo: "" } });
+      const rel = path.relative(ws, secret);
+      await fs.writeFile(
+        path.join(ws, "docs", "style.json"),
+        JSON.stringify({ visual: { logo: rel } }),
+      );
+      const warnings = await expectNoLogo(ws);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain("visual.logo");
+      expect(warnings[0]).toContain("inside the workspace");
+      // A missing file outside gets the same line, so the warning reveals nothing about it.
+      const missing = await makeWorkspace({ flows: [], visual: { logo: "../../nope/x.png" } });
+      expect(await expectNoLogo(missing)).toEqual([
+        'style.json visual.logo "../../nope/x.png" ignored: it must name a file inside the workspace, so the site has no logo',
+      ]);
+    });
+
+    it("refuses a symlink inside the workspace that points outside it", async () => {
+      const secret = await outside();
+      const ws = await makeWorkspace({ flows: [], visual: { logo: "assets/logo.png" } });
+      await fs.mkdir(path.join(ws, "assets"), { recursive: true });
+      await fs.symlink(secret, path.join(ws, "assets", "logo.png"));
+      const warnings = await expectNoLogo(ws);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain("visual.logo");
+    });
+
+    it("follows a symlink that stays inside the workspace", async () => {
+      const ws = await makeWorkspace({
+        flows: [],
+        visual: { logo: "assets/link.png" },
+        extraFiles: { "brand/logo.png": CLEAN_PNG },
+      });
+      await fs.mkdir(path.join(ws, "assets"), { recursive: true });
+      await fs.symlink(path.join(ws, "brand", "logo.png"), path.join(ws, "assets", "link.png"));
+      const out = await outDir();
+      const r = await emitStarlightSite({ workspaceDir: ws, outDir: out });
+      expect(r.logo).toBe("src/assets/logo.png");
+      expect(r.warnings).toEqual([]);
+    });
+
+    it("still takes an absolute path from the explicit logo option", async () => {
+      const secret = await outside();
+      const ws = await makeWorkspace({ flows: [] });
+      const out = await outDir();
+      const r = await emitStarlightSite({
+        workspaceDir: ws,
+        outDir: out,
+        config: { logo: secret },
+      });
+      expect(r.logo).toBe("src/assets/logo.png");
+      expect(r.warnings).toEqual([]);
+    });
+  });
+
   it("warns and emits without a logo when the configured logo file is missing", async () => {
     const ws = await makeWorkspace({ flows: [], visual: { logo: "assets/nope.png" } });
     const out = await outDir();
     const r = await emitStarlightSite({ workspaceDir: ws, outDir: out });
     expect(r.logo).toBeNull();
-    expect(r.warnings.some((w) => w.startsWith("logo not found:"))).toBe(true);
+    expect(r.warnings).toEqual([
+      'style.json visual.logo "assets/nope.png" ignored: it must name a file inside the workspace, so the site has no logo',
+    ]);
+    const r2 = await emitStarlightSite({
+      workspaceDir: ws,
+      outDir: out,
+      config: { logo: "assets/nope.png" },
+    });
+    expect(r2.warnings.some((w) => w.startsWith("logo not found:"))).toBe(true);
     expect(await read(out, "astro.config.mjs")).not.toContain("logo:");
   });
 
@@ -946,6 +1181,59 @@ describe.runIf(process.env["DOCSX_STARLIGHT_BUILD"] === "1")(
       await fs.access(path.join(built.distDir, "flows", "login", "index.html"));
       await fs.access(path.join(built.distDir, "flows", "checkout", "index.html"));
       console.log(`astro build completed in ${Math.round(built.durationMs)}ms`);
+    }, 600_000);
+
+    it("builds step prose as inert text: no ESM, expressions or JSX run, markdown intact", async () => {
+      const marker = path.join(os.tmpdir(), `docsxai-pwned-${String(process.pid)}`);
+      const write = (v: string) =>
+        `(await import("node:fs")).writeFileSync(${JSON.stringify(marker)}, "${v}")`;
+      const md = [
+        `export const pwned = ${write("esm")};`,
+        "",
+        `Sum {${write("expr")}} and <span data-x={${write("jsx")}} /> here.`,
+        "",
+        "- nested",
+        "",
+        "\t```",
+        "\t{not code? }",
+        "\t```",
+        "",
+        AUTHOR_MD,
+      ].join("\n");
+      const id = 'pay" burned={globalThis.process.exit(1)} x="';
+      const ws = await makeWorkspace({
+        flows: [{ name: "tour", steps: [{ id, annotations: [{ copy: "Here" }], md }] }],
+      });
+      const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+      const out = await fs.mkdtemp(path.join(pkgRoot, ".tmp-starlight-e2e-"));
+      tempDirs.push(out);
+      await emitStarlightSite({ workspaceDir: ws, outDir: out });
+      const built = await buildStarlightSite({ siteDir: out });
+      if (!built.ok) console.error(built.stdout, built.stderr);
+      expect(built.ok).toBe(true);
+      expect(
+        await fs.access(marker).then(
+          () => true,
+          () => false,
+        ),
+      ).toBe(false);
+      const html = await fs.readFile(
+        path.join(built.distDir, "flows", "tour", "index.html"),
+        "utf8",
+      );
+      expect(html).toContain("export const pwned");
+      expect(html).toContain("&lt;span data-x={");
+      expect(html).toContain('data-code="{not code? }"');
+      // Author markdown keeps Starlight's treatment: heading anchors, TOC entry, dir="auto" code.
+      expect(html).toMatch(
+        /<h3 id="before-you-start">Before you start<\/h3><a class="sl-anchor-link"/,
+      );
+      expect(html).toContain('href="#before-you-start"');
+      expect(html).toMatch(/<li>Pick a <strong>workspace<\/strong>/);
+      expect(html).toContain('<code dir="auto">useState({ open: false })</code>');
+      expect(html).toContain('<code dir="auto">{name}</code>');
+      expect(html).toContain("braces {like these} are plain text.");
+      expect(html).toContain("expressive-code");
     }, 600_000);
   },
 );

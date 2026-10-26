@@ -3,7 +3,7 @@
 // http.js. The route is unauthenticated but strictly verified — see the handler doc comment.
 
 import { type IncomingMessage, type ServerResponse } from "node:http";
-import { JSON_BODY_LIMIT_BYTES } from "./api.js";
+import { JSON_BODY_LIMIT_BYTES, WEBHOOK_SECRET_ENV_RE } from "./api.js";
 import { asSingle, readBody, sendJson } from "./http.js";
 import { type BackendStore } from "./store.js";
 import {
@@ -26,7 +26,7 @@ export interface WebhookHttpContext {
  * GitHub webhook receiver. Unauthenticated route, but strictly verified: the repo named in the
  * payload must map to a configured project, and the X-Hub-Signature-256 HMAC must validate
  * against that project's secret (read from the env var the config names) before anything else
- * is trusted. Accepted deliveries are queued (202) — execution happens after the response.
+ * is trusted. Every failure up to that point is the same 401. Accepted deliveries are queued (202) — execution happens after the response.
  */
 export async function handleGitHubWebhook(
   req: IncomingMessage,
@@ -35,36 +35,32 @@ export async function handleGitHubWebhook(
 ): Promise<void> {
   const { store, env, dispatcher } = ctx;
   const raw = await readBody(req, JSON_BODY_LIMIT_BYTES);
-  let payload: unknown;
-  try {
-    payload = JSON.parse(raw.toString("utf8") || "{}");
-  } catch {
-    return sendJson(res, 400, { error: "bad_request", message: "invalid JSON payload" });
-  }
-  const repo = (payload as { repository?: { full_name?: unknown } } | null)?.repository?.full_name;
-  if (typeof repo !== "string" || !repo) {
-    return sendJson(res, 400, {
-      error: "bad_request",
-      message: "payload missing repository.full_name",
-    });
-  }
-  const match = store.findWebhookProject(repo);
-  if (!match) {
-    return sendJson(res, 404, {
-      error: "not_found",
-      message: `no project is configured for repository ${repo}`,
-    });
-  }
-  // Signature gate. A missing secret in the env fails closed (401), never open.
-  const secret = env[match.config.secret_env];
-  const signature = req.headers[SIGNATURE_HEADER];
-  if (!secret || !verifyGitHubSignature(secret, raw, asSingle(signature))) {
+  // Every failure before the signature checks out gets the same 401: an unparsable body, a
+  // missing repository.full_name and an unconfigured repo look like a bad signature, so the
+  // route does not reveal which repositories this backend serves.
+  const unauthorized = () => {
     res.setHeader("WWW-Authenticate", 'Signature realm="github-webhook"');
     return sendJson(res, 401, {
       error: "unauthorized",
       message: "missing or invalid X-Hub-Signature-256",
     });
+  };
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw.toString("utf8") || "{}");
+  } catch {
+    return unauthorized();
   }
+  const repo = (payload as { repository?: { full_name?: unknown } } | null)?.repository?.full_name;
+  if (typeof repo !== "string" || !repo) return unauthorized();
+  const match = store.findWebhookProject(repo);
+  if (!match) return unauthorized();
+  // Signature gate. A missing secret in the env fails closed (401), never open. A stored config
+  // whose secret_env predates the DOCSX_WEBHOOK_SECRET* rule is treated as having no secret.
+  const secretEnv = match.config.secret_env;
+  const secret = WEBHOOK_SECRET_ENV_RE.test(secretEnv) ? env[secretEnv] : undefined;
+  const signature = req.headers[SIGNATURE_HEADER];
+  if (!secret || !verifyGitHubSignature(secret, raw, asSingle(signature))) return unauthorized();
   const deliveryId = asSingle(req.headers[DELIVERY_HEADER]);
   if (!deliveryId) {
     return sendJson(res, 400, {

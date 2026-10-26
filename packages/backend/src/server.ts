@@ -30,8 +30,9 @@ import {
   isArtifact,
   sendJson,
 } from "./http.js";
-import { OAuthIssuer } from "./oauth.js";
+import { OAuthIssuer, refreshTokenTtlMs } from "./oauth.js";
 import { handleAuthorize, handleToken } from "./oauth-http.js";
+import { pluginConfigProblem } from "./publisher-policy.js";
 import { SpawnRunner } from "./runner.js";
 import { type BackendStore, MemoryStore, NotFoundError, RevisionFinalizedError } from "./store.js";
 import { QueuedDispatcher, type RunDispatcher } from "./webhook.js";
@@ -64,8 +65,8 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
   close(): Promise<void>;
 } {
   const store = resolveStore(opts);
-  const oauth = new OAuthIssuer();
   const env = opts.env ?? process.env;
+  const oauth = new OAuthIssuer(Date.now, { refreshTtlMs: refreshTokenTtlMs(env) });
   const dispatcher =
     opts.dispatcher ??
     new QueuedDispatcher((job) => new SpawnRunner({ store, env }).executeRun(job).then(() => {}));
@@ -281,8 +282,10 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
         case "/v1/workspaces/:ws/projects/:project/webhook-config": {
           if (method === "GET") return sendJson(res, 200, store.getWebhookConfig(ws!, project!));
           const parsed = parseWebhookConfig(await readJsonBody(req));
-          if (typeof parsed === "string") {
-            return sendJson(res, 400, { error: "bad_request", message: parsed });
+          const problem =
+            typeof parsed === "string" ? parsed : pluginConfigProblem(parsed.plugin_config, env);
+          if (typeof parsed === "string" || problem) {
+            return sendJson(res, 400, { error: "bad_request", message: problem });
           }
           return sendJson(res, 200, store.putWebhookConfig(ws!, project!, parsed));
         }

@@ -9,6 +9,19 @@ import { createHash, randomBytes } from "node:crypto";
 
 export const AUTH_CODE_TTL_MS = 5 * 60_000;
 export const ACCESS_TOKEN_TTL_S = 3600;
+/** Refresh-token lifetime when `DOCSX_OAUTH_REFRESH_TTL_DAYS` is unset. */
+export const DEFAULT_REFRESH_TOKEN_TTL_DAYS = 30;
+export const REFRESH_TTL_ENV = "DOCSX_OAUTH_REFRESH_TTL_DAYS";
+
+/** Refresh-token TTL from `DOCSX_OAUTH_REFRESH_TTL_DAYS` (days, > 0). Throws on a bad value. */
+export function refreshTokenTtlMs(env: NodeJS.ProcessEnv): number {
+  const raw = env[REFRESH_TTL_ENV];
+  const days = raw === undefined ? DEFAULT_REFRESH_TOKEN_TTL_DAYS : Number(raw);
+  if (raw?.trim() === "" || !Number.isFinite(days) || days <= 0) {
+    throw new Error(`${REFRESH_TTL_ENV} must be a positive number of days, got "${raw}"`);
+  }
+  return days * 86_400_000;
+}
 
 export interface OAuthTokens {
   access_token: string;
@@ -41,9 +54,15 @@ const hash = (secret: string): string => createHash("sha256").update(secret).dig
 export class OAuthIssuer {
   private codes = new Map<string, CodeEntry>();
   private accessTokens = new Map<string, { expiresAt: number; scope: string | null }>();
-  private refreshTokens = new Map<string, { scope: string | null }>();
+  private refreshTokens = new Map<string, { expiresAt: number; scope: string | null }>();
+  private readonly refreshTtlMs: number;
 
-  constructor(private readonly now: () => number = Date.now) {}
+  constructor(
+    private readonly now: () => number = Date.now,
+    opts: { refreshTtlMs?: number } = {},
+  ) {
+    this.refreshTtlMs = opts.refreshTtlMs ?? DEFAULT_REFRESH_TOKEN_TTL_DAYS * 86_400_000;
+  }
 
   /** Mint a single-use authorization code bound to the PKCE challenge + redirect URI. */
   issueCode(opts: { challenge: string; redirectUri: string; scope?: string | null }): string {
@@ -82,10 +101,10 @@ export class OAuthIssuer {
   refresh(refreshToken: string): OAuthTokens {
     const key = hash(refreshToken);
     const entry = this.refreshTokens.get(key);
-    if (!entry) {
-      throw new OAuthError("invalid_grant", "unknown or already-rotated refresh token");
-    }
     this.refreshTokens.delete(key);
+    if (!entry || entry.expiresAt <= this.now()) {
+      throw new OAuthError("invalid_grant", "unknown, already-rotated or expired refresh token");
+    }
     return this.issueTokens(entry.scope);
   }
 
@@ -96,19 +115,28 @@ export class OAuthIssuer {
   }
 
   private issueTokens(scope: string | null): OAuthTokens {
+    this.sweep();
     const access = randomBytes(32).toString("base64url");
     const refresh = randomBytes(32).toString("base64url");
     this.accessTokens.set(hash(access), {
       expiresAt: this.now() + ACCESS_TOKEN_TTL_S * 1000,
       scope,
     });
-    this.refreshTokens.set(hash(refresh), { scope });
+    this.refreshTokens.set(hash(refresh), { expiresAt: this.now() + this.refreshTtlMs, scope });
     return {
       access_token: access,
       token_type: "Bearer",
       expires_in: ACCESS_TOKEN_TTL_S,
       refresh_token: refresh,
     };
+  }
+
+  /** Drop expired codes and tokens so the maps don't grow without bound. */
+  private sweep(): void {
+    const t = this.now();
+    for (const m of [this.codes, this.accessTokens, this.refreshTokens]) {
+      for (const [k, v] of m) if (v.expiresAt <= t) m.delete(k);
+    }
   }
 }
 

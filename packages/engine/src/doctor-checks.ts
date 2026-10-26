@@ -401,6 +401,10 @@ export const KNOWN_DOCSX_ENV_VARS: ReadonlyArray<string> = [
   "DOCSX_DATA_DIR",
   "DOCSX_OAUTH_AUTO_APPROVE",
   "DOCSX_WEBHOOK_SECRET",
+  "DOCSX_BACKEND_PLUGIN_DIRS",
+  "DOCSX_BACKEND_PUBLISHER_ORIGINS",
+  "DOCSX_BACKEND_PUBLISHER_ENV",
+  "DOCSX_OAUTH_REFRESH_TTL_DAYS",
   "DOCSX_OXIPNG_BIN",
   "DOCSX_BACKEND_DENY_PRIVATE_APP_URL",
   "DOCSX_EGRESS_GUARD",
@@ -468,7 +472,8 @@ export function checkEnv(env: NodeJS.ProcessEnv): DoctorCheck[] {
     }
   }
   for (const k of set) {
-    if (!KNOWN_DOCSX_ENV_VARS.includes(k)) {
+    // `DOCSX_WEBHOOK_SECRET_<SUFFIX>` names a per-project webhook secret.
+    if (!KNOWN_DOCSX_ENV_VARS.includes(k) && !k.startsWith("DOCSX_WEBHOOK_SECRET_")) {
       checks.push({
         name: "env",
         ok: false,

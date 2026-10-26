@@ -184,7 +184,9 @@ describe("viewer-refresh strategy", () => {
 });
 
 describe("wiki-push strategy", () => {
-  it("loads the publisher plugin from plugin_config.sources and reports the PublishResult", async () => {
+  const env = { DOCSX_BACKEND_PLUGIN_DIRS: RECORDER_PLUGIN_DIR } as NodeJS.ProcessEnv;
+
+  it("loads the publisher plugin from DOCSX_BACKEND_PLUGIN_DIRS and reports the PublishResult", async () => {
     fs.writeFileSync(
       path.join(workspaceDir, "projection.json"),
       JSON.stringify({ sections: ["intro", "flows"] }),
@@ -192,12 +194,9 @@ describe("wiki-push strategy", () => {
     const job = makeJob(
       "wiki-push",
       {},
-      {
-        plugin: "recorder:push",
-        plugin_config: { sources: [RECORDER_PLUGIN_DIR], space: "DOCS" },
-      },
+      { plugin: "recorder:push", plugin_config: { space: "DOCS" } },
     );
-    const result = await runStrategy(job, run, {});
+    const result = await runStrategy(job, run, { env });
     expect(result).toMatchObject({ strategy: "wiki-push", ok: true });
     expect(result.detail).toContain("fake-wiki/SPACE");
     expect(result.detail).toContain("1 created");
@@ -207,27 +206,9 @@ describe("wiki-push strategy", () => {
     expect(call.projection).toEqual({ sections: ["intro", "flows"] });
   });
 
-  it("loads plugin sources from the workspace docsxai.config.json when not inlined", async () => {
-    fs.writeFileSync(
-      path.join(workspaceDir, "docsxai.config.json"),
-      JSON.stringify({ plugins: [`path:${RECORDER_PLUGIN_DIR}`] }),
-    );
-    const job = makeJob("wiki-push", {}, { plugin: "recorder:push", plugin_config: {} });
-    const result = await runStrategy(job, run, {});
-    expect(result.ok).toBe(true);
-    expect(fs.existsSync(path.join(workspaceDir, "publish-call.json"))).toBe(true);
-  });
-
   it("fails when the configured publisher is not registered", async () => {
-    const job = makeJob(
-      "wiki-push",
-      {},
-      {
-        plugin: "confluence:push",
-        plugin_config: { sources: [RECORDER_PLUGIN_DIR] },
-      },
-    );
-    const result = await runStrategy(job, run, {});
+    const job = makeJob("wiki-push", {}, { plugin: "confluence:push", plugin_config: {} });
+    const result = await runStrategy(job, run, { env });
     expect(result.ok).toBe(false);
     expect(result.detail).toContain('publisher "confluence:push" not found');
     expect(result.detail).toContain("recorder:push");

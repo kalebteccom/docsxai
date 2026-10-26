@@ -29,6 +29,10 @@ The engine drives a Playwright instance against your running app. It writes only
 - **The workspace directory** (the `<workspace-dir>` argument every command takes) — every artifact docsxai produces lives here. Treat this as untrusted output (it can contain rendered screenshots of your app's UI, which may include captured PII if your test data isn't clean).
 - **Headed vs headless** — `capture-auth` opens a headed Chrome so a human can log in; `run` is headless unless you pass `--headed` (or `--pause`). The engine does not exfiltrate anything off-host either way.
 
+## Building a Starlight site from a doc pack
+
+`docsxai-viewer site` (and the `starlight:site` renderer) turns a doc pack into an Astro project, and `astro build` runs that project's MDX as code on the machine that builds it. A doc pack from a pull request is input from its author, so the emitter keeps it as data: step prose has its MDX `import`/`export` lines, `{expressions}` and JSX made plain text, step ids and flow names reach the page only as quoted strings, unsafe ids are skipped, and `visual.logo` in `docs/style.json` must name a file inside the workspace. Raw HTML in a `<step>.md` shows as text on the site. Build sites from untrusted packs in a job without secrets all the same.
+
 ## CI hygiene for adopter pipelines
 
 If you integrate docsxai into your own CI:
