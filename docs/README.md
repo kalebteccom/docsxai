@@ -6,7 +6,7 @@ Design notes, runbooks, and developer docs for docsxai. This tree — together w
 and _how_ it is built.
 
 Start with [`agent-runbook.md`](agent-runbook.md) (the hand-to-an-agent calibration
-workflow), [`agent-guidance.md`](agent-guidance.md) (the reach-for-this-not-that
+workflow), [`agent-guidance.md`](agent-guidance.md) (the
 footgun map), and [`running-against-an-app-repo.md`](running-against-an-app-repo.md);
 the cross-repo contract is [`actionability-contract.md`](actionability-contract.md). The look of burned captions and the viewer overlay
 (`burn.theme` in `.docsxai.json`, presets, tokens file) is in

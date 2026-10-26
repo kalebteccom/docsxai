@@ -27,7 +27,7 @@ mocked test for that class is worse than no test, because it reads as coverage.
   `pnpm -C packages/engine exec playwright-core install chromium` step. The Woodpecker keystone step is disabled until its image carries Chromium.
 - Keystone fixtures are self-contained: the toy site under
   `packages/engine/test/fixtures/toy-site/` served over loopback `node:http`.
-  New keystone scenarios extend the toy site rather than reaching for live
+  New keystone scenarios extend the toy site. They never reach for live
   targets.
 - Determinism claims are keystone claims. "Byte-identical re-runs" is asserted
   against real Chromium twice in one test — never inferred from unit-level

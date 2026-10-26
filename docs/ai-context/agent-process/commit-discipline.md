@@ -39,7 +39,7 @@ A cycle = any logically complete unit of change: a phase transition, a refinemen
 
 ## Signing
 
-The repo requires signed commits on `main` (server-side). Sign locally — never use `-c commit.gpgsign=false` or any signing bypass. If signing fails, fix the local key configuration rather than disabling the requirement.
+The repo requires signed commits on `main` (server-side). Sign locally — never use `-c commit.gpgsign=false` or any signing bypass. If signing fails, fix the local key configuration. Don't disable the requirement.
 
 ## Related
 

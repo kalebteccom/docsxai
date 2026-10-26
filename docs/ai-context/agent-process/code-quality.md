@@ -105,8 +105,8 @@ docsxai's architecture leans on SOLID with TypeScript-idiomatic interpretations.
 
 ### Interface segregation — narrow contracts, optional fields
 
-- `Step` carries optional `wait_for`, `success`, `annotation`, `annotations` fields rather than one fat interface. A handler asks for what it needs.
-- `AuthStrategyDescriptor` is shaped per-strategy via discriminated unions rather than a god-config with everything optional. The `manual-capture` descriptor is narrower than an `api-direct` descriptor would be.
+- `Step` carries optional `wait_for`, `success`, `annotation`, `annotations` fields, with no single fat interface. A handler asks for what it needs.
+- `AuthStrategyDescriptor` is shaped per strategy by discriminated unions, with no god-config where everything is optional. The `manual-capture` descriptor is narrower than an `api-direct` descriptor would be.
 
 ### Dependency inversion — depend on the abstraction
 

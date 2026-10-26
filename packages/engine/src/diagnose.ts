@@ -96,7 +96,7 @@ export function recommendFromActionable(state: ActionableState): DiagnoseRecomme
           kind: "investigate",
           rationale: "Selector resolves to a single visible element that is `disabled`.",
           suggestion:
-            "Check whether the action is appropriate for the target state, sometimes a UI element is intentionally disabled (clip-driven inputs, gated controls). The doc may need to describe the disabled-state behaviour rather than trying to act on the element. If unexpected, the disabled state itself is a product-side question.",
+            "Check whether the action is appropriate for the target state, sometimes a UI element is intentionally disabled (clip-driven inputs, gated controls). The doc may need to describe the disabled-state behaviour and not try to act on the element. If unexpected, the disabled state itself is a product-side question.",
         },
       ];
     case "detached":

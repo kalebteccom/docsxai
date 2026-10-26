@@ -51,7 +51,7 @@ single Zod-schema source of truth that every harness adapter (Claude Code, Codex
 Pi) and the daemon build against - the hexagonal host-core/adapters split made
 concrete. browxai's server handlers depend on abstract `Page` / `BrowserContext`,
 not a concrete CDP backend, and its plugin runtime exposes a `PluginApi` port that
-plugins call rather than reaching into internals.
+plugins call, so they never reach into internals.
 
 ### Abstract only at a proven seam
 
@@ -141,8 +141,7 @@ for; don't allocate carelessly in a loop that runs on every step.
 **Determinism where it pays.** docsxai's `docsxai run` produces a byte-identical
 doc pack from the same flow-file and target state - keystone-enforced against a
 real browser. Determinism is what makes caching, diffing (`diffDocPacks` with
-pixel-diff severity thresholds), and content-addressing correct rather than
-hopeful.
+pixel-diff severity thresholds), and content-addressing correct.
 
 ## 4. Scalability seams - where the system grows
 

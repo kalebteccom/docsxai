@@ -6,7 +6,7 @@ Field reports from agents and teams driving docsxai against real workloads. Time
 
 1. Report lands as `<YYYY-MM-DD>-<slug>.md`.
 2. Triage: each ask gets a verdict (in the v0.x surface / behind a flag or new mode / RFC / declined).
-3. Capability lane: posture-broadening asks (new auth strategy, new step-vocabulary entry, new write surface) get an explicit opt-in shape rather than expanding the default.
+3. Capability lane: posture-broadening asks (new auth strategy, new step-vocabulary entry, new write surface) get an explicit opt-in shape. The default stays as it is.
 4. Keystone coverage: regression test against real Chromium for runtime asks; flow-file fixture for parser / lint asks.
 5. CHANGELOG entry + relevant runbook update.
 6. The originating report's "durable lessons captured" section points at the resulting CHANGELOG entry or roadmap phase.

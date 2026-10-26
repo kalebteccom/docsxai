@@ -105,7 +105,7 @@ Notes:
     driving for discovery), so you don't log in twice. docsxai won't close that Chrome. (--cdp ignores --fresh.)
   • auth_cookie (set via \`init --auth-cookie\`, \`capture-auth --auth-cookie\`, or hand-edited into
     auth/strategy.yaml) names that cookie; when set, the cached session's expiry tracks *that* cookie's
-    expiry rather than the \`ttl\` guess (an interactive SSO login leaves ephemeral IdP scratch cookies, so
+    expiry and not the \`ttl\` guess (an interactive SSO login leaves ephemeral IdP scratch cookies, so
     \`min(cookie.expires)\` ≈ now, don't rely on it). If unset/unfound, \`ttl\` (or a 1h default) is used.
   • inspect opens the app in a headless (or --headed) browser *with the cached session loaded* and prints the
     page's [data-testid] elements (or, with --selector, matching elements' HTML), for pinning locators when

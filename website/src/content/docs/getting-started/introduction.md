@@ -4,16 +4,16 @@ description: What docsxai is, the two-mode bet behind it, how the naming fits to
 ---
 
 docsxai walks a running web application, follows written flows, and emits
-screenshot-rich user documentation. You describe a user journey once as a
+screenshot-rich user documentation. You describe a user task once as a
 [flow-file](/reference/flow-file/); the `docsxai` CLI replays it through
 headless Chromium, captures clean screenshots, places halos and callouts from
 the flow's annotations, and renders a publishable doc pack. When the UI
-changes, you re-run. The docs are a build artifact: the flow is the source,
-the rendered doc pack is the output, a re-run is the refresh.
+changes, you re-run. The docs are a build artifact: the flow is the source
+and a re-run is the refresh.
 
 ## The two-mode bet
 
-The architecture splits into two modes, and the split is the product:
+docsxai runs in two modes:
 
 - **Calibration** is AI-assisted and rare. A host agent - Claude Code, Codex,
   anything that speaks MCP - explores the live app, picks canonical locators,
@@ -24,10 +24,10 @@ The architecture splits into two modes, and the split is the product:
   target state, byte-identical screenshots - enforced by a keystone test
   against real Chromium.
 
-The engine never calls a model API. That boundary is load-bearing: per-commit
-LLM runs would be untenable; per-commit Playwright runs are standard CI
-practice. You pay for inference once at authoring time, then every refresh is
-as cheap as a test run. [Architecture](/concepts/architecture/) covers how the
+The engine never calls a model API. Per-commit LLM runs would be untenable
+and per-commit Playwright runs are standard CI practice, so you pay for
+inference once, at authoring time. Every refresh then costs about as much as a
+test run. [Architecture](/concepts/architecture/) covers how the
 pieces enforce this.
 
 ## Naming
@@ -52,7 +52,7 @@ the recording rots silently when the UI moves, and refreshing means
 re-recording by hand. docsxai is the better tool when the documentation has to
 stay current without a human in the loop:
 
-- The flow-file is a reviewable text artifact, not an opaque recording.
+- The flow-file is a reviewable text file.
 - The replay is deterministic enough to gate CI on pixel-level drift
   (`docsxai diff --fail-on warn`).
 - A halted step names exactly which locator or assertion broke instead of
