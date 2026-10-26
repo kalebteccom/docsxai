@@ -80,7 +80,7 @@ describe("docsxai add-flow", () => {
   it("is listed in the help and the start screen, and calibrate is not", async () => {
     expect(commandNames()).toContain("add-flow");
     expect(commandNames()).not.toContain("calibrate");
-    expect(START_HERE).toContain("docsxai add-flow <workspace-dir> --from <flow.yaml>");
+    expect(START_HERE).toContain("then docsxai add-flow.");
     expect(await main(["--help"])).toBe(0);
     expect(out).toContain(
       "docsxai add-flow <workspace-dir> --from <flow.md|.yaml> [--name <flow>]",
