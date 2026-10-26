@@ -98,15 +98,15 @@ const png = await burnWithWorkspaceTheme({
 
 ## Troubleshooting
 
-| Symptom                             | Fix                                                                               |
-| ----------------------------------- | --------------------------------------------------------------------------------- |
-| Callout covers text                 | Add that text's box to `obstacles`, or shorten `copy`.                            |
-| Connector crosses content           | Check `connector_crossings` in the report, then give a side hint on a clear side. |
-| Callout sits on the wrong side      | Set `placement.side` to try only that side first.                                 |
-| Badge covers neighbouring text      | Add those boxes to `obstacles` so the badge can pick another corner.              |
-| Badge touches the image edge        | Add at least one box to `obstacles`. The badge then stays 2 px inside.            |
-| Captions too small on the page      | Set `display_width` to the column width and `scale` to `"auto"`.                  |
-| Callout too wide for a narrow image | Lower `placement.max_width`, or `max_width_ratio` in the theme.                   |
-| No clear spot for a caption         | Set `caption_style` to `auto` (badge when no spot is clear) or `badge`.           |
+| Symptom                             | Fix                                                                                 |
+| ----------------------------------- | ----------------------------------------------------------------------------------- |
+| Callout covers text                 | Add that text's box to `obstacles`, or shorten `copy`.                              |
+| Connector crosses content           | Check `connector_crossings` in the report, then give a side hint on a clear side.   |
+| Callout sits on the wrong side      | Set `placement.side` to try only that side first.                                   |
+| Badge covers neighbouring text      | Add those boxes to `obstacles` so the badge can pick another corner.                |
+| Badge touches the image edge        | Add at least one box to `obstacles`. The badge then stays 2 px inside.              |
+| Captions too small on the page      | Set `display_width` to the column width and `scale` to `"auto"`.                    |
+| Callout too wide for a narrow image | Lower `placement.max_width`, or `max_width_ratio` in the theme.                     |
+| No clear spot for a caption         | `auto` is the default (badge when no spot is clear). `full` always draws a caption. |
 
 > **For agents:** to check a side hint against a raw capture before committing it, run `node scripts/burn-probe.mjs --screenshot raw.png --annotations raw.json` from a docsxai checkout after `pnpm --filter @docsxai/viewer build`. It prints, per callout, the side asked for and the side taken, each side's best score, the obstacles the callout, arrow, stem and badge touch, and how the connector is painted: ink, fill or outline for the arrow, the colour for the line. `--side 2=bottom` tries a hint without editing the file, `--theme` or `--workspace` burns with a theme, and `--out` writes the burned PNG.

@@ -20,8 +20,8 @@
 // `--badge-only board.390,ticket.en.dark.390` (and the `badge_only` list of
 // scripts/burn-trackxai.overrides.json, or `--overrides <file>`) burns those frames as badges and
 // rings only. `--keep-superseded` leaves replaced files in place (for a tree where they are tracked).
-// Phone captures (under 900 px) burn with `caption_style: "auto"`: an annotation with no caption
-// spot clear of text, header and bottom nav gets its badge only. Desktop captures keep captions.
+// Captures burn with the theme's `caption_style`, `auto` by default at every width: an annotation
+// with no caption spot clear of text, header and nav gets its badge only.
 //
 // `--webp` also writes `<name>.<hash>.webp` beside each new PNG with `cwebp -lossless -z 9` (the
 // `webp` package: `brew install webp`, `apt install webp`), and keeps it only when it is under
@@ -163,12 +163,7 @@ async function main() {
       console.error(`warning: ${name}: annotation ${n} has no bounding_box, skipped`);
     }
     const png = await readFile(join(raw, name));
-    // Phone captures fall back to badges where no caption spot is clear; desktop keeps captions.
-    const captionStyle = isBadgeOnly(forced, parsed)
-      ? "badge"
-      : parsed.width < 900
-        ? "auto"
-        : "full";
+    const captionStyle = isBadgeOnly(forced, parsed) ? "badge" : theme.captionStyle;
     const { pngDimensions } = await viewer("burn.js");
     const dims = pngDimensions(png);
     const dpr = captureRatio({

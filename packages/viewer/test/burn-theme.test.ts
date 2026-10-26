@@ -56,7 +56,7 @@ describe("the default theme", () => {
       paddingY: 8,
       fontFile: null,
       fontWeight: 400,
-      captionStyle: "full",
+      captionStyle: "auto",
       connectorStyle: "auto",
       arrowSize: 8,
       maxWidthRatio: 0.62,

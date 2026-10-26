@@ -134,7 +134,7 @@ export const DEFAULT_BURN_THEME: BurnTheme = {
   fontFile: null,
   fontWeight: 400,
   connectorStyle: "auto",
-  captionStyle: "full",
+  captionStyle: "auto",
   arrowSize: 8,
   maxWidthRatio: 0.62,
   scale: null,
@@ -149,7 +149,7 @@ export type ThemeLayer = Partial<BurnTheme>;
 const PLAIN_SIZING = {
   fontWeight: 400,
   connectorStyle: "auto",
-  captionStyle: "full",
+  captionStyle: "auto",
   arrowSize: 8,
   maxWidthRatio: 0.62,
   scale: null,
