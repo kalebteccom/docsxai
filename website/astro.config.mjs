@@ -141,6 +141,8 @@ export default defineConfig({
         styleOverrides: {
           borderRadius: "0.5rem",
           borderColor: "var(--docsx-code-border)",
+          // Flat frames: no drop shadow under code blocks.
+          frames: { frameBoxShadowCssValue: "none" },
           codeFontFamily: "var(--docsx-font-mono)",
         },
       },

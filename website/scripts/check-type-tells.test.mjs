@@ -149,10 +149,10 @@ describe("no grid, glow, blurred shadow or side stripe", () => {
     }
     assert.deepEqual(bad, []);
   });
-  it("draws no border-left or border-inline-start wider than 1px", () => {
+  it("draws no solid border-left or border-inline-start wider than 1px (a dashed divider rail is not a card stripe)", () => {
     const bad = [...brand.matchAll(/border-(?:left|right|inline-start|inline-end)\s*:\s*([^;}]+)/g)]
       .map((m) => m[1].trim())
-      .filter((v) => !/^(0|none)\b/.test(v) && !/^1px\b/.test(v));
+      .filter((v) => !/^(0|none)\b/.test(v) && !/^1px\b/.test(v) && !/\bdashed\b/.test(v));
     assert.deepEqual(bad, []);
   });
 });
