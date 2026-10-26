@@ -7,7 +7,7 @@
 //
 // `--raw` is read in either layout, detected from the file names (anything else is ignored):
 //   flat     <screen>.<locale>.<theme>.<width>.png with a .json sidecar beside it
-//            (trackxai/raw-capture-sidecar@1, annotations with bounding_box)
+//            (docsxai/raw-capture-sidecar@1, annotations with bounding_box)
 //   rawcap   <flow>/<step>/<locale>.<theme>.<viewport>.png with a .json sidecar beside it
 //            ({ width, height, annotations: [{ index, copy, bbox, obstacles, ... }] })
 // Frames are those of `--theme` (default dark), `--locale` (default en) and `--widths` (default
@@ -66,7 +66,7 @@ async function burnFrame(frame, raw, theme, mods) {
   } catch (e) {
     throw new Error(`${frame.json}: ${e.code === "ENOENT" ? "missing" : e.message}`);
   }
-  const { records } = readSidecar(doc, frame.json, frame);
+  const { records, legacy } = readSidecar(doc, frame.json, frame);
   const png = await readFile(join(raw, frame.png));
   const { width, height } = mods.burn.pngDimensions(png);
   const pixelRatio = probeRatio(doc, frame, width);
@@ -103,6 +103,7 @@ async function burnFrame(frame, raw, theme, mods) {
   });
   return {
     png: rendered.png,
+    legacy: legacy === true,
     rows: frameRows(frame, records, report, connectors, { width, height, dpr: pixelRatio }),
   };
 }
@@ -157,11 +158,13 @@ async function main() {
   await mkdir(join(out, "previews"), { recursive: true });
   const rows = [];
   const errors = [];
+  let legacy = 0;
   for (const frame of frames) {
     try {
       const burned = await burnFrame(frame, raw, theme, mods);
       await writeFile(join(out, "previews", previewName(frame)), burned.png);
       rows.push(...burned.rows);
+      if (burned.legacy) legacy += 1;
     } catch (e) {
       errors.push({ frame: frame.label, message: e.message });
       console.error(`burn-probe-batch: ${frame.label}: ${e.message}`);
@@ -178,6 +181,7 @@ async function main() {
     rows,
     frames: frames.length,
     errors,
+    legacy,
   });
   const reportFile = join(out, "report.md");
   await writeFile(reportFile, report);

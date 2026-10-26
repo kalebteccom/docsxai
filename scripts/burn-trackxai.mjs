@@ -6,7 +6,7 @@
 //     [--manifest-in <manifest.json>] [--compare <dir>] [--webp] [--dpr 2]
 //
 // `--raw` holds `<screen>.<locale>.<theme>.<width>.png` with a `.json` sidecar beside each
-// (schema trackxai/raw-capture-sidecar@1: `annotations[]` of burner records with `bounding_box`
+// (schema docsxai/raw-capture-sidecar@1: `annotations[]` of burner records with `bounding_box`
 // and `obstacles`). Each matching raw is burned with examples/burn-theme/trackxai-<theme>.tokens.json
 // and written as `<out>/<desktop-W|mobile-W>/<name>.<hash>.png`, `<hash>` the first 8 hex of the
 // PNG's SHA-256 and `<name>` the screen after `--rename`. `<out>/manifest.json`
@@ -150,6 +150,7 @@ async function main() {
   const entries = [];
   const written = [];
   const shared = new Map();
+  const legacyFiles = [];
   for (const { name, parsed } of files) {
     const sidecarFile = join(raw, name.replace(/\.png$/, ".json"));
     let doc;
@@ -158,7 +159,8 @@ async function main() {
     } catch (e) {
       throw new Error(`${sidecarFile}: ${e.code === "ENOENT" ? "missing" : e.message}`);
     }
-    const { records, skipped } = checkSidecar(doc, sidecarFile, parsed);
+    const { records, skipped, legacy } = checkSidecar(doc, sidecarFile, parsed);
+    if (legacy) legacyFiles.push(name);
     for (const n of skipped) {
       console.error(`warning: ${name}: annotation ${n} has no bounding_box, skipped`);
     }
@@ -248,6 +250,11 @@ async function main() {
     console.error(`removed ${old} and its .webp twin`);
   }
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  if (legacyFiles.length > 0) {
+    console.error(
+      `note: ${legacyFiles.length} sidecar(s) use the schema name "trackxai/raw-capture-sidecar@1"; write "docsxai/raw-capture-sidecar@1" instead (the old name still works)`,
+    );
+  }
   for (const f of written) console.log(f);
   console.log(manifestPath);
 }

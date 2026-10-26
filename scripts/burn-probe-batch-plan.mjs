@@ -117,7 +117,7 @@ const isBox = (b) =>
 const box = (b) => ({ x: b.x, y: b.y, width: b.width, height: b.height });
 
 /**
- * The burner records of a sidecar in either shape. A flat sidecar (`trackxai/raw-capture-sidecar@1`,
+ * The burner records of a sidecar in either shape. A flat sidecar (`docsxai/raw-capture-sidecar@1`, or the earlier `trackxai/` name,
  * `bounding_box`) goes through `checkSidecar`. A rawcap sidecar (`{ width, height, annotations:
  * [{ index, copy, bbox, arrow_style?, nudge?, obstacles?, placement? }] }`) is read here; its
  * annotations without a box are kept so the burner skips them. `skipped` lists their 1-based
@@ -293,7 +293,7 @@ function table(rows) {
  * The markdown report. `meta` is `{ layout, theme, locale, widths, tokens }`, `errors` the frames
  * that failed as `{ frame, message }`. CHECK rows come first, then every row in frame order.
  */
-export function formatReport({ meta, rows, frames, errors = [] }) {
+export function formatReport({ meta, rows, frames, errors = [], legacy = 0 }) {
   const s = summarize(frames, rows, errors.length);
   const check = rows.filter((r) => r.verdict === "CHECK");
   const out = [
@@ -314,6 +314,12 @@ export function formatReport({ meta, rows, frames, errors = [] }) {
   if (errors.length > 0) {
     out.push("", "## Frames that failed", "");
     for (const e of errors) out.push(`- ${cell(e.frame)}: ${cell(e.message)}`);
+  }
+  if (legacy > 0) {
+    out.push(
+      "",
+      `Note: ${legacy} sidecar(s) use the schema name \`trackxai/raw-capture-sidecar@1\`. Write \`docsxai/raw-capture-sidecar@1\`; the old name still works.`,
+    );
   }
   out.push("", "## All annotations", "", rows.length === 0 ? "None." : table(rows), "");
   return out.join("\n");

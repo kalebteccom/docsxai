@@ -357,6 +357,14 @@ test("the report lists CHECK rows before the full table and escapes pipes", () =
   });
   assert.match(clean, /## CHECK\n\nNone\./);
   assert.doesNotMatch(clean, /Frames that failed/);
+  assert.doesNotMatch(clean, /earlier|old name/);
+  const legacy = formatReport({
+    meta: { layout: "flat", theme: "dark", locale: "en", widths: [390], tokens: "t.json" },
+    rows: [row(1, "OK")],
+    frames: 1,
+    legacy: 2,
+  });
+  assert.equal(legacy.split("old name still works").length - 1, 1);
 });
 
 test("--project picks the default tokens file and both projects ship one per theme", async () => {

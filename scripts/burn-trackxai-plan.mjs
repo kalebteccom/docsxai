@@ -3,7 +3,9 @@
 
 import { createHash } from "node:crypto";
 
-export const SIDECAR_SCHEMA = "trackxai/raw-capture-sidecar@1";
+export const SIDECAR_SCHEMA = "docsxai/raw-capture-sidecar@1";
+/** Earlier name of the same schema. Still read; writers use `SIDECAR_SCHEMA`. */
+export const SIDECAR_SCHEMA_LEGACY = "trackxai/raw-capture-sidecar@1";
 export const PACK_SCHEMA = "docsxai/screens-pack@1";
 
 const RAW_NAME =
@@ -44,14 +46,15 @@ const isBox = (b) =>
 /**
  * The burner records of a sidecar, checked. Throws with `file` and the annotation's position on
  * anything the burner cannot use. Annotations without a `bounding_box` pass: the burner skips them
- * with a warning. `skipped` lists their positions (1-based).
+ * with a warning. `skipped` lists their positions (1-based). `legacy` is true for the earlier
+ * schema name.
  */
 export function checkSidecar(doc, file, expect) {
   const fail = (msg) => {
     throw new Error(`${file}: ${msg}`);
   };
   if (!isObj(doc)) fail("not a JSON object");
-  if (doc.schema !== SIDECAR_SCHEMA)
+  if (doc.schema !== SIDECAR_SCHEMA && doc.schema !== SIDECAR_SCHEMA_LEGACY)
     fail(`schema must be "${SIDECAR_SCHEMA}", got ${JSON.stringify(doc.schema)}`);
   if (!Array.isArray(doc.annotations)) fail("annotations must be an array");
   const vp = doc.viewport;
@@ -79,7 +82,7 @@ export function checkSidecar(doc, file, expect) {
     }
     return { ...a, step: typeof a.step === "string" ? a.step : String(doc.step ?? "") };
   });
-  return { records, skipped };
+  return { records, skipped, legacy: doc.schema === SIDECAR_SCHEMA_LEGACY };
 }
 
 /** Callout texts the manifest lists: the copy of each drawn annotation, numbered ones by index. */

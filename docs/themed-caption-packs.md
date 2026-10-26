@@ -37,7 +37,7 @@ raw/
 
 ```json
 {
-  "schema": "trackxai/raw-capture-sidecar@1",
+  "schema": "docsxai/raw-capture-sidecar@1",
   "step": "board",
   "viewport": { "width": 390, "height": 844 },
   "annotations": [
