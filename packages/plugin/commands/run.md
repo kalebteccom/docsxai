@@ -23,4 +23,4 @@ Each flow prints `run: <flow>, starting` before its browser launches (`run [<flo
 - Exit 2 is a usage error. The message shows the usage line to fix.
 - `docsxai: interrupted` means Ctrl-C or SIGTERM (exit 130 or 143). The line names the command to rerun, which starts over.
 - Anything else that fails to start: run `docsxai doctor '<workspace-dir>'` and follow each `fail:` line's `next:` step.
-- Burned captions (`docsxai burn`, `docsxai pack`) look small on the page: see "Burned captions" in `/docsxai:calibrate`.
+- Burned captions (`docsxai burn`, `docsxai pack`) look small on the page: see "Burned captions" in `/docsxai:add-flow`.

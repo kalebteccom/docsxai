@@ -1,0 +1,78 @@
+---
+name: add-flow
+description: Use when the user wants to author or re-author docsxai flows and a doc pack for a feature area from a written flow description. Drives the calibration pipeline — discovery → mapping+testing → commit — turning a written flow description (a structured .md flow-guide or loose prose) plus a running target URL into flow-files, screenshots, annotations, a style artifact, and a locator manifest. You (the agent) supply all inference; the engine never calls a model API. Not for re-running flows that already exist (`/docsxai:run`) or a halted run (`/docsxai:diagnose`).
+---
+
+# Adding a flow and its doc pack
+
+This skill is `/docsxai:add-flow` (formerly `/docsxai:calibrate`, deprecated since 0.3.0 and removed in 0.5.0). It ends in `docsxai add-flow`, the CLI command that writes the flow-file.
+
+Inputs you'll be given (as arguments / asked for): a target URL of the _running_ app, a `.md` flow description (structured flow-guide or loose prose), optionally a style-seed source (an existing doc, e.g. a Confluence page), and a workspace directory to write into.
+
+The workflow has three stages: discovery, mapping + testing, commit. The engine exposes no stage functions and no pause/resume protocol; it never returns an ambiguity object. You carry the state. The surface you drive is:
+
+- The `docsxai` CLI (shell out), or the same operations as tools of the optional standalone `@docsxai/mcp` server (repo-only, not on npm; `init_workspace`, `run_flows`, `lint_flows`, `flow_tree`, `diagnose_halt`, `style_check`, `render_viewer`, `list_flows`, `get_annotations`, `get_run_artifacts`, `zip_pack`, `push_pack`, `pull_pack`, `plugins_list`). The MCP server has no browser tools.
+- The live browser, through browxai (stage 1).
+- The workspace files you write by hand: `flows/<flow>.flow.yaml`, `docs/<flow>/<step>.md`, `auth/strategy.yaml`.
+
+Ambiguity is resolved in the conversation: when a step could match several elements, or the prose does not pin one, show the user the candidates and your evidence, then record their pick in the flow-file. One ambiguity per turn. Persist intermediate state in the workspace as you go (flow-files on disk, `run --stop-after` prefixes), so a dropped session resumes from the files.
+
+## 0. Set up the workspace
+
+Skip this when a workspace (a directory with `.docsxai.json`) exists. If the `docsxai` command isn't found, ask the user to install it as the plugin README's Install section says; don't install it yourself. Then, in this order:
+
+1. `docsxai init '<workspace-dir>' --app-url '<url>'`, with `--auth none` for an app that needs no login. Put the workspace outside the app's repo. Its `next:` line lists `capture-auth` (not for `--auth none`), `add-flow`, `run` and `render`.
+2. `docsxai doctor '<workspace-dir>'`. Fix each `fail:` line from its `next:` step before going on.
+3. `docsxai capture-auth '<workspace-dir>'` when the app needs a login. With the default `manual-capture` strategy it opens a headed browser and needs a human, so ask the user to do it. Skip it for `--auth none`.
+4. Stage 1 below, then `docsxai add-flow '<workspace-dir>' --from '<flow.yaml>'` once the flow-file exists. `flows/example.flow.yaml.sample` in a new workspace is a flow-file to start from.
+
+When a command fails, its error carries an indented `next: <command>` line when there is one; run that. A halted `run` prints a `<flow>: next: <command>` line per failed flow instead. For anything the message doesn't explain, run `docsxai doctor '<workspace-dir>'`, and for a halted `run`, `docsxai diagnose` (`/docsxai:diagnose`).
+
+## 1. Discovery — walk the live site
+
+Drive the operator's live browser through a **host-agent-drivable browser API over MCP** (the BYOB pattern: the engineer is already authenticated to the target site there — never ask for credentials, never put credentials anywhere). The canonical, model-agnostic driver is **[browxai](https://github.com/kalebteccom/browxai)** — an MCP-native browser bridge with a capability system, allowlist, confirm hooks, and a managed-Chrome lifecycle. **Setup:** `browxai init "$WORKSPACE/.browxai"` bootstraps the workspace and writes both managed + BYOB MCP entries; `browxai chrome start --insecure` owns the `--cdp` Chrome lifecycle (a one-command alternative to a manual `--remote-debugging-port` invocation); `browxai doctor` health-checks the environment. For an authed target, pick the `browxai-attached` MCP entry once that Chrome is up. The host agent gets `find(query)` (ranked candidate locators with `selectorHint` + `stability` + visible-rect bbox + `actionable`), `snapshot()` (a11y tree augmented with DOM-walk; `[from-dom]`/`[from-both]` markers), persistent refs + `name_ref`/`named:` for cross-snapshot bindings, `find_feedback` for session-scoped learned ranking, action primitives that report what changed, `await_human` (kinds: `acknowledge`/`confirm`/`choose`/`input`), `start_recording`/`end_recording` to record a calibration walk and emit a draft docsxai flow-file YAML, plus screenshots / console / network reads. **Read `<browxai>/AGENT-RUNBOOK.md` for the full tool surface, snapshot output legend, locator-disambiguation idioms (`:visible`, `nth-match`), `stability` semantics, and capability/security knobs — docsxai doesn't duplicate that content.** Fallbacks if browxai misbehaves on a specific page: `docsxai inspect "$WORKSPACE" --cdp <endpoint>` or `chromium.connectOverCDP(...)` directly. _Legacy:_ Anthropic's **Claude in Chrome** extension (`mcp__claude-in-chrome__*`) is still a valid Claude-Code-only driver but isn't the canonical path. For each flow in the description:
+
+- Reproduce the steps in the live page; for each step, find the element the prose refers to.
+- **Expect under-specification** — real flow descriptions are looser than the elements you'll find. When a step is ambiguous (multiple plausible elements, or the prose doesn't pin one), stop and resolve it _with the user_ (show the candidates + your evidence) rather than guessing. Under-specification is the norm, not the edge case.
+- Capture: the page structure, candidate locators (prefer role/text/test-id over brittle CSS), the bounding box of the target, and a clean screenshot per step (no baked annotations).
+
+Output of discovery: candidate flow steps + locators + screenshots, with ambiguities resolved.
+
+## 2. Mapping + testing — pin locators, verify the flow runs
+
+- Settle on **one canonical locator per step** — no fallback lists. If you can't pick one confidently, surface candidates.
+- Add async primitives where the live walk showed instability: `wait_for: network_idle` / `wait_for: element_stable` / `wait_for: load` / `wait_for: settled` (fonts, images and layout; replaces chains of blind `wait` steps) / explicit timeouts — document known flakiness inline in the flow-file.
+- For **conditionally-present UI** (a confirmation modal that sometimes appears, a first-run tooltip, a cookie banner, an A/B variant) mark the step `optional: true` — the engine skips it (logs to stderr, no screenshot/annotation) instead of halting if its action/wait/success throws. Don't fake this with a permissive comma-selector that no-ops on one branch; `optional: true` is the first-class primitive.
+- Add a `success` criterion per step (visible/hidden element, URL match, text contains) so deterministic execution can halt on drift.
+- **Validate determinism:** write the candidate flow-file in the engine's flow-file format (`docsxai add-flow --from` takes a structured guide; loose prose you translate by hand), run `docsxai lint` and `docsxai flow-tree` on it, then run it via `docsxai run` headlessly (no agent context). While iterating, `run --flow <name> --stop-after <step-id>` runs a prefix and `--start-from <step-id> --cdp <endpoint>` replays a tail step against a Chrome already in the right state — it must reproduce the docs. If it doesn't, the flow-file isn't right yet; iterate. Prove the replay with `docsxai run '<workspace-dir>' --verify-determinism`: it runs the flows 2 to 5 times and byte-compares every artefact, and it writes the workspace output only when all runs agree. A flow with a top-level `matrix:` (locales, color_schemes, viewports) expands into one variant per combination (`docs/<flow>/<variant>/`, id `<locale>.<scheme>.<viewport>`); an annotation's `copy_by_locale` gives each locale its own callout text; `run --variant <id>` runs one, and `--cdp` cannot run a matrix flow. This is the architectural keystone — don't ship a doc pack that doesn't replay.
+- Also write the **target-site auth descriptor** (`auth/strategy.yaml`) if execution-mode runs will need it. Pick the strategy from the app's auth scheme — API-direct login if there's a callable login endpoint (cheapest/most robust); a test-only login backdoor if the app provides one; otherwise, for an app whose login can't be replayed headlessly (SSO / MFA / conditional access), `manual-capture` (host-spawned instrumented Chrome → engineer logs in → console/button captures `storageState`; cached `store: local`). For `manual-capture`: when `docsxai capture-auth` runs it prints the captured cookie jar — **identify the app's real auth/session cookie** (on the app's own domain, the long-lived one — e.g. `session` / `connect.sid` / `JSESSIONID` / `.AspNetCore.Cookies` / `<AppName>Identity*` — _not_ the ephemeral IdP scratch cookies an SSO login leaves) and set `roles.<role>.cache.auth_cookie: <name>` (or pass `--auth-cookie <name>`), so the cached session's expiry tracks that cookie rather than the `ttl` fallback (don't trust `min(cookie.expires)` — it ≈ now right after an SSO login).
+
+## 3. Commit — emit user-facing docs
+
+- Run the style-discovery step if a style seed was given (extract voice/structure/terminology/visual/localisation + **pruning rules** — categories of testing jargon to strip); `docsxai style <workspace>` initialises `docs/style.yaml` (+ derived `docs/style.json`) if absent and validates it otherwise; you fill in the extracted values by hand. If no seed, use sensible defaults.
+- For each step, write a user-facing prose write-up to `docs/<flow>/<step>.md` using the style artifact. **Semantic reshape:** the input may be written for _testing_ (`VERIFY`, `WAIT`, internal locator names, network-verification blocks) — strip all of that; end users never see testing jargon.
+- Put each step's user-facing callout in the flow-file's `annotation` / `annotations` entries. `docsxai run` emits `docs/<flow>/annotations.json` (per step: step id, resolved selector, bounding box, copy, arrow style) and the screenshots; you do not write `annotations.json` by hand. `docs/locators.yaml` (one canonical locator per step) is an optional manifest nothing generates; write it by hand if you want it in the pack. Run `docsxai style <workspace> --check` to scan the write-ups for testing-jargon leaks.
+- If multiple flows form one feature area, chain them into one coherent guide — one consolidated, scrollable document on delivery, not a page tree. When several of them share a preamble (e.g. Library → open a video → editor → some panel), factor that preamble into its own flow-file (_no `annotation`s_) and have each dependent flow start with `extends: <preamble-flow>` — the engine runs the parent's steps first, so calibrating/iterating a child is cheap and the un-annotated parent adds no doc noise; `run --stop-after <step-id>` operates on the merged step list (so it can target a parent step), and `wait_for: { selector: $x, timeout_ms: <ms> }` overrides the default ~30s selector-wait for slow backend ops.
+
+## Persistence & delivery
+
+Persist the doc pack to a backend with `/docsxai:push` (OAuth or `DOCSX_TOKEN` auth, workspace-scoped, linear immutable revisions). `docsxai init --persist tmp` makes a throwaway workspace for sandbox or eval runs. Then build the viewer (`/docsxai:render`). Page text is English unless you pass `docsxai render <workspace-dir> --lang es` (a matrix variant flow uses its own locale), and `docsxai site <workspace-dir> --lang es` emits the Starlight docs site in Spanish. For a static delivery, `docsxai burn` bakes the annotations into PNG copies and `docsxai pack` builds the screenshot pack a docs site ships (`pack --check --against <pack-dir>` compares it with a committed one); none of `site`, `burn` and `pack` has a slash command. To deliver into another docs tool, compose the output into it via the relevant MCP (e.g. Confluence MCP) with credentials the docs owner provides at hand-off. Don't keep long-lived credentials; the engine has no Confluence dependency.
+
+## Burned captions
+
+`docsxai burn` and `docsxai pack` draw the halo, badge and callout into the screenshot, and the page then scales the whole image to its column. A 1440 px screenshot in a 720 px column shows 14 px text at 7 px. When you see captions that look small, set `burn.theme` in the workspace's `.docsxai.json`: the `readable` preset, and `display_width` to the width in CSS px the page shows the screenshot at.
+
+```json
+{ "burn": { "theme": { "preset": "readable", "display_width": 720 } } }
+```
+
+- `readable` sets `scale` to `"auto"`: the factor is screenshot width over `display_width` (at least the capture's pixel ratio, at most 4 times it), so the caption reads at its set size once scaled down. It sets 15 px text, ink on near-white at WCAG AA.
+- `display_width` is 240 to 2400 and defaults to 720. A 780 px phone screenshot shown at 358 px needs 358, since the default gives it 7.5 px text. One workspace with both sizes writes `{ "default": 720, "narrow": 358, "narrow_below": 900 }`: a screenshot narrower than `narrow_below` px (default 900) uses `narrow`.
+- Screenshots narrower than `display_width` keep base size, so one block serves phone and desktop captures.
+- Any key in the block overrides the preset. `burn`, `pack` and `render` print a warning when a text pair falls under WCAG AA. `docsxai doctor` checks the block's shape, and `burn` checks its values.
+
+Full key list and the tokens file: `docs/burn-theming.md` in the docsxai repository.
+
+## When a calibrated flow later breaks
+
+That's not this skill — it's `/docsxai:diagnose` (the explicit, opt-in failure path). Deterministic execution is never ambient-recalibrated.

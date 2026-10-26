@@ -63,7 +63,7 @@ describe("a value flag with no value is a usage error, not a flag to ignore", ()
     [["push", "--kind"], "push", "kind"],
     [["pull", "--rev"], "pull", "rev"],
     [["init", "--app-url"], "init", "app-url"],
-    [["calibrate", "--name"], "calibrate", "name"],
+    [["add-flow", "--name"], "add-flow", "name"],
     [["diagnose", "--cdp"], "diagnose", "cdp"],
   ])("%j", async (argv, label, flag) => {
     const [cmd, ...rest] = argv;
@@ -114,7 +114,7 @@ describe("--start-from and --stop-after name the flag's meaning, not an internal
   });
 });
 
-describe("calibrate", () => {
+describe("add-flow", () => {
   it("a .yaml flow-file with a schema error names the field", () => {
     const bad = "name: x\nsteps:\n  - id: a\n    action: teleport\n";
     expect(() => extractFlowFile(bad, "g.flow.yaml")).toThrow(/steps\.0\.action/);
@@ -142,9 +142,9 @@ describe("calibrate", () => {
   it("a bad --name points at --name, not at the flow-file", async () => {
     const file = path.join(tmp, "g.flow.yaml");
     await fs.writeFile(file, GOOD_FLOW);
-    expect(await main(["calibrate", ws, "--from", file, "--name", "bad name"])).toBe(1);
-    expect(err).toContain('calibrate: flow name "bad name" is not usable');
-    expect(err).toContain(`next: docsxai calibrate ${ws} --from ${file} --name <flow>`);
+    expect(await main(["add-flow", ws, "--from", file, "--name", "bad name"])).toBe(1);
+    expect(err).toContain('add-flow: flow name "bad name" is not usable');
+    expect(err).toContain(`next: docsxai add-flow ${ws} --from ${file} --name <flow>`);
     expect(err).not.toContain(`next: fix ${file}`);
   });
 });
@@ -243,7 +243,7 @@ describe("run with a flow that does not exist", () => {
   it("ends with the command that lists or creates flows", async () => {
     expect(await main(["run", ws, "--flow", "nope"])).toBe(1);
     expect(err).toContain('run: no flow named "nope" (flows: none)');
-    expect(err).toContain(`next: docsxai calibrate ${ws} --from <flow.yaml>`);
+    expect(err).toContain(`next: docsxai add-flow ${ws} --from <flow.yaml>`);
     err = "";
     await writeFlow("ok", GOOD_FLOW);
     expect(await main(["run", ws, "--flow", "nope"])).toBe(1);

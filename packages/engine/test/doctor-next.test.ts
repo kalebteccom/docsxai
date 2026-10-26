@@ -63,9 +63,9 @@ describe("doctorNextStep", () => {
     expect(await doctorNextStep(missing, missing)).toBe(`docsxai init '${missing}' --example`);
   });
 
-  it("points at calibrate when flows/ is empty", async () => {
+  it("points at add-flow when flows/ is empty", async () => {
     const ws = await workspace();
-    expect(await doctorNextStep(ws, ws)).toBe(`docsxai calibrate ${ws} --from <flow.yaml>`);
+    expect(await doctorNextStep(ws, ws)).toBe(`docsxai add-flow ${ws} --from <flow.yaml>`);
   });
 
   it("points at run when there are flows and nothing captured", async () => {
@@ -84,7 +84,7 @@ describe("doctorNextStep", () => {
 
   it("uses . when doctor runs in the workspace without an argument", async () => {
     const ws = await workspace();
-    expect(await doctorNextStep(undefined, ws)).toBe("docsxai calibrate . --from <flow.yaml>");
+    expect(await doctorNextStep(undefined, ws)).toBe("docsxai add-flow . --from <flow.yaml>");
   });
 });
 
@@ -150,7 +150,7 @@ describe("docsxai doctor end to end", () => {
     expect(out).not.toMatch(/layer \d/);
     // The host's Node may be below the floor, so the closing line is either verdict.
     expect(lines.at(-1)).toMatch(
-      /^(ok: doctor: .* next: docsxai calibrate .* --from <flow\.yaml>|fail: doctor: .*)$/,
+      /^(ok: doctor: .* next: docsxai add-flow .* --from <flow\.yaml>|fail: doctor: .*)$/,
     );
   });
 

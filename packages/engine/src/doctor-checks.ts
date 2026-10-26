@@ -208,7 +208,7 @@ export async function checkFlows(workspaceDir: string): Promise<DoctorCheck> {
       name: "flows",
       ok: false,
       detail: `no flows/ directory at ${flowsDir}`,
-      fix: `mkdir ${shellQuote(flowsDir)}, then docsxai calibrate ${shellQuote(workspaceDir)} --from <flow.yaml>`,
+      fix: `mkdir ${shellQuote(flowsDir)}, then docsxai add-flow ${shellQuote(workspaceDir)} --from <flow.yaml>`,
     };
   }
   if (entries.length === 0) {
@@ -216,7 +216,7 @@ export async function checkFlows(workspaceDir: string): Promise<DoctorCheck> {
       name: "flows",
       ok: true,
       info: true,
-      detail: "flows/ is empty, calibrate one, or hand-author flows/<name>.flow.yaml",
+      detail: "flows/ is empty, add one with add-flow, or hand-author flows/<name>.flow.yaml",
     };
   }
   for (const entry of entries) {

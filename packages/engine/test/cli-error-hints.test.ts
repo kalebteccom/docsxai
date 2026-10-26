@@ -62,14 +62,14 @@ describe("init", () => {
     const withLogin = path.join(tmp, "with-login");
     expect(await main(["init", withLogin, "--app-url", "http://127.0.0.1:1"])).toBe(0);
     expect(out).toContain(
-      `next: docsxai capture-auth ${withLogin}  →  docsxai calibrate ${withLogin} --from <flow.yaml>`,
+      `next: docsxai capture-auth ${withLogin}  →  docsxai add-flow ${withLogin} --from <flow.yaml>`,
     );
     out = "";
     const noLogin = path.join(tmp, "no-login");
     expect(await main(["init", noLogin, "--app-url", "http://127.0.0.1:1", "--auth", "none"])).toBe(
       0,
     );
-    expect(out).toContain(`next: docsxai calibrate ${noLogin} --from <flow.yaml>`);
+    expect(out).toContain(`next: docsxai add-flow ${noLogin} --from <flow.yaml>`);
     expect(out).not.toContain("capture-auth");
   });
 
@@ -81,17 +81,17 @@ describe("init", () => {
   });
 });
 
-describe("calibrate", () => {
+describe("add-flow", () => {
   it("names the error code when --from cannot be read", async () => {
-    expect(await main(["calibrate", tmp, "--from", path.join(tmp, "missing.md")])).toBe(1);
-    expect(err).toMatch(/calibrate: cannot read .*missing\.md \(ENOENT\); check the path/);
+    expect(await main(["add-flow", tmp, "--from", path.join(tmp, "missing.md")])).toBe(1);
+    expect(err).toMatch(/add-flow: cannot read .*missing\.md \(ENOENT\); check the path/);
   });
 
   it("ends a flow-guide problem with the command to retry", async () => {
     const guide = path.join(tmp, "guide.md");
     await fs.writeFile(guide, "no yaml fence in here\n");
-    expect(await main(["calibrate", tmp, "--from", guide])).toBe(1);
-    expect(err).toContain(`next: fix ${guide}, then docsxai calibrate ${tmp} --from ${guide}`);
+    expect(await main(["add-flow", tmp, "--from", guide])).toBe(1);
+    expect(err).toContain(`next: fix ${guide}, then docsxai add-flow ${tmp} --from ${guide}`);
   });
 });
 
@@ -215,7 +215,7 @@ describe("next: hints quote a workspace path that is not a plain word", () => {
     expect(err).toContain(`next: fix the flow-file, then docsxai flow-tree ${quoted()}`);
   });
 
-  it("zip and calibrate quote the path and the flow-guide", async () => {
+  it("zip and add-flow quote the path and the flow-guide", async () => {
     const empty = path.join(tmp, "an empty dir");
     await fs.mkdir(empty);
     expect(await main(["zip", empty, "--out", path.join(tmp, "x.zip")])).toBe(1);
@@ -224,9 +224,9 @@ describe("next: hints quote a workspace path that is not a plain word", () => {
     err = "";
     const guide = path.join(tmp, "my guide.md");
     await fs.writeFile(guide, "no yaml fence in here\n");
-    expect(await main(["calibrate", empty, "--from", guide])).toBe(1);
+    expect(await main(["add-flow", empty, "--from", guide])).toBe(1);
     expect(err).toContain(
-      `next: fix '${guide}', then docsxai calibrate '${empty}' --from '${guide}'`,
+      `next: fix '${guide}', then docsxai add-flow '${empty}' --from '${guide}'`,
     );
   });
 
@@ -249,11 +249,11 @@ describe("no workspace", () => {
     }
   });
 
-  it("run on an empty flows/ names calibrate", async () => {
+  it("run on an empty flows/ names add-flow", async () => {
     const ws = await scaffold("--auth", "none");
     await fs.rm(path.join(ws, "flows", "clean.flow.yaml"));
     expect(await main(["run", ws])).toBe(1);
-    expect(err).toContain(`next: docsxai calibrate ${ws} --from <flow.yaml>`);
+    expect(err).toContain(`next: docsxai add-flow ${ws} --from <flow.yaml>`);
   });
 });
 

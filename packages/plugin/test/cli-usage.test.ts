@@ -230,8 +230,8 @@ describe("prose claims against engine, viewer and mcp source", () => {
       const m = /^\s*name:\s*"([a-z_]+)"/m.exec(await read(dir, file));
       if (m) registered.push(m[1]!);
     }
-    const calibrate = await read(pluginDir, "skills", "calibrate", "SKILL.md");
-    const sentence = /\(repo-only, not on npm; ([^)]+)\)/.exec(calibrate)?.[1] ?? "";
+    const addFlow = await read(pluginDir, "skills", "add-flow", "SKILL.md");
+    const sentence = /\(repo-only, not on npm; ([^)]+)\)/.exec(addFlow)?.[1] ?? "";
     const named = [...sentence.matchAll(/`([a-z_]+)`/g)].map((m) => m[1]!);
     expect(named.sort()).toEqual(registered.sort());
   });
@@ -239,7 +239,7 @@ describe("prose claims against engine, viewer and mcp source", () => {
   it("states the burn.theme numbers the viewer enforces", async () => {
     const theme = await src("viewer", "src", "burn-theme.ts");
     const fields = await src("viewer", "src", "burn-theme-fields.ts");
-    const skill = await read(pluginDir, "skills", "calibrate", "SKILL.md");
+    const skill = await read(pluginDir, "skills", "add-flow", "SKILL.md");
     expect(theme).toMatch(/THEME_PRESET_NAMES = \[[^\]]*"readable"/);
     expect(fields).toContain("DISPLAY_WIDTH_RANGE = { min: 240, max: 2400 }");
     expect(skill).toContain("240 to 2400");
@@ -265,7 +265,7 @@ describe("prose claims against engine, viewer and mcp source", () => {
     const renderMd = await read(pluginDir, "commands", "render.md");
     expect(renderMd).toContain("--lang es");
     expect(renderMd).not.toMatch(/has no language flag|docsxai-viewer build/);
-    expect(await read(pluginDir, "skills", "calibrate", "SKILL.md")).toMatch(
+    expect(await read(pluginDir, "skills", "add-flow", "SKILL.md")).toMatch(
       /docsxai render <workspace-dir> --lang es.*docsxai site <workspace-dir> --lang es/,
     );
   });

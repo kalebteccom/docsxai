@@ -120,9 +120,9 @@ describe("scaffolded README and sample flow", () => {
   it("names the real commands, and every docsxai subcommand it shows is in the usage text", async () => {
     const text = await readme({ dir: path.join(tmp, "cmds") });
     const shown = [...text.matchAll(/^docsxai ([a-z-]+)/gm)].map((m) => m[1]);
-    expect(shown).toEqual(["doctor", "capture-auth", "calibrate", "run", "render"]);
+    expect(shown).toEqual(["doctor", "capture-auth", "add-flow", "run", "render"]);
     for (const cmd of shown) expect(USAGE).toContain(`docsxai ${cmd} `);
-    expect(text).toContain("docsxai calibrate . --from flows/example.flow.yaml.sample");
+    expect(text).toContain("docsxai add-flow . --from flows/example.flow.yaml.sample");
     expect(text).not.toContain("--description");
   });
 

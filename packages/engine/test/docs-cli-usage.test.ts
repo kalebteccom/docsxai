@@ -82,7 +82,7 @@ describe("the usage grammar", () => {
 
   it("rejects what the CLI would exit 2 on", () => {
     expect(problemsWith("run", true)[0]).toMatch(/missing <workspace-dir>/);
-    expect(problemsWith("calibrate ws", true)[0]).toMatch(/--from is required/);
+    expect(problemsWith("add-flow ws", true)[0]).toMatch(/--from is required/);
     expect(problemsWith("diagnose ws --flow a", true)[0]).toMatch(/--step is required/);
     expect(problemsWith("login ws", true).join()).toMatch(/--backend-url is required/);
     expect(problemsWith("lint ws --format xml", true)[0]).toMatch(/allows text\|json/);
@@ -119,7 +119,7 @@ describe("shell blocks in the docs", () => {
       "docs/ci-recipes.md",
       "packages/engine/README.md",
       "packages/plugin/commands/run.md",
-      "packages/plugin/skills/calibrate/SKILL.md",
+      "packages/plugin/skills/add-flow/SKILL.md",
       "website/src/content/docs/reference/cli.md",
     ]) {
       expect(files).toContain(must);

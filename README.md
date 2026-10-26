@@ -15,7 +15,7 @@ docsxai walks your web application, follows flows you describe in plain files, a
 
 **What you can do with it:**
 
-- Keep an authenticated SaaS app's user guide in sync — calibrate the key flows once, regenerate annotated screenshots on every release so the docs never show stale UI.
+- Keep an authenticated SaaS app's user guide in sync — write the key flows once, regenerate annotated screenshots on every release so the docs never show stale UI.
 - Catch documentation drift in CI — `docsxai baseline` + `docsxai diff --fail-on warn` flags a PR whose UI change breaks a documented flow, before it merges.
 - Publish a polished docs site — emit an Astro Starlight site or a single-file interactive viewer with per-step screenshots, callouts, and captions.
 - Push the same docs into an existing knowledge base — idempotent Confluence Cloud publishing, so re-running an unchanged flow makes zero edits and only real changes land.
@@ -64,7 +64,7 @@ Four words you will meet:
 
 - A **workspace** is a folder docsxai writes into. Keep it outside your app's repo.
 - A **flow** is a YAML file that lists steps: open a page, click a button, check something is visible. One flow is one user guide.
-- To **calibrate** is to write a flow for the first time. You or an AI agent do it once.
+- To **add a flow** is to write it the first time and put it in the workspace with `docsxai add-flow` (formerly `calibrate`). You or an AI agent do it once.
 - A **doc pack** is what a run leaves in the workspace: per flow, an `annotations.json` and its screenshots, next to the flow and style files that produced them.
 
 This walkthrough documents `example.com`, so it needs no login and no app of your own.
@@ -113,7 +113,7 @@ When something fails, every error ends with a `next:` line naming the command to
 | You see                                    | Do this                                                                                                        |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | `no Chromium binary found`                 | `npx playwright-core install chromium`                                                                         |
-| `no flow-files in …/flows`                 | Add one with `docsxai calibrate <workspace> --from <flow.yaml>`.                                               |
+| `no flow-files in …/flows`                 | Add one with `docsxai add-flow <workspace> --from <flow.yaml>`.                                                |
 | `no valid cached session`                  | `docsxai capture-auth <workspace>`, then run again.                                                            |
 | A step halted with a `[cause]` in brackets | `docsxai diagnose <workspace> --flow <name> --step <step-id>`. The halt screenshot is in `docs/<flow>/halts/`. |
 | The app is unreachable                     | Start the app. Check `app_url` in `<workspace>/.docsxai.json`, or pass `--base-url`.                           |
@@ -130,7 +130,7 @@ Next: [quickstart on docsxai.dev](https://docsxai.dev/getting-started/quickstart
 | package                                                     | role                                                                                                                                                                                                       |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`@docsxai/engine`](packages/engine/)                       | The LLM-agnostic engine: flow-file parser + deterministic runtime (environment controls, redaction), the plugin runtime, the 11-strategy auth catalogue, pure exporters (ADF), and the full `docsxai` CLI. |
-| [`@docsxai/plugin`](packages/plugin/)                       | Claude Code plugin — calibrate + diagnose skills; run/render/login/push/pull/doctor/plugins/export commands. The recommended surface for agent-driven workflows.                                           |
+| [`@docsxai/plugin`](packages/plugin/)                       | Claude Code plugin — add-flow + diagnose skills; run/render/login/push/pull/doctor/plugins/export commands. The recommended surface for agent-driven workflows.                                            |
 | [`@docsxai/viewer`](packages/viewer/)                       | Rendering surface: interactive single-file viewer, browser-free `burn` renderer (baked annotations), and the Astro Starlight docs-site emitter.                                                            |
 | [`@docsxai/backend`](packages/backend/)                     | Doc-pack persistence service: FS or in-memory store, content-addressed blobs, finalized linear-immutable revisions, OAuth 2.1 + PKCE, encrypted auth-cache relay, GitHub App webhook surface.              |
 | [`@docsxai/skill`](packages/skill/)                         | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                                                             |

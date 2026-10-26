@@ -109,7 +109,7 @@ export async function cmdInit(args: string[]): Promise<number> {
     // An `--auth none` workspace has no auth descriptor, so capture-auth has nothing to run.
     const login = auth === "none" ? "" : `docsxai capture-auth ${dirArg}  →  `;
     process.stdout.write(
-      `  next: ${appUrl ? "" : "(set app_url in .docsxai.json, then) "}${login}docsxai calibrate ${dirArg} --from <flow.yaml>  →  docsxai run ${dirArg}  →  docsxai render ${dirArg}\n`,
+      `  next: ${appUrl ? "" : "(set app_url in .docsxai.json, then) "}${login}docsxai add-flow ${dirArg} --from <flow.yaml>  →  docsxai run ${dirArg}  →  docsxai render ${dirArg}\n`,
     );
     return 0;
   } catch (e) {

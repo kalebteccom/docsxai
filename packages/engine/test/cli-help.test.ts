@@ -34,7 +34,7 @@ describe("no-argument screen", () => {
       "  1. docsxai init <workspace-dir> --example",
       "  2. docsxai run <workspace-dir>",
       "  3. docsxai render <workspace-dir> --open",
-      "Your own app: docsxai init <workspace-dir> --app-url <url>, then calibrate a flow.",
+      "Your own app: docsxai init <workspace-dir> --app-url <url>, then docsxai add-flow.",
     ]);
     const titles = ["Getting started", "Run and verify", "Publish", "Packs", "Auth", "Plugins"];
     for (const title of [...titles, "Diagnostics"]) expect(out).toContain(`\n${title}:\n`);
@@ -91,7 +91,7 @@ describe("unknown command", () => {
   });
 
   it("suggests within edit distance 2 only", () => {
-    expect(suggestCommand("calibrat")).toBe("calibrate");
+    expect(suggestCommand("add-flw")).toBe("add-flow");
     expect(suggestCommand("flowtree")).toBe("flow-tree");
     expect(suggestCommand("lnt")).toBe("lint");
     expect(suggestCommand("frobnicate")).toBeUndefined();

@@ -1,5 +1,5 @@
 // Runtime / session commands — the ones that stand up a workspace or drive a live browser:
-//   calibrate     — write flows/<name>.flow.yaml from a structured flow-guide
+//   add-flow      — write flows/<name>.flow.yaml from a structured flow-guide
 //   run           — execute the workspace's flows against the live app, emitting annotations
 //
 // These reach into the engine's heavier subsystems (Playwright, auth, the flow runtime); the
@@ -196,9 +196,9 @@ export async function cmdRun(args: string[]): Promise<number> {
             `no flow named "${onlyFlow}" (flows: ${knownFlows.join(", ") || "none"})`,
             knownFlows.length > 0
               ? `docsxai flow-tree ${shellQuote(projectDir)}  (lists the flows), then pass --flow <name>`
-              : `docsxai calibrate ${shellQuote(projectDir)} --from <flow.yaml>`,
+              : `docsxai add-flow ${shellQuote(projectDir)} --from <flow.yaml>`,
           )}\n`
-        : `run: ${withNext(`no flow-files in ${projectDir}/flows`, `docsxai calibrate ${shellQuote(projectDir)} --from <flow.yaml>`)}\n`,
+        : `run: ${withNext(`no flow-files in ${projectDir}/flows`, `docsxai add-flow ${shellQuote(projectDir)} --from <flow.yaml>`)}\n`,
     );
     return 1;
   }
@@ -341,20 +341,17 @@ export async function cmdRun(args: string[]): Promise<number> {
   return anyFailed ? 1 : 0;
 }
 
-export async function cmdCalibrate(args: string[]): Promise<number> {
-  const parsed = parseCommandFlags("calibrate", args);
+export async function cmdAddFlow(args: string[]): Promise<number> {
+  const parsed = parseCommandFlags("add-flow", args);
   if (typeof parsed === "number") return parsed;
   const { positionals, flags } = parsed;
   const workspaceDir = positionals[0];
-  if (!workspaceDir) return usageError("calibrate", "missing <workspace-dir>");
-  const bareCalibrate = bareValueFlagExit("calibrate", flags, ["from", "name"]);
+  if (!workspaceDir) return usageError("add-flow", "missing <workspace-dir>");
+  const bareCalibrate = bareValueFlagExit("add-flow", flags, ["from", "name"]);
   if (bareCalibrate !== undefined) return bareCalibrate;
   const from = typeof flags.get("from") === "string" ? (flags.get("from") as string) : undefined;
   if (!from) {
-    return usageError(
-      "calibrate",
-      "--from <flow.md|.yaml> is required (the structured flow-guide)",
-    );
+    return usageError("add-flow", "--from <flow.md|.yaml> is required (the structured flow-guide)");
   }
   const flowName =
     typeof flags.get("name") === "string" ? (flags.get("name") as string) : undefined;
@@ -363,7 +360,7 @@ export async function cmdCalibrate(args: string[]): Promise<number> {
     text = await fs.readFile(from, "utf8");
   } catch (e) {
     const code = (e as NodeJS.ErrnoException).code ?? "unreadable";
-    process.stderr.write(`calibrate: cannot read ${from} (${code}); check the path\n`);
+    process.stderr.write(`add-flow: cannot read ${from} (${code}); check the path\n`);
     return 1;
   }
   try {
@@ -373,19 +370,19 @@ export async function cmdCalibrate(args: string[]): Promise<number> {
       fromSource: from,
       ...(flowName ? { flowName } : {}),
     });
-    process.stdout.write(`calibrate: wrote ${r.flowFilePath}  (${r.flow.steps.length} steps)\n`);
-    if (r.wroteStyle) process.stdout.write(`calibrate: wrote default ${r.stylePath}\n`);
+    process.stdout.write(`add-flow: wrote ${r.flowFilePath}  (${r.flow.steps.length} steps)\n`);
+    if (r.wroteStyle) process.stdout.write(`add-flow: wrote default ${r.stylePath}\n`);
     process.stdout.write(
       `  next: docsxai run ${shellQuote(workspaceDir)}  (then: docsxai render ${shellQuote(workspaceDir)})\n`,
     );
     return 0;
   } catch (e) {
-    const rerun = `docsxai calibrate ${shellQuote(workspaceDir)} --from ${shellQuote(from)}`;
+    const rerun = `docsxai add-flow ${shellQuote(workspaceDir)} --from ${shellQuote(from)}`;
     const next =
       e instanceof CalibrateError && e.field === "name-flag"
         ? `${rerun} --name <flow>`
         : `fix ${shellQuote(from)}, then ${rerun}`;
-    process.stderr.write(`calibrate: ${withNext((e as Error).message, next)}\n`);
+    process.stderr.write(`add-flow: ${withNext((e as Error).message, next)}\n`);
     return 1;
   }
 }

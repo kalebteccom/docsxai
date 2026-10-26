@@ -115,7 +115,7 @@ describe("CLI exit-code contract", () => {
 
   const needsWorkspace = [
     "init",
-    "calibrate",
+    "add-flow",
     "inspect",
     "run",
     "render",
