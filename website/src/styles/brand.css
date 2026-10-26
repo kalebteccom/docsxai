@@ -1,16 +1,21 @@
 /*
- * docsxai brand layer.
+ * docsxai site layer.
  *
- * Dark-first, built on the ember palette (golden bronze) over a deep ember-black
- * canvas, with a crafted warm-light mode and a frosted-glass treatment on the
- * landing and doc surfaces. Display type is Poppins; body is Inter; code is
- * JetBrains Mono. Everything here overrides Starlight's design tokens plus a
- * few hand-built components. No external CSS, no CDN fonts.
+ * Dark-first, with a warm-light mode. The accent is a golden bronze on a deep
+ * ember-black canvas (cream in light). Surfaces are flat: a hairline border, no
+ * glow, no grid, no drop shadow. Display type is Poppins, body text is the system
+ * sans stack, and JetBrains Mono is for code only: code blocks, inline code,
+ * command snippets and file contents. Labels, eyebrows, numbers, chips and nav
+ * chrome use the body font, in sentence case with no letter-spacing.
+ * scripts/check-type-tells.test.mjs fails on mono, grid, glow, side-stripe and
+ * wide-tracking regressions in this file. Everything here overrides Starlight's
+ * design tokens plus a few hand-built components. No external CSS, no CDN fonts.
  */
 
 :root {
   --docsx-font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
-  --docsx-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --docsx-font-body:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, sans-serif;
   --docsx-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Brand accent scale (ember / golden bronze). */
@@ -44,11 +49,8 @@
   --sl-color-bg-nav: color-mix(in srgb, #140d04 72%, transparent);
   --sl-color-bg-sidebar: #1f1407;
   --sl-color-hairline-shade: #38240f;
-  --docsx-grid-line: color-mix(in srgb, var(--docsx-amber-400) 10%, transparent);
-  --docsx-glow: color-mix(in srgb, var(--docsx-amber-400) 28%, transparent);
-  --docsx-glow-2: color-mix(in srgb, var(--docsx-gold) 22%, transparent);
-  --docsx-glass: color-mix(in srgb, #ffffff 5%, transparent);
-  --docsx-glass-border: color-mix(in srgb, #ffffff 11%, transparent);
+  --docsx-glass: color-mix(in srgb, var(--sl-color-white) 5%, transparent);
+  --docsx-glass-border: color-mix(in srgb, var(--sl-color-white) 11%, transparent);
 }
 
 /* Light theme. */
@@ -62,10 +64,7 @@
   --sl-color-bg-nav: color-mix(in srgb, #fdfaf3 70%, transparent);
   --sl-color-bg-sidebar: #f7efda;
   --sl-color-hairline-shade: #ecdbb4;
-  --docsx-grid-line: color-mix(in srgb, var(--docsx-amber-700) 9%, transparent);
-  --docsx-glow: color-mix(in srgb, var(--docsx-amber-500) 16%, transparent);
-  --docsx-glow-2: color-mix(in srgb, var(--docsx-gold) 13%, transparent);
-  --docsx-glass: color-mix(in srgb, #ffffff 60%, transparent);
+  --docsx-glass: color-mix(in srgb, var(--sl-color-bg) 60%, transparent);
   --docsx-glass-border: color-mix(in srgb, var(--docsx-amber-700) 13%, transparent);
 }
 
@@ -151,6 +150,18 @@ h1#_top,
   letter-spacing: -0.03em;
 }
 
+/* Headings wrap balanced at every level. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.docsx-wordmark,
+.docsx-404-code {
+  text-wrap: balance;
+}
+
 /* Selection in the brand accent. */
 ::selection {
   background: color-mix(in srgb, var(--docsx-amber-400) 30%, transparent);
@@ -230,32 +241,6 @@ main:has(.docsx-404) > .content-panel {
   min-width: 0;
 }
 
-/* A faint targeting grid + glow behind the hero, masked to fade out. */
-.docsx-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  background-image:
-    linear-gradient(to right, var(--docsx-grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--docsx-grid-line) 1px, transparent 1px);
-  background-size: 46px 46px;
-  -webkit-mask-image: radial-gradient(85% 80% at 50% 0%, #000 0%, transparent 72%);
-  mask-image: radial-gradient(85% 80% at 50% 0%, #000 0%, transparent 72%);
-}
-.docsx-hero::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: -8%;
-  left: 34%;
-  width: 56%;
-  height: 95%;
-  background: radial-gradient(50% 60% at 60% 30%, var(--docsx-glow) 0%, transparent 70%);
-  filter: blur(26px);
-  pointer-events: none;
-}
-
 .docsx-wordmark {
   font-family: var(--docsx-font-display);
   font-weight: 700;
@@ -269,10 +254,9 @@ main:has(.docsx-404) > .content-panel {
 }
 
 .docsx-kicker {
-  font-family: var(--docsx-font-mono);
-  font-size: 0.82rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-family: var(--docsx-font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
   color: var(--sl-color-text-accent);
   margin: 0 0 1.5rem;
   display: inline-flex;
@@ -285,13 +269,12 @@ main:has(.docsx-404) > .content-panel {
   height: 7px;
   border-radius: 999px;
   background: var(--sl-color-text-accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--docsx-amber-400) 25%, transparent);
 }
 
 .docsx-lede {
   font-size: clamp(1.05rem, 1.6vw, 1.28rem);
   line-height: 1.6;
-  max-width: 42ch;
+  max-width: 46ch;
   color: var(--sl-color-gray-2);
   margin: 1.8rem 0 3.25rem;
 }
@@ -315,21 +298,17 @@ main:has(.docsx-404) > .content-panel {
   padding: 0.8rem 1.3rem;
   transition:
     transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background 0.12s ease;
+    background-color 0.12s ease;
 }
 .docsx-btn--primary {
-  /* Dark text on the gold gradient: 6.9:1 to 9.1:1 (WCAG AA). White text on
-     this gradient measured 2.8:1 to 4.1:1. */
-  background: linear-gradient(180deg, var(--docsx-amber-400), var(--docsx-amber-500));
+  /* Flat gold with dark text: 9.1:1 on amber-400, 10.9:1 on amber-300 (WCAG AA). White text
+     on the gold measured 2.8:1 to 4.1:1. */
+  background-color: var(--docsx-amber-400);
   color: #140d04;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--docsx-amber-400) 60%, transparent),
-    0 10px 34px -10px var(--docsx-glow);
 }
 .docsx-btn--primary:hover {
   transform: translateY(-2px);
-  background: linear-gradient(180deg, var(--docsx-amber-300), var(--docsx-amber-400));
+  background-color: var(--docsx-amber-300);
 }
 .docsx-btn--ghost {
   border: 1px solid var(--sl-color-gray-5);
@@ -390,6 +369,7 @@ main:has(.docsx-404) > .content-panel {
   background: transparent;
   color: var(--sl-color-text-accent);
   font: inherit;
+  font-family: var(--docsx-font-body);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -458,7 +438,7 @@ main:has(.docsx-404) > .content-panel {
 }
 .docsx-install-note {
   margin: 0.75rem 0 0;
-  max-width: 42ch;
+  max-width: 46ch;
   font-size: 0.9rem;
   line-height: 1.5;
   color: var(--sl-color-gray-3);
@@ -482,9 +462,6 @@ main:has(.docsx-404) > .content-panel {
   border-radius: 0.85rem;
   overflow: hidden;
   background: color-mix(in srgb, var(--sl-color-bg-sidebar) 88%, var(--sl-color-bg));
-  box-shadow:
-    0 30px 70px -34px rgba(0, 0, 0, 0.7),
-    0 0 0 1px color-mix(in srgb, var(--docsx-amber-400) 8%, transparent);
 }
 .docsx-window-bar {
   display: flex;
@@ -505,8 +482,8 @@ main:has(.docsx-404) > .content-panel {
   background: var(--sl-color-gray-5);
 }
 .docsx-window-title {
-  font-family: var(--docsx-font-mono);
-  font-size: 0.74rem;
+  font-family: var(--docsx-font-body);
+  font-size: 0.8rem;
   color: var(--sl-color-gray-3);
 }
 .docsx-window-title .dot {
@@ -599,19 +576,16 @@ main:has(.docsx-404) > .content-panel {
   margin-bottom: 0.1rem;
 }
 .dxm-lane-tag {
-  font-family: var(--docsx-font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--docsx-font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--sl-color-gray-2);
 }
 .dxm-lane-tag--exec {
   color: var(--sl-color-text-accent);
 }
 .dxm-lane-note {
-  font-family: var(--docsx-font-mono);
-  font-size: 0.66rem;
+  font-size: 0.78rem;
   color: var(--sl-color-gray-3);
 }
 
@@ -657,7 +631,6 @@ main:has(.docsx-404) > .content-panel {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  box-shadow: 0 14px 36px -24px var(--docsx-glow);
 }
 .dxm-core-name {
   font-family: var(--docsx-font-display);
@@ -681,13 +654,11 @@ main:has(.docsx-404) > .content-panel {
   border-top: 1px dashed color-mix(in srgb, var(--docsx-amber-400) 40%, transparent);
 }
 .dxm-seam-label {
-  font-family: var(--docsx-font-mono);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--sl-color-text-accent);
 }
 .dxm-seam-chip {
-  font-family: var(--docsx-font-mono);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   color: var(--sl-color-gray-3);
   border: 1px solid var(--sl-color-hairline-shade);
   border-radius: 0.3rem;
@@ -737,8 +708,7 @@ main:has(.docsx-404) > .content-panel {
   align-items: center;
   gap: 0.45rem;
   margin: 0.4rem 0 0;
-  font-family: var(--docsx-font-mono);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--sl-color-gray-3);
 }
 .dxm-loop-ico {
@@ -795,10 +765,8 @@ main:has(.docsx-404) > .content-panel {
 .dxf-tag,
 .dxf-mid-tag {
   display: block;
-  font-family: var(--docsx-font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--sl-color-gray-3);
   margin-bottom: 0.5rem;
   text-align: center;
@@ -810,7 +778,6 @@ main:has(.docsx-404) > .content-panel {
   border-radius: 0.7rem;
   overflow: hidden;
   background: color-mix(in srgb, var(--sl-color-bg-sidebar) 80%, var(--sl-color-bg));
-  box-shadow: 0 18px 44px -26px rgba(0, 0, 0, 0.65);
 }
 .dxf-chrome {
   display: flex;
@@ -829,8 +796,7 @@ main:has(.docsx-404) > .content-panel {
 }
 .dxf-chrome span {
   margin-left: 0.3rem;
-  font-family: var(--docsx-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   color: var(--sl-color-gray-3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -867,11 +833,11 @@ main:has(.docsx-404) > .content-panel {
   font-family: var(--docsx-font-display);
   font-weight: 600;
   font-size: 0.74rem;
-  /* Dark text: 6.9:1 on amber-500, 4.8:1 on amber-600. White was 2.8:1 and 4.1:1. */
+  /* Dark text: 6.9:1 on amber-500. White was 2.8:1. */
   color: #140d04;
   padding: 0.4rem 0.7rem;
   border-radius: 0.4rem;
-  background: linear-gradient(180deg, var(--docsx-amber-500), var(--docsx-amber-600));
+  background-color: var(--docsx-amber-500);
 }
 
 /* The annotation layer on the doc panel: halo ring, numbered badge, callout. */
@@ -902,8 +868,7 @@ main:has(.docsx-404) > .content-panel {
   border-radius: 999px;
   background: var(--sl-color-text-accent);
   color: var(--sl-color-bg);
-  font-family: var(--docsx-font-mono);
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 .dxf-callout {
@@ -913,15 +878,13 @@ main:has(.docsx-404) > .content-panel {
   font-size: 0.66rem;
   line-height: 1.4;
   color: var(--sl-color-gray-2);
-  border: 1px solid var(--docsx-glass-border);
-  border-left: 2px solid var(--sl-color-text-accent);
+  border: 1px solid color-mix(in srgb, var(--sl-color-text-accent) 40%, var(--docsx-glass-border));
   border-radius: 0.35rem;
   padding: 0.35rem 0.45rem;
   background: color-mix(in srgb, var(--docsx-amber-500) 7%, transparent);
 }
 .dxf-callout-n {
   flex-shrink: 0;
-  font-family: var(--docsx-font-mono);
   font-weight: 700;
   color: var(--sl-color-text-accent);
 }
@@ -1007,9 +970,7 @@ main:has(.docsx-404) > .content-panel {
   justify-content: center;
   gap: 0.5rem;
   margin: 1.1rem 0 0;
-  font-family: var(--docsx-font-mono);
-  font-size: 0.74rem;
-  letter-spacing: 0.04em;
+  font-size: 0.82rem;
   color: var(--sl-color-gray-3);
   text-align: center;
 }
@@ -1135,9 +1096,8 @@ main:has(.docsx-404) > .content-panel {
   margin: 0.9rem 0 0;
 }
 .docsx-expect-label {
-  font-family: var(--docsx-font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
+  font-size: 0.82rem;
+  font-weight: 600;
   color: var(--sl-color-gray-3);
 }
 .docsx-expect code {
@@ -1153,10 +1113,10 @@ main:has(.docsx-404) > .content-panel {
   overflow-wrap: anywhere;
 }
 .docsx-card .docsx-card-mark {
-  font-family: var(--docsx-font-mono);
+  font-family: var(--docsx-font-display);
+  font-weight: 600;
   color: var(--sl-color-text-accent);
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
+  font-size: 0.85rem;
   display: block;
   margin-bottom: 0.7rem;
 }
@@ -1287,13 +1247,10 @@ main:has(.docsx-404) > .content-panel {
   margin-top: 1.4rem;
 }
 
-/* Section labels: small, uppercase, quiet, like the MCP sidebar. */
+/* Section labels: small, semibold, quiet. */
 #starlight__sidebar .group-label .large {
-  font-family: var(--docsx-font-mono);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--sl-color-gray-3);
 }
 
@@ -1345,8 +1302,7 @@ main:has(.docsx-404) > .content-panel {
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--sl-color-hairline-shade);
   border-radius: 0.55rem;
-  font-family: var(--docsx-font-mono);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: var(--sl-color-gray-2);
   text-decoration: none;
   background: color-mix(in srgb, var(--sl-color-bg-sidebar) 50%, transparent);
@@ -1471,8 +1427,8 @@ main:has(.docsx-404) > .content-panel {
     mask-image: linear-gradient(
       to right,
       transparent,
-      #000 var(--docsx-fade-start),
-      #000 calc(100% - var(--docsx-fade-end)),
+      currentcolor var(--docsx-fade-start),
+      currentcolor calc(100% - var(--docsx-fade-end)),
       transparent
     );
   }
@@ -1604,9 +1560,7 @@ main:has(.docsx-404) > .content-panel {
   color: var(--sl-color-text-accent);
 }
 .dxb-side-role {
-  font-family: var(--docsx-font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
+  font-size: 0.8rem;
   color: var(--sl-color-text-accent);
   margin-bottom: 0.25rem;
 }
@@ -1637,9 +1591,7 @@ main:has(.docsx-404) > .content-panel {
 }
 .dxb-when {
   margin-top: 0.55rem;
-  font-family: var(--docsx-font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  font-size: 0.78rem;
   color: var(--sl-color-gray-3);
   border-top: 1px solid var(--sl-color-hairline-shade);
   padding-top: 0.5rem;
@@ -1663,13 +1615,16 @@ main:has(.docsx-404) > .content-panel {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 0;
-  border-left: 2px dashed color-mix(in srgb, var(--docsx-amber-400) 50%, transparent);
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--docsx-amber-400) 50%, transparent) 0 6px,
+    transparent 6px 10px
+  );
 }
 .dxb-seam-pill {
   position: relative;
-  font-family: var(--docsx-font-mono);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--sl-color-bg);
   background: var(--sl-color-text-accent);
@@ -1704,111 +1659,19 @@ main:has(.docsx-404) > .content-panel {
     left: 0;
     right: 0;
     width: auto;
-    height: 0;
-    border-left: 0;
-    border-top: 2px dashed color-mix(in srgb, var(--docsx-amber-400) 50%, transparent);
+    height: 2px;
+    background: repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, var(--docsx-amber-400) 50%, transparent) 0 6px,
+      transparent 6px 10px
+    );
   }
   .dxb-seam-sub {
     max-width: none;
   }
 }
 
-/* ---- Trust-boundary diagram (security pages) ----------------------------- */
-.docsx-trust {
-  display: block;
-  width: 100%;
-  max-width: 600px;
-  height: auto;
-  margin: 0.5rem 0 1.75rem;
-}
-.docsx-trust .tb-node rect {
-  fill: color-mix(in srgb, var(--sl-color-bg-sidebar) 70%, var(--sl-color-bg));
-  stroke: var(--sl-color-hairline-shade);
-  stroke-width: 1;
-}
-.docsx-trust .tb-title {
-  fill: var(--sl-color-white);
-  font-family: var(--docsx-font-display);
-  font-weight: 600;
-  font-size: 18px;
-}
-.docsx-trust .tb-sub {
-  fill: var(--sl-color-gray-3);
-  font-family: var(--docsx-font-body);
-  font-size: 13px;
-}
-.docsx-trust .tb-tag {
-  fill: var(--sl-color-text-accent);
-  font-family: var(--docsx-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.docsx-trust .tb-link {
-  stroke: var(--sl-color-text-accent);
-  stroke-width: 2;
-  fill: none;
-}
-.docsx-trust .tb-label {
-  fill: var(--sl-color-gray-3);
-  font-family: var(--docsx-font-mono);
-  font-size: 12px;
-}
-.docsx-trust .tb-untrusted rect {
-  fill: color-mix(in srgb, #f87171 13%, transparent);
-  stroke: #f87171;
-  stroke-width: 1.5;
-  stroke-dasharray: 5 4;
-}
-.docsx-trust .tb-untrusted-title {
-  fill: var(--sl-color-white);
-  font-family: var(--docsx-font-body);
-  font-weight: 600;
-  font-size: 14px;
-}
-.docsx-trust .tb-untrusted-tag {
-  fill: #f87171;
-  font-family: var(--docsx-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-/* #f87171 is 2.7:1 on the light canvas; this red is 6:1. */
-:root[data-theme="light"] .docsx-trust .tb-untrusted rect {
-  fill: color-mix(in srgb, #b91c1c 9%, transparent);
-  stroke: #b91c1c;
-}
-:root[data-theme="light"] .docsx-trust .tb-untrusted-tag {
-  fill: #b91c1c;
-}
-
-/* ---- Glass + halo wash ------------------------------------------------- */
-
-/* A fixed halo wash behind everything: an amber bloom at top-left and a gold
-   bloom at top-right over the deep canvas. Subtle enough to read over. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(58% 44% at 12% -4%, var(--docsx-glow) 0%, transparent 60%),
-    radial-gradient(54% 42% at 92% 0%, var(--docsx-glow-2) 0%, transparent 58%);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  body::before {
-    animation: docsx-halo 24s ease-in-out infinite alternate;
-  }
-}
-@keyframes docsx-halo {
-  from {
-    opacity: 0.8;
-  }
-  to {
-    opacity: 1;
-  }
-}
+/* ---- Glass ----------------------------------------------------------------- */
 
 /* Frosted top nav and the sticky "On this page" bar under it. Write backdrop-filter unprefixed
    only: the build's CSS minifier (Lightning CSS) adds -webkit-backdrop-filter itself, and when
@@ -1826,8 +1689,7 @@ mobile-starlight-toc nav {
   }
 }
 
-/* Frosted-glass surfaces: the cards, the product window and the sidebar llms.txt link float over
-   the halo wash. */
+/* Frosted surfaces: the cards, the product window and the sidebar llms.txt link. */
 .docsx-card,
 .docsx-window,
 .docsx-sidebar-llms {
@@ -2032,26 +1894,23 @@ mobile-starlight-toc nav {
   mobile-starlight-toc,
   .sl-menu-button,
   .pagination-links,
-  .docsx-sidebar-llms,
-  .docsx-hero::before,
-  .docsx-hero::after,
-  body::before {
+  .docsx-sidebar-llms {
     display: none !important;
   }
   :root,
   :root[data-theme="dark"],
   :root[data-theme="light"] {
-    --sl-color-bg: #fff;
-    --sl-color-text: #000;
-    --sl-color-white: #000;
-    --sl-color-gray-1: #111;
+    --sl-color-bg: #fffefb;
+    --sl-color-text: #161411;
+    --sl-color-white: #161411;
+    --sl-color-gray-1: #1c1a16;
     --sl-color-gray-2: #222;
     --sl-color-gray-3: #333;
     --sl-color-text-accent: #5c3a08;
   }
   body {
-    background: #fff;
-    color: #000;
+    background: #fffefb;
+    color: #161411;
   }
   .docsx-card,
   .docsx-window,
