@@ -13,8 +13,7 @@
 // Frames are those of `--theme` (default dark), `--locale` (default en) and `--widths` (default
 // 1280,390). The tokens file is `--tokens-<theme>`, else examples/burn-theme/<project>-<theme>.tokens.json
 // (`--project`, default trackxai).
-// Captures under 900 px burn with `caption_style: "auto"`, the others with `full`, as
-// burn-trackxai.mjs does.
+// Every frame burns with the theme's `caption_style` (`auto` by default), as burn-trackxai.mjs does.
 //
 // Writes <out>/previews/<frame>.png (a rawcap frame is named <flow>__<step>__<locale>.<theme>.<viewport>.png)
 // and <out>/report.md: the CHECK rows first, a summary, then one row per frame and annotation.
@@ -70,7 +69,7 @@ async function burnFrame(frame, raw, theme, mods) {
   const png = await readFile(join(raw, frame.png));
   const { width, height } = mods.burn.pngDimensions(png);
   const pixelRatio = probeRatio(doc, frame, width);
-  const themed = { ...theme, captionStyle: width / pixelRatio < 900 ? "auto" : "full" };
+  const themed = theme;
   const font = await mods.load.loadThemeFont(themed);
   const metrics = font ? font.metrics : mods.defaultMetrics;
   const pixels = mods.pixels.decodeScreenshot(png, width, height);

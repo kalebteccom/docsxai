@@ -114,15 +114,14 @@ describe.each(cases)("$label", ({ file, pr }) => {
     const height = css.height * pr;
     const desktop = css.width >= 900;
     const listed = records.flatMap((r) => r.obstacles ?? []);
-    // As the landing burns them: phone captures fall back to a badge where no caption spot is clear.
-    const captionStyle = desktop ? ("full" as const) : ("auto" as const);
+    // As the landing burns them: the default `auto` falls back to a badge where no caption spot is clear.
     const report: AnnotationReport[] = [];
     const trace: CalloutTrace[] = [];
     buildBurnTree({
       image: { width, height, dataUri: "data:image/png;base64," },
       annotations: records,
       metrics: METRICS,
-      theme: { ...theme, captionStyle },
+      theme,
       pixelRatio: pr,
       pixels: screen(
         width,

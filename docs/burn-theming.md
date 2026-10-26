@@ -60,7 +60,7 @@ The callout outline colour follows `ink` until a preset, the tokens file or the 
 | `font_fallback`        | list of strings    | up to 8 `.ttf` or `.otf` paths in the workspace | none              | Fonts for characters `font` lacks, see [Other scripts](#other-scripts).       |
 | `font_weight`          | number             | `400` or `600`                                  | `400`             | Callout text weight. The font file must have it, see [Font](#font).           |
 | `connector_style`      | string             | `auto`, `line`, `chevron`, `arrow`              | `auto`            | How a callout joins its target, see [Connectors](#connectors).                |
-| `caption_style`        | string             | `full`, `badge`, `auto`                         | `full`            | Caption, or badge only, see [Caption style](#caption-style).                  |
+| `caption_style`        | string             | `full`, `badge`, `auto`                         | `auto`            | Caption, or badge only, see [Caption style](#caption-style).                  |
 | `arrow_size`           | number             | 4 to 24 px                                      | `8`               | Triangle length for `connector_style: "arrow"`. Its base is 7/4 of that wide. |
 | `max_width_ratio`      | number             | 0.2 to 1                                        | `0.62`            | Widest callout as a share of the screenshot, see [Scale](#scale).             |
 | `scale`                | number or `"auto"` | 0.5 to 4, or `auto`                             | the pixel ratio   | Multiplies every caption dimension, see [Scale](#scale).                      |
@@ -191,9 +191,9 @@ To compare the looks, run `node scripts/burn-trackxai-sample.mjs` after `pnpm --
 
 `caption_style` is new in the next release. It applies with the line connector (`connector_style` `line` or `chevron`, or `auto` with a theme). An `arrow` burn always draws the caption.
 
-- `full`, the default: every annotation gets its caption.
+- `full`: every annotation gets its caption, drawn where it covers least when no spot is clear.
 - `badge`: no caption box and no connector. Each target gets its ring and a numbered badge, numbered by its place in the list when it has no `index`. Use it where the page prints the callout text as a numbered list under the image.
-- `auto`: the caption when a spot clear of text exists and its connector, straight or with one elbow, crosses no text, else the badge.
+- `auto`, the default at every capture width: the caption when a spot clear of text exists and its connector, straight or with one elbow, crosses no text, else the badge.
 
 The burn report marks each badge-only annotation with `"caption_style": "badge"`, whether `badge` or the `auto` fallback chose it.
 
@@ -210,7 +210,7 @@ node scripts/burn-probe-batch.mjs --raw raw --out probe --theme dark --locale en
 - Flat: `<screen>.<locale>.<theme>.<width>.png` with a `.json` sidecar beside it (`docsxai/raw-capture-sidecar@1`, annotations with `bounding_box`).
 - Rawcap: `<flow>/<step>/<locale>.<theme>.<viewport>.png` with a `.json` sidecar beside it (`width`, `height`, annotations with `index`, `copy`, `bbox` and optional `obstacles`). A viewport is a width (`390`) or a name that ends in one (`mobile-390`).
 
-`--theme` (default `dark`), `--locale` (default `en`) and `--widths` (default `1280,390`) pick the frames. The tokens file is `--tokens-dark` or `--tokens-light`, else `examples/burn-theme/<project>-<theme>.tokens.json`, where `--project trackxai|remotxai` (default `trackxai`) picks the pair. Captures under 900 px burn with `caption_style: "auto"`, the others with `full`.
+`--theme` (default `dark`), `--locale` (default `en`) and `--widths` (default `1280,390`) pick the frames. The tokens file is `--tokens-dark` or `--tokens-light`, else `examples/burn-theme/<project>-<theme>.tokens.json`, where `--project trackxai|remotxai` (default `trackxai`) picks the pair. Every frame burns with the theme's `caption_style`, `auto` unless the theme sets another.
 
 `<out>/previews/` holds the burned PNG of each frame, and `<out>/report.md` the summary (frames, annotations, OK, CHECK, skipped for no `bounding_box`), the CHECK rows, then one row per frame and annotation: mode (`full`, `badge` or `skipped`), side, connector length in px, px² of the caption over listed text and over the phone header and bottom nav, whether the connector crosses listed text, whether the badge sits next to its target, and the verdict.
 
@@ -232,7 +232,7 @@ A burn without a theme fills each line, as it always did.
 
 ## Presets
 
-Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` leave `scale` at the pixel ratio, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62, `display_width` at 720, `connector_style` at `auto` and `caption_style` at `full`.
+Every preset sets every key except `font`. `clean`, `soft` and `high-contrast` leave `scale` at the pixel ratio, `font_weight` at 400, `arrow_size` at 8, `max_width_ratio` at 0.62, `display_width` at 720, `connector_style` at `auto` and `caption_style` at `auto`.
 
 | Key                    | `clean`                               | `soft`                                  | `high-contrast` |
 | ---------------------- | ------------------------------------- | --------------------------------------- | --------------- |

@@ -176,10 +176,12 @@ describe("caption_style", () => {
       options: { theme: { ...THEME, captionStyle }, warn: () => {} },
     });
 
-  it("parses full, badge and auto, defaults to full and refuses others", () => {
+  it("parses full, badge and auto, defaults to auto and refuses others", () => {
     const resolve = (block: unknown) =>
       resolveBurnTheme(parseThemeConfig(block), { workspace: "/tmp/docsxai-theme-workspace" });
-    expect(resolve({}).captionStyle).toBe("full");
+    expect(resolve({}).captionStyle).toBe("auto");
+    expect(resolve({ preset: "clean" }).captionStyle).toBe("auto");
+    expect(resolve({ caption_style: "full" }).captionStyle).toBe("full");
     expect(resolve({ caption_style: "auto" }).captionStyle).toBe("auto");
     expect(() => resolve({ caption_style: "none" })).toThrow(/caption_style/);
   });
@@ -208,6 +210,45 @@ describe("caption_style", () => {
     const { report } = await burn(stripedPng(390, 844, page), "auto");
     expect(report[0]!.callout).toBeNull();
     expect(report[0]!.caption_style).toBe("badge");
+  });
+});
+
+describe("caption_style default at 1280", () => {
+  // A 1280 x 800 frame where listed text fills every side of the target, so no caption spot is clear.
+  const target = { x: 560, y: 380, width: 140, height: 36 };
+  const boxed = [
+    { x: 0, y: 0, width: 1280, height: target.y - 4 },
+    { x: 0, y: target.y + target.height + 4, width: 1280, height: 800 },
+    { x: 0, y: target.y - 4, width: target.x - 4, height: target.height + 8 },
+    { x: target.x + target.width + 4, y: target.y - 4, width: 1280, height: target.height + 8 },
+  ];
+  const run = (theme: BurnTheme) =>
+    renderBurn({
+      screenshotBuffer: stripedPng(1280, 800, boxed),
+      annotations: [
+        {
+          step: "s",
+          selector: "#t",
+          copy: "Opens the ledger",
+          bounding_box: target,
+          obstacles: boxed,
+        },
+      ],
+      options: { theme, warn: () => {} },
+    });
+
+  it("burns the badge only when every placement collides", async () => {
+    const { report } = await run(THEME);
+    expect(report[0]!.callout).toBeNull();
+    expect(report[0]!.mode).toBe("none");
+    expect(report[0]!.caption_style).toBe("badge");
+    expect(report[0]!.badge).not.toBeNull();
+  });
+
+  it("still draws the caption with an explicit full", async () => {
+    const { report } = await run({ ...THEME, captionStyle: "full" });
+    expect(report[0]!.callout).not.toBeNull();
+    expect(report[0]!.caption_style).toBeUndefined();
   });
 });
 
