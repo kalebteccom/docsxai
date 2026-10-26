@@ -146,10 +146,10 @@ describe("docsxai run - closing line", () => {
     expect(err).toContain('run: no flow named "nope" (flows: f)');
   });
 
-  it("points an empty flows/ at calibrate", async () => {
+  it("points an empty flows/ at add-flow", async () => {
     await fs.rm(path.join(ws, "flows", "f.flow.yaml"));
     expect(await main(["run", ws])).toBe(1);
     expect(err).toContain("no flow-files in");
-    expect(err).toContain(`next: docsxai calibrate ${ws} --from <flow.yaml>`);
+    expect(err).toContain(`next: docsxai add-flow ${ws} --from <flow.yaml>`);
   });
 });

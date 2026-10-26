@@ -17,4 +17,11 @@ export const RETIRED_COMMANDS: Readonly<Record<string, RetiredCommand>> = {
     note: "same flags, `--check` added",
     rewrite: (args) => ["pack", ...args, "--check"],
   },
+  calibrate: {
+    since: "0.3.0",
+    replacement: "`docsxai add-flow`",
+    message:
+      "calibrate is deprecated since 0.3.0, use add-flow (calibrate will be removed in 0.5.0)",
+    rewrite: (args) => ["add-flow", ...args],
+  },
 };

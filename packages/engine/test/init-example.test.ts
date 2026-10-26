@@ -102,7 +102,7 @@ describe("init without --example", () => {
       [
         `init: workspace at ${ws}`,
         "  created: flows/, docs/, auth/, .auth/, .viewer/, .gitignore, .docsxai.json, flows/example.flow.yaml.sample, README.md",
-        `  next: docsxai calibrate ${ws} --from <flow.yaml>  →  docsxai run ${ws}  →  docsxai render ${ws}`,
+        `  next: docsxai add-flow ${ws} --from <flow.yaml>  →  docsxai run ${ws}  →  docsxai render ${ws}`,
         "",
       ].join("\n"),
     );

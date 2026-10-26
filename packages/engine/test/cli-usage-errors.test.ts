@@ -27,7 +27,7 @@ describe("CLI usage errors stay short", () => {
   it.each([
     ["run"],
     ["capture-auth"],
-    ["calibrate"],
+    ["add-flow"],
     ["init"],
     ["inspect"],
     ["render"],

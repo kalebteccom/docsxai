@@ -27,7 +27,7 @@ describe("a bare value flag exits 2", () => {
     [["init"], "--ttl", "init"],
     [["init"], "--capture-trigger", "init"],
     [["init"], "--auth-cookie", "init"],
-    [["calibrate"], "--name", "calibrate"],
+    [["add-flow"], "--name", "add-flow"],
     [["inspect"], "--url", "inspect"],
     [["inspect"], "--selector", "inspect"],
     [["inspect"], "--cdp", "inspect"],
@@ -65,8 +65,8 @@ describe("a bare value flag exits 2", () => {
     expect(err).toContain("plugins list: --format needs a value");
   });
 
-  it("calibrate --from", async () => {
-    expect(await main(["calibrate", WS, "--from"])).toBe(2);
+  it("add-flow --from", async () => {
+    expect(await main(["add-flow", WS, "--from"])).toBe(2);
     expect(err).toContain("--from");
   });
 });

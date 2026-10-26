@@ -79,7 +79,7 @@ sessions - and it keeps the runtime testable without a browser at all.
 | Package                                           | Role                                                                     |
 | ------------------------------------------------- | ------------------------------------------------------------------------ |
 | [engine](/packages/engine/)                       | Parser, runtime, CLI, auth strategies, plugin runtime, exporters.        |
-| [plugin](/packages/plugin/)                       | Claude Code plugin: calibrate + diagnose skills, deterministic commands. |
+| [plugin](/packages/plugin/)                       | Claude Code plugin: add-flow + diagnose skills, deterministic commands.  |
 | [mcp](/packages/mcp/)                             | Stdio MCP server for any host: orchestration + doc-pack introspection.   |
 | [backend](/packages/backend/)                     | Doc-pack persistence: revisions, blobs, OAuth 2.1, GitHub webhook.       |
 | [viewer](/packages/viewer/)                       | Interactive viewer, browser-free burn renderer, Starlight emitter.       |

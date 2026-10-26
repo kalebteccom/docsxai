@@ -6,7 +6,7 @@
 //     [--manifest-in <manifest.json>] [--compare <dir>] [--webp] [--dpr 2]
 //
 // `--raw` holds `<screen>.<locale>.<theme>.<width>.png` with a `.json` sidecar beside each
-// (schema trackxai/raw-capture-sidecar@1: `annotations[]` of burner records with `bounding_box`
+// (schema docsxai/raw-capture-sidecar@1: `annotations[]` of burner records with `bounding_box`
 // and `obstacles`). Each matching raw is burned with examples/burn-theme/trackxai-<theme>.tokens.json
 // and written as `<out>/<desktop-W|mobile-W>/<name>.<hash>.png`, `<hash>` the first 8 hex of the
 // PNG's SHA-256 and `<name>` the screen after `--rename`. `<out>/manifest.json`
@@ -20,8 +20,8 @@
 // `--badge-only board.390,ticket.en.dark.390` (and the `badge_only` list of
 // scripts/burn-trackxai.overrides.json, or `--overrides <file>`) burns those frames as badges and
 // rings only. `--keep-superseded` leaves replaced files in place (for a tree where they are tracked).
-// Phone captures (under 900 px) burn with `caption_style: "auto"`: an annotation with no caption
-// spot clear of text, header and bottom nav gets its badge only. Desktop captures keep captions.
+// Captures burn with the theme's `caption_style`, `auto` by default at every width: an annotation
+// with no caption spot clear of text, header and nav gets its badge only.
 //
 // `--webp` also writes `<name>.<hash>.webp` beside each new PNG with `cwebp -lossless -z 9` (the
 // `webp` package: `brew install webp`, `apt install webp`), and keeps it only when it is under
@@ -150,6 +150,7 @@ async function main() {
   const entries = [];
   const written = [];
   const shared = new Map();
+  const legacyFiles = [];
   for (const { name, parsed } of files) {
     const sidecarFile = join(raw, name.replace(/\.png$/, ".json"));
     let doc;
@@ -158,17 +159,13 @@ async function main() {
     } catch (e) {
       throw new Error(`${sidecarFile}: ${e.code === "ENOENT" ? "missing" : e.message}`);
     }
-    const { records, skipped } = checkSidecar(doc, sidecarFile, parsed);
+    const { records, skipped, legacy } = checkSidecar(doc, sidecarFile, parsed);
+    if (legacy) legacyFiles.push(name);
     for (const n of skipped) {
       console.error(`warning: ${name}: annotation ${n} has no bounding_box, skipped`);
     }
     const png = await readFile(join(raw, name));
-    // Phone captures fall back to badges where no caption spot is clear; desktop keeps captions.
-    const captionStyle = isBadgeOnly(forced, parsed)
-      ? "badge"
-      : parsed.width < 900
-        ? "auto"
-        : "full";
+    const captionStyle = isBadgeOnly(forced, parsed) ? "badge" : theme.captionStyle;
     const { pngDimensions } = await viewer("burn.js");
     const dims = pngDimensions(png);
     const dpr = captureRatio({
@@ -248,6 +245,11 @@ async function main() {
     console.error(`removed ${old} and its .webp twin`);
   }
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  if (legacyFiles.length > 0) {
+    console.error(
+      `note: ${legacyFiles.length} sidecar(s) use the schema name "trackxai/raw-capture-sidecar@1"; write "docsxai/raw-capture-sidecar@1" instead (the old name still works)`,
+    );
+  }
   for (const f of written) console.log(f);
   console.log(manifestPath);
 }

@@ -121,14 +121,14 @@ describe("docsxai CLI — main()", () => {
     expect(err).toMatch(/--capture-trigger must be/);
   });
 
-  it("calibrate requires a workspace dir + a readable --from", async () => {
-    expect(await main(["calibrate"])).toBe(2);
+  it("add-flow requires a workspace dir + a readable --from", async () => {
+    expect(await main(["add-flow"])).toBe(2);
     expect(err).toMatch(/missing <workspace-dir>/);
     err = "";
-    expect(await main(["calibrate", "/some/ws"])).toBe(2);
+    expect(await main(["add-flow", "/some/ws"])).toBe(2);
     expect(err).toMatch(/--from .* required/);
     err = "";
-    expect(await main(["calibrate", "/some/ws", "--from", "/no/such/flow.md"])).toBe(1);
+    expect(await main(["add-flow", "/some/ws", "--from", "/no/such/flow.md"])).toBe(1);
     expect(err).toMatch(/cannot read/);
   });
 

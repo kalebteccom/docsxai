@@ -27,7 +27,7 @@ const WS = "/some/ws";
 describe("an unknown flag exits 2", () => {
   it.each<[string[], string, string, string | undefined]>([
     [["init", WS], "--app-ulr", "init", "--app-url"],
-    [["calibrate", WS], "--nmae", "calibrate", "--name"],
+    [["add-flow", WS], "--nmae", "add-flow", "--name"],
     [["inspect", WS], "--selecter", "inspect", "--selector"],
     [["run", WS], "--flwo", "run", "--flow"],
     [["run", WS], "--pasue", "run", "--pause"],

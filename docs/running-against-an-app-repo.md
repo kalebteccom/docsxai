@@ -48,13 +48,13 @@ pnpm -C "$TOOL_REPO/packages/backend" link --global   # → `docsxai-backend` (o
 they're on `PATH`.)
 
 The Claude Code **plugin** (`$TOOL_REPO/packages/plugin`) is the first-class surface for the _calibration_
-skills — `claude plugin install` it if you want `/docsxai:calibrate` etc. The calibration playbook it follows is
-`packages/plugin/skills/calibrate/SKILL.md`.
+skills — `claude plugin install` it if you want `/docsxai:add-flow` etc. The calibration playbook it follows is
+`packages/plugin/skills/add-flow/SKILL.md`.
 
 > **Heads-up on calibration:** the _deterministic_ side (`run`, `render`, `capture-auth`) is a plain CLI. Agent-driven
-> calibration runs through the plugin's `calibrate` and `diagnose` skills (or any MCP host driving the `@docsxai/mcp`
+> calibration runs through the plugin's `add-flow` and `diagnose` skills (or any MCP host driving the `@docsxai/mcp`
 > tools), with browxai for live-page discovery. There is no single `docsxai` command that turns a written flow
-> description into a doc pack: the agent drives the playbook and calls the engine primitives. `docsxai calibrate --from`
+> description into a doc pack: the agent drives the playbook and calls the engine primitives. `docsxai add-flow --from`
 > covers only structured flow-guides.
 
 ---
@@ -116,7 +116,7 @@ docsxai capture-auth "$WORKSPACE" --base-url "$APP_URL" --ignore-https-errors
 
 ### 2d. Calibrate — produce the doc pack
 
-Run the plugin's `calibrate` skill (`/docsxai:calibrate`; the playbook is `packages/plugin/skills/calibrate/SKILL.md`): with the dev server running and the
+Run the plugin's `add-flow` skill (`/docsxai:add-flow`, formerly `/docsxai:calibrate`; the playbook is `packages/plugin/skills/add-flow/SKILL.md`): with the dev server running and the
 browser your discovery driver (browxai) attaches to authed, walk each flow on the live app, settle one canonical locator per step,
 add `wait_for`/`success` criteria, write `$WORKSPACE/flows/<flow>.flow.yaml`, and capture screenshots +
 `annotations.json` + the style artifact + `locators.yaml` — all into `$WORKSPACE`.
@@ -160,7 +160,7 @@ git -C "$APP_REPO" status                                # should be clean — y
 
 ## Caveats / known gaps
 
-- **No one-command calibration** — agent-driven calibration is the plugin's `calibrate` skill (or the `@docsxai/mcp` tools) following the playbook. `docsxai calibrate --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / a prose testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
+- **No one-command calibration** — agent-driven calibration is the plugin's `add-flow` skill (or the `@docsxai/mcp` tools) following the playbook. `docsxai add-flow --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / a prose testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
 - **Plugin install from a monorepo subdir** isn't validated yet. If `claude plugin install` doesn't pick up `packages/plugin/`, copy that dir somewhere installable, or just use the playbook + CLIs.
 - **`--persist tmp`** is implemented for `init` (an ephemeral workspace in a temp dir); `rm -rf` it when done.
 - **HTTPS dev certs:** pass `--ignore-https-errors` (or bake it into `.docsxai.json` via `init`). The `manual-capture` browser also runs security-lowered so the injected capture helper works across SSO-redirect origins. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot.

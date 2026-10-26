@@ -37,7 +37,7 @@ raw/
 
 ```json
 {
-  "schema": "trackxai/raw-capture-sidecar@1",
+  "schema": "docsxai/raw-capture-sidecar@1",
   "step": "board",
   "viewport": { "width": 390, "height": 844 },
   "annotations": [
@@ -171,9 +171,9 @@ To find the widths, read the rendered `<img>` width in the browser at each break
 
 `caption_style` decides whether each annotation gets a caption box at all. It applies to the line and chevron connectors:
 
-- `full`, the default: every annotation gets a caption. When no spot is clear, the caption that covers the least is drawn anyway, and the burn report flags it `unplaceable`.
+- `full`: every annotation gets a caption. When no spot is clear, the caption that covers the least is drawn anyway, and the burn report flags it `unplaceable`.
 - `badge`: no captions. Each target gets its ring and a numbered badge.
-- `auto`: a caption where a clean one exists, else the badge.
+- `auto`, the default at every width: a caption where a clean one exists, else the badge. Desktop captures with no clear spot show their badge only; set `caption_style: "full"` to keep the old behaviour.
 
 **When `auto` falls back.** For each annotation the burner tries the caption at the theme's size, then a wide box up to 560 px (fewer lines), then both again with the text one step smaller, down to 14 px burned text on a phone capture and 16 px from 900 px wide. It keeps the first caption that covers no listed or detected text, no other target, halo, badge or caption (and on a phone capture no header, bottom nav, floating button or 16 px side strip), and whose line crosses no text. If none qualifies, that annotation gets the ring and the badge and nothing else. The caption goes, and the connector with it.
 

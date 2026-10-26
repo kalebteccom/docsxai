@@ -24,9 +24,9 @@ const SHAPES: Record<string, readonly Shape[]> = {
     [/^ {2}created: .+$/, "  created: "],
     [/^ {2}next: docsxai .+$/, "next: "],
   ],
-  calibrate: [
-    [/^calibrate: wrote \S+ {2}\(\d+ steps?\)$/, "calibrate: wrote "],
-    [/^calibrate: wrote default \S+$/, "calibrate: wrote default "],
+  "add-flow": [
+    [/^add-flow: wrote \S+ {2}\(\d+ steps?\)$/, "add-flow: wrote "],
+    [/^add-flow: wrote default \S+$/, "add-flow: wrote default "],
     [/^ {2}next: docsxai run .+$/, "(then: docsxai render"],
   ],
   "capture-auth": [

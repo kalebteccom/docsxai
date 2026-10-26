@@ -49,7 +49,7 @@ describe("extractFlowFile", () => {
     try {
       extractFlowFile("Just click the play button.", "loose.md");
     } catch (e) {
-      expect((e as Error).message).toMatch(/docsxai:calibrate skill/);
+      expect((e as Error).message).toMatch(/docsxai:add-flow skill/);
     }
   });
   it("rejects a malformed yaml block with the schema error", () => {

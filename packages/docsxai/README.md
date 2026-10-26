@@ -16,7 +16,7 @@ One global install gives you the whole CLI surface. This package is a thin meta-
 
 ## Which package do I want?
 
-- **`docsxai`** (this package) — you want the CLI: `init`, `capture-auth`, `calibrate`, `run`, `render`, `site`, `lint`, `diff`, `doctor`, … One install, everything wired.
+- **`docsxai`** (this package) — you want the CLI: `init`, `capture-auth`, `add-flow`, `run`, `render`, `site`, `lint`, `diff`, `doctor`, … One install, everything wired.
 - **`@docsxai/engine`** — you want the library (flow-file parser, deterministic runtime, exporters, backend client) as a dependency. This package re-exports the engine's library surface (`import { parseFlowFile } from "docsxai"` works), but depending on the engine directly keeps your tree minimal and skips the viewer.
 
 First run: the [README walkthrough](https://github.com/kalebteccom/docsxai#first-run-in-10-minutes) or the [quickstart](https://docsxai.dev/getting-started/quickstart/). Docs: <https://docsxai.dev> · Source + issues: <https://github.com/kalebteccom/docsxai>
