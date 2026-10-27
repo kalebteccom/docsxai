@@ -4,6 +4,7 @@ import { unified } from "@astrojs/markdown-remark";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
 import rehypeStripAgentAsides from "./plugins/rehype-strip-agent-asides.mjs";
+import rehypeLabelTaskList from "./plugins/rehype-label-task-list.mjs";
 import rehypeWrapTables from "./plugins/rehype-wrap-tables.mjs";
 import remarkSplitTranscripts from "./plugins/remark-split-transcripts.mjs";
 
@@ -26,7 +27,7 @@ export default defineConfig({
   markdown: {
     processor: unified({
       remarkPlugins: [remarkSplitTranscripts],
-      rehypePlugins: [rehypeStripAgentAsides, rehypeWrapTables],
+      rehypePlugins: [rehypeStripAgentAsides, rehypeWrapTables, rehypeLabelTaskList],
       smartypants: false,
     }),
   },

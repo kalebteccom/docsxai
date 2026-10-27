@@ -269,6 +269,131 @@ function checkDocument(c: Ctx): void {
   }
 }
 
+// Decorative glyphs: arrows, dingbats (check marks, crosses, stars), geometric shapes, emoji and
+// separator dots. A screen reader reads each one by name ("rightwards arrow"), so a glyph that sits
+// next to link or status text goes in its own aria-hidden element.
+const GLYPH_RE = /[·•←-⇿⌀-⏿■-➿⤀-⥿⬀-⯿\u{1F000}-\u{1FAFF}]/u;
+const GLYPH_SKIP = new Set(["code", "pre", "kbd", "samp", "script", "style", "svg", "title"]);
+const BADGE_CLASS = /\b[\w-]*(badge|chip|pill|tag|status|count|counter)[\w-]*\b/i;
+// Inline wrappers that carry no component styling: `foo<code>bar</code>` is one word on purpose.
+const PLAIN_INLINE = new Set(
+  "code em strong b i u a sub sup abbr mark kbd samp var wbr br svg img".split(" "),
+);
+
+function isAriaHidden(n: HtmlNode): boolean {
+  for (let up: HtmlNode | null = n; up !== null; up = up.parent) {
+    if (up.attrs.has("hidden") || attr(up, "aria-hidden") === "true") return true;
+  }
+  return false;
+}
+
+/** Text a screen reader joins without padding: inline elements add no space of their own. */
+function joinedName(n: HtmlNode): string {
+  let out = "";
+  for (const c of n.children) {
+    if (typeof c === "string") {
+      out += c;
+      continue;
+    }
+    if (RAW_TEXT.has(c.tag) || c.attrs.has("hidden") || attr(c, "aria-hidden") === "true") continue;
+    const label = attr(c, "aria-label");
+    out += label !== "" ? label : c.tag === "img" ? attr(c, "alt") : joinedName(c);
+  }
+  return out.replace(/&nbsp;|&#160;|&#xa0;/gi, " ");
+}
+
+const GLYPH_HOSTS = new Set(["a", "button", "summary", "label"]);
+
+/** Prose arrows are content. Only glyphs inside controls, status roles and badges are decoration. */
+function inControlOrBadge(n: HtmlNode): boolean {
+  for (let up: HtmlNode | null = n; up !== null; up = up.parent) {
+    if (GLYPH_HOSTS.has(up.tag)) return true;
+    if (["status", "alert"].includes(attr(up, "role"))) return true;
+    if (BADGE_CLASS.test(attr(up, "class"))) return true;
+  }
+  return false;
+}
+
+function checkSemantics(c: Ctx): void {
+  // A region labelled by aria-labelledby titles itself with a heading, never a <p> or a <div>.
+  const byId = new Map<string, HtmlNode>();
+  for (const n of c.all) {
+    const id = attr(n, "id");
+    if (id !== "" && !byId.has(id)) byId.set(id, n);
+  }
+  for (const n of c.all) {
+    const ref = attr(n, "aria-labelledby");
+    if (ref === "" || !["section", "div", "aside", "nav", "form", "article"].includes(n.tag))
+      continue;
+    if (attr(n, "role") !== "" && attr(n, "role") !== "region") continue;
+    for (const id of ref.split(/\s+/)) {
+      const t = byId.get(id);
+      if (t === undefined) continue;
+      if (["p", "div", "span"].includes(t.tag) && attr(t, "role") !== "heading")
+        c.add(
+          "labelledby-heading",
+          describe(n),
+          `labelled by <${t.tag} id="${id}">, which is not a heading (h2 to h6)`,
+        );
+    }
+  }
+
+  // Decorative glyphs sit in their own aria-hidden element. Outside one, a glyph is read aloud.
+  for (const n of c.all) {
+    if (GLYPH_SKIP.has(n.tag) || isAriaHidden(n)) continue;
+    let inSkipped = false;
+    for (let up: HtmlNode | null = n; up !== null; up = up.parent)
+      inSkipped ||= GLYPH_SKIP.has(up.tag);
+    if (inSkipped || !inControlOrBadge(n)) continue;
+    for (const child of n.children) {
+      if (typeof child !== "string") continue;
+      const text = child.replace(/&[#\w]+;/g, " ");
+      const m = GLYPH_RE.exec(text);
+      if (m !== null)
+        c.add(
+          "glyph-hidden",
+          describe(n),
+          `decorative glyph "${m[0]}" is not inside an aria-hidden element`,
+        );
+    }
+  }
+
+  // A badge next to heading or link text needs a real space, or the name reads "DeveloperYour plan".
+  const namers = c.all.filter(
+    (n) => /^h[1-6]$/.test(n.tag) || n.tag === "a" || n.tag === "button" || n.tag === "summary",
+  );
+  for (const n of namers) {
+    if (isAriaHidden(n)) continue;
+    const kids = n.children;
+    for (let i = 0; i < kids.length; i++) {
+      const k = kids[i];
+      if (k === undefined || typeof k === "string") continue;
+      if (PLAIN_INLINE.has(k.tag) && !BADGE_CLASS.test(attr(k, "class"))) continue;
+      if (isAriaHidden(k) || joinedName(k).trim() === "") continue;
+      const before =
+        i > 0
+          ? kids
+              .slice(0, i)
+              .map((x) => (typeof x === "string" ? x : joinedName(x)))
+              .join("")
+          : "";
+      const after = kids
+        .slice(i + 1)
+        .map((x) => (typeof x === "string" ? x : joinedName(x)))
+        .join("");
+      const inner = joinedName(k);
+      const tight = (a: string, b: string): boolean =>
+        /[\p{L}\p{N}]$/u.test(a) && /^[\p{L}\p{N}]/u.test(b);
+      if (tight(before, inner) || tight(inner, after))
+        c.add(
+          "badge-space",
+          describe(n),
+          `<${k.tag}> text runs into its neighbour ("${joinedName(n).trim().slice(0, 40)}"): add a real space`,
+        );
+    }
+  }
+}
+
 function checkNames(c: Ctx): void {
   for (const n of c.all.filter((e) => e.tag === "img")) {
     if (!n.attrs.has("alt"))
@@ -382,6 +507,7 @@ export function lintHtml(html: string, opts: A11yLintOptions = {}): A11yFinding[
   };
   checkDocument(ctx);
   checkNames(ctx);
+  checkSemantics(ctx);
   checkAttributes(ctx);
   checkCss(ctx);
   return findings;

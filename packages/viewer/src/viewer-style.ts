@@ -169,14 +169,18 @@ export const VIEWER_STYLE = `
   .sd-copyable { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; justify-content: center; }
   .sd-copy { display: inline-grid; place-items: center; font: inherit; font-size: .85rem; color: var(--fg); background: var(--bg); border: 1px solid var(--fg); border-radius: 6px; padding: 0 .75rem; min-height: 44px; min-width: 44px; cursor: pointer; }
   .sd-copy:hover { background: var(--surface); }
+  .sd-copy:active { background: var(--surface2); }
+  .sd-copy:disabled, .sd-copy[aria-disabled="true"] { opacity: .6; cursor: not-allowed; }
   .sd-copy[data-state="done"] { background: var(--surface2); }
   .sd-copy-label { grid-area: 1 / 1; visibility: hidden; white-space: nowrap; }
   .sd-copy[data-state="idle"] .sd-copy-idle, .sd-copy[data-state="done"] .sd-copy-done, .sd-copy[data-state="fallback"] .sd-copy-fallback { visibility: visible; }
-  .sd-copy-done::before { content: "\\2713 "; }
+  .sd-copy-done::before { content: "\\2713\\00a0"; content: "\\2713\\00a0" / ""; }
   .flow-item { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; } .flow-item .flow-card { align-self: stretch; }
   .site-footer .sd-copy { margin-left: .5rem; }
   .notice { color: var(--fg); background: var(--surface); border-left: 4px solid var(--danger); padding: .5rem .75rem; border-radius: 0 6px 6px 0; }
   h1, h2 { overflow-wrap: anywhere; }
+  h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
+  .md, .caption, .notice, .shortcuts p { max-width: 70ch; }
   /* Touch targets of at least 44 px for the page's own controls. */
   .flow-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0; }
   summary { padding: 10px 0; min-height: 44px; box-sizing: border-box; cursor: pointer; }
