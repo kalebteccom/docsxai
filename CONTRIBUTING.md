@@ -49,7 +49,7 @@ docs/        runbooks + cross-repo contracts (browser-bridge integration, action
 
 ## Code conventions
 
-- **TypeScript strict.** No `any` in published surfaces.
+- **TypeScript strict.** Published surfaces use no `any`.
 - **ESM only** (`"type": "module"`). All cross-package imports use `.js` extensions in source.
 - **Tests sit alongside code** as `<name>.test.ts` under each package's `test/`. Vitest. New code ships with a test.
 - **Don't add error handling for impossible states.** Trust internal code and framework guarantees; only validate at system boundaries.

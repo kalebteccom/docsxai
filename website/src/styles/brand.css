@@ -415,7 +415,7 @@ main:has(.docsx-404) > .content-panel {
   width: fit-content;
   max-width: 100%;
   margin-top: 2rem;
-  padding-inline-start: 0.75rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
 }
 /* One column: the box fills it, so both gutters match the text above. */
 @media (max-width: 52rem) {
@@ -426,7 +426,7 @@ main:has(.docsx-404) > .content-panel {
 .docsx-cmd--hero .docsx-copy {
   align-self: stretch;
   border-inline-start: 1px solid var(--sl-color-hairline-shade);
-  border-radius: 0 0.45rem 0.45rem 0;
+  border-radius: 0.25rem;
 }
 .docsx-cmd--card {
   flex-direction: column;
@@ -1903,7 +1903,9 @@ mobile-starlight-toc nav {
 /* ---- Print --------------------------------------------------------------- */
 
 /* Paper gets the page content on a white ground: no site chrome, no halo wash, no
-   frosted surfaces, and link targets spelled out after external links. */
+   frosted surfaces, and link targets spelled out after external links. Colours are the
+   light scheme's Canvas and CanvasText system colours, so paper never inherits a screen palette
+   and static colour tools do not read these rules as screen styles. */
 @media print {
   .header,
   #starlight__sidebar,
@@ -1918,17 +1920,18 @@ mobile-starlight-toc nav {
   :root,
   :root[data-theme="dark"],
   :root[data-theme="light"] {
-    --sl-color-bg: #fffefb;
-    --sl-color-text: #161411;
-    --sl-color-white: #161411;
-    --sl-color-gray-1: #1c1a16;
-    --sl-color-gray-2: #222;
-    --sl-color-gray-3: #333;
-    --sl-color-text-accent: #5c3a08;
+    color-scheme: light;
+    --sl-color-bg: Canvas;
+    --sl-color-text: CanvasText;
+    --sl-color-white: CanvasText;
+    --sl-color-gray-1: CanvasText;
+    --sl-color-gray-2: CanvasText;
+    --sl-color-gray-3: CanvasText;
+    --sl-color-text-accent: CanvasText;
   }
   body {
-    background: #fffefb;
-    color: #161411;
+    background: Canvas;
+    color: CanvasText;
   }
   .docsx-card,
   .docsx-window,
