@@ -1,5 +1,7 @@
 # docsxai.dev UX audit
 
+Historical snapshot. It predates the flat, sans-only site: the Inter body font, gradient buttons and glows it names no longer ship. The current rules are in `docs/ui-rules.md`.
+
 Source-only audit of `website/` (Astro + Starlight 0.41): `astro.config.mjs`, `src/styles/brand.css`, the `Footer` and `Sidebar` overrides, `src/pages/404.astro`, the hand-authored pages under `src/content/docs/`, search, and `public/llms.txt`. Nothing here was checked in a browser. Pages generated from package READMEs and `docs/` by `website/scripts/sync-docs.mjs` were read for structure only; their copy belongs to the source files.
 
 Contrast ratios are WCAG 2.x relative-luminance ratios, computed by hand from the brand tokens and Starlight's default gray scale (dark canvas `#140d04`, dark sidebar `#1f1407`, light canvas `#fdfaf3`, light sidebar `#f7efda`). AA needs 4.5:1 for body text and 3:1 for large text and focus indicators.

@@ -2,8 +2,10 @@
  * docsxai site layer.
  *
  * Dark-first, with a warm-light mode. The accent is a golden bronze on a deep
- * ember-black canvas (cream in light). Surfaces are flat: a hairline border, no
- * glow, no grid, no drop shadow. Display type is Poppins, body text is the system
+ * ember-black canvas (cream in light). Surfaces are a hairline border on a solid
+ * or translucent fill; the top nav, cards and windows blur what scrolls under
+ * them. No glow, no grid, no drop shadow. Display type is Poppins (headings and
+ * the wordmark carry a small negative tracking), body text is the system
  * sans stack, and JetBrains Mono is for code only: code blocks, inline code,
  * command snippets and file contents. Labels, eyebrows, numbers, chips and nav
  * chrome use the body font, in sentence case with no letter-spacing.
@@ -19,16 +21,11 @@
   --docsx-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Brand accent scale (ember / golden bronze). */
-  --docsx-amber-100: #faf0d6;
   --docsx-amber-200: #f3dfa6;
   --docsx-amber-300: #e9c465;
   --docsx-amber-400: #ddab38;
   --docsx-amber-500: #c8901c;
-  --docsx-amber-600: #a87413;
   --docsx-amber-700: #7a4e0c;
-  --docsx-gold: #ffcd78;
-  --docsx-halo-deep: #2a1505;
-  --docsx-halo-bright: #a06410;
 
   --sl-font: var(--docsx-font-body);
   --sl-font-mono: var(--docsx-font-mono);
@@ -1902,7 +1899,7 @@ mobile-starlight-toc nav {
 
 /* ---- Print --------------------------------------------------------------- */
 
-/* Paper gets the page content on a white ground: no site chrome, no halo wash, no
+/* Paper gets the page content on a white ground: no site chrome, no
    frosted surfaces, and link targets spelled out after external links. Colours are the
    light scheme's Canvas and CanvasText system colours, so paper never inherits a screen palette
    and static colour tools do not read these rules as screen styles. */
