@@ -193,7 +193,7 @@ function flowNav(flow: string, nb: FlowNeighbours, ui: UiStrings): string {
   const link = (rel: "prev" | "next", name: string) =>
     `<li><a rel="${rel}" href="${up}${urlPath(name)}/index.html">${fmt(ui.nav[rel], { name: esc(name) })}</a></li>`;
   const items = [
-    `<li><a href="${up}index.html"><span aria-hidden="true">← </span>${ui.nav.all}</a></li>`,
+    `<li><a href="${up}index.html"><span aria-hidden="true">←&nbsp;</span>${ui.nav.all}</a></li>`,
     nb.prev !== undefined ? link("prev", nb.prev) : "",
     nb.next !== undefined ? link("next", nb.next) : "",
   ].join("");

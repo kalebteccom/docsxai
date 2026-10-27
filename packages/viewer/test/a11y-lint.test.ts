@@ -318,3 +318,36 @@ describe("rendered viewer pages", () => {
     expect(lintHtml(html).map(formatFinding)).toEqual([]);
   });
 });
+
+describe("semantics rules", () => {
+  const rule = (main: string, name: string): A11yFinding[] => only(page({ main }), name);
+
+  it("flags a region labelled by a paragraph, accepts a heading or a summary", () => {
+    const bad = '<section aria-labelledby="t"><p id="t">Title</p><p>x</p></section>';
+    expect(rule(`<h1>T</h1>${bad}`, "labelledby-heading")).toHaveLength(1);
+    const ok = '<section aria-labelledby="t"><h2 id="t">Title</h2></section>';
+    expect(rule(`<h1>T</h1>${ok}`, "labelledby-heading")).toEqual([]);
+    const nav =
+      '<nav aria-labelledby="s"><details><summary id="s">On this page</summary></details></nav>';
+    expect(rule(`<h1>T</h1>${nav}`, "labelledby-heading")).toEqual([]);
+  });
+
+  it("flags a glyph inside a link, accepts it hidden, in prose or in code", () => {
+    expect(rule('<h1>T</h1><a href="/">← All</a>', "glyph-hidden")).toHaveLength(1);
+    expect(
+      rule('<h1>T</h1><a href="/"><span aria-hidden="true">←&nbsp;</span>All</a>', "glyph-hidden"),
+    ).toEqual([]);
+    expect(rule("<h1>T</h1><p>Run a → b in order</p>", "glyph-hidden")).toEqual([]);
+    expect(rule('<h1>T</h1><a href="/"><code>a → b</code></a>', "glyph-hidden")).toEqual([]);
+  });
+
+  it("flags a badge that runs into heading text", () => {
+    expect(
+      rule('<h1>T</h1><h2>Plan<span class="badge">New</span></h2>', "badge-space"),
+    ).toHaveLength(1);
+    expect(rule('<h1>T</h1><h2>Plan <span class="badge">New</span></h2>', "badge-space")).toEqual(
+      [],
+    );
+    expect(rule("<h1>T</h1><h2>the <code>flag</code>s</h2>", "badge-space")).toEqual([]);
+  });
+});

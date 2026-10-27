@@ -276,26 +276,9 @@ const GLYPH_RE = /[·•←-⇿⌀-⏿■-➿⤀-⥿⬀-⯿\u{1F000}-\u{1FAFF}]/
 const GLYPH_SKIP = new Set(["code", "pre", "kbd", "samp", "script", "style", "svg", "title"]);
 const BADGE_CLASS = /\b[\w-]*(badge|chip|pill|tag|status|count|counter)[\w-]*\b/i;
 // Inline wrappers that carry no component styling: `foo<code>bar</code>` is one word on purpose.
-const PLAIN_INLINE = new Set([
-  "code",
-  "em",
-  "strong",
-  "b",
-  "i",
-  "u",
-  "a",
-  "sub",
-  "sup",
-  "abbr",
-  "mark",
-  "kbd",
-  "samp",
-  "var",
-  "wbr",
-  "br",
-  "svg",
-  "img",
-]);
+const PLAIN_INLINE = new Set(
+  "code em strong b i u a sub sup abbr mark kbd samp var wbr br svg img".split(" "),
+);
 
 function isAriaHidden(n: HtmlNode): boolean {
   for (let up: HtmlNode | null = n; up !== null; up = up.parent) {
@@ -319,6 +302,18 @@ function joinedName(n: HtmlNode): string {
   return out.replace(/&nbsp;|&#160;|&#xa0;/gi, " ");
 }
 
+const GLYPH_HOSTS = new Set(["a", "button", "summary", "label"]);
+
+/** Prose arrows are content. Only glyphs inside controls, status roles and badges are decoration. */
+function inControlOrBadge(n: HtmlNode): boolean {
+  for (let up: HtmlNode | null = n; up !== null; up = up.parent) {
+    if (GLYPH_HOSTS.has(up.tag)) return true;
+    if (["status", "alert"].includes(attr(up, "role"))) return true;
+    if (BADGE_CLASS.test(attr(up, "class"))) return true;
+  }
+  return false;
+}
+
 function checkSemantics(c: Ctx): void {
   // A region labelled by aria-labelledby titles itself with a heading, never a <p> or a <div>.
   const byId = new Map<string, HtmlNode>();
@@ -334,7 +329,7 @@ function checkSemantics(c: Ctx): void {
     for (const id of ref.split(/\s+/)) {
       const t = byId.get(id);
       if (t === undefined) continue;
-      if (!/^h[1-6]$/.test(t.tag) && attr(t, "role") !== "heading")
+      if (["p", "div", "span"].includes(t.tag) && attr(t, "role") !== "heading")
         c.add(
           "labelledby-heading",
           describe(n),
@@ -349,7 +344,7 @@ function checkSemantics(c: Ctx): void {
     let inSkipped = false;
     for (let up: HtmlNode | null = n; up !== null; up = up.parent)
       inSkipped ||= GLYPH_SKIP.has(up.tag);
-    if (inSkipped) continue;
+    if (inSkipped || !inControlOrBadge(n)) continue;
     for (const child of n.children) {
       if (typeof child !== "string") continue;
       const text = child.replace(/&[#\w]+;/g, " ");
