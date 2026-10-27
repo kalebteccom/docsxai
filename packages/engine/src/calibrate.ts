@@ -1,12 +1,12 @@
-// Calibration — the deterministic, structured-input path.
+// Calibration: the deterministic, structured-input path.
 //
-// `docsxai add-flow <workspace> --from <flow.md|.yaml>` takes a *structured flow-guide* — a flow-file in
+// `docsxai add-flow <workspace> --from <flow.md|.yaml>` takes a *structured flow-guide*, a flow-file in
 // YAML, or a Markdown doc containing a ```yaml fenced block that parses as one (the the first-consumer testing guide
-// shape: prerequisites + locators reference + per-step actions + success criteria) — and writes it as
+// shape: prerequisites + locators reference + per-step actions + success criteria), and writes it as
 // `<workspace>/flows/<name>.flow.yaml`, plus a default `docs/style.yaml` if absent. Then `docsxai run`
 // exercises it against the live app to fill in screenshots + bounding boxes + the real `annotations.json`.
 //
-// Loose-prose flow descriptions (and live element-picking / ambiguity resolution) need the host agent —
+// Loose-prose flow descriptions (and live element-picking / ambiguity resolution) need the host agent,
 // that's the `/docsxai:add-flow` *skill* (see packages/plugin/skills/add-flow/SKILL.md); ambiguity
 // signalling lives at the MCP/skill layer. This module covers only the part that's deterministic.
 
@@ -104,7 +104,7 @@ export async function calibrate(opts: CalibrateOptions): Promise<CalibrateResult
   }
 
   await fs.mkdir(resolveWorkspacePath(opts.workspaceDir, "flows"), { recursive: true });
-  // The flow name is guide-supplied — resolve with the symlink-aware variant before writing.
+  // The flow name is guide-supplied, resolve with the symlink-aware variant before writing.
   const flowFilePath = await resolveWorkspacePathReal(
     opts.workspaceDir,
     "flows",

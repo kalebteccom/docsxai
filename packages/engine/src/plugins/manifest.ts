@@ -1,5 +1,5 @@
 // Plugin manifest: the `docsxai` field on a plugin package's package.json. Zod-validated; the
-// rejections here are load-errors, not warnings — a plugin with a lying or malformed manifest
+// rejections here are load-errors, not warnings, a plugin with a lying or malformed manifest
 // never reaches `register()`.
 
 import { z } from "zod";
@@ -8,7 +8,7 @@ import { z } from "zod";
 export const RUNTIME_API_VERSION = "1.0.0";
 
 /**
- * Namespaces plugins can never claim — the engine's own surfaces live here.
+ * Namespaces plugins can never claim, the engine's own surfaces live here.
  * `site-docs` (the pre-rename CLI/product name) stays reserved defensively so a
  * plugin can never squat the old identity.
  */

@@ -1,5 +1,5 @@
 // Store contract + the in-memory implementation. Linear immutable revisions; artifact payloads are
-// opaque JSON (the backend never validates doc-pack contents — that's the engine's job). Blobs are
+// opaque JSON (the backend never validates doc-pack contents, that's the engine's job). Blobs are
 // content-addressed by sha256 and shared across revisions. `MemoryStore` resets per process; the
 // filesystem-backed `FsStore` (fs-store.ts) persists the same shapes under a data dir.
 

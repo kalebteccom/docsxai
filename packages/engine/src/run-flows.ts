@@ -127,7 +127,7 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
     say(`${tag(name)}${name}, starting\n`);
     let session;
     try {
-      // When attaching to an existing Chrome via --cdp, the operator owns its auth state — don't
+      // When attaching to an existing Chrome via --cdp, the operator owns its auth state, don't
       // load cached `storageState` over it (would replace cookies). When launching fresh, do.
       session = await launchPlaywrightSession({
         baseURL: opts.baseURL,
@@ -168,13 +168,13 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
       });
       const docSegments = ["docs", flow.name, ...(unit.id ? [unit.id] : [])];
       await fs.mkdir(resolveWorkspacePath(outputRoot, ...docSegments), { recursive: true });
-      // Flow names and variant ids come from the flow-files — resolve the write target symlink-aware.
+      // Flow names and variant ids come from the flow-files, resolve the write target symlink-aware.
       const annotationsPath = await resolveWorkspacePathReal(
         outputRoot,
         ...docSegments,
         "annotations.json",
       );
-      // With `startFrom`, only the post-startFrom steps emit annotations — merge them into the
+      // With `startFrom`, only the post-startFrom steps emit annotations, merge them into the
       // existing file (if any) by step id so the prior steps' annotations stay in place. Same
       // story for screenshots (they live as separate PNGs and are simply not re-captured).
       const toWrite = startFrom

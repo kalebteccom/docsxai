@@ -1,7 +1,7 @@
 // plugins-lock.json + the plugin keys of `.docsxai.json`.
 //
 // The lock pins the sha256 of each plugin's register-module bytes. When the file exists, every
-// resolve verifies the hash BEFORE importing — a silently-swapped module fails closed with a
+// resolve verifies the hash BEFORE importing, a silently-swapped module fails closed with a
 // "run `docsxai plugins sync`" message. `docsxai plugins sync` (re)writes it without ever
 // executing plugin code.
 

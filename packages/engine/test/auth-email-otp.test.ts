@@ -1,4 +1,4 @@
-// email-otp strategy — the form server "mails" the code into the fixture inbox; the strategy
+// email-otp strategy, the form server "mails" the code into the fixture inbox; the strategy
 // polls the inbox via the built-in http-json provider, extracts the code, and finishes the login.
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -104,7 +104,7 @@ describe("email-otp strategy", () => {
 
   it("supports a custom code_pattern with a capture group", async () => {
     const { inbox, form } = await startRig({
-      mailBody: (code) => `ref 999999 — enter token:${code} to continue`,
+      mailBody: (code) => `ref 999999, enter token:${code} to continue`,
     });
     const r = await strategy().authenticate(
       ctx(form, {

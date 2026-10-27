@@ -401,7 +401,7 @@ steps:
     expect(r.steps[1]!.screenshot).toBeUndefined();
   });
 
-  it("is deterministic — two runs against the same driver state produce equal results", async () => {
+  it("is deterministic, two runs against the same driver state produce equal results", async () => {
     const mk = () => {
       const d = new FakeDriver();
       d.visible.add("#recap");
@@ -457,7 +457,7 @@ steps:
     expect(d.calls).not.toContain("fill #title=My recap");
   });
 
-  it("an `optional: true` step that fails is SKIPPED, not halted — the flow continues", async () => {
+  it("an `optional: true` step that fails is SKIPPED, not halted, the flow continues", async () => {
     // The optional step targets an element that never becomes visible; its success check would
     // throw. With optional:true the flow keeps going to the next step instead of halting.
     const d = new FakeDriver();
@@ -603,7 +603,7 @@ steps:
     expect(d.calls).toContain("screenshot docs/recap-open/halts/open-sidebar.png");
   });
 
-  it("skips an annotation when its target's boundingBox fails (e.g. the target was unmounted post-action) — run continues", async () => {
+  it("skips an annotation when its target's boundingBox fails (e.g. the target was unmounted post-action), run continues", async () => {
     const d = new FakeDriver();
     d.visible.add("#recap");
     d.boundingBoxError = new Error("locator.boundingBox: Timeout 2000ms exceeded");
@@ -675,7 +675,7 @@ steps:
     expect(r.annotations.annotations[0]!.nudge).toEqual({ x: 30, y: -12 });
   });
 
-  it("annotation.target overrides the anchor — point the halo at a different element from the action's target", async () => {
+  it("annotation.target overrides the anchor, point the halo at a different element from the action's target", async () => {
     const d = new FakeDriver();
     d.visible.add("#recap");
     d.boxes.set("#appeared", { x: 100, y: 50, width: 200, height: 60 });
@@ -760,7 +760,7 @@ steps:
   });
 });
 
-describe("runFlow — redactions", () => {
+describe("runFlow, redactions", () => {
   const REDACTED_FLOW = `
 name: f
 locators: { play: '#play', recap: '#recap', secret: '#secret' }
@@ -832,7 +832,7 @@ describe("inferHaltCause", () => {
     );
   });
 
-  it("falls back to 'target resolved to <…>' when no actionability hint matches (captures the opening tag — which is where Playwright puts the attributes)", () => {
+  it("falls back to 'target resolved to <…>' when no actionability hint matches (captures the opening tag, which is where Playwright puts the attributes)", () => {
     expect(
       inferHaltCause(
         'page.fill: Timeout exceeded.\nlocator resolved to <input disabled value="00" />',
@@ -866,7 +866,7 @@ describe("inferHaltCause", () => {
   });
 });
 
-describe("runFlow — hide / show", () => {
+describe("runFlow, hide / show", () => {
   const HIDE_FLOW = `
 name: hide-flow
 locators:
@@ -981,7 +981,7 @@ steps:
   });
 });
 
-describe("runFlow — step timeout_ms", () => {
+describe("runFlow, step timeout_ms", () => {
   it("is passed to every target action; steps without it pass nothing (default behaviour untouched)", async () => {
     const d = new FakeDriver();
     const flow = parseFlowFile(`

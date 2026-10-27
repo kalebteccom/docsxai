@@ -1,11 +1,11 @@
-// Confluence Cloud publisher — the ONLY Confluence egress path in the docsxai tree.
+// Confluence Cloud publisher, the ONLY Confluence egress path in the docsxai tree.
 //
 // Consumes the engine's ADF projection (`docsxai export adf` / `projectDocPackToAdf`) and
 // pushes it through the Confluence Cloud REST API (v2 pages, v1 attachment upload) with
 // built-in `fetch`. Idempotent by content hash: every published page carries a
 // `docsxai-content-sha` content-property holding the sha256 of its projected content (title +
 // ADF + attachment shas). Re-publishing an unchanged projection reads that property, sees a
-// match, and performs ZERO mutations — no version bumps, no attachment uploads. Page identity is the `{ section → pageId }` map the
+// match, and performs ZERO mutations, no version bumps, no attachment uploads. Page identity is the `{ section → pageId }` map the
 // caller passes in `config.page_map`; the result's `pages[]` entries echo `section` so the
 // caller can persist the updated map.
 //
@@ -59,7 +59,7 @@ export interface ConfluencePublishConfig {
   base_url: string;
   /** Target space id (v2 numeric space id, as a string). */
   space_id: string;
-  /** Mirrors the projection's mode; informational — the projection's own `mode` drives layout. */
+  /** Mirrors the projection's mode; informational, the projection's own `mode` drives layout. */
   mode?: "single" | "page-tree";
   /** Page identity: projection section → existing Confluence page id. Absent section → create. */
   page_map?: Record<string, string>;
@@ -73,7 +73,7 @@ export interface ConfluencePublishConfig {
 // canonical hashing
 // ---------------------------------------------------------------------------
 
-/** JSON.stringify with object keys sorted at every level — stable hash input. */
+/** JSON.stringify with object keys sorted at every level, stable hash input. */
 export function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   if (value !== null && typeof value === "object") {

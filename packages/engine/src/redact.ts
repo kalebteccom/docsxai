@@ -1,6 +1,6 @@
-// Deterministic screenshot redaction — pure pixel transforms over decoded PNGs.
+// Deterministic screenshot redaction, pure pixel transforms over decoded PNGs.
 //
-// Boxes arrive in the screenshot's own pixel space (device pixels — selector bounding boxes are
+// Boxes arrive in the screenshot's own pixel space (device pixels, selector bounding boxes are
 // already devicePixelRatio-scaled by the driver; fixed regions are scaled the same way at capture
 // time). Same PNG + same boxes → byte-identical output, which is what keeps redacted doc packs
 // reproducible run-over-run.

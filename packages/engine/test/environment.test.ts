@@ -1,5 +1,5 @@
 // `environment` + `redactions` schema acceptance/rejection, `extends` merge semantics, and the
-// EnvironmentSpec → Playwright context-options mapping (pure — no browser).
+// EnvironmentSpec → Playwright context-options mapping (pure, no browser).
 
 import { describe, expect, it } from "vitest";
 import { EnvironmentSpec, RedactionSpec, VIEWPORT_PRESETS } from "../src/doc-pack.js";
@@ -142,7 +142,7 @@ steps:
   });
 });
 
-describe("extends merge — environment + redactions", () => {
+describe("extends merge, environment + redactions", () => {
   const PARENT = `
 name: base
 environment:

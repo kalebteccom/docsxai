@@ -107,7 +107,7 @@ function renderOne(
     "left:" + t.x + "px;top:" + t.y + "px;width:" + t.width + "px;height:" + t.height + "px";
   wrap.appendChild(halo);
 
-  // Numbered badge — only when this image has > 1 call-out (ann.index set by the engine then).
+  // Numbered badge, only when this image has > 1 call-out (ann.index set by the engine then).
   if (typeof ann.index === "number") {
     const badge = document.createElement("div");
     badge.className = "sd-badge";
@@ -133,7 +133,7 @@ function renderOne(
       callout: c,
       preferred: preferredSide(ann.arrow_style),
     });
-    // Optional nudge — moves callout + arrow together; halo (which highlights the target) stays
+    // Optional nudge, moves callout + arrow together; halo (which highlights the target) stays
     // put. Lets the author shift a callout aside when two annotations would otherwise overlap.
     const nx = ann.nudge && typeof ann.nudge.x === "number" ? ann.nudge.x : 0;
     const ny = ann.nudge && typeof ann.nudge.y === "number" ? ann.nudge.y : 0;

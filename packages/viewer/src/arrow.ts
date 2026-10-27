@@ -21,7 +21,7 @@ export interface ArrowGeometry {
 }
 
 /**
- * Triangle geometry for the callout arrow, tip at `tip` on the target's edge — the static mirror
+ * Triangle geometry for the callout arrow, tip at `tip` on the target's edge, the static mirror
  * of the viewer's `.sd-arrow.<side>` CSS triangles (7px half-base, 8px length). Satori renders
  * CSS border-triangles as filled boxes, so the burner clips an INK box to a polygon instead.
  */

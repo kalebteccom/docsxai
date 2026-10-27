@@ -15,7 +15,7 @@ steps:
     annotation: { copy: "Click Play to open the recap sidebar", arrow: top-right }
 `;
 
-const FLOW_GUIDE_MD = `# Recap — open the Recap sidebar
+const FLOW_GUIDE_MD = `# Recap, open the Recap sidebar
 
 Some prose describing the flow for humans.
 

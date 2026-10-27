@@ -1,13 +1,13 @@
-// Doc-pack ops — the commands that package, render, snapshot, and compare the produced doc pack.
+// Doc-pack ops, the commands that package, render, snapshot, and compare the produced doc pack.
 // They read the rendered artifacts (flows/docs/screenshots) and emit something derived; none of
 // them drive a live browser:
-//   render    — build the static viewer by spawning the docsxai-viewer bin (--open shows it)
-//   burn      — bake the annotations into PNG copies by spawning the same bin
+//   render: build the static viewer by spawning the docsxai-viewer bin (--open shows it)
+//   burn: bake the annotations into PNG copies by spawning the same bin
 //               (`site`, which runs the same bin's docs-site emitter, is in cli-commands-site.ts)
-//   zip       — deterministic single-archive hand-off bundle
-//   export    — project the doc pack to ADF (Confluence) or self-contained Playwright specs
-//   baseline  — snapshot the doc pack into .baseline/ as the "before" for diff
-//   diff      — drift report against a baseline (the after-vs-before)
+//   zip: deterministic single-archive hand-off bundle
+//   export: project the doc pack to ADF (Confluence) or self-contained Playwright specs
+//   baseline: snapshot the doc pack into .baseline/ as the "before" for diff
+//   diff: drift report against a baseline (the after-vs-before)
 
 import { randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
@@ -112,7 +112,7 @@ function parseBurnArgs(args: string[]): BurnArgs | string {
 }
 
 /**
- * `burn` — bake each annotation into a copy of its screenshot, for surfaces that can't run the
+ * `burn`: bake each annotation into a copy of its screenshot, for surfaces that can't run the
  * interactive viewer. The renderer lives in `@docsxai/viewer`; this runs its `burn` command.
  */
 export async function cmdBurn(args: string[]): Promise<number> {

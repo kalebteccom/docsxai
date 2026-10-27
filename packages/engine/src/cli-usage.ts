@@ -1,6 +1,6 @@
 // `docsxai` CLI help text. Split out of cli.ts so the dispatch barrel and every command cluster
 // can share the one authoritative USAGE string (commands print it on a missing-arg bail; the
-// barrel prints it for --help / unknown-command). Text only — no imports, the truest leaf.
+// barrel prints it for --help / unknown-command). Text only, no imports, the truest leaf.
 
 export const USAGE = `docsxai: deterministic execution CLI
 

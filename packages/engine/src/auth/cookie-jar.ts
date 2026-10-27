@@ -147,7 +147,7 @@ export class CookieJar {
     return [...this.store.values()];
   }
 
-  /** `Cookie:` header value for a request to `url` — domain/path/secure/expiry-matched. Empty string if none apply. */
+  /** `Cookie:` header value for a request to `url`, domain/path/secure/expiry-matched. Empty string if none apply. */
   cookieHeaderFor(url: URL, now = Date.now()): string {
     const sendable = this.cookies().filter((c) => {
       if (c.expires > 0 && c.expires * 1000 <= now) return false;
@@ -183,7 +183,7 @@ export interface CollectingFetchResult {
 /**
  * Fetch with `redirect: "manual"`, following up to `maxRedirects` hops (default 5) while
  * collecting `Set-Cookie` headers into a {@link CookieJar} and replaying matching cookies on
- * each hop. 303 — and 301/302 on a non-GET — switch the method to GET and drop the body,
+ * each hop. 303, and 301/302 on a non-GET, switch the method to GET and drop the body,
  * matching browser behaviour.
  */
 export async function fetchCollectingCookies(
@@ -244,8 +244,8 @@ export async function fetchCollectingCookies(
 
 /**
  * The expiry a login strategy can credibly report: the named cookie's expiry when the caller
- * knows which cookie is the session, else — only when the jar has exactly one real-expiry
- * cookie — that one. Ambiguous jars report `undefined` (the cache's `ttl` takes over).
+ * knows which cookie is the session, else, only when the jar has exactly one real-expiry
+ * cookie: that one. Ambiguous jars report `undefined` (the cache's `ttl` takes over).
  */
 export function jarAuthExpiry(state: StorageState, preferredCookie?: string): number | undefined {
   if (preferredCookie) {

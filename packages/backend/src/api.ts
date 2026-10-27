@@ -1,10 +1,10 @@
-// Backend API contract — the concrete endpoint list.
+// Backend API contract, the concrete endpoint list.
 //
 // REST + per-resource endpoints under /v1/workspaces/{ws}/projects/{project}/revisions/{rev}/...
 // Auth: OAuth 2.1 authorization-code+PKCE for humans (the backend is its own minimal authorization
-// server — see /v1/oauth/*), pre-issued bearer token (DOCSX_TOKEN) for CI.
+// server: see /v1/oauth/*), pre-issued bearer token (DOCSX_TOKEN) for CI.
 // Versioning: clients send `Docsxai-Api-Version: 1`; the server echoes it and warns on mismatch.
-// Revisions: linear and immutable — POST .../revisions creates a new revision whose parent is the
+// Revisions: linear and immutable, POST .../revisions creates a new revision whose parent is the
 // current head; finalizing a revision freezes its artifacts (PUT after finalize → 409).
 // Binary artifacts (screenshots) travel as content-addressed blobs under /v1/blobs.
 
@@ -191,7 +191,7 @@ export interface Revision {
   created_at: string;
   /** Which artifact slots have a payload. */
   artifacts: RevisionArtifact[];
-  /** True once finalized — artifact PUTs are rejected with 409 from then on. */
+  /** True once finalized, artifact PUTs are rejected with 409 from then on. */
   finalized: boolean;
 }
 
@@ -218,7 +218,7 @@ export interface BlobRef {
 
 /**
  * Client-side-encrypted storage-state envelope relayed through the backend. The backend validates
- * the shape and stores it opaquely — it never sees the plaintext (the AES-256-GCM key never leaves
+ * the shape and stores it opaquely, it never sees the plaintext (the AES-256-GCM key never leaves
  * the client; see `DOCSX_CACHE_KEY`).
  */
 export interface AuthCacheEnvelope {
@@ -248,7 +248,7 @@ export type WebhookStrategy = (typeof WEBHOOK_STRATEGIES)[number];
 export const DEFAULT_WEBHOOK_SECRET_ENV = "DOCSX_WEBHOOK_SECRET";
 
 /**
- * Per-project GitHub webhook configuration. Lives entirely in the backend — user repos carry
+ * Per-project GitHub webhook configuration. Lives entirely in the backend, user repos carry
  * ZERO YAML. The HMAC secret itself never enters the store; the config only names the env var
  * (`secret_env`) the backend process reads it from.
  */

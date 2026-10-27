@@ -28,7 +28,7 @@ function publisherCtx(workspaceDir: string): PublisherContext {
   };
 }
 
-describe("resolvePlugins — well-formed plugin", () => {
+describe("resolvePlugins, well-formed plugin", () => {
   it("loads a multi-kind plugin with an exact status record", async () => {
     const ws = await makeWorkspace();
     const registry = await resolvePlugins({
@@ -114,7 +114,7 @@ describe("resolvePlugins — well-formed plugin", () => {
   });
 });
 
-describe("resolvePlugins — workspace containment", () => {
+describe("resolvePlugins, workspace containment", () => {
   it("api.workspacePath resolves inside the workspace the registry was built for", async () => {
     const ws = await makeWorkspace();
     const registry = await resolvePlugins({
@@ -149,7 +149,7 @@ describe("resolvePlugins — workspace containment", () => {
   });
 });
 
-describe("resolvePlugins — rejection statuses", () => {
+describe("resolvePlugins, rejection statuses", () => {
   it("load-errors an api-version-too-new plugin with both versions named", async () => {
     const ws = await makeWorkspace();
     const registry = await resolvePlugins({

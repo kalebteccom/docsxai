@@ -1,4 +1,4 @@
-// lint_flows — pure-static lint over the workspace's flow-files, including plugin-contributed
+// lint_flows: pure-static lint over the workspace's flow-files, including plugin-contributed
 // extra rules when the workspace's plugin set resolves (plugin failures degrade to a warning,
 // never fail the lint itself).
 
@@ -54,7 +54,7 @@ export const lintFlowsTool = defineTool({
       );
     }
 
-    // Plugin extraRules — best-effort: an unresolvable plugin set must not block a static lint.
+    // Plugin extraRules, best-effort: an unresolvable plugin set must not block a static lint.
     let extraRules: LintRule[] = [];
     let pluginRuleWarning: string | undefined;
     try {

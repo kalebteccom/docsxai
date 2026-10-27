@@ -1,4 +1,4 @@
-// list_flows — read-only doc-pack introspection: every flow's name, steps, extends parent,
+// list_flows: read-only doc-pack introspection: every flow's name, steps, extends parent,
 // and a one-look summary of its pinned execution environment.
 
 import * as path from "node:path";

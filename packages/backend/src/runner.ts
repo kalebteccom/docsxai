@@ -1,5 +1,5 @@
 // The real webhook run executor. Materializes the configured revision's artifacts from the store
-// into a temp workspace dir (same-process store reads — no HTTP hop), spawns the engine CLI
+// into a temp workspace dir (same-process store reads, no HTTP hop), spawns the engine CLI
 // (`docsxai run`), records the outcome in run-history, then routes output through the configured
 // strategy. Everything effectful is injectable (spawn, strategy, env) so the whole path is
 // unit-testable with a fake engine bin.
@@ -65,7 +65,7 @@ export function resolveEngineBin(env: NodeJS.ProcessEnv = process.env): string {
       if (fs.existsSync(abs)) return abs;
     }
   } catch {
-    // not installed next to the backend — fall through to PATH
+    // not installed next to the backend, fall through to PATH
   }
   return ENGINE_BIN_NAME;
 }

@@ -70,7 +70,7 @@ export class PluginRegistry {
     this.workspaceDir = workspaceDir;
   }
 
-  /** Workspace-contained path resolution — the only filesystem root plugins may touch. */
+  /** Workspace-contained path resolution, the only filesystem root plugins may touch. */
   workspacePath(...segments: string[]): string {
     return resolveWorkspacePath(this.workspaceDir, ...segments);
   }

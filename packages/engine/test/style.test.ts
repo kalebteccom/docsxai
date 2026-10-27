@@ -23,7 +23,7 @@ describe("stylePathsFor", () => {
   });
 });
 
-describe("style — load/write/init", () => {
+describe("style, load/write/init", () => {
   let tmp = "";
   beforeEach(async () => {
     tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-style-"));

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @docsxai/backend — authenticated doc-pack persistence service.
+// @docsxai/backend, authenticated doc-pack persistence service.
 //
 // This module is both the library entry (re-exports the contract + `createBackendStub`) and the bin
 // entry `docsxai-backend` (starts the server). Storage is in-memory by default; `--data-dir=<dir>`

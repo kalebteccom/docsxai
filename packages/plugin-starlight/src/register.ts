@@ -1,4 +1,4 @@
-// Plugin entry point — `package.json#docsxai.register` points here (built form). The runtime
+// Plugin entry point, `package.json#docsxai.register` points here (built form). The runtime
 // prefixes the bare name with the manifest namespace: the renderer is `starlight:site`.
 
 import type { PluginRegisterApi } from "@docsxai/engine";

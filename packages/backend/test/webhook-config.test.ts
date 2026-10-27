@@ -135,7 +135,7 @@ describe("store-level webhook surface", () => {
     for (let i = 1; i <= WEBHOOK_DELIVERY_MEMORY; i++) {
       expect(store.rememberWebhookDelivery(`d-${i}`)).toBe(true);
     }
-    // d-0 has been evicted (capacity N) — it counts as new again.
+    // d-0 has been evicted (capacity N), it counts as new again.
     expect(store.rememberWebhookDelivery("d-0")).toBe(true);
     expect(store.rememberWebhookDelivery(`d-${WEBHOOK_DELIVERY_MEMORY}`)).toBe(false);
   });

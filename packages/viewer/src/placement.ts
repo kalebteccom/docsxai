@@ -30,7 +30,7 @@ export interface Placement {
   side: Side;
   /** Top-left of the callout, in image coords. */
   callout: { x: number; y: number };
-  /** Tip of the arrow — touches the target edge, points away from the callout — in image coords. */
+  /** Tip of the arrow, touches the target edge, points away from the callout, in image coords. */
   arrow: { x: number; y: number };
 }
 

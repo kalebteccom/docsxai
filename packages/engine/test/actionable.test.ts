@@ -1,4 +1,4 @@
-// Actionability predicate — exercise `PlaywrightDriver.actionable(selector)` against a live
+// Actionability predicate, exercise `PlaywrightDriver.actionable(selector)` against a live
 // browser on controlled HTML, covering each ActionableState. Chromium-gated (skips when no
 // browser binary is installed) like the keystone.
 
@@ -51,7 +51,7 @@ describe.skipIf(!chromiumAvailable)("PlaywrightDriver.actionable", () => {
       expect(await d.actionable(".dup")).toBe("multiple-matches");
       expect(await d.actionable("#nope")).toBe("not-found");
       // Note: an element inside a scroll container whose CONTENT is below the scroller's fold
-      // (e.g. `#below-fold`) returns "actionable" — Playwright auto-scrolls to it before any
+      // (e.g. `#below-fold`) returns "actionable", Playwright auto-scrolls to it before any
       // action, so "off-screen" only fires for elements outside the viewport with no scroll path.
     } finally {
       await session.close();

@@ -20,7 +20,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("docsxai CLI — main()", () => {
+describe("docsxai CLI, main()", () => {
   it("prints usage and exits 0 with --help / help / no args", async () => {
     expect(await main(["--help"])).toBe(0);
     expect(out).toMatch(/Usage:/);

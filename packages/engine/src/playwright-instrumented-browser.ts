@@ -1,9 +1,9 @@
-// Playwright-backed InstrumentedBrowser — the security-lowered, instrumented Chrome `manual-capture` drives.
+// Playwright-backed InstrumentedBrowser, the security-lowered, instrumented Chrome `manual-capture` drives.
 //
 // The plugin spawns this; the engineer logs into the target site interactively (Azure AD SSO, MFA,
-// conditional access — anything a human can click through); a console call `window.__docsxai.capture()`
+// conditional access, anything a human can click through); a console call `window.__docsxai.capture()`
 // (or an injected on-page button) snapshots `storageState`. `--disable-web-security` etc. let the injected
-// helper work across the SSO-redirect origins and relaxed CSP. Headed by default — the human needs to see it.
+// helper work across the SSO-redirect origins and relaxed CSP. Headed by default, the human needs to see it.
 
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
 import { type CaptureTrigger, type InstrumentedBrowser, type StorageState } from "./auth.js";
@@ -18,14 +18,14 @@ export const SECURITY_LOWERED_ARGS: readonly string[] = [
 const CAPTURE_BINDING = "__docsxai_capture";
 
 export interface PlaywrightInstrumentedBrowserOptions {
-  /** Headed by default (the human logs in there). Set true to run headless — for automated tests only. (Ignored when attaching.) */
+  /** Headed by default (the human logs in there). Set true to run headless, for automated tests only. (Ignored when attaching.) */
   headless?: boolean;
   /** Accept self-signed / invalid TLS certs (e.g. the target app's local HTTPS dev cert). Default: false. (Ignored when attaching.) */
   ignoreHTTPSErrors?: boolean;
   /** Extra Chromium args appended after {@link SECURITY_LOWERED_ARGS}. (Ignored when attaching.) */
   extraArgs?: string[];
   /**
-   * If set, launch with a **persistent profile** at this directory (a `userDataDir`) — cookies, localStorage and
+   * If set, launch with a **persistent profile** at this directory (a `userDataDir`), cookies, localStorage and
    * login state survive between captures, so re-running `capture-auth` reuses the login instead of a fresh Chrome.
    * `capture-auth` defaults this to `<workspace>/.auth/chrome-profile/` (gitignored, never leaves the machine).
    * Mutually exclusive with `connectOverCdp` (attach short-circuits launching).
@@ -33,19 +33,19 @@ export interface PlaywrightInstrumentedBrowserOptions {
   profileDir?: string;
   /**
    * If set, **attach to an already-running Chrome** at this CDP endpoint (e.g. `http://localhost:9222`) instead
-   * of launching a fresh one. Use this to capture from the *same* Chrome the engineer is already logged into —
-   * and that Claude in Chrome is driving for discovery — so they don't log in twice. Start that Chrome with
+   * of launching a fresh one. Use this to capture from the *same* Chrome the engineer is already logged into,
+   * and that Claude in Chrome is driving for discovery, so they don't log in twice. Start that Chrome with
    * `--remote-debugging-port=9222 --disable-web-security --disable-features=IsolateOrigins,site-per-process --user-data-dir=<dir>`.
-   * docsxai will **not** close it on `close()` — it's the engineer's session.
+   * docsxai will **not** close it on `close()`, it's the engineer's session.
    */
   connectOverCdp?: string;
 }
 
 /**
  * The injected page-side helper. Self-cleans when the Node-side binding is gone (which happens
- * when the Playwright client detaches — e.g. `capture-auth` finishes and disconnects from a
+ * when the Playwright client detaches, e.g. `capture-auth` finishes and disconnects from a
  * shared `--cdp` Chrome that stays alive). Without this guard, a stale `__docsxai.capture()`
- * call after detach throws `Function "__docsxai_capture" is not exposed` in the page console —
+ * call after detach throws `Function "__docsxai_capture" is not exposed` in the page console,
  * cosmetic, but alarming to operators sharing the Chrome with another tool.
  *
  * Exported for unit-testing (run the returned script in a `vm` sandbox against a mock window).
@@ -111,7 +111,7 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
     });
 
     if (this.opts.connectOverCdp) {
-      // Attach to an already-running Chrome — the engineer's, already logged in (and being driven by Claude
+      // Attach to an already-running Chrome, the engineer's, already logged in (and being driven by Claude
       // in Chrome for discovery). One login, one browser. We never close it.
       this.attached = true;
       this.browser = await chromium.connectOverCDP(this.opts.connectOverCdp);
@@ -134,7 +134,7 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
     this.attached = false;
 
     if (this.opts.profileDir) {
-      // Launch with a persistent profile — cookies/login survive between captures.
+      // Launch with a persistent profile, cookies/login survive between captures.
       this.persistent = true;
       this.context = await chromium.launchPersistentContext(this.opts.profileDir, {
         headless: this.opts.headless ?? false,
@@ -185,7 +185,7 @@ export class PlaywrightInstrumentedBrowser implements InstrumentedBrowser {
     // localStorage from already-open pages, so origins comes back `[]` for apps that keep auth/state there.
     // Read it directly off each open same-origin page and merge. The function form keeps the closure
     // intact (and satisfies docsxai-local/no-page-eval-stringified-arrow). The cast-through-`unknown`
-    // sidesteps the engine tsconfig deliberately omitting the DOM lib — the in-page evaluator gets
+    // sidesteps the engine tsconfig deliberately omitting the DOM lib, the in-page evaluator gets
     // a real `localStorage`, but tsc here only needs to know the function's *shape*.
     type PageEval = (fn: () => [string, string][]) => Promise<unknown>;
     for (const page of this.context.pages()) {

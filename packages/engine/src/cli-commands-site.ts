@@ -1,4 +1,4 @@
-// `site` — emit an Astro Starlight docs site from the workspace's doc pack. The emitter lives in
+// `site`: emit an Astro Starlight docs site from the workspace's doc pack. The emitter lives in
 // `@docsxai/viewer`; like `burn` and `pack`, this checks the argv edge and runs the viewer's `site`
 // command through the shared bin resolution, so one global install reaches it as `docsxai site`.
 
@@ -59,7 +59,7 @@ function parseSiteArgs(args: string[]): SiteArgs | string {
   return parsed;
 }
 
-/** `site` — run the viewer's `site` with the flags given; its exit code is this command's. */
+/** `site`: run the viewer's `site` with the flags given; its exit code is this command's. */
 export async function cmdSite(args: string[]): Promise<number> {
   const parsed = parseSiteArgs(args);
   if (typeof parsed === "string") return usageError("site", parsed);

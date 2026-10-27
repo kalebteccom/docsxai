@@ -1,4 +1,4 @@
-// Obstacle selection — the pure half of `annotations.obstacles`.
+// Obstacle selection, the pure half of `annotations.obstacles`.
 //
 // A driver reports the boxes of visible text and controls near an annotation's target
 // ({@link NearbyBoxes}). This module turns that raw scan into the `obstacles` array written on an

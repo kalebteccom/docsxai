@@ -1,4 +1,4 @@
-// `email-otp` — a ui-form login whose second factor arrives by email: fill + submit the
+// `email-otp`: a ui-form login whose second factor arrives by email: fill + submit the
 // credential form, wait for the OTP prompt, poll an inbox for the code mail, extract the code
 // with `code_pattern`, submit it, capture storageState.
 //
@@ -88,7 +88,7 @@ const inboxProviders = new Map<string, InboxProviderFactory>([
   ["http-json", httpJsonInboxProvider],
 ]);
 
-/** Register (or override) an inbox provider under `name` — the email-otp plugin hook. */
+/** Register (or override) an inbox provider under `name`, the email-otp plugin hook. */
 export function registerInboxProvider(name: string, factory: InboxProviderFactory): void {
   inboxProviders.set(name, factory);
 }

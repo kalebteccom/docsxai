@@ -1,4 +1,4 @@
-// `mtls` — connection-level auth: the browser context presents a client certificate during the
+// `mtls`: connection-level auth: the browser context presents a client certificate during the
 // TLS handshake. The creds env vars hold *paths* to the PEM files (cert/key stay on disk; the
 // strategy validates they exist and look like PEM but never reads them into logs or errors).
 // An optional `passphrase` cred decrypts an encrypted key. Empty storageState;

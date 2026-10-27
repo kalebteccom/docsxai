@@ -1,4 +1,4 @@
-// Local storageState cache (`.auth/<role>.json`) — used by expensive strategies (manual-capture, ui-form, ...).
+// Local storageState cache (`.auth/<role>.json`), used by expensive strategies (manual-capture, ui-form, ...).
 
 import { createHash, randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
@@ -122,13 +122,13 @@ export class LocalStorageStateCache {
 
   /**
    * Persist a captured session and compute its expiry, in priority order:
-   *   1. **The app's auth cookie** — if `auth_cookie` (descriptor or override) names a cookie that's in the
+   *   1. **The app's auth cookie**, if `auth_cookie` (descriptor or override) names a cookie that's in the
    *      captured jar with a real (non-session) expiry, that expiry *is* the bound. This is the right answer;
-   *      the host agent identifies which cookie it is (it's on the app's domain, long-lived — not an ephemeral
+   *      the host agent identifies which cookie it is (it's on the app's domain, long-lived, not an ephemeral
    *      IdP scratch cookie). Why not just `min(cookie.expires)`? An interactive SSO login drops scratch cookies
    *      that expire seconds out, so the min ≈ now and the session would be born expired.
-   *   2. **`ttl`** — a duration (`1h`, `30m`, ms) → `now + ttl`. The fallback when no `auth_cookie` is set/found.
-   *   3. **`session` / default** — the strategy's reported `expiresAt` if plausibly in the future, else +1h.
+   *   2. **`ttl`**, a duration (`1h`, `30m`, ms) → `now + ttl`. The fallback when no `auth_cookie` is set/found.
+   *   3. **`session` / default**, the strategy's reported `expiresAt` if plausibly in the future, else +1h.
    * Returns the computed `expiresAt` and a human-readable `source`.
    */
   async save(
@@ -168,7 +168,7 @@ export class LocalStorageStateCache {
     }
     const entry: CachedState = { storageState: result.storageState, writtenAt: now, expiresAt };
     await fs.mkdir(resolveWorkspacePath(this.dir), { recursive: true });
-    // Role names are operator-influenced — resolve with the symlink-aware variant before writing.
+    // Role names are operator-influenced, resolve with the symlink-aware variant before writing.
     const target = await resolveWorkspacePathReal(this.dir, this.fileName(role));
     // The jar holds live session cookies: a fresh owner-only file renamed over the old one, so an
     // older group-readable copy never holds the new cookies.
@@ -191,13 +191,13 @@ export class LocalStorageStateCache {
   }
 }
 
-/** The cache surface both stores satisfy — `load` / `save` / `clear` per role. */
+/** The cache surface both stores satisfy, `load` / `save` / `clear` per role. */
 export type StorageStateCache = Pick<LocalStorageStateCache, "load" | "save" | "clear">;
 
 /**
  * Pick the state cache for a role. `store: local` (the default) caches under `<workspace>/.auth/`.
  * `store: backend` relays AES-256-GCM envelopes through the backend (encrypted client-side; the
- * backend never sees plaintext) — it needs a workspace that has been pushed (`backend_url` +
+ * backend never sees plaintext), it needs a workspace that has been pushed (`backend_url` +
  * `backend_workspace_id` in `.docsxai.json`) and `DOCSX_CACHE_KEY`.
  */
 export async function resolveStateCache(

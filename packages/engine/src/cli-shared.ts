@@ -1,9 +1,9 @@
-// Shared CLI leaf — the helpers more than one command cluster reaches for. Kept dependency-free of
+// Shared CLI leaf, the helpers more than one command cluster reaches for. Kept dependency-free of
 // the command clusters (and of cli.ts) so it can be imported anywhere without a cycle: the clusters
 // import from here; this file imports only from the engine's lower-level modules.
-//   • parseFlags    — the argv → { positionals, flags } parser every command opens with
-//   • claimFlowName — reject two flow files that declare one `name:`
-//   • listFlowFiles — enumerate the workspace's flows/*.flow.yaml (run / lint / flow-tree)
+//   • parseFlags: the argv → { positionals, flags } parser every command opens with
+//   • claimFlowName: reject two flow files that declare one `name:`
+//   • listFlowFiles: enumerate the workspace's flows/*.flow.yaml (run / lint / flow-tree)
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";

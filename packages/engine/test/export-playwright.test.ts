@@ -1,6 +1,6 @@
-// Flow → Playwright-test export — golden specs (every action/wait/success variant, extends,
+// Flow → Playwright-test export, golden specs (every action/wait/success variant, extends,
 // optional steps, environment), determinism, a syntax-level transpile check on every golden
-// (ts.transpileModule — no type resolution), and the CLI edge. Pure string transform: unit suite.
+// (ts.transpileModule, no type resolution), and the CLI edge. Pure string transform: unit suite.
 
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
@@ -421,7 +421,7 @@ describe("export playwright CLI", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Transpile check — every golden produced above must be valid TS syntax
+// Transpile check, every golden produced above must be valid TS syntax
 // ---------------------------------------------------------------------------
 
 describe("generated specs are syntactically valid TypeScript", () => {

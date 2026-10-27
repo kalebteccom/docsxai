@@ -1,4 +1,4 @@
-// Package a workspace's doc pack into a single archive for hand-off. Zips in-process (fflate) —
+// Package a workspace's doc pack into a single archive for hand-off. Zips in-process (fflate),
 // no system `zip` binary required. Excludes operator-local state (`.auth/`, halt screenshots, the
 // rendered `.viewer/` by default) so the archive is reviewer-ready without manual cleanup.
 //
@@ -19,7 +19,7 @@ import {
 export interface ZipOptions {
   workspace: string;
   output: string;
-  /** Include the rendered viewer (`.viewer/`) in the archive. Default false — viewers are derived from the doc pack and re-rendering is cheap. */
+  /** Include the rendered viewer (`.viewer/`) in the archive. Default false, viewers are derived from the doc pack and re-rendering is cheap. */
   includeViewer?: boolean;
 }
 
@@ -75,14 +75,14 @@ async function collectFiles(
       out.push(rel);
     } else if (entry.isSymbolicLink()) {
       // The archive is a hand-off artifact: follow a symlink only if its target stays inside the
-      // workspace — a link escaping the root must not exfiltrate whatever it points at.
+      // workspace: a link escaping the root must not exfiltrate whatever it points at.
       let stat;
       try {
         await resolveWorkspacePathReal(workspace, rel);
         stat = await fs.stat(resolveWorkspacePath(workspace, rel));
       } catch (e) {
         if (e instanceof WorkspacePathEscapeError) continue;
-        continue; // broken symlink — nothing to archive
+        continue; // broken symlink, nothing to archive
       }
       if (stat.isDirectory()) await collectFiles(workspace, rel, includeViewer, out);
       else if (stat.isFile()) out.push(rel);

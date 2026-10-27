@@ -158,7 +158,7 @@ describe("BackendStateCache", () => {
     ).rejects.toThrow(BackendStateCacheError);
   });
 
-  it("stores only ciphertext on the backend — no plaintext cookie values in the envelope", async () => {
+  it("stores only ciphertext on the backend, no plaintext cookie values in the envelope", async () => {
     const cache = makeCache();
     await cache.save("editor", { storageState: fixtureState() }, { cache: { ttl: "1h" } });
 

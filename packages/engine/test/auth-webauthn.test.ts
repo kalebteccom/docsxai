@@ -1,4 +1,4 @@
-// webauthn strategy — ordering + error paths through a recording fake page, and a Chromium-gated
+// webauthn strategy, ordering + error paths through a recording fake page, and a Chromium-gated
 // check that the real launcher attaches a CDP virtual authenticator. The full create/get passkey
 // ceremony needs a WebAuthn relying-party fixture (challenge issuance + attestation verification)
 // and is flaky under headless CI, so it is intentionally not exercised here (skipIf-gated tests
@@ -81,7 +81,7 @@ function ctx(options: Record<string, unknown>, creds: Record<string, string> = {
   return { creds, options, baseURL: "https://app.example.test", role: "editor" };
 }
 
-describe("webauthn strategy — choreography on a fake page", () => {
+describe("webauthn strategy, choreography on a fake page", () => {
   it("attaches the virtual authenticator BEFORE navigation, then trigger → success → snapshot", async () => {
     const page = new RecordingPage();
     const r = await new WebauthnStrategy(async () => page, {}).authenticate(ctx(OPTIONS));
@@ -118,7 +118,7 @@ describe("webauthn strategy — choreography on a fake page", () => {
     ]);
   });
 
-  it("times out into a config error naming the success marker — page still closed", async () => {
+  it("times out into a config error naming the success marker, page still closed", async () => {
     const page = new RecordingPage(false);
     const attempt = new WebauthnStrategy(async () => page, {}).authenticate(ctx(OPTIONS));
     await expect(attempt).rejects.toThrow(AuthStrategyConfigError);
@@ -126,7 +126,7 @@ describe("webauthn strategy — choreography on a fake page", () => {
     expect(page.events.at(-1)).toBe("close");
   });
 
-  it("requires a username credential when username_selector is set — before launching", async () => {
+  it("requires a username credential when username_selector is set, before launching", async () => {
     let launched = false;
     const s = new WebauthnStrategy(async () => {
       launched = true;
@@ -149,7 +149,7 @@ describe("webauthn strategy — choreography on a fake page", () => {
   });
 });
 
-describe.skipIf(!chromiumAvailable)("webauthn strategy — real CDP virtual authenticator", () => {
+describe.skipIf(!chromiumAvailable)("webauthn strategy, real CDP virtual authenticator", () => {
   let server: FixtureServer;
   beforeAll(async () => {
     server = await startFormLoginServer();

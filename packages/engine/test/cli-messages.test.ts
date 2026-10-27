@@ -151,7 +151,9 @@ describe("sanitizeForTerminal", () => {
   });
 
   it("leaves ordinary text alone", () => {
-    expect(sanitizeForTerminal("héllo — wörld 日本")).toBe("héllo — wörld 日本");
+    expect(sanitizeForTerminal("h\u00e9llo \u2014 w\u00f6rld 日本")).toBe(
+      "h\u00e9llo \u2014 w\u00f6rld 日本",
+    );
   });
 });
 

@@ -1,6 +1,6 @@
 // Shared auth-layer types and StorageState helpers.
 //
-// Every strategy produces a `storageState` (cookies + localStorage + sessionStorage) — the
+// Every strategy produces a `storageState` (cookies + localStorage + sessionStorage), the
 // universal artifact every auth scheme reduces to. Execution consumes it via Playwright's
 // `setup`-project + `dependencies` mechanism (auth-agnostic for the rest of the suite).
 
@@ -27,7 +27,7 @@ export interface StorageState {
 /** One captured cookie in a {@link StorageState} jar. */
 export type StorageStateCookie = StorageState["cookies"][number];
 
-/** An empty jar — for strategies whose "auth" is connection-level, not storage-level. */
+/** An empty jar, for strategies whose "auth" is connection-level, not storage-level. */
 export function emptyStorageState(): StorageState {
   return { cookies: [], origins: [] };
 }
@@ -110,7 +110,7 @@ export function parseStrategyOptions<S extends z.ZodTypeAny>(
   return r.data;
 }
 
-/** Mask a secret for logs / error messages — the value itself must never surface. */
+/** Mask a secret for logs / error messages, the value itself must never surface. */
 export function maskSecret(value: string | undefined): "<SET>" | "<UNSET>" {
   return value ? "<SET>" : "<UNSET>";
 }
@@ -131,7 +131,7 @@ export function earliestCookieExpiry(state: StorageState): number | undefined {
   return expiries.length ? Math.min(...expiries) : undefined;
 }
 
-/** Expiry (epoch ms) of the cookie named `name` in `state` — the latest if there are several; `undefined` if absent or a session cookie (`expires <= 0`). */
+/** Expiry (epoch ms) of the cookie named `name` in `state`, the latest if there are several; `undefined` if absent or a session cookie (`expires <= 0`). */
 export function cookieExpiryByName(state: StorageState, name: string): number | undefined {
   const expiries = state.cookies
     .filter((c) => c.name === name && typeof c.expires === "number" && c.expires > 0)

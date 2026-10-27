@@ -10,7 +10,7 @@
 //   auth-cache/<wsId>/<role>.json
 //   webhook-deliveries.json                   (replay guard: last N delivery ids)
 //
-// Every write is atomic (tmp file + rename in the same directory). Every read goes to disk — no
+// Every write is atomic (tmp file + rename in the same directory). Every read goes to disk, no
 // caching layer, so concurrent processes pointed at the same data dir see each other's writes.
 // Every path join is containment-guarded against the data root (URL params feed the segments).
 
@@ -53,7 +53,7 @@ export class DataPathEscapeError extends Error {
 }
 
 interface ProjectMetaFile extends Project {
-  /** Revision ids, oldest first. Internal to the on-disk layout — stripped from public reads. */
+  /** Revision ids, oldest first. Internal to the on-disk layout, stripped from public reads. */
   revision_ids: string[];
 }
 

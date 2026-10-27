@@ -1,12 +1,12 @@
-// Plugin planning — the deterministic, code-free half of the runtime pipeline.
+// Plugin planning, the deterministic, code-free half of the runtime pipeline.
 //
 // Resolves every configured source to a validated manifest, then runs the ordering/rejection
-// stages purely over manifest metadata — NEVER importing or executing plugin code:
+// stages purely over manifest metadata, NEVER importing or executing plugin code:
 //   1. Resolve each source ({package} via Node resolution, {path} realpath'd) to a manifest.
 //   2. Reject api-version-incompatible manifests (load-error, precise message).
 //   3. Verify plugins-lock.json sha256 of the register-module bytes BEFORE the load half imports.
 //   4. Namespace conflicts: every claimant of a contested namespace is disabled (deterministic).
-//   5. dependsOn presence + version-range checks (fixpoint — a disabled dep disables dependents).
+//   5. dependsOn presence + version-range checks (fixpoint, a disabled dep disables dependents).
 //   6. Tarjan-SCC cycle rejection: a cycle is refused as a unit, never partially loaded.
 //
 // The output is a plan: the disabled records, plus the surviving candidates in topological load
@@ -51,7 +51,7 @@ export interface ResolvePluginsOptions {
 
 /** The deterministic output of planning: disabled records, plus survivors in load order. */
 export interface PluginPlan {
-  /** Records for every rejected/disabled source — committed before any plugin loads. */
+  /** Records for every rejected/disabled source, committed before any plugin loads. */
   disabled: PluginRecord[];
   /** Surviving candidates keyed by package name, used by the load half. */
   live: Map<string, ResolvedPluginSource>;
@@ -98,7 +98,7 @@ export function candidateRecord(
 
 /**
  * Stage 1 only: resolve every source to a validated manifest (or a load-error record). Never
- * imports plugin code — `docsxai plugins sync` pins hashes through this without executing
+ * imports plugin code, `docsxai plugins sync` pins hashes through this without executing
  * anything.
  */
 export async function resolvePluginSources(
@@ -214,7 +214,7 @@ function tarjanSccs(nodes: ReadonlyArray<string>, edges: Map<string, string[]>):
 }
 
 /**
- * Run the deterministic planning pipeline (stages 1–6) over the configured sources. Never imports
+ * Run the deterministic planning pipeline (stages 1-6) over the configured sources. Never imports
  * plugin code; the surviving `loadOrder` is consumed by the load half, which performs the
  * capability subset check and the actual import + register().
  */
@@ -226,7 +226,7 @@ export async function planPlugins(opts: ResolvePluginsOptions): Promise<PluginPl
 
   let candidates = resolutions.filter((r) => r.ok).map((r) => r.candidate);
 
-  // Duplicate package names break dep-graph identity — refuse both, deterministically.
+  // Duplicate package names break dep-graph identity, refuse both, deterministically.
   const byName = new Map<string, ResolvedPluginSource[]>();
   for (const c of candidates) byName.set(c.name, [...(byName.get(c.name) ?? []), c]);
   for (const [name, group] of byName) {
@@ -258,7 +258,7 @@ export async function planPlugins(opts: ResolvePluginsOptions): Promise<PluginPl
     return false;
   });
 
-  // Lock verification — BEFORE any import, so unverified bytes never execute.
+  // Lock verification, BEFORE any import, so unverified bytes never execute.
   if (opts.lock) {
     const lock = opts.lock;
     const verified: ResolvedPluginSource[] = [];
@@ -276,7 +276,7 @@ export async function planPlugins(opts: ResolvePluginsOptions): Promise<PluginPl
     candidates = verified;
   }
 
-  // Namespace conflicts: every claimant disabled — load order must not pick winners.
+  // Namespace conflicts: every claimant disabled, load order must not pick winners.
   const byNamespace = new Map<string, ResolvedPluginSource[]>();
   for (const c of candidates) {
     byNamespace.set(c.manifest.namespace, [...(byNamespace.get(c.manifest.namespace) ?? []), c]);

@@ -1,4 +1,4 @@
-// Screenshot-pack command — `pack` builds the hash-named, optimised PNG set plus manifest.json a
+// Screenshot-pack command, `pack` builds the hash-named, optimised PNG set plus manifest.json a
 // docs site or README consumes, and `pack --check` rebuilds it in memory and compares it with the
 // committed pack. The logic lives in `@docsxai/viewer` (it owns the burner); like `burn`, these
 // validate the argv edge and run the viewer's command through the shared bin resolution, so the
@@ -37,7 +37,7 @@ function checkArgs(args: string[], spec: FlagSpec): { dir: string; rest: string[
   return { dir: positionals[0]!, rest };
 }
 
-/** `pack` — burn, optimise, hash-name and write the screenshot pack; with `--check`, compare instead of write. */
+/** `pack`: burn, optimise, hash-name and write the screenshot pack; with `--check`, compare instead of write. */
 export async function cmdPack(args: string[]): Promise<number> {
   if (args.includes("--check")) return cmdPackCheck(args.filter((a) => a !== "--check"));
   const parsed = checkArgs(args, {
@@ -48,7 +48,7 @@ export async function cmdPack(args: string[]): Promise<number> {
   return runViewerBin("pack", ["pack", parsed.dir, ...parsed.rest]);
 }
 
-/** `pack --check` — rebuild the pack in memory and compare it with the committed one. `args` has no `--check`. */
+/** `pack --check`: rebuild the pack in memory and compare it with the committed one. `args` has no `--check`. */
 async function cmdPackCheck(args: string[]): Promise<number> {
   const label = "pack --check";
   const parsed = checkArgs(args, { valued: ["--against", "--threshold"], bare: ["--from-raw"] });

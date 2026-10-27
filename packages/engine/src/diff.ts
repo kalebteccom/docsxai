@@ -1,8 +1,8 @@
-// Doc-pack drift detection — deterministic diff between two doc-pack directories.
+// Doc-pack drift detection, deterministic diff between two doc-pack directories.
 //
 // The engine DETECTS drift and reports it; proposing flow-file patches is the host agent's
 // calibration-time job (`diagnose` feeds that loop). `docsxai baseline` snapshots a doc pack;
-// `docsxai diff` compares the live workspace against it and emits this module's DriftReport —
+// `docsxai diff` compares the live workspace against it and emits this module's DriftReport,
 // per flow: step deltas (id-keyed field changes), annotation moves (bounding-box delta beyond a
 // pixel tolerance), screenshot pixel diffs (pngjs, exact RGBA compare, ignore-region aware),
 // prose line-change counts, and locator changes. Reports carry no timestamps: same two doc packs
@@ -10,7 +10,7 @@
 //
 // This module is a barrel: the report shapes live in `diff-types.ts`, the deterministic
 // computation in `diff-compute.ts`, the severity gate + formatters in `diff-report.ts`. Importers
-// keep using `./diff.js` — the public surface is re-exported here verbatim.
+// keep using `./diff.js`, the public surface is re-exported here verbatim.
 
 export {
   type AnnotationMove,

@@ -1,4 +1,4 @@
-// `http-basic` — connection-level auth: the browser context answers 401 challenges with the
+// `http-basic`: connection-level auth: the browser context answers 401 challenges with the
 // role's credentials. Nothing to capture; the strategy emits `contextOptions.httpCredentials`
 // and an empty storageState.
 

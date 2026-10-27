@@ -1,4 +1,4 @@
-// The starlight:site renderer — a thin adapter from the engine's RendererPlugin contract onto
+// The starlight:site renderer, a thin adapter from the engine's RendererPlugin contract onto
 // the viewer's `emitStarlightSite` / `buildStarlightSite`. All emission logic (MDX, config,
 // accent derivation, burned-image preference, determinism) lives in the viewer; this maps the
 // renderer context's `config` keys (title / accent / logo / lang / build) and flow filter through.

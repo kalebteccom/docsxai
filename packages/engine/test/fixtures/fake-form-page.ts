@@ -1,7 +1,7 @@
 // A browserless `AuthPage`: drives the fixture HTML form servers over plain HTTP with the
 // engine's own cookie jar. Lets the browser-driving strategies (ui-form, email-otp) run their
 // full login choreography in unit tests without Chromium. Selector support is deliberately
-// narrow — `#id` only — which is exactly what the fixture pages expose.
+// narrow: `#id` only, which is exactly what the fixture pages expose.
 
 import { type AuthPage, type AuthPageOptions } from "../../src/auth/browser-session.js";
 import { CookieJar, fetchCollectingCookies } from "../../src/auth/cookie-jar.js";
@@ -70,7 +70,7 @@ export function makeFakeFormPage(opts: AuthPageOptions): FakeFormPage {
         html = html.replace(new RegExp(`<div id="${dismissTarget}"[\\s\\S]*?</div>`), "");
         return;
       }
-      // Anything else is blocked while a full-page overlay is up — like a real pointer would be.
+      // Anything else is blocked while a full-page overlay is up, like a real pointer would be.
       if (idPresent("overlay")) {
         throw new Error(`click on ${selector} intercepted by the #overlay element`);
       }

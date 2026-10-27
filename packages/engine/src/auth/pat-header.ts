@@ -1,4 +1,4 @@
-// `pat-header` — connection-level auth: every request the browser context makes carries a
+// `pat-header`: connection-level auth: every request the browser context makes carries a
 // personal-access-token header (`Authorization: Bearer <token>` by default). Empty storageState;
 // the strategy emits `contextOptions.extraHTTPHeaders`.
 

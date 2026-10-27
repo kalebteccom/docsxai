@@ -37,7 +37,7 @@ const FONT_DELAY_MS = 600;
 const IMAGE_DELAY_MS = 800;
 const IMAGE_HEIGHT = 120;
 
-describe.skipIf(!chromiumAvailable)("keystone — wait_for: settled", () => {
+describe.skipIf(!chromiumAvailable)("keystone, wait_for: settled", () => {
   let server: Server;
   let baseURL = "";
   let tmp = "";

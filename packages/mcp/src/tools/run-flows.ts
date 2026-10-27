@@ -1,4 +1,4 @@
-// run_flows — deterministic execution of the workspace's flows (the same engine functions
+// run_flows: deterministic execution of the workspace's flows (the same engine functions
 // `docsxai run` wraps: parse → resolve extends → launch session → runFlow → write annotations).
 // Per-flow results carry ok / halt-cause / artifact paths. The merged flow's `environment`
 // (frozen clock, locale, timezone, viewport, …) is passed into the Playwright session.
@@ -52,7 +52,7 @@ async function loadAuthStorageState(workspace: string): Promise<StorageState | u
   try {
     text = await fs.readFile(descriptorPath, "utf8");
   } catch {
-    return undefined; // no auth configured — run with a fresh context
+    return undefined; // no auth configured, run with a fresh context
   }
   let descriptor: ReturnType<typeof parseAuthStrategyFile>;
   try {
@@ -221,7 +221,7 @@ export const runFlowsTool = defineTool({
       }
       let session: Awaited<ReturnType<typeof launchPlaywrightSession>>;
       try {
-        // With CDP attach, the operator's Chrome owns its auth state — don't overwrite it.
+        // With CDP attach, the operator's Chrome owns its auth state, don't overwrite it.
         session = await launchPlaywrightSession({
           ...(baseURL ? { baseURL } : {}),
           ...(args.headed !== undefined ? { headed: args.headed } : {}),
@@ -254,7 +254,7 @@ export const runFlowsTool = defineTool({
           flow.name,
           "annotations.json",
         );
-        // startFrom runs only emit the tail steps' annotations — merge them into the existing
+        // startFrom runs only emit the tail steps' annotations, merge them into the existing
         // file by step id so the prior steps' records (and screenshots) stay in place.
         let toWrite = result.annotations;
         if (args.startFrom) {
@@ -271,7 +271,7 @@ export const runFlowsTool = defineTool({
               ],
             };
           } catch {
-            // No existing file — write what we have.
+            // No existing file, write what we have.
           }
         }
         await fs.writeFile(annotationsPath, JSON.stringify(toWrite, null, 2) + "\n", "utf8");

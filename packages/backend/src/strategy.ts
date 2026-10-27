@@ -1,4 +1,4 @@
-// Webhook output strategies — where a webhook-triggered run's result goes. One strategy per
+// Webhook output strategies, where a webhook-triggered run's result goes. One strategy per
 // project, named in the webhook config:
 //   pr-comment      → post the run summary as a GitHub PR issue-comment (commit comment on push)
 //   viewer-refresh  → re-render the viewer from the materialized workspace, store it as a blob
@@ -35,7 +35,7 @@ export function spawnCapture(
   opts: { env?: NodeJS.ProcessEnv; cwd?: string } = {},
 ): Promise<{ code: number | null; output: string }> {
   return new Promise((resolve, reject) => {
-    // .js bins run through the current node — fixture bins in tests aren't chmod+x.
+    // .js bins run through the current node, fixture bins in tests aren't chmod+x.
     const viaNode = /\.(c|m)?js$/.test(command);
     const child = spawnImpl(
       viaNode ? process.execPath : command,
@@ -75,11 +75,11 @@ export interface StrategyResult {
 export interface StrategyDeps {
   fetchImpl?: typeof fetch;
   spawnImpl?: SpawnLike;
-  /** GitHub token source — installation-token wiring goes here (set up by hand). Default: `GITHUB_APP_TOKEN` env. */
+  /** GitHub token source, installation-token wiring goes here (set up by hand). Default: `GITHUB_APP_TOKEN` env. */
   tokenProvider?: () => Promise<string>;
   /** Engine bin for `viewer-refresh` (SpawnRunner threads its resolved bin through). */
   engineBin?: string;
-  /** GitHub REST base — tests point this at a local fake. Default `https://api.github.com`. */
+  /** GitHub REST base, tests point this at a local fake. Default `https://api.github.com`. */
   githubApiBase?: string;
   env?: NodeJS.ProcessEnv;
   /** Store access for recording rendered artifacts (`viewer-refresh`). */
@@ -210,7 +210,7 @@ async function viewerRefresh(
 
 // --- wiki-push ----------------------------------------------------------------
 
-/** Engine publisher contract (mirrors `@docsxai/engine` plugin types — no dep needed). */
+/** Engine publisher contract (mirrors `@docsxai/engine` plugin types, no dep needed). */
 interface PublisherPluginLike {
   publish(ctx: {
     workspaceDir: string;

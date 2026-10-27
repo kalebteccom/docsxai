@@ -136,7 +136,7 @@ describe("add-flow", () => {
       message = (e as Error).message;
     }
     expect(message).toContain("not a structured flow-guide");
-    expect(message).not.toContain("—");
+    expect(message).not.toContain("\u2014");
   });
 
   it("a bad --name points at --name, not at the flow-file", async () => {
@@ -195,7 +195,7 @@ describe("diff report", () => {
     await fs.writeFile(path.join(ws, "docs", "ok", "annotations.json"), "{{");
     expect(await main(["diff", ws])).toBe(1);
     expect(err).toContain("docs/ok/annotations.json: not valid JSON: ");
-    expect(err).not.toContain("—");
+    expect(err).not.toContain("\u2014");
   });
 });
 
@@ -366,7 +366,7 @@ steps:
     await expect(runFlow(parseFlowFile(FLOW), driver, { captureDocs: false })).rejects.toThrow();
     expect(err).toContain('run: optional step "maybe" (click) skipped: element is not visible: #b');
     expect(err).not.toContain("runFlow:");
-    expect(err).not.toContain("—");
+    expect(err).not.toContain("\u2014");
   });
 
   it("a driver that rejects with a string halts with that string, not 'undefined'", async () => {

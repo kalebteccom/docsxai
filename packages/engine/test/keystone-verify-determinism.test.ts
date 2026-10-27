@@ -34,7 +34,7 @@ const exists = (p: string) =>
     () => false,
   );
 
-describe.skipIf(!chromiumAvailable)("keystone — run --verify-determinism", () => {
+describe.skipIf(!chromiumAvailable)("keystone, run --verify-determinism", () => {
   let ws = "";
   let out = "";
   let err = "";

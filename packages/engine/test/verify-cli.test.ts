@@ -105,7 +105,7 @@ describe("parseVerifyArgs", () => {
   });
 });
 
-describe("docsxai run --verify-determinism — CLI", () => {
+describe("docsxai run --verify-determinism, CLI", () => {
   let ws = "";
 
   beforeEach(async () => {

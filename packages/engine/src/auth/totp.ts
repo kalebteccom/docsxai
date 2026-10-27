@@ -1,7 +1,7 @@
 // Dep-free RFC 6238 TOTP (over RFC 4226 HOTP) with `node:crypto`.
 //
-// `totp` is not a standalone login scheme — a one-time code is one *field* of an interactive
-// login — so the catalogue entry composes `ui-form` (set `options.totp` there). The primitives
+// `totp` is not a standalone login scheme, a one-time code is one *field* of an interactive
+// login: so the catalogue entry composes `ui-form` (set `options.totp` there). The primitives
 // are exported for that hook, for fixture servers, and for future CLI/MCP surfacing.
 
 import { createHmac } from "node:crypto";
@@ -140,7 +140,7 @@ export function verifyTotp(
 
 /**
  * The standalone `totp` catalogue entry. A TOTP is one field of an interactive login, not a whole
- * scheme — authenticating with it alone is a config error that points at the composition.
+ * scheme: authenticating with it alone is a config error that points at the composition.
  */
 export class TotpStrategy implements AuthStrategy {
   readonly name = "totp" as const;

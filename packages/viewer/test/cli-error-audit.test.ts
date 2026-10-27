@@ -85,7 +85,7 @@ describe("site", () => {
     expect(await runViewerCli(["site", ws, "--accent", "zz"])).toBe(2);
     expect(err).toContain('site: --accent must be a hex colour like #2563eb (got "zz")');
     expect(err).toContain("usage: docsxai-viewer site ");
-    expect(err).not.toContain("—");
+    expect(err).not.toContain("\u2014");
   });
 
   it("the accent parser's own error has no em dash", () => {

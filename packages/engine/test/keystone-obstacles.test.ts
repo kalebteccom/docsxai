@@ -74,7 +74,7 @@ const withObstacles = () => (onRun ??= runWorkspace({ annotations: { obstacles: 
 const overlaps = (a: BoundingBox, b: BoundingBox) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
-describe.skipIf(!chromiumAvailable)("keystone — annotation obstacles", () => {
+describe.skipIf(!chromiumAvailable)("keystone, annotation obstacles", () => {
   beforeAll(async () => {
     tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-obstacles-"));
   });

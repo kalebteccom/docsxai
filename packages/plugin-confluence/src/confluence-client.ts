@@ -1,8 +1,8 @@
-// Confluence Cloud REST transport — the provider-neutral half of the egress path.
+// Confluence Cloud REST transport, the provider-neutral half of the egress path.
 //
 // A thin `fetch`-only client: v2 page CRUD, content-properties and attachment listing, plus
 // attachment uploads on the v1 `child/attachment` resource (Confluence Cloud answers 405 to a
-// v2 attachment POST), and the wire DTOs they exchange. It carries no docsxai semantics —
+// v2 attachment POST), and the wire DTOs they exchange. It carries no docsxai semantics,
 // the push orchestration (idempotency, doc-pack mapping) lives in publisher.ts and drives
 // this client. The API token is masked via the `mask` callback the constructor receives, so
 // every error line this module produces is scrubbed before it surfaces.

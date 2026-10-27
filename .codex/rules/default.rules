@@ -47,7 +47,7 @@ prefix_rule(
     match = ["npm publish", "npm publish --access public"],
 )
 
-# Token-prefix match on the -g flag — does NOT match the explicit
+# Token-prefix match on the -g flag, does NOT match the explicit
 # `pnpm -C packages/engine exec playwright-core install chromium` Chromium fetch
 # (different token shape; `playwright-core` is the package binary, not a global
 # install). The Playwright/Chromium exception (baseline rule 39) is preserved
@@ -93,7 +93,7 @@ prefix_rule(
 )
 
 # Pipe-to-shell (`curl … | bash`, `wget … | bash`) is a pipeline, not a
-# command prefix — prefix_rule cannot see the `| bash` tail. The Claude hook
+# command prefix, prefix_rule cannot see the `| bash` tail. The Claude hook
 # (.claude/hooks/block-forbidden-commands.sh) catches it at agent-tool-call time
 # and AGENTS.md declares it forbidden. Documented gap, not silent omission
 # (baseline rule 41).

@@ -1,9 +1,9 @@
-// @docsxai/plugin — the Claude Code plugin (first-class invocation surface).
+// @docsxai/plugin, the Claude Code plugin (first-class invocation surface).
 //
 // The plugin itself is the markdown/JSON tree alongside this file:
-//   .claude-plugin/plugin.json   — manifest
-//   commands/*.md                — deterministic slash commands (thin wrappers over the `docsxai` CLI)
-//   skills/*/SKILL.md            — calibration skills (agent-driven; the host supplies inference)
+//   .claude-plugin/plugin.json: manifest
+//   commands/*.md, deterministic slash commands (thin wrappers over the `docsxai` CLI)
+//   skills/*/SKILL.md, calibration skills (agent-driven; the host supplies inference)
 // This module is a small TS surface over that tree, for tooling/tests.
 
 import { promises as fs } from "node:fs";
@@ -55,7 +55,7 @@ export async function listSkills(): Promise<string[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Static validation — runs in tests; also usable from a CLI / CI lint pass.
+// Static validation, runs in tests; also usable from a CLI / CI lint pass.
 // ---------------------------------------------------------------------------
 
 export interface ValidationIssue {

@@ -11,7 +11,7 @@ import {
 const BASE_URL = "https://app.example.test";
 const INJECT_LS = { localStorage: [{ key: "auth_token", value_template: "Bearer {{token}}" }] };
 
-describe("jwt-injection — static token from env", () => {
+describe("jwt-injection, static token from env", () => {
   const EXP_SEC = Math.floor(Date.now() / 1000) + 1800;
   const STATIC_TOKEN = makeFixtureJwt({ sub: "u1", exp: EXP_SEC });
 
@@ -100,7 +100,7 @@ describe("jwt-injection — static token from env", () => {
   });
 });
 
-describe("jwt-injection — client-credentials grant", () => {
+describe("jwt-injection, client-credentials grant", () => {
   let tokenServer: FixtureServer;
   let noExpiresServer: FixtureServer;
   beforeAll(async () => {

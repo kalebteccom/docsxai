@@ -2,7 +2,7 @@
 // Standalone MCP server over the docsxai engine (stdio, plus an opt-in Streamable HTTP
 // transport): calibration meta-orchestration (init / run / render / lint / diagnose / style /
 // zip / push / pull) + read-only doc-pack introspection (list flows, flow tree, annotations,
-// artifact paths, plugins). No browser primitives — live-page discovery is browxai's surface.
+// artifact paths, plugins). No browser primitives, live-page discovery is browxai's surface.
 
 export const name = "@docsxai/mcp";
 

@@ -4,19 +4,19 @@
 // noisier rules ship as `warn` and get promoted in a follow-up phase that
 // converges to zero warns. Two custom rules are wired here:
 //
-//   - tracker-id ban — comments must not contain project-management IDs
+//   - tracker-id ban, comments must not contain project-management IDs
 //     ("W-" + letter + digit, Round-N, ask-#-N, JIRA-style, LINEAR-style,
 //     GEN-N, T-N, "R" + digits + "-#" + digits). These are PM artifacts,
-//     not code context — they rot, mean nothing to a future reader, and
+//     not code context, they rot, mean nothing to a future reader, and
 //     belong in the commit/PR body. Comments should state the actual
 //     reason.
 //
-//   - page-eval-stringified-arrow — flags page.evaluate() / evaluateHandle()
+//   - page-eval-stringified-arrow, flags page.evaluate() / evaluateHandle()
 //     / evaluateAll() called with a TemplateLiteral or string Literal.
 //     Stringified arrows lose the closure, capture nothing, and silently
 //     mis-evaluate. Use a function-expression argument instead. Carried
 //     forward as defense-in-depth even though docsxai's current packages
-//     don't expose a page-side execution layer — zero violations expected,
+//     don't expose a page-side execution layer, zero violations expected,
 //     and the rule remains in place for the day flow-runtime grows one.
 //
 // Both ship as `error`; both have zero violations in the current tree.
@@ -63,7 +63,7 @@ const noTrackerIdsInComments = {
   },
 };
 
-// Custom rule: flag page.evaluate(`...`) / page.evaluate("...") — stringified
+// Custom rule: flag page.evaluate(`...`) / page.evaluate("..."), stringified
 // arrows / strings as the first arg are the foot-gun we keep hitting.
 const noPageEvalStringifiedArrow = {
   meta: {
@@ -132,7 +132,7 @@ export default tseslint.config(
     ],
   },
   js.configs.recommended,
-  // Base JS/non-TS rules — no type-aware rules here so .js/.mjs/.cjs lint.
+  // Base JS/non-TS rules, no type-aware rules here so .js/.mjs/.cjs lint.
   {
     files: ["**/*.{js,mjs,cjs}"],
     plugins: {
@@ -151,7 +151,7 @@ export default tseslint.config(
       "docsxai-local/no-page-eval-stringified-arrow": "error",
     },
   },
-  // Type-aware TS rules — scoped to .ts/.tsx, with projectService so
+  // Type-aware TS rules, scoped to .ts/.tsx, with projectService so
   // typescript-eslint picks the right tsconfig per file (root + workspace
   // packages) without us listing every one.
   ...tseslint.configs.recommendedTypeChecked.map((c) => ({
@@ -171,18 +171,18 @@ export default tseslint.config(
       parserOptions: {
         // tsconfig.eslint.json explicitly widens include to cover packages/
         // src + test trees that the per-package tsconfigs intentionally
-        // exclude. Used for lint only — never emits.
+        // exclude. Used for lint only, never emits.
         project: ["./tsconfig.eslint.json"],
         tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
-      // Load-bearing async-safety — error from day one.
+      // Load-bearing async-safety, error from day one.
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/await-thenable": "error",
       "@typescript-eslint/no-misused-promises": "error",
 
-      // Unused-var hygiene — `^_` escape for the intentional case.
+      // Unused-var hygiene, `^_` escape for the intentional case.
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -192,7 +192,7 @@ export default tseslint.config(
         },
       ],
 
-      // Strict-type hygiene — error from day one. Mirrors browxai's
+      // Strict-type hygiene, error from day one. Mirrors browxai's
       // strict-type baseline.
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/consistent-type-assertions": "error",
@@ -220,7 +220,7 @@ export default tseslint.config(
 
       // Catches load-bearing `as T` and `!` assertions; necessary ones
       // get a per-line disable + WHY. no-unnecessary-non-null-assertion
-      // does not exist in @typescript-eslint v8 — the unnecessary-`!`
+      // does not exist in @typescript-eslint v8, the unnecessary-`!`
       // case is covered by no-unnecessary-type-assertion.
       "@typescript-eslint/no-unnecessary-type-assertion": "error",
 
@@ -240,12 +240,12 @@ export default tseslint.config(
 
       "import-x/no-duplicates": "error",
 
-      // docsxai-specific custom rules — error from day one.
+      // docsxai-specific custom rules, error from day one.
       "docsxai-local/no-tracker-ids-in-comments": "error",
       "docsxai-local/no-page-eval-stringified-arrow": "error",
     },
   },
-  // Test files — relax async-safety + console hygiene.
+  // Test files, relax async-safety + console hygiene.
   {
     files: [
       "**/*.test.ts",
@@ -267,14 +267,14 @@ export default tseslint.config(
       "@typescript-eslint/unbound-method": "off",
       "@typescript-eslint/require-await": "off",
       // Tests routinely coerce `unknown` payloads (e.g. captured warn-call
-      // args from a vitest spy) into strings for regex-matchers — `String(x
+      // args from a vitest spy) into strings for regex-matchers, `String(x
       // ?? "")` is the pattern of record. Off here; production code still
       // gates as error.
       "@typescript-eslint/no-base-to-string": "off",
       "@typescript-eslint/restrict-template-expressions": "off",
     },
   },
-  // Tooling scripts — console is the output channel.
+  // Tooling scripts, console is the output channel.
   {
     files: ["scripts/**/*.mjs", "scripts/**/*.js", "scripts/**/*.ts", "website/scripts/**/*.mjs"],
     rules: {

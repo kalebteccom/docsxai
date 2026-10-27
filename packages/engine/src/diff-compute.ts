@@ -1,8 +1,8 @@
-// Doc-pack drift detection — the deterministic computation half.
+// Doc-pack drift detection, the deterministic computation half.
 //
 // The engine DETECTS drift and reports it; proposing flow-file patches is the host agent's
 // calibration-time job (`diagnose` feeds that loop). `docsxai baseline` snapshots a doc pack;
-// `docsxai diff` compares the live workspace against it and emits this module's DriftReport —
+// `docsxai diff` compares the live workspace against it and emits this module's DriftReport,
 // per flow: step deltas (id-keyed field changes), annotation moves (bounding-box delta beyond a
 // pixel tolerance), screenshot pixel diffs (pngjs, exact RGBA compare, ignore-region aware),
 // prose line-change counts, and locator changes. Reports carry no timestamps: same two doc packs
@@ -86,7 +86,7 @@ export function diffPngBuffers(
 }
 
 // ---------------------------------------------------------------------------
-// Prose line diff (LCS — step write-ups are small)
+// Prose line diff (LCS, step write-ups are small)
 // ---------------------------------------------------------------------------
 
 function lineDiffCounts(aText: string, bText: string): { added: number; removed: number } {

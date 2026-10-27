@@ -2,7 +2,7 @@
 //
 // A *workspace* is the directory docsxai reads/writes for a project: `flows/`, `docs/`, `auth/`, plus
 // (gitignored) `.auth/` and `.viewer/`, plus a small `.docsxai.json` config so `run`/`render`/`capture-auth`
-// don't need `--base-url` / `--ignore-https-errors` on every call. **It must live outside the app repo** — docsxai
+// don't need `--base-url` / `--ignore-https-errors` on every call. **It must live outside the app repo**, docsxai
 // operates *on* a running app from outside; it never writes into the app's source tree.
 //
 // `docsxai init <dir> --app-url <url>` scaffolds one; `--persist tmp` puts it in a throwaway temp dir.
@@ -51,7 +51,7 @@ async function realpathDeepestExisting(p: string): Promise<string> {
       return suffix ? path.join(real, suffix) : real;
     } catch {
       const parent = path.dirname(probe);
-      if (parent === probe) return p; // not even the filesystem root resolves — give up lexically
+      if (parent === probe) return p; // not even the filesystem root resolves, give up lexically
       suffix = suffix ? path.join(path.basename(probe), suffix) : path.basename(probe);
       probe = parent;
     }
@@ -62,7 +62,7 @@ async function realpathDeepestExisting(p: string): Promise<string> {
  * Like {@link resolveWorkspacePath}, but additionally defends against symlink escape: the deepest
  * existing ancestor of the resolved path is realpath'd and containment re-verified against the
  * realpath'd workspace root. Use before writing to a path whose segments are user-influenced
- * (flow names, step ids, role names) — a symlink inside the workspace pointing outside must throw.
+ * (flow names, step ids, role names), a symlink inside the workspace pointing outside must throw.
  */
 export async function resolveWorkspacePathReal(
   workspaceDir: string,
@@ -175,7 +175,7 @@ export interface WorkspaceConfig {
   app_url?: string;
   /** Accept self-signed/invalid TLS for `app_url` (e.g. a local HTTPS dev cert). */
   ignore_https_errors?: boolean;
-  /** Backend stub/service URL for `push`/`pull` (e.g. `http://localhost:4477`). Optional — workspaces operate fully locally without it. */
+  /** Backend stub/service URL for `push`/`pull` (e.g. `http://localhost:4477`). Optional, workspaces operate fully locally without it. */
   backend_url?: string;
   /** How `run` records annotations. Absent keys keep today's output. */
   annotations?: {
@@ -205,9 +205,9 @@ export interface InitWorkspaceOptions {
   /** `manual-capture` (default) writes an `auth/strategy.yaml`; `none` skips it, for an app that needs no login. */
   auth?: "manual-capture" | "none";
   role?: string;
-  /** Cache TTL for the captured session (`session`, or a duration like `1h`/`30m`). Default `1h` — a *fallback* used only when `authCookie` isn't set/found. */
+  /** Cache TTL for the captured session (`session`, or a duration like `1h`/`30m`). Default `1h`, a *fallback* used only when `authCookie` isn't set/found. */
   ttl?: string;
-  /** Name of the app's auth/session cookie — when set, the cached session's expiry tracks this cookie, not `ttl`. */
+  /** Name of the app's auth/session cookie, when set, the cached session's expiry tracks this cookie, not `ttl`. */
   authCookie?: string;
   captureTrigger?: "console" | "button";
   ignoreHttpsErrors?: boolean;

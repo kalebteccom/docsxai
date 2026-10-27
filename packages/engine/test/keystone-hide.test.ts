@@ -39,7 +39,7 @@ type Rect = { x: number; y: number; width: number; height: number };
 const inside = (r: Rect, x: number, y: number) =>
   x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
 
-describe.skipIf(!chromiumAvailable)("keystone — hide / show / timeout_ms", () => {
+describe.skipIf(!chromiumAvailable)("keystone, hide / show / timeout_ms", () => {
   let tmp = "";
   let session: PlaywrightSession;
   let result: RunFlowResult;

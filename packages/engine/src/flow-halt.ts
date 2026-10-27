@@ -17,7 +17,7 @@ export class FlowExecutionError extends Error {
 
 /**
  * Best-effort 1-line cause extracted from a Playwright actionability log (or similar driver
- * error). Returns undefined when nothing matches — keeps the halt message short rather than
+ * error). Returns undefined when nothing matches, keeps the halt message short rather than
  * guessing. Surfaced as a `[cause]` prefix on the halt message so the agent doesn't have to
  * scan the multi-line actionability log.
  */

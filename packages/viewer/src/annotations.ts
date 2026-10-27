@@ -1,6 +1,6 @@
 // Structural mirror of the engine's `docsxai/annotations@1` doc-pack schema
 // (packages/engine/src/doc-pack.ts). Redeclared here because the viewer must not
-// depend on the engine package — the schema id is the cross-package contract,
+// depend on the engine package, the schema id is the cross-package contract,
 // not a TypeScript import.
 
 export interface BoundingBox {
@@ -53,7 +53,7 @@ export interface AnnotationRecord {
   obstacles?: BoundingBox[];
   /** Burner placement settings (inside the target, side, alignment, pinned arrow, width). */
   placement?: AnnotationPlacement;
-  /** 1-based index within the step's screenshot — set only when the step has > 1 annotation. */
+  /** 1-based index within the step's screenshot, set only when the step has > 1 annotation. */
   index?: number;
 }
 

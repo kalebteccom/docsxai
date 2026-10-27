@@ -1,4 +1,4 @@
-// init_workspace — scaffold a new docsxai workspace (wraps the engine's initWorkspace).
+// init_workspace: scaffold a new docsxai workspace (wraps the engine's initWorkspace).
 
 import { initWorkspace } from "@docsxai/engine";
 import { z } from "zod";

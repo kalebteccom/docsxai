@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// `docsxai-mcp` — stdio entry point. Logs go to stderr; stdout is the MCP wire.
+// `docsxai-mcp`: stdio entry point. Logs go to stderr; stdout is the MCP wire.
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { resolveToken } from "./http-auth.js";

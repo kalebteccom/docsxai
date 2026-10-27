@@ -1,4 +1,4 @@
-// zip_pack — package the workspace's doc pack into a deterministic hand-off archive.
+// zip_pack: package the workspace's doc pack into a deterministic hand-off archive.
 
 import * as path from "node:path";
 import { zipDocPack, ZipError } from "@docsxai/engine";

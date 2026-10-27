@@ -4,7 +4,7 @@
 //
 // Route handlers live in flat siblings: the pure plumbing (matchRoute, readBody, validators) in
 // http.ts, the OAuth endpoints in oauth-http.ts, the GitHub webhook receiver in webhook-http.ts.
-// This file keeps server composition — store/issuer/dispatcher wiring and the route dispatch table.
+// This file keeps server composition, store/issuer/dispatcher wiring and the route dispatch table.
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import {
@@ -132,7 +132,7 @@ export function createBackendStub(opts: BackendStubOptions = {}): {
       });
     }
 
-    // Auth gate (everything except /v1/health, the OAuth endpoints, and the GitHub webhook —
+    // Auth gate (everything except /v1/health, the OAuth endpoints, and the GitHub webhook,
     // the webhook is HMAC-signature-verified instead of bearer-gated).
     const noAuth =
       url.pathname === "/v1/health" ||

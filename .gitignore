@@ -4,7 +4,7 @@ dist/
 coverage/
 .env
 .env.*
-# captured browser session state — never commit
+# captured browser session state, never commit
 .auth/
 *.storageState.json
 # editor / OS cruft

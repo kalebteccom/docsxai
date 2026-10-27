@@ -1,4 +1,4 @@
-// style — init/validate docs/style.yaml and rederive style.json; --check scans prose for jargon leaks.
+// style: init/validate docs/style.yaml and rederive style.json; --check scans prose for jargon leaks.
 // Split from cli-commands-authoring.ts to keep both files under the max-lines ceiling.
 
 import * as path from "node:path";

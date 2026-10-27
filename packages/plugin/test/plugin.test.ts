@@ -37,7 +37,7 @@ const KNOWN_CLI_COMMANDS = [
   "diff",
 ];
 
-describe("plugin scaffold — basics", () => {
+describe("plugin scaffold, basics", () => {
   it("has a well-formed manifest", async () => {
     const m = await readManifest();
     expect(m.name).toBe("docsxai");
@@ -169,7 +169,7 @@ describe("validatePluginBundle (static validation)", () => {
   });
 });
 
-describe("plugin scaffold — frontmatter shape", () => {
+describe("plugin scaffold, frontmatter shape", () => {
   it("every command .md has a `description:` frontmatter line", async () => {
     for (const cmd of await listCommands()) {
       const text = await fs.readFile(path.join(pluginDir, "commands", `${cmd}.md`), "utf8");

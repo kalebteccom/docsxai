@@ -1,4 +1,4 @@
-// applyRedactions pixel math over tiny synthetic PNGs — exact-pixel assertions, no browser.
+// applyRedactions pixel math over tiny synthetic PNGs, exact-pixel assertions, no browser.
 
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
@@ -32,7 +32,7 @@ function pixelAt(png: Buffer, x: number, y: number): Rgba {
   return [img.data[i]!, img.data[i + 1]!, img.data[i + 2]!, img.data[i + 3]!];
 }
 
-describe("applyRedactions — box", () => {
+describe("applyRedactions, box", () => {
   it("fills exactly the box with opaque black and leaves the rest untouched", () => {
     const out = applyRedactions(
       makePng(10, 10, () => WHITE),
@@ -73,14 +73,14 @@ describe("applyRedactions — box", () => {
     expect(applyRedactions(png, [])).toBe(png);
   });
 
-  it("is deterministic — same PNG + same boxes → byte-identical output", () => {
+  it("is deterministic, same PNG + same boxes → byte-identical output", () => {
     const png = makePng(16, 16, (x) => (x < 8 ? RED : BLUE));
     const boxes = [{ x: 2, y: 2, width: 5, height: 5, style: "box" as const }];
     expect(applyRedactions(png, boxes).equals(applyRedactions(png, boxes))).toBe(true);
   });
 });
 
-describe("applyRedactions — pixelate", () => {
+describe("applyRedactions, pixelate", () => {
   it("averages each 16-px tile (a half-red / half-blue tile becomes the blended colour)", () => {
     // 16×16 image: top half red, bottom half blue → one mosaic tile, average = (128, 0, 128, 255).
     const png = makePng(16, 16, (_x, y) => (y < 8 ? RED : BLUE));

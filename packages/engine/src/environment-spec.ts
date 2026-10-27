@@ -12,7 +12,7 @@ export type ViewportSize = z.infer<typeof ViewportSize>;
 export const ViewportPreset = z.enum(["desktop", "tablet", "mobile"]);
 export type ViewportPreset = z.infer<typeof ViewportPreset>;
 
-/** Named viewport presets — `desktop` 1440×900, `tablet` 834×1112, `mobile` 390×844. */
+/** Named viewport presets, `desktop` 1440×900, `tablet` 834×1112, `mobile` 390×844. */
 export const VIEWPORT_PRESETS: Record<ViewportPreset, ViewportSize> = {
   desktop: { width: 1440, height: 900 },
   tablet: { width: 834, height: 1112 },
@@ -34,13 +34,13 @@ export type ColorScheme = z.infer<typeof ColorScheme>;
  */
 export const EnvironmentSpec = z
   .object({
-    /** ISO-8601 instant the page clock is frozen at — `new Date()` etc. return this for the whole run. */
+    /** ISO-8601 instant the page clock is frozen at, `new Date()` etc. return this for the whole run. */
     clock: z.string().datetime({ offset: true, local: true }).optional(),
     /** BCP-47 language tag (e.g. `en-GB`). */
     locale: LocaleTag.optional(),
     /** IANA timezone (e.g. `Europe/Amsterdam`). */
     timezone: z.string().min(1).optional(),
-    /** `{ width, height }` in CSS pixels, or a named preset — see {@link VIEWPORT_PRESETS}. */
+    /** `{ width, height }` in CSS pixels, or a named preset, see {@link VIEWPORT_PRESETS}. */
     viewport: z.union([ViewportPreset, ViewportSize]).optional(),
     color_scheme: ColorScheme.optional(),
     reduced_motion: z.boolean().optional(),
@@ -66,7 +66,7 @@ export function attachSkipNotice(
     : undefined;
 }
 
-/** Map an {@link EnvironmentSpec} to the Playwright context options it pins (clock excluded — that's a page-level install). */
+/** Map an {@link EnvironmentSpec} to the Playwright context options it pins (clock excluded, that's a page-level install). */
 export function environmentContextOptions(env: EnvironmentSpec): {
   locale?: string;
   timezoneId?: string;

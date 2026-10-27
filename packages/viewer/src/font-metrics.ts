@@ -1,6 +1,6 @@
 // Minimal TrueType metrics reader: unitsPerEm (head), advance widths (hhea + hmtx), and a
 // code-point → glyph mapping (cmap formats 4 and 12). Enough to measure and wrap single-style
-// text deterministically without a DOM — the burner's stand-in for the interactive overlay's
+// text deterministically without a DOM, the burner's stand-in for the interactive overlay's
 // body-attached measuring probe. Advance-width sums ignore kerning/ligatures, which only ever
 // shorten a shaped line, so a box sized from these metrics never clips the rendered text.
 

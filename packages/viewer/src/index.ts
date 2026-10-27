@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @docsxai/viewer — interactive docs-app generator + burned-annotation renderer +
+// @docsxai/viewer, interactive docs-app generator + burned-annotation renderer +
 // Starlight site emitter.
 //
 // Library entry (re-exports `buildViewer`, `burnAnnotations`, `burnFlow`, `emitStarlightSite`,

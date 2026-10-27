@@ -1,5 +1,5 @@
 // Zip-output tests. The packager zips in-process (fflate), so round-trips are verified with
-// fflate's unzipSync — no system `zip`/`unzip` binary involved, no skip gates.
+// fflate's unzipSync, no system `zip`/`unzip` binary involved, no skip gates.
 
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
@@ -144,7 +144,7 @@ describe("zipDocPack", () => {
     expect(entries.some((e) => e.endsWith("link.txt"))).toBe(false);
   });
 
-  it("is deterministic — two zips of the same tree are byte-identical, mtime pinned", async () => {
+  it("is deterministic, two zips of the same tree are byte-identical, mtime pinned", async () => {
     const out1 = path.join(outDir, "a.zip");
     const out2 = path.join(outDir, "b.zip");
     await zipDocPack({ workspace, output: out1 });
@@ -152,7 +152,7 @@ describe("zipDocPack", () => {
     const a = await fs.readFile(out1);
     const b = await fs.readFile(out2);
     expect(a.equals(b)).toBe(true);
-    // First local file header: DOS mod-time at offset 10, mod-date at offset 12 — pinned to
+    // First local file header: DOS mod-time at offset 10, mod-date at offset 12, pinned to
     // 1980-01-01 00:00 (the zip epoch), not the wall clock.
     expect(a.readUInt16LE(10)).toBe(0);
     expect(a.readUInt16LE(12)).toBe(0x21);

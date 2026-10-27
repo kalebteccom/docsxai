@@ -1,6 +1,6 @@
 // OAuth 2.1 HTTP handlers for the backend stub: the /v1/oauth/authorize redirect endpoint and the
 // /v1/oauth/token grant endpoint. Both are pulled out of the server closure and take an explicit
-// context ({ oauth, isCiToken }) so the only state they touch is passed in — the rest is pure
+// context ({ oauth, isCiToken }) so the only state they touch is passed in, the rest is pure
 // plumbing imported from http.js. Keeps the issuer logic (PKCE checks, consent gate, grant
 // dispatch) in one place without entangling it with route-table wiring.
 

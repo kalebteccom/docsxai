@@ -32,7 +32,7 @@ const RFC6238_SHA256_VECTORS: Array<[number, string]> = [
   [20000000000, "77737706"],
 ];
 
-// RFC 4226 Appendix D HOTP vectors (6 digits, SHA-1, counters 0–9).
+// RFC 4226 Appendix D HOTP vectors (6 digits, SHA-1, counters 0-9).
 const RFC4226_HOTP_VECTORS = [
   "755224",
   "287082",
@@ -77,7 +77,7 @@ describe("base32 (RFC 4648)", () => {
 });
 
 describe("HOTP (RFC 4226 Appendix D)", () => {
-  it("matches the ten reference codes for counters 0–9", () => {
+  it("matches the ten reference codes for counters 0-9", () => {
     for (let counter = 0; counter < RFC4226_HOTP_VECTORS.length; counter++) {
       expect(generateHotp(SHA1_KEY, counter)).toBe(RFC4226_HOTP_VECTORS[counter]);
     }
@@ -101,7 +101,7 @@ describe("TOTP (RFC 6238 Appendix B)", () => {
     );
   });
 
-  it("defaults to 6 digits — the last 6 of the 8-digit vector", () => {
+  it("defaults to 6 digits, the last 6 of the 8-digit vector", () => {
     expect(generateTotp(SHA1_KEY, { at: 59_000 })).toBe("287082");
   });
 

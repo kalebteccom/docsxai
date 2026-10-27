@@ -178,7 +178,7 @@ describe("createBackendStub store selection", () => {
     expect(Store).toBe(MemoryStore);
   });
 
-  it("uses FsStore when dataDir is set — data survives a server restart", async () => {
+  it("uses FsStore when dataDir is set, data survives a server restart", async () => {
     const dir = dataDir();
     const first = createBackendStub({ token: "t", dataDir: dir });
     expect(first.store).toBeInstanceOf(FsStore);

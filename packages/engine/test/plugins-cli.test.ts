@@ -31,7 +31,7 @@ afterEach(async () => {
   await cleanupWorkspaces();
 });
 
-describe("docsxai plugins — argument edge", () => {
+describe("docsxai plugins, argument edge", () => {
   it("plugins with no subcommand exits 2 with usage", async () => {
     expect(await main(["plugins"])).toBe(2);
     expect(err).toMatch(/plugins: missing subcommand/);

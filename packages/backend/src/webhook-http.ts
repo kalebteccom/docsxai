@@ -1,6 +1,6 @@
 // GitHub App webhook receiver. Pulled out of the server closure into a standalone handler that
 // takes the state it needs ({ store, env, dispatcher }) explicitly; the rest is pure plumbing from
-// http.js. The route is unauthenticated but strictly verified — see the handler doc comment.
+// http.js. The route is unauthenticated but strictly verified, see the handler doc comment.
 
 import { type IncomingMessage, type ServerResponse } from "node:http";
 import { JSON_BODY_LIMIT_BYTES, WEBHOOK_SECRET_ENV_RE } from "./api.js";
@@ -26,7 +26,7 @@ export interface WebhookHttpContext {
  * GitHub webhook receiver. Unauthenticated route, but strictly verified: the repo named in the
  * payload must map to a configured project, and the X-Hub-Signature-256 HMAC must validate
  * against that project's secret (read from the env var the config names) before anything else
- * is trusted. Every failure up to that point is the same 401. Accepted deliveries are queued (202) — execution happens after the response.
+ * is trusted. Every failure up to that point is the same 401. Accepted deliveries are queued (202), execution happens after the response.
  */
 export async function handleGitHubWebhook(
   req: IncomingMessage,

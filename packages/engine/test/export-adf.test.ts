@@ -1,4 +1,4 @@
-// ADF projection — correctness against hand-written expected JSON, the markdown subset
+// ADF projection, correctness against hand-written expected JSON, the markdown subset
 // converter, attachment hashing, burned→clean fallback, and determinism. Pure file → JSON
 // transform, so this is a unit suite (no browser, no HTTP).
 
@@ -244,7 +244,7 @@ describe("projectDocPackToAdf", () => {
     expect(projection.documents[1]!.attachments).toHaveLength(2);
   });
 
-  it("is deterministic — two projections of the same doc pack are byte-identical JSON", async () => {
+  it("is deterministic, two projections of the same doc pack are byte-identical JSON", async () => {
     const dir = await makeWorkspace();
     const a = await projectDocPackToAdf({ workspaceDir: dir, options: { mode: "page-tree" } });
     const b = await projectDocPackToAdf({ workspaceDir: dir, options: { mode: "page-tree" } });

@@ -4,7 +4,7 @@
 
 import type { LintRule } from "../flow-lint.js";
 
-/** Plugin-scoped logger. Writes to stderr prefixed `[plugin:<ns>]` — stdout stays clean for CLI output. */
+/** Plugin-scoped logger. Writes to stderr prefixed `[plugin:<ns>]`, stdout stays clean for CLI output. */
 export interface PluginLogger {
   info(message: string): void;
   warn(message: string): void;
@@ -68,6 +68,6 @@ export interface AuthStrategyPlugin {
   }>;
 }
 
-// The lint extension point is flow-lint's own injectable rule type — plugins register
+// The lint extension point is flow-lint's own injectable rule type, plugins register
 // rules that run after the built-ins through `lintFlow`'s `extraRules`.
 export type PluginLintRule = LintRule;
