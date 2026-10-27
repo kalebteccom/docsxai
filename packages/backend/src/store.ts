@@ -39,7 +39,7 @@ export class NotFoundError extends Error {
 /** Thrown by `putArtifact` when the target revision has been finalized (HTTP 409 `revision-finalized`). */
 export class RevisionFinalizedError extends Error {
   constructor(revId: string) {
-    super(`revision ${revId} is finalized — its artifacts are immutable`);
+    super(`revision ${revId} is finalized, its artifacts are immutable`);
     this.name = "RevisionFinalizedError";
   }
 }

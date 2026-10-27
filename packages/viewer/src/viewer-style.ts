@@ -97,7 +97,7 @@ export const VIEWER_STYLE = `
   .shot { position: relative; display: inline-block; border: 1px solid var(--border); max-width: 100%; }
   /* width/height attributes plus height:auto reserve the image's box before it loads; the surface colour shows meanwhile. */
   .shot img { display: block; max-width: 100%; height: auto; background: var(--surface); }
-  /* Default: a blinking halo around the target (+ a numbered badge when a screenshot has > 1 call-out) —
+  /* Default: a blinking halo around the target (+ a numbered badge when a screenshot has > 1 call-out); it
      does NOT cover the UI. The callout text is hidden until you hover, focus or tap the halo or its badge. */
   .sd-ann { position: absolute; left: 0; top: 0; pointer-events: none; }
   .sd-halo { position: absolute; box-sizing: border-box; border: 2px solid var(--sd-accent, #e8590c); border-radius: var(--sd-halo-radius, 4px); box-shadow: 0 0 0 3px var(--sd-accent-glow, rgba(232,89,12,.35)); cursor: help; pointer-events: auto; background: transparent; margin: 0; padding: 0; font: inherit; color: inherit; -webkit-appearance: none; appearance: none; }
