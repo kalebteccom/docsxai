@@ -17,7 +17,8 @@ Every new feature, fix and copy change follows these rules. Every agent session,
 - One component per pattern (page, sheet, section, list row, card, badge, button, code block, carousel, chip, property row). A pattern in two or more places is a shared component. Extend before extracting.
 - No raw padding, margin or font classes outside the primitives. A guard in CI enforces it.
 - Quality bar: Linear. Tight rows, the title first with the id as a quiet prefix, quiet property lists instead of boxed chips, compact grouped headers, empty relations collapsed into one add control.
-- Sans for text. Mono only for ids, code and tabular numbers.
+- Sans for text. Mono only in code: code blocks, inline code, command snippets and file contents. Labels, eyebrows, section titles, step numbers, chips and nav chrome use the sans body font in sentence case. No letter-spacing above 0 and no `text-transform: uppercase` on labels.
+- Flat surfaces: a hairline border and a solid fill. No grid-line backgrounds, no glow, no blurred or drop shadow, no accent stripe on one side of a card, no gradient fill on a button. The docs site ships Poppins for headings, the system sans stack for text and JetBrains Mono for code; it loads no other font. `website/scripts/check-type-tells.test.mjs` fails on each of these in the site stylesheet.
 - One floating action at most. It never covers content and never duplicates a header action.
 - Touch targets at least 44 px. Visible focus. Reduced motion respected.
 

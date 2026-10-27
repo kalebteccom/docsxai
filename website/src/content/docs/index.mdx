@@ -161,7 +161,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
 
   <div class="docsx-grid">
     <div class="docsx-card">
-      <span class="docsx-card-mark">// execution</span>
+      <span class="docsx-card-mark">Execution</span>
       <h3>Deterministic CI replay</h3>
       <div class="docsx-card-text">
         A frozen clock and a pinned locale, timezone and viewport give byte-identical screenshots.{" "}
@@ -170,7 +170,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       </div>
     </div>
     <div class="docsx-card">
-      <span class="docsx-card-mark">// variants</span>
+      <span class="docsx-card-mark">Variants</span>
       <h3>One flow, many variants</h3>
       <div class="docsx-card-text">
         A <code>matrix</code> block runs one flow per locale, color scheme and viewport, up to 64
@@ -178,7 +178,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       </div>
     </div>
     <div class="docsx-card">
-      <span class="docsx-card-mark">// calibration</span>
+      <span class="docsx-card-mark">Calibration</span>
       <h3>An agent writes it once</h3>
       <div class="docsx-card-text">
         An agent writes the flow through the Claude Code plugin, with lint and diagnose at write
@@ -186,7 +186,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       </div>
     </div>
     <div class="docsx-card">
-      <span class="docsx-card-mark">// output</span>
+      <span class="docsx-card-mark">Output</span>
       <h3>Viewer or plain PNGs</h3>
       <div class="docsx-card-text">
         An interactive viewer with halos and callouts, or captions burned into plain PNGs for places
@@ -194,7 +194,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       </div>
     </div>
     <div class="docsx-card">
-      <span class="docsx-card-mark">// captions</span>
+      <span class="docsx-card-mark">Captions</span>
       <h3>Themeable burned captions</h3>
       <div class="docsx-card-text">
         Halo, badge, callout and connector follow a <code>burn.theme</code> block: four presets, an
@@ -203,7 +203,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       </div>
     </div>
     <div class="docsx-card">
-      <span class="docsx-card-mark">// plugins</span>
+      <span class="docsx-card-mark">Plugins</span>
       <h3>Publishers and renderers as plugins</h3>
       <div class="docsx-card-text">
         Publishers, renderers, lint rules and auth strategies plug in through a sha256-locked
@@ -219,7 +219,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
   <div class="docsx-section-sub">Five steps against an app on your machine.</div>
   <ol class="docsx-steps" role="list">
     <li class="docsx-card docsx-step">
-      <span class="docsx-card-mark">// step 1</span>
+      <span class="docsx-card-mark">Step 1</span>
       <h3>Make a workspace</h3>
       <CopyCommand
         command="docsxai init my-docs --app-url http://localhost:3000 --auth none"
@@ -239,7 +239,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       </p>
     </li>
     <li class="docsx-card docsx-step">
-      <span class="docsx-card-mark">// step 2</span>
+      <span class="docsx-card-mark">Step 2</span>
       <h3>Check the setup</h3>
       <CopyCommand command="docsxai doctor my-docs" label="Copy the doctor command" />
       <div class="docsx-card-text">
@@ -251,7 +251,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       </p>
     </li>
     <li class="docsx-card docsx-step">
-      <span class="docsx-card-mark">// step 3</span>
+      <span class="docsx-card-mark">Step 3</span>
       <h3>Add a flow with an agent</h3>
       <CopyCommand
         command={"/plugin marketplace add kalebteccom/docsxai\n/plugin install docsxai@docsxai"}
@@ -266,7 +266,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       </p>
     </li>
     <li class="docsx-card docsx-step">
-      <span class="docsx-card-mark">// step 4</span>
+      <span class="docsx-card-mark">Step 4</span>
       <h3>Run it</h3>
       <CopyCommand command="docsxai run my-docs" label="Copy the run command" />
       <div class="docsx-card-text">
@@ -278,7 +278,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       </p>
     </li>
     <li class="docsx-card docsx-step">
-      <span class="docsx-card-mark">// step 5</span>
+      <span class="docsx-card-mark">Step 5</span>
       <h3>Open the docs</h3>
       <CopyCommand command="docsxai render my-docs" label="Copy the render command" />
       <div class="docsx-card-text">
