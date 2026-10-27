@@ -123,9 +123,7 @@ export function runTranscript(workspace, units) {
   for (const u of units) {
     const name = u.variant ? `${u.flow}/${u.variant}` : u.flow;
     lines.push(`run: ${name}, starting`);
-    lines.push(
-      `run: ${name}, ${u.steps} step(s) executed, ${u.annotations} annotation(s) written`,
-    );
+    lines.push(`run: ${name}, ${u.steps} step(s) executed, ${u.annotations} annotation(s) written`);
   }
   const noun = units.some((u) => u.variant) ? "flow variants" : "flows";
   const unit = units.length === 1 ? noun.replace(/s$/, "") : noun;
