@@ -151,6 +151,8 @@ function collect({ inlineExempt }) {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return false;
     if (r.right <= 0 || r.left >= innerWidth) return false;
+    // Visually hidden (clip: rect(0,0,0,0)) until focused, like Starlight's skip link.
+    if (/^rect\(0(px)?,? 0(px)?,? 0(px)?,? 0(px)?\)$/.test(getComputedStyle(el).clip)) return false;
     return true;
   };
   const opacityOf = (el) => {
@@ -200,6 +202,21 @@ function collect({ inlineExempt }) {
     });
   }
   const targets = [];
+  // The skip link is hidden until focused; measure it focused.
+  const skip = document.querySelector(".sl-skip-link");
+  if (skip) {
+    skip.focus();
+    const r = skip.getBoundingClientRect();
+    targets.push({
+      el: name(skip),
+      label: "(focused) " + skip.textContent.trim().slice(0, 20),
+      width: r.width,
+      height: r.height,
+      exempt: false,
+      inline: false,
+    });
+    skip.blur();
+  }
   const sel =
     "a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=link], [tabindex]:not([tabindex='-1'])";
   for (const el of document.querySelectorAll(sel)) {
