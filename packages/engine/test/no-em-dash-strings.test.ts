@@ -19,7 +19,7 @@ const EM_DASH = "\u2014";
 /** Files where a literal em dash is the point, with the reason and the exact count. */
 const EXCEPTIONS: Readonly<Record<string, { count: number; reason: string }>> = {
   "scripts/prose-guard.mjs": {
-    count: 2,
+    count: 1,
     reason:
       "the docs guard's own detector: it searches for the character and names it in its report",
   },
