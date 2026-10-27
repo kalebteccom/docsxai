@@ -178,7 +178,7 @@ export async function validatePluginBundle(
       issues.push({
         severity: "warning",
         where: `commands/${cmd}.md`,
-        message: `body doesn't appear to invoke \`docsxai ${cmd}\` — wrapper may be misaligned with the underlying CLI`,
+        message: `body doesn't appear to invoke \`docsxai ${cmd}\`: wrapper may be misaligned with the underlying CLI`,
       });
     }
     if (opts.knownCliCommands && !opts.knownCliCommands.includes(cmd)) {

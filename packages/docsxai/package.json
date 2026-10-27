@@ -6,7 +6,7 @@
     "access": "public",
     "provenance": true
   },
-  "description": "Deterministic screenshot docs for web apps — the batteries-included CLI. Meta-package over @docsxai/engine (the docsxai CLI + library) and @docsxai/viewer (the renderer `docsxai render` spawns).",
+  "description": "Deterministic screenshot docs for web apps: the batteries-included CLI. Meta-package over @docsxai/engine (the docsxai CLI + library) and @docsxai/viewer (the renderer `docsxai render` spawns).",
   "license": "Apache-2.0",
   "author": "Kalebtec <security@kalebtec.com>",
   "homepage": "https://github.com/kalebteccom/docsxai",

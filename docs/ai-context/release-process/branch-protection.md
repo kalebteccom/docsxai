@@ -11,7 +11,7 @@ The repo is public. The `main` ruleset requires the Woodpecker status `ci/woodpe
 ## What lands at the public flip
 
 - The full `main`-target ruleset: linear history, the required status check `ci/woodpecker/push/ci`, required-PR-with-CODEOWNERS-review, no admin bypass.
-- A path-scoped ruleset for `.github/**`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.npmrc`, `LICENSE`, `SECURITY.md`, `THIRD_PARTY_NOTICES.md`, `tsconfig.base.json`, `eslint.config.js`, `.githooks/**` — defense-in-depth versus a PR that silently amends CODEOWNERS.
+- A path-scoped ruleset for `.github/**`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.npmrc`, `LICENSE`, `SECURITY.md`, `THIRD_PARTY_NOTICES.md`, `tsconfig.base.json`, `eslint.config.js`, `.githooks/**` for defense in depth against a PR that silently amends CODEOWNERS.
 
 ## Agent rules
 

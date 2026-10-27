@@ -77,7 +77,7 @@ function actionLines(step: Step, ids: Map<string, string>): string[] {
   const target = step.target !== undefined ? locatorExpr(step.target, ids) : null;
   const value = step.value;
   const missing = (what: string): string[] => [
-    `// step "${step.id}": ${step.action} without ${what} — nothing to emit`,
+    `// step "${step.id}": ${step.action} without ${what}, nothing to emit`,
   ];
   // A step's `timeout_ms` becomes Playwright's per-call `{ timeout }`; absent, the call is unchanged.
   const callOpts = step.timeout_ms !== undefined ? `{ timeout: ${step.timeout_ms} }` : null;
@@ -155,7 +155,7 @@ function waitLines(wait: WaitSpec, step: Step, ids: Map<string, string>): string
     // visibility wait on the step target when there is one.
     return step.target !== undefined
       ? [`await ${locatorExpr(step.target, ids)}.waitFor({ state: "visible" }); // element_stable`]
-      : [`// wait_for: element_stable — Playwright auto-waits on the next action`];
+      : [`// wait_for: element_stable. Playwright auto-waits on the next action`];
   }
   if ("selector" in wait) {
     const opts =
@@ -193,7 +193,7 @@ function stepLines(step: Step, ids: Map<string, string>): string[] {
     "try {",
     ...body.map((l) => `  ${l}`),
     "} catch {",
-    "  // optional step — conditionally-present UI; a miss is tolerated",
+    "  // optional step: conditionally-present UI; a miss is tolerated",
     "}",
   ];
 }
@@ -221,7 +221,7 @@ export function exportFlowAsPlaywrightTest(
   const ids = locatorIdentifiers(flow);
 
   const lines: string[] = [
-    `// generated from ${fileName}.flow.yaml — regenerate, don't hand-edit`,
+    `// generated from ${fileName}.flow.yaml. Regenerate, don't hand-edit`,
     `import { expect, test } from "@playwright/test";`,
     "",
   ];

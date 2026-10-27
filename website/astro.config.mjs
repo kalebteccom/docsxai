@@ -123,9 +123,6 @@ export default defineConfig({
         "@fontsource/poppins/500.css",
         "@fontsource/poppins/600.css",
         "@fontsource/poppins/700.css",
-        "@fontsource/inter/400.css",
-        "@fontsource/inter/500.css",
-        "@fontsource/inter/600.css",
         "@fontsource/jetbrains-mono/400.css",
         "@fontsource/jetbrains-mono/500.css",
         "./src/styles/brand.css",
@@ -144,6 +141,8 @@ export default defineConfig({
         styleOverrides: {
           borderRadius: "0.5rem",
           borderColor: "var(--docsx-code-border)",
+          // Flat frames: no drop shadow under code blocks.
+          frames: { frameBoxShadowCssValue: "none" },
           codeFontFamily: "var(--docsx-font-mono)",
         },
       },

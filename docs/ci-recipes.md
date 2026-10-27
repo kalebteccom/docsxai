@@ -1,7 +1,7 @@
-# CI recipes — deterministic doc refresh in your pipeline
+# CI recipes: deterministic doc refresh in your pipeline
 
 > The first-class CI surface is the **docsxai GitHub App** (webhook on the
-> backend; install-and-go, zero YAML in your repo — see
+> backend; install-and-go, zero YAML in your repo; see
 > `packages/backend/README.md`). The recipes below are the documented
 > _examples_ for teams that prefer to drive `docsxai run` from their own
 > pipelines. They are reference material, not a surface docsxai maintains in
@@ -11,13 +11,13 @@
 
 - Node 26+ and a Chromium binary (`npx playwright-core install chromium`).
 - The doc-pack workspace checked out (flows/, docs/, auth/strategy.yaml,
-  `.docsxai.json`) — typically its own repo or a docs/ subdirectory.
+  `.docsxai.json`), typically its own repo or a docs/ subdirectory.
 - Target-site credentials as CI secrets, exposed under the env-var **names**
   your `auth/strategy.yaml` declares (`creds_env`). The descriptor never
   contains values. Scripted strategies (api-login, jwt-injection, ui-form,
   totp, test-backdoor, …) regenerate the session per run; `manual-capture`
   workspaces are not CI-runnable by design.
-- Zero LLM calls, zero agent context: `docsxai run` is deterministic — same
+- Zero LLM calls, zero agent context: `docsxai run` is deterministic: same
   flows + same target state → byte-identical screenshots (the engine's
   keystone guarantee).
 
@@ -61,7 +61,7 @@ jobs:
 
 A halt (non-zero exit) means **drift, not flake**: a locator or success
 criterion no longer holds. The failing step id + halt-cause prefix are in the
-log and `docs/<flow>/halts/<step>.png` is the moment of failure — hand both to
+log and `docs/<flow>/halts/<step>.png` is the moment of failure. Hand both to
 your calibration agent (`docsxai diagnose`). Don't retry.
 
 ## Drift gating (recommended)
@@ -304,7 +304,7 @@ steps:
 
 - **Wiki push**: configure the workspace's publisher plugin
   (`.docsxai.json` → `plugins` + `plugin_capabilities`) and run the
-  publisher after `run` — e.g. `@docsxai/plugin-confluence`
+  publisher after `run`, e.g. `@docsxai/plugin-confluence`
   (repo-only, not on npm: wire it by `path` from a checkout; `confluence:push`) is idempotent by content-sha, so a no-change run mutates
   nothing. Credentials via env (`CONFLUENCE_TOKEN`, `CONFLUENCE_EMAIL`).
 - **Backend persistence**: `DOCSX_TOKEN=… docsxai push ./docs-workspace

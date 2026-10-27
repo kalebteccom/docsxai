@@ -6,33 +6,33 @@ or Action with broad scope.
 
 ## Allowed
 
-- **Dependabot** — GitHub-native, `pull_request`-triggered, no secrets
+- **Dependabot**: GitHub-native, `pull_request`-triggered, no secrets
   exposure to PR-derived code. No auto-merge: every Dependabot PR is
   human-reviewed and merges on a green Woodpecker pipeline like any other.
-- **CodeQL (default setup)** — GitHub-native, no secrets, results gated
+- **CodeQL (default setup)**: GitHub-native, no secrets, results gated
   on PR status check.
-- **GitHub Secret Scanning + push protection** — free for public repos;
+- **GitHub Secret Scanning + push protection**: free for public repos;
   enable both.
 
 ## Forbidden (no exceptions without a written justification)
 
-- **Snyk** — installs as a GitHub App requiring org-wide write; rotates PR
+- **Snyk**: installs as a GitHub App requiring org-wide write; rotates PR
   author identity onto humans without consent (the "escalate to a bad
   author" pattern).
-- **Sonatype** — same shape as Snyk.
-- **Mend.io** — same shape; overlaps Renovate.
-- **Socket.dev** GitHub App — useful supply-chain heuristics, but the App
+- **Sonatype**: same shape as Snyk.
+- **Mend.io**: same shape; overlaps Renovate.
+- **Socket.dev** GitHub App: useful supply-chain heuristics, but the App
   scope is too broad; use the CLI in CI instead.
-- **Codecov / Coveralls** — coverage is a developer-local metric; the 2021
+- **Codecov / Coveralls**: coverage is a developer-local metric; the 2021
   Codecov supply-chain incident is not worth re-introducing.
-- **Renovate (Mend.io)** — redundant with Dependabot; broader app scope.
-- **CLA assistant, third-party labelers, Mergify, PrettierBot** — each is a
+- **Renovate (Mend.io)**: redundant with Dependabot; broader app scope.
+- **CLA assistant, third-party labelers, Mergify, PrettierBot**: each is a
   new write-permission third party; the GitHub-published `actions/labeler`
   covers labeling needs without an App install.
-- **Vercel / Netlify / Cloudflare Pages** — docsxai's shippable surface
+- **Vercel / Netlify / Cloudflare Pages**: docsxai's shippable surface
   is an npm package set, no preview deploy needed; preview-deploy bots
   have historically leaked env vars to fork-PR builds.
-- **Third-party AI / agent GitHub Apps with `id-token: write`** — including
+- **Third-party AI / agent GitHub Apps with `id-token: write`**: including
   Claude Code GitHub Action (CVE 2026, prompt-injection-via-comments →
   OIDC token theft, patched but the class persists).
 

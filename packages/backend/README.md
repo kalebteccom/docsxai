@@ -6,10 +6,10 @@ Authenticated service that persists doc packs (projects, revisions, flow-files, 
 
 ## Surface
 
-- **`ROUTES`** in `src/api.ts` — the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators}`, plus run history, blobs, the auth-cache relay, and the OAuth endpoints. Versioned via the `Docsxai-Api-Version` header.
-- **Linear immutable revisions** — every `calibrate` / `run` / human edit creates a new revision with `id` / `parent_revision_id` / `kind` / `author` / `created_at`. No branches; concurrent-edit conflicts surface as failed pushes resolved via re-pull + re-edit.
-- **`createBackendStub({ token?, store?, dataDir? })`** — starts the server bound to loopback; used by the engine's integration tests and as the local dev backend.
-- **`docsxai-backend`** bin — the same server as a standalone process: `docsxai-backend --port=4477 --data-dir=~/.docsxai-data` (`--port 4477` works too). A missing flag value, a port outside 0-65535 or an unknown argument exits 2 with a usage line; a port already in use or an unusable data dir exits 1 with one line naming it.
+- **`ROUTES`** in `src/api.ts`: the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators}`, plus run history, blobs, the auth-cache relay, and the OAuth endpoints. Versioned via the `Docsxai-Api-Version` header.
+- **Linear immutable revisions**: every `calibrate` / `run` / human edit creates a new revision with `id` / `parent_revision_id` / `kind` / `author` / `created_at`. No branches; concurrent-edit conflicts surface as failed pushes resolved via re-pull + re-edit.
+- **`createBackendStub({ token?, store?, dataDir? })`**: starts the server bound to loopback; used by the engine's integration tests and as the local dev backend.
+- **`docsxai-backend`** bin: the same server as a standalone process, run as `docsxai-backend --port=4477 --data-dir=~/.docsxai-data` (`--port 4477` works too). A missing flag value, a port outside 0-65535 or an unknown argument exits 2 with a usage line; a port already in use or an unusable data dir exits 1 with one line naming it.
 
 ## Persistence modes
 
@@ -33,18 +33,18 @@ auth-cache/<wsId>/<role>.json
 webhook-deliveries.json   ← replay guard: last 100 delivery ids
 ```
 
-Each project keeps its newest 1000 run-history records (`RUN_HISTORY_LIMIT`); appending past that drops the oldest. A webhook run records the revision it executed against, not a `head` that moved while it ran, and a job whose workspace could not be laid out appends a failed record with the reason. Writes are atomic (tmp file + rename); reads always go to disk, so multiple processes pointed at one data dir stay consistent. Every path join is containment-guarded against the data root — traversal-shaped ids read as not-found and traversal-shaped writes throw. `FsStore` and `MemoryStore` list projects in creation order, and a webhook picks the first project whose `repo` matches in that order. A request target the URL parser rejects (`GET //`, `GET //[`) gets `400 bad_request`.
+Each project keeps its newest 1000 run-history records (`RUN_HISTORY_LIMIT`); appending past that drops the oldest. A webhook run records the revision it executed against, not a `head` that moved while it ran, and a job whose workspace could not be laid out appends a failed record with the reason. Writes are atomic (tmp file + rename); reads always go to disk, so multiple processes pointed at one data dir stay consistent. Every path join is containment-guarded against the data root, so traversal-shaped ids read as not-found and traversal-shaped writes throw. `FsStore` and `MemoryStore` list projects in creation order, and a webhook picks the first project whose `repo` matches in that order. A request target the URL parser rejects (`GET //`, `GET //[`) gets `400 bad_request`.
 
 ## Blob protocol
 
 Binary artifacts (screenshots) never travel as base64-in-JSON. The flow:
 
-1. `POST /v1/blobs` with the raw bytes (≤ 25 MB) → `{ sha256, bytes }`. Idempotent — the server computes the hash; re-posting the same bytes is a no-op.
+1. `POST /v1/blobs` with the raw bytes (≤ 25 MB) → `{ sha256, bytes }`. Idempotent: the server computes the hash; re-posting the same bytes is a no-op.
 2. `HEAD /v1/blobs/:sha256` → 200/404, so clients skip uploads for bytes the backend already has (`docsxai push` HEAD-probes before every upload).
 3. The `screenshots` artifact slot carries a manifest, not bytes: `{ schema: "docsxai/screenshots@2", files: { "<flow>/screenshots/<file>.png": { sha256, bytes } } }`.
 4. `GET /v1/blobs/:sha256` returns the raw bytes; pulls fetch the manifest, then the blobs, and verify each against its hash.
 
-Blobs are deduplicated across revisions and projects — an unchanged screenshot costs one HEAD per push.
+Blobs are deduplicated across revisions and projects: an unchanged screenshot costs one HEAD per push.
 
 ## Revision finalization
 
@@ -54,8 +54,8 @@ Blobs are deduplicated across revisions and projects — an unchanged screenshot
 
 Two ways through the bearer gate (everything except `/v1/health` and the OAuth endpoints):
 
-- **CI token** — start the server with `DOCSX_TOKEN` set (or the `token` option); callers present it as `Authorization: Bearer <token>`. If no token is configured the stub accepts any non-empty bearer.
-- **OAuth 2.1 access token** — issued by the built-in authorization server, below.
+- **CI token**: start the server with `DOCSX_TOKEN` set (or the `token` option); callers present it as `Authorization: Bearer <token>`. If no token is configured the stub accepts any non-empty bearer.
+- **OAuth 2.1 access token**: issued by the built-in authorization server, below.
 
 Failed auth → **401** with a `WWW-Authenticate: Bearer` header.
 
@@ -64,9 +64,9 @@ Failed auth → **401** with a `WWW-Authenticate: Bearer` header.
 The backend is its own minimal authorization server:
 
 - `GET /v1/oauth/authorize?client_id=docsxai-cli&code_challenge=<S256>&code_challenge_method=S256&redirect_uri=http://127.0.0.1:<port>/callback&state=…` → **302** to the redirect URI with `code` + `state`. Codes are single-use, 5-minute TTL, bound to the challenge + redirect URI. Only loopback redirect URIs are accepted; only `S256`.
-- `POST /v1/oauth/token` (form-encoded) — `grant_type=authorization_code` (+ `code`, `code_verifier`) → `{ access_token, token_type: "Bearer", expires_in: 3600, refresh_token }`; `grant_type=refresh_token` rotates (the presented refresh token is invalidated). A refresh token expires 30 days after it was issued; set `DOCSX_OAUTH_REFRESH_TTL_DAYS` to change that. A client idle for longer runs `docsxai login` again.
+- `POST /v1/oauth/token` (form-encoded): `grant_type=authorization_code` (+ `code`, `code_verifier`) → `{ access_token, token_type: "Bearer", expires_in: 3600, refresh_token }`; `grant_type=refresh_token` rotates (the presented refresh token is invalidated). A refresh token expires 30 days after it was issued; set `DOCSX_OAUTH_REFRESH_TTL_DAYS` to change that. A client idle for longer runs `docsxai login` again.
 
-Consent is stub-grade by design: the authorize request is auto-approved when it carries `Authorization: Bearer <DOCSX_TOKEN>` **or** when `DOCSX_OAUTH_AUTO_APPROVE=1`. There is no interactive consent page: without either, the authorize request answers 403 `consent_required` and the message tells the user to ask whoever runs the server. Tokens are random 32-byte values; the server stores only their sha256 hashes (with expiry + workspace scope; `null` scope = all workspaces, matching today's stub semantics). Issued tokens live in process memory — they don't survive a restart; the CI-token path does.
+Consent is stub-grade by design: the authorize request is auto-approved when it carries `Authorization: Bearer <DOCSX_TOKEN>` **or** when `DOCSX_OAUTH_AUTO_APPROVE=1`. There is no interactive consent page: without either, the authorize request answers 403 `consent_required` and the message tells the user to ask whoever runs the server. Tokens are random 32-byte values; the server stores only their sha256 hashes (with expiry + workspace scope; `null` scope = all workspaces, matching today's stub semantics). Issued tokens live in process memory, so they don't survive a restart. The CI-token path does.
 
 `docsxai login --backend-url <url> --oauth <workspace>` drives the full handshake from the CLI and stores the tokens at `<workspace>/.auth/backend-token.json` (mode 0600).
 
@@ -85,7 +85,7 @@ Consent is stub-grade by design: the authorize request is auto-approved when it 
 }
 ```
 
-The backend validates the envelope shape and stores it opaquely — **it never sees the plaintext session**. Encryption happens in the engine (`BackendStateCache` in `@docsxai/engine`) with a 32-byte key from `DOCSX_CACHE_KEY` that never leaves the client. Malformed envelopes → 400; `DELETE` is idempotent.
+The backend validates the envelope shape and stores it opaquely. **It never sees the plaintext session.** Encryption happens in the engine (`BackendStateCache` in `@docsxai/engine`) with a 32-byte key from `DOCSX_CACHE_KEY` that never leaves the client. Malformed envelopes → 400; `DELETE` is idempotent.
 
 ## Body limits
 
@@ -96,9 +96,9 @@ The backend validates the envelope shape and stores it opaquely — **it never s
 
 ## GitHub App (webhook surface)
 
-The GitHub integration is a **webhook surface on this backend** — one service, no Probot, no
+The GitHub integration is a **webhook surface on this backend**: one service, no Probot, no
 separate worker. Signature verification is raw `node:crypto` HMAC; GitHub API calls are plain
-`fetch`. Install-and-go: user repos carry **zero YAML** — everything per-project lives in the
+`fetch`. Install-and-go: user repos carry **zero YAML**; everything per-project lives in the
 backend's webhook config.
 
 ```text wrap=false
@@ -122,14 +122,14 @@ GitHub push/PR ──▶ POST /v1/github/webhook          (no bearer auth; HMAC-
 
 | Field           | Type / values                                   | Default                | Meaning                                                          |
 | --------------- | ----------------------------------------------- | ---------------------- | ---------------------------------------------------------------- |
-| `repo`          | `"owner/name"`                                  | — (required)           | GitHub repository this project documents                         |
-| `events`        | array of `push` \| `pull_request`               | — (required)           | deliveries outside this set are acknowledged (200) and ignored   |
-| `strategy`      | `pr-comment` \| `viewer-refresh` \| `wiki-push` | — (required)           | where run output goes                                            |
+| `repo`          | `"owner/name"`                                  | none (required)        | GitHub repository this project documents                         |
+| `events`        | array of `push` \| `pull_request`               | none (required)        | deliveries outside this set are acknowledged (200) and ignored   |
+| `strategy`      | `pr-comment` \| `viewer-refresh` \| `wiki-push` | none (required)        | where run output goes                                            |
 | `workspace_rev` | `"head"` or a revision id                       | `"head"`               | revision whose artifacts the run executes against                |
 | `secret_env`    | `DOCSX_WEBHOOK_SECRET[_<SUFFIX>]`               | `DOCSX_WEBHOOK_SECRET` | which env var holds the HMAC secret (the secret is never stored) |
 | `enabled`       | boolean                                         | `true`                 | disabled configs acknowledge deliveries without dispatching      |
-| `plugin`        | `"<ns>:<name>"`                                 | —                      | publisher plugin (required for `wiki-push`)                      |
-| `plugin_config` | object                                          | —                      | handed to the publisher; no `sources`, URL keys are allowlisted  |
+| `plugin`        | `"<ns>:<name>"`                                 | none                   | publisher plugin (required for `wiki-push`)                      |
+| `plugin_config` | object                                          | none                   | handed to the publisher; no `sources`, URL keys are allowlisted  |
 
 `secret_env` must be `DOCSX_WEBHOOK_SECRET` or `DOCSX_WEBHOOK_SECRET_<SUFFIX>` (`A-Z`, `0-9`, `_`), so a config can't key the HMAC on a server variable whose value a caller knows, such as `DOCSX_TOKEN` or `HOME`. Any other name gets `400 bad_request` naming `secret_env`, and a config stored before this rule answers every delivery with 401.
 
@@ -194,18 +194,18 @@ Refresh tokens issued before this change expire 30 days after they were issued, 
 
 ### Webhook endpoint behavior
 
-`POST /v1/github/webhook` — unauthenticated route, strictly verified:
+`POST /v1/github/webhook` is an unauthenticated route, strictly verified:
 
 - **401** missing/invalid `X-Hub-Signature-256`, the configured secret env var is unset (fails closed), the payload is unparsable or has no `repository.full_name`, or the repository maps to no configured project. All of these return the same body, so the route doesn't say which repositories the backend serves. The repository match ignores case, because GitHub does (`Acme/Docs` finds a project configured as `acme/docs`).
 - **400** missing `X-GitHub-Delivery` on a correctly signed delivery.
 - **200** `{ dispatched: false, reason }` for filtered events / disabled configs; `{ duplicate: true }` for replayed delivery ids (last 100 remembered, store-backed).
-- **202** `{ delivery_id, project_id, dispatched: true }` — job queued; execution happens after the response, serialized per project.
+- **202** `{ delivery_id, project_id, dispatched: true }`: job queued; execution happens after the response, serialized per project.
 
 ### Output strategies
 
-- **`pr-comment`** — posts the run summary via GitHub REST: an issue-comment on the PR (`pull_request` events) or a commit comment on the pushed head commit. Token: injected `tokenProvider` (installation-token wiring) or `GITHUB_APP_TOKEN` env.
-- **`viewer-refresh`** — re-renders the viewer (`docsxai render`) from the materialized workspace and records `index.html` as a content-addressed blob.
-- **`wiki-push`** — loads publisher plugins with the engine's plugin contract (`docsxai` manifest in the plugin's `package.json` + `register(api)` module) from the directories in `DOCSX_BACKEND_PLUGIN_DIRS`, calls the one named by `plugin` and reports its `PublishResult` into the run-history summary. The list is absolute paths separated by `:` (`;` on Windows); a relative entry, or a `register` module whose real path leaves its directory, fails the run. Nothing in the webhook config or the materialised workspace names a directory, and `path:` entries in a workspace `docsxai.config.json` are ignored. Publisher code runs in the backend process, so list only plugins you trust. The publisher's `secretsEnv` holds only the variables named in `DOCSX_BACKEND_PUBLISHER_ENV` (empty when unset); the bundled publishers read their credentials (`CONFLUENCE_TOKEN`, `NOTION_TOKEN`, ...) from the process environment themselves.
+- **`pr-comment`**: posts the run summary via GitHub REST, as an issue-comment on the PR (`pull_request` events) or a commit comment on the pushed head commit. Token: injected `tokenProvider` (installation-token wiring) or `GITHUB_APP_TOKEN` env.
+- **`viewer-refresh`**: re-renders the viewer (`docsxai render`) from the materialized workspace and records `index.html` as a content-addressed blob.
+- **`wiki-push`**: loads publisher plugins with the engine's plugin contract (`docsxai` manifest in the plugin's `package.json` + `register(api)` module) from the directories in `DOCSX_BACKEND_PLUGIN_DIRS`, calls the one named by `plugin` and reports its `PublishResult` into the run-history summary. The list is absolute paths separated by `:` (`;` on Windows); a relative entry, or a `register` module whose real path leaves its directory, fails the run. Nothing in the webhook config or the materialised workspace names a directory, and `path:` entries in a workspace `docsxai.config.json` are ignored. Publisher code runs in the backend process, so list only plugins you trust. The publisher's `secretsEnv` holds only the variables named in `DOCSX_BACKEND_PUBLISHER_ENV` (empty when unset); the bundled publishers read their credentials (`CONFLUENCE_TOKEN`, `NOTION_TOKEN`, ...) from the process environment themselves.
 
 The materialized workspace has the layout `pull` writes: `flows/<name>.flow.yaml`, `docs/<flow>[/<variant>]/{annotations.json, screenshots/}`, `docs/{style.yaml, style.json, locators.yaml}` and `.docsxai.json` (with `app_url` from the project record when it has one), plus `webhook-job.json`. A file name outside what a workspace produces fails the job before the engine starts. The failed run in run history names the refused file; any other failure to lay out the workspace is recorded as `server file system error`, with no server path.
 
@@ -240,7 +240,7 @@ Everything below needs admin rights on the GitHub org and a public URL for the b
 | `DOCSX_DATA_DIR`                     | persist to this directory via `FsStore` (the `--data-dir=` flag / `dataDir` option take precedence)                |
 | `DOCSX_TOKEN`                        | the pre-issued CI bearer token; also the credential that auto-approves OAuth authorize requests                    |
 | `DOCSX_OAUTH_AUTO_APPROVE`           | `1` auto-approves OAuth authorize requests without a bearer (local dev / tests)                                    |
-| `DOCSX_CACHE_KEY`                    | client-side only — the base64 32-byte AES-256-GCM key for the auth-cache relay (the server never reads this)       |
+| `DOCSX_CACHE_KEY`                    | client-side only: the base64 32-byte AES-256-GCM key for the auth-cache relay (the server never reads this)        |
 | `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` | `1`, `true` or `yes` also refuses loopback and private-network `app_url` hosts and flow `navigate` targets         |
 | `DOCSX_EGRESS_GUARD`                 | passed to webhook runs as `1` unless set to `0`, `false` or `no`: the engine aborts requests to metadata addresses |
 | `DOCSX_EGRESS_DENY_PRIVATE`          | passed to webhook runs as `1` when `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` is on and this is unset                    |

@@ -4,7 +4,7 @@ The bar every plan, review, and implementation must aim for. **Elegance and prag
 
 ## Global quality gate
 
-Every repository change — feature, fix, refactor, hotfix — must leave the global gate clean. Clean means all of the following exit 0:
+Every repository change (feature, fix, refactor, hotfix) must leave the global gate clean. Clean means all of the following exit 0:
 
 ```
 pnpm typecheck
@@ -16,9 +16,9 @@ pnpm build
 
 CI runs the same gate in the Woodpecker pipeline (see [`.woodpecker/ci.yaml`](../../../.woodpecker/ci.yaml) and the CI section of [`AGENTS.md`](../../../AGENTS.md)). Pushing a diff that the local gate would reject is a self-inflicted CI failure.
 
-The keystone test (`packages/engine/test/keystone.test.ts`) runs as part of `pnpm test` and requires Chromium — it's the regression gate for runtime behavior. Don't shortcut it.
+The keystone test (`packages/engine/test/keystone.test.ts`) runs as part of `pnpm test` and requires Chromium. It's the regression gate for runtime behavior. Don't shortcut it.
 
-If a residual issue remains (e.g. an external dependency emits a warning you can't suppress), document the owner and reason in the PR — don't leave unexplained global debt.
+If a residual issue remains (e.g. an external dependency emits a warning you can't suppress), document the owner and reason in the PR. Don't leave unexplained global debt.
 
 ## Commit subject contract
 
@@ -28,7 +28,7 @@ If a residual issue remains (e.g. an external dependency emits a warning you can
 - Hooks enforce this on visible `git commit -m` / `--message=` invocations.
 - Use `--no-edit` only when amending or rebasing a commit whose existing subject already satisfies the contract.
 
-Rationale: terse, scannable git log; the AI trailer makes attribution explicit; ticket / round / plan references rot — state the why in the PR description or in `docs/ai-context/`, not the commit body.
+Rationale: terse, scannable git log; the AI trailer makes attribution explicit; ticket / round / plan references rot, so state the why in the PR description or in `docs/ai-context/`, not the commit body.
 
 ## Improve existing code
 
@@ -40,7 +40,7 @@ A plan that only adds new code on top of a messy foundation is a bad plan.
 
 When you encounter anti-patterns, tech debt, or suboptimal approaches in existing code while reviewing, **explicitly call them out** in your feedback and reference the relevant area's `docs/ai-context/` discipline.
 
-**Always suggest an alternative** — don't just flag the problem. Describe the better approach and why it's better.
+**Always suggest an alternative.** Don't just flag the problem. Describe the better approach and why it's better.
 
 ## Prefer elegant solutions
 
@@ -48,20 +48,20 @@ Choose the simplest correct solution. Avoid over-engineering **and** avoid lazy 
 
 ## Verify, don't assume
 
-Read the actual file before naming APIs, imports, config keys, generated fields, schemas, or deployment behavior. Plan snippets, memory, and old review notes can be stale. Hallucinated APIs / paths / signatures are a recurring failure mode — verifying takes seconds; debugging a hallucinated reference takes hours.
+Read the actual file before naming APIs, imports, config keys, generated fields, schemas, or deployment behavior. Plan snippets, memory, and old review notes can be stale. Hallucinated APIs / paths / signatures are a recurring failure mode. Verifying takes seconds; debugging a hallucinated reference takes hours.
 
 ## TypeScript configs for packages and libs
 
 Each emit-capable package keeps the build split across two configs:
 
-- **`tsconfig.json`** — the dev / typecheck config. Includes `src/` (tests live alongside source). The package `typecheck` script points at this directly: `tsc --noEmit -p tsconfig.json`. Must remain valid when loaded by `tsc -p` and by project references.
-- **`tsconfig.build.json`** — extends the dev config and overrides for emit: `sourceMap: false`, `inlineSourceMap: false`, `declarationMap: false`, plus `exclude` entries for `**/*.test.ts`, `**/*.spec.ts`, `__tests__/`, `__fixtures__/`. The `build` script points at this: `tsc -p tsconfig.build.json`. Declaration / build output never includes test artifacts.
+- **`tsconfig.json`**: the dev / typecheck config. Includes `src/` (tests live alongside source). The package `typecheck` script points at this directly: `tsc --noEmit -p tsconfig.json`. Must remain valid when loaded by `tsc -p` and by project references.
+- **`tsconfig.build.json`**: extends the dev config and overrides for emit: `sourceMap: false`, `inlineSourceMap: false`, `declarationMap: false`, plus `exclude` entries for `**/*.test.ts`, `**/*.spec.ts`, `__tests__/`, `__fixtures__/`. The `build` script points at this: `tsc -p tsconfig.build.json`. Declaration / build output never includes test artifacts.
 
 Set `compilerOptions.types` explicitly in packages where it matters, to avoid unrelated ambient `@types/*` packages leaking in from the monorepo. `[]` for runtime-agnostic shared code, `["node"]` for Node-only tooling.
 
 ## Package formatting scripts
 
-Root `format` and `format:check` run Prettier from the repository root (`prettier --write .` / `prettier --check .`), so the root `.prettierignore` is applied naturally. Do not add per-package `--ignore-path ../../.prettierignore` flags — they make scripts noisy and tie every package to its current directory depth.
+Root `format` and `format:check` run Prettier from the repository root (`prettier --write .` / `prettier --check .`), so the root `.prettierignore` is applied naturally. Do not add per-package `--ignore-path ../../.prettierignore` flags. They make scripts noisy and tie every package to its current directory depth.
 
 Fix the ignore policy before accepting generated-file formatting churn. Generated outputs, caches, and build artifacts should not be made reviewable just because Prettier ran from the wrong cwd.
 
@@ -69,10 +69,10 @@ Fix the ignore policy before accepting generated-file formatting churn. Generate
 
 Default to writing no comments. Only add one when the WHY is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, behavior that would surprise a reader.
 
-- Don't explain WHAT the code does — well-named identifiers do that.
-- Don't reference the current task / fix / callers ("used by X", "added for the Y flow", "handles the case from PR #123") — that belongs in the PR description.
-- **No internal tracking identifiers in code or comments.** Ticket / plan / round / PR refs (`W-X#`, `Round-N`, `ask #N`, `TICKET-N`, `JIRA-N`, `#1234`, `ROLLBACK-SAFETY-PLAN`, `Security-RECOMMENDED-1`, etc.) are project-management artifacts, not code context — they rot, mean nothing to a future reader, and belong in the commit/PR body. State the actual reason instead: write _why_ the code is the way it is, not _which ticket asked for it_. Example: `// Kept as a zombie for safe rollback; remove in a follow-up cleanup` — not `// Kept per ROLLBACK-SAFETY-PLAN Rule 1`.
-- **Exception — load-bearing identifier schemes** like `INV-N` invariant tags whose literal text the test discovers. docsxai has none today; the rule shape is documented for future-proofing.
+- Don't explain WHAT the code does. Well-named identifiers do that.
+- Don't reference the current task / fix / callers ("used by X", "added for the Y flow", "handles the case from PR #123"): that belongs in the PR description.
+- **No internal tracking identifiers in code or comments.** Ticket / plan / round / PR refs (`W-X#`, `Round-N`, `ask #N`, `TICKET-N`, `JIRA-N`, `#1234`, `ROLLBACK-SAFETY-PLAN`, `Security-RECOMMENDED-1`, etc.) are project-management artifacts, not code context. They rot, mean nothing to a future reader, and belong in the commit/PR body. State the actual reason instead: write _why_ the code is the way it is, not _which ticket asked for it_. Example: `// Kept as a zombie for safe rollback; remove in a follow-up cleanup`. Not `// Kept per ROLLBACK-SAFETY-PLAN Rule 1`.
+- **Exception: load-bearing identifier schemes** like `INV-N` invariant tags whose literal text the test discovers. docsxai has none today; the rule shape is documented for future-proofing.
 
 A PR-time `tracker-id-auditor` agent (see [`../../../.agents/skills/tracker-id-auditor.md`](../../../.agents/skills/tracker-id-auditor.md)) regex-scans diffs as a backup.
 
@@ -86,29 +86,29 @@ A PR-time `tracker-id-auditor` agent (see [`../../../.agents/skills/tracker-id-a
 
 docsxai's architecture leans on SOLID with TypeScript-idiomatic interpretations. Concrete examples from the codebase:
 
-### Single responsibility — one command, one file
+### Single responsibility: one command, one file
 
-- Per-CLI-subcommand files in the engine: `src/calibrate.ts`, `src/diagnose.ts`, `src/flow-lint.ts`, `src/flow-tree.ts`, `src/style.ts`, `src/zip.ts`, etc. One subcommand = one module. The dispatch table in `src/cli.ts` is registration only — no business logic.
+- Per-CLI-subcommand files in the engine: `src/calibrate.ts`, `src/diagnose.ts`, `src/flow-lint.ts`, `src/flow-tree.ts`, `src/style.ts`, `src/zip.ts`, etc. One subcommand = one module. The dispatch table in `src/cli.ts` is registration only, with no business logic.
 - `BrowserDriver` and the Playwright integration are separated: `src/playwright-driver.ts` is the only Playwright import site. The runtime depends on the interface.
 - Workspace IO is centralised in `src/workspace.ts` (`resolveWorkspacePath`). Handler modules don't touch `cwd` or absolute paths directly.
 
-### Open–closed — extend without modifying
+### Open-closed: extend without modifying
 
 - New CLI subcommands attach via the dispatch table in `src/cli.ts`; the existing subcommand modules are unchanged.
 - New auth strategies attach by implementing the strategy interface in `src/auth.ts`; existing strategies are unchanged.
 - New flow-lint rules (R001, R002, …) attach to the lint registry in `src/flow-lint.ts`; the registry shape is the open hinge.
 
-### Liskov — substitutable contracts
+### Liskov: substitutable contracts
 
 - Every `BrowserDriver` implementation honors the same shape: `navigate`, `click`, `fill`, `waitFor`, plus the `actionable()` predicate documented in [`docs/actionability-contract.md`](../../actionability-contract.md). A driver that returns a different shape is an LSP violation that breaks `flow-runtime.ts` silently.
 - The flow-file step vocabulary is a closed enum; every step type honors the same `{ action, target, wait_for?, success?, annotation? }` envelope. A handler that consumes one step type can be substituted for another that consumes a different step type without rewriting `flow-runtime.ts`.
 
-### Interface segregation — narrow contracts, optional fields
+### Interface segregation: narrow contracts, optional fields
 
 - `Step` carries optional `wait_for`, `success`, `annotation`, `annotations` fields, with no single fat interface. A handler asks for what it needs.
 - `AuthStrategyDescriptor` is shaped per strategy by discriminated unions, with no god-config where everything is optional. The `manual-capture` descriptor is narrower than an `api-direct` descriptor would be.
 
-### Dependency inversion — depend on the abstraction
+### Dependency inversion: depend on the abstraction
 
 - `flow-runtime.ts` depends on `BrowserDriver`, not `playwright-core`. Swapping driver implementations doesn't change runtime code.
 - The plugin's commands depend on the `docsxai` CLI bin; they don't reach into engine internals. The engine's CLI surface is the substrate boundary.

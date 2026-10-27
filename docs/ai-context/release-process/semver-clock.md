@@ -1,4 +1,4 @@
-# Semver clock — the API-stable-clock
+# Semver clock: the API-stable-clock
 
 docsxai is pre-1.0 (`0.2.0` is on npm's `latest` tag, `0.3.0-rc.3` on `next`). 1.0 is the stability milestone, and the path to it runs through an "API stable ~1 week" clock.
 
@@ -50,7 +50,7 @@ If you're not sure whether a change resets the clock, assume it does and discuss
 
 ## Pre-1.0 minor bumps
 
-Every minor bump pre-1.0 may include surface changes. The clock guards against _frequent_ surface changes — not against any change. The "~1 week" target is for the API surface to be quiet enough that adopters can integrate without a moving target.
+Every minor bump pre-1.0 may include surface changes. The clock guards against _frequent_ surface changes. It does not forbid a single change. The "~1 week" target is for the API surface to be quiet enough that adopters can integrate without a moving target.
 
 ## When the clock matters
 

@@ -1,4 +1,4 @@
-# Auth catalogue + masking — per-strategy secret handling
+# Auth catalogue + masking: per-strategy secret handling
 
 Read this before touching anything under `packages/engine/src/auth/` or any
 new egress path (publisher plugins, backend relay, webhook strategies).
@@ -11,12 +11,12 @@ new egress path (publisher plugins, backend relay, webhook strategies).
   `<UNSET>` or the env-var name), halt context, diagnose output, doc-pack
   artifacts, committed fixtures, or test snapshots.
 - `storageState` lands only under `.auth/` (gitignored, chokepointed via
-  `resolveWorkspacePathReal`) or — for `store: backend` — inside an
+  `resolveWorkspacePathReal`) or, for `store: backend`, inside an
   AES-256-GCM envelope encrypted **client-side** (`BackendStateCache`,
   key from `DOCSX_CACHE_KEY`); the backend stores ciphertext it cannot
   read.
-- Masking happens **before** any persistence or serialization, not after —
-  the sink applies the mask, then writes. New egress surfaces copy the
+- Masking happens **before** any persistence or serialization, not after.
+  The sink applies the mask, then writes. New egress surfaces copy the
   browxai `<SECRET_NAME>` substitution norm (see the Confluence publisher's
   `<CONFLUENCE_TOKEN>` masking + its order-verifying test).
 

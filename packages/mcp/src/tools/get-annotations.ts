@@ -29,7 +29,7 @@ export const getAnnotationsTool = defineTool({
     } catch {
       return fail(
         `no annotations for flow "${args.flow}" (${rel})`,
-        "run the flow first (run_flows) — annotations.json is emitted by execution",
+        "run the flow first (run_flows): annotations.json is emitted by execution",
       );
     }
     let raw: unknown;

@@ -175,7 +175,7 @@ async function loadProjection(ctx: PublisherContext): Promise<AdfProjection> {
     text = await fs.readFile(p, "utf8");
   } catch {
     throw new Error(
-      `confluence: no ADF projection — pass one in ctx.projection or run \`docsxai export adf\` first (looked at ${p})`,
+      `confluence: no ADF projection: pass one in ctx.projection or run \`docsxai export adf\` first (looked at ${p})`,
     );
   }
   const parsed = JSON.parse(text) as unknown;
@@ -304,8 +304,8 @@ export function createConfluencePublisher(): PublisherPlugin {
       const emailVar = ctx.secretsEnv["email"] ?? "CONFLUENCE_EMAIL";
       const token = process.env[tokenVar];
       const email = process.env[emailVar];
-      if (!token) throw new Error(`confluence: missing API token — set ${tokenVar}`);
-      if (!email) throw new Error(`confluence: missing account email — set ${emailVar}`);
+      if (!token) throw new Error(`confluence: missing API token: set ${tokenVar}`);
+      if (!email) throw new Error(`confluence: missing account email: set ${emailVar}`);
 
       const mask = makeMasker([token, Buffer.from(`${email}:${token}`).toString("base64")]);
       const log: PluginLogger = {

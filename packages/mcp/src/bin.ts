@@ -7,7 +7,7 @@ import { startHttpServer } from "./http-server.js";
 import { createDocsxaiMcpServer } from "./server.js";
 import { parseServeArgs, TOKEN_HINT, type ServeOptions } from "./serve-args.js";
 
-const USAGE = `docsxai-mcp — stdio MCP server over the docsxai engine
+const USAGE = `docsxai-mcp: stdio MCP server over the docsxai engine
 
 Usage:
   docsxai-mcp [--workspace <dir>]
