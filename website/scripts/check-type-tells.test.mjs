@@ -63,7 +63,7 @@ function splitTop(value) {
   return parts.map((p) => p.trim()).filter(Boolean);
 }
 
-const isCodeSelector = (sel) => /(^|[\s>+~.#:\[])(code|pre|kbd|samp)\b/.test(sel);
+const isCodeSelector = (sel) => /(^|[\s>+~.#:[])(code|pre|kbd|samp)\b/.test(sel);
 
 describe("monospace is for code", () => {
   it("uses the mono family only on code selectors and the listed command panes", () => {
