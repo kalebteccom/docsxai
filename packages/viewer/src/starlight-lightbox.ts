@@ -129,6 +129,9 @@ export function shotLightboxAstro(ui: UiStrings): string {
   .docsx-lightbox-close:hover {
     background: var(--sl-color-gray-6);
   }
+  .docsx-lightbox-close:active {
+    background: var(--sl-color-gray-5);
+  }
   .docsx-lightbox-close:focus-visible {
     outline: 3px solid var(--sl-color-white);
     outline-offset: 2px;
