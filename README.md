@@ -6,27 +6,27 @@
 
 > **Turn a real web app into step-by-step, screenshot-rich user guides that stay current automatically.**
 
-docsxai walks your web application, follows flows you describe in plain files, and emits documentation with clean, annotated screenshots — halos, numbered badges, callouts, captions. You teach it a flow **once**; after that it replays the same flow headlessly, on demand, producing the same docs every time. The core engine never calls a model API, so regenerating your docs on every commit is cheap and reproducible instead of expensive and flaky.
+docsxai walks your web application, follows flows you describe in plain files, and emits documentation with clean, annotated screenshots: halos, numbered badges, callouts, captions. You teach it a flow **once**; after that it replays the same flow headlessly, on demand, producing the same docs every time. The core engine never calls a model API, so regenerating your docs on every commit is cheap and reproducible instead of expensive and flaky.
 
-**Who it's for.** Product, platform, and docs engineers who maintain end-user documentation for a web app — especially an authenticated SPA whose UI changes often enough that hand-maintained screenshots go stale. Two roles share the workflow:
+**Who it's for.** Product, platform, and docs engineers who maintain end-user documentation for a web app, especially an authenticated SPA whose UI changes often enough that hand-maintained screenshots go stale. Two roles share the workflow:
 
 - a **calibration author** (often working through an AI coding agent like Claude Code or Codex over MCP) who teaches docsxai a user flow once;
-- a **CI / automation owner** who then re-runs `docsxai run` on every commit to regenerate the docs deterministically — no LLM calls, no agent in the loop.
+- a **CI / automation owner** who then re-runs `docsxai run` on every commit to regenerate the docs deterministically, with no LLM calls and no agent in the loop.
 
 **What you can do with it:**
 
-- Keep an authenticated SaaS app's user guide in sync — write the key flows once, regenerate annotated screenshots on every release so the docs never show stale UI.
-- Catch documentation drift in CI — `docsxai baseline` + `docsxai diff --fail-on warn` flags a PR whose UI change breaks a documented flow, before it merges.
-- Publish a polished docs site — emit an Astro Starlight site or a single-file interactive viewer with per-step screenshots, callouts, and captions.
-- Push the same docs into an existing knowledge base — idempotent Confluence Cloud publishing, so re-running an unchanged flow makes zero edits and only real changes land.
-- Document flows that need login and clean data — capture an authed session (interactive manual capture or one of ten scripted strategies, eleven in all) and apply deterministic redactions so secrets and PII never reach a screenshot.
+- Keep an authenticated SaaS app's user guide in sync: write the key flows once, regenerate annotated screenshots on every release so the docs never show stale UI.
+- Catch documentation drift in CI: `docsxai baseline` + `docsxai diff --fail-on warn` flags a PR whose UI change breaks a documented flow, before it merges.
+- Publish a polished docs site: emit an Astro Starlight site or a single-file interactive viewer with per-step screenshots, callouts, and captions.
+- Push the same docs into an existing knowledge base: idempotent Confluence Cloud publishing, so re-running an unchanged flow makes zero edits and only real changes land.
+- Document flows that need login and clean data: capture an authed session (interactive manual capture or one of ten scripted strategies, eleven in all) and apply deterministic redactions so secrets and PII never reach a screenshot.
 
 ## How it works: two modes
 
 The thing that makes docsxai's cost story honest is a clean split between an expensive step you run rarely and a cheap step you run constantly.
 
-- **Calibration — AI-assisted, rare.** A host agent (Claude Code, Codex, or anything that speaks MCP) drives the discovery → mapping + testing → commit pipeline through the engine's CLI and a browser bridge ([browxai](https://github.com/kalebteccom/browxai) is the canonical model-agnostic driver). The output is a self-sufficient **doc pack**: flow files, `annotations.json`, `style.yaml`, per-step markdown, screenshots, a locator manifest, and an auth-strategy descriptor. You pay for an agent here, once.
-- **Execution — deterministic, continuous.** `docsxai run` replays the doc pack through headless Playwright. No agent, no MCP, no model calls. Same input → same output. This is what runs in CI on every commit.
+- **Calibration: AI-assisted, rare.** A host agent (Claude Code, Codex, or anything that speaks MCP) drives the discovery → mapping + testing → commit pipeline through the engine's CLI and a browser bridge ([browxai](https://github.com/kalebteccom/browxai) is the canonical model-agnostic driver). The output is a self-sufficient **doc pack**: flow files, `annotations.json`, `style.yaml`, per-step markdown, screenshots, a locator manifest, and an auth-strategy descriptor. You pay for an agent here, once.
+- **Execution: deterministic, continuous.** `docsxai run` replays the doc pack through headless Playwright. No agent, no MCP, no model calls. Same input → same output. This is what runs in CI on every commit.
 
 Per-commit LLM runs would be untenable; per-commit Playwright runs are standard. That's the whole bet.
 
@@ -123,36 +123,36 @@ Next: [quickstart on docsxai.dev](https://docsxai.dev/getting-started/quickstart
 
 ## CLI reference
 
-`docsxai --help` lists every command, flag, and the inline `Notes:` block with per-command detail. The full reference — every command and flag, rendered per command — lives at the [CLI reference](https://docsxai.dev/reference/cli/).
+`docsxai --help` lists every command, flag, and the inline `Notes:` block with per-command detail. The full reference (every command and flag, rendered per command) lives at the [CLI reference](https://docsxai.dev/reference/cli/).
 
 ## Packages
 
 | package                                                     | role                                                                                                                                                                                                       |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`@docsxai/engine`](packages/engine/)                       | The LLM-agnostic engine: flow-file parser + deterministic runtime (environment controls, redaction), the plugin runtime, the 11-strategy auth catalogue, pure exporters (ADF), and the full `docsxai` CLI. |
-| [`@docsxai/plugin`](packages/plugin/)                       | Claude Code plugin — add-flow + diagnose skills; run/render/login/push/pull/doctor/plugins/export commands. The recommended surface for agent-driven workflows.                                            |
+| [`@docsxai/plugin`](packages/plugin/)                       | Claude Code plugin: add-flow + diagnose skills; run/render/login/push/pull/doctor/plugins/export commands. The recommended surface for agent-driven workflows.                                             |
 | [`@docsxai/viewer`](packages/viewer/)                       | Rendering surface: interactive single-file viewer, browser-free `burn` renderer (baked annotations), and the Astro Starlight docs-site emitter.                                                            |
 | [`@docsxai/backend`](packages/backend/)                     | Doc-pack persistence service: FS or in-memory store, content-addressed blobs, finalized linear-immutable revisions, OAuth 2.1 + PKCE, encrypted auth-cache relay, GitHub App webhook surface.              |
 | [`@docsxai/skill`](packages/skill/)                         | Optional vendorable `.claude/skills/` fallback; delegates to the installed plugin. For teams that prefer version-pinning in the consumer repo.                                                             |
-| [`@docsxai/mcp`](packages/mcp/)                             | Standalone stdio MCP server: calibration meta-orchestration + doc-pack introspection for any MCP host (no browser primitives — browxai owns discovery).                                                    |
-| [`@docsxai/plugin-confluence`](packages/plugin-confluence/) | First-party publisher plugin — idempotent Confluence Cloud REST v2 push (`confluence:push`), capability-gated egress.                                                                                      |
+| [`@docsxai/mcp`](packages/mcp/)                             | Standalone stdio MCP server: calibration meta-orchestration + doc-pack introspection for any MCP host (no browser primitives; browxai owns discovery).                                                     |
+| [`@docsxai/plugin-confluence`](packages/plugin-confluence/) | First-party publisher plugin: idempotent Confluence Cloud REST v2 push (`confluence:push`), capability-gated egress.                                                                                       |
 | [`@docsxai/plugin-gitbook`](packages/plugin-gitbook/)       | First-party publisher plugin. Markdown pages and images into a GitBook space through a change request (`gitbook:push`), capability-gated egress.                                                           |
 | [`@docsxai/plugin-guru`](packages/plugin-guru/)             | First-party publisher plugin. Cards with attached images in a Guru collection through the Guru public API (`guru:push`), capability-gated egress.                                                          |
 | [`@docsxai/plugin-notion`](packages/plugin-notion/)         | First-party publisher plugin. Pages with uploaded images under a Notion page or in a database through the Notion public API (`notion:push`), capability-gated egress.                                      |
 | [`@docsxai/plugin-sharepoint`](packages/plugin-sharepoint/) | First-party publisher plugin. Markdown and images into a SharePoint Online document library through Microsoft Graph (`sharepoint:push`), capability-gated egress.                                          |
-| [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin — Starlight site emission (`starlight:site`).                                                                                                                                  |
+| [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin: Starlight site emission (`starlight:site`).                                                                                                                                   |
 
 `@docsxai/mcp`, `@docsxai/plugin-confluence`, `@docsxai/plugin-gitbook`, `@docsxai/plugin-guru`, `@docsxai/plugin-notion` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (`@docsxai/plugin-sharepoint` since `0.3.0-rc.3`, experimental): `0.2.0` is on `latest`, `0.3.0-rc.3` on `next`.
 
 ## Documentation
 
-- [**docs/agent-runbook.md**](docs/agent-runbook.md) — hand-it-to-an-agent workflow runbook
-- [**docs/agent-guidance.md**](docs/agent-guidance.md) — the reach-for-this-not-that list for agents that write flows
-- [**docs/running-against-an-app-repo.md**](docs/running-against-an-app-repo.md) — human-readable runbook
-- [**docs/ci-recipes.md**](docs/ci-recipes.md) — wiring `run` / `baseline` / `diff` into CI
-- [**docs/themed-caption-packs.md**](docs/themed-caption-packs.md) — raw captures to themed, hash-named screenshots with a manifest
-- [**docs/actionability-contract.md**](docs/actionability-contract.md) — the portable `actionable()` predicate contract, for browser-bridge consumers
-- [`CHANGELOG.md`](CHANGELOG.md) — release notes · [`RELEASING.md`](RELEASING.md) — release process
+- [**docs/agent-runbook.md**](docs/agent-runbook.md): hand-it-to-an-agent workflow runbook
+- [**docs/agent-guidance.md**](docs/agent-guidance.md): the reach-for-this-not-that list for agents that write flows
+- [**docs/running-against-an-app-repo.md**](docs/running-against-an-app-repo.md): human-readable runbook
+- [**docs/ci-recipes.md**](docs/ci-recipes.md): wiring `run` / `baseline` / `diff` into CI
+- [**docs/themed-caption-packs.md**](docs/themed-caption-packs.md): raw captures to themed, hash-named screenshots with a manifest
+- [**docs/actionability-contract.md**](docs/actionability-contract.md): the portable `actionable()` predicate contract, for browser-bridge consumers
+- [`CHANGELOG.md`](CHANGELOG.md): release notes · [`RELEASING.md`](RELEASING.md): release process
 
 ## Contributing
 

@@ -3,9 +3,9 @@
 docsxai is an LLM-agnostic documentation engine plus a Claude Code
 plugin and a small authenticated backend. Its threat surface is shaped
 by two facts: the engine ships **no model-API surface and no
-arbitrary-code-execution surface** — it parses flow-files against a Zod
+arbitrary-code-execution surface** (it parses flow-files against a Zod
 schema, drives Playwright through a curated step vocabulary, and emits
-screenshots and text — and the backend is a stateless HTTP service
+screenshots and text), and the backend is a stateless HTTP service
 bound to loopback by default. This document tells you what we will and
 will not commit to, and how to report a vulnerability.
 
@@ -69,34 +69,34 @@ Please include:
 
 Reports against the following are in scope:
 
-- **Workspace-escape path traversal** — any engine path that reads or
+- **Workspace-escape path traversal**: any engine path that reads or
   writes outside the configured workspace root via path traversal,
   symlink follow, or `..` segments. The workspace boundary is the
   filesystem trust boundary; the engine's job is to not cross it.
-- **Auth-strategy cache leak** — cached cookies, tokens, or auth headers
+- **Auth-strategy cache leak**: cached cookies, tokens, or auth headers
   appearing in any externally-visible sink (logs, doc-pack artifacts,
   viewer output, halt context, zip output, screenshots).
-- **Flow-file schema bypass** — any malformed flow-file payload reaching
+- **Flow-file schema bypass**: any malformed flow-file payload reaching
   the runtime past the Zod schema boundary, especially anything that
   shifts behavior into arbitrary code execution.
-- **In-page script injection** — any path that ships agent-supplied or
+- **In-page script injection**: any path that ships agent-supplied or
   flow-file-supplied JavaScript into the page beyond the curated step
   vocabulary. The engine has no `eval`-shaped step; introducing one
   without an explicit threat-model entry is in scope.
-- **Backend auth bypass** — any request reaching authenticated backend
+- **Backend auth bypass**: any request reaching authenticated backend
   endpoints without a valid OAuth 2.1 credential, or any path that
   serves one tenant's doc pack to another.
-- **Viewer XSS / HTML injection** — any flow-file or annotation content
+- **Viewer XSS / HTML injection**: any flow-file or annotation content
   reaching the rendered viewer as live HTML rather than escaped text.
-- **Loopback escape** — the backend defaults to loopback binding; any
+- **Loopback escape**: the backend defaults to loopback binding; any
   default configuration that exposes it on a non-loopback interface
   unintentionally is in scope.
-- **Backend `app_url` target filter and engine request guard** — a webhook run screenshots whatever a project's `app_url` and its flows' `navigate` steps name, so a few checks stand between a tenant and a cloud instance's credentials or the host's files. A way around one to reach a refused address, or to upload a file from outside the workspace, is in scope.
+- **Backend `app_url` target filter and engine request guard**: a webhook run screenshots whatever a project's `app_url` and its flows' `navigate` steps name, so a few checks stand between a tenant and a cloud instance's credentials or the host's files. A way around one to reach a refused address, or to upload a file from outside the workspace, is in scope.
   - _Backend, when a project is saved and when a run is materialised._ `app_url` must be an absolute `http(s)` URL without credentials whose host is not link-local or a cloud-metadata address: `169.254.0.0/16`, `fe80::/10`, `fd00:ec2::254`, `100.100.100.200`, `168.63.129.16`, `metadata.google.internal`, `instance-data`, in any spelling the URL parser normalises (decimal, hex or octal IPv4, trailing dot) and as an IPv6 address that embeds one (IPv4-mapped, NAT64 `64:ff9b::/96` and `64:ff9b:1::/48`, 6to4 `2002::/16`, Teredo `2001::/32` with the client address decoded). With `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` set to `1`, `true` or `yes` it also refuses loopback, RFC 1918, CGNAT, unique-local, `fec0::/10` and the names `localhost`, `localhost.localdomain`, `*.localhost`. Materialising a revision also reads every flow file and refuses a `navigate` value that resolves to an absolute URL those rules refuse, or to one outside the `app_url` origin when the project has an `app_url`. A relative value passes, and so does a public absolute URL when there is no `app_url`. This check is on the host as written: a DNS name is not resolved, so `169.254.169.254.nip.io` passes it.
   - _Engine request guard, off by default._ With `DOCSX_EGRESS_GUARD` set to `1`, `true` or `yes`, `launchPlaywrightSession` routes every request of the browser context through a check: documents, subresources, fetches and each redirect hop (Chromium reports a redirect as a new request). The host is classified with the rules above and, when it is a name, resolved with `dns.lookup` for all its addresses; one refused address, a failed lookup or an empty answer aborts the request. `DOCSX_EGRESS_DENY_PRIVATE` set to `1`, `true` or `yes` adds the private ranges. A name lookup that takes longer than 5 seconds refuses the request, so a stalled resolver cannot hold one open. WebSocket connections go through the same check (`context.routeWebSocket`), and a refused one is closed. Schemes other than `http`, `https`, `ws`, `wss`, `data`, `blob` and `about` are aborted, and service workers are blocked so their fetches cannot skip the route. What the run prints for a refusal is generic (`egress-guard: blocked <url without userinfo, query or fragment>: address not allowed`), because the runner's last output line is shown to the tenant; the host and resolved address go only to the `onBlock` callback. The backend runner turns the guard on for every webhook run unless `DOCSX_EGRESS_GUARD` is `0`, `false` or `no`, and turns the private ranges on when `DOCSX_BACKEND_DENY_PRIVATE_APP_URL` is on. A local `docsxai run` has the guard off unless the variable is set.
   - _Uploads._ An `upload` step's value must be a path relative to the workspace, with no `..` segment and no segment that starts with a dot (so no `.auth/` session or `.docsxai.json`), not `webhook-job.json`, naming a regular file whose real path is under the workspace root; the engine's driver refuses anything else when the step runs, and the backend refuses a flow file with such a value when it materialises the revision.
   - _Not covered._ On a browser attached over CDP (`--cdp`) the context belongs to the operator's Chrome, so the guard cannot block service workers there; their fetches skip the route. The guard resolves a name and Chromium resolves it again when it connects, so a DNS answer that changes between the two (DNS rebinding) gets through; that window remains. Redirect coverage relies on Chromium reporting each hop to the route handler. A hosted deployment needs an egress firewall or network policy on the host that runs the engine that drops traffic to link-local and private ranges, whatever these switches say.
-- **Plugin manifest trust bypass** — any path through the Claude Code
+- **Plugin manifest trust bypass**: any path through the Claude Code
   plugin that escalates beyond the declared plugin permissions.
 
 ## Out of scope
@@ -117,7 +117,7 @@ The following are not docsxai vulnerabilities:
 - Issues in third-party flows or doc packs distributed by adopters.
   Report those to the doc pack's owner.
 
-## Trust posture — what we promise, what we do not, what we cannot prevent
+## Trust posture: what we promise, what we do not, what we cannot prevent
 
 **What we promise.** The published `@docsxai/*` packages,
 installed from npm with registry signatures verified (`npm audit signatures`),
@@ -160,8 +160,8 @@ holder of the token can call every tool the server exposes, including `run_flows
 ## Plugin trust model
 
 The Claude Code plugin (`@docsxai/plugin`) runs inside Claude
-Code's plugin sandbox and delegates execution to the engine binary —
-it does not embed its own runtime. Plugin skills emit structured
+Code's plugin sandbox and delegates execution to the engine binary.
+It does not embed its own runtime. Plugin skills emit structured
 questions and shell out to `docsxai`; plugin commands are
 deterministic engine invocations. The plugin does not introduce a new
 code-execution surface beyond what the engine already exposes.
@@ -169,8 +169,8 @@ code-execution surface beyond what the engine already exposes.
 The `@docsxai/skill` package is an optional vendorable
 `.claude/skills/` fallback that delegates to the installed plugin
 for teams that prefer version-pinning in the consumer repo. The same
-trust posture applies — `skill` is a thin redirect, not a parallel
-runtime.
+trust posture applies. `skill` is a thin redirect with no runtime of
+its own.
 
 Third-party docsxai integrations are not reviewed by Kalebtec. Report
 issues in them to their maintainers.

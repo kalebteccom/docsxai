@@ -1,4 +1,4 @@
-# `docs/ai-context/` — agent-facing routing layer
+# `docs/ai-context/`: agent-facing routing layer
 
 This subtree is the **agent-facing** companion to the public `docs/` runbooks. It is **not** part of any published documentation site; it lives in the repo so every harness has the same context and so the discipline is version-controlled with the code it governs.
 
@@ -21,7 +21,7 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 - Changing a tool description, an input schema or an error message in `packages/mcp` → read [`ux/mcp-audit.md`](ux/mcp-audit.md).
 - Adding or tuning a static accessibility rule, or the CI step that lints built HTML → read [`ux/static-checks.md`](ux/static-checks.md).
 - Taking screenshots of the docs site and the viewer, or adding a page or state to them → read [`ux/visual-captures.md`](ux/visual-captures.md). A Woodpecker workflow runs them on branch pushes.
-- Touching the engine runtime, the `BrowserDriver` interface, or auth strategies → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`testing/qa-patterns.md`](testing/qa-patterns.md) — the keystone test is the regression gate.
+- Touching the engine runtime, the `BrowserDriver` interface, or auth strategies → read [`architecture/surface-map.md`](architecture/surface-map.md) and [`testing/qa-patterns.md`](testing/qa-patterns.md): the keystone test is the regression gate.
 - Touching any code path that writes artifacts (screenshots, annotations, halt context, doc-pack zip) → read [`secrets-and-egress/README.md`](secrets-and-egress/README.md).
 - Releasing or changing the surface → read [`release-process/semver-clock.md`](release-process/semver-clock.md) and [`../public-surface.md`](../public-surface.md). A change to a pinned surface trips a contract test (`packages/*/test/contract/`); the update procedure is in each test file's header.
 - Editing a commit message or pushing without local verify → read [`agent-process/commit-discipline.md`](agent-process/commit-discipline.md) and [`agent-process/dist-rebuild-discipline.md`](agent-process/dist-rebuild-discipline.md).
@@ -55,7 +55,7 @@ This subtree is the **agent-facing** companion to the public `docs/` runbooks. I
 
 ## Source-of-truth pointers
 
-- `AGENTS.md` (repo root) — operating rules + repo map + trust posture. The agent-agnostic entry point. Every harness loads it.
-- `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md` — the recorded decision history behind the engine's fixed boundaries. Consult `PHASE-1.md` for the rationale behind the agent-integration contract; the standing spec and scope live in `AGENTS.md`, `docs/`, and this subtree, not here.
+- `AGENTS.md` (repo root): operating rules + repo map + trust posture. The agent-agnostic entry point. Every harness loads it.
+- `docs/archive/phase-plans/PHASE-0.md`, `docs/archive/phase-plans/PHASE-1.md`: the recorded decision history behind the engine's fixed boundaries. Consult `PHASE-1.md` for the rationale behind the agent-integration contract; the standing spec and scope live in `AGENTS.md`, `docs/`, and this subtree, not here.
 
 Repo-local docs (`AGENTS.md`, `docs/`, this subtree) are the public source of truth for spec and scope.

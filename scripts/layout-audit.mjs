@@ -256,7 +256,7 @@ async function isFile(p) {
 }
 
 /** A static server for a built directory on 127.0.0.1, a random port. */
-async function serve(dir) {
+export async function serve(dir) {
   const root = resolve(dir);
   const server = createServer(async (req, res) => {
     const clean = decodeURIComponent((req.url ?? "/").split("?")[0]);

@@ -8,8 +8,8 @@ The skill tells the agent to use the plugin's `/docsxai:*` commands when they ex
 
 ## Surface
 
-- **`skill/docsxai/SKILL.md`** — the vendorable skill manifest.
-- **`vendorSkill(targetDir)`** — copies the skill bundle into `<targetDir>/.claude/skills/docsxai/`. Idempotent.
+- **`skill/docsxai/SKILL.md`**: the vendorable skill manifest.
+- **`vendorSkill(targetDir)`**: copies the skill bundle into `<targetDir>/.claude/skills/docsxai/`. Idempotent.
 
 ## License
 

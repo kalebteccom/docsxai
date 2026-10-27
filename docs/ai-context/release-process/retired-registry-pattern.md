@@ -1,4 +1,4 @@
-# The retired-registry pattern — graceful deprecation for config inputs
+# The retired-registry pattern: graceful deprecation for config inputs
 
 Read this before removing or renaming any operator-facing input: a flow-file
 field or enum value, a CLI flag, an auth-strategy name, a plugin-capability
@@ -21,7 +21,7 @@ Each input surface keeps a **retired registry**: a map of
 | ----------------------- | ------------------------------------------------------------------------------------------ |
 | Currently valid         | Accept.                                                                                    |
 | In the retired registry | Accept the artifact, **warn once** (name + replacement + since), ignore the retired value. |
-| Unknown (never valid)   | **Loud error** — it's a typo, not history.                                                 |
+| Unknown (never valid)   | **Loud error**. It's a typo, not history.                                                  |
 
 Full removal of a retired entry happens only at a major version bump, with a
 `### Removed` CHANGELOG entry naming it.
@@ -44,5 +44,5 @@ Full removal of a retired entry happens only at a major version bump, with a
 The registry is what lets the semver clock (see
 [`semver-clock.md`](semver-clock.md)) treat input renames as **minor** instead
 of major: the old input still works, warned, for the rest of the major. If a
-change can't be expressed through the registry (semantics changed, not just
-the name), it resets the clock — assume it does and flag it when unsure.
+change can't be expressed through the registry (the semantics changed along with
+the name), it resets the clock. Assume it does and flag it when unsure.

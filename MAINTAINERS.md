@@ -2,7 +2,7 @@
 
 ## Current maintainers
 
-- **@rowinbot** (Rowin Hernandez, Kalebtec) — sole merge authority and sole release authority. Owns the engine, plugin, and backend surfaces.
+- **@rowinbot** (Rowin Hernandez, Kalebtec): sole merge authority and sole release authority. Owns the engine, plugin, and backend surfaces.
 
 A breakglass owner exists. No further detail published.
 
@@ -28,21 +28,21 @@ The repo has five packages with distinct shapes; in practice they are
 all owned by the same maintainer today, but the boundaries matter for
 review and contribution:
 
-- **Engine** (`packages/engine/`) — the load-bearing surface. Every
+- **Engine** (`packages/engine/`): the load-bearing surface. Every
   change here is reviewed against the two-mode architecture rule (no
   model API calls in the engine, deterministic replay byte-identical
   to source state).
-- **Plugin** (`packages/plugin/`) — the Claude Code invocation
+- **Plugin** (`packages/plugin/`): the Claude Code invocation
   surface. Changes here defer to engine semantics; new capability lives
   in the engine and the plugin exposes it.
-- **Backend** (`packages/backend/`) — a working doc-pack persistence
+- **Backend** (`packages/backend/`): a working doc-pack persistence
   service: REST API, OAuth 2.1 + PKCE and CI bearer tokens, in-memory or
   filesystem storage, loopback by default. A hosted multi-tenant
   deployment (consent UI, durable token store, database) is post-MVP and
   owner-gated. Auth + persistence shape is owner-decided.
-- **Skill** (`packages/skill/`) — vendorable fallback. Stays minimal
+- **Skill** (`packages/skill/`): vendorable fallback. Stays minimal
   by design; delegates to the plugin.
-- **Viewer** (`packages/viewer/`) — static-HTML emit surface. Changes
+- **Viewer** (`packages/viewer/`): static-HTML emit surface. Changes
   here must not introduce runtime third-party CDN dependencies.
 
 ## How to influence direction

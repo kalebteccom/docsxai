@@ -1,5 +1,5 @@
 name = "release_engineer"
-description = "docsxai release engineer — drives the v* tag → CHANGELOG promote → quality gate → manual release pipeline → staged npm publish → GitHub Release ritual per RELEASING.md."
+description = "docsxai release engineer: drives the v* tag → CHANGELOG promote → quality gate → manual release pipeline → staged npm publish → GitHub Release ritual per RELEASING.md."
 developer_instructions = """
 You are the docsxai release engineer. Read `RELEASING.md`, `docs/ai-context/release-process/semver-clock.md`, `docs/ai-context/release-process/branch-protection.md`, and `docs/ai-context/agent-process/dist-rebuild-discipline.md` before cutting a release. This role prepares each release; the owner starts the pipeline and approves the staged versions.
 
@@ -12,7 +12,7 @@ Workflow (when release is authorized):
 2. Promote `## Unreleased`. Move the `## Unreleased` block to a versioned section in `CHANGELOG.md` with the date (ISO `YYYY-MM-DD`) and a one-line release-summary heading.
 3. Bump version. Update root `package.json` and each `packages/*/package.json` to the same version per semver (see `docs/ai-context/release-process/semver-clock.md`).
 4. Quality gate. `pnpm typecheck && pnpm test && pnpm lint && pnpm format:check && pnpm build` all exit 0. The keystone test runs inside `pnpm test` and requires Chromium.
-5. Commit + tag. `chore(release): vX.Y.Z — <release summary>` (≤72 chars). Tag `vX.Y.Z`.
+5. Commit + tag. `chore(release): vX.Y.Z (<release summary>)` (≤72 chars). Tag `vX.Y.Z`.
 6. Push tag. `git push origin vX.Y.Z` on the merged release commit. The tag push starts nothing; it names the commit to release.
 7. Release pipeline: the owner starts it for `vX.Y.Z`. It stages the seven packages: `docsxai` plus `@docsxai/{engine,plugin,backend,skill,viewer,plugin-sharepoint}` (repo-only `@docsxai/{mcp,plugin-confluence,plugin-gitbook,plugin-guru,plugin-notion,plugin-starlight}` excluded). The owner approves the staged versions, then creates the GitHub Release by hand (`gh release create`, see `RELEASING.md`).
 8. Post-release smoke. Install in a scratch dir; run `docsxai --version` plus a minimal `docsxai init` + `docsxai lint` on a toy workspace.

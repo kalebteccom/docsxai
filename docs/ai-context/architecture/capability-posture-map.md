@@ -1,4 +1,4 @@
-# Capability + posture map — what's on by default, what's gated
+# Capability + posture map: what's on by default, what's gated
 
 Read this when adding any surface that acts on the world: an MCP tool, a
 plugin kind, an auth strategy, a backend route, an output strategy.
@@ -20,7 +20,7 @@ plugin kind, an auth strategy, a backend route, an output strategy.
 | `manual-capture` instrumented Chrome         | operator-invoked                                        | headed, human in the loop                                                                                                                                     |
 
 Composition is multiplicative: a wiki push from a webhook needs the webhook
-gate AND the plugin capability AND the publisher's env secrets — each layer
+gate AND the plugin capability AND the publisher's env secrets. Each layer
 denies independently.
 
 ## Rules

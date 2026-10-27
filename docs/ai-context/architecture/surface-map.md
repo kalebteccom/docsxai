@@ -2,15 +2,15 @@
 
 `AGENTS.md` carries the high-level map. This page goes one level deeper for the substructure agents most often need to navigate.
 
-The engine never imports a model-provider SDK. That boundary is load-bearing — repeat it twice on every architectural decision involving inference.
+The engine never imports a model-provider SDK. That boundary is load-bearing. Repeat it twice on every architectural decision involving inference.
 
-## `packages/engine/` — `@docsxai/engine`
+## `packages/engine/`: `@docsxai/engine`
 
 The flow-file parser + deterministic runtime + the `docsxai` CLI. The biggest package; the only one with a binary.
 
 ### `packages/engine/src/cli.ts`
 
-The `docsxai` bin. Subcommands: `init`, `capture-auth`, `add-flow` (formerly `calibrate`, a deprecated alias until 0.5.0), `inspect`, `run`, `render`, `burn`, `pack` (and `pack --check`), `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `export` (`adf`, `playwright`), `plugins`, `login`, `push`, `pull`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only — no business logic.** Per-command logic lives in the corresponding module.
+The `docsxai` bin. Subcommands: `init`, `capture-auth`, `add-flow` (formerly `calibrate`, a deprecated alias until 0.5.0), `inspect`, `run`, `render`, `burn`, `pack` (and `pack --check`), `lint`, `flow-tree`, `diagnose`, `style`, `zip`, `baseline`, `diff`, `export` (`adf`, `playwright`), `plugins`, `login`, `push`, `pull`. The bin is `dist/cli.js` after build. **Argument parsing + dispatch only, no business logic.** Per-command logic lives in the corresponding module.
 
 ### `packages/engine/src/flow-file.ts`
 
@@ -22,7 +22,7 @@ The deterministic execution loop. Reads a parsed flow + locator manifest + auth 
 
 ### `packages/engine/src/playwright-driver.ts`
 
-The one `BrowserDriver` implementation. Includes the `actionable()` predicate (the load-bearing portable contract — see [`../../actionability-contract.md`](../../actionability-contract.md)). All Playwright API touch goes through this file; nothing else in the engine imports `playwright-core` directly.
+The one `BrowserDriver` implementation. Includes the `actionable()` predicate (the load-bearing portable contract; see [`../../actionability-contract.md`](../../actionability-contract.md)). All Playwright API touch goes through this file; nothing else in the engine imports `playwright-core` directly.
 
 ### `packages/engine/src/obstacles.ts` + `page-nearby-boxes.ts`
 
@@ -42,11 +42,11 @@ Auth strategy descriptor (`auth/strategy.yaml`) + the `manual-capture` strategy.
 
 ### `packages/engine/src/calibrate.ts`
 
-The `add-flow` command (formerly `calibrate`) — extracts a flow-file from a structured guide. Calibration-time helper; deterministic given the same guide. The host agent supplies inference _before_ this stage by writing the guide; the engine never calls a model API.
+The `add-flow` command (formerly `calibrate`): extracts a flow-file from a structured guide. Calibration-time helper; deterministic given the same guide. The host agent supplies inference _before_ this stage by writing the guide; the engine never calls a model API.
 
 ### `packages/engine/src/flow-lint.ts`
 
-Static checks across flow-files. The numbered `R0NN` rule set, plus `extraRules` injection — the lint-rules plugin extension point. Pure analysis on parsed flows; no browser touch.
+Static checks across flow-files. The numbered `R0NN` rule set, plus `extraRules` injection, the lint-rules plugin extension point. Pure analysis on parsed flows; no browser touch.
 
 ### `packages/engine/src/flow-tree.ts`
 
@@ -54,7 +54,7 @@ Visualises the `extends` graph across a workspace's flow-files. Pure read-only.
 
 ### `packages/engine/src/diagnose.ts`
 
-Halt-context + recommendations after a deterministic run halts. Reads the halt artifact written by `flow-runtime.ts` and emits a recalibration recommendation. Pure analysis — does not re-run.
+Halt-context + recommendations after a deterministic run halts. Reads the halt artifact written by `flow-runtime.ts` and emits a recalibration recommendation. Pure analysis, does not re-run.
 
 ### `packages/engine/src/style.ts`
 
@@ -62,7 +62,7 @@ Style.yaml init/validate + the `--check` jargon scan. Workspace-scoped.
 
 ### `packages/engine/src/diff.ts`
 
-Drift detection: `diffDocPacks` compares the workspace against a `.baseline/` snapshot (the `baseline` + `diff` subcommands) — id-keyed step field deltas, annotation moves, screenshot pixel diffs with severity thresholds, prose line-change counts, locator changes. Deterministic report (no timestamps); `--format md` is PR-comment-ready. Pure analysis — detects, never patches.
+Drift detection: `diffDocPacks` compares the workspace against a `.baseline/` snapshot (the `baseline` + `diff` subcommands): id-keyed step field deltas, annotation moves, screenshot pixel diffs with severity thresholds, prose line-change counts, locator changes. Deterministic report (no timestamps); `--format md` is PR-comment-ready. Pure analysis: detects, never patches.
 
 ### `packages/engine/src/redact.ts`
 
@@ -86,7 +86,7 @@ The workspace plugin runtime v1: manifest (`package.json#docsxai`), resolve-once
 
 ### `packages/engine/src/auth/`
 
-The target-site auth catalogue — one module per strategy (api-login, jwt-injection, ui-form, http-basic, pat-header, mtls, email-otp, totp, webauthn, manual-capture, test-backdoor) behind `makeStrategy` + the `registerAuthStrategy` plugin hook. `auth.ts` at the package root is a re-export shim.
+The target-site auth catalogue: one module per strategy (api-login, jwt-injection, ui-form, http-basic, pat-header, mtls, email-otp, totp, webauthn, manual-capture, test-backdoor) behind `makeStrategy` + the `registerAuthStrategy` plugin hook. `auth.ts` at the package root is a re-export shim.
 
 ### `packages/engine/src/export/`
 
@@ -100,75 +100,75 @@ HTTP client for `@docsxai/backend`. Used when the operator opts into hosted pers
 
 The regression gate. Drives the runtime end-to-end against real Chromium with a fixture site. Catches behavior regressions that unit tests with a mocked `BrowserDriver` silently pass. Mandatory for any change to `flow-runtime.ts`, `playwright-driver.ts`, or the actionability predicate.
 
-## `packages/plugin/` — `@docsxai/plugin`
+## `packages/plugin/`: `@docsxai/plugin`
 
 The Claude Code plugin. The recommended invocation surface for agent-driven workflows.
 
-- `.claude-plugin/plugin.json` — the manifest (name, version, description, author).
-- `commands/*.md` — deterministic slash commands. Thin wrappers over the `docsxai` CLI. **No business logic in a command file** — the engine does the work.
-- `skills/*/SKILL.md` — calibration skills (agent-driven; the host supplies inference).
-- `src/index.ts` — a small TS surface over the manifest tree for tooling + tests. `readManifest`, `listCommands`, `listSkills`, plus static-validation helpers.
+- `.claude-plugin/plugin.json`: the manifest (name, version, description, author).
+- `commands/*.md`: deterministic slash commands. Thin wrappers over the `docsxai` CLI. **No business logic in a command file.** The engine does the work.
+- `skills/*/SKILL.md`: calibration skills (agent-driven; the host supplies inference).
+- `src/index.ts`: a small TS surface over the manifest tree for tooling + tests. `readManifest`, `listCommands`, `listSkills`, plus static-validation helpers.
 
 The plugin loads at session start; commands are deterministic engine invocations; skills emit structured questions and drive the calibration flow through the host agent's inference.
 
-## `packages/backend/` — `@docsxai/backend`
+## `packages/backend/`: `@docsxai/backend`
 
 Authenticated doc-pack persistence service.
 
-- `src/api.ts` — `ROUTES` is the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators|run-history}`. Versioned via the `Docsxai-Api-Version` header.
-- `src/server.ts` — the HTTP server. Loopback-bound by default; hosted deployment is owner-gated.
-- `src/store.ts` — in-memory linear-immutable revisions with content-addressed blobs.
-- `src/fs-store.ts` — filesystem persistence (same store contract; the durable default).
-- `src/oauth.ts` — OAuth 2.1 + PKCE auth surface; the CI bearer path is a first-class entry.
-- `src/webhook.ts` — the GitHub App webhook surface: signed dispatch → deterministic execution.
-- `src/runner.ts` / `src/strategy.ts` — webhook-triggered run execution + output strategies.
+- `src/api.ts`: `ROUTES` is the canonical endpoint list. `/v1/workspaces/{ws}/projects/{p}/revisions/{rev}/{flows|annotations|screenshots|style|locators|run-history}`. Versioned via the `Docsxai-Api-Version` header.
+- `src/server.ts`: the HTTP server. Loopback-bound by default; hosted deployment is owner-gated.
+- `src/store.ts`: in-memory linear-immutable revisions with content-addressed blobs.
+- `src/fs-store.ts`: filesystem persistence (same store contract; the durable default).
+- `src/oauth.ts`: OAuth 2.1 + PKCE auth surface; the CI bearer path is a first-class entry.
+- `src/webhook.ts`: the GitHub App webhook surface: signed dispatch → deterministic execution.
+- `src/runner.ts` / `src/strategy.ts`: webhook-triggered run execution + output strategies.
 
-## `packages/skill/` — `@docsxai/skill`
+## `packages/skill/`: `@docsxai/skill`
 
 Optional vendorable `.claude/skills/` fallback. Delegates to the installed plugin.
 
-- `skill/docsxai/SKILL.md` — the vendorable skill manifest.
-- `vendorSkill(targetDir)` — copies the skill bundle into `<targetDir>/.claude/skills/docsxai/`. Idempotent.
+- `skill/docsxai/SKILL.md`: the vendorable skill manifest.
+- `vendorSkill(targetDir)`: copies the skill bundle into `<targetDir>/.claude/skills/docsxai/`. Idempotent.
 
 For teams that prefer version-pinning in the consumer repo rather than relying on a globally-installed plugin.
 
-## `packages/viewer/` — `@docsxai/viewer`
+## `packages/viewer/`: `@docsxai/viewer`
 
 The rendering surface: interactive viewer, burn renderer, Starlight site emitter.
 
-- `src/render.ts` — `buildViewer({ docsDir, outDir })`. Reads annotations + screenshots, emits `index.html` + per-flow pages.
-- `src/placement.ts` — `placeCallout(input)`. Pure Popper-like placement; coordinate-space-agnostic; tested independently.
-- `src/burn.ts` — browser-free baked-annotation renderer (Satori + resvg) for delivery surfaces that can't run the interactive viewer (Confluence, Notion). The workspace PNGs stay clean (no baked annotations) — re-stylable, re-localisable, machine-inspectable; burning happens at export time.
-- `src/burn-callout.ts` + `src/inside-placement.ts` + `src/burn-report.ts` — callout sizing and layout for the burner (adaptive width ladder, `placement` options, inside-the-target placement) and the `burn --report` placement report. `obstacle-placement.ts` and `badge-placement.ts` hold the planners they build on.
-- `src/pack-*.ts` — the screenshot pack (`docsxai pack` / `docsxai pack --check`): `pack-schema.ts` + `pack-validate.ts` (`docsxai/screens-pack@2`), `pack-convert.ts` (from `screens-pack@1` and `screens-manifest@1`), `pack-guards.ts`, `pack-source.ts` + `pack-workspace.ts` + `pack-annotations.ts` (inputs), `pack-optimise.ts` (external `oxipng`), `pack-build.ts`, `pack-write.ts` (exact-path pruning), `pack-pixels.ts` + `pack-drift.ts`, `pack-cli.ts`. Reuses `renderBurn`; the engine runs it through the viewer bin. Rationale: `docs/ai-context/screens-pack-decision.md`.
-- `src/starlight.ts` — the Astro Starlight site emitter (production docs-site output from a doc pack).
-- `src/overlay-runtime.ts` — the interactive overlay (halo + numbered badges + callouts), bundled into `dist/generated/overlay.js` at build time.
+- `src/render.ts`: `buildViewer({ docsDir, outDir })`. Reads annotations + screenshots, emits `index.html` + per-flow pages.
+- `src/placement.ts`: `placeCallout(input)`. Pure Popper-like placement; coordinate-space-agnostic; tested independently.
+- `src/burn.ts`: browser-free baked-annotation renderer (Satori + resvg) for delivery surfaces that can't run the interactive viewer (Confluence, Notion). The workspace PNGs stay clean (no baked annotations), so they stay re-stylable, re-localisable and machine-inspectable. Burning happens at export time.
+- `src/burn-callout.ts` + `src/inside-placement.ts` + `src/burn-report.ts`: callout sizing and layout for the burner (adaptive width ladder, `placement` options, inside-the-target placement) and the `burn --report` placement report. `obstacle-placement.ts` and `badge-placement.ts` hold the planners they build on.
+- `src/pack-*.ts`: the screenshot pack (`docsxai pack` / `docsxai pack --check`): `pack-schema.ts` + `pack-validate.ts` (`docsxai/screens-pack@2`), `pack-convert.ts` (from `screens-pack@1` and `screens-manifest@1`), `pack-guards.ts`, `pack-source.ts` + `pack-workspace.ts` + `pack-annotations.ts` (inputs), `pack-optimise.ts` (external `oxipng`), `pack-build.ts`, `pack-write.ts` (exact-path pruning), `pack-pixels.ts` + `pack-drift.ts`, `pack-cli.ts`. Reuses `renderBurn`; the engine runs it through the viewer bin. Rationale: `docs/ai-context/screens-pack-decision.md`.
+- `src/starlight.ts`: the Astro Starlight site emitter (production docs-site output from a doc pack).
+- `src/overlay-runtime.ts`: the interactive overlay (halo + numbered badges + callouts), bundled into `dist/generated/overlay.js` at build time.
 
-## `packages/mcp/` — `@docsxai/mcp`
+## `packages/mcp/`: `@docsxai/mcp`
 
-Standalone MCP server (`docsxai-mcp` bin; stdio, plus an opt-in Streamable HTTP transport behind `serve --http`) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives — live-page discovery is browxai's. One tool = one file under `src/tools/`; the registry is composed only in `src/server.ts`. The HTTP transport is `src/http-*.ts` (token, Host/Origin guard, sessions, egress rules for `run_flows`) plus `src/workspace-root.ts` (path confinement) and `src/serve-args.ts`. Add-a-tool checklist: [`../tool-registration/mcp-tool-registry.md`](../tool-registration/mcp-tool-registry.md). Repo-only (`private: true`).
+Standalone MCP server (`docsxai-mcp` bin; stdio, plus an opt-in Streamable HTTP transport behind `serve --http`) for any MCP-speaking host: calibration meta-orchestration + read-only doc-pack introspection over the engine surface. No browser primitives: live-page discovery is browxai's. One tool = one file under `src/tools/`; the registry is composed only in `src/server.ts`. The HTTP transport is `src/http-*.ts` (token, Host/Origin guard, sessions, egress rules for `run_flows`) plus `src/workspace-root.ts` (path confinement) and `src/serve-args.ts`. Add-a-tool checklist: [`../tool-registration/mcp-tool-registry.md`](../tool-registration/mcp-tool-registry.md). Repo-only (`private: true`).
 
-## `packages/plugin-confluence/` — `@docsxai/plugin-confluence`
+## `packages/plugin-confluence/`: `@docsxai/plugin-confluence`
 
-First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins — the only sanctioned Confluence egress path (the engine emits ADF projections only). Repo-only (`private: true`).
+First-party publisher plugin (`confluence:push`): idempotent Confluence Cloud REST v2 push behind the `egress:*.atlassian.net` capability. The reference implementation for publisher plugins, and the only sanctioned Confluence egress path (the engine emits ADF projections only). Repo-only (`private: true`).
 
-## `packages/plugin-gitbook/` — `@docsxai/plugin-gitbook`
+## `packages/plugin-gitbook/`: `@docsxai/plugin-gitbook`
 
 First-party publisher plugin (`gitbook:push`): idempotent push of a doc pack as markdown pages, with screenshots sent inline, into a GitBook space through a change request that it merges, behind the `egress:api.gitbook.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Repo-only (`private: true`).
 
-## `packages/plugin-guru/` — `@docsxai/plugin-guru`
+## `packages/plugin-guru/`: `@docsxai/plugin-guru`
 
 First-party publisher plugin (`guru:push`): idempotent push of a doc pack as cards, with screenshots uploaded as Guru-hosted attachments, into a Guru collection through the Guru public API, behind the `egress:api.getguru.com` capability. Consumes the same ADF projection as the Confluence plugin and renders it to HTML. Repo-only (`private: true`).
 
-## `packages/plugin-notion/` — `@docsxai/plugin-notion`
+## `packages/plugin-notion/`: `@docsxai/plugin-notion`
 
 First-party publisher plugin (`notion:push`): idempotent push of a doc pack as Notion pages, with screenshots uploaded through the Notion file upload API, under a Notion page or into a Notion database through the Notion public API, behind the `egress:api.notion.com` capability. Consumes the same ADF projection as the Confluence plugin and converts it to Notion blocks. Repo-only (`private: true`).
 
-## `packages/plugin-sharepoint/` — `@docsxai/plugin-sharepoint`
+## `packages/plugin-sharepoint/`: `@docsxai/plugin-sharepoint`
 
 First-party publisher plugin (`sharepoint:push`): idempotent push of a doc pack as markdown files plus images into a SharePoint Online document library through Microsoft Graph, behind eight `egress:` capabilities, one per Graph host and SharePoint download domain (public and national clouds). Consumes the same ADF projection as the Confluence plugin and renders it to markdown. Published to npm as an experimental package since `0.3.0-rc.3`.
 
-## `packages/plugin-starlight/` — `@docsxai/plugin-starlight`
+## `packages/plugin-starlight/`: `@docsxai/plugin-starlight`
 
 First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight emitter. Repo-only (`private: true`).
 
@@ -177,15 +177,15 @@ First-party renderer plugin (`starlight:site`) wrapping the viewer's Starlight e
 - **The engine never calls a model API.** No `openai`, `@anthropic-ai/*`, `@google/genai`, no provider SDK import path. Lock the boundary with `pnpm licenses:check` + grep at PR time; an ESLint rule enforces it where one applies.
 - **`BrowserDriver` is the only browser abstraction.** Direct `playwright-core` imports outside `playwright-driver.ts` and `playwright-instrumented-browser.ts` are an architectural violation.
 - **`resolveWorkspacePath` is the only filesystem root.** No `cwd`-relative paths in engine handlers.
-- **Calibration mode and execution mode are split.** Calibration helpers (`calibrate.ts`, the plugin's skill surface) are agent-aware; execution (`flow-runtime.ts`, the keystone test) has no agent in the loop. Agent orchestration belongs in the harness/MCP layer, not an in-engine state machine — never reintroduce `DiscoveryStage`/`MappingStage`/`CommitStage`-style orchestration into the engine (rationale: [`PHASE-1.md`](../../archive/phase-plans/PHASE-1.md)).
+- **Calibration mode and execution mode are split.** Calibration helpers (`calibrate.ts`, the plugin's skill surface) are agent-aware; execution (`flow-runtime.ts`, the keystone test) has no agent in the loop. Agent orchestration belongs in the harness/MCP layer, not an in-engine state machine. Never reintroduce `DiscoveryStage`/`MappingStage`/`CommitStage`-style orchestration into the engine (rationale: [`PHASE-1.md`](../../archive/phase-plans/PHASE-1.md)).
 
-## `packages/docsxai/` — `docsxai` (meta-package)
+## `packages/docsxai/`: `docsxai` (meta-package)
 
-The unscoped batteries-included CLI install: `bin.mjs` resolves `@docsxai/engine`'s CLI entry (`@docsxai/engine/cli`) and runs it in-process; `index.mjs`/`index.d.mts` re-export the engine's library surface; dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (the viewer dep is deliberate — one global install puts `docsxai-viewer` on the path so `docsxai render`, `docsxai burn`, `docsxai pack` and `docsxai pack --check` work out of the box; the bin sets `DOCSX_VIEWER_BIN` to the viewer it resolves when unset, since the engine's own lookup can't see a sibling dependency in a nested layout). No build step; gated by `packages/docsxai/test/bin.test.ts` (real subprocess: init + lint against a fixture workspace, `burn`, `pack` and `pack --check` on a checked-in pack).
+The unscoped batteries-included CLI install: `bin.mjs` resolves `@docsxai/engine`'s CLI entry (`@docsxai/engine/cli`) and runs it in-process; `index.mjs`/`index.d.mts` re-export the engine's library surface; dependencies are exactly `@docsxai/engine` + `@docsxai/viewer` (the viewer dep is deliberate: one global install puts `docsxai-viewer` on the path so `docsxai render`, `docsxai burn`, `docsxai pack` and `docsxai pack --check` work out of the box; the bin sets `DOCSX_VIEWER_BIN` to the viewer it resolves when unset, since the engine's own lookup can't see a sibling dependency in a nested layout). No build step; gated by `packages/docsxai/test/bin.test.ts` (real subprocess: init + lint against a fixture workspace, `burn`, `pack` and `pack --check` on a checked-in pack).
 
 ## `docs/`, `scripts/`
 
-- `docs/` — public adopter runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md`).
-- `scripts/` — repo-level scripts (CI helpers, audit utilities). Not part of the published surface.
+- `docs/`: public adopter runbooks (`agent-runbook.md`, `running-against-an-app-repo.md`, `actionability-contract.md`).
+- `scripts/`: repo-level scripts (CI helpers, audit utilities). Not part of the published surface.
 
 Keystone-test fixtures live at `packages/engine/test/fixtures/toy-site/`, alongside the test that consumes them.
