@@ -23,4 +23,4 @@ _None yet._ Prototype and MVP ran without external adopters; the first report wi
 - **Asks.** Concrete proposed surface changes. Each gets a triage verdict above.
 - **Durable lessons captured.** What we learned that outlives this specific report.
 
-Field reports are first-person narrative, dated, attributable when the operator consents. They're the input to surface evolution, not a rant venue and not a polished marketing artifact.
+Field reports are first-person narrative, dated, attributable when the operator consents. They're the input to surface evolution.

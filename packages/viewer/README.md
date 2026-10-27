@@ -68,7 +68,7 @@ A `sources` entry with `matrix` names one variant directory; its key is only a l
 
 ## Starlight site
 
-`emitStarlightSite` writes a complete, buildable [Astro Starlight](https://starlight.astro.build/) project from a doc pack. It is the production docs-site renderer beside the single-file interactive viewer, not a replacement for it. The first-party plugin package `@docsxai/plugin-starlight` exposes it to the engine's plugin runtime as the `starlight:site` renderer.
+`emitStarlightSite` writes a complete, buildable [Astro Starlight](https://starlight.astro.build/) project from a doc pack. It is the production docs-site renderer beside the single-file interactive viewer. The first-party plugin package `@docsxai/plugin-starlight` exposes it to the engine's plugin runtime as the `starlight:site` renderer.
 
 What gets emitted:
 
@@ -126,7 +126,7 @@ The text docsxai adds to a page (button labels, the shortcut list, empty and err
 
 ## Overlay single-sourcing
 
-The script inlined into every flow page is **generated, not hand-maintained**. `src/overlay-runtime.ts` (browser-side DOM logic and redraw scheduling) and `src/overlay-draw.ts` (drawing, which imports the real `placeCallout` from `src/placement.ts`) share the DOM-free badge and redraw rules in `src/overlay-geometry.ts`; the package build runs `scripts/bundle-overlay.mjs` (esbuild API) before `tsc`, bundling it to `dist/generated/overlay.js`, an unminified es2019 IIFE with no sourcemap, kept readable for auditability. `render.ts` reads that bundle at render time (resolved relative to `import.meta.url`, with a `src/` → `../dist/` fallback for running from source) and inlines it into each page. The bundle is byte-deterministic for a given esbuild version and is **not** committed; `pnpm build` (or `pnpm test`, which bundles first) produces it.
+The script inlined into every flow page is **generated**. `src/overlay-runtime.ts` (browser-side DOM logic and redraw scheduling) and `src/overlay-draw.ts` (drawing, which imports the real `placeCallout` from `src/placement.ts`) share the DOM-free badge and redraw rules in `src/overlay-geometry.ts`; the package build runs `scripts/bundle-overlay.mjs` (esbuild API) before `tsc`, bundling it to `dist/generated/overlay.js`, an unminified es2019 IIFE with no sourcemap, kept readable for auditability. `render.ts` reads that bundle at render time (resolved relative to `import.meta.url`, with a `src/` → `../dist/` fallback for running from source) and inlines it into each page. The bundle is byte-deterministic for a given esbuild version and is **not** committed; `pnpm build` (or `pnpm test`, which bundles first) produces it.
 
 ## CSP posture
 

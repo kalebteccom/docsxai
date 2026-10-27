@@ -34,7 +34,7 @@ const PATTERNS = [
   /\btapestry\b|\btreasure trove\b|\bharness the power\b/i,
   /\bin today's\b|\bwhen it comes to\b|\bat the end of the day\b|\bneedless to say\b/i,
   /\b(?:the|a|an) (?:evolving |changing |competitive )?landscape (?:of|for)\b/i,
-  /\bnot just\b|\bnot merely\b/i,
+  /\bnot just\b|\bnot merely\b|\bmore than just\b|\bsimply put\b|\bnothing more than\b|\bdoesn't just\b/i,
   /\brather than\b/i,
   /\bisn't about\b|\bis not about\b/i,
   /\bworth noting\b|\bworth mentioning\b/i,

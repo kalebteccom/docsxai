@@ -3,7 +3,7 @@
 How we test docsxai. The hexagonal layout exists partly to make this cheap: the
 pure domain (flow-file parsing, doc-pack shaping, diff math, redaction) tests in
 microseconds with no browser and no IO, so test-first is the path of least
-resistance, not a chore. This is the test-first companion to
+resistance. This is the test-first companion to
 [`unit-vs-keystone.md`](unit-vs-keystone.md) (the unit/keystone layering) and
 [`qa-patterns.md`](qa-patterns.md) (the playbook).
 

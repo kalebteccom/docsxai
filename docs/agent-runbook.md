@@ -37,7 +37,7 @@ pnpm -C packages/engine exec playwright-core install chromium
 pnpm -r build
 ```
 
-Make `docsxai` / `docsxai-viewer` callable. The robust way is two tiny wrapper scripts on your `PATH`:
+Make `docsxai` / `docsxai-viewer` callable. The reliable way is two tiny wrapper scripts on your `PATH`:
 
 ```bash
 mkdir -p "$HOME/.local/bin"

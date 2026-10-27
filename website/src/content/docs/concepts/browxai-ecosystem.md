@@ -79,8 +79,7 @@ per step with `record_annotate({ copy, arrow })`, then `end_recording()`
 emits a docsxai-flavoured YAML draft - `locators:` plus `steps:` with
 hint-derived targets. Review it, fix anything content-keyed or
 hidden-duplicate-prone, lint it, and commit it. The draft is a starting
-point, not a finished flow; the review pass is where calibration earns its
-keep.
+point. Calibration happens in the review pass.
 
 ## What never crosses the boundary
 

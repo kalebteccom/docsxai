@@ -7,8 +7,8 @@ breaks if my change is not as boundary-respecting as I think it is."
 The meta-rule: **a fitness function is frozen doctrine. You do not edit it to make
 your change pass; you change your code.** The only legitimate edits are a new
 function for a new invariant, or a budget tightened as the tree shrinks. A
-characteristic with no green check is an aspiration, not a guarantee - this index
-holds that distinction.
+characteristic with no green check is an aspiration, and this index marks which
+is which.
 
 ## What is enforced
 
