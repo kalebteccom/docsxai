@@ -97,7 +97,7 @@ export const VIEWER_STYLE = `
   .shot { position: relative; display: inline-block; border: 1px solid var(--border); max-width: 100%; }
   /* width/height attributes plus height:auto reserve the image's box before it loads; the surface colour shows meanwhile. */
   .shot img { display: block; max-width: 100%; height: auto; background: var(--surface); }
-  /* Default: a blinking halo around the target (+ a numbered badge when a screenshot has > 1 call-out) —
+  /* Default: a blinking halo around the target (+ a numbered badge when a screenshot has > 1 call-out):
      does NOT cover the UI. The callout text is hidden until you hover, focus or tap the halo or its badge. */
   .sd-ann { position: absolute; left: 0; top: 0; pointer-events: none; }
   .sd-halo { position: absolute; box-sizing: border-box; border: 2px solid var(--sd-accent, #e8590c); border-radius: var(--sd-halo-radius, 4px); box-shadow: 0 0 0 3px var(--sd-accent-glow, rgba(232,89,12,.35)); cursor: help; pointer-events: auto; background: transparent; margin: 0; padding: 0; font: inherit; color: inherit; -webkit-appearance: none; appearance: none; }
@@ -109,9 +109,9 @@ export const VIEWER_STYLE = `
   .sd-halo::after { content: ""; position: absolute; inset: -8px; border: 3px solid var(--sd-accent-pulse, rgba(232,89,12,.3)); border-radius: 8px; pointer-events: none; animation: sd-pulse 1.7s ease-in-out infinite; }
   .sd-halo:focus-visible::after { display: none; }
   @keyframes sd-pulse { 0%,100% { opacity: 0; } 50% { opacity: 1; } }
-  .sd-badge { position: absolute; min-width: ${BADGE_MIN}px; height: ${BADGE_MIN}px; padding: 0 ${BADGE_PAD_X}px; line-height: ${BADGE_MIN}px; text-align: center; font-weight: 700; font-size: 12px; color: #fff; background: var(--sd-badge-fill, ${BADGE_FILL}); border: ${BADGE_BORDER}px solid #fff; border-radius: var(--sd-badge-radius, 11px); font-family: var(--sd-font, inherit); box-sizing: content-box; box-shadow: 0 2px 6px rgba(0,0,0,.32); pointer-events: auto; cursor: help; }
+  .sd-badge { position: absolute; min-width: ${BADGE_MIN}px; height: ${BADGE_MIN}px; padding: 0 ${BADGE_PAD_X}px; line-height: ${BADGE_MIN}px; text-align: center; font-weight: 700; font-size: 12px; color: #fff; background: var(--sd-badge-fill, ${BADGE_FILL}); border: ${BADGE_BORDER}px solid #fff; border-radius: var(--sd-badge-radius, 11px); font-family: var(--sd-font, inherit); box-sizing: content-box; pointer-events: auto; cursor: help; }
   .sd-callout, .sd-arrow { position: absolute; display: none; z-index: 3; pointer-events: none; }
-  .sd-callout { background: var(--sd-callout-bg, #1c1c1c); color: var(--sd-callout-ink, #fff); padding: var(--sd-callout-padding, 8px 11px); border: var(--sd-callout-border, 0); border-radius: var(--sd-callout-radius, 7px); font-family: var(--sd-font, inherit); font-size: var(--sd-callout-font-size, .85rem); line-height: var(--sd-callout-line-height, 1.35); box-shadow: var(--sd-callout-shadow, 0 4px 14px rgba(0,0,0,.32)); overflow-wrap: anywhere; }
+  .sd-callout { background: var(--sd-callout-bg, #1c1c1c); color: var(--sd-callout-ink, #fff); padding: var(--sd-callout-padding, 8px 11px); border: var(--sd-callout-border, 0); border-radius: var(--sd-callout-radius, 7px); font-family: var(--sd-font, inherit); font-size: var(--sd-callout-font-size, .85rem); line-height: var(--sd-callout-line-height, 1.35); box-shadow: var(--sd-callout-shadow, none); overflow-wrap: anywhere; }
   .sd-arrow { width: 0; height: 0; }
   .sd-arrow.top { border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid var(--sd-connector, #1c1c1c); }       /* callout above → arrow points down */
   .sd-arrow.bottom { border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 8px solid var(--sd-connector, #1c1c1c); } /* callout below → arrow points up */
@@ -133,7 +133,8 @@ export const VIEWER_STYLE = `
   .meta { color: var(--muted); font-size: 0.8rem; }
   .flow-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin: 1.5rem 0 0; padding: 0; list-style: none; }
   .flow-card { display: block; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; background: var(--bg); }
-  .flow-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+  .flow-card:hover { border-color: var(--fg); }
+  .flow-card:active { background: var(--surface); }
   .flow-card img { display: block; width: 100%; height: 130px; object-fit: cover; object-position: top left; background: var(--surface); border-bottom: 1px solid var(--border); }
   .flow-card .thumb-missing { height: 130px; display: grid; place-items: center; color: var(--muted); font-size: .8rem; background: var(--surface); border-bottom: 1px solid var(--border); }
   .flow-card-meta { padding: .6rem .75rem; } .flow-card-meta strong { display: block; } .flow-card-meta span { color: var(--muted); font-size: .8rem; }
@@ -148,7 +149,7 @@ export const VIEWER_STYLE = `
   .shortcuts { font-size: .9rem; } .shortcuts p { color: var(--muted); margin: .5rem 0; }
   .shortcuts dl { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; margin: 0; }
   .shortcuts dl div { display: contents; } .shortcuts dd { margin: 0; }
-  kbd { font: .85em ui-monospace, monospace; padding: 0 .35em; border: 1px solid var(--muted); border-radius: 4px; background: var(--surface); }
+  kbd { font: inherit; font-size: .85em; padding: 0 .35em; border: 1px solid var(--muted); border-radius: 4px; background: var(--surface); }
   /* The placeholder keeps roughly a screenshot's height, so a step does not jump when the file shows up. */
   .shot-missing { margin: 0; padding: 2rem 1rem; box-sizing: border-box; min-height: 160px; display: grid; align-content: center; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--muted); border-radius: 6px; }
   .shot-missing p { margin: .25rem 0; }
@@ -160,6 +161,8 @@ export const VIEWER_STYLE = `
   .shot-error[hidden] { display: none; }
   .shot.is-broken { border-color: var(--danger); }
   button.shot-retry { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--fg); border-radius: 6px; padding: .25rem .75rem; min-height: 44px; min-width: 44px; width: 10ch; box-sizing: border-box; cursor: pointer; }
+  button.shot-retry:hover { background: var(--surface); }
+  button.shot-retry:active { background: var(--surface2); }
   button.shot-retry[aria-disabled="true"] { background: var(--surface2); cursor: progress; }
   .flow-card .thumb-missing { padding: 0 .75rem; text-align: center; }
   /* Copy buttons: "Copy", "Copied" and "Press Ctrl+C" share one grid cell, so the widest sets the width and no state moves the page. */
@@ -169,13 +172,16 @@ export const VIEWER_STYLE = `
   .sd-copyable { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; justify-content: center; }
   .sd-copy { display: inline-grid; place-items: center; font: inherit; font-size: .85rem; color: var(--fg); background: var(--bg); border: 1px solid var(--fg); border-radius: 6px; padding: 0 .75rem; min-height: 44px; min-width: 44px; cursor: pointer; }
   .sd-copy:hover { background: var(--surface); }
+  .sd-copy:active { background: var(--surface2); }
+  .sd-copy:disabled, .sd-copy[aria-disabled="true"] { color: var(--muted); border-color: var(--muted); cursor: not-allowed; }
   .sd-copy[data-state="done"] { background: var(--surface2); }
   .sd-copy-label { grid-area: 1 / 1; visibility: hidden; white-space: nowrap; }
   .sd-copy[data-state="idle"] .sd-copy-idle, .sd-copy[data-state="done"] .sd-copy-done, .sd-copy[data-state="fallback"] .sd-copy-fallback { visibility: visible; }
   .sd-copy-done::before { content: "\\2713 "; }
   .flow-item { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; } .flow-item .flow-card { align-self: stretch; }
   .site-footer .sd-copy { margin-left: .5rem; }
-  .notice { color: var(--fg); background: var(--surface); border-left: 4px solid var(--danger); padding: .5rem .75rem; border-radius: 0 6px 6px 0; }
+  .notice { color: var(--fg); background: var(--surface); border: 1px solid var(--danger); padding: .5rem .75rem; border-radius: 6px; }
+  h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   h1, h2 { overflow-wrap: anywhere; }
   /* Touch targets of at least 44 px for the page's own controls. */
   .flow-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0; }
