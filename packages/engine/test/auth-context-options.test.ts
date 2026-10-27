@@ -135,7 +135,7 @@ describe("mtls strategy", () => {
     ]);
   });
 
-  it("fails when a file is missing — naming the path, not any contents", async () => {
+  it("fails when a file is missing, naming the path, not any contents", async () => {
     await expect(
       new MtlsStrategy().authenticate({
         creds: { cert: path.join(tlsDir, "nope.pem"), key: CLIENT_KEY },

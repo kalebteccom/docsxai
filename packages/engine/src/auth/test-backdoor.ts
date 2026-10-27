@@ -1,4 +1,4 @@
-// `test-backdoor` — POST a shared secret to a test-only login endpoint the target app exposes in
+// `test-backdoor`: POST a shared secret to a test-only login endpoint the target app exposes in
 // non-production builds, and keep the session cookies it sets. The unattended-execution answer
 // when the app team can ship a backdoor route; the secret lives in env, never in the descriptor.
 

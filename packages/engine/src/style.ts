@@ -1,6 +1,6 @@
-// Style artifact — load/write/derive `docs/style.yaml` + derived `docs/style.json`, plus the
+// Style artifact, load/write/derive `docs/style.yaml` + derived `docs/style.json`, plus the
 // jargon-leak scanner that backs the semantic-reshape exit criterion (testing-jargon absent
-// from user-facing step write-ups). The engine never re-shapes prose itself (LLM-agnostic) —
+// from user-facing step write-ups). The engine never re-shapes prose itself (LLM-agnostic),
 // the agent does that during calibration. This module is the engine's contribution: validate
 // the schema, persist the artifact, and report when jargon leaks through.
 
@@ -22,7 +22,7 @@ export class StyleError extends Error {
   }
 }
 
-/** The seed style every workspace starts with — overwritable by the agent during calibration. */
+/** The seed style every workspace starts with, overwritable by the agent during calibration. */
 export const DEFAULT_STYLE: StyleArtifact = {
   schema: "docsxai/style@1",
   voice: {
@@ -44,7 +44,7 @@ export const DEFAULT_STYLE: StyleArtifact = {
  * names categories from this catalogue; the lint reports any match.
  *
  * Each pattern is multiline-friendly. Add new categories here and reference them by string in
- * `style.yaml`'s `pruning_rules:` — the engine reads the array, picks the matching patterns,
+ * `style.yaml`'s `pruning_rules:`, the engine reads the array, picks the matching patterns,
  * and scans `docs/**\/*.md` for leaks.
  */
 export const JARGON_PATTERNS: Record<string, RegExp> = {

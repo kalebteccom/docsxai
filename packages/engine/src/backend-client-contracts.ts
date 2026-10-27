@@ -1,8 +1,8 @@
-// Wire contracts for `@docsxai/backend` — the leaf shared by the transport, token, OAuth-login and
+// Wire contracts for `@docsxai/backend`, the leaf shared by the transport, token, OAuth-login and
 // state-cache siblings (`backend-client-*.ts`), re-exported in full from `./backend-client.js`.
 //
 // The contract types are *redeclared* here (not imported from the backend package) so the engine
-// stays decoupled at the package level — there's no runtime nor build-time dep on the backend.
+// stays decoupled at the package level, there's no runtime nor build-time dep on the backend.
 // Drift is caught by the round-trip integration test that spins up a real stub. The shapes mirror
 // the backend's `api.ts` exactly; if you change one, update the other and the test will tell you.
 
@@ -37,7 +37,7 @@ export interface Revision {
   author: string;
   created_at: string;
   artifacts: RevisionArtifact[];
-  /** True once finalized — artifact PUTs are rejected with 409 from then on. */
+  /** True once finalized, artifact PUTs are rejected with 409 from then on. */
   finalized: boolean;
 }
 

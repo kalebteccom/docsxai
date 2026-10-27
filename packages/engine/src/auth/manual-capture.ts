@@ -1,4 +1,4 @@
-// `manual-capture` — the zero-integration universal fallback for SSO / MFA / conditional access.
+// `manual-capture`: the zero-integration universal fallback for SSO / MFA / conditional access.
 
 import {
   type AuthContext,
@@ -10,7 +10,7 @@ import {
 export type CaptureTrigger = "console" | "button";
 
 /**
- * The browser the engine drives for `manual-capture` — a security-lowered, *instrumented* Chrome.
+ * The browser the engine drives for `manual-capture`, a security-lowered, *instrumented* Chrome.
  * The Playwright-backed implementation lives in a separate module (so this strategy stays testable);
  * `--disable-web-security` etc. let the injected capture helper work across SSO-redirect origins.
  */
@@ -20,7 +20,7 @@ export interface InstrumentedBrowser {
   /**
    * Inject the capture helper (a console function `window.__docsxai.capture()` and/or an on-page button)
    * and resolve once the human triggers it. The human does the interactive login (SSO / MFA / conditional
-   * access — anything they can click through) before triggering.
+   * access: anything they can click through) before triggering.
    */
   waitForCapture(trigger: CaptureTrigger): Promise<void>;
   /** Snapshot the current `storageState`. */
@@ -34,7 +34,7 @@ export interface ManualCaptureOptions {
 }
 
 /**
- * `manual-capture` — the plugin spawns a security-lowered, instrumented Chrome; the engineer logs in
+ * `manual-capture`: the plugin spawns a security-lowered, instrumented Chrome; the engineer logs in
  * interactively; a console command or an injected button snapshots `storageState`. The zero-integration
  * universal fallback for SSO / MFA / conditional access, at the cost of periodic human re-capture.
  */

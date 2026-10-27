@@ -1,4 +1,4 @@
-// Drift detection — pixel diff exactness (tolerated regions, dimension changes), the
+// Drift detection, pixel diff exactness (tolerated regions, dimension changes), the
 // step/annotation/locator/prose diff matrix, the markdown golden, CLI exit codes, and
 // determinism. Pure file → JSON transform, so this is a unit suite (no browser, no HTTP).
 

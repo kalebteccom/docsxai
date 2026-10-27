@@ -1,10 +1,10 @@
-// Plugin loading — the impure half of the runtime pipeline, and the SOLE place plugin code runs.
+// Plugin loading, the impure half of the runtime pipeline, and the SOLE place plugin code runs.
 //
 // Given a plan (survivors in topological order), this:
 //   7. Capability subset check against the operator-enabled set (disables, not fatal).
 //   8. Import each register module in topological order; call register(api) exactly once.
 //
-// Plugins are in-process Node modules — NOT sandboxed. Trust is a review signal, not a boundary.
+// Plugins are in-process Node modules, NOT sandboxed. Trust is a review signal, not a boundary.
 // A register() failure rolls back that plugin's artifacts and lands as a load-error status.
 // This is the only module that dynamically imports plugin modules and invokes register().
 
@@ -31,7 +31,7 @@ export interface PluginRegisterApi {
   registerLintRules(name: string, rules: PluginLintRule[]): void;
   registerAuthStrategy(name: string, impl: AuthStrategyPlugin): void;
   readonly log: PluginLogger;
-  /** Workspace-contained path resolution — the only filesystem root a plugin may write under. */
+  /** Workspace-contained path resolution, the only filesystem root a plugin may write under. */
   workspacePath(...segments: string[]): string;
 }
 

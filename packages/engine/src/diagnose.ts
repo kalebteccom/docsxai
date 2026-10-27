@@ -1,4 +1,4 @@
-// Halt diagnosis — gather the context a calibration agent needs to propose a recalibration diff.
+// Halt diagnosis, gather the context a calibration agent needs to propose a recalibration diff.
 // Pure data + recommendations; the engine never patches the flow-file itself (that's an explicit
 // opt-in action by the agent / human, never ambient). The agent reads the report, walks the live
 // page (typically via browxai), picks a fix, and edits the flow-file. `docsxai run --start-from
@@ -20,7 +20,7 @@ export type DiagnoseRecommendationKind =
   | "success" // re-examine the `success` criterion
   | "annotation_target" // set `annotation.target` to a surviving element
   | "split_step" // insert a step (scroll, dismiss overlay, etc.)
-  | "investigate"; // ambiguous — needs human/agent decision before recommending an edit
+  | "investigate"; // ambiguous, needs human/agent decision before recommending an edit
 
 export interface DiagnoseRecommendation {
   kind: DiagnoseRecommendationKind;

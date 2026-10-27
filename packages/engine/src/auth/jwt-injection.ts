@@ -1,4 +1,4 @@
-// `jwt-injection` — obtain a bearer token (static env var, or an OAuth2 client-credentials
+// `jwt-injection`: obtain a bearer token (static env var, or an OAuth2 client-credentials
 // grant) and inject it into the browser's storage the way the target SPA expects it:
 // localStorage keys and/or cookies, rendered from `{{token}}` templates. Pure node, no browser.
 
@@ -58,7 +58,7 @@ export const JwtInjectionOptions = z
   });
 export type JwtInjectionOptions = z.infer<typeof JwtInjectionOptions>;
 
-/** Decode a JWT's payload (base64url, **no signature verification**) — claims-reading only. */
+/** Decode a JWT's payload (base64url, **no signature verification**), claims-reading only. */
 export function decodeJwtPayload(token: string): Record<string, unknown> | undefined {
   const payload = token.split(".")[1];
   if (!payload) return undefined;

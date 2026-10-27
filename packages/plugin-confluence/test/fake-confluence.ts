@@ -75,7 +75,7 @@ interface MultipartPart {
   data: Buffer;
 }
 
-/** Minimal multipart/form-data parser — enough for the publisher's FormData uploads. */
+/** Minimal multipart/form-data parser, enough for the publisher's FormData uploads. */
 function parseMultipart(body: Buffer, contentType: string): MultipartPart[] {
   const m = /boundary=(?:"([^"]+)"|([^;]+))/.exec(contentType);
   if (!m) throw new Error("multipart body without boundary");
@@ -142,7 +142,7 @@ export async function startFakeConfluence(): Promise<FakeConfluence> {
       };
 
       if (state.failEchoingToken) {
-        // Decode the Basic auth header and echo the raw token back — simulates a sloppy
+        // Decode the Basic auth header and echo the raw token back, simulates a sloppy
         // upstream error body so tests can prove the publisher masks it.
         const auth = req.headers.authorization ?? "";
         const decoded = Buffer.from(auth.replace(/^Basic /, ""), "base64").toString("utf8");

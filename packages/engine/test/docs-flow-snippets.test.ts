@@ -72,7 +72,7 @@ describe("flow files in the docs", () => {
       "utf8",
     );
     expect(md).toContain("run: open-reports, starting\n");
-    expect(md).not.toMatch(/^run: .* — /m);
+    expect(md).not.toMatch(/^run: .* \u2014 /m);
   });
 
   for (const file of FILES) {

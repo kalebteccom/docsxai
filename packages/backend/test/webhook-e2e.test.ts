@@ -1,6 +1,6 @@
 // End-to-end webhook fixture: a realistically-shaped signed GitHub push event goes through the
-// full path — signature gate → repo→project mapping → queue → SpawnRunner with a fake engine bin
-// → pr-comment strategy against a fake GitHub API — and lands a run-history row.
+// full path, signature gate → repo→project mapping → queue → SpawnRunner with a fake engine bin
+// → pr-comment strategy against a fake GitHub API, and lands a run-history row.
 
 import * as fs from "node:fs";
 import * as http from "node:http";

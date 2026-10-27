@@ -1,5 +1,5 @@
-// diagnose_halt — gather halt context for one step (selector, wait_for, success, halt screenshot,
-// and — with a CDP endpoint — a live actionable() probe) and return recommendations. The engine
+// diagnose_halt: gather halt context for one step (selector, wait_for, success, halt screenshot,
+// and: with a CDP endpoint, a live actionable() probe) and return recommendations. The engine
 // never patches the flow-file; acting on a recommendation is the host agent's explicit step.
 
 import {

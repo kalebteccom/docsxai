@@ -22,18 +22,18 @@ const urlPath = (p: string) =>
   esc(
     p.replace(/[%#?]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`),
   );
-/** For values inside a single-quoted HTML attribute: escape `&`, `<`, `>`, `'` — leave `"` (JSON uses it). */
+/** For values inside a single-quoted HTML attribute: escape `&`, `<`, `>`, `'`, leave `"` (JSON uses it). */
 const escAttrSingle = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;");
 
-// `file://` pages with inlined JS/CSS get cached hard by browsers — a re-render then looks
+// `file://` pages with inlined JS/CSS get cached hard by browsers, a re-render then looks
 // stale on a normal reload. These metas ask browsers not to cache; the footer names the viewer
 // build and carries no clock, so rendering the same pack twice gives byte-identical pages.
 const HEAD_NOCACHE =
   '<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">';
 
 // Matches the inline-asset reality (inline <style>/<script>, local + data: images) while blocking
-// all network egress from an emitted page — no CDN fetches, no beacons, no remote fonts.
+// all network egress from an emitted page, no CDN fetches, no beacons, no remote fonts.
 const CSP_BASE =
   "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'";
 const cspMeta = (policy: string) =>
@@ -149,7 +149,7 @@ function stepShot(s: ViewerStep, n: number, flow: string | undefined, ui: UiStri
 
 function stepSection(s: ViewerStep, n: number, flow: string | undefined, ui: UiStrings): string {
   // micromark in its safe default mode: raw HTML in the markdown is escaped, dangerous link
-  // protocols are dropped — nothing in a step write-up can introduce markup or script.
+  // protocols are dropped, nothing in a step write-up can introduce markup or script.
   const md = s.md
     ? `<details class="write-up"><summary>${ui.step.writeUp}</summary><div class="md">${demoteHeadings(micromark(s.md))}</div></details>`
     : "";

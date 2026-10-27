@@ -94,7 +94,7 @@ describe("authorize endpoint", () => {
     const body = (await res.json()) as { error: string; message: string };
     expect(body.error).toBe("consent_required");
     expect(body.message).toContain("ask whoever runs this server");
-    expect(body.message).not.toMatch(/AUTO_APPROVE|hosted-deployment|—/);
+    expect(body.message).not.toMatch(/AUTO_APPROVE|hosted-deployment|\u2014/);
   });
 
   it("403s with a wrong bearer token", async () => {
@@ -179,7 +179,7 @@ describe("token endpoint + the full PKCE handshake", () => {
     expect(bad.status).toBe(400);
     expect(((await bad.json()) as { error: string }).error).toBe("invalid_grant");
 
-    // The failed attempt consumed the code — the correct verifier no longer works.
+    // The failed attempt consumed the code, the correct verifier no longer works.
     const reuse = await exchange({
       grant_type: "authorization_code",
       code,

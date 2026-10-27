@@ -1,4 +1,4 @@
-// `docsxai doctor` — environment + workspace health-check.
+// `docsxai doctor`: environment + workspace health-check.
 //
 // Prints one `ok:` or `fail:` line per check, each with a `next:` step where there is one.
 // Exits 0 iff no line failed, 1 otherwise. Pure inspection throughout: no flow runs, no plugin
@@ -36,7 +36,7 @@ import { doctorNextStep } from "./doctor-next.js";
 import { parseCommandFlags } from "./cli-flags.js";
 
 // Re-export the probe catalogue's public surface so importers keep reaching it
-// through ./doctor.js (its original home) — no importer or test changes. The
+// through ./doctor.js (its original home), no importer or test changes. The
 // plugin-runtime probe lives in its own sibling but is re-exported here too.
 export * from "./doctor-checks.js";
 export * from "./doctor-checks-plugins.js";
@@ -173,7 +173,7 @@ Exit 0 when no line starts with fail:, 1 otherwise.
 `;
 }
 
-/** `docsxai doctor [<workspace-dir>]` — returns the process exit code. */
+/** `docsxai doctor [<workspace-dir>]`: returns the process exit code. */
 export async function runDoctor(args: string[]): Promise<number> {
   if (args.includes("--help") || args.includes("-h")) {
     process.stdout.write(doctorHelp());

@@ -1,4 +1,4 @@
-// style_check — init-if-absent + validate docs/style.yaml, rederive the JSON, and (optionally)
+// style_check: init-if-absent + validate docs/style.yaml, rederive the JSON, and (optionally)
 // scan the user-facing write-ups for jargon leaks. The enforcement layer for semantic reshape.
 
 import * as path from "node:path";

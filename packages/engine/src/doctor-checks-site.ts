@@ -1,4 +1,4 @@
-// `docsxai doctor` — the site row. A workspace with an emitted site folder (`docsxai site`
+// `docsxai doctor`: the site row. A workspace with an emitted site folder (`docsxai site`
 // writes `<workspace>/site` by default) that has no astro installed cannot build with
 // `npm run build`; the row says to install there first. No site folder, or astro present,
 // adds no row.

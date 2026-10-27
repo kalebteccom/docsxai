@@ -1,9 +1,9 @@
-// Flow-file runtime — the deterministic execution side.
+// Flow-file runtime, the deterministic execution side.
 //
 // `docsxai run` translates a parsed flow-file into a sequence of browser actions, executes
 // them headlessly with zero LLM involvement, re-captures screenshots, and re-emits the doc-pack
 // artifacts (annotations, etc.). One canonical locator per step; execution halts on locator or
-// success-criterion failure — drift is a signal to recalibrate, not to absorb (no fallbacks).
+// success-criterion failure, drift is a signal to recalibrate, not to absorb (no fallbacks).
 //
 // The runtime is written against a thin {@link BrowserDriver} abstraction so it's testable
 // without a real browser; the Playwright-backed driver lives in a separate module.
@@ -33,7 +33,7 @@ import { OBSTACLE_RADIUS, selectObstacles, type NearbyBoxes } from "./obstacles.
 /**
  * A redaction with its locator ref already resolved to a concrete selector. `selector` entries are
  * turned into bounding boxes by the driver at capture time (absent/zero-box selectors are skipped
- * with a stderr warning — never a halt); `region` rects are in CSS pixels and the driver scales
+ * with a stderr warning, never a halt); `region` rects are in CSS pixels and the driver scales
  * them to the screenshot's device-pixel space.
  */
 export type ResolvedRedaction =
@@ -94,7 +94,7 @@ export interface BrowserDriver {
   urlMatches(pattern: string): Promise<boolean>;
   textContains(selector: string, text: string): Promise<boolean>;
 
-  // — context for richer halt messages —
+  //, context for richer halt messages,
   /** Current page URL. */
   currentUrl(): Promise<string>;
   /** How many elements `selector` matches (so a halt can say "0" vs "8 stale ones"). */
@@ -122,10 +122,10 @@ export interface BrowserDriver {
   /**
    * Probe the actionability state of `selector` at write-time / calibration-time, without trying
    * to act on it. Returns one of {@link ActionableState}. Designed to mirror the same Playwright
-   * actionability checks the runtime would hit at execution-time — so a calibration agent (or an
+   * actionability checks the runtime would hit at execution-time, so a calibration agent (or an
    * MCP browser bridge consuming this driver's contract) can decide "no point fill'ing a disabled
-   * input" or "scope this selector with `:visible` — it matches multiple" *before* the step is
-   * written into a flow-file. `timeoutMs` is the *budget per check*, not a wait — keep small
+   * input" or "scope this selector with `:visible`, it matches multiple" *before* the step is
+   * written into a flow-file. `timeoutMs` is the *budget per check*, not a wait, keep small
    * (≤500 ms) to avoid stalling calibration. The runtime itself doesn't call this on every step
    * (Playwright's per-action actionability already covers that); it's an exposed contract for
    * consumers that want to read the state without acting.
@@ -171,10 +171,10 @@ export interface RunFlowOptions {
   variant?: VariantInfo;
   /** If false, skip screenshot/annotation capture (pure flow validation). Default: true. */
   captureDocs?: boolean;
-  /** If set, stop after executing the step with this id — run only a prefix of the flow (for calibration). */
+  /** If set, stop after executing the step with this id, run only a prefix of the flow (for calibration). */
   stopAfter?: string;
   /**
-   * If set, **skip** every step *before* the one with this id — start executing from this step onward.
+   * If set, **skip** every step *before* the one with this id, start executing from this step onward.
    * Assumes the browser is already in the state the prior steps would have produced (typical use:
    * paired with `connectOverCdp` to attach to a Chrome that's already been driven there manually or
    * by an earlier partial run). The skipped steps emit no annotations / screenshots / executed records;
@@ -398,7 +398,7 @@ export async function runFlow(
       if (step.success) await checkSuccess(driver, step.success, resolve, step.id);
     } catch (e) {
       // Optional step (conditionally-present UI): swallow the failure, log it, move on.
-      // No screenshot / annotation for a skipped step — same as a `--start-from`-skipped one.
+      // No screenshot / annotation for a skipped step, same as a `--start-from`-skipped one.
       if (step.optional) {
         process.stderr.write(
           `run: optional step "${step.id}" (${step.action}) skipped: ${firstLine(e)}\n`,
@@ -410,7 +410,7 @@ export async function runFlow(
       // (parsed from Playwright's actionability log so the agent doesn't have to scan ~20 lines
       //  to know why), then surface step id + url + halt-shot path uniformly.
       const haltShot = `${variantDocDir(flow.name, variantId)}/halts/${step.id}.png`;
-      // Halt shots can capture the same sensitive UI as step shots — same redactions apply.
+      // Halt shots can capture the same sensitive UI as step shots, same redactions apply.
       // With the redactions unresolved the shot would go out unmasked, so none is taken.
       const haltShotWanted = captureDocs && redactionsResolved;
       if (haltShotWanted) await driver.screenshot(haltShot, redactions).catch(() => undefined);
@@ -442,10 +442,10 @@ export async function runFlow(
       ...(selector ? { selector } : {}),
     };
     // Doc capture is best-effort. When a step's action *transitions the UI* the action target is often
-    // unmounted by the time we capture — `boundingBox` would hang for the driver's default 30s. Short
+    // unmounted by the time we capture, `boundingBox` would hang for the driver's default 30s. Short
     // timeout + try/catch → continue with no annotation for this step. `annotation.target` (if set)
-    // overrides the anchor — point the halo at a different element that *does* exist in the new state.
-    // A step can also have `annotations: [...]` to put multiple numbered call-outs on the same screenshot —
+    // overrides the anchor, point the halo at a different element that *does* exist in the new state.
+    // A step can also have `annotations: [...]` to put multiple numbered call-outs on the same screenshot,
     // each becomes one record with a 1-based `index`; an `annotation` (singular) emits one record without
     // `index` (un-numbered, back-compat).
     const anns = step.annotations ?? (step.annotation ? [step.annotation] : []);

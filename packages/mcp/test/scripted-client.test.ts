@@ -1,4 +1,4 @@
-// Scripted MCP client — the acceptance evidence that a *non-Claude* MCP client can drive the
+// Scripted MCP client, the acceptance evidence that a *non-Claude* MCP client can drive the
 // whole surface: an in-process linked client/server pair over the SDK's InMemoryTransport runs
 // initialize → tools/list → init_workspace → doc-pack introspection → a real-Chromium run_flows
 // against the engine's toy-site fixture served over loopback node:http.
@@ -68,7 +68,7 @@ async function call(
   return { ...parsed, isError: res.isError === true };
 }
 
-describe("scripted client — initialize + tools/list", () => {
+describe("scripted client, initialize + tools/list", () => {
   it("initializes and reports the server identity", async () => {
     const client = await connect();
     expect(client.getServerVersion()?.name).toBe(SERVER_NAME);
@@ -105,7 +105,7 @@ describe("scripted client — initialize + tools/list", () => {
 
   it("rejects schema-invalid arguments at the protocol layer", async () => {
     const client = await connect();
-    // Depending on the SDK layer the violation surfaces as an MCP error or an isError result —
+    // Depending on the SDK layer the violation surfaces as an MCP error or an isError result,
     // either way the call must not succeed.
     let rejected = false;
     try {
@@ -122,7 +122,7 @@ describe("scripted client — initialize + tools/list", () => {
   });
 });
 
-describe("scripted client — init_workspace", () => {
+describe("scripted client, init_workspace", () => {
   it("scaffolds a workspace into a temp dir", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-mcp-init-"));
     try {
@@ -138,7 +138,7 @@ describe("scripted client — init_workspace", () => {
   });
 });
 
-describe("scripted client — fixture-workspace introspection", () => {
+describe("scripted client, fixture-workspace introspection", () => {
   let tmp: string;
   let ws: string;
   let client: Client;
@@ -146,7 +146,7 @@ describe("scripted client — fixture-workspace introspection", () => {
   beforeAll(async () => {
     tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-mcp-fixture-"));
     ws = path.join(tmp, "ws");
-    client = await connect(ws); // default workspace — calls below omit `workspace`
+    client = await connect(ws); // default workspace, calls below omit `workspace`
     const init = await call(client, "init_workspace", { dir: ws, auth: "none" });
     expect(init.ok).toBe(true);
     await fs.copyFile(fixtureFlow, path.join(ws, "flows", "recap-open.flow.yaml"));
@@ -209,7 +209,7 @@ describe("scripted client — fixture-workspace introspection", () => {
 });
 
 describe.skipIf(!chromiumAvailable)(
-  "scripted client — run_flows against the toy site (real Chromium)",
+  "scripted client, run_flows against the toy site (real Chromium)",
   () => {
     let tmp: string;
     let ws: string;
@@ -324,11 +324,11 @@ describe.skipIf(!chromiumAvailable)(
   },
 );
 
-describe("scripted client — availability note", () => {
+describe("scripted client, availability note", () => {
   it(
     chromiumAvailable
-      ? "Chromium is available — run_flows suite ran"
-      : "Chromium not installed — run_flows suite skipped (pnpm -C packages/engine exec playwright-core install chromium)",
+      ? "Chromium is available, run_flows suite ran"
+      : "Chromium not installed, run_flows suite skipped (pnpm -C packages/engine exec playwright-core install chromium)",
     () => {
       expect(typeof chromiumAvailable).toBe("boolean");
     },

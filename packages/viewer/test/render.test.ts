@@ -49,7 +49,7 @@ describe("buildViewer", () => {
     const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
     expect(flowHtml).toContain('src="screenshots/open-sidebar.png"');
     expect(flowHtml).toContain("Click Play to open the recap sidebar");
-    expect(flowHtml).toContain("data-anns="); // overlay data embedded (an array — one element per call-out)
+    expect(flowHtml).toContain("data-anns="); // overlay data embedded (an array, one element per call-out)
     expect(flowHtml).toContain('"bounding_box":{"x":10,"y":20,"width":30,"height":12}');
     expect(flowHtml).toContain("Step write-up"); // the .md is included in a <details>
 
@@ -212,7 +212,7 @@ describe("buildViewer", () => {
     const outDir = path.join(tmp, "out-callout-width");
     await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
     const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
-    // The measure MUST run on a probe attached to document.body — the callout itself is
+    // The measure MUST run on a probe attached to document.body, the callout itself is
     // inside a not-yet-attached wrap AND display:none until :hover, so measuring it in
     // place yields offsetWidth 0 → width:0px → one-character-per-line column.
     expect(flowHtml).toContain("document.body.appendChild(probe)");
@@ -259,11 +259,11 @@ describe("buildViewer", () => {
     expect(flowHtml).toContain("ann.nudge");
   });
 
-  it("inlines the overlay script from the generated bundle — the real placeCallout, not a hand-port", async () => {
+  it("inlines the overlay script from the generated bundle, the real placeCallout, not a hand-port", async () => {
     const outDir = path.join(tmp, "out-overlay-bundle");
     await buildViewer({ docsDir: path.join(tmp, "docs"), outDir });
     const flowHtml = await fs.readFile(path.join(outDir, "recap-open", "index.html"), "utf8");
-    // The bundled placement module (placement.ts) is in the page verbatim — single-sourced.
+    // The bundled placement module (placement.ts) is in the page verbatim, single-sourced.
     expect(flowHtml).toContain("function placeCallout(");
     const bundled = await fs.readFile(
       new URL("../dist/generated/overlay.js", import.meta.url),

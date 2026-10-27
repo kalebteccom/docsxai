@@ -1,4 +1,4 @@
-// `ui-form` — drive the app's own login form in a headless Chromium: fill username/password,
+// `ui-form`: drive the app's own login form in a headless Chromium: fill username/password,
 // submit, wait for the logged-in marker, snapshot storageState. `pre_steps` dismiss cookie
 // banners and similar pre-login chrome; `options.totp` hooks an RFC-6238 one-time code in after
 // the password submit (the `totp` catalogue entry composes this strategy).

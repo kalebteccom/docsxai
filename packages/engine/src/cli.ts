@@ -1,24 +1,24 @@
 #!/usr/bin/env node
-// `docsxai` — the deterministic CLI. The plugin's commands wrap this; calibration runs in an agent
+// `docsxai`: the deterministic CLI. The plugin's commands wrap this; calibration runs in an agent
 // context and is exposed by the plugin, not here.
 //
 // Barrel / dispatch: the command bodies live in flat siblings, grouped by cohesion. This file parses
 // argv, routes the subcommand to its handler, and re-exports `main` so `./cli.js` callers (the bin,
 // the colocated tests) are unchanged. The clusters import shared helpers from cli-shared.ts (a leaf)
-// and the help text from cli-usage.ts — no cluster imports back from here, so there's no cycle.
-//   • cli-usage.ts             — the USAGE help-text constant
-//   • cli-help.ts              — help screens, per-command help and "did you mean"
-//   • cli-version.ts           — --version / -v
-//   • cli-shared.ts            — parseFlags + listFlowFiles (the shared leaf)
-//   • cli-commands-init.ts     — init (scaffolding, --example)
-//   • cli-commands-session.ts  — add-flow / run (live-browser)
-//   • cli-commands-auth.ts     — capture-auth
-//   • cli-commands-authoring.ts — inspect / lint / flow-tree / diagnose (calibration aids)
-//   • cli-commands-style.ts    — style (docs/style.yaml + the jargon check)
-//   • cli-commands-docpack.ts  — render / zip / export / baseline / diff (doc-pack ops)
-//   • cli-commands-pack.ts     — pack / pack --check (screenshot pack + drift check, run by the viewer bin)
-//   • cli-commands-site.ts     — site (Starlight docs site, run by the viewer bin)
-//   • cli-commands-backend.ts  — login / push / pull / plugins (backend + sync)
+// and the help text from cli-usage.ts, no cluster imports back from here, so there's no cycle.
+//   • cli-usage.ts: the USAGE help-text constant
+//   • cli-help.ts: help screens, per-command help and "did you mean"
+//   • cli-version.ts: --version / -v
+//   • cli-shared.ts: parseFlags + listFlowFiles (the shared leaf)
+//   • cli-commands-init.ts: init (scaffolding, --example)
+//   • cli-commands-session.ts: add-flow / run (live-browser)
+//   • cli-commands-auth.ts: capture-auth
+//   • cli-commands-authoring.ts: inspect / lint / flow-tree / diagnose (calibration aids)
+//   • cli-commands-style.ts: style (docs/style.yaml + the jargon check)
+//   • cli-commands-docpack.ts: render / zip / export / baseline / diff (doc-pack ops)
+//   • cli-commands-pack.ts: pack / pack --check (screenshot pack + drift check, run by the viewer bin)
+//   • cli-commands-site.ts: site (Starlight docs site, run by the viewer bin)
+//   • cli-commands-backend.ts: login / push / pull / plugins (backend + sync)
 
 import "./cli-node-guard.js";
 import { runDoctor } from "./doctor.js";

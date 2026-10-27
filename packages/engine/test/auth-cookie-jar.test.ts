@@ -164,7 +164,7 @@ describe("fetchCollectingCookies (against the JSON login fixture)", () => {
     expect(r.status).toBe(200);
     expect(r.hops).toBe(2);
     expect(r.url).toBe(`${server.url}/session`);
-    // `pre` was set on hop 0 and required by /issue on hop 1 — proves jar replay between hops.
+    // `pre` was set on hop 0 and required by /issue on hop 1, proves jar replay between hops.
     expect(r.jar.has("pre")).toBe(true);
     expect(r.jar.has("sid")).toBe(true);
     expect(JSON.parse(r.body)).toMatchObject({ ok: true });

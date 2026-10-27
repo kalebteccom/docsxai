@@ -98,13 +98,13 @@ for await (const file of walk(contentRoot)) {
     const line = stripInlineCode(raw);
     const rel = relative(join(here, ".."), file);
 
-    if (line.includes("—")) {
-      violations.push({ rel, line: i + 1, kind: "em dash (—)", text: raw.trim() });
+    if (line.includes("\u2014")) {
+      violations.push({ rel, line: i + 1, kind: "em dash (U+2014)", text: raw.trim() });
     }
     // En dash only flagged when surrounded by spaces (punctuation use), not
     // inside ranges like 2020-2024 written with a hyphen.
-    if (/\s–\s/.test(line)) {
-      violations.push({ rel, line: i + 1, kind: "en dash (–)", text: raw.trim() });
+    if (/\s\u2013\s/.test(line)) {
+      violations.push({ rel, line: i + 1, kind: "en dash (U+2013)", text: raw.trim() });
     }
     const tell = line.match(bannedRe);
     if (tell) {

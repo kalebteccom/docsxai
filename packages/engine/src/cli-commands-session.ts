@@ -1,6 +1,6 @@
-// Runtime / session commands — the ones that stand up a workspace or drive a live browser:
-//   add-flow      — write flows/<name>.flow.yaml from a structured flow-guide
-//   run           — execute the workspace's flows against the live app, emitting annotations
+// Runtime / session commands, the ones that stand up a workspace or drive a live browser:
+//   add-flow: write flows/<name>.flow.yaml from a structured flow-guide
+//   run: execute the workspace's flows against the live app, emitting annotations
 //
 // These reach into the engine's heavier subsystems (Playwright, auth, the flow runtime); the
 // thinner static/aid commands live in cli-commands-authoring.ts and capture-auth lives in cli-commands-auth.ts.
@@ -50,7 +50,7 @@ async function loadAuthStorageState(projectDir: string): Promise<StorageState | 
   try {
     text = await fs.readFile(descriptorPath, "utf8");
   } catch {
-    return undefined; // no auth configured — run with a fresh context
+    return undefined; // no auth configured, run with a fresh context
   }
   const descriptor = parseAuthStrategyFile(text, descriptorPath);
   const role = descriptor.default_role;

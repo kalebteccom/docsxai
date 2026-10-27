@@ -1,6 +1,6 @@
 // Loopback fixture servers for the auth-strategy suites. Every server binds 127.0.0.1:0 (an
 // ephemeral port) and exists for the lifetime of one test file. Credentials here are throwaway
-// fixture literals — they authenticate nothing outside these in-process servers.
+// fixture literals, they authenticate nothing outside these in-process servers.
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { type AddressInfo } from "node:net";
@@ -302,7 +302,7 @@ export function startInboxServer(): Promise<
 }
 
 /**
- * Test-only backdoor endpoint: POST /backdoor `{ secret, user_id }` — right secret → sets
+ * Test-only backdoor endpoint: POST /backdoor `{ secret, user_id }`, right secret → sets
  * `backdoor_session=uid-<user_id>` (Max-Age 1h) + 200; wrong secret → 403; `/backdoor-no-cookie`
  * answers 200 without setting anything.
  */

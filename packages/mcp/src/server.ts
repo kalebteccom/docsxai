@@ -1,8 +1,8 @@
-// The docsxai MCP server — composes the tool registry. This file is the ONLY place tools are
+// The docsxai MCP server, composes the tool registry. This file is the ONLY place tools are
 // registered; each tool lives in its own file under src/tools/ and exports a ToolDefinition.
 //
 // Boundary (load-bearing): calibration meta-orchestration + read-only doc-pack introspection
-// ONLY. No browser primitives are exposed here — live-page discovery (click/fill/inspect on an
+// ONLY. No browser primitives are exposed here, live-page discovery (click/fill/inspect on an
 // arbitrary page) is browxai's surface, not this server's.
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

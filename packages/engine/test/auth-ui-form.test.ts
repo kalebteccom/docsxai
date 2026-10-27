@@ -1,4 +1,4 @@
-// ui-form strategy — full login choreography against the fixture HTML form server, driven by the
+// ui-form strategy, full login choreography against the fixture HTML form server, driven by the
 // browserless fake AuthPage (HTTP + the engine's cookie jar). The TOTP variant submits a real
 // RFC-6238 code that the server verifies (±1 step). A Chromium-gated block repeats the happy path
 // through the real Playwright-backed launcher.
@@ -46,7 +46,7 @@ function strategyWith(env: NodeJS.ProcessEnv = {}): {
   return { strategy, pages };
 }
 
-describe("ui-form strategy — plain form login", () => {
+describe("ui-form strategy, plain form login", () => {
   let server: FixtureServer;
   beforeAll(async () => {
     server = await startFormLoginServer();
@@ -95,7 +95,7 @@ describe("ui-form strategy — plain form login", () => {
     expect(fills).toHaveLength(2); // pre-step fill, then the credential fill wins
   });
 
-  it("fails with a selector-pointing config error on bad credentials — never echoing values", async () => {
+  it("fails with a selector-pointing config error on bad credentials, never echoing values", async () => {
     const { strategy } = strategyWith();
     const attempt = strategy.authenticate(
       ctx(
@@ -154,7 +154,7 @@ describe("ui-form strategy — plain form login", () => {
   });
 });
 
-describe("ui-form strategy — TOTP hop (server verifies a real RFC-6238 code)", () => {
+describe("ui-form strategy, TOTP hop (server verifies a real RFC-6238 code)", () => {
   let server: FixtureServer;
   beforeAll(async () => {
     server = await startFormLoginServer({ totpSecret: FIXTURE_TOTP_SECRET });
@@ -201,7 +201,7 @@ describe("ui-form strategy — TOTP hop (server verifies a real RFC-6238 code)",
   });
 });
 
-describe.skipIf(!chromiumAvailable)("ui-form strategy — real Chromium via launchAuthPage", () => {
+describe.skipIf(!chromiumAvailable)("ui-form strategy, real Chromium via launchAuthPage", () => {
   let server: FixtureServer;
   beforeAll(async () => {
     server = await startFormLoginServer();

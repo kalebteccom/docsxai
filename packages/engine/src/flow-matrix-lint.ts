@@ -1,6 +1,6 @@
 // Lint rules for the flow matrix. Pure-static, like `flow-lint.ts`, which runs them.
-//   R015 (info)    — the variants the flow's `matrix` expands to, in run order
-//   R016 (warning) — a `copy_by_locale` key that no variant locale can use
+//   R015 (info), the variants the flow's `matrix` expands to, in run order
+//   R016 (warning), a `copy_by_locale` key that no variant locale can use
 
 import type { FlowFile } from "./doc-pack.js";
 import { matrixVariantIds } from "./flow-matrix.js";

@@ -1,8 +1,8 @@
-// Doc-pack drift detection — severity ranking and the report formatters.
+// Doc-pack drift detection, severity ranking and the report formatters.
 //
 // These render the deterministic DriftReport produced by `diffDocPacks` into the surfaces the host
 // surfaces it on: markdown for PR comments, plain text for the CLI. Like the report itself, the
-// formatters carry no timestamps — same report → byte-identical output — so the renderings stay
+// formatters carry no timestamps, same report → byte-identical output, so the renderings stay
 // PR-comment- and CI-gate-safe.
 
 import {

@@ -1,9 +1,9 @@
-// Durable burned-annotation renderer — bakes halo + badge + callout + arrow into the PNG for
+// Durable burned-annotation renderer, bakes halo + badge + callout + arrow into the PNG for
 // delivery surfaces that can't run the interactive viewer (Confluence, Notion, plain wikis).
 //
 // Browser-free by design: no Chromium, no playwright, no DOM. The pipeline is
 // Satori (flexbox-subset layout → SVG) → resvg (SVG → PNG). The clean screenshot is embedded in
-// the Satori tree as a data-URI <img>, so the whole frame rasterises in a single resvg pass —
+// the Satori tree as a data-URI <img>, so the whole frame rasterises in a single resvg pass,
 // one encoder produces every output byte, there is no separate composite/re-encode step, and the
 // output is byte-stable across runs: Satori layout and resvg rasterisation are pure functions of
 // their inputs, the fonts are the vendored Inter or the theme's own font file plus the fallback
@@ -474,7 +474,7 @@ export interface BurnFlowResult {
 }
 
 /**
- * Burns a whole flow: every screenshot under `docs/<flow>/screenshots/` lands in `outDir` —
+ * Burns a whole flow: every screenshot under `docs/<flow>/screenshots/` lands in `outDir`,
  * annotated steps burned, annotation-less steps copied unchanged (so the burned directory is the
  * complete drop-in image set for the flow). Steps with annotations but no screenshot warn + skip.
  */

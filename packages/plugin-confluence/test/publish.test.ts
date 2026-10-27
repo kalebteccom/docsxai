@@ -46,7 +46,7 @@ afterEach(async () => {
 const PNG_A = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
 const PNG_B = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 2]);
 
-/** Two flows, one documented step each — enough to exercise both modes + attachments. */
+/** Two flows, one documented step each, enough to exercise both modes + attachments. */
 async function makeWorkspace(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-confluence-test-"));
   tempDirs.push(dir);
@@ -98,7 +98,7 @@ function pageMapFrom(
   return next;
 }
 
-describe("confluence publisher — idempotency (fake server)", () => {
+describe("confluence publisher, idempotency (fake server)", () => {
   it("publishes the same single-mode projection 3×: run 1 creates, runs 2-3 are all 'unchanged' with zero mutations", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
@@ -167,10 +167,10 @@ describe("confluence publisher — idempotency (fake server)", () => {
     const pageMap = pageMapFrom(run1.pages);
     const baseline = server.totalMutations();
 
-    // Touch one flow's prose only — screenshots stay byte-identical.
+    // Touch one flow's prose only, screenshots stay byte-identical.
     await fs.writeFile(
       path.join(dir, "docs", "checkout", "step-1.md"),
-      "Go to **checkout** — now with new copy.\n",
+      "Go to **checkout**, now with new copy.\n",
       "utf8",
     );
     const mutated = await projectDocPackToAdf({
@@ -215,7 +215,7 @@ describe("confluence publisher — idempotency (fake server)", () => {
   });
 });
 
-describe("confluence publisher — attachments on the v1 resource", () => {
+describe("confluence publisher, attachments on the v1 resource", () => {
   it("uploads through child/attachment (never the read-only v2 resource) and patches media file ids", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
@@ -257,7 +257,7 @@ describe("confluence publisher — attachments on the v1 resource", () => {
   });
 });
 
-describe("confluence publisher — partial failure", () => {
+describe("confluence publisher, partial failure", () => {
   it("surfaces the created page when an upload fails, and a retry updates it instead of duplicating", async () => {
     const dir = await makeWorkspace();
     const projection = await projectDocPackToAdf({ workspaceDir: dir });
@@ -300,10 +300,10 @@ describe("confluence publisher — partial failure", () => {
   });
 });
 
-describe("confluence plugin — loads through the real engine plugin runtime", () => {
+describe("confluence plugin, loads through the real engine plugin runtime", () => {
   it("resolvePlugins({path: <built package>}) loads confluence:push and it publishes end-to-end", async () => {
     const registerJs = path.join(PKG_ROOT, "dist", "register.js");
-    await fs.access(registerJs); // built package required — run `pnpm -r build` first
+    await fs.access(registerJs); // built package required, run `pnpm -r build` first
 
     const dir = await makeWorkspace();
     const registry = await resolvePlugins({

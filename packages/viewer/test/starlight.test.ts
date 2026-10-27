@@ -223,7 +223,7 @@ describe("deriveFlowOrder", () => {
     expect(order).toEqual(["zeta", "orphan-a", "orphan-b"]);
   });
 
-  it("never loses flows to an extends cycle — every flow appears exactly once", async () => {
+  it("never loses flows to an extends cycle, every flow appears exactly once", async () => {
     const ws = await makeWorkspace({
       flows: [
         { name: "ping", extendsFlow: "pong", steps: [] },
@@ -236,7 +236,7 @@ describe("deriveFlowOrder", () => {
   });
 });
 
-describe("emitStarlightSite — file tree golden", () => {
+describe("emitStarlightSite, file tree golden", () => {
   it("emits exactly the golden file list for the two-flow fixture", async () => {
     const ws = await makeWorkspace(goldenSpec());
     const out = await outDir();
@@ -282,7 +282,7 @@ describe("emitStarlightSite — file tree golden", () => {
   });
 });
 
-describe("emitStarlightSite — MDX content", () => {
+describe("emitStarlightSite, MDX content", () => {
   it("renders an H2 per step in annotation order with the step prose verbatim", async () => {
     const ws = await makeWorkspace(goldenSpec());
     const out = await outDir();
@@ -393,7 +393,7 @@ const AUTHOR_MD = [
   "",
 ].join("\n");
 
-describe("emitStarlightSite — step prose and names stay inert", () => {
+describe("emitStarlightSite, step prose and names stay inert", () => {
   const proseSpec = (md: string, id = "step-1"): WorkspaceSpec => ({
     flows: [{ name: "tour", steps: [{ id, annotations: [{ copy: "Here" }], md }] }],
   });
@@ -584,7 +584,7 @@ describe("emitStarlightSite micro-states", () => {
     expect(index).toContain(
       '<LinkCard title="checkout" href="/flows/checkout/" description="1 step, 1 annotation" />',
     );
-    // login before checkout — card order follows the sidebar order.
+    // login before checkout, card order follows the sidebar order.
     expect(index.indexOf('title="login"')).toBeLessThan(index.indexOf('title="checkout"'));
   });
 
@@ -599,7 +599,7 @@ describe("emitStarlightSite micro-states", () => {
   });
 });
 
-describe("emitStarlightSite — config generation", () => {
+describe("emitStarlightSite, config generation", () => {
   it("defaults: title Documentation, scrollbar CSS only, no logo, no remote anything", async () => {
     const ws = await makeWorkspace({
       flows: [{ name: "solo", steps: [{ id: "step-1", annotations: [{ copy: "Here" }] }] }],
@@ -868,7 +868,7 @@ describe("emitStarlightSite — config generation", () => {
   });
 });
 
-describe("emitStarlightSite — image selection", () => {
+describe("emitStarlightSite, image selection", () => {
   it("prefers the burned PNG byte-for-byte when burned/<step>.png exists", async () => {
     const ws = await makeWorkspace(goldenSpec());
     const out = await outDir();
@@ -886,7 +886,7 @@ describe("emitStarlightSite — image selection", () => {
   });
 });
 
-describe("emitStarlightSite — determinism + self-containment", () => {
+describe("emitStarlightSite, determinism + self-containment", () => {
   it("two emits of the same workspace are byte-identical across the whole tree", async () => {
     const ws = await makeWorkspace(goldenSpec());
     const outA = await outDir();
@@ -908,7 +908,7 @@ describe("emitStarlightSite — determinism + self-containment", () => {
     const textFiles = r.files.filter((f) => !f.endsWith(".png"));
     expect(textFiles.length).toBeGreaterThan(0);
     for (const rel of textFiles) {
-      // The SVG xmlns is an XML namespace identifier, never dereferenced — not a fetch.
+      // The SVG xmlns is an XML namespace identifier, never dereferenced, not a fetch.
       const text = (await read(out, rel)).replaceAll('xmlns="http://www.w3.org/2000/svg"', "");
       expect(text, `${rel} must not fetch from the network`).not.toMatch(/https?:\/\//);
     }
@@ -981,7 +981,7 @@ function contrastRatio(a: number[], b: number[]): number {
   return (hi! + 0.05) / (lo! + 0.05);
 }
 
-describe("emitStarlightSite — scrollbars", () => {
+describe("emitStarlightSite, scrollbars", () => {
   async function emitCss(): Promise<string> {
     const ws = await makeWorkspace({ flows: [] });
     const out = await outDir();
@@ -1157,10 +1157,10 @@ describe("resolveAstroBin", () => {
   });
 });
 
-// Real `astro build` E2E — opt-in only (DOCSX_STARLIGHT_BUILD=1). Builds the golden fixture
+// Real `astro build` E2E, opt-in only (DOCSX_STARLIGHT_BUILD=1). Builds the golden fixture
 // site against the workspace-pinned astro + starlight via the node_modules symlink path. The
 // site is emitted under this package (not os.tmpdir): the zero-install build shortcut requires
-// a shared filesystem ancestor with the astro install — see buildStarlightSite's contract.
+// a shared filesystem ancestor with the astro install, see buildStarlightSite's contract.
 describe.runIf(process.env["DOCSX_STARLIGHT_BUILD"] === "1")(
   "astro build E2E (DOCSX_STARLIGHT_BUILD=1)",
   () => {
@@ -1172,7 +1172,7 @@ describe.runIf(process.env["DOCSX_STARLIGHT_BUILD"] === "1")(
       await emitStarlightSite({ workspaceDir: ws, outDir: out });
       const built = await buildStarlightSite({ siteDir: out });
       if (!built.ok) {
-        // Surface the astro output — this is the one test where it matters.
+        // Surface the astro output, this is the one test where it matters.
         console.error(built.stdout);
         console.error(built.stderr);
       }

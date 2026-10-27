@@ -1,6 +1,6 @@
 // Renderer plugin suite: the plugin loads through the engine's REAL resolvePlugins path (manifest
 // validation, namespacing, register-module import) and `starlight:site` emits a fixture
-// workspace's Starlight site end-to-end. Requires the built package — run `pnpm -r build` first.
+// workspace's Starlight site end-to-end. Requires the built package, run `pnpm -r build` first.
 
 import { promises as fs } from "node:fs";
 import * as os from "node:os";
@@ -13,7 +13,7 @@ const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 
 const noopLog: PluginLogger = { info: () => {}, warn: () => {}, error: () => {} };
 
-// A tiny valid PNG (1x1) is enough — the emitter copies image bytes, it never decodes them.
+// A tiny valid PNG (1x1) is enough, the emitter copies image bytes, it never decodes them.
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64",
@@ -59,7 +59,7 @@ function makeCtx(workspaceDir: string, outDir: string, flows: string[] = []): Re
   return { workspaceDir, outDir, flows, config: {}, log: noopLog };
 }
 
-describe("starlight renderer plugin — real resolvePlugins path", () => {
+describe("starlight renderer plugin, real resolvePlugins path", () => {
   it("loads as starlight:site with a renderer-only artifact set", async () => {
     await fs.access(path.join(PKG_ROOT, "dist", "register.js")); // built package required
 
@@ -89,7 +89,7 @@ describe("starlight renderer plugin — real resolvePlugins path", () => {
     expect(config.indexOf('"login"')).toBeLessThan(config.indexOf('"checkout"'));
     const mdx = await fs.readFile(path.join(outDir, "src/content/docs/flows/checkout.mdx"), "utf8");
     expect(mdx).toContain("Open the **checkout** page.");
-    // login burned, checkout clean — the preference is per step.
+    // login burned, checkout clean, the preference is per step.
     expect(mdx).toContain("burned={false}");
     const loginMdx = await fs.readFile(
       path.join(outDir, "src/content/docs/flows/login.mdx"),
@@ -125,7 +125,7 @@ describe("starlight renderer plugin — real resolvePlugins path", () => {
     const registry = await resolvePlugins({ workspaceDir: dir, sources: [{ path: PKG_ROOT }] });
     const renderer = registry.getRenderer("starlight:site");
 
-    // An invalid accent is a config error — surfaced as a thrown error by the emitter; the
+    // An invalid accent is a config error, surfaced as a thrown error by the emitter; the
     // renderer contract lets it propagate so the CLI can report it precisely.
     await expect(
       renderer.render({

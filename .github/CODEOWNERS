@@ -1,4 +1,4 @@
-# Per ci-and-bot-threats.md §3.2 — every file that gates publish, CI
+# Per ci-and-bot-threats.md §3.2, every file that gates publish, CI
 # permissions, or release-pipeline trust requires @rowinbot review.
 #
 # A path-scoped branch ruleset on `main` enforces "require review from
@@ -8,14 +8,14 @@
 # Default reviewer for anything not otherwise matched.
 * @rowinbot
 
-# CI / workflows / Actions surface — write-access to any of these can
+# CI / workflows / Actions surface, write-access to any of these can
 # pivot to OIDC publish abuse.
 /.github/                           @rowinbot
 /.github/CODEOWNERS                 @rowinbot
 /.github/workflows/                 @rowinbot
 /.github/dependabot.yml             @rowinbot
 
-# Publish-side configuration — every line here is a Sigstore-trusted-publisher
+# Publish-side configuration, every line here is a Sigstore-trusted-publisher
 # binding dependency.
 /package.json                       @rowinbot
 /packages/*/package.json            @rowinbot

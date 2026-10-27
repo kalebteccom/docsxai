@@ -17,7 +17,7 @@ steps:
     success: { url_matches: "/" }
 `;
 
-describe("lintFlow — R017 (flow name differs from file name)", () => {
+describe("lintFlow, R017 (flow name differs from file name)", () => {
   it("warns when the name and the file name differ", async () => {
     const issues = await lintFlow(parseFlowFile(FLOW("checkout")), {
       fileName: "payment.flow.yaml",
@@ -41,7 +41,7 @@ describe("lintFlow — R017 (flow name differs from file name)", () => {
   });
 });
 
-describe("docsxai lint — flow name against file name", () => {
+describe("docsxai lint, flow name against file name", () => {
   let ws: string;
   let out = "";
   beforeEach(async () => {

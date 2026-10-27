@@ -1,4 +1,4 @@
-// Starlight site builder (build-toolchain integration) — `buildStarlightSite` runs `astro build`
+// Starlight site builder (build-toolchain integration), `buildStarlightSite` runs `astro build`
 // programmatically over a project emitted by `emitStarlightSite` (see `starlight-emit.ts`). It
 // resolves the astro bin from this package's own install so tests never hit the network
 // (`astroBin` overrides; ASTRO_TELEMETRY_DISABLED=1 always), and symlinks astro +
@@ -46,7 +46,7 @@ function resolvePackageDir(name: string): string {
   try {
     return path.dirname(require.resolve(`${name}/package.json`));
   } catch {
-    // package.json not in the export map — resolve the entry and walk up to the package root.
+    // package.json not in the export map, resolve the entry and walk up to the package root.
   }
   let dir = path.dirname(require.resolve(name));
   for (;;) {
@@ -56,7 +56,7 @@ function resolvePackageDir(name: string): string {
       };
       if (pkg.name === name) return dir;
     } catch {
-      // not this directory — keep walking up
+      // not this directory, keep walking up
     }
     const parent = path.dirname(dir);
     if (parent === dir) throw new Error(`cannot locate the package root of ${name}`);
@@ -87,12 +87,12 @@ export function resolveAstroBin(): string {
  * astro + @astrojs/starlight installs are symlinked in individually, so the emitted project
  * builds against the workspace-pinned pair without a network install. (Per-package links, not
  * a wholesale node_modules link: under pnpm each package's store directory only sees its own
- * dependencies — astro's parent node_modules does not contain starlight.)
+ * dependencies: astro's parent node_modules does not contain starlight.)
  *
  * The zero-install shortcut requires `siteDir` to share a filesystem ancestor with this
  * package's install (the normal case: the site is emitted inside the repo that installed
  * docsxai). For a fully detached site directory, install inside the emitted site
- * (`npm install`) and build there — rollup mis-relativizes module ids whose only common
+ * (`npm install`) and build there, rollup mis-relativizes module ids whose only common
  * ancestor with the project root is `/`.
  */
 export async function buildStarlightSite(
@@ -132,7 +132,7 @@ export async function buildStarlightSite(
       await fs.symlink(astroDir, path.join(siteModules, "astro"), "dir");
       await fs.symlink(starlightDir, path.join(siteModules, "@astrojs", "starlight"), "dir");
     } catch {
-      // Neither package resolvable from here (e.g. a caller-supplied astroBin) — let the
+      // Neither package resolvable from here (e.g. a caller-supplied astroBin), let the
       // build run against whatever the site directory provides and fail with astro's message.
     }
   }

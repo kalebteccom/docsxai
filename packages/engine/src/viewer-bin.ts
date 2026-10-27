@@ -1,15 +1,15 @@
 // Resolution of the `docsxai-viewer` bin for `docsxai render`. The viewer is its own package and
 // the engine doesn't depend on it at build time, so the bin is located at run time, in order:
 //
-//   1. `DOCSX_VIEWER_BIN` — explicit operator override; a path to the viewer's bin script
+//   1. `DOCSX_VIEWER_BIN`, explicit operator override; a path to the viewer's bin script
 //      (run with the current Node when it's a `.js`/`.mjs`/`.cjs` file) or to an executable.
 //   2. The `@docsxai/viewer` package installed next to the engine: its `package.json` is
 //      looked up along the engine's node_modules ancestor chain and the `bin` entry is run with
-//      the current Node — covers installs where the package is present but no PATH shim is.
-//      (A direct manifest read, not `require.resolve("…/package.json")` — the viewer's `exports`
+//      the current Node, covers installs where the package is present but no PATH shim is.
+//      (A direct manifest read, not `require.resolve("…/package.json")`, the viewer's `exports`
 //      map doesn't export its package.json. The chain is walked explicitly rather than via
 //      `require.resolve.paths()`, which test runners extend with extra lookup dirs.)
-//   3. `docsxai-viewer` on PATH (the npm bin shim) — the legacy behavior, kept as the fallback.
+//   3. `docsxai-viewer` on PATH (the npm bin shim), the legacy behavior, kept as the fallback.
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { promises as fs } from "node:fs";

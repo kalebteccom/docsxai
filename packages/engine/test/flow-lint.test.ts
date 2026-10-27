@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseFlowFile } from "../src/flow-file.js";
 import { formatIssuesText, lintFlow, type LintIssue } from "../src/flow-lint.js";
 
-describe("lintFlow — R002 (annotation on likely-unmounting action)", () => {
+describe("lintFlow, R002 (annotation on likely-unmounting action)", () => {
   it("warns when a click step has an annotation with no target override", async () => {
     const flow = parseFlowFile(`
 name: f
@@ -65,7 +65,7 @@ steps:
   });
 });
 
-describe("lintFlow — R003 (wait_for missing timeout_ms on long-async step)", () => {
+describe("lintFlow, R003 (wait_for missing timeout_ms on long-async step)", () => {
   it("warns when step id contains a long-async keyword and timeout_ms is unset", async () => {
     const flow = parseFlowFile(`
 name: f
@@ -126,7 +126,7 @@ steps:
   });
 });
 
-describe("lintFlow — R004 (bare data-* selector)", () => {
+describe("lintFlow, R004 (bare data-* selector)", () => {
   it('flags a step whose locator resolves to a bare `[data-foo="x"]` selector', async () => {
     const flow = parseFlowFile(`
 name: f
@@ -170,7 +170,7 @@ steps:
   });
 });
 
-describe("lintFlow — R001 (deep extends chain)", () => {
+describe("lintFlow, R001 (deep extends chain)", () => {
   const chain: Record<string, string> = {
     a: `name: a\nlocators: { x: '#x' }\nsteps:\n  - id: a1\n    action: click\n    target: $x\n`,
     b: `name: b\nextends: a\nsteps:\n  - id: b1\n    action: wait\n`,
@@ -198,7 +198,7 @@ describe("lintFlow — R001 (deep extends chain)", () => {
   });
 });
 
-describe("lintFlow — R005 (extends target missing)", () => {
+describe("lintFlow, R005 (extends target missing)", () => {
   const load = (n: string) => {
     if (n === "base") return parseFlowFile(`name: base\nsteps:\n  - id: b1\n    action: wait\n`);
     throw new Error(`extends target not found: ${n}`);
@@ -227,7 +227,7 @@ describe("lintFlow — R005 (extends target missing)", () => {
   });
 });
 
-describe("lintFlow — R006 (locator defined but never referenced)", () => {
+describe("lintFlow, R006 (locator defined but never referenced)", () => {
   it("flags an unused locator", async () => {
     const flow = parseFlowFile(`
 name: f
@@ -275,7 +275,7 @@ steps:
   });
 });
 
-describe("lintFlow — R007 (terminal step lacks success)", () => {
+describe("lintFlow, R007 (terminal step lacks success)", () => {
   it("warns when the flow's last step has no success criterion", async () => {
     const flow = parseFlowFile(`
 name: f
@@ -310,7 +310,7 @@ steps:
   });
 });
 
-describe("lintFlow — R008 (un-guarded optional step)", () => {
+describe("lintFlow, R008 (un-guarded optional step)", () => {
   it("warns on `optional: true` with neither wait_for nor success", async () => {
     const flow = parseFlowFile(`
 name: f
@@ -357,7 +357,7 @@ steps:
   });
 });
 
-describe("lintFlow — R009 (selector-less element_stable)", () => {
+describe("lintFlow, R009 (selector-less element_stable)", () => {
   it("warns when wait_for: element_stable has no target to watch", async () => {
     const flow = parseFlowFile(`
 name: f
@@ -394,7 +394,7 @@ steps:
   });
 });
 
-describe("lintFlow — R014 (blind sleep)", () => {
+describe("lintFlow, R014 (blind sleep)", () => {
   const wait = (waitFor: string) =>
     parseFlowFile(`
 name: f
@@ -418,7 +418,7 @@ steps:
   });
 });
 
-describe("lintFlow — R010 (annotation anchored to a redacted element)", () => {
+describe("lintFlow, R010 (annotation anchored to a redacted element)", () => {
   it("warns when the annotation anchor matches a step-level redaction selector (via $ref)", async () => {
     const flow = parseFlowFile(`
 name: f
@@ -474,7 +474,7 @@ steps:
   });
 });
 
-describe("lintFlow — extraRules (the injectable-rule hinge)", () => {
+describe("lintFlow, extraRules (the injectable-rule hinge)", () => {
   it("runs injected rules after the built-ins and merges their issues", async () => {
     const flow = parseFlowFile(`
 name: f
@@ -539,7 +539,7 @@ describe("formatIssuesText", () => {
   });
 });
 
-describe("lintFlow — R011 (optional step with no short timeout)", () => {
+describe("lintFlow, R011 (optional step with no short timeout)", () => {
   const lint = async (steps: string) =>
     (
       await lintFlow(
@@ -575,7 +575,7 @@ ${steps}
   });
 });
 
-describe("lintFlow — R012 / R013 (hide)", () => {
+describe("lintFlow, R012 / R013 (hide)", () => {
   const codes = async (yaml: string, code: string) =>
     (await lintFlow(parseFlowFile(yaml))).filter((i) => i.code === code);
 

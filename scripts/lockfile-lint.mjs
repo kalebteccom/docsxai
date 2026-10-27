@@ -3,7 +3,7 @@
 //
 // Lint pnpm-lock.yaml for the same security properties lockfile-lint enforces
 // on npm/yarn lockfiles. lockfile-lint (v4 / v5) does NOT parse pnpm-lock.yaml
-// — neither its npm parser (expects JSON) nor its yarn parser (expects yarn-
+//, neither its npm parser (expects JSON) nor its yarn parser (expects yarn-
 // syml dependency map). Open upstream tracking issue:
 //   https://github.com/lirantal/lockfile-lint/issues/203
 //

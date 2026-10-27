@@ -1,5 +1,5 @@
 // Dispatch + argument-contract tests for the `docsxai` CLI: the stable argv edge of each
-// command (usage errors, flag validation, exit codes, output shape) — not command internals.
+// command (usage errors, flag validation, exit codes, output shape), not command internals.
 
 import { promises as fs } from "node:fs";
 import * as os from "node:os";

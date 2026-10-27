@@ -79,7 +79,7 @@ export async function resolveBackendToken(opts: {
   }
   const now = opts.now ?? Date.now();
   if (stored.expires_at > now + 30_000) return stored.access_token;
-  // Expired (or about to) — attempt a refresh-token rotation.
+  // Expired (or about to), attempt a refresh-token rotation.
   const doFetch = opts.fetch ?? globalThis.fetch;
   const base = opts.baseUrl.replace(/\/+$/, "");
   let refreshed: { access_token: string; refresh_token: string; expires_in: number };

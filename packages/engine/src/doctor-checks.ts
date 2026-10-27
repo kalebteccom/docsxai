@@ -1,4 +1,4 @@
-// `docsxai doctor` — the per-check probe catalogue.
+// `docsxai doctor`: the per-check probe catalogue.
 //
 // One pure(ish) function per row of the doctor checklist, each over injectable inputs (a workspace
 // dir, an env source, a fake backend, a mocked chromium probe) so per-state coverage is cheap.
@@ -26,7 +26,7 @@ export interface DoctorCheck {
   ok: boolean;
   detail: string;
   fix?: string;
-  /** Informational row — printed with − instead of ✓/✗; never fails doctor. */
+  /** Informational row, printed with − instead of ✓/✗; never fails doctor. */
   info?: boolean;
 }
 
@@ -54,7 +54,7 @@ const CHROMIUM_FIX = "npx playwright-core install chromium";
  *  helper (a sync `executablePath()` + `existsSync`), no IO to await. */
 export function probeChromium(): { ok: boolean; detail: string } {
   try {
-    // Goes through playwright-driver's helper — the one sanctioned playwright-core entry point —
+    // Goes through playwright-driver's helper, the one sanctioned playwright-core entry point,
     // so doctor doesn't open a second import site for the SDK.
     const p = chromiumExecutablePath();
     if (p) return { ok: true, detail: p };
@@ -100,7 +100,7 @@ export async function checkChromium(
 
 interface WorkspaceProbe {
   check: DoctorCheck;
-  /** Parsed `.docsxai.json` when valid (doctor reads the raw JSON — schema-checked here). */
+  /** Parsed `.docsxai.json` when valid (doctor reads the raw JSON, schema-checked here). */
   config: Record<string, unknown> | null;
   /** True when the dir looks like a workspace at all (config file or flows/ present). */
   present: boolean;
@@ -333,7 +333,7 @@ export async function checkBackend(
       detail: "no backend_url configured, the workspace operates fully locally",
     };
   }
-  // Token presence is a note, not a gate — /v1/health is unauthenticated.
+  // Token presence is a note, not a gate, /v1/health is unauthenticated.
   const tokenNote = env.DOCSX_TOKEN
     ? "token: DOCSX_TOKEN set"
     : existsSync(path.join(path.resolve(workspaceDir), ".auth", "backend-token.json"))

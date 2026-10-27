@@ -1,4 +1,4 @@
-// get_annotations — read-only: a flow's emitted annotations.json (validated against the schema).
+// get_annotations: read-only: a flow's emitted annotations.json (validated against the schema).
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";

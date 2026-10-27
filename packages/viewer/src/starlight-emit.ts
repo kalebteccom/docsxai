@@ -1,15 +1,15 @@
-// Starlight site emitter (pure emission) — `emitStarlightSite` writes a complete, buildable Astro
+// Starlight site emitter (pure emission), `emitStarlightSite` writes a complete, buildable Astro
 // Starlight project from a doc pack: one MDX page per flow (H2 per step, the step's .md prose with
 // MDX code turned into plain text, and an `<AnnotatedShot>` figure preferring the burned PNG over
 // the clean screenshot), a landing page of flow cards, a sidebar ordered by the workspace's `extends` graph (alphabetical
 // fallback), and theme accents derived from the style artifact's `visual` section.
 //
 // The emitted project is standalone (its own package.json with exact-pinned astro +
-// @astrojs/starlight) and self-contained: no remote fonts, no CDN fetches — Starlight ships its
+// @astrojs/starlight) and self-contained: no remote fonts, no CDN fetches, Starlight ships its
 // own assets and Pagefind search at build time. The toolchain integration that runs `astro build`
 // lives beside this file in `starlight-build.ts`; this half is deterministic and has no
 // child_process: same doc pack + same config → byte-identical file tree (no timestamps, sorted
-// traversal). The interactive single-HTML viewer (`render.ts`) is untouched — this is the
+// traversal). The interactive single-HTML viewer (`render.ts`) is untouched, this is the
 // production docs-site renderer beside it, not a replacement.
 
 import { promises as fs } from "node:fs";
@@ -30,7 +30,7 @@ import {
 } from "./starlight-sources.js";
 import { fmt, langFallbackWarning, uiStrings, type UiStrings } from "./ui-strings.js";
 
-/** Exact versions pinned into the emitted site's package.json — verified to install + build. */
+/** Exact versions pinned into the emitted site's package.json, verified to install + build. */
 export const ASTRO_VERSION = "7.3.5";
 export const STARLIGHT_VERSION = "0.41.2";
 
@@ -73,7 +73,7 @@ export interface EmitStarlightSiteResult {
 }
 
 // ---------------------------------------------------------------------------
-// Small fs helpers (duplicated from render.ts on purpose — render.ts stays untouched).
+// Small fs helpers (duplicated from render.ts on purpose, render.ts stays untouched).
 // `exists` is shared with the build half (`starlight-build.ts` imports it from here).
 // ---------------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ export async function exists(p: string): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// Accent color — normalize + derive the Starlight custom-property scale.
+// Accent color, normalize + derive the Starlight custom-property scale.
 // ---------------------------------------------------------------------------
 
 /** Normalize `#rgb` / `rgb` / `#rrggbb` / `rrggbb` to lowercase `#rrggbb`; throw on anything else. */
@@ -129,13 +129,13 @@ function themeCss(accent: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Sidebar order — the `extends` graph from `flows/*.flow.yaml`, cheaply derived.
+// Sidebar order, the `extends` graph from `flows/*.flow.yaml`, cheaply derived.
 // ---------------------------------------------------------------------------
 
 /**
  * Order `flows` by the workspace's flow `extends` graph: roots alphabetical, children DFS'd
  * alphabetically under their parent (matching `docsxai flow-tree`'s shape). Parsed with a
- * line regex — no YAML dependency; flows absent from `flows/` append alphabetically.
+ * line regex, no YAML dependency; flows absent from `flows/` append alphabetically.
  */
 export async function deriveFlowOrder(workspaceDir: string, flows: string[]): Promise<string[]> {
   const known = new Set(flows);

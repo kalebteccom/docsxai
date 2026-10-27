@@ -2,7 +2,7 @@
 //
 // Client-side encryption: the backend stores an opaque AES-256-GCM envelope and never sees the
 // plaintext session. The shapes below are structural mirrors of the engine's auth layer
-// (`StorageState` / `AuthResult` / `RoleAuth.cache`) — deliberately not imported from auth.ts so
+// (`StorageState` / `AuthResult` / `RoleAuth.cache`), deliberately not imported from auth.ts so
 // the modules stay decoupled; the auth layer satisfies them structurally.
 //
 // NOTE: the ttl-to-ms / cookie-expiry math here is the same shape that also lives in
@@ -55,7 +55,7 @@ export interface BackendStateCacheOptions {
   baseUrl: string;
   token: string;
   workspaceId: string;
-  /** Base64-encoded 32-byte AES key — the resolved value of `DOCSX_CACHE_KEY`. */
+  /** Base64-encoded 32-byte AES key, the resolved value of `DOCSX_CACHE_KEY`. */
   cacheKey: string;
   fetch?: typeof globalThis.fetch;
 }
@@ -87,7 +87,7 @@ function ttlToMs(ttl: string | number): number | "session" {
   }
 }
 
-/** Expiry (epoch ms) of the cookie named `name` — the latest if several; `undefined` if absent or session-only. */
+/** Expiry (epoch ms) of the cookie named `name`, the latest if several; `undefined` if absent or session-only. */
 function cookieExpiryByName(state: CachedStorageState, name: string): number | undefined {
   const expiries = state.cookies
     .filter((c) => c.name === name && typeof c.expires === "number" && c.expires > 0)
@@ -98,7 +98,7 @@ function cookieExpiryByName(state: CachedStorageState, name: string): number | u
 /**
  * Backend-relayed storage-state cache. Same `load` / `save` / `clear` contract as the local
  * `.auth/<role>.json` cache (incl. the expiry-priority rules), but the entry lives on the backend
- * as a client-side-encrypted envelope — usable by a team sharing one backend, opaque to the server.
+ * as a client-side-encrypted envelope, usable by a team sharing one backend, opaque to the server.
  */
 export class BackendStateCache {
   private readonly baseUrl: string;

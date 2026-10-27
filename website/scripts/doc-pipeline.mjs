@@ -250,7 +250,10 @@ export function convertDashes(text) {
         return raw;
       }
       if (inFence) return raw;
-      return raw.replace(/ ?— ?/g, " - ").replace(/ – /g, " - ").replace(/–/g, "-");
+      return raw
+        .replace(/ ?\u2014 ?/g, " - ")
+        .replace(/ \u2013 /g, " - ")
+        .replace(/\u2013/g, "-");
     })
     .join("\n");
 }

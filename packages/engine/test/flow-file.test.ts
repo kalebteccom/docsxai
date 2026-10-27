@@ -79,7 +79,7 @@ steps:
     expect(() => parseFlowFile(bad)).toThrow(/unresolved locator/i);
   });
 
-  it("rejects a step that sets BOTH `annotation` and `annotations` (use one — annotations: [...] is the multi form)", () => {
+  it("rejects a step that sets BOTH `annotation` and `annotations` (use one, annotations: [...] is the multi form)", () => {
     const bad = `
 name: f
 steps:
@@ -132,7 +132,7 @@ locators: { save_btn: '#save' }
 steps:
   - id: do-edit
     action: fill
-    target: $open_btn          # references a parent locator — only resolves after the merge
+    target: $open_btn          # references a parent locator, only resolves after the merge
     value: hello
   - id: save
     action: click
@@ -216,7 +216,7 @@ steps:
   });
 });
 
-describe("parseFlowFile — hide / show / timeout_ms", () => {
+describe("parseFlowFile, hide / show / timeout_ms", () => {
   const wrap = (step: string) => `name: f\nsteps:\n  - { id: s, ${step} }\n`;
 
   it("accepts hide and show, with and without a target", () => {
@@ -316,7 +316,7 @@ describe("flow name rule", () => {
   });
 });
 
-describe("parseFlowFile — error text names the field", () => {
+describe("parseFlowFile, error text names the field", () => {
   const flowWith = (extra: string) =>
     `name: f\nlocators: { btn: '#b' }\nsteps:\n  - id: s1\n    action: hover\n    target: $btn\n${extra}`;
   const messageOf = (text: string): string => {

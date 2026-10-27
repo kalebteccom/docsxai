@@ -1,4 +1,4 @@
-// `api-login` — POST the role's credentials to the app's login endpoint and keep the session
+// `api-login`: POST the role's credentials to the app's login endpoint and keep the session
 // cookies. Pure node fetch; no browser. The strategy of choice when the target has a JSON or
 // form login API the operator may call directly.
 
@@ -72,7 +72,7 @@ export class ApiLoginStrategy implements AuthStrategy {
       { fetchImpl: this.fetchImpl },
     );
 
-    // Failure messages name the endpoint and the check — never the credential values.
+    // Failure messages name the endpoint and the check, never the credential values.
     const check = opts.success_check;
     if (check === undefined) {
       if (result.status >= 400) {

@@ -190,7 +190,7 @@ export class BackendClient {
     }
     return (await res.json()) as BlobRef;
   }
-  /** HEAD-probe a blob — true when the backend already has these bytes. */
+  /** HEAD-probe a blob, true when the backend already has these bytes. */
   async hasBlob(sha256: string): Promise<boolean> {
     const res = await this.doFetch(`${this.baseUrl}/v1/blobs/${encodeURIComponent(sha256)}`, {
       method: "HEAD",
@@ -232,7 +232,7 @@ export async function createBackendClient(
 
 /**
  * Append an execution-run record for a backend-bound workspace. A no-op when the workspace config
- * lacks the backend binding; never throws — `docsxai run` must stay offline-tolerant, so failures
+ * lacks the backend binding; never throws, `docsxai run` must stay offline-tolerant, so failures
  * come back as a warning string for the caller to surface.
  */
 export async function recordRunHistory(opts: {

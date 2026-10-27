@@ -1,4 +1,4 @@
-// Doc-pack drift report shapes — the result interfaces, severity enum, and the severity-rank
+// Doc-pack drift report shapes, the result interfaces, severity enum, and the severity-rank
 // leaf both the computation and the formatters lean on.
 //
 // Reports carry no timestamps: same two doc packs → byte-identical report, which is what makes

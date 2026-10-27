@@ -19,7 +19,7 @@ describe("PlaywrightInstrumentedBrowser", () => {
     expect(b).toBeInstanceOf(PlaywrightInstrumentedBrowser);
   });
 
-  it("accepts a profileDir option (persistent profile — login survives between captures)", () => {
+  it("accepts a profileDir option (persistent profile, login survives between captures)", () => {
     const b = new PlaywrightInstrumentedBrowser({ profileDir: "/tmp/docsxai-chrome-profile" });
     expect(b).toBeInstanceOf(PlaywrightInstrumentedBrowser);
   });
@@ -137,7 +137,7 @@ describe("PlaywrightInstrumentedBrowser, launched browser", () => {
 function runHelperInSandbox(trigger: "console" | "button", bindingPresent: boolean) {
   const info: unknown[] = [];
   const removed: string[] = [];
-  // Mock `document` — buttons / removals track for the `button` trigger case.
+  // Mock `document`, buttons / removals track for the `button` trigger case.
   const document = {
     getElementById: (id: string) => {
       // Pretend the stale button exists when we want to verify removal.

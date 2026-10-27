@@ -1,6 +1,6 @@
 // Per-tool unit tests: zod arg-schema validation + handler error paths (no browser, no backend).
 // The scripted-client suite covers the happy paths over the wire; this file pins the failure
-// shapes — every error is {ok:false, error, hint?}, never a throw.
+// shapes: every error is {ok:false, error, hint?}, never a throw.
 
 import { promises as fs } from "node:fs";
 import * as os from "node:os";

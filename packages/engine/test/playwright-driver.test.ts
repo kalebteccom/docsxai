@@ -21,7 +21,7 @@ try {
   chromiumAvailable = false;
 }
 
-describe("PlaywrightDriver.screenshot — capture options (bug 3: mid-transition / faded shots)", () => {
+describe("PlaywrightDriver.screenshot, capture options (bug 3: mid-transition / faded shots)", () => {
   it("passes animations:'disabled' + caret:'hide' to page.screenshot so transitions are settled", async () => {
     const calls: Array<Record<string, unknown>> = [];
     const fakePage = {
@@ -217,7 +217,7 @@ describe("launchPlaywrightSession, CDP attach", () => {
 });
 
 describe.skipIf(!chromiumAvailable)(
-  "PlaywrightDriver.boundingBox — device-pixel space (bug 1: dpr ≠ 1 mispositioning)",
+  "PlaywrightDriver.boundingBox, device-pixel space (bug 1: dpr ≠ 1 mispositioning)",
   () => {
     let browser: Awaited<ReturnType<typeof chromium.launch>>;
     beforeAll(async () => {
@@ -235,7 +235,7 @@ describe.skipIf(!chromiumAvailable)(
      </body></html>`,
     )}`;
 
-    it("dpr=1: bbox is the CSS rect unchanged (the headless default — must stay a no-op)", async () => {
+    it("dpr=1: bbox is the CSS rect unchanged (the headless default, must stay a no-op)", async () => {
       const ctx = await browser.newContext({
         viewport: { width: 1000, height: 700 },
         deviceScaleFactor: 1,
@@ -248,7 +248,7 @@ describe.skipIf(!chromiumAvailable)(
       await ctx.close();
     });
 
-    it("dpr=2: bbox is the CSS rect × 2 — i.e. the screenshot's device-pixel space", async () => {
+    it("dpr=2: bbox is the CSS rect × 2, i.e. the screenshot's device-pixel space", async () => {
       const ctx = await browser.newContext({
         viewport: { width: 1000, height: 700 },
         deviceScaleFactor: 2,
@@ -265,11 +265,11 @@ describe.skipIf(!chromiumAvailable)(
       // PNG IHDR width = viewport CSS width × deviceScaleFactor = 1000 × 2 = 2000.
       const i = png.indexOf(Buffer.from("IHDR"));
       expect(png.readUInt32BE(i + 4)).toBe(2000);
-      // so bb.x (200) is in the same 0..2000 space the viewer scales against — correct.
+      // so bb.x (200) is in the same 0..2000 space the viewer scales against, correct.
       await ctx.close();
     });
 
-    it("dpr=2: a region redaction (CSS px) lands at CSS × 2 in the screenshot — same space as selector bboxes", async () => {
+    it("dpr=2: a region redaction (CSS px) lands at CSS × 2 in the screenshot, same space as selector bboxes", async () => {
       const ctx = await browser.newContext({
         viewport: { width: 1000, height: 700 },
         deviceScaleFactor: 2,
@@ -279,7 +279,7 @@ describe.skipIf(!chromiumAvailable)(
       const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-redact-"));
       try {
         const d = new PlaywrightDriver(page, tmp);
-        // The CSS rect of #box — must black out device px (200,120)–(600,200).
+        // The CSS rect of #box, must black out device px (200,120) to (600,200).
         await d.screenshot("docs/f/screenshots/s.png", [
           { region: { x: 100, y: 60, width: 200, height: 40 }, style: "box" },
         ]);
@@ -290,7 +290,7 @@ describe.skipIf(!chromiumAvailable)(
         };
         expect(px(400, 160)).toEqual([0, 0, 0, 255]); // center of the region, device px
         expect(px(201, 121)).toEqual([0, 0, 0, 255]); // just inside the top-left corner
-        expect(px(150, 160)).not.toEqual([0, 0, 0, 255]); // left of the region — untouched
+        expect(px(150, 160)).not.toEqual([0, 0, 0, 255]); // left of the region, untouched
       } finally {
         await fs.rm(tmp, { recursive: true, force: true });
         await ctx.close();
@@ -302,7 +302,7 @@ describe.skipIf(!chromiumAvailable)(
   120_000,
 );
 
-describe("PlaywrightDriver.nearbyBoxes — a hung page", () => {
+describe("PlaywrightDriver.nearbyBoxes, a hung page", () => {
   const hungPage = (evaluate: () => Promise<unknown>) =>
     ({
       locator: () => ({ first: () => ({ waitFor: async () => undefined, evaluate }) }),
@@ -323,7 +323,7 @@ describe("PlaywrightDriver.nearbyBoxes — a hung page", () => {
 });
 
 describe.skipIf(!chromiumAvailable)(
-  "PlaywrightDriver.nearbyBoxes — what a callout must not cover",
+  "PlaywrightDriver.nearbyBoxes, what a callout must not cover",
   () => {
     let browser: Awaited<ReturnType<typeof chromium.launch>>;
     beforeAll(async () => {
@@ -430,7 +430,7 @@ const CLOCK_FIXTURE = `data:text/html,${encodeURIComponent(
 )}`;
 
 describe.skipIf(!chromiumAvailable)(
-  "launchPlaywrightSession — environment application",
+  "launchPlaywrightSession, environment application",
   () => {
     it("freezes the page clock at environment.clock (deterministic dates in page text)", async () => {
       const session = await launchPlaywrightSession({
@@ -491,7 +491,7 @@ describe.skipIf(!chromiumAvailable)(
 );
 
 describe.skipIf(!chromiumAvailable)(
-  "PlaywrightDriver.waitForElementStable — settles a CSS-animated element",
+  "PlaywrightDriver.waitForElementStable, settles a CSS-animated element",
   () => {
     const ANIMATED_FIXTURE = `data:text/html,${encodeURIComponent(
       `<!doctype html><html><head><style>
@@ -501,7 +501,7 @@ describe.skipIf(!chromiumAvailable)(
      </style></head><body><div id="box"></div></body></html>`,
     )}`;
 
-    it("returns only after two consecutive identical bounding boxes — the animation has ended", async () => {
+    it("returns only after two consecutive identical bounding boxes, the animation has ended", async () => {
       const session = await launchPlaywrightSession({});
       try {
         await session.driver.goto(ANIMATED_FIXTURE);
@@ -509,7 +509,7 @@ describe.skipIf(!chromiumAvailable)(
         const a = await session.driver.boundingBox("#box");
         await session.page.waitForTimeout(120);
         const b = await session.driver.boundingBox("#box");
-        expect(a).toEqual(b); // stable — no longer animating
+        expect(a).toEqual(b); // stable, no longer animating
         expect(a!.x).toBe(200); // and at the animation's end state
       } finally {
         await session.close();
@@ -522,7 +522,7 @@ describe.skipIf(!chromiumAvailable)(
 );
 
 describe.skipIf(!chromiumAvailable)(
-  "PlaywrightDriver.screenshot — redactions",
+  "PlaywrightDriver.screenshot, redactions",
   () => {
     it("a redaction selector matching nothing is skipped (screenshot still written, never a halt)", async () => {
       const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-redact-"));

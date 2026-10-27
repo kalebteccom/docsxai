@@ -1,16 +1,16 @@
-// ADF (Atlassian Document Format) projection of a doc pack — pure, deterministic, zero HTTP.
+// ADF (Atlassian Document Format) projection of a doc pack, pure, deterministic, zero HTTP.
 //
 // The engine emits projections only; all Confluence egress lives in the capability-declared
 // publisher plugin (`@docsxai/plugin-confluence`). This module turns a workspace's
 // doc pack (flow-files + step write-ups + burned screenshots) into Confluence Cloud REST v2
 // `atlas_doc_format` documents plus an attachments manifest, in one of two shapes:
 //
-//   - `single` (default): ONE consolidated document for the whole project — every flow is an
-//     anchored H2 section, every step an H3 — published as one page.
+//   - `single` (default): ONE consolidated document for the whole project, every flow is an
+//     anchored H2 section, every step an H3, published as one page.
 //   - `page-tree`: a parent overview document (section "project") plus one child document per
 //     flow (section = flow name).
 //
-// Media nodes reference attachments by `alt` file name with empty `id`/`collection` — the
+// Media nodes reference attachments by `alt` file name with empty `id`/`collection`, the
 // publisher (or a host agent handing the projection to the Atlassian MCP) fills the file ids
 // in after upload. Attachment file names are `<flow>--<step>.png`, unique per document and
 // stable across modes.
@@ -50,7 +50,7 @@ export interface AdfAttachment {
   fileName: string;
   /** Absolute path of the source PNG inside the workspace. */
   sourcePath: string;
-  /** sha256 (hex) of the source bytes — the publisher's skip-unchanged key. */
+  /** sha256 (hex) of the source bytes, the publisher's skip-unchanged key. */
   sha256: string;
 }
 
@@ -80,7 +80,7 @@ export interface AdfExportOptions {
 // ---------------------------------------------------------------------------
 
 // Supported: paragraphs, fenced code blocks, bullet/ordered lists, `code`, **bold**, *em* /
-// _em_, [links](url). Anything else — raw HTML included — stays literal text inside an ADF
+// _em_, [links](url). Anything else, raw HTML included, stays literal text inside an ADF
 // text node (ADF text is plain text, so markup can never be smuggled through).
 
 function text(value: string, marks: AdfMark[]): AdfNode {
@@ -152,7 +152,7 @@ export function inlineMarkdownToAdf(source: string, marks: AdfMark[] = []): AdfN
     }
     if (token.start > 0) out.push(text(rest.slice(0, token.start), marks));
     if (token.kind === "code") {
-      // Code spans take no nested marks — literal content.
+      // Code spans take no nested marks, literal content.
       out.push(text(token.inner, [...marks, { type: "code" }]));
     } else if (token.kind === "link") {
       out.push(
@@ -262,7 +262,7 @@ function mediaSingle(fileName: string): AdfNode {
 interface FlowSection {
   flowName: string;
   title: string;
-  /** H2 + per-step blocks — ready to embed in a single doc or wrap as its own document. */
+  /** H2 + per-step blocks, ready to embed in a single doc or wrap as its own document. */
   nodes: AdfNode[];
   attachments: AdfAttachment[];
 }

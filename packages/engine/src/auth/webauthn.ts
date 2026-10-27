@@ -1,9 +1,9 @@
-// `webauthn` — passkey login through a CDP virtual authenticator. The authenticator is attached
+// `webauthn`: passkey login through a CDP virtual authenticator. The authenticator is attached
 // *before* navigation (so the login page's `navigator.credentials` sees a platform authenticator
 // from its first feature probe), then the strategy walks the page's own passkey flow: optional
 // username-first fill, click the trigger, wait for the logged-in marker, snapshot storageState.
 //
-// The virtual device is ctap2 / internal / user-verifying with automatic presence simulation —
+// The virtual device is ctap2 / internal / user-verifying with automatic presence simulation,
 // the standard headless-CI stand-in for Touch ID-style platform authenticators.
 
 import { z } from "zod";

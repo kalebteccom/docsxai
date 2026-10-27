@@ -174,7 +174,7 @@ describe("formatReportText", () => {
   });
 });
 
-describe("diagnose — hide / timeout hints", () => {
+describe("diagnose, hide / timeout hints", () => {
   const flow = parseFlowFile(`
 name: f
 locators: { badge: 'nextjs-portal' }

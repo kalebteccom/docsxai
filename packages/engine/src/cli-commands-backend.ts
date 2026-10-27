@@ -1,9 +1,9 @@
-// Backend / sync commands — everything that talks to `@docsxai/backend` over HTTP, plus the plugins
+// Backend / sync commands, everything that talks to `@docsxai/backend` over HTTP, plus the plugins
 // subcommand delegation:
-//   login    — validate a bearer token (or run the OAuth 2.1 + PKCE flow with --oauth)
-//   push     — serialise the doc pack and POST it as a new revision (binds the workspace on first push)
-//   pull     — fetch a revision's artifacts back into the workspace files
-//   plugins  — forwards to plugins-cli (list | info | sync over the plugin runtime; no plugin code runs)
+//   login: validate a bearer token (or run the OAuth 2.1 + PKCE flow with --oauth)
+//   push: serialise the doc pack and POST it as a new revision (binds the workspace on first push)
+//   pull: fetch a revision's artifacts back into the workspace files
+//   plugins: forwards to plugins-cli (list | info | sync over the plugin runtime; no plugin code runs)
 
 import * as path from "node:path";
 import {
@@ -319,7 +319,7 @@ export async function cmdPull(args: string[]): Promise<number> {
         artifact,
       );
     }
-    // The screenshots artifact is a sha256 manifest — fetch the bytes behind it (integrity-checked).
+    // The screenshots artifact is a sha256 manifest, fetch the bytes behind it (integrity-checked).
     const screenshotBytes = payloads.screenshots
       ? await fetchScreenshotBlobs(payloads.screenshots, client)
       : undefined;
@@ -342,7 +342,7 @@ export async function cmdPull(args: string[]): Promise<number> {
   }
 }
 
-/** `docsxai plugins …` — forwards to the plugin-runtime CLI verbatim. */
+/** `docsxai plugins …`: forwards to the plugin-runtime CLI verbatim. */
 export async function cmdPlugins(args: string[]): Promise<number> {
   return pluginsCli(args);
 }

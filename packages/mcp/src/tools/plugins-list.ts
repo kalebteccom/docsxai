@@ -1,4 +1,4 @@
-// plugins_list — resolve + load the workspace's configured plugins and report each one's status.
+// plugins_list: resolve + load the workspace's configured plugins and report each one's status.
 
 import { readPluginsLock, readWorkspacePluginsConfig, resolvePlugins } from "@docsxai/engine";
 import { defineTool, ok, requireWorkspace, WORKSPACE_ARG } from "../shared.js";

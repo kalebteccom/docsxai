@@ -1,4 +1,4 @@
-// `docsxai doctor` — per-check state coverage. Every check is a pure(ish) function over
+// `docsxai doctor`: per-check state coverage. Every check is a pure(ish) function over
 // injectable inputs (fixture workspaces, a fake backend, a mocked chromium probe), plus one
 // chromium-gated probe of the real playwright-core path and a CLI-dispatch smoke test.
 

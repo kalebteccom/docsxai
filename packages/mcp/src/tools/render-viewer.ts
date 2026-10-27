@@ -1,4 +1,4 @@
-// render_viewer — build the static viewer by resolving + spawning the docsxai-viewer bin
+// render_viewer: build the static viewer by resolving + spawning the docsxai-viewer bin
 // (the engine's resolution order: DOCSX_VIEWER_BIN, the installed package, PATH).
 
 import { spawn } from "node:child_process";

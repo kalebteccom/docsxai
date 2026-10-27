@@ -1,9 +1,9 @@
-// Calibration-aid commands — the static / inspection tools an engineer leans on while hand-authoring
+// Calibration-aid commands, the static / inspection tools an engineer leans on while hand-authoring
 // or fixing a flow-file. None of them mutate the doc pack; they read, check, and report:
-//   inspect    — open the app (cached session loaded) and dump [data-testid]s for pinning locators
-//   lint       — pure-static flow-file checks (R001…R004 + plugin-contributed rules)
-//   flow-tree  — the extends graph, orphans, and resolution issues
-//   diagnose   — halt context + recommendations for one step (optional live --cdp probe)
+//   inspect: open the app (cached session loaded) and dump [data-testid]s for pinning locators
+//   lint: pure-static flow-file checks (R001…R004 + plugin-contributed rules)
+//   flow-tree: the extends graph, orphans, and resolution issues
+//   diagnose: halt context + recommendations for one step (optional live --cdp probe)
 
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
@@ -261,7 +261,7 @@ export async function cmdLint(args: string[]): Promise<number> {
 
   // Lint-rule plugins: resolve the workspace's plugin registry and feed registered
   // rules through lintFlow's extraRules. A plugin-resolution failure degrades to
-  // core rules with a warning — lint must stay usable while a plugin is broken.
+  // core rules with a warning, lint must stay usable while a plugin is broken.
   let extraRules: LintRule[] = [];
   try {
     const cfg = await readWorkspacePluginsConfig(projectDir);

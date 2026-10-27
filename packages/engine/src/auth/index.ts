@@ -1,7 +1,7 @@
 // Target-site auth layer.
 //
-// Every strategy produces a `storageState` (cookies + localStorage + sessionStorage) — the
-// universal artifact every auth scheme reduces to — plus, for connection-level schemes
+// Every strategy produces a `storageState` (cookies + localStorage + sessionStorage), the
+// universal artifact every auth scheme reduces to, plus, for connection-level schemes
 // (HTTP Basic, PAT headers, mTLS), `contextOptions` the session launcher passes through to
 // the browser context. One module per strategy; this index holds the descriptor parsing,
 // the credential resolution, and the strategy registry.

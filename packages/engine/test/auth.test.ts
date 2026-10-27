@@ -97,7 +97,7 @@ describe("resolveCredsEnv", () => {
   });
 });
 
-describe("resolveCreds — user pools", () => {
+describe("resolveCreds, user pools", () => {
   const role = () => parseAuthStrategyFile(API_LOGIN_DESCRIPTOR).roles.editor!;
   const POOL_ENV = {
     APP_EDITOR_USER: "u0, u1 ,u2",
@@ -122,7 +122,7 @@ describe("resolveCreds — user pools", () => {
     });
   });
 
-  it("leaves single-value creds untouched regardless of workerIndex — even with commas elsewhere", () => {
+  it("leaves single-value creds untouched regardless of workerIndex, even with commas elsewhere", () => {
     const env = { APP_EDITOR_USER: "u0,u1", APP_EDITOR_PASS: "shared-pass" };
     expect(resolveCreds(role(), { workerIndex: 1, env })).toEqual({
       username: "u1",
@@ -158,7 +158,7 @@ describe("makeStrategy", () => {
 });
 
 describe("ManualCaptureStrategy", () => {
-  it("opens, waits for capture, snapshots storageState, and closes — in order", async () => {
+  it("opens, waits for capture, snapshots storageState, and closes, in order", async () => {
     const browser = new FakeBrowser(fakeState(-1));
     const s = new ManualCaptureStrategy(() => browser);
     const r = await s.authenticate({
@@ -202,7 +202,7 @@ describe("cookie expiry helpers", () => {
   });
 });
 
-describe("LocalStorageStateCache — expiry priority: auth_cookie > ttl > default", () => {
+describe("LocalStorageStateCache, expiry priority: auth_cookie > ttl > default", () => {
   let dir = "";
   beforeEach(async () => {
     dir = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-cache-"));
@@ -216,7 +216,7 @@ describe("LocalStorageStateCache — expiry priority: auth_cookie > ttl > defaul
       `schema: docsxai/auth-strategy@1\ndefault_role: editor\nroles: { editor: { strategy: manual-capture, cache: ${JSON.stringify(cache)} } }`,
     ).roles.editor!;
 
-  it("uses the auth_cookie's real expiry when set and present — ignoring ttl entirely", async () => {
+  it("uses the auth_cookie's real expiry when set and present, ignoring ttl entirely", async () => {
     const cache = new LocalStorageStateCache(path.join(dir, ".auth"));
     const cookieSec = Math.floor(now / 1000) + 7200; // 2h out
     const r = await cache.save(
@@ -262,7 +262,7 @@ describe("LocalStorageStateCache — expiry priority: auth_cookie > ttl > defaul
     expect(r2.expiresAt).toBe(now + 1_800_000);
   });
 
-  it("uses ttl when no auth_cookie is set — NOT the raw cookie min (this was the AAD-SSO blocker)", async () => {
+  it("uses ttl when no auth_cookie is set, NOT the raw cookie min (this was the AAD-SSO blocker)", async () => {
     const cache = new LocalStorageStateCache(path.join(dir, ".auth"));
     // a near-now strategy-reported expiresAt (as old code would compute from min(cookie.expires)) must NOT win
     const r = await cache.save(

@@ -1,5 +1,5 @@
 // Static analysis of flow-files. Catches common authoring mistakes at write-time, before a run.
-// Pure-static — no Playwright, no live page. Run via `docsxai lint`.
+// Pure-static: no Playwright, no live page. Run via `docsxai lint`.
 
 import type { FlowFile } from "./doc-pack.js";
 import { locatorRefName, referencedLocatorNames } from "./flow-file.js";
@@ -17,7 +17,7 @@ export type LintIssue = {
   suggestion?: string;
 };
 
-/** An injectable lint rule — the open hinge for the plugins runtime. Runs after the built-ins. */
+/** An injectable lint rule, the open hinge for the plugins runtime. Runs after the built-ins. */
 export type LintRule = {
   /** Stable diagnostic code (the built-ins use `RNNN`; injected rules should pick another prefix). */
   code: string;
@@ -33,7 +33,7 @@ export type LintOptions = {
   fileName?: string;
 };
 
-/** Heuristic — names that suggest a step kicks off a multi-minute backend op. */
+/** Heuristic, names that suggest a step kicks off a multi-minute backend op. */
 const LONG_ASYNC = /generate|create|process|submit|upload|translate|render|publish|export/i;
 
 /** A "bare" data-attribute selector like `[data-foo="x"]` with no further qualifier. */
@@ -67,7 +67,7 @@ function waitsFullDefault(step: FlowFile["steps"][number]): boolean {
 export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<LintIssue[]> {
   const issues: LintIssue[] = [];
 
-  // R017 — the flow's `name:` is not its file name; `extends:`, `--flow` and docs/<name>/ use the name
+  // R017: the flow's `name:` is not its file name; `extends:`, `--flow` and docs/<name>/ use the name
   if (opts.fileName !== undefined) {
     const stem = opts.fileName.replace(/\.flow\.yaml$/, "");
     if (stem !== flow.name) {
@@ -81,7 +81,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
     }
   }
 
-  // R001 — extends chain depth; R005 — extends target missing
+  // R001: extends chain depth; R005, extends target missing
   if (opts.loadFlow && flow.extends) {
     const chain = await walkChain(flow, opts.loadFlow);
     if (chain.missing !== undefined) {
@@ -104,7 +104,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
     }
   }
 
-  // R006 — locator defined but never referenced
+  // R006: locator defined but never referenced
   const referenced = referencedLocatorNames(flow);
   for (const name of Object.keys(flow.locators)) {
     if (!referenced.has(name)) {
@@ -119,10 +119,10 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
     }
   }
 
-  // R015 — the variants a `matrix` expands to; R016 — `copy_by_locale` keys no variant uses
+  // R015: the variants a `matrix` expands to; R016, `copy_by_locale` keys no variant uses
   issues.push(...lintMatrix(flow));
 
-  // R007 — terminal step lacks `success` (with `extends`, this flow's steps run last, so its
+  // R007: terminal step lacks `success` (with `extends`, this flow's steps run last, so its
   // final step IS the merged flow's terminal step)
   const lastStep = flow.steps[flow.steps.length - 1];
   if (lastStep && !lastStep.success) {
@@ -153,7 +153,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
   for (const [index, step] of flow.steps.entries()) {
     const anns = step.annotation ? [step.annotation] : (step.annotations ?? []);
 
-    // R002 — annotation anchored to a likely-unmounting action target
+    // R002: annotation anchored to a likely-unmounting action target
     if (anns.length && (step.action === "click" || step.action === "navigate") && step.target) {
       const anyWithoutOverride = anns.some((a) => !a.target);
       if (anyWithoutOverride) {
@@ -169,7 +169,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       }
     }
 
-    // R003 — wait_for object form without timeout_ms on a long-async-looking step
+    // R003: wait_for object form without timeout_ms on a long-async-looking step
     const w = step.wait_for;
     if (w && typeof w === "object" && !Array.isArray(w) && "selector" in w && !w.timeout_ms) {
       const targetText = step.target ? (locatorRefName(step.target) ?? step.target) : "";
@@ -185,7 +185,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       }
     }
 
-    // R004 — bare `[data-*=…]` selector — may have hidden duplicates
+    // R004: bare `[data-*=…]` selector, may have hidden duplicates
     if (step.target) {
       const sel = step.target.startsWith("$")
         ? flow.locators[locatorRefName(step.target) ?? ""]
@@ -203,7 +203,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       }
     }
 
-    // R008 — un-guarded optional step
+    // R008: un-guarded optional step
     if (step.optional && !step.wait_for && !step.success) {
       issues.push({
         code: "R008",
@@ -217,7 +217,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       });
     }
 
-    // R011 — optional step with no short timeout: a miss costs the full default wait
+    // R011: optional step with no short timeout: a miss costs the full default wait
     if (step.optional && waitsFullDefault(step)) {
       issues.push({
         code: "R011",
@@ -229,11 +229,11 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
         suggestion:
           step.action === "wait"
             ? "add `timeout_ms: 1500` to the step (or to its `wait_for`) so a miss is skipped fast"
-            : "add `timeout_ms: 1500` (100–30000) so a miss is skipped fast; keep the default only if the element can legitimately take longer to appear",
+            : "add `timeout_ms: 1500` (100-30000) so a miss is skipped fast; keep the default only if the element can legitimately take longer to appear",
       });
     }
 
-    // R012 — `hide` with no target (the runtime would halt on it)
+    // R012: `hide` with no target (the runtime would halt on it)
     if (step.action === "hide" && !step.target) {
       issues.push({
         code: "R012",
@@ -245,7 +245,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       });
     }
 
-    // R013 — step reaches an element an earlier `hide` step hid: a hidden element isn't visible,
+    // R013: step reaches an element an earlier `hide` step hid: a hidden element isn't visible,
     // so a click waits out its timeout, an annotation has nothing to anchor to, a visible-wait never ends
     const reached: Array<[string, string, ReadonlySet<string>]> = [];
     if (step.target && !["hide", "show", "navigate"].includes(step.action))
@@ -271,7 +271,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       });
     }
 
-    // R009 — element_stable with no selector context (a no-op)
+    // R009: element_stable with no selector context (a no-op)
     if (step.wait_for === "element_stable" && !step.target) {
       issues.push({
         code: "R009",
@@ -285,7 +285,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       });
     }
 
-    // R014 — a bare `wait` step that only sleeps (a guess at how long the page needs to settle)
+    // R014: a bare `wait` step that only sleeps (a guess at how long the page needs to settle)
     if (
       step.action === "wait" &&
       typeof step.wait_for === "object" &&
@@ -303,7 +303,7 @@ export async function lintFlow(flow: FlowFile, opts: LintOptions = {}): Promise<
       });
     }
 
-    // R010 — annotation anchored to a redacted element (the call-out would point at a black box)
+    // R010: annotation anchored to a redacted element (the call-out would point at a black box)
     const stepRedactionSelectors = new Set([
       ...flowRedactionSelectors,
       ...(step.redactions ?? []).flatMap((r) =>

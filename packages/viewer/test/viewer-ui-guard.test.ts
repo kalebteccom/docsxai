@@ -97,8 +97,8 @@ describe("viewer emitted CSS guard", () => {
   });
 
   it("emitted viewer sources carry no em dash", () => {
-    for (const [name, css] of Object.entries(SOURCES)) expect(css, name).not.toContain("—");
+    for (const [name, css] of Object.entries(SOURCES)) expect(css, name).not.toContain("\u2014");
     for (const s of [copyIdAstro(en), annotatedShotAstro(en), shotLightboxAstro(en)])
-      expect(s).not.toContain("—");
+      expect(s).not.toContain("\u2014");
   });
 });

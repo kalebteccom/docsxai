@@ -1,4 +1,4 @@
-// push_pack — serialise the workspace's doc pack and POST it as a new revision against the
+// push_pack: serialise the workspace's doc pack and POST it as a new revision against the
 // backend named in .docsxai.json (binding created + persisted on first push).
 
 import { promises as fs } from "node:fs";

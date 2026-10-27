@@ -17,5 +17,5 @@ steps:
     wait_for: load
     success: { text_contains: { selector: $clock_text, text: "2030-01-02T03:04:05" } }
     annotation:
-      copy: "The account page — the API key is masked in every screenshot"
+      copy: "The account page, the API key is masked in every screenshot"
       target: $control_panel

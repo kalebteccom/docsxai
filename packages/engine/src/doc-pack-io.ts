@@ -2,7 +2,7 @@
 // and (for `pull`) deserialise the payloads back into workspace files.
 //
 // The backend treats payloads as opaque; the schemas here are the engine's own contract.
-// Screenshot bytes travel as content-addressed blobs — the screenshots artifact carries only a
+// Screenshot bytes travel as content-addressed blobs, the screenshots artifact carries only a
 // sha256 manifest; `uploadScreenshotBlobs` / `fetchScreenshotBlobs` move the bytes.
 
 import { createHash } from "node:crypto";

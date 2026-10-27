@@ -1,7 +1,7 @@
 // The narrow page surface browser-driving auth strategies (ui-form, email-otp, webauthn) need.
 //
 // Mirrors the `InstrumentedBrowser` pattern: strategies depend on this interface so unit tests
-// fake it; the Playwright-backed default launcher routes through `launchPlaywrightSession` —
+// fake it; the Playwright-backed default launcher routes through `launchPlaywrightSession`,
 // `playwright-driver.ts` stays the engine's one Playwright import site.
 
 import { launchPlaywrightSession } from "../playwright-driver.js";

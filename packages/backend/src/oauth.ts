@@ -1,5 +1,5 @@
 // Minimal OAuth 2.1 authorization server: authorization-code + PKCE (S256 only), rotating refresh
-// tokens. Stub-grade by design — consent is auto-approved for callers that present the CI bearer
+// tokens. Stub-grade by design, consent is auto-approved for callers that present the CI bearer
 // token (or DOCSX_OAUTH_AUTO_APPROVE=1); there is no interactive consent page.
 //
 // Secret hygiene: codes and tokens are random 32-byte values handed to the client once; the server
@@ -76,7 +76,7 @@ export class OAuthIssuer {
     return code;
   }
 
-  /** Exchange a code + PKCE verifier for tokens. Codes are single-use — even a failed attempt burns one. */
+  /** Exchange a code + PKCE verifier for tokens. Codes are single-use, even a failed attempt burns one. */
   exchangeCode(opts: { code: string; verifier: string; redirectUri?: string }): OAuthTokens {
     const key = hash(opts.code);
     const entry = this.codes.get(key);

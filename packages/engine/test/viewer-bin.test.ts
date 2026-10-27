@@ -18,7 +18,7 @@ afterEach(async () => {
   await fs.rm(tmp, { recursive: true, force: true });
 });
 
-/** A dir with no resolvable viewer package — forces the require.resolve step to fail. */
+/** A dir with no resolvable viewer package, forces the require.resolve step to fail. */
 function noPackageHere(): string[] {
   return [tmp];
 }

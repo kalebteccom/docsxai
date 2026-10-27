@@ -2,7 +2,7 @@
 //
 // A flow-file is the source of truth for execution: declarative YAML, hand-editable,
 // translated to Playwright at run time (see flow-runtime, to come). This module is the
-// parse/validate/serialize boundary — everything downstream works with the validated
+// parse/validate/serialize boundary, everything downstream works with the validated
 // `FlowFile` value, never raw YAML.
 
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
@@ -61,7 +61,7 @@ export function parseFlowFile(yamlText: string, source = "<flow-file>"): FlowFil
     );
   }
   const flow = result.data;
-  // A flow with `extends` may reference locators it inherits from the parent — defer the ref check to
+  // A flow with `extends` may reference locators it inherits from the parent, defer the ref check to
   // `resolveFlowExtends`, which runs it on the merged flow.
   if (!flow.extends) assertLocatorRefsResolve(flow, source);
   assertStepIdsUnique(flow, source);
@@ -174,7 +174,7 @@ function assertStepIdsUnique(flow: FlowFile, source: string): void {
  * `prerequisites` are merged (this flow wins on locator-name collisions); `environment` merges per-key with
  * this flow's keys winning; `redactions` concatenate (parent's first); step ids must be unique across the
  * merge. `matrix` is the child's own (never inherited). Chains are followed recursively; cycles throw. `loadFlowFile(name)` parses `flows/<name>.flow.yaml`
- * (a flow with its own `extends` un-resolved — this function recurses). The result has no `extends`.
+ * (a flow with its own `extends` un-resolved, this function recurses). The result has no `extends`.
  */
 export async function resolveFlowExtends(
   flow: FlowFile,

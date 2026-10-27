@@ -44,7 +44,7 @@ export async function cmdCaptureAuth(args: string[]): Promise<number> {
     typeof flags.get("auth-cookie") === "string" ? (flags.get("auth-cookie") as string) : undefined;
   const cdp = typeof flags.get("cdp") === "string" ? (flags.get("cdp") as string) : undefined;
   const fresh = flags.get("fresh") === true;
-  // Persistent Chrome profile under the workspace — re-running capture-auth reuses the login. (Not when attaching, or with --fresh.)
+  // Persistent Chrome profile under the workspace, re-running capture-auth reuses the login. (Not when attaching, or with --fresh.)
   const profileDir =
     fresh || cdp ? undefined : resolveWorkspacePath(projectDir, ".auth", "chrome-profile");
 

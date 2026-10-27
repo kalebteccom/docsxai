@@ -1,4 +1,4 @@
-// pull_pack — fetch a revision's artifacts from the backend back into the workspace files.
+// pull_pack: fetch a revision's artifacts from the backend back into the workspace files.
 
 import {
   createBackendClient,

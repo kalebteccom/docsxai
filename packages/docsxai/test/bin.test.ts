@@ -1,5 +1,5 @@
 // Executes the published bins (bin.mjs, viewer-bin.mjs) as real subprocesses against a fixture
-// workspace — the regression gate for the meta-package wiring (`docsxai` bin → @docsxai/engine/cli
+// workspace: the regression gate for the meta-package wiring (`docsxai` bin → @docsxai/engine/cli
 // and `docsxai-viewer` → @docsxai/viewer's CLI, both run in-process). Requires the engine's dist to be built (`pnpm -r build`); the suite
 // skips loudly when it isn't, and CI always builds before testing.
 
@@ -316,10 +316,10 @@ describe.skipIf(!engineBuilt || !viewerBuilt)(
 
 it("suite ran against a built engine (or skipped loudly)", () => {
   if (!engineBuilt) {
-    console.warn(`bare-bin suite SKIPPED — build the engine first: pnpm -r build`);
+    console.warn(`bare-bin suite SKIPPED, build the engine first: pnpm -r build`);
   }
   if (!viewerBuilt) {
-    console.warn(`burn suite SKIPPED — build the viewer first: pnpm -r build`);
+    console.warn(`burn suite SKIPPED, build the viewer first: pnpm -r build`);
   }
   expect(typeof engineBuilt).toBe("boolean");
 });

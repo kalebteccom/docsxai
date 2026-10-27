@@ -1,9 +1,9 @@
-// Flow-file → Playwright test export — pure, deterministic, zero HTTP.
+// Flow-file → Playwright test export, pure, deterministic, zero HTTP.
 //
 // Each flow becomes one self-contained `.spec.ts`: locator const declarations from the flow's
 // `locators` map, steps translated to Playwright actions, `wait_for` to waits, `success` to
 // `expect(...)` assertions, the `environment` block to `test.use({...})` (+ `page.clock` for a
-// frozen clock), and `optional: true` steps wrapped in try/catch (conditionally-present UI — a
+// frozen clock), and `optional: true` steps wrapped in try/catch (conditionally-present UI, a
 // miss is tolerated, mirroring the runtime). The flow-file stays the source of truth: generated
 // specs carry a "regenerate, don't hand-edit" header and are meant to live in the consumer's
 // Playwright suite as a drift tripwire between docs and reality.
@@ -201,7 +201,7 @@ function stepLines(step: Step, ids: Map<string, string>): string[] {
 /**
  * Render a flow as a self-contained Playwright `.spec.ts`. The flow must have its `extends`
  * chain resolved first (see `resolveFlowExtends`) so the emitted spec carries the merged steps.
- * Pure string transform — deterministic for a given flow.
+ * Pure string transform, deterministic for a given flow.
  */
 export function exportFlowAsPlaywrightTest(
   flow: FlowFile,

@@ -1,9 +1,9 @@
-// Playwright-backed BrowserDriver — the real execution-mode browser.
+// Playwright-backed BrowserDriver, the real execution-mode browser.
 //
 // Implements the {@link BrowserDriver} the flow-runtime is written against, over a Playwright
 // `Page`. The runtime stays browser-agnostic; this is the one place that touches Playwright.
 //
-// Needs a browser binary. `playwright-core` ships the API but not the binaries — install one with
+// Needs a browser binary. `playwright-core` ships the API but not the binaries, install one with
 // `pnpm -C packages/engine exec playwright-core install chromium` (source checkout) or
 // `npx playwright-core install chromium` (global/npx installs). For execution
 // against an authed site, the context is created with a captured `storageState` (see the auth layer).
@@ -91,12 +91,12 @@ export interface PlaywrightSessionOptions {
    * Deterministic execution environment (a flow-file's resolved `environment` block). Locale /
    * timezone / viewport / color-scheme / reduced-motion are context options; the clock is frozen
    * via Playwright's clock API on the session's page. With `connectOverCdp` the context is
-   * externally owned — only the clock applies; the rest is skipped with one stderr warning.
+   * externally owned, only the clock applies; the rest is skipped with one stderr warning.
    */
   environment?: EnvironmentSpec;
   /** Device pixels per CSS pixel of the context (screenshots come out that many times larger). Absent or 1: the browser default. Ignored with `connectOverCdp`. */
   deviceScaleFactor?: number;
-  /** Extra `browser.newContext` options — see {@link SessionContextOptions}. Ignored with `connectOverCdp`. */
+  /** Extra `browser.newContext` options, see {@link SessionContextOptions}. Ignored with `connectOverCdp`. */
   contextOptions?: SessionContextOptions;
   /** Refuse requests to link-local and metadata addresses (see `egress-guard.ts`). Default: `DOCSX_EGRESS_GUARD` in the environment decides. */
   egressGuard?: EgressGuardOptions;
@@ -104,7 +104,7 @@ export interface PlaywrightSessionOptions {
 
 async function installClock(page: Page, env: EnvironmentSpec | undefined): Promise<void> {
   if (!env?.clock) return;
-  // `install({ time })` anchors the fake timers but still ticks with real time — millisecond
+  // `install({ time })` anchors the fake timers but still ticks with real time, millisecond
   // jitter between runs would break byte-identical screenshots. `setFixedTime` is what actually
   // freezes `Date`; timers keep running so timer-driven SPAs don't stall. The clock is
   // context-wide in Playwright, so one install covers every page in the session.
@@ -283,7 +283,7 @@ export class PlaywrightDriver implements BrowserDriver {
   async waitForElementStable(selector: string): Promise<void> {
     // Stable = two consecutive identical bounding boxes (±0.5 px), polled every 100 ms. Best-effort
     // with a 10 s budget: a perpetually-animating element proceeds after the budget rather than
-    // wedging the run — Playwright's per-action stability check still guards the action itself.
+    // wedging the run, Playwright's per-action stability check still guards the action itself.
     const loc = this.page.locator(selector).first();
     const deadline = Date.now() + 10_000;
     let prev: { x: number; y: number; width: number; height: number } | null = null;
@@ -346,9 +346,9 @@ export class PlaywrightDriver implements BrowserDriver {
   }
 
   async boundingBox(selector: string, timeoutMs?: number): Promise<BoundingBox | null> {
-    // Visible rect, not the element's own rect — intersect with each clipping ancestor (overflow != visible)
+    // Visible rect, not the element's own rect, intersect with each clipping ancestor (overflow != visible)
     // and the viewport. Playwright's `Locator.boundingBox()` returns the element's geometry, which for an
-    // element inside a scroll container includes parts that are clipped *off-screen-within-the-scroller* —
+    // element inside a scroll container includes parts that are clipped *off-screen-within-the-scroller*,
     // the screenshot doesn't show those, so a halo drawn from that rect overflows into the void.
     const loc = this.page.locator(selector).first();
     try {
@@ -408,7 +408,7 @@ export class PlaywrightDriver implements BrowserDriver {
         if (bottom > view.innerHeight) bottom = view.innerHeight;
         if (right <= x || bottom <= y) return null;
         // `getBoundingClientRect` + innerWidth/Height are CSS pixels; `page.screenshot()` produces a
-        // *device-pixel* image (CSS × devicePixelRatio — e.g. ~2× on a Retina/zoomed Chrome attached
+        // *device-pixel* image (CSS × devicePixelRatio, e.g. ~2× on a Retina/zoomed Chrome attached
         // over CDP). The viewer scales the bbox by clientWidth/naturalWidth where naturalWidth is the
         // PNG's device-pixel width, so the stored bbox must be in that same device-pixel space or the
         // halo lands at CSS-coords-÷-dpr (badly mispositioned, and a wrong target rect throws the
@@ -436,7 +436,7 @@ export class PlaywrightDriver implements BrowserDriver {
     return withTimeout(loc.evaluate(collectNearbyBoxes, radius), timeoutMs);
   }
   async screenshot(relPath: string, redactions: ResolvedRedaction[] = []): Promise<void> {
-    // relPath segments carry flow names + step ids from the flow-file — containment-checked
+    // relPath segments carry flow names + step ids from the flow-file, containment-checked
     // (symlink-aware) against the doc-pack root before writing.
     const abs = await resolveWorkspacePathReal(this.outputRoot, relPath);
     await fs.mkdir(path.dirname(abs), { recursive: true });
@@ -450,7 +450,7 @@ export class PlaywrightDriver implements BrowserDriver {
       await this.page.screenshot({ path: abs, ...shotOptions });
       return;
     }
-    // Redacted path: capture to a buffer, mask, then write — the unredacted bytes never hit disk.
+    // Redacted path: capture to a buffer, mask, then write, the unredacted bytes never hit disk.
     const boxes = await this.resolveRedactionBoxes(redactions);
     const png = await this.page.screenshot(shotOptions);
     await fs.writeFile(abs, applyRedactions(png, boxes));
@@ -459,7 +459,7 @@ export class PlaywrightDriver implements BrowserDriver {
   /**
    * Resolve redactions to pixel rects in the screenshot's device-pixel space: selector entries via
    * {@link boundingBox} (already dpr-scaled), fixed regions scaled by the page's devicePixelRatio.
-   * A selector matching nothing on-page is skipped with a warning — an absent element is vacuously
+   * A selector matching nothing on-page is skipped with a warning, an absent element is vacuously
    * redacted; halting would punish flows for UI that legitimately isn't there.
    */
   private async resolveRedactionBoxes(redactions: ResolvedRedaction[]): Promise<RedactionBox[]> {
@@ -516,7 +516,7 @@ export class PlaywrightDriver implements BrowserDriver {
     if (!visible) return "not-visible";
 
     // Off-screen check via the visible-rect bbox we already compute (intersects with clipping ancestors
-    // + the viewport). `null` from bbox here means fully clipped — caller's most useful framing is
+    // + the viewport). `null` from bbox here means fully clipped, caller's most useful framing is
     // "off-screen" rather than "not-visible" since CSS-wise the element IS visible.
     const bbox = await this.boundingBox(selector, timeoutMs).catch(() => null);
     if (!bbox) return "off-screen";
@@ -524,7 +524,7 @@ export class PlaywrightDriver implements BrowserDriver {
     const enabled = await first.isEnabled().catch(() => true);
     if (!enabled) return "disabled";
 
-    // "Covered" — hit-test the bbox center; if elementFromPoint returns something that isn't this
+    // "Covered", hit-test the bbox center; if elementFromPoint returns something that isn't this
     // element or a descendant of it, another layer is on top.
     try {
       const covered = await first.evaluate((el: unknown) => {
@@ -542,7 +542,7 @@ export class PlaywrightDriver implements BrowserDriver {
       });
       if (covered) return "covered";
     } catch {
-      // ignore — covered check is best-effort
+      // ignore: covered check is best-effort
     }
 
     return "actionable";

@@ -1,8 +1,8 @@
-// `docsxai plugins <list|info|sync>` — the operator surface over the plugin runtime.
+// `docsxai plugins <list|info|sync>`: the operator surface over the plugin runtime.
 //
-//   list  — resolve + load the workspace's plugins; print the full status table.
-//   info  — manifest + registered artifact names for one plugin (by namespace).
-//   sync  — (re)write plugins-lock.json from the resolved manifests. Never executes plugin code.
+//   list: resolve + load the workspace's plugins; print the full status table.
+//   info: manifest + registered artifact names for one plugin (by namespace).
+//   sync: (re)write plugins-lock.json from the resolved manifests. Never executes plugin code.
 //
 // All three honour `--format json` for tooling.
 

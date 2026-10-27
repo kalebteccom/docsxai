@@ -1,5 +1,5 @@
 // OAuth token plumbing: stored-token file, resolution precedence, refresh rotation, the PKCE
-// login helper, and run-history recording — all against a real stub server.
+// login helper, and run-history recording, all against a real stub server.
 
 import { createBackendStub } from "@docsxai/backend";
 import { promises as fs } from "node:fs";

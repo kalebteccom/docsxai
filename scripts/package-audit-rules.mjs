@@ -13,7 +13,7 @@ import { join } from "node:path";
 // Match against tarball-relative paths (as `npm pack --json` lists them, with no `package/` prefix).
 // Each entry is `{ pattern: RegExp, why: string }`.
 export const FORBIDDEN_PATTERNS = [
-  // Dotfiles / dot-directories — npm strips most by default, but a custom
+  // Dotfiles / dot-directories, npm strips most by default, but a custom
   // "files" allowlist that hits a directory containing dotfiles ships them.
   { pattern: /(^|\/)\.env(\.|$)/, why: "dotenv file would leak credentials" },
   { pattern: /(^|\/)\.git(\/|$)/, why: ".git directory" },
@@ -39,7 +39,7 @@ export const FORBIDDEN_PATTERNS = [
   { pattern: /(^|\/)__fixtures__(\/|$)/, why: "__fixtures__ directory" },
   { pattern: /(^|\/)tests?(\/|$)/, why: "tests directory" },
 
-  // Sourcemaps — leak verbatim source via sourcesContent.
+  // Sourcemaps: leak verbatim source via sourcesContent.
   { pattern: /\.map$/, why: "sourcemap leaks src/" },
 
   // Secret-shaped filenames.

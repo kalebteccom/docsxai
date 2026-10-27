@@ -1,14 +1,14 @@
 // Interactive docs-app generator.
 //
-// Given a doc pack's `docs/` tree — `<flow>/annotations.json`, `<flow>/screenshots/<step>.png`,
-// optional `<flow>/<step>.md` — emit a self-contained static viewer: one HTML page per flow plus an
+// Given a doc pack's `docs/` tree, `<flow>/annotations.json`, `<flow>/screenshots/<step>.png`,
+// optional `<flow>/<step>.md`, emit a self-contained static viewer: one HTML page per flow plus an
 // index. Annotations (arrows + popups) are *not baked into the PNGs*; the page overlays them from the
 // embedded `annotations.json` at render time, so they stay re-stylable.
 //
 // The overlay script inlined into each flow page is NOT maintained here: it is the esbuild bundle of
 // src/overlay-runtime.ts (which imports the real placeCallout from placement.ts), emitted to
 // dist/generated/overlay.js by scripts/bundle-overlay.mjs at package build time and read from disk
-// at render time. Every page also carries a CSP meta that blocks all network egress — the emitted
+// at render time. Every page also carries a CSP meta that blocks all network egress, the emitted
 // HTML is fully self-contained (inline style + script, workspace-local images, no CDN fetches).
 
 import { promises as fs } from "node:fs";

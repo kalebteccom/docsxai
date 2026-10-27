@@ -1,6 +1,6 @@
 // Flags such as `--flow` and `--fail-on` must reach the page as two hyphens. The Markdown
 // processor's smart punctuation turned `--` into an em dash, so the landing hero showed
-// `—flow`. Checks the site config, the rendered output of the configured processor, and the
+// an em dash before "flow". Checks the site config, the rendered output of the configured processor, and the
 // built HTML when `pnpm build` has run. No browser needed.
 // Run with `node --test` (the package's `test` script).
 import assert from "node:assert/strict";
@@ -82,7 +82,7 @@ describe("no em or en dashes in docs and site copy", () => {
 });
 
 /** A flag-like token after a space or an opening bracket: an em dash glued to a lowercase word. */
-const BROKEN_FLAG = /[\s(>]—[a-z]/;
+const BROKEN_FLAG = /[\s(>]\u2014[a-z]/;
 
 function htmlFiles(dir) {
   const out = [];
@@ -110,7 +110,7 @@ describe("flags keep their two hyphens", () => {
     );
     assert.match(code, /--fail-on warn --flow x -- done/);
     assert.match(code, /--flow publish-post/);
-    assert.doesNotMatch(code, /—|–/);
+    assert.doesNotMatch(code, /\u2014|\u2013/);
   });
 
   it("keeps the landing hero source on `--`", () => {

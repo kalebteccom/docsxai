@@ -1,4 +1,4 @@
-// get_run_artifacts — read-only: the artifact PATHS a run produced (no file contents).
+// get_run_artifacts: read-only: the artifact PATHS a run produced (no file contents).
 // Screenshots/halt shots can be large; the host agent reads the ones it needs.
 
 import { promises as fs } from "node:fs";

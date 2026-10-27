@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// `docsxai` — the batteries-included CLI (meta-package bin). Resolves @docsxai/engine's
+// `docsxai`: the batteries-included CLI (meta-package bin). Resolves @docsxai/engine's
 // compiled CLI entry and runs it in-process (no child process). One global install of
 // `docsxai` puts this bin and `docsxai-viewer` (viewer-bin.mjs, a shim to the viewer's CLI) on
 // the path, so `docsxai render`, `docsxai burn` and `docsxai site` work out of the box.

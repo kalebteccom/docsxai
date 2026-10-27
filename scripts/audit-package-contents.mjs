@@ -4,25 +4,25 @@
 // Runs `npm pack --dry-run --json` per workspace package and asserts the
 // to-be-published tarball does not contain forbidden patterns. Wired to a
 // dedicated CI gate so a regression is caught before any publish path
-// (the root workspace is `private: true` and is skipped — only the
+// (the root workspace is `private: true` and is skipped, only the
 // shippable sub-packages are audited).
 //
 // Forbidden contents (per universal-baseline §F, npm-package-defense §3.4):
 //
 //   - Any dotfile / dot-directory other than the explicit allowlist
 //     (.env, .git, .github, .vscode, .idea, .claude, .DS_Store, etc).
-//   - node_modules — should never end up in a tarball, but if `"files"` is
+//   - node_modules, should never end up in a tarball, but if `"files"` is
 //     loosened a careless commit can pull it in.
-//   - Tests, fixtures, coverage — `*.test.{js,ts}`, `*.spec.{js,ts}`,
+//   - Tests, fixtures, coverage, `*.test.{js,ts}`, `*.spec.{js,ts}`,
 //     `__tests__/`, `__fixtures__/`, `coverage/`, `.nyc_output/`.
-//   - Sourcemaps (`*.map`) — leak verbatim source via sourcesContent.
-//   - Secrets-shaped filenames — `.netrc`, `id_rsa*`, `*.pem`, `*.key`,
+//   - Sourcemaps (`*.map`), leak verbatim source via sourcesContent.
+//   - Secrets-shaped filenames, `.netrc`, `id_rsa*`, `*.pem`, `*.key`,
 //     `credentials.json`, `secrets.json`.
 //   - Anything > 1 MB unless explicitly allowlisted.
 //
 // Lifecycle-script check: each `package.json` must not declare any of
 //   preinstall / install / postinstall / preuninstall / uninstall / postuninstall
-// These run on the adopter's machine on `npm install` — every confirmed npm
+// These run on the adopter's machine on `npm install`, every confirmed npm
 // supply-chain compromise of the last two years has used one. `prepare` and
 // `prepublishOnly` are publisher-side or build-only and remain allowed.
 
@@ -51,7 +51,7 @@ const LARGE_FILE_ALLOWLIST = new Set([]);
 const MAX_UNALLOWLISTED_BYTES = 1024 * 1024; // 1 MB
 
 function runNpmPack(cwd) {
-  // Use npm (ships with Node) — we do NOT want pnpm-pack semantics here; we
+  // Use npm (ships with Node), we do NOT want pnpm-pack semantics here; we
   // want the exact list npm would publish.
   const out = execFileSync("npm", ["pack", "--dry-run", "--json"], {
     cwd,
@@ -124,7 +124,7 @@ function auditTarball(cwd, label, pkg) {
 }
 
 function main() {
-  // Root workspace is `private: true` — never published; skipped.
+  // Root workspace is `private: true`, never published; skipped.
   // Each shippable sub-package is audited independently.
   const packageDirs = [
     "backend",

@@ -4,7 +4,7 @@
 // (no agent context, no LLM) reproduces it. Here we run a fixture flow against a local toy site twice and
 // assert the structured artifacts are byte-identical and the screenshots are present.
 //
-// Needs a Chromium binary. `playwright-core` ships the API, not the binary — install one with
+// Needs a Chromium binary. `playwright-core` ships the API, not the binary, install one with
 // `pnpm -C packages/engine exec playwright-core install chromium` (or `npx playwright-core install chromium`).
 // Without it this suite skips (so CI without a browser stays green); install it to actually exercise the keystone.
 
@@ -43,7 +43,7 @@ async function calibratedRun(outDir: string) {
   }
 }
 
-describe.skipIf(!chromiumAvailable)("keystone — calibrate → run → reproduce", () => {
+describe.skipIf(!chromiumAvailable)("keystone, calibrate → run → reproduce", () => {
   it(
     "runs the fixture flow against the toy site and emits the expected doc-pack artifacts",
     // 120s headroom: each calibratedRun launches + gracefully closes a real
@@ -83,7 +83,7 @@ describe.skipIf(!chromiumAvailable)("keystone — calibrate → run → reproduc
   );
 
   it(
-    "is reproducible — two independent runs produce identical structured artifacts",
+    "is reproducible, two independent runs produce identical structured artifacts",
     // 120s headroom: each calibratedRun launches + gracefully closes a real
     // Chromium (~30s teardown on macOS headless); the two-run reproducibility
     // tests close two browsers, so 30s is too tight here.
@@ -93,7 +93,7 @@ describe.skipIf(!chromiumAvailable)("keystone — calibrate → run → reproduc
       try {
         const a = await calibratedRun(path.join(tmp, "run1"));
         const b = await calibratedRun(path.join(tmp, "run2"));
-        // No timestamps in our annotations — they should be exactly equal.
+        // No timestamps in our annotations, they should be exactly equal.
         expect(b.annotations).toEqual(a.annotations);
         expect(b.steps).toEqual(a.steps);
       } finally {
@@ -120,7 +120,7 @@ async function redactedClockRun(outDir: string) {
   }
 }
 
-describe.skipIf(!chromiumAvailable)("keystone — frozen clock + redaction determinism", () => {
+describe.skipIf(!chromiumAvailable)("keystone, frozen clock + redaction determinism", () => {
   it(
     "masks the secret element with uniform black while a control region stays untouched",
     // 120s headroom: each calibratedRun launches + gracefully closes a real
@@ -130,7 +130,7 @@ describe.skipIf(!chromiumAvailable)("keystone — frozen clock + redaction deter
     async () => {
       const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "docsxai-keystone-"));
       try {
-        // The flow's own success criterion asserts the rendered clock shows the frozen instant —
+        // The flow's own success criterion asserts the rendered clock shows the frozen instant,
         // a non-frozen clock halts the run before any screenshot assertion happens.
         await redactedClockRun(path.join(tmp, "run1"));
         const shot = path.join(
@@ -146,14 +146,14 @@ describe.skipIf(!chromiumAvailable)("keystone — frozen clock + redaction deter
           const i = (y * img.width + x) * 4;
           return [img.data[i], img.data[i + 1], img.data[i + 2], img.data[i + 3]];
         };
-        // #secret occupies CSS (100,100)–(300,140); dpr=1 headless → device px 1:1. Interior
+        // #secret occupies CSS (100,100) to (300,140); dpr=1 headless → device px 1:1. Interior
         // must be uniformly black (the solid `box` fill).
         for (let y = 102; y < 138; y += 6) {
           for (let x = 102; x < 298; x += 14) {
             expect(px(x, y)).toEqual([0, 0, 0, 255]);
           }
         }
-        // #control at CSS (400,100)–(520,140) is NOT redacted — its corner keeps the page colour.
+        // #control at CSS (400,100) to (520,140) is NOT redacted, its corner keeps the page colour.
         expect(px(402, 102)).not.toEqual([0, 0, 0, 255]);
       } finally {
         await fs.rm(tmp, { recursive: true, force: true });
@@ -162,7 +162,7 @@ describe.skipIf(!chromiumAvailable)("keystone — frozen clock + redaction deter
   );
 
   it(
-    "is byte-identical across two independent runs — the headline determinism claim",
+    "is byte-identical across two independent runs, the headline determinism claim",
     // 120s headroom: each calibratedRun launches + gracefully closes a real
     // Chromium (~30s teardown on macOS headless); the two-run reproducibility
     // tests close two browsers, so 30s is too tight here.
@@ -184,11 +184,11 @@ describe.skipIf(!chromiumAvailable)("keystone — frozen clock + redaction deter
   );
 });
 
-describe("keystone — availability note", () => {
+describe("keystone, availability note", () => {
   it(
     chromiumAvailable
-      ? "Chromium is available — keystone suite ran"
-      : "Chromium not installed — keystone suite skipped (see file header)",
+      ? "Chromium is available, keystone suite ran"
+      : "Chromium not installed, keystone suite skipped (see file header)",
     () => {
       expect(typeof chromiumAvailable).toBe("boolean");
     },

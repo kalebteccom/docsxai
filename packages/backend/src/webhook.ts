@@ -1,4 +1,4 @@
-// GitHub webhook runtime: raw HMAC signature verification (no Probot — node:crypto only) and the
+// GitHub webhook runtime: raw HMAC signature verification (no Probot, node:crypto only) and the
 // execution-dispatch contract. The webhook endpoint is the only unauthenticated mutating route, so
 // verification is strict: exact `sha256=<64 hex>` shape, constant-time compare, reject on any
 // absence. Dispatch is fire-and-forget from the HTTP handler's perspective (202 Accepted); the
@@ -53,21 +53,21 @@ export interface WebhookJob {
 
 /** The execution surface the webhook endpoint hands accepted deliveries to. */
 export interface RunDispatcher {
-  /** Accept a job. Must resolve fast — execution happens after the 202 goes out. */
+  /** Accept a job. Must resolve fast, execution happens after the 202 goes out. */
   dispatch(job: WebhookJob): Promise<void>;
 }
 
 export type ExecuteRun = (job: WebhookJob) => Promise<void>;
 
 export interface QueuedDispatcherOptions {
-  /** Observe job failures (the queue itself never rejects — one bad job must not wedge it). */
+  /** Observe job failures (the queue itself never rejects, one bad job must not wedge it). */
   onError?: (job: WebhookJob, error: unknown) => void;
 }
 
 /**
  * In-process dispatcher: one serial queue per project (jobs for the same project run strictly in
  * arrival order; jobs for different projects interleave freely). `executeRun` is the abstract run
- * callback — `SpawnRunner.executeRun` in production, a fake in tests.
+ * callback: `SpawnRunner.executeRun` in production, a fake in tests.
  */
 export class QueuedDispatcher implements RunDispatcher {
   private readonly tails = new Map<string, Promise<void>>();

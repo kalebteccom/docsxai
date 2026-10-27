@@ -1,14 +1,14 @@
-// Doc-pack schema — the artifacts a calibration run produces and an execution run consumes.
+// Doc-pack schema, the artifacts a calibration run produces and an execution run consumes.
 //
 // Layout on disk:
-//   <project>/flows/<flow>.flow.yaml          — flow-file (source of truth for execution)
-//   <project>/docs/<flow>/<step>.md           — step write-ups (user-facing prose)
+//   <project>/flows/<flow>.flow.yaml: flow-file (source of truth for execution)
+//   <project>/docs/<flow>/<step>.md: step write-ups (user-facing prose)
 //   <project>/docs/<flow>/screenshots/<step>.png
-//   <project>/docs/<flow>/annotations.json    — per-step annotation records (this module's AnnotationsFile)
+//   <project>/docs/<flow>/annotations.json: per-step annotation records (this module's AnnotationsFile)
 //   A flow with a `matrix` writes the two lines above under docs/<flow>/<variant>/ instead.
-//   <project>/docs/style.yaml + style.json    — style artifact (canonical + derived)
-//   <project>/docs/locators.yaml              — locator manifest (one canonical locator per step)
-//   <project>/auth/strategy.yaml              — target-site auth-strategy descriptor
+//   <project>/docs/style.yaml + style.json, style artifact (canonical + derived)
+//   <project>/docs/locators.yaml: locator manifest (one canonical locator per step)
+//   <project>/auth/strategy.yaml: target-site auth-strategy descriptor
 //
 // Runtime validation is done with zod; the exported TS types are inferred from the schemas
 // so the two never drift.
@@ -112,9 +112,9 @@ function stepTimeoutHasEffect(s: {
 /**
  * What to wait for after a step's action settles. `network_idle` / `element_stable` / `load` / `settled` are
  * named primitives (`settled` = fonts loaded, visible images loaded, viewport layout still, bounded by the
- * step's `timeout_ms`); `{ selector }` waits for an element to appear (Playwright's default timeout, ~30s) — give it
+ * step's `timeout_ms`); `{ selector }` waits for an element to appear (Playwright's default timeout, ~30s), give it
  * `timeout_ms` to override that (e.g. waiting on a multi-minute backend op that mounts a "done" element);
- * `{ timeout_ms }` alone is a blind sleep (last resort — for animations, not state).
+ * `{ timeout_ms }` alone is a blind sleep (last resort, for animations, not state).
  */
 export const WaitSpec = z.union([
   z.enum(["network_idle", "element_stable", "load", "settled"]),
@@ -123,7 +123,7 @@ export const WaitSpec = z.union([
 ]);
 export type WaitSpec = z.infer<typeof WaitSpec>;
 
-/** Post-step success criterion. Execution halts if it fails (no selector fallbacks — drift is a signal). */
+/** Post-step success criterion. Execution halts if it fails (no selector fallbacks, drift is a signal). */
 export const SuccessSpec = z.union([
   z.object({ visible: LocatorRef }).strict(),
   z.object({ hidden: LocatorRef }).strict(),
@@ -138,7 +138,7 @@ export const NudgeOffset = z.object({ x: z.number(), y: z.number() }).strict();
 export type NudgeOffset = z.infer<typeof NudgeOffset>;
 
 // ---------------------------------------------------------------------------
-// Redactions (`redactions:` — flow-level and per-step)
+// Redactions (`redactions:`, flow-level and per-step)
 // ---------------------------------------------------------------------------
 
 export const RedactionStyle = z.enum(["box", "pixelate"]);
@@ -159,7 +159,7 @@ export type RedactionRegion = z.infer<typeof RedactionRegion>;
  * One area to mask on every screenshot it applies to (step shots *and* halt shots): either an
  * element (locator ref / inline selector, resolved to its bounding box at capture time) or a fixed
  * `region`. Default `style` is `box` (solid #000 fill); `pixelate` is a 16-px mosaic. A selector
- * that matches nothing at capture time is skipped with a stderr warning — redacting an absent
+ * that matches nothing at capture time is skipped with a stderr warning, redacting an absent
  * element is vacuously satisfied, never a halt. Flow-level `redactions` apply to every step;
  * per-step `redactions` are additive.
  */
@@ -210,15 +210,15 @@ export const StepAnnotation = z
     /**
      * Optional pixel offset applied to the callout + arrow after Popper-like placement. The halo (which
      * highlights the target element) stays on the target. Use this when two annotations on the same
-     * screenshot would otherwise overlap each other — nudge one aside so both are readable.
-     * Image-space pixels; small values (5–40 px in either direction) typically suffice.
+     * screenshot would otherwise overlap each other, nudge one aside so both are readable.
+     * Image-space pixels; small values (5-40 px in either direction) typically suffice.
      */
     nudge: NudgeOffset.optional(),
-    /** Optional burner placement settings — see {@link AnnotationPlacement}. Copied onto the annotation record. */
+    /** Optional burner placement settings, see {@link AnnotationPlacement}. Copied onto the annotation record. */
     placement: AnnotationPlacement.optional(),
     /**
      * Optional override: the locator to anchor the halo/arrow to. Default = the step's `target`. Use this on
-     * a step whose action *transitions the UI* — the action target vanishes (gets unmounted / replaced) and
+     * a step whose action *transitions the UI*, the action target vanishes (gets unmounted / replaced) and
      * a *different* element is what you want to highlight in the resulting state. Point this at the
      * surviving / appearing element.
      */
@@ -247,13 +247,13 @@ export const Step = z
     /**
      * Best-effort step: if the action / `wait_for` / `success` check throws (target absent, wait timed
      * out, etc.), **skip this step and continue** instead of halting the flow. For conditionally-present
-     * UI — a confirmation modal that sometimes appears, a first-run tooltip, a cookie banner. A skipped
+     * UI: a confirmation modal that sometimes appears, a first-run tooltip, a cookie banner. A skipped
      * optional step emits no screenshot / annotation (same as a step skipped by `--start-from`). Prefer
      * this over a permissive comma-selector that no-ops on one branch.
      */
     optional: z.boolean().optional(),
     /**
-     * How long, in ms, this step waits for its `target` before giving up (100–30000). Unset keeps the
+     * How long, in ms, this step waits for its `target` before giving up (100-30000). Unset keeps the
      * driver default (Playwright's 30 s), so existing flows run exactly as before. The reason to set it
      * is an `optional: true` step whose target is usually absent: a short value (e.g. 1500) skips it fast
      * instead of holding the run for the full default. On a `wait` step it bounds the `wait_for`
@@ -270,9 +270,9 @@ export const Step = z
     /** Single call-out on this step's screenshot. Shorthand for a one-element `annotations` array. */
     annotation: StepAnnotation.optional(),
     /**
-     * Multiple call-outs on the same screenshot — rendered as numbered badges (1, 2, …) so the reader sees
+     * Multiple call-outs on the same screenshot, rendered as numbered badges (1, 2, …) so the reader sees
      * up front that there's more than one thing to look at without having to hover everything. Each entry
-     * has its own `target` (defaults to the step's `target`) and `copy` / `arrow` — see {@link StepAnnotation}.
+     * has its own `target` (defaults to the step's `target`) and `copy` / `arrow`, see {@link StepAnnotation}.
      * Mutually exclusive with `annotation`.
      */
     annotations: z.array(StepAnnotation).min(1).optional(),
@@ -339,7 +339,7 @@ export const FlowFile = z
     extends: FlowName.optional(),
     /**
      * Deterministic execution environment (frozen clock, locale, timezone, viewport, color scheme,
-     * reduced motion). With `extends`, merged per-key — this flow's keys win over the parent's.
+     * reduced motion). With `extends`, merged per-key, this flow's keys win over the parent's.
      */
     environment: EnvironmentSpec.optional(),
     /**
@@ -380,7 +380,7 @@ export const AnnotationRecord = z
     bounding_box: BoundingBox.optional(),
     copy: z.string().min(1),
     arrow_style: ArrowStyle.optional(),
-    /** Optional pixel offset applied to the callout + arrow at render time — see {@link NudgeOffset}. */
+    /** Optional pixel offset applied to the callout + arrow at render time, see {@link NudgeOffset}. */
     nudge: NudgeOffset.optional(),
     /**
      * Optional boxes of page content (text, controls), in screenshot pixels, that the burner keeps this
@@ -392,9 +392,9 @@ export const AnnotationRecord = z
      * carries the same field.
      */
     obstacles: z.array(BoundingBox).max(MAX_OBSTACLES).optional(),
-    /** Optional burner placement settings (inside the target, side, alignment, pinned arrow, width) — see {@link AnnotationPlacement}. */
+    /** Optional burner placement settings (inside the target, side, alignment, pinned arrow, width), see {@link AnnotationPlacement}. */
     placement: AnnotationPlacement.optional(),
-    /** 1-based index of this annotation *within its step's screenshot* — set only when the step has > 1 annotation, so the viewer can render a numbered badge. Absent → render as a plain (un-numbered) halo. */
+    /** 1-based index of this annotation *within its step's screenshot*, set only when the step has > 1 annotation, so the viewer can render a numbered badge. Absent → render as a plain (un-numbered) halo. */
     index: z.number().int().positive().optional(),
   })
   .strict();
@@ -479,7 +479,7 @@ export type CacheTtl = z.infer<typeof CacheTtl>;
 export const RoleAuth = z
   .object({
     strategy: StrategyName,
-    /** Env-var *names* holding credentials — never the values. May be `{}` (e.g. `manual-capture` needs none). */
+    /** Env-var *names* holding credentials, never the values. May be `{}` (e.g. `manual-capture` needs none). */
     creds_env: z.record(z.string(), z.string()).default({}),
     options: z.record(z.string(), z.unknown()).default({}),
     cache: z
@@ -490,7 +490,7 @@ export const RoleAuth = z
         ttl: CacheTtl.default("session"),
         /**
          * Name of the app's actual auth/session cookie. When set, the cached session's `expiresAt` is *that*
-         * cookie's expiry — the real bound — rather than the `ttl` guess. Identify it from the captured jar
+         * cookie's expiry, the real bound, rather than the `ttl` guess. Identify it from the captured jar
          * (`capture-auth` prints it): it's on the app's domain, long-lived (not an ephemeral IdP scratch
          * cookie), e.g. `AppSession.Production` / `.AspNetCore.Cookies` / `session`. Optional.
          */

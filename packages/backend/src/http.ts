@@ -1,6 +1,6 @@
 // Pure, closure-free HTTP plumbing shared by the backend server and its handler siblings: route
 // matching against the ROUTES table, request-body reading with byte limits, JSON parsing, and the
-// small validators/predicates the route handlers lean on. Nothing here closes over server state —
+// small validators/predicates the route handlers lean on. Nothing here closes over server state,
 // everything is a free function or value so the handler siblings can import it without a cycle.
 
 import { type IncomingMessage, type ServerResponse } from "node:http";

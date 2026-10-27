@@ -1,4 +1,4 @@
-// flow_tree — the workspace's extends graph (roots, descendants, orphans, resolution issues).
+// flow_tree: the workspace's extends graph (roots, descendants, orphans, resolution issues).
 
 import { buildFlowTree } from "@docsxai/engine";
 import { defineTool, loadFlowsByName, ok, requireWorkspace, WORKSPACE_ARG } from "../shared.js";
