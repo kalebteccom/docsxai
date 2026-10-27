@@ -9,7 +9,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DASH = /[–—]/;
+const DASH = /[\u2013\u2014]/;
 
 /**
  * Paths that may keep a dash. Each needs a reason. `prefix` entries match a path prefix,
@@ -51,11 +51,11 @@ describe("no em or en dashes anywhere in the repo", () => {
   });
 
   it("flags a planted dash, skips binary text and excepted paths", () => {
-    assert.equal(dashLines("a.ts", "// a — b\n").length, 1);
-    assert.equal(dashLines("a.ts", "// 1–5\n").length, 1);
+    assert.equal(dashLines("a.ts", "// a \u2014 b\n").length, 1);
+    assert.equal(dashLines("a.ts", "// 1\u20135\n").length, 1);
     assert.equal(dashLines("a.ts", "// plain\n").length, 0);
-    assert.equal(dashLines("a.bin", "a\0—").length, 0);
-    assert.equal(dashLines(".woodpecker/x.yml", "—").length, 0);
+    assert.equal(dashLines("a.bin", "a\0\u2014").length, 0);
+    assert.equal(dashLines(".woodpecker/x.yml", "\u2014").length, 0);
   });
 
   it("finds none in any tracked text file", () => {
