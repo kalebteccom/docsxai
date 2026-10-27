@@ -84,7 +84,7 @@ roles:
 ### `api-login`
 
 POST the role's credentials to the app's login endpoint over plain HTTP and
-keep the cookies collected across the redirect chain. No browser. Options:
+keep the cookies collected across the redirect chain. It needs no browser. Options:
 `login_url`, `method` (default `POST`), `body_format: json|form` (default
 `json`), and `success_check` - one of `{ cookie }` (the jar must contain it),
 `{ status }` (final status must equal it), or `{ json_path, equals }`
@@ -203,7 +203,7 @@ roles:
 ### `jwt-injection`
 
 Obtain a bearer token and inject it into the browser's storage the way the
-target SPA expects. No browser needed to authenticate. Token source: exactly
+target SPA expects. It needs no browser to authenticate. Token source: exactly
 one of `token_env` (a static token in an env var) or `token_url` (an OAuth2
 client-credentials mint; `creds_env`: `client_id`, `client_secret`).
 Injection: `inject: { localStorage: [{ key, value_template }], cookies:
@@ -228,7 +228,7 @@ roles:
 ### `http-basic`
 
 Connection-level HTTP Basic: the browser context answers 401 challenges with
-the role's credentials via Playwright `httpCredentials`. No options.
+the role's credentials via Playwright `httpCredentials`. It takes no options.
 `creds_env`: `username`, `password`. Nothing to capture and nothing to
 expire - the storageState is empty and the credentials ride along on every
 context.
