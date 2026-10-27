@@ -2,17 +2,17 @@
 
 docsxai has four documentation surfaces with distinct contracts. Mixing them is a docs-impact bug.
 
-## `docs/` — public adopter contract
+## `docs/`: public adopter contract
 
 Repo-root markdown today; a published site lands later. Source of truth for what docsxai promises to its adopters.
 
-- [`docs/agent-runbook.md`](../../agent-runbook.md) — the hand-to-an-agent calibration workflow.
-- [`docs/running-against-an-app-repo.md`](../../running-against-an-app-repo.md) — human-readable runbook.
-- [`docs/actionability-contract.md`](../../actionability-contract.md) — the portable `actionable()` predicate contract for browser-bridge consumers.
+- [`docs/agent-runbook.md`](../../agent-runbook.md): the hand-to-an-agent calibration workflow.
+- [`docs/running-against-an-app-repo.md`](../../running-against-an-app-repo.md): human-readable runbook.
+- [`docs/actionability-contract.md`](../../actionability-contract.md): the portable `actionable()` predicate contract for browser-bridge consumers.
 
 **Every public behavior change updates the relevant page in the same diff.** Stale adopter docs poison integration.
 
-## `docs/ai-context/` — agent-facing routing layer
+## `docs/ai-context/`: agent-facing routing layer
 
 This subtree. Not published. Read by agents (and contributors) working _on_ docsxai.
 
@@ -22,23 +22,23 @@ This subtree. Not published. Read by agents (and contributors) working _on_ docs
 - **Process.** `release-process/semver-clock.md`, `branch-protection.md`.
 - **Field reports.** `adopter-reports/`, when they land.
 
-## Colocated `README.md` — internal contracts
+## Colocated `README.md`: internal contracts
 
 Per-package READMEs are internal architecture contracts.
 
-- `packages/engine/README.md` — flow-file format, `BrowserDriver`, CLI command list.
-- `packages/plugin/README.md` — Claude Code plugin commands + skills.
-- `packages/backend/README.md` — REST surface, revision model.
-- `packages/skill/README.md` — vendorable skill bundle.
-- `packages/viewer/README.md` — `buildViewer`, `placeCallout`, the no-baked-annotations contract.
+- `packages/engine/README.md`: flow-file format, `BrowserDriver`, CLI command list.
+- `packages/plugin/README.md`: Claude Code plugin commands + skills.
+- `packages/backend/README.md`: REST surface, revision model.
+- `packages/skill/README.md`: vendorable skill bundle.
+- `packages/viewer/README.md`: `buildViewer`, `placeCallout`, the no-baked-annotations contract.
 
 When refactoring a package, the colocated README travels with it.
 
-## `AGENTS.md` — operating rules
+## `AGENTS.md`: operating rules
 
 Agent-agnostic, authoritative. Every harness loads this file. Per-harness pointers (`CLAUDE.md`, `.cursor/rules/00-substrate.mdc`, `.codex/config.toml`) reference it; they never duplicate content. Change a rule here and every harness picks it up on the next session.
 
-## Spec + scope — repo-local
+## Spec + scope: repo-local
 
 The repo-local docs above are the **source of truth for spec/scope**: `AGENTS.md` for the operating shape, `docs/` for the adopter contract, this subtree for rationale. The archived `docs/archive/phase-plans/PHASE-N.md` files snapshot how each phase closed. Surface scope/shape movement to the owner.
 

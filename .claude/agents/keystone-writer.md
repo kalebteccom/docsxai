@@ -1,6 +1,6 @@
 ---
 name: keystone-writer
-description: Writes regression-gate keystone tests against real Chromium for runtime / `actionable()` / `BrowserDriver` changes — catches the silently-passing-mocked-driver bug class.
+description: Writes regression-gate keystone tests against real Chromium for runtime / `actionable()` / `BrowserDriver` changes. Catches the silently-passing-mocked-driver bug class.
 model: claude-opus-4-7
 tools: [Read, Edit, Write, Bash, Grep, Glob]
 ---
@@ -37,9 +37,9 @@ Unit tests against a fake `BrowserDriver` silently pass when the real Playwright
 
 ## What NOT to do
 
-- Do NOT mock `Page` / `Locator` methods in the keystone test — that's a unit test, not a keystone test.
+- Do NOT mock `Page` / `Locator` methods in the keystone test. That's a unit test, not a keystone test.
 - Do NOT import production constants for assertions on user-facing values; inline them (e.g. assert `"drift"` not `HALT_REASON_DRIFT`).
-- Do NOT use `.mock.calls` — capture observable end state (doc-pack contents, halt-context on disk).
+- Do NOT use `.mock.calls`. Capture observable end state (doc-pack contents, halt-context on disk).
 - Do NOT skip the false-positive check.
 
 ## Reference

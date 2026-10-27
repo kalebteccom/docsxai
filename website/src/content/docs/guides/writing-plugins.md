@@ -76,7 +76,7 @@ These are the exact contracts from the engine's plugin surface
 are exported from `@docsxai/engine`):
 
 ```ts
-/** Plugin-scoped logger. Writes to stderr prefixed `[plugin:<ns>]` — stdout stays clean for CLI output. */
+/** Plugin-scoped logger. Writes to stderr prefixed `[plugin:<ns>]`, so stdout stays clean for CLI output. */
 export interface PluginLogger {
   info(message: string): void;
   warn(message: string): void;
@@ -140,7 +140,7 @@ export interface AuthStrategyPlugin {
   }>;
 }
 
-// The lint extension point is flow-lint's own injectable rule type — plugins register
+// The lint extension point is flow-lint's own injectable rule type. Plugins register
 // rules that run after the built-ins through `lintFlow`'s `extraRules`.
 export type PluginLintRule = LintRule;
 ```
@@ -170,7 +170,7 @@ load-error status; the rest of the plugin set keeps working.
 ## A complete minimal publisher
 
 ```ts
-// src/register.ts — a publisher that writes the projection to a JSON file.
+// src/register.ts: a publisher that writes the projection to a JSON file.
 import type { PublisherContext, PublishResult } from "@docsxai/engine";
 import { writeFile } from "node:fs/promises";
 
@@ -213,7 +213,7 @@ Two optional keys in the workspace's `.docsxai.json` activate plugins:
 Then pin and verify:
 
 ```sh
-docsxai plugins sync <workspace>   # (re)write plugins-lock.json — never executes plugin code
+docsxai plugins sync <workspace>   # (re)write plugins-lock.json, never executes plugin code
 docsxai plugins list <workspace>   # status table; exit 1 if any plugin is not loaded
 ```
 

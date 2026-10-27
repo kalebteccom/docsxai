@@ -62,4 +62,4 @@ docsxai's trust surface is narrower than a typical browser-automation tool: no `
 - [`../../docs/ai-context/secrets-and-egress/README.md`](../../docs/ai-context/secrets-and-egress/README.md)
 - [`../../docs/ai-context/architecture/surface-map.md`](../../docs/ai-context/architecture/surface-map.md)
 - [`../../SECURITY.md`](../../SECURITY.md)
-- [`../../AGENTS.md`](../../AGENTS.md) — "Trust + execution posture" section.
+- [`../../AGENTS.md`](../../AGENTS.md): "Trust + execution posture" section.
