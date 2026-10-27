@@ -11,7 +11,7 @@ The one-line map:
 | Temptation                                                | Reach for instead                                               |
 | --------------------------------------------------------- | --------------------------------------------------------------- |
 | A permissive comma-selector for UI that sometimes appears | `optional: true` on the step                                    |
-| Running the flow to see if it works                       | `docsxai lint` first (it signals at write time, before a halt)|
+| Running the flow to see if it works                       | `docsxai lint` first (it signals at write time, before a halt)  |
 | Re-walking a long flow to test one new step               | `run --flow <name> --start-from <step> --cdp <endpoint>`        |
 | Selector fallback lists                                   | One canonical locator; a halt is drift, recalibrate             |
 | Fudging screenshots that differ per run                   | Pin the `environment` block (clock, locale, timezone, viewport) |
