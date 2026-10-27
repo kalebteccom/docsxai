@@ -92,10 +92,10 @@ test("the run transcript matches the engine's progress and summary lines", () =>
     { flow: "screens", variant: "en-US.dark.mobile-390", steps: 53, annotations: 18 },
   ]);
   assert.deepEqual(lines, [
-    "run: screens/en-US.dark.desktop-1280 — starting",
-    "run: screens/en-US.dark.desktop-1280 — 61 step(s) executed, 29 annotation(s) written",
-    "run: screens/en-US.dark.mobile-390 — starting",
-    "run: screens/en-US.dark.mobile-390 — 53 step(s) executed, 18 annotation(s) written",
+    "run: screens/en-US.dark.desktop-1280, starting",
+    "run: screens/en-US.dark.desktop-1280, 61 step(s) executed, 29 annotation(s) written",
+    "run: screens/en-US.dark.mobile-390, starting",
+    "run: screens/en-US.dark.mobile-390, 53 step(s) executed, 18 annotation(s) written",
     "run: 2 of 2 flow variants ok, outputs in workspace/docs",
   ]);
   const one = runTranscript("my-docs", [
@@ -114,8 +114,8 @@ test("the compact transcript keeps the facts on one short row per variant", () =
     { flow: "screens", variant: "en-US.dark.mobile-390", steps: 53, annotations: 18 },
   ]);
   assert.deepEqual(lines, [
-    "ok en-US dark 1280 — 61 steps, 29 annotations",
-    "ok en-US dark 390 — 53 steps, 18 annotations",
+    "ok en-US dark 1280, 61 steps, 29 annotations",
+    "ok en-US dark 390, 53 steps, 18 annotations",
     "2 of 2 flow variants ok",
     "outputs in workspace/docs",
   ]);
@@ -128,7 +128,7 @@ test("the compact transcript keeps the facts on one short row per variant", () =
 
 test("wrapMono breaks at spaces, indents continuations and keeps every character", () => {
   const line =
-    "run: screens/en-US.light.desktop-1280 — 61 step(s) executed, 29 annotation(s) written";
+    "run: screens/en-US.light.desktop-1280, 61 step(s) executed, 29 annotation(s) written";
   const rows = wrapMono(line, 40);
   assert.ok(rows.every((r) => r.length <= 40));
   assert.ok(rows.slice(1).every((r) => r.startsWith("  ")));

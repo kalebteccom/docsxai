@@ -89,7 +89,7 @@ steps:
     wait_for: { timeout_ms: 250 }
 `;
 
-const KITCHEN_SINK_SPEC = `// generated from checkout.flow.yaml — regenerate, don't hand-edit
+const KITCHEN_SINK_SPEC = `// generated from checkout.flow.yaml. Regenerate, don't hand-edit
 import { expect, test } from "@playwright/test";
 
 test.use({
@@ -146,7 +146,7 @@ test("Checkout", async ({ page }) => {
     await page.locator(".cookie-banner button").click();
     await expect(page.locator(".cookie-banner")).toBeHidden();
   } catch {
-    // optional step — conditionally-present UI; a miss is tolerated
+    // optional step: conditionally-present UI; a miss is tolerated
   }
 
   // step: pay (click)
@@ -178,7 +178,7 @@ steps:
 `,
       "shortcuts",
     );
-    expect(spec).toBe(`// generated from shortcuts.flow.yaml — regenerate, don't hand-edit
+    expect(spec).toBe(`// generated from shortcuts.flow.yaml. Regenerate, don't hand-edit
 import { expect, test } from "@playwright/test";
 
 test("shortcuts", async ({ page }) => {
@@ -233,7 +233,7 @@ steps:
 `,
       "sparse",
     );
-    expect(spec).toContain(`// step "s1": click without a target — nothing to emit`);
+    expect(spec).toContain(`// step "s1": click without a target, nothing to emit`);
   });
 
   it("emits a per-call timeout from `timeout_ms`, and hide / show as marker + inline visibility", () => {
@@ -342,7 +342,7 @@ describe("exportWorkspaceFlowsAsPlaywrightTests", () => {
     ]);
     const child = specs[1]!.content;
     generatedSpecs.push(...specs.map((s) => s.content));
-    expect(child).toBe(`// generated from child.flow.yaml — regenerate, don't hand-edit
+    expect(child).toBe(`// generated from child.flow.yaml. Regenerate, don't hand-edit
 import { expect, test } from "@playwright/test";
 
 test.use({

@@ -1,4 +1,4 @@
-# @docsxai/plugin — Claude Code plugin
+# @docsxai/plugin: Claude Code plugin
 
 The first-class invocation surface for the docsxai engine.
 

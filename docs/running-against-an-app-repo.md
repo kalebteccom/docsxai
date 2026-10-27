@@ -1,4 +1,4 @@
-# Running docsxai against an app repo — without leaving a trace
+# Running docsxai against an app repo: without leaving a trace
 
 > This is the conceptual overview. The one-command setup is `docsxai init`.
 
@@ -9,7 +9,7 @@
 
 docsxai documents a **running web app**, not a source tree. If the app you want to document is built and
 served from a local repo (an `example-app` checkout, say), the rule is: **docsxai operates _on_ that
-app from outside — it never writes into the app repo, and you never install it _into_ the app repo.** Everything
+app from outside. It never writes into the app repo, and you never install it _into_ the app repo.** Everything
 docsxai produces (flow-files, screenshots, annotations, the captured session, the viewer) lives in a separate
 **workspace directory**. For an airtight "zero traces" guarantee, run the app itself from a **disposable git
 worktree** of its repo, so even build-script mutations land on a copy you throw away.
@@ -36,7 +36,7 @@ pnpm -r build                                                    # compiles the 
 pnpm -r typecheck && pnpm -r test                                # sanity
 ```
 
-Make the CLIs callable. Either link them globally —
+Make the CLIs callable. Either link them globally:
 
 ```bash
 pnpm -C "$TOOL_REPO/packages/engine"  link --global   # → `docsxai`
@@ -44,11 +44,11 @@ pnpm -C "$TOOL_REPO/packages/viewer"  link --global   # → `docsxai-viewer`  (d
 pnpm -C "$TOOL_REPO/packages/backend" link --global   # → `docsxai-backend` (optional; local dev backend)
 ```
 
-— or skip linking and call them directly: `node "$TOOL_REPO/packages/engine/dist/cli.js" …`. (Below assumes
+Or skip linking and call them directly: `node "$TOOL_REPO/packages/engine/dist/cli.js" …`. (Below assumes
 they're on `PATH`.)
 
 The Claude Code **plugin** (`$TOOL_REPO/packages/plugin`) is the first-class surface for the _calibration_
-skills — `claude plugin install` it if you want `/docsxai:add-flow` etc. The calibration playbook it follows is
+skills. `claude plugin install` it if you want `/docsxai:add-flow` etc. The calibration playbook it follows is
 `packages/plugin/skills/add-flow/SKILL.md`.
 
 > **Heads-up on calibration:** the _deterministic_ side (`run`, `render`, `capture-auth`) is a plain CLI. Agent-driven
@@ -63,12 +63,12 @@ skills — `claude plugin install` it if you want `/docsxai:add-flow` etc. The c
 
 ### 2a. Make a disposable copy of the app, and run it from there
 
-So nothing — not even a build script that rewrites `index.html`, bumps a version, etc. — touches `$APP_REPO`:
+So nothing touches `$APP_REPO` (not even a build script that rewrites `index.html`, bumps a version, etc.):
 
 ```bash
 git -C "$APP_REPO" worktree add "$APP_RUN"        # a throwaway worktree on the current commit
 cd "$APP_RUN"
-npm ci                                            # or `pnpm install` / `yarn` — match the app's lockfile; uses $APP_RUN/node_modules only
+npm ci                                            # or `pnpm install` / `yarn` (match the app's lockfile); uses $APP_RUN/node_modules only
 npm run dev                                        # start the dev server; note the URL it prints
 export APP_URL="https://localhost:5173"            # ← set to whatever the dev server actually serves (HTTPS if the repo ships a dev cert)
 ```
@@ -103,30 +103,30 @@ roles:
 YAML
 ```
 
-Then capture — an instrumented Chrome opens; **you** log in interactively (SSO, MFA, conditional access — anything
+Then capture: an instrumented Chrome opens; **you** log in interactively (SSO, MFA, conditional access, anything
 you can click through); when you're in, run `window.__docsxai.capture()` in the devtools console (or click the
 injected button):
 
 ```bash
 docsxai capture-auth "$WORKSPACE" --base-url "$APP_URL" --ignore-https-errors
-# → caches $WORKSPACE/.auth/editor.json  (expires ~1 h later — re-run when it lapses)
+# → caches $WORKSPACE/.auth/editor.json  (expires ~1 h later; re-run when it lapses)
 ```
 
 `--ignore-https-errors` accepts the app's self-signed local dev cert. Drop it if the dev server uses a trusted cert.
 
-### 2d. Calibrate — produce the doc pack
+### 2d. Calibrate: produce the doc pack
 
 Run the plugin's `add-flow` skill (`/docsxai:add-flow`, formerly `/docsxai:calibrate`; the playbook is `packages/plugin/skills/add-flow/SKILL.md`): with the dev server running and the
 browser your discovery driver (browxai) attaches to authed, walk each flow on the live app, settle one canonical locator per step,
 add `wait_for`/`success` criteria, write `$WORKSPACE/flows/<flow>.flow.yaml`, and capture screenshots +
-`annotations.json` + the style artifact + `locators.yaml` — all into `$WORKSPACE`.
+`annotations.json` + the style artifact + `locators.yaml`, all into `$WORKSPACE`.
 
 ### 2e. Re-run deterministically (refresh the docs)
 
 ```bash
 docsxai run "$WORKSPACE" --base-url "$APP_URL" --ignore-https-errors
 # headless Chromium, uses $WORKSPACE/.auth/editor.json, replays $WORKSPACE/flows/*.flow.yaml,
-# re-emits $WORKSPACE/docs/<flow>/annotations.json + screenshots. Halts on drift — see /docsxai:diagnose.
+# re-emits $WORKSPACE/docs/<flow>/annotations.json + screenshots. Halts on drift; see /docsxai:diagnose.
 ```
 
 ### 2f. View
@@ -136,31 +136,31 @@ docsxai render "$WORKSPACE"          # → $WORKSPACE/.viewer/index.html
 open "$WORKSPACE/.viewer/index.html"
 ```
 
-### 2g. Tear down — and confirm no trace
+### 2g. Tear down and confirm no trace
 
 ```bash
 # stop the dev server (Ctrl-C in 2a)
 git -C "$APP_REPO" worktree remove --force "$APP_RUN"   # remove the disposable copy
-git -C "$APP_REPO" status                                # should be clean — you never touched it
+git -C "$APP_REPO" status                                # should be clean; you never touched it
 ```
 
 ---
 
 ## Why this leaves no trace in `$APP_REPO`
 
-| Potential trace                                                                                | Avoided because                                                                                                                                                           |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Doc pack / flow-files / annotations / screenshots written into the repo                        | They're written to `$WORKSPACE`, which is outside `$APP_REPO`.                                                                                                            |
-| `npm install` / build scripts (`set-version.js`, `set-homepage.js`, …) rewriting tracked files | The app runs from the disposable worktree `$APP_RUN`; mutations land there and are removed. `$APP_REPO`'s `node_modules` / lockfile are never touched.                    |
-| Captured login cookie sitting in the repo                                                      | It's in `$WORKSPACE/.auth/editor.json` (gitignored there), never in `$APP_REPO`. The docsxai backend never holds it either (`store: local`).                              |
-| A vendored skill landing in `$APP_REPO/.claude/skills/`                                        | Don't `vendorSkill` into the app repo — use the globally-installed plugin (or the CLI directly). The vendored fallback is only for repos that _want_ to pin the behavior. |
-| Browser profile / extension state in the repo                                                  | The browser session lives in your Chrome / Playwright's profile, not in any repo.                                                                                         |
+| Potential trace                                                                                | Avoided because                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Doc pack / flow-files / annotations / screenshots written into the repo                        | They're written to `$WORKSPACE`, which is outside `$APP_REPO`.                                                                                                           |
+| `npm install` / build scripts (`set-version.js`, `set-homepage.js`, …) rewriting tracked files | The app runs from the disposable worktree `$APP_RUN`; mutations land there and are removed. `$APP_REPO`'s `node_modules` / lockfile are never touched.                   |
+| Captured login cookie sitting in the repo                                                      | It's in `$WORKSPACE/.auth/editor.json` (gitignored there), never in `$APP_REPO`. The docsxai backend never holds it either (`store: local`).                             |
+| A vendored skill landing in `$APP_REPO/.claude/skills/`                                        | Don't `vendorSkill` into the app repo. Use the globally-installed plugin (or the CLI directly). The vendored fallback is only for repos that _want_ to pin the behavior. |
+| Browser profile / extension state in the repo                                                  | The browser session lives in your Chrome / Playwright's profile, not in any repo.                                                                                        |
 
 ---
 
 ## Caveats / known gaps
 
-- **No one-command calibration** — agent-driven calibration is the plugin's `add-flow` skill (or the `@docsxai/mcp` tools) following the playbook. `docsxai add-flow --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / a prose testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
+- **No one-command calibration**: agent-driven calibration is the plugin's `add-flow` skill (or the `@docsxai/mcp` tools) following the playbook. `docsxai add-flow --from` handles _structured_ flow-guides (a flow-file in YAML, or a `.md` with a ```yaml block). Loose prose / a prose testing guide / live element-picking = hand-author the flow-files following `packages/plugin/skills/calibrate/SKILL.md`. The deterministic `init`/`calibrate`(structured) / `run`/`render`/`capture-auth` are real.
 - **Plugin install from a monorepo subdir** isn't validated yet. If `claude plugin install` doesn't pick up `packages/plugin/`, copy that dir somewhere installable, or just use the playbook + CLIs.
 - **`--persist tmp`** is implemented for `init` (an ephemeral workspace in a temp dir); `rm -rf` it when done.
 - **HTTPS dev certs:** pass `--ignore-https-errors` (or bake it into `.docsxai.json` via `init`). The `manual-capture` browser also runs security-lowered so the injected capture helper works across SSO-redirect origins. The app may also need gitignored files (`.env`, a dev-cert dir) copied into the worktree to boot.

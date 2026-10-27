@@ -70,7 +70,7 @@ function inspectPackageJson(cwd) {
   for (const banned of FORBIDDEN_LIFECYCLE_SCRIPTS) {
     if (banned in scripts) {
       errors.push(
-        `package.json declares forbidden lifecycle script "${banned}" — runs on adopter \`npm install\`. Remove it.`,
+        `package.json declares forbidden lifecycle script "${banned}": runs on adopter \`npm install\`. Remove it.`,
       );
     }
   }
@@ -108,7 +108,7 @@ function auditTarball(cwd, label, pkg) {
 
       for (const { pattern, why } of FORBIDDEN_PATTERNS) {
         if (pattern.test(path)) {
-          errors.push(`${label}: forbidden path "${path}" — ${why}`);
+          errors.push(`${label}: forbidden path "${path}": ${why}`);
         }
       }
 

@@ -18,7 +18,7 @@ pnpm -C packages/engine exec playwright-core install chromium   # needed for the
 
 Node 26+. Package manager is pnpm 9.x.
 
-Checks (all must pass before a PR merges — CI runs them):
+Checks (all must pass before a PR merges, CI runs them):
 
 ```bash
 pnpm typecheck                # tsc --noEmit
@@ -29,21 +29,21 @@ pnpm build                    # tsc → dist/ for every package
 The unit suite is fast and browser-free. The **keystone**
 (`packages/engine/test/keystone.test.ts`) drives a real headless
 Chromium end-to-end through the engine's runtime + the `docsxai run`
-path — it's the regression gate for anything touching page interaction,
+path. It's the regression gate for anything touching page interaction,
 the runtime, auth strategies, or the deterministic-replay contract.
 
 ## Repo layout
 
 ```
 packages/
-  engine/    @docsxai/engine    — flow-file runtime, CLI, auth strategies
-  plugin/    @docsxai/plugin    — Claude Code plugin (the invocation surface)
-  backend/   @docsxai/backend   — auth'd doc-pack persistence service
-  skill/     @docsxai/skill     — vendorable .claude/skills/ fallback
-  viewer/    @docsxai/viewer    — viewer, burn renderer, Starlight site emitter
-  mcp/       @docsxai/mcp       — standalone stdio MCP server
-  docsxai/   docsxai            — batteries-included CLI meta-package
-  plugin-confluence/ plugin-gitbook/ plugin-guru/ plugin-notion/ plugin-sharepoint/ plugin-starlight/  — first-party publisher / renderer plugins
+  engine/    @docsxai/engine    flow-file runtime, CLI, auth strategies
+  plugin/    @docsxai/plugin    Claude Code plugin (the invocation surface)
+  backend/   @docsxai/backend   auth'd doc-pack persistence service
+  skill/     @docsxai/skill     vendorable .claude/skills/ fallback
+  viewer/    @docsxai/viewer    viewer, burn renderer, Starlight site emitter
+  mcp/       @docsxai/mcp       standalone stdio MCP server
+  docsxai/   docsxai            batteries-included CLI meta-package
+  plugin-confluence/ plugin-gitbook/ plugin-guru/ plugin-notion/ plugin-sharepoint/ plugin-starlight/  first-party publisher / renderer plugins
 docs/        runbooks + cross-repo contracts (browser-bridge integration, actionability)
 ```
 
@@ -53,14 +53,14 @@ docs/        runbooks + cross-repo contracts (browser-bridge integration, action
 - **ESM only** (`"type": "module"`). All cross-package imports use `.js` extensions in source.
 - **Tests sit alongside code** as `<name>.test.ts` under each package's `test/`. Vitest. New code ships with a test.
 - **Don't add error handling for impossible states.** Trust internal code and framework guarantees; only validate at system boundaries.
-- **Default to writing no comments.** Only add one when the _why_ is non-obvious — a hidden constraint, a workaround, behavior that would surprise a future reader.
+- **Default to writing no comments.** Only add one when the _why_ is non-obvious: a hidden constraint, a workaround, behavior that would surprise a future reader.
 - **No backwards-compatibility shims** for unused code paths. Delete unused exports cleanly.
 - **No internal tracker IDs in code or comments.** Ticket / plan / round / PR refs (`W-X#`, `Round-N`, ticket numbers) belong in commit/PR bodies, not in source. State the actual reason instead.
 - **No model-provider SDKs** anywhere in `packages/{engine,plugin,backend,viewer,skill}/`. The engine is LLM-agnostic by design; the host agent supplies inference at calibration time. Importing a provider SDK in this repo is a contract violation.
 
 ## Two-mode architecture (read before editing the runtime)
 
-The engine has two modes — **calibration** (AI-assisted, rare) and **execution** (deterministic, continuous). The split is load-bearing:
+The engine has two modes: **calibration** (AI-assisted, rare) and **execution** (deterministic, continuous). The split is load-bearing:
 
 - The engine **never** calls a model API. The host agent supplies inference at calibration time; execution has no agent in the loop.
 - `docsxai run` reproduces a doc pack byte-identically from the same flow-file + same target state. The keystone test asserts this against a real browser.
@@ -70,7 +70,7 @@ The engine has two modes — **calibration** (AI-assisted, rare) and **execution
 
 - **Single-line conventional-commit subjects, ≤72 chars.** No prose body, no bullets. The only lines allowed after the subject (separated by one blank line) are trailers: your `Signed-off-by:` (see DCO below) and, if an AI assistant helped, exactly one `Co-Authored-By: <Claude model name> <noreply@anthropic.com>`, e.g. `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Commits written without AI help need no `Co-Authored-By`. Hook-enforced (`.claude/hooks/`, `.githooks/commit-msg`); don't bypass them.
 - **AI-assisted PRs** end their description with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`. That line goes in the PR body only, not in commit messages.
-- **One logical change per commit.** Don't `git add .` — stage paths explicitly with `git add <paths>`.
+- **One logical change per commit.** Don't `git add .`. Stage paths explicitly with `git add <paths>`.
 - For a multi-package change, one commit per package unless the change is genuinely atomic.
 - Allowed types: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`.
 
@@ -90,7 +90,7 @@ We require contributors to sign off on commits with `git commit -s`. This adds a
 
 - Feature branches off `main`: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`, `docs/<slug>`, `test/<slug>`, `refactor/<slug>`.
 - Open a PR against `main`. One maintainer review is required.
-- Squash-merge is the default. Keep the subject conformant — it becomes the squashed-commit subject.
+- Squash-merge is the default. Keep the subject conformant, since it becomes the squashed-commit subject.
 - Draft PRs are welcome for in-flight design conversation.
 
 ## Pull requests
@@ -100,13 +100,13 @@ We require contributors to sign off on commits with `git commit -s`. This adds a
 3. Update `CHANGELOG.md` under `## Unreleased`.
 4. Open a PR; describe the _why_.
 
-For non-trivial changes, open an issue first so we can align on shape — the issue (anchored on the relevant `docs/` runbook or `docs/ai-context/` page) is the place for that discussion.
+For non-trivial changes, open an issue first so we can align on shape. The issue (anchored on the relevant `docs/` runbook or `docs/ai-context/` page) is the place for that discussion.
 
 ## Stability & the public surface
 
 docsxai is `0.x`. A minor version (`0.2` to `0.3`) may include breaking changes to the public surface, and each one is noted in `CHANGELOG.md`. A patch version carries fixes only. 1.0 is the stability milestone: from there semver applies in full. No date is set for it.
 
-The **stable surface** at 1.0 — `docsxai` subcommand names + documented flags, flow-file schema, doc-pack output shape, the actionability-contract predicate, the `BrowserDriver` interface, the backend's REST surface — does not change in a `patch`; an additive change is a `minor`; a breaking change requires a `major` bump plus a changelog entry and a deprecation note. In `0.x` the same surface already moves only in a minor, never in a patch.
+The **stable surface** at 1.0 (`docsxai` subcommand names + documented flags, flow-file schema, doc-pack output shape, the actionability-contract predicate, the `BrowserDriver` interface, the backend's REST surface) does not change in a `patch`; an additive change is a `minor`; a breaking change requires a `major` bump plus a changelog entry and a deprecation note. In `0.x` the same surface already moves only in a minor, never in a patch.
 
 [`docs/public-surface.md`](docs/public-surface.md) lists every item of that surface with its stability mark (`stable candidate`, `experimental`, `deprecated`, `internal`), the compatibility and deprecation policy, and the 1.0 checklist. The contract tests under `packages/*/test/contract/` fail when a pinned surface changes; the update procedure is in the header of each test file. A diff that changes a pinned surface updates the snapshot, that page and the CHANGELOG together.
 
@@ -124,7 +124,7 @@ To contribute to the Claude Code plugin (`@docsxai/plugin`):
 6. Update the package README at `packages/plugin/README.md` if the surface changed.
 7. Note the change in `CHANGELOG.md` under `## Unreleased ### Plugin`.
 
-The plugin's job is to be the recommended invocation surface — not to add capability the engine doesn't have. If a contribution feels like it needs new engine behaviour, raise that first as an engine PR.
+The plugin's job is to be the recommended invocation surface. It adds no capability the engine doesn't have. If a contribution feels like it needs new engine behaviour, raise that first as an engine PR.
 
 ## Filing issues
 

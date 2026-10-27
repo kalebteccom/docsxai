@@ -1,6 +1,6 @@
 # @docsxai/plugin-starlight
 
-docsxai **renderer plugin** for [Astro Starlight](https://starlight.astro.build/). Registers `starlight:site`, a thin adapter over the viewer's `emitStarlightSite` / `buildStarlightSite`: it turns a doc pack into a complete, buildable Starlight project — one MDX page per flow, burned screenshots preferred (clean fallback), sidebar ordered by the flow `extends` graph, theme accents derived from the style artifact's `visual` keys.
+docsxai **renderer plugin** for [Astro Starlight](https://starlight.astro.build/). Registers `starlight:site`, a thin adapter over the viewer's `emitStarlightSite` / `buildStarlightSite`: it turns a doc pack into a complete, buildable Starlight project: one MDX page per flow, burned screenshots preferred (clean fallback), sidebar ordered by the flow `extends` graph, theme accents derived from the style artifact's `visual` keys.
 
 No egress: the manifest declares zero capabilities. Emission is deterministic and the emitted site is self-contained (no remote fonts, no CDN imports); `astro` + `@astrojs/starlight` versions are exact-pinned into the emitted `package.json`.
 

@@ -1,6 +1,6 @@
 ---
 name: plugin-feature-author
-description: Adds a feature to `@docsxai/plugin` (Claude Code plugin) or `@docsxai/skill` (vendorable skill bundle) — skill, command, or manifest change.
+description: Adds a feature to `@docsxai/plugin` (Claude Code plugin) or `@docsxai/skill` (vendorable skill bundle), covering skill, command, or manifest changes.
 model: claude-opus-4-7
 tools: [Read, Edit, Write, Bash, Grep, Glob]
 ---
@@ -9,23 +9,23 @@ tools: [Read, Edit, Write, Bash, Grep, Glob]
 
 Adds a feature to the Claude Code plugin or the vendorable skill bundle. The two paths share discipline; the skill bundle is a fallback for teams that prefer vendoring over `claude plugin install`.
 
-## Workflow — plugin skill
+## Workflow: plugin skill
 
 1. **Skill directory.** `packages/plugin/skills/<name>/SKILL.md` (kebab-case). The skill manifest carries the role definition, trigger conditions, and the structured question flow.
-2. **Trigger contract.** A skill triggers when the host agent's session matches its declared conditions. Keep triggers narrow — over-broad triggers spam the operator with skill activations they didn't ask for.
+2. **Trigger contract.** A skill triggers when the host agent's session matches its declared conditions. Keep triggers narrow. Over-broad triggers spam the operator with skill activations they didn't ask for.
 3. **Question flow.** Skills emit structured questions via the host's `AskUserQuestion` (or equivalent) tool. Batch questions; carry the trade-off and the MVP implication in each option's description.
-4. **Deterministic handoff.** Once the skill has the answers, it composes a deterministic engine invocation — `docsxai <subcommand>` with the resolved arguments — and hands off. The engine does the work; the skill orchestrates.
+4. **Deterministic handoff.** Once the skill has the answers, it composes a deterministic engine invocation (`docsxai <subcommand>` with the resolved arguments) and hands off. The engine does the work; the skill orchestrates.
 5. **Unit test.** Exercise the skill's static structure via `packages/plugin/src/index.ts`'s validation helpers. Skill behavior end-to-end is exercised at the calibration-loop level (slow, manual today; harness-integration is post-MVP).
 6. **Plugin README.** Add a row to `packages/plugin/README.md` "Skills".
 7. **CHANGELOG entry.** `## Unreleased ### Added`.
 
-## Workflow — plugin command
+## Workflow: plugin command
 
-See [`command-author.md`](command-author.md) "Workflow — plugin command".
+See [`command-author.md`](command-author.md) "Workflow: plugin command".
 
-## Workflow — vendorable skill bundle
+## Workflow: vendorable skill bundle
 
-1. **Bundle update.** `packages/skill/skill/docsxai/SKILL.md` — the manifest the bundle ships. The bundle is a thin re-export of plugin-side skills, so most changes land in the plugin first and the bundle tracks.
+1. **Bundle update.** `packages/skill/skill/docsxai/SKILL.md`: the manifest the bundle ships. The bundle is a thin re-export of plugin-side skills, so most changes land in the plugin first and the bundle tracks.
 2. **`vendorSkill` parity.** Ensure `packages/skill/src/index.ts`'s `vendorSkill(targetDir)` copies the updated bundle correctly. Idempotent.
 3. **Skill README.** Update `packages/skill/README.md` if the bundle's surface changed.
 4. **CHANGELOG entry.** `## Unreleased ### Added` (or `### Changed` if the bundle's shape moved).

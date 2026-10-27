@@ -217,7 +217,7 @@ const EN: UiStrings = {
   },
   site: {
     description: "Step-by-step flows with annotated screenshots.",
-    noFlows: "_(no flows yet \u2014 run `docsxai run`, then re-emit the site)_",
+    noFlows: "_(no flows yet: run `docsxai run`, then re-emit the site)_",
     flowsLabel: "Flows",
     missingWhy: "No screenshot for step {id}. The file was not found when this site was built.",
     missingHow: "Capture it with {command} then build the site again.",

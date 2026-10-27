@@ -2,13 +2,13 @@
 
 Standalone **MCP server** (stdio, plus an opt-in Streamable HTTP transport) over the docsxai engine. It lets _any_ MCP-speaking host agent
 (Claude Code, Codex, Cursor, a scripted client, …) drive the calibration workflow and introspect a
-doc pack — without shelling out to the `docsxai` CLI. The tools wrap the same engine functions
+doc pack without shelling out to the `docsxai` CLI. The tools wrap the same engine functions
 the CLI wraps; behaviour is identical by construction.
 
-## Boundary (load-bearing) — vs. browxai
+## Boundary (load-bearing) vs. browxai
 
 This server exposes **calibration meta-orchestration + read-only doc-pack introspection only**.
-It deliberately exposes **no browser primitives** — no click/fill/inspect on an arbitrary live
+It deliberately exposes **no browser primitives**: no click/fill/inspect on an arbitrary live
 page. Live-page discovery during calibration is browxai's surface;
 docsxai-mcp orchestrates the deterministic engine around it. Keeping the two surfaces disjoint is
 what keeps `docsxai run` agent-free and reproducible.
@@ -113,7 +113,7 @@ A client config for a host that takes a URL and headers:
 | `init_workspace`    | orchestration | Scaffold a new docsxai workspace (flows/, docs/, auth/strategy.yaml, `.docsxai.json`).                                                                                                                                                                            |
 | `run_flows`         | orchestration | Deterministic execution: flow filter, `startFrom`/`stopAfter` prefix runs, CDP attach, bounded concurrency. Per-flow ok / halt cause / artifact paths. The merged flow's `environment` (frozen clock, locale, viewport, …) is passed into the Playwright session. |
 | `render_viewer`     | orchestration | Build the static viewer by spawning the `docsxai-viewer` bin (engine's resolution order).                                                                                                                                                                         |
-| `lint_flows`        | introspection | Static lint rules (R001–R017) plus plugin-contributed `extraRules` when the workspace's plugin set resolves.                                                                                                                                                      |
+| `lint_flows`        | introspection | Static lint rules (R001-R017) plus plugin-contributed `extraRules` when the workspace's plugin set resolves.                                                                                                                                                      |
 | `flow_tree`         | introspection | The `extends` graph: roots, descendants, orphans, resolution issues.                                                                                                                                                                                              |
 | `diagnose_halt`     | orchestration | Halt context for one step + recommendations; optional live `actionable()` probe over CDP. Never edits the flow-file.                                                                                                                                              |
 | `style_check`       | orchestration | Init/validate `docs/style.yaml`, rederive the JSON, scan write-ups for jargon leaks.                                                                                                                                                                              |
@@ -159,7 +159,7 @@ refuses an unexpanded matrix) and `diagnose_halt` has no `variant` argument. Run
 
 `pnpm -C packages/mcp test`. The HTTP suite (`test/http-server.test.ts`) binds an ephemeral loopback
 port and drives it with raw requests and the SDK's `StreamableHTTPClientTransport`. The scripted-client suite drives the whole surface through an
-in-process linked client/server pair (the SDK's `InMemoryTransport`) — a non-Claude MCP client as
+in-process linked client/server pair (the SDK's `InMemoryTransport`), a non-Claude MCP client as
 the acceptance evidence. The `run_flows` rows run against the engine's toy-site fixture over real
 Chromium and are skipped when no Chromium binary is installed
 (`pnpm -C packages/engine exec playwright-core install chromium`).
