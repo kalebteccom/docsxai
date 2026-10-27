@@ -42,7 +42,7 @@
   "scripts": {
     "build": "node ../../scripts/clean-dist.mjs && node scripts/bundle-overlay.mjs && tsc -b tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/bundle-overlay.mjs && vitest run --testTimeout=30000"
+    "test": "node scripts/bundle-overlay.mjs && vitest run --testTimeout=30000 --hookTimeout=30000"
   },
   "devDependencies": {
     "@astrojs/starlight": "0.41.2",

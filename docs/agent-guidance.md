@@ -2,16 +2,16 @@
 
 > docsxai's footgun map for calibration agents. Every entry is a temptation an agent reliably
 > meets, why giving in bites later, and the right call with a copyable example. The engine's
-> design pushes the same direction everywhere: **write-time signal beats run-time control, and
-> declared intent beats clever workarounds.** When you are about to work around the engine,
-> check this list first. The workaround usually has a first-class primitive.
+> design favours signals at write time over control at run time, and declared intent over
+> workarounds. When you are about to work around the engine, check this list first. The
+> workaround usually has a dedicated primitive.
 
 The one-line map:
 
 | Temptation                                                | Reach for instead                                               |
 | --------------------------------------------------------- | --------------------------------------------------------------- |
 | A permissive comma-selector for UI that sometimes appears | `optional: true` on the step                                    |
-| Running the flow to see if it works                       | `docsxai lint` first (write-time signal beats run-time halt)    |
+| Running the flow to see if it works                       | `docsxai lint` first (it signals at write time, before a halt)  |
 | Re-walking a long flow to test one new step               | `run --flow <name> --start-from <step> --cdp <endpoint>`        |
 | Selector fallback lists                                   | One canonical locator; a halt is drift, recalibrate             |
 | Fudging screenshots that differ per run                   | Pin the `environment` block (clock, locale, timezone, viewport) |

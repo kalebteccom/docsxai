@@ -16,7 +16,7 @@ docsxai run ~/docsxai/hello
 docsxai render ~/docsxai/hello --open
 ```
 
-Three terms. A **flow** is a YAML file listing the steps of one user journey.
+Three terms. A **flow** is a YAML file listing the steps of one user task.
 To **add a flow** is to write it the first time, by hand or with an AI
 agent, and put it in the workspace with `docsxai add-flow` (formerly `calibrate`). The **doc pack** is what a run writes into your workspace: annotations
 and screenshots per flow.

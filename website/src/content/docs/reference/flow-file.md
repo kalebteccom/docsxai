@@ -4,7 +4,7 @@ description: The complete field-by-field reference for flows/<name>.flow.yaml - 
 ---
 
 A flow-file (`flows/<name>.flow.yaml`) is the YAML description of one user
-journey and the source of truth for execution. It is Zod-validated on every
+task and the source of truth for execution. It is Zod-validated on every
 parse; unknown keys are rejected, so a typo fails loudly instead of being
 ignored. This page covers every field.
 

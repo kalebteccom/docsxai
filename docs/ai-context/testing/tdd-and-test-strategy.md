@@ -3,7 +3,7 @@
 How we test docsxai. The hexagonal layout exists partly to make this cheap: the
 pure domain (flow-file parsing, doc-pack shaping, diff math, redaction) tests in
 microseconds with no browser and no IO, so test-first is the path of least
-resistance, not a chore. This is the test-first companion to
+resistance. This is the test-first companion to
 [`unit-vs-keystone.md`](unit-vs-keystone.md) (the unit/keystone layering) and
 [`qa-patterns.md`](qa-patterns.md) (the playbook).
 
@@ -63,7 +63,7 @@ real logic is reachable.
 - **Verify the test can fail.** For the key assertions in a file, flip the
   expected value once and confirm red, then flip back. A test that cannot fail is
   worse than no test.
-- **Assert the specific error / halt-cause variant**, not just that something threw.
+- **Assert the specific error / halt-cause variant**, and check that something threw.
 - **Determinism is testable, not hopeful.** The keystone byte-identical assertion
   is the contract; content-addressing and diffing depend on it.
 

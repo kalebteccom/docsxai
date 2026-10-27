@@ -5,7 +5,7 @@ description: Use when a deterministic `docsxai run` halts on a locator or succes
 
 # Diagnosing a halted run
 
-A halted run means the site drifted from what the flow-file encodes. That's a _signal_, not a flake to absorb. The diagnose loop is explicit and agent-driven; the engine never auto-patches the flow-file.
+A halted run means the site drifted from what the flow-file encodes. Treat it as a signal. The diagnose loop is explicit and agent-driven; the engine never auto-patches the flow-file.
 
 ## 1. Run the diagnose command
 
@@ -43,7 +43,7 @@ If the change is non-obvious, surface the candidates to the user. **Never silent
 
 Hand-edit `flows/<flow>.flow.yaml`. One canonical locator per step; no fallback lists.
 
-If the drift is structural (steps added/removed by the app, not just a selector renamed), recommend a fuller `/docsxai:add-flow` of that flow instead of patching. That's the agent / human's call.
+If the drift is structural (steps added/removed by the app, beyond a renamed selector), recommend a fuller `/docsxai:add-flow` of that flow instead of patching. That's the agent / human's call.
 
 ## 4. Validate the fix in seconds
 

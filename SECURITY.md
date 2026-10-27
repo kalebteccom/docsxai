@@ -87,7 +87,7 @@ Reports against the following are in scope:
   endpoints without a valid OAuth 2.1 credential, or any path that
   serves one tenant's doc pack to another.
 - **Viewer XSS / HTML injection**: any flow-file or annotation content
-  reaching the rendered viewer as live HTML rather than escaped text.
+  reaching the rendered viewer as live HTML instead of escaped text.
 - **Loopback escape**: the backend defaults to loopback binding; any
   default configuration that exposes it on a non-loopback interface
   unintentionally is in scope.

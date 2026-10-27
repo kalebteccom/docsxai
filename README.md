@@ -6,7 +6,7 @@
 
 > **Turn a real web app into step-by-step, screenshot-rich user guides that stay current automatically.**
 
-docsxai walks your web application, follows flows you describe in plain files, and emits documentation with clean, annotated screenshots: halos, numbered badges, callouts, captions. You teach it a flow **once**; after that it replays the same flow headlessly, on demand, producing the same docs every time. The core engine never calls a model API, so regenerating your docs on every commit is cheap and reproducible instead of expensive and flaky.
+docsxai walks your web application, follows flows you describe in plain files, and emits documentation with clean, annotated screenshots: halos, numbered badges, callouts, captions. You teach it a flow **once**; after that it replays the same flow headlessly, on demand, producing the same docs every time. The core engine never calls a model API, so regenerating your docs on every commit is cheap and reproducible.
 
 **Who it's for.** Product, platform, and docs engineers who maintain end-user documentation for a web app, especially an authenticated SPA whose UI changes often enough that hand-maintained screenshots go stale. Two roles share the workflow:
 
@@ -15,10 +15,10 @@ docsxai walks your web application, follows flows you describe in plain files, a
 
 **What you can do with it:**
 
-- Keep an authenticated SaaS app's user guide in sync: write the key flows once, regenerate annotated screenshots on every release so the docs never show stale UI.
+- Keep an authenticated SaaS app's user guide in sync: write the key flows once, regenerate annotated screenshots on every release.
 - Catch documentation drift in CI: `docsxai baseline` + `docsxai diff --fail-on warn` flags a PR whose UI change breaks a documented flow, before it merges.
-- Publish a polished docs site: emit an Astro Starlight site or a single-file interactive viewer with per-step screenshots, callouts, and captions.
-- Push the same docs into an existing knowledge base: idempotent Confluence Cloud publishing, so re-running an unchanged flow makes zero edits and only real changes land.
+- Publish a docs site: emit an Astro Starlight site or a single-file interactive viewer with per-step screenshots, callouts, and captions.
+- Push the same docs into an existing knowledge base: idempotent Confluence Cloud publishing, so re-running an unchanged flow makes zero edits.
 - Document flows that need login and clean data: capture an authed session (interactive manual capture or one of ten scripted strategies, eleven in all) and apply deterministic redactions so secrets and PII never reach a screenshot.
 
 ## How it works: two modes
@@ -147,7 +147,7 @@ Next: [quickstart on docsxai.dev](https://docsxai.dev/getting-started/quickstart
 ## Documentation
 
 - [**docs/agent-runbook.md**](docs/agent-runbook.md): hand-it-to-an-agent workflow runbook
-- [**docs/agent-guidance.md**](docs/agent-guidance.md): the reach-for-this-not-that list for agents that write flows
+- [**docs/agent-guidance.md**](docs/agent-guidance.md): which primitive to use, for agents that write flows
 - [**docs/running-against-an-app-repo.md**](docs/running-against-an-app-repo.md): human-readable runbook
 - [**docs/ci-recipes.md**](docs/ci-recipes.md): wiring `run` / `baseline` / `diff` into CI
 - [**docs/themed-caption-packs.md**](docs/themed-caption-packs.md): raw captures to themed, hash-named screenshots with a manifest

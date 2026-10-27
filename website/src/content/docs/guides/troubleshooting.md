@@ -3,7 +3,7 @@ title: Troubleshooting
 description: How to read a halt, the halt-cause vocabulary, the diagnose-edit-rerun loop, expired sessions, locator gotchas, wait tuning, and the lint rules that prevent most of it.
 ---
 
-The first thing to internalise: **a halt is drift, not a flake**. The engine
+A halt means the page drifted from the flow. The engine
 deliberately has no selector fallbacks and no retry-until-green - when a
 locator or success criterion fails, the run halts so you fix the flow-file or
 acknowledge the app changed. Do not retry blindly; read the cause, diagnose,
@@ -109,7 +109,7 @@ scripted strategy from the [auth catalogue](/reference/auth-strategies/).
 - **`element_stable`.** On a step with a `target`, this polls the element's
   bounding box every 100 ms until two consecutive reads agree (within half a
   pixel), with a 10-second best-effort budget - a perpetually animating
-  element proceeds after the budget rather than wedging the run. Without a
+  element proceeds after the budget, so the run never hangs. Without a
   `target` it waits on nothing; lint flags that.
 - **`settled`.** For a page that finishes late (a web font swapping in, an
   image that lands after the click, the layout shift that follows),

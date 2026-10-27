@@ -152,7 +152,7 @@ headed window for strategies that do not need one.
 
 `auth_cookie` (set via `init --auth-cookie`, `capture-auth --auth-cookie`, or
 hand-edited into `auth/strategy.yaml`) names the app's session cookie; when
-set, the cached session's expiry tracks _that_ cookie's expiry rather than
+set, the cached session's expiry tracks _that_ cookie's expiry and not
 the `ttl` guess. An interactive SSO login leaves ephemeral IdP scratch
 cookies, so the minimum cookie expiry is roughly "now" and must not be
 trusted. If unset or unfound, `ttl` (or a 1h default) is used.
@@ -255,7 +255,7 @@ before Playwright's own text.
   `<step-id>` and starts execution there - the inverse of `--stop-after`.
   Pair with `--cdp` to attach to a Chrome already in the post-prior-steps
   state (left over from a paused previous run, say) and iterate on a new
-  tail step in seconds rather than re-walking the whole `extends` chain. New
+  tail step in seconds without re-walking the whole `extends` chain. New
   annotations MERGE into the existing `annotations.json` by step id; prior
   steps' annotations and screenshots are preserved.
 - `--variant <id>` runs one variant of a flow with a [matrix](/reference/flow-file/#matrix),
@@ -294,8 +294,8 @@ run: 1 of 1 flow ok, outputs in ~/docsxai/my-app/docs
 ```
 
 A halted run names the step, the inferred cause, and the halt screenshot,
-then exits 1 - hand that to [`diagnose`](#docsxai-diagnose) rather than
-retrying:
+then exits 1 - hand that to [`diagnose`](#docsxai-diagnose). Don't
+retry:
 
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai run ~/docsxai/my-app --flow publish-post
