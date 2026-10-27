@@ -46,7 +46,7 @@ describe("page landmarks and document outline", () => {
   it("links back to the index from a nested variant flow", () => {
     const nested = flowPageHtml("checkout/en.dark.390", [step()], AT, "");
     expect(nested).toContain('href="../../index.html"');
-    expect(nested).toContain('<span aria-hidden="true">← </span>All flows');
+    expect(nested).toContain('<span aria-hidden="true">←&nbsp;</span>All flows');
   });
 
   it("uses one h1 for the flow and an h2 per step, each step a labelled section", () => {
