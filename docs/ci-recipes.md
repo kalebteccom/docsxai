@@ -62,7 +62,7 @@ jobs:
 A halt (non-zero exit) means **drift, not flake**: a locator or success
 criterion no longer holds. The failing step id + halt-cause prefix are in the
 log and `docs/<flow>/halts/<step>.png` is the moment of failure. Hand both to
-your calibration agent (`docsxai diagnose`) rather than retrying.
+your calibration agent (`docsxai diagnose`). Don't retry.
 
 ## Drift gating (recommended)
 

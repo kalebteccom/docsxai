@@ -135,7 +135,7 @@ The plugin's job is to be the recommended invocation surface. It adds no capabil
 - For viewer issues: include a screenshot of the rendered viewer, the doc-pack `annotations.json`, and the browser + version you opened it in.
 - For backend issues: include the backend version, the request payload (with secrets redacted), and the response.
 
-For security-sensitive reports, please follow [`SECURITY.md`](SECURITY.md) rather than opening a public issue.
+For security-sensitive reports, please follow [`SECURITY.md`](SECURITY.md). Don't open a public issue.
 
 ## Workspace-rooted paths
 

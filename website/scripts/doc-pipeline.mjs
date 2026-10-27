@@ -221,7 +221,7 @@ export const agentOnlyPages = [
     out: "guides/agent-guidance.md",
     title: "Agent guidance",
     description:
-      "The reach-for-this-not-that map for agents driving docsxai: ten temptations, why each bites, and the right call with a copyable example.",
+      "The footgun map for agents driving docsxai: ten temptations, why each bites, and the right call with a copyable example.",
   },
 ];
 

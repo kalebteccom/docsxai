@@ -130,7 +130,7 @@ Optional vendorable `.claude/skills/` fallback. Delegates to the installed plugi
 - `skill/docsxai/SKILL.md`: the vendorable skill manifest.
 - `vendorSkill(targetDir)`: copies the skill bundle into `<targetDir>/.claude/skills/docsxai/`. Idempotent.
 
-For teams that prefer version-pinning in the consumer repo rather than relying on a globally-installed plugin.
+For teams that prefer version-pinning in the consumer repo and don't want a globally installed plugin.
 
 ## `packages/viewer/`: `@docsxai/viewer`
 
