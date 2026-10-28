@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- Contributor scripts: `scripts/pre-gate.mjs` runs prettier, eslint, per-package typecheck, single-file tests and the dash guard on changed files, and `scripts/new-wt.sh` creates a sibling worktree with an offline install.
+
 ## [0.3.0-rc.5] - 2026-10-27
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds everything `0.3.0-rc.4` added (that tag was never published), the `add-flow` command, automatic caption placement at every width, themed burns at 2x, a hardened backend and a security pass.
