@@ -46,10 +46,11 @@ function chunks(list, size = 100) {
   return out;
 }
 
+// Failure output: runners print the verdict last, so keep the tail when it is long.
 const indent = (text, max = 40) => {
   const lines = text.split("\n");
-  const shown = lines.slice(0, max).map((l) => `    ${l}`);
-  if (lines.length > max) shown.push(`    ... ${lines.length - max} more lines`);
+  const shown = lines.slice(-max).map((l) => `    ${l}`);
+  if (lines.length > max) shown.unshift(`    ... ${lines.length - max} earlier lines`);
   return shown.join("\n");
 };
 
@@ -180,11 +181,16 @@ async function main() {
 
   // (d) single-file tests
   const websiteScripts = join(root, "website", "scripts");
-  const guards = existsSync(websiteScripts)
-    ? readdirSync(websiteScripts)
-        .filter((n) => /^check-.*\.test\.mjs$/.test(n))
-        .map((n) => `website/scripts/${n}`)
-    : [];
+  const websiteReady = existsSync(join(root, "website", "node_modules"));
+  const guards =
+    websiteReady && existsSync(websiteScripts)
+      ? readdirSync(websiteScripts)
+          .filter((n) => /^check-.*\.test\.mjs$/.test(n))
+          .map((n) => `website/scripts/${n}`)
+      : [];
+  if (!websiteReady && files.some((f) => f.startsWith("website/"))) {
+    report("skip", "website guards", INSTALL_HINT);
+  }
   const plan = testPlan(files, guards);
   for (const { pkg, files: tests } of plan.vitest) {
     const label = `vitest ${pkg} (${tests.length})`;
