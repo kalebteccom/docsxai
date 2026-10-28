@@ -1,0 +1,49 @@
+# ci-optimised: v1
+# Rendered design audit of the docs site and a sample viewer pack: contrast, touch targets, clipping, overflow at 320, 390 and 1440 in light and dark,
+# layout-audit in Chromium, WebKit and Firefox, and the viewer UI matrix. Read the result in the pipeline log.
+# INVARIANT: manual event only, never on push. Not a required check. This pipeline names no secrets and publishes nothing.
+
+# Only the browser runner takes this workflow, as visual-captures.yaml does.
+labels:
+  browser: "true"
+
+when:
+  - event: manual
+
+steps:
+  - name: setup
+    image: remotxai-ci:latest
+    depends_on: []
+    commands:
+      - pnpm install --frozen-lockfile --ignore-scripts --store-dir /tmp/pnpm-store
+
+  # Builds the viewer and the docs site, then renders the sample pack into audit-work/.
+  - name: build
+    image: remotxai-ci:latest
+    depends_on: [setup]
+    commands:
+      - pnpm build
+      - mkdir -p audit-work
+      - node packages/viewer/dist/index.js build examples/ci/sample-repo/docs-workspace/docs audit-work/viewer
+
+  # Browsers go into a per-pipeline directory in the container's /tmp, gone when the step ends, so the fetch and the audits share this step.
+  # Each audit runs even when an earlier one finds something; the last line says which ones failed, and the step exits 1 when any did.
+  - name: audit
+    image: remotxai-ci:latest
+    depends_on: [build]
+    environment:
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/docsxai-pw-${CI_PIPELINE_NUMBER}
+    commands:
+      - timeout 600 pnpm -C packages/engine exec playwright-core install chromium webkit firefox
+      - |
+        failed=""
+        timeout 900 node scripts/rendered-check.mjs --dir website/dist --json audit-work/rendered-check.json || failed="$failed rendered-check"
+        for engine in chromium webkit firefox; do
+          timeout 900 node scripts/layout-audit.mjs --engine $engine --dir website/dist || failed="$failed layout-audit-$engine"
+        done
+        timeout 900 node packages/viewer/scripts/viewer-ui-matrix.mjs audit-work/viewer || failed="$failed viewer-ui-matrix"
+        if [ -n "$failed" ]; then
+          echo "design audit findings in:$failed"
+          exit 1
+        fi
+        echo "design audit clean"
