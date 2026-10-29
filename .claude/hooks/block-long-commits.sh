@@ -1,9 +1,10 @@
 #!/bin/bash
-# Block git commits with subject lines that are too long or messages that
-# carry a body. The only body allowed is a trailer block: Co-Authored-By
-# (content validated by block-ai-attribution.sh) and Signed-off-by (DCO),
-# separated from the subject by one blank line. Keeps commit messages short
-# and single-purpose.
+# Block git commits whose subject line is longer than 72 characters.
+# A body and trailers (Signed-off-by, Co-Authored-By or any other) are
+# allowed; this hook never demands or forbids one. Merge commits are exempt.
+#
+# `git commit` counts only as a command word: text inside quotes (an echo, a
+# commit message that mentions it) is not a commit.
 
 MAX_SUBJECT_LENGTH=72
 
@@ -13,8 +14,18 @@ if [ -z "$COMMAND" ]; then
   exit 0
 fi
 
-# Only inspect git commit commands
-if ! echo "$COMMAND" | grep -qi 'git commit'; then
+# Drop quoted text, then look for `git commit` at the start of a command:
+# start of input, after ; & | ( or a newline, past any VAR=value prefixes.
+STRIPPED=$(printf '%s' "$COMMAND" | perl -0777 -pe 's/\x27[^\x27]*\x27|"(?:[^"\\]|\\.)*"//gs')
+NL=$'\n'
+COMMIT_RE="(^|[;&|(${NL}])[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*git[[:space:]]+commit([[:space:]]|\$)"
+if ! [[ "$STRIPPED" =~ $COMMIT_RE ]]; then
+  exit 0
+fi
+
+# Concluding a merge: git writes its own message.
+MERGE_HEAD_PATH=$(git rev-parse --git-path MERGE_HEAD 2>/dev/null)
+if [ -n "$MERGE_HEAD_PATH" ] && [ -f "$MERGE_HEAD_PATH" ]; then
   exit 0
 fi
 
@@ -31,7 +42,7 @@ if [ "$MSG" = "$AFTER_M" ]; then
 fi
 
 # Step 2b: several -m arguments are paragraphs (git joins them with a blank
-# line), so `-m "subject" -m "Co-Authored-By: ..."` reads as subject + trailer.
+# line), so the first one is the subject.
 for SEP in '" -m "' "\" -m '" "' -m \"" "' -m '"; do
   MSG="${MSG//"$SEP"/$'\n\n'}"
 done
@@ -43,35 +54,16 @@ if [ -z "$MSG" ]; then
   exit 0
 fi
 
-# Subject is the first line; everything after it is the body.
 SUBJECT=$(echo "$MSG" | head -1)
 SUBJECT_LEN=${#SUBJECT}
-BODY=$(echo "$MSG" | tail -n +2)
-SECOND_LINE=$(echo "$MSG" | sed -n 2p)
-TRAILER_RE='^(Co-Authored-By|Signed-off-by): .+ <[^<>]+>[[:space:]]*$'
-# Non-blank body lines that are not a Co-Authored-By / Signed-off-by trailer.
-NON_TRAILER_COUNT=$(echo "$BODY" | grep -v '^[[:space:]]*$' | grep -vciE "$TRAILER_RE")
 
-ERRORS=""
+# A subject that starts with "Merge " is a merge commit.
+case "$SUBJECT" in
+  "Merge "*) exit 0 ;;
+esac
 
 if [ "$SUBJECT_LEN" -gt "$MAX_SUBJECT_LENGTH" ]; then
-  ERRORS="Subject line is ${SUBJECT_LEN} chars (max ${MAX_SUBJECT_LENGTH})."
-fi
-
-if [ "$NON_TRAILER_COUNT" -gt 0 ]; then
-  if [ -n "$ERRORS" ]; then
-    ERRORS="${ERRORS} "
-  fi
-  ERRORS="${ERRORS}Message body has ${NON_TRAILER_COUNT} line(s) that are not a Co-Authored-By or Signed-off-by trailer."
-elif [ -n "${BODY//[[:space:]]/}" ] && [ -n "${SECOND_LINE//[[:space:]]/}" ]; then
-  if [ -n "$ERRORS" ]; then
-    ERRORS="${ERRORS} "
-  fi
-  ERRORS="${ERRORS}Separate the trailer from the subject with a blank line."
-fi
-
-if [ -n "$ERRORS" ]; then
-  REASON="BLOCKED: ${ERRORS} Write a single-line subject (max ${MAX_SUBJECT_LENGTH} chars), optionally followed by a blank line and a Co-Authored-By / Signed-off-by trailer. No prose body, no bullet points."
+  REASON="BLOCKED: Subject line is ${SUBJECT_LEN} chars (max ${MAX_SUBJECT_LENGTH}). Shorten the subject; a body after a blank line is allowed."
   jq -n --arg reason "$REASON" '{
     hookSpecificOutput: {
       hookEventName: "PreToolUse",

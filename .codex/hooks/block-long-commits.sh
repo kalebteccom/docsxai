@@ -1,30 +1,40 @@
 #!/usr/bin/env bash
-# Block generated git commit commands with non-semantic, long, or prose-body messages.
-# The only body allowed is a trailer block: Co-Authored-By (content validated by
-# block-ai-attribution.sh) and Signed-off-by (DCO), after one blank line.
+# Block generated git commit commands with non-semantic or long-subject messages.
+# A body and trailers are allowed; this hook never demands or forbids one.
+# Merge commits are exempt. `git commit` counts only as a command word.
 
 set -euo pipefail
 
 max_subject_length=72
 conventional_subject_pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9][a-z0-9._/-]*\))?!?: .+'
-trailer_pattern='^(Co-Authored-By|Signed-off-by): .+ <[^<>]+>[[:space:]]*$'
 payload="$(cat)"
 command="$(
   printf '%s' "$payload" \
     | jq -r '.tool_input.command // .command // empty' 2>/dev/null \
     || true
 )"
+# Drop quoted text (newlines inside it too), then look for `git commit` at the
+# start of a command: start of input, after ; & | ( or a newline, past any
+# VAR=value prefixes.
 command_without_quoted_text="$(
   printf '%s' "$command" \
-    | sed -E "s/'[^']*'//g; s/\"([^\"\\]|\\.)*\"//g"
+    | perl -0777 -pe 's/\x27[^\x27]*\x27|"(?:[^"\\]|\\.)*"//gs'
 )"
+nl=$'\n'
+commit_command_pattern="(^|[;&|(${nl}])[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*git[[:space:]]+commit([[:space:]]|\$)"
 
-if [[ -z "$command" || ! "$command_without_quoted_text" =~ (^[[:space:]]*|[;&|][[:space:]]*)git[[:space:]]+commit([[:space:]]|$) ]]; then
+if [[ -z "$command" || ! "$command_without_quoted_text" =~ $commit_command_pattern ]]; then
+  exit 0
+fi
+
+# Concluding a merge: git writes its own message.
+merge_head_path="$(git rev-parse --git-path MERGE_HEAD 2>/dev/null || true)"
+if [[ -n "$merge_head_path" && -f "$merge_head_path" ]]; then
   exit 0
 fi
 
 # Collect every -m / --message= value. Several values are paragraphs: git joins
-# them with a blank line, so `-m "subject" -m "Co-Authored-By: ..."` is valid.
+# them with a blank line, so the first one is the subject.
 remaining=" ${command//--message=/ -m }"
 message=""
 found_message=0
@@ -57,25 +67,18 @@ if (( ! found_message )); then
 fi
 
 subject="$(printf '%s\n' "$message" | sed -n '1p')"
-body="$(printf '%s\n' "$message" | tail -n +2)"
-second_line="$(printf '%s\n' "$message" | sed -n '2p')"
 subject_length="${#subject}"
-non_trailer_count="$(
-  printf '%s\n' "$body" \
-    | { grep -v '^[[:space:]]*$' || true; } \
-    | { grep -vciE "$trailer_pattern" || true; }
-)"
+
+# A subject that starts with "Merge " is a merge commit.
+if [[ "$subject" == "Merge "* ]]; then
+  exit 0
+fi
 
 if (( subject_length > max_subject_length )); then
   errors+=("subject is ${subject_length} characters; max is ${max_subject_length}")
 fi
 if [[ -n "$subject" && ! "$subject" =~ $conventional_subject_pattern ]]; then
   errors+=("subject must use Conventional Commits, e.g. fix(api): handle token refresh")
-fi
-if (( non_trailer_count > 0 )); then
-  errors+=("message body has ${non_trailer_count} line(s) that are not a Co-Authored-By or Signed-off-by trailer")
-elif [[ -n "${body//[[:space:]]/}" && -n "${second_line//[[:space:]]/}" ]]; then
-  errors+=("separate the trailer from the subject with a blank line")
 fi
 
 if (( ${#errors[@]} > 0 )); then

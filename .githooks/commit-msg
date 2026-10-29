@@ -1,21 +1,18 @@
 #!/usr/bin/env bash
 # Commit-msg hook: enforces the docsxai commit-message contract repo-wide,
 # not just inside Claude Code. Mirrors the policy implemented in
-# .claude/hooks/block-{long-commits,ai-attribution}.sh so anyone (human,
-# Codex, Cursor, agent-of-the-week) hitting `git commit` from inside the
-# tree gets the same gate.
+# .claude/hooks/block-long-commits.sh and .codex/hooks/block-long-commits.sh so
+# anyone (human, Codex, Cursor, agent-of-the-week) hitting `git commit` from
+# inside the tree gets the same gate.
 #
 # Rules:
-#   1. Subject line ≤ 72 chars.
+#   1. Subject line <= 72 chars.
 #   2. Conventional-commits prefix
 #      (feat|fix|chore|docs|refactor|test|perf|build|ci|style|revert)(scope)?: ...
-#   3. No body beyond a trailer block, separated from the subject by one
-#      blank line. No prose, no bullet points.
-#   4. Allowed trailers: Signed-off-by (DCO, `git commit -s`, any number) and,
-#      for AI-assisted commits, exactly one
-#        Co-Authored-By: <Claude model name> <noreply@anthropic.com>
-#      Commits without AI help need no Co-Authored-By; it is never required.
-#      Any other Co-Authored-By, or a "Generated with" line, is rejected.
+#   3. A body and trailers are allowed. Nothing here requires or forbids an
+#      attribution line or any trailer.
+#   4. Merge commits (MERGE_HEAD present, or a subject starting "Merge ") are
+#      exempt.
 #
 # Bypass (emergency only): git commit --no-verify
 
@@ -27,9 +24,6 @@ if [[ -z "$MSG_FILE" || ! -f "$MSG_FILE" ]]; then
   exit 0
 fi
 
-AI_TRAILER_RE='^Co-Authored-By: Claude( [A-Za-z0-9.()+-]+)* <noreply@anthropic\.com>$'
-SIGNOFF_RE='^Signed-off-by: .+ <[^<>[:space:]]+@[^<>[:space:]]+>$'
-
 # Strip comment lines (git adds them automatically).
 MSG_BODY=$(grep -v '^#' "$MSG_FILE" || true)
 # Trim trailing blank lines.
@@ -40,7 +34,15 @@ if [[ -z "$MSG_BODY" ]]; then
 fi
 
 SUBJECT=$(printf '%s\n' "$MSG_BODY" | head -n 1)
-SECOND_LINE=$(printf '%s\n' "$MSG_BODY" | sed -n '2p')
+
+# Concluding a merge: git writes its own message.
+MERGE_HEAD_PATH=$(git rev-parse --git-path MERGE_HEAD 2>/dev/null || true)
+if [[ -n "$MERGE_HEAD_PATH" && -f "$MERGE_HEAD_PATH" ]]; then
+  exit 0
+fi
+if [[ "$SUBJECT" == "Merge "* ]]; then
+  exit 0
+fi
 
 ERRORS=()
 
@@ -50,30 +52,6 @@ fi
 
 if ! printf '%s' "$SUBJECT" | grep -qE '^(feat|fix|chore|docs|refactor|test|perf|build|ci|style|revert)(\([a-z0-9._/-]+\))?!?: .+'; then
   ERRORS+=("Subject does not match conventional-commits prefix (feat|fix|chore|docs|refactor|test|perf|build|ci|style|revert)[(scope)]: subject.")
-fi
-
-# Body: only trailers, after one blank line.
-AI_COUNT=0
-OTHER_COUNT=0
-while IFS= read -r line; do
-  [[ -z "${line//[[:space:]]/}" ]] && continue
-  if printf '%s\n' "$line" | grep -qiE "$AI_TRAILER_RE"; then
-    AI_COUNT=$((AI_COUNT + 1))
-  elif printf '%s\n' "$line" | grep -qiE "$SIGNOFF_RE"; then
-    :
-  else
-    OTHER_COUNT=$((OTHER_COUNT + 1))
-  fi
-done < <(printf '%s\n' "$MSG_BODY" | tail -n +2)
-
-if (( OTHER_COUNT > 0 )); then
-  ERRORS+=("Message body has ${OTHER_COUNT} line(s) that are not an allowed trailer. Allowed: 'Signed-off-by: Name <email>' and one 'Co-Authored-By: <Claude model name> <noreply@anthropic.com>'. No prose, bullets, or other credit lines.")
-elif [[ -n "$(printf '%s\n' "$MSG_BODY" | tail -n +2 | tr -d '[:space:]')" && -n "${SECOND_LINE//[[:space:]]/}" ]]; then
-  ERRORS+=("Separate the trailer from the subject with a blank line.")
-fi
-
-if (( AI_COUNT > 1 )); then
-  ERRORS+=("Found ${AI_COUNT} Co-Authored-By trailers; use exactly one.")
 fi
 
 if (( ${#ERRORS[@]} > 0 )); then
