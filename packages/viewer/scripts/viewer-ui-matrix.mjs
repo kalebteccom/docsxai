@@ -114,8 +114,13 @@ function check() {
     if (/mono/i.test(getComputedStyle(el).fontFamily)) found.push(`mono face on ${desc(el)}`);
   }
   for (const p of document.querySelectorAll("main p, .md p, .caption")) {
-    const cs = getComputedStyle(p);
-    const ch = p.getBoundingClientRect().width / (parseFloat(cs.fontSize) * 0.5);
+    // One `ch` is the width of "0" in the element's own font: measure it with a probe, not a guess.
+    const probe = document.createElement("span");
+    probe.style.cssText = "position:absolute;visibility:hidden;width:1ch;height:0;";
+    p.appendChild(probe);
+    const oneCh = probe.getBoundingClientRect().width;
+    probe.remove();
+    const ch = oneCh > 0 ? p.getBoundingClientRect().width / oneCh : 0;
     if (ch > 80) found.push(`measure ~${Math.round(ch)}ch on ${desc(p)}`);
   }
   return found;
