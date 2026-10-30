@@ -1,9 +1,9 @@
 # ci-optimised: v1
 # Screenshots of the docs site and a sample viewer pack for branches that change either one. Informational: nothing is compared and nothing gates a merge.
-# The PNGs land in /srv/docsxai-visual/<pipeline number> on the CI box and the log prints the folder. How to read them: docs/ai-context/ux/visual-captures.md.
+# The PNGs land in a folder named after the pipeline number on the CI host and the log prints the folder. How to read them: docs/ai-context/ux/visual-captures.md.
 # INVARIANT: not a required check. The main ruleset requires ci/woodpecker/push/ci only. This pipeline names no secrets and publishes nothing.
 
-# Only the browser runner takes this workflow: agent `browser-runner`, at most 3 workflows at once, 24 GB RAM, 8 cores and 4 GB /dev/shm per step.
+# Only a browser-capable runner takes this workflow.
 labels:
   browser: "true"
 
@@ -58,7 +58,7 @@ steps:
         --summary visual-work/summary.md
         --artifact "docsxai-visual/${CI_PIPELINE_NUMBER}"
 
-  # /srv/docsxai-visual is a host folder the box admin creates and makes writable for the agent's containers. Folders older than 14 days are removed here. The two timeout 120 prefixes are this step's time budget.
+  # The output folder is a host folder that must exist and be writable from the step. Folders older than 14 days are removed here. The two timeout 120 prefixes are this step's time budget.
   # Shell variables are written $dest with no braces: Woodpecker substitutes the braced form before the shell runs.
   - name: publish
     image: remotxai-ci:latest

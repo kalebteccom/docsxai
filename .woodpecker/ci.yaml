@@ -1,5 +1,5 @@
 # ci-optimised: v1
-# Mirrors remotxai's Woodpecker layout. Gates match the AGENTS.md quality gate contract.
+# Gates match the AGENTS.md quality gate contract.
 # This is the only merge gate: a pull request merges on a green pipeline at its exact head commit. No GitHub Actions workflow remains.
 # INVARIANT: this pipeline never publishes and names no secrets. Releases run only in .woodpecker/release.yaml (manual event only).
 

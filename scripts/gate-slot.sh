@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# COMPAT: copy of trackxai scripts/gate-slot.sh (plus restoring the caller's umask for the command); both repos draw from the /srv/trackxai-gate-locks pool.
+# Runs a command inside one of a fixed number of shared lock slots on the CI host (GATE_LOCK_DIR sets the lock directory) and restores the caller's umask for the command.
 set -euo pipefail
 
 LOCK_DIR="${GATE_LOCK_DIR:-/srv/trackxai-gate-locks}"
@@ -10,11 +10,11 @@ if [ "$#" -eq 0 ]; then
   exit 2
 fi
 if [ ! -d "$LOCK_DIR" ]; then
-  echo "gate-slot: lock directory $LOCK_DIR does not exist; create it with deploy/dev-vm/setup.sh" >&2
+  echo "gate-slot: lock directory $LOCK_DIR does not exist; create it on the CI host" >&2
   exit 2
 fi
 if [ ! -w "$LOCK_DIR" ]; then
-  echo "gate-slot: $(id -un) cannot write $LOCK_DIR; it must be ci:ci mode 1777, see deploy/dev-vm/setup.sh" >&2
+  echo "gate-slot: $(id -un) cannot write $LOCK_DIR; it must be world-writable" >&2
   exit 2
 fi
 
