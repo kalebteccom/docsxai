@@ -51,12 +51,12 @@
     "eslint": "^9.12.0",
     "eslint-plugin-import-x": "^4.17.1",
     "globals": "^15.11.0",
-    "jscpd": "^5.4.1",
+    "jscpd": "^5.4.2",
     "license-checker-rseidelsohn": "^4.4.2",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",
     "typescript": "^5.5.0",
-    "typescript-eslint": "^8.72.0",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^4.1.12"
   },
   "pnpm": {
