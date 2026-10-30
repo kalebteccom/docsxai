@@ -45,7 +45,7 @@
     "test": "node scripts/bundle-overlay.mjs && vitest run --testTimeout=30000 --hookTimeout=30000"
   },
   "devDependencies": {
-    "@astrojs/starlight": "0.41.2",
+    "@astrojs/starlight": "0.42.7",
     "@types/node": "^20.19.43",
     "astro": "7.3.5",
     "esbuild": "^0.28.2",
