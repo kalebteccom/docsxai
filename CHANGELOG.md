@@ -633,3 +633,13 @@ The MVP: an LLM-agnostic engine + Claude Code plugin that walks a web app, follo
 - Bot-identity hardening in `dependabot-auto-merge.yml` (`user.type == 'Bot'` + `user.login == 'dependabot[bot]'` check, not spoofable `github.actor`).
 - All third-party GitHub Actions SHA-pinned with version comments.
 - `release.yml` uses OIDC trusted publishing (no `NPM_TOKEN`); environment-gated; tag-triggered only.
+
+<!-- Push the v0.3.0-rc.5 tag, then this link resolves to the real diff. -->
+[Unreleased]: https://github.com/kalebteccom/docsxai/compare/v0.3.0-rc.5...HEAD
+[0.3.0-rc.5]: https://github.com/kalebteccom/docsxai/compare/v0.3.0-rc.4...v0.3.0-rc.5
+[0.3.0-rc.4]: https://github.com/kalebteccom/docsxai/compare/v0.3.0-rc.3...v0.3.0-rc.4
+[0.3.0-rc.3]: https://github.com/kalebteccom/docsxai/compare/v0.3.0-rc.2...v0.3.0-rc.3
+[0.3.0-rc.2]: https://github.com/kalebteccom/docsxai/compare/v0.3.0-rc.1...v0.3.0-rc.2
+[0.3.0-rc.1]: https://github.com/kalebteccom/docsxai/compare/v0.2.1-rc.1...v0.3.0-rc.1
+[0.2.1-rc.1]: https://github.com/kalebteccom/docsxai/compare/v0.2.0...v0.2.1-rc.1
+[0.2.0]: https://github.com/kalebteccom/docsxai/releases/tag/v0.2.0
