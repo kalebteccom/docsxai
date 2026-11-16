@@ -40,6 +40,8 @@ Done when each known cause has a message, a docs page and a keystone test.
 
 ### 4. Pin the browser build
 
+Design: [`browser-build-pin.md`](browser-build-pin.md).
+
 Screenshots are byte-identical per Chromium build. Record the build in the workspace config and have `pack --check` report a build mismatch as its own failure, so a Playwright bump never shows up as a thousand changed images. This also unblocks the held `playwright-core` Dependabot pull request, which needs a determinism run CI cannot do today.
 
 Done when a workspace records its browser build and a mismatch fails with both build names instead of a pixel diff.
