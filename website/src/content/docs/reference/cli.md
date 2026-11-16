@@ -723,7 +723,7 @@ three on/off switches (`DOCSX_BACKEND_DENY_PRIVATE_APP_URL`, `DOCSX_EGRESS_GUARD
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai doctor ~/docsxai/my-app
 ok: version: docsxai 0.3.0-rc.4
-ok: node: v26.1.0 (>= 26 required)
+ok: node: v26.1.0
 ok: chromium: ~/Library/Caches/ms-playwright/chromium-1223/…/Google Chrome for Testing
 ok: workspace: ~/docsxai/my-app/.docsxai.json (docsxai/workspace@1, app_url https://localhost:3000)
 ok: config: .docsxai.json fields are valid

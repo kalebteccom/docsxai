@@ -71,10 +71,11 @@ describe("checkNode", () => {
     expect(c.detail).toContain("v26.0.0");
   });
 
-  it("fails on Node < 26 with an upgrade fix", () => {
+  it("fails on Node < 26 with an install fix", () => {
     const c = checkNode("24.0.0");
     expect(c.ok).toBe(false);
-    expect(c.fix).toMatch(/upgrade Node/);
+    expect(c.detail).toBe("v24.0.0, needs 26 or newer");
+    expect(c.fix).toMatch(/install Node 26 or newer/);
   });
 });
 

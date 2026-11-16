@@ -79,13 +79,13 @@ async function readTextIfExists(p: string): Promise<string | null> {
 export function checkNode(nodeVersion: string): DoctorCheck {
   const major = Number(nodeVersion.split(".")[0]);
   if (Number.isFinite(major) && major >= 26) {
-    return { name: "node", ok: true, detail: `v${nodeVersion} (>= 26 required)` };
+    return { name: "node", ok: true, detail: `v${nodeVersion}` };
   }
   return {
     name: "node",
     ok: false,
-    detail: `v${nodeVersion}, the engine requires Node >= 26`,
-    fix: "upgrade Node (https://nodejs.org); the engine's `engines` field pins >= 26",
+    detail: `v${nodeVersion}, needs 26 or newer`,
+    fix: "install Node 26 or newer (https://nodejs.org)",
   };
 }
 
