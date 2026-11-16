@@ -116,7 +116,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   const pause = flags.get("pause") === true;
   const headed = flags.get("headed") === true || pause; // --pause implies --headed
   if (startFrom && !onlyFlow) {
-    return usageError("run", "--start-from requires --flow <name> (single-flow calibration aid)");
+    return usageError("run", "--start-from requires --flow <name>");
   }
   const verify = parseVerifyArgs(flags);
   if (typeof verify === "string") return usageError("run", verify);
@@ -213,7 +213,10 @@ export async function cmdRun(args: string[]): Promise<number> {
   }
   if (cdpEndpoint && matrixFlows.size > 0) {
     process.stderr.write(
-      `run: --cdp attaches to a browser that owns its viewport, color scheme and locale, so it cannot run the matrix of ${[...matrixFlows].join(", ")}\n`,
+      `run: ${withNext(
+        `--cdp attaches to a browser that owns its viewport, color scheme and locale, so it cannot run the matrix of ${[...matrixFlows].join(", ")}`,
+        "drop --cdp to run the matrix, or pass --flow with a flow that has no matrix",
+      )}\n`,
     );
     return 1;
   }
@@ -221,12 +224,15 @@ export async function cmdRun(args: string[]): Promise<number> {
     const wanted = units.filter((u) => u.id === onlyVariant);
     if (wanted.length === 0) {
       process.stderr.write(
-        `run: no variant "${onlyVariant}" (variants: ${
-          units
-            .map((u) => u.id)
-            .filter(Boolean)
-            .join(", ") || "none, no flow has a matrix"
-        })\n`,
+        `run: ${withNext(
+          `no variant "${onlyVariant}" (variants: ${
+            units
+              .map((u) => u.id)
+              .filter(Boolean)
+              .join(", ") || "none, no flow has a matrix"
+          })`,
+          "drop --variant to run every variant, or pass one of the listed ones",
+        )}\n`,
       );
       return 1;
     }
