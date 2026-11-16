@@ -11,6 +11,7 @@ import {
   diffDocPacks,
   diffPngBuffers,
   formatDriftReportMarkdown,
+  formatDriftReportText,
   severityAtLeast,
 } from "../src/diff.js";
 import { main } from "../src/cli.js";
@@ -599,5 +600,38 @@ describe("baseline + diff CLI", () => {
     expect(err).toMatch(/--out cannot be the workspace itself/);
     await fs.access(path.join(ws, "flows", "checkout.flow.yaml"));
     await fs.access(path.join(ws, "docs", "checkout", "pay.md"));
+  });
+});
+
+describe("diffDocPacks, browser build", () => {
+  const withBuild = (build: string | undefined) => ({
+    ...annotationsFile([{ step: "pay", x: 10, y: 10 }]),
+    ...(build ? { browser_build: build } : {}),
+  });
+  const shot = solidPng(10, 10, WHITE);
+  const pack = (build: string | undefined) =>
+    makePack({ screenshots: { "pay.png": shot }, annotations: withBuild(build) });
+
+  it("reports both builds when they differ, without drift or a severity change", async () => {
+    const report = await diffDocPacks(
+      await pack("Chromium 140.0.1"),
+      await pack("Chromium 141.0.2"),
+    );
+    expect(report.browser_build).toEqual({ a: "Chromium 140.0.1", b: "Chromium 141.0.2" });
+    expect(report.summary.severity).toBe("none");
+    expect(formatDriftReportText(report)).toContain(
+      "browser build changed from Chromium 140.0.1 to Chromium 141.0.2",
+    );
+    expect(formatDriftReportMarkdown(report)).toContain(
+      "browser build changed from Chromium 140.0.1 to Chromium 141.0.2",
+    );
+  });
+  it("says nothing when the builds match or one side names none", async () => {
+    expect(
+      (await diffDocPacks(await pack("Chromium 140.0.1"), await pack("Chromium 140.0.1")))
+        .browser_build,
+    ).toBeUndefined();
+    const oneSided = await diffDocPacks(await pack(undefined), await pack("Chromium 141.0.2"));
+    expect(oneSided).not.toHaveProperty("browser_build");
   });
 });

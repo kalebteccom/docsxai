@@ -125,6 +125,12 @@ export interface DriftReport {
   /** Only flows with drift appear; sorted by flow name. */
   flows: FlowDrift[];
   summary: DriftSummary;
+  /**
+   * Present when every flow that names a browser build in `a` names one build, the same holds in
+   * `b`, and the two differ. A pixel change then may come from the browser. Never changes `severity`
+   * or the exit code.
+   */
+  browser_build?: { a: string; b: string };
 }
 
 export class DriftError extends Error {

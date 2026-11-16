@@ -89,10 +89,15 @@ function flowDetailLines(f: FlowDrift): string[] {
   return lines;
 }
 
+function buildChangeLine(change: { a: string; b: string }): string {
+  return `browser build changed from ${change.a} to ${change.b}, so pixel changes may come from the browser, not the app. Recapture the baseline on the new build.`;
+}
+
 /** PR-comment-ready markdown rendering of a {@link DriftReport}. */
 export function formatDriftReportMarkdown(report: DriftReport): string {
   const lines: string[] = ["# docsxai drift report", ""];
   lines.push(`\`${report.a}\` → \`${report.b}\``, "");
+  if (report.browser_build) lines.push(buildChangeLine(report.browser_build), "");
   if (report.flows.length === 0) {
     lines.push("No drift detected.", "");
     return lines.join("\n");
@@ -137,6 +142,7 @@ export function formatDriftReportMarkdown(report: DriftReport): string {
 /** Plain-text rendering of a {@link DriftReport} (the CLI's default `--format text`). */
 export function formatDriftReportText(report: DriftReport): string {
   const lines: string[] = [`drift: ${report.a} → ${report.b}`];
+  if (report.browser_build) lines.push(buildChangeLine(report.browser_build));
   if (report.flows.length === 0) {
     lines.push("no drift detected");
     return lines.join("\n") + "\n";
