@@ -35,6 +35,8 @@ export interface DriftReport {
   failing: number;
   thresholdPct: number;
   entries: DriftEntry[];
+  /** Set when both packs name a browser build and the names differ. Never changes the exit code. */
+  buildChange?: { from: string; to: string };
   /** The report as printed. */
   text: string;
 }
@@ -154,7 +156,8 @@ export interface ComputeDriftOptions {
 
 export async function computeDrift(opts: ComputeDriftOptions): Promise<DriftReport> {
   const thresholdPct = opts.thresholdPct ?? DEFAULT_THRESHOLD_PCT;
-  const committed = variantsOf(await readCommittedPack(opts.against));
+  const committedPack = await readCommittedPack(opts.against);
+  const committed = variantsOf(committedPack);
   const fresh = variantsOf(opts.fresh.pack);
   const entries: DriftEntry[] = [];
   let compared = 0;
@@ -182,11 +185,21 @@ export async function computeDrift(opts: ComputeDriftOptions): Promise<DriftRepo
   entries.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const failing = entries.filter((e) => e.failing).length;
   const head = `docsxai drift: ${compared} compared, ${failing} over threshold (${thresholdPct}%)`;
+  const from = committedPack.browser_build;
+  const to = opts.fresh.pack.browser_build;
+  const buildChange =
+    from !== undefined && to !== undefined && from !== to ? { from, to } : undefined;
+  const buildLine = buildChange
+    ? [
+        `  browser build changed from ${buildChange.from} to ${buildChange.to}, so pixel changes may come from the browser, not the app. Rebuild the pack on the new build and commit it.`,
+      ]
+    : [];
   return {
     compared,
     failing,
     thresholdPct,
     entries,
-    text: [head, ...entries.map((e) => `  ${describe(e)}`)].join("\n"),
+    ...(buildChange ? { buildChange } : {}),
+    text: [head, ...buildLine, ...entries.map((e) => `  ${describe(e)}`)].join("\n"),
   };
 }

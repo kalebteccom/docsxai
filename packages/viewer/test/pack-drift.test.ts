@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildPack, type BuiltPack } from "../src/pack-build.js";
 import { computeDrift, readCommittedPack } from "../src/pack-drift.js";
 import { createOxipngOptimiser, identityOptimiser, type Optimiser } from "../src/pack-optimise.js";
+import { serialisePack } from "../src/pack-schema.js";
 import { readRawCapture } from "../src/pack-source.js";
 import { MAX_PNG_BYTES } from "../src/safe-read.js";
 import { writePack } from "../src/pack-write.js";
@@ -299,5 +300,39 @@ describe("readCommittedPack", () => {
     await expect(readCommittedPack(committed)).rejects.toThrow(
       /Only docsxai\/screens-pack@2 can be compared; rebuild the committed pack with `docsxai pack`/,
     );
+  });
+});
+
+describe("computeDrift, browser build", () => {
+  const withBuild = (built: BuiltPack, browser_build: string | undefined): BuiltPack => {
+    const pack = { ...built.pack };
+    delete pack.browser_build;
+    if (browser_build !== undefined) pack.browser_build = browser_build;
+    return { ...built, pack, manifestText: serialisePack(pack) };
+  };
+  const commitWith = async (browser_build: string | undefined) => {
+    const built = withBuild(await build({}), browser_build);
+    await writePack({ outDir: committed, files: built.files, manifestText: built.manifestText });
+  };
+  const run = async (browser_build: string | undefined) =>
+    computeDrift({ fresh: withBuild(await build({}), browser_build), against: committed });
+
+  it("names both builds when they differ and leaves the exit code alone", async () => {
+    await commitWith("Chromium 140.0.1");
+    const report = await run("Chromium 141.0.2");
+    expect(report.buildChange).toEqual({ from: "Chromium 140.0.1", to: "Chromium 141.0.2" });
+    expect(report.failing).toBe(0);
+    expect(report.text.split("\n")[1]).toMatch(
+      /^ {2}browser build changed from Chromium 140\.0\.1 to Chromium 141\.0\.2, /,
+    );
+  });
+  it("says nothing when the builds match or either side has none", async () => {
+    await commitWith("Chromium 140.0.1");
+    expect((await run("Chromium 140.0.1")).buildChange).toBeUndefined();
+    expect((await run(undefined)).buildChange).toBeUndefined();
+    await commitWith(undefined);
+    const report = await run("Chromium 141.0.2");
+    expect(report.buildChange).toBeUndefined();
+    expect(report.text).toBe("docsxai drift: 1 compared, 0 over threshold (0.5%)");
   });
 });

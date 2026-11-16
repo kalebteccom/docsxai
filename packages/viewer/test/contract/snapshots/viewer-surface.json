@@ -184,9 +184,10 @@
           "failing": "failing: number",
           "thresholdPct": "thresholdPct: number",
           "entries": "entries: DriftEntry[]",
+          "buildChange": "buildChange?: { from: string; to: string }",
           "text": "text: string"
         },
-        "optional": []
+        "optional": ["buildChange"]
       },
       "DriftEntry": {
         "members": {
