@@ -80,9 +80,7 @@ describe("render --open", () => {
     const ws = await workspaceWithViewer();
     expect(await main(["render", ws])).toBe(0);
     expect(opened).toEqual([]);
-    expect(out).toBe(
-      `render: open ${path.join(ws, ".viewer", "index.html")}  (the index links the flows; each flow page shows the screenshots, hover a pulsing halo to read its callout)\n`,
-    );
+    expect(out).toBe(`render: open ${path.join(ws, ".viewer", "index.html")}\n`);
   });
 
   it("rejects a value on --open", async () => {

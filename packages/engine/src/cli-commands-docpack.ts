@@ -59,9 +59,7 @@ export async function cmdRender(args: string[]): Promise<number> {
   ]);
   if (code !== 0) return code;
   const index = path.join(outDir, "index.html");
-  process.stdout.write(
-    `render: open ${index}  (the index links the flows; each flow page shows the screenshots, hover a pulsing halo to read its callout)\n`,
-  );
+  process.stdout.write(`render: open ${index}\n`);
   if (flags.get("open") === true) {
     if (await openInBrowser(index)) process.stdout.write("render: opened it in your browser\n");
     else process.stderr.write(`render: couldn't open a browser here, open ${index} yourself\n`);
