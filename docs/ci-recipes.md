@@ -103,6 +103,45 @@ For an unattended nightly version of the same gate, see [Nightly drift jobs](#ni
 The markdown report is built for PR comments; the GitHub App's `pr-comment`
 strategy posts it automatically.
 
+## Viewer preview per pull request
+
+`docsxai render` writes a static viewer to `<workspace>/.viewer/`. Deploy that folder under a per-pull-request name and put the link in a comment, so a reviewer opens the screenshots without checking out the branch. The deploy tokens are yours: add them as repository secrets.
+
+```yaml
+name: docs-preview
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 26 }
+      - run: npm install --global docsxai@next
+      - run: docsxai render ./docs-workspace
+      - name: deploy the viewer
+        id: deploy
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          npx netlify-cli deploy --dir ./docs-workspace/.viewer --alias "pr-$PR_NUMBER" --json > deploy.json
+          echo "url=$(node -p 'require("./deploy.json").deploy_url')" >> "$GITHUB_OUTPUT"
+      - name: link it on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          gh pr comment "$PR_NUMBER" --body "Docs preview: $URL" --edit-last --create-if-none
+```
+
+The workspace needs committed output (`docs/`) for `render` to have something to show, so run it after a replay or against a committed pack. For Cloudflare Pages, swap the deploy step for `npx wrangler pages deploy ./docs-workspace/.viewer --project-name <project> --branch "pr-$PR_NUMBER"`.
+
 ## GitLab CI
 
 ```yaml
