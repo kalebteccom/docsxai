@@ -1,6 +1,6 @@
 ---
-title: Deterministic screenshot docs
-description: Write a flow once, replay it forever. docsxai walks your web app and turns written flows into screenshot docs that re-render byte-identically in CI.
+title: Screenshot docs that never go stale
+description: Write a flow once. docsxai replays it against your running app and rebuilds your screenshots byte for byte in CI, with no agent in the run.
 template: splash
 tableOfContents: false
 editUrl: false
@@ -12,20 +12,17 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
 
 <div class="docsx-hero not-content">
   <div class="docsx-hero-copy">
-    <p class="docsx-kicker">Deterministic screenshot docs</p>
     <p class="docsx-wordmark">doc<span class="x">s</span>xai</p>
     <div class="docsx-lede">
-      Write a flow once. Replay it forever. docsxai walks your running web app and turns written
-      flows into screenshot docs that re-render byte-identically in CI, with no agent in the run.
+      Screenshot docs that never go stale. Write a flow once, and docsxai rebuilds every screenshot
+      from your running app on each release, byte for byte, with no agent in the run.
     </div>
     <div class="docsx-cta">
       <a href="/getting-started/quickstart/" class="docsx-btn docsx-btn--primary">Get started</a>
       <a href="#what-it-makes" class="docsx-btn docsx-btn--ghost">See the output</a>
     </div>
     <CopyCommand variant="hero" command="npm install -g docsxai@next" label="Copy install command" />
-    <p class="docsx-install-note">
-      Installs 0.3.0-rc.3, the current prerelease. Needs Node 26 or newer.
-    </p>
+    <p class="docsx-install-note">Needs Node 26 or newer.</p>
   </div>
 
   <div class="docsx-window" aria-hidden="true">
@@ -62,7 +59,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
   </div>
 </div>
 
-<div class="docsx-transform not-content" role="img" aria-label="The docsxai transform: a written flow walks your running web app on the left, and docsxai emits the same screen as an annotated documentation page on the right, with halo and numbered callout. A replay loop beneath re-derives the doc byte-identically on every change, with no agent in the run.">
+<div class="docsx-transform not-content" role="img" aria-label="The docsxai transform: a written flow walks your running web app on the left, and docsxai emits the same screen as an annotated documentation page on the right, with halo and numbered callout. A replay loop beneath rebuilds the doc on every change.">
   <div class="dxf-stage" aria-hidden="true">
 
     <figure class="dxf-panel dxf-app">
@@ -125,90 +122,70 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
     <svg class="dxf-loop-ico" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M20 12 A8 8 0 1 1 17.5 6.2" /><path d="M17.8 2.5 L18 6.4 L14.2 6" />
     </svg>
-    <span>replay on every change · no agent in the run</span>
+    <span>replay on every change</span>
   </p>
 </div>
 
 <div class="docsx-section not-content" id="what-it-makes">
   <h2 class="docsx-section-title">What it makes</h2>
-  <div class="docsx-section-sub">
-    A screen of trackxai, a Kalebtec app, as <code>docsxai run</code> captured it and as a themed
-    burn draws it, then what a run prints.
-  </div>
   <div class="docsx-shots">
     <ShowcaseShot
       shot="pipeline"
       alt="The same screenshot of the trackxai Progress page twice. The copy labelled raw is the plain capture. The copy labelled burned adds violet halos and numbered badges and, on wider screens, three callouts joined to their targets by thin lines: the bar splits every task by phase, open tasks group by epic, and a question waiting on you shows up in the task's timeline."
     >
-      The same capture, raw and burned with a caption theme. Caption themes are on the main branch.
+      One capture, raw and burned with a caption theme.
     </ShowcaseShot>
     <ShowcaseShot
       shot="terminal"
       alt="A terminal window titled docsxai run, composed from the engine's real output format and the real trackxai flow counts, not a recorded session. The command docsxai run workspace replays the screens flow in eight variants: en-US and es-ES, light and dark, desktop 1280 and mobile 390. Each variant reports 61 or 53 steps and 29 or 18 annotations. The last lines say 8 of 8 flow variants ok, with outputs in workspace/docs. On phones the lines are shortened to one per variant."
     >
-      One flow file with a matrix, replayed in eight variants with no agent in the loop. Output as
-      docsxai run prints it, counts from the trackxai flow.
+      One flow, eight variants. Output as <code>docsxai run</code> prints it.
     </ShowcaseShot>
   </div>
 </div>
 
 <div class="docsx-section not-content">
-  <h2 class="docsx-section-title">Why it exists</h2>
-  <div class="docsx-section-sub">
-    Screenshot docs rot when the UI moves. docsxai treats them as build output: the flow is the
-    source and a re-run is the refresh.
-  </div>
+  <h2 class="docsx-section-title">How it works</h2>
 
   <div class="docsx-grid">
     <div class="docsx-card">
-      <span class="docsx-card-mark">Execution</span>
-      <h3>Deterministic CI replay</h3>
+      <span class="docsx-card-mark">Replay</span>
+      <h3>Same flow, same bytes</h3>
       <div class="docsx-card-text">
-        A frozen clock and a pinned locale, timezone and viewport give byte-identical screenshots.{" "}
-        <code>run --verify-determinism</code> names the first artifact that differs, and{" "}
-        <code>diff --fail-on warn</code> fails CI on drift from a committed baseline.
+        A frozen clock and a pinned locale, timezone and viewport. <code>diff --fail-on warn</code>{" "}
+        fails CI when a screenshot drifts from the committed baseline.
       </div>
     </div>
     <div class="docsx-card">
       <span class="docsx-card-mark">Variants</span>
-      <h3>One flow, many variants</h3>
+      <h3>One flow, every variant</h3>
       <div class="docsx-card-text">
-        A <code>matrix</code> block runs one flow per locale, color scheme and viewport, up to 64
-        combinations. <code>pack --check</code> compares the screenshot pack with the committed one.
+        A <code>matrix</code> block runs the flow per locale, color scheme and viewport, up to 64
+        combinations.
       </div>
     </div>
     <div class="docsx-card">
-      <span class="docsx-card-mark">Calibration</span>
+      <span class="docsx-card-mark">Authoring</span>
       <h3>An agent writes it once</h3>
       <div class="docsx-card-text">
-        An agent writes the flow through the Claude Code plugin, with lint and diagnose at write
-        time. Every run after that is agent-free: no model in the loop, no token bill per refresh.
+        The Claude Code plugin writes and lints the flow. Every run after that costs no tokens.
       </div>
     </div>
     <div class="docsx-card">
       <span class="docsx-card-mark">Output</span>
       <h3>Viewer or plain PNGs</h3>
       <div class="docsx-card-text">
-        An interactive viewer with halos and callouts, or captions burned into plain PNGs for places
-        that can't run the viewer. Redactions mask sensitive UI before any pixel hits disk.
+        Halos and callouts in an interactive viewer, or burned into PNGs with a{" "}
+        <a href="/guides/burn-theming/">caption theme</a>. Redactions mask sensitive UI before
+        anything hits disk.
       </div>
     </div>
     <div class="docsx-card">
-      <span class="docsx-card-mark">Captions</span>
-      <h3>Themeable burned captions</h3>
+      <span class="docsx-card-mark">Publishing</span>
+      <h3>Plugins publish it</h3>
       <div class="docsx-card-text">
-        Halo, badge, callout and connector follow a <code>burn.theme</code> block: four presets, an
-        optional design-tokens file and per-key overrides. The viewer reads the same theme. Caption themes are on the main branch.
-        <a href="/guides/burn-theming/">Read the burn theming guide</a>
-      </div>
-    </div>
-    <div class="docsx-card">
-      <span class="docsx-card-mark">Plugins</span>
-      <h3>Publishers and renderers as plugins</h3>
-      <div class="docsx-card-text">
-        Publishers, renderers, lint rules and auth strategies plug in through a sha256-locked
-        runtime. First-party publishers cover Confluence, GitBook, Guru, Notion and SharePoint.
-        SharePoint is on npm as an experimental package. The others are repo-only for now.
+        Publishers for Confluence, GitBook, Guru, Notion and SharePoint. SharePoint is on npm as
+        experimental. The rest are repo-only for now.
       </div>
     </div>
   </div>
@@ -216,7 +193,6 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
 
 <div class="docsx-section not-content" id="first-run">
   <h2 class="docsx-section-title">First run</h2>
-  <div class="docsx-section-sub">Five steps against an app on your machine.</div>
   <ol class="docsx-steps" role="list">
     <li class="docsx-card docsx-step">
       <span class="docsx-card-mark">Step 1</span>
@@ -226,7 +202,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
         label="Copy the init command"
       />
       <div class="docsx-card-text">
-        Keep it outside your app's repo. Behind a login? Drop <code>--auth none</code>, then run{" "}
+        Behind a login? Drop <code>--auth none</code>, then run{" "}
         <code>docsxai capture-auth my-docs</code>.
       </div>
       <p class="docsx-expect">
@@ -242,9 +218,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       <span class="docsx-card-mark">Step 2</span>
       <h3>Check the setup</h3>
       <CopyCommand command="docsxai doctor my-docs" label="Copy the doctor command" />
-      <div class="docsx-card-text">
-        Checks Node, Chromium and your app. A failing line ends with its fix.
-      </div>
+      <div class="docsx-card-text">A failing line ends with its fix.</div>
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
         <code>{"ok: config: .docsxai.json fields are valid"}</code>
@@ -269,9 +243,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       <span class="docsx-card-mark">Step 4</span>
       <h3>Run it</h3>
       <CopyCommand command="docsxai run my-docs" label="Copy the run command" />
-      <div class="docsx-card-text">
-        Replays the flow in headless Chromium. No agent from here on.
-      </div>
+      <div class="docsx-card-text">Replays the flow in headless Chromium.</div>
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
         <code>{"run: 1 of 1 flow ok, outputs in my-docs/docs"}</code>
@@ -281,9 +253,7 @@ import ShowcaseShot from "../../components/ShowcaseShot.astro";
       <span class="docsx-card-mark">Step 5</span>
       <h3>Open the docs</h3>
       <CopyCommand command="docsxai render my-docs" label="Copy the render command" />
-      <div class="docsx-card-text">
-        Open the printed page. Hover or tap a halo to read its callout.
-      </div>
+      <div class="docsx-card-text">Hover or tap a halo to read its callout.</div>
       <p class="docsx-expect">
         <span class="docsx-expect-label">Expect</span>
         <code>{"render: open /path/to/my-docs/.viewer/index.html"}</code>

@@ -6,6 +6,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Added
 
+- Landing page rewrite: one purpose stated once (screenshot docs that never go stale), the stale prerelease version and unreleased-feature notes removed, five cards instead of six, shorter step text. Site meta description matches.
 - Contributor scripts: `scripts/pre-gate.mjs` runs prettier, eslint, per-package typecheck, single-file tests and the dash guard on changed files, and `scripts/new-wt.sh` creates a sibling worktree with an offline install.
 
 ## [0.3.0-rc.5] - 2026-10-27
