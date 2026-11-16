@@ -143,7 +143,7 @@
           "browser_build": "browser_build?: string",
           "flows": "flows: Record<string, PackFlow>"
         },
-        "optional": ["generated_for", "browser_build"]
+        "optional": ["browser_build", "generated_for"]
       },
       "PackFlow": {
         "members": {
