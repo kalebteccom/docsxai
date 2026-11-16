@@ -5,6 +5,7 @@
 // other path in the report is relative to a run root.
 
 import type { ArtefactDifference } from "./verify-compare.js";
+import { nextStepFor } from "./verify-next-step.js";
 
 export type VerifyStatus = "identical" | "differing" | "halted";
 
@@ -151,6 +152,7 @@ export function formatVerifyReportText(r: VerifyReport): string {
     lines.push(
       `first differing artefact: ${r.first.path} (run ${r.first.run} vs run 1)`,
       `  cause: ${r.first.hint}`,
+      `  try: ${nextStepFor(r.first)}`,
     );
     const rest = r.differences.filter((d) => d !== r.first);
     if (rest.length > 0) lines.push(`also differing (${rest.length}):`);
@@ -178,6 +180,7 @@ export function formatVerifyReportMarkdown(r: VerifyReport): string {
       `First differing artefact: \`${r.first.path}\` (run ${r.first.run} vs run 1).`,
       "",
       `- Cause: ${r.first.hint}`,
+      `- Try: ${nextStepFor(r.first)}`,
       "",
     );
     if (r.differences.length > 1) {

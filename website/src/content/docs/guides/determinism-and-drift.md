@@ -26,12 +26,13 @@ command ends.
 
 ## Read the report
 
-The report names the first differing artefact by path, with a cause:
+The report names the first differing artefact by path, with a cause and a next step:
 
 ```
 result: DIFFERING
 first differing artefact: docs/publish-post/screenshots/publish.png (run 2 vs run 1)
   cause: 31 pixels differ (0.0034%) inside x=412 y=88 52x12
+  try: Pixels changed in a region. Look for an animation, a caret, a relative date or a clock there, then freeze it with environment.clock or wait_for: settled, or cover it with hide.
 ```
 
 | Artefact | Cause shown                                                                   |
