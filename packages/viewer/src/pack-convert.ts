@@ -191,6 +191,9 @@ export function convertScreensManifestV1(
     ...(typeof root.generated_for === "string" && root.generated_for !== ""
       ? { generated_for: root.generated_for }
       : {}),
+    ...(typeof root.browser_build === "string" && root.browser_build !== ""
+      ? { browser_build: root.browser_build }
+      : {}),
     flows,
   };
   assertValidPack(pack);

@@ -140,9 +140,10 @@
         "members": {
           "schema": "schema: typeof SCREENS_PACK_SCHEMA",
           "generated_for": "generated_for?: string",
+          "browser_build": "browser_build?: string",
           "flows": "flows: Record<string, PackFlow>"
         },
-        "optional": ["generated_for"]
+        "optional": ["browser_build", "generated_for"]
       },
       "PackFlow": {
         "members": {

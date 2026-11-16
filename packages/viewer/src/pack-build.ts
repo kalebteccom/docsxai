@@ -123,6 +123,9 @@ export async function buildPack(options: BuildPackOptions): Promise<BuiltPack> {
   const files = new Map<string, Buffer>();
   const flows: Record<string, PackFlow> = {};
   let unplaceable = 0;
+  const builds = new Set<string>();
+  let variantCount = 0;
+  let namedCount = 0;
   for (const flow of options.source) {
     const steps: Record<string, PackStep> = {};
     for (const step of flow.steps) {
@@ -131,6 +134,11 @@ export async function buildPack(options: BuildPackOptions): Promise<BuiltPack> {
         const r = await renderVariant(flow.id, step, variant, opts);
         files.set(r.relative, r.bytes);
         unplaceable += r.unplaceable;
+        variantCount += 1;
+        if (variant.browserBuild !== undefined) {
+          namedCount += 1;
+          builds.add(variant.browserBuild);
+        }
         const size = pngDimensions(r.bytes);
         variants[variant.key] = {
           src: `${prefix}/${r.relative}`,
@@ -151,6 +159,8 @@ export async function buildPack(options: BuildPackOptions): Promise<BuiltPack> {
   const pack: ScreensPack = {
     schema: SCREENS_PACK_SCHEMA,
     ...(options.generatedFor ? { generated_for: options.generatedFor } : {}),
+    // One build, named by every source file. Files that disagree or stay silent leave it out.
+    ...(builds.size === 1 && namedCount === variantCount ? { browser_build: [...builds][0]! } : {}),
     flows,
   };
   assertValidPack(pack, { publicPrefix: prefix });

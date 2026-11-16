@@ -81,6 +81,8 @@ const cases: [string, Path, unknown, boolean][] = [
   ["no schema key", ["schema"], undefined, false],
   ["a timestamp at the root", ["generated_at"], "2026-10-24", false],
   ["generated_for of 129 characters", ["generated_for"], "x".repeat(129), false],
+  ["a browser_build", ["browser_build"], "Chromium 140.0.1", true],
+  ["browser_build of 129 characters", ["browser_build"], "x".repeat(129), false],
   ["generated_for of 128 characters", ["generated_for"], "x".repeat(128), true],
   ["blank generated_for", ["generated_for"], "   ", false],
   ["flows as an array", ["flows"], [], false],

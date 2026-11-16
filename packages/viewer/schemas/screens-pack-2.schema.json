@@ -9,6 +9,7 @@
   "properties": {
     "schema": { "const": "docsxai/screens-pack@2" },
     "generated_for": { "$ref": "#/$defs/text128" },
+    "browser_build": { "$ref": "#/$defs/text128" },
     "flows": {
       "type": "object",
       "minProperties": 1,

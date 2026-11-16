@@ -189,17 +189,21 @@ interface PlacedRecord {
 async function annotationsOf(
   flowDir: string,
   shownDir: string,
-): Promise<{ placed: PlacedRecord[]; pixelRatio?: number }> {
+): Promise<{ placed: PlacedRecord[]; pixelRatio?: number; browserBuild?: string }> {
   const shown = `${shownDir}/annotations.json`;
   const parsed = await readJsonObject(path.join(flowDir, "annotations.json"), true, shown);
   const pixelRatio = checkDeviceScaleFactor(parsed.device_scale_factor, shown);
-  const ratio = pixelRatio !== undefined ? { pixelRatio } : {};
-  if (parsed.annotations === undefined) return { placed: [], ...ratio };
+  const build =
+    typeof parsed.browser_build === "string" && parsed.browser_build !== ""
+      ? { browserBuild: parsed.browser_build }
+      : {};
+  const extras = pixelRatio !== undefined ? { pixelRatio, ...build } : build;
+  if (parsed.annotations === undefined) return { placed: [], ...extras };
   if (!Array.isArray(parsed.annotations)) throw new Error(`${shown}: annotations must be an array`);
   const placed = (parsed.annotations as unknown[]).flatMap((raw, at) =>
     isObj(raw) ? [{ record: raw as unknown as AnnotationRecord, at }] : [],
   );
-  return { placed, ...ratio };
+  return { placed, ...extras };
 }
 
 /**
@@ -231,7 +235,7 @@ async function addSource(
     );
   }
   const byStep = new Map<unknown, PlacedRecord[]>();
-  const { placed, pixelRatio } = await annotationsOf(flowDir, shownDir);
+  const { placed, pixelRatio, browserBuild } = await annotationsOf(flowDir, shownDir);
   for (const p of placed) {
     const list = byStep.get(p.record.step);
     if (list) list.push(p);
@@ -269,6 +273,7 @@ async function addSource(
       annotations,
       callouts: calloutsOf(annotations),
       ...(pixelRatio !== undefined ? { pixelRatio } : {}),
+      ...(browserBuild !== undefined ? { browserBuild } : {}),
     });
     steps.set(id, step);
   }
