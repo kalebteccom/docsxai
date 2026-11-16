@@ -34,7 +34,7 @@ Done when `npm i -D @docsxai/plugin-notion` works and a CI recipe pushes a pack 
 
 ### 3. Determinism report
 
-`run --verify-determinism` names the first artifact that differs. Extend it to name the cause (animation, font load, network timing, clock, random value) with the fix, and add `docsxai doctor --determinism`, which runs a flow twice and prints a verdict. Determinism is the claim, so a failed run has to say what to do next.
+`run --verify-determinism` names the first artifact that differs. Extend it to name the cause (animation, font load, network timing, clock, random value) with the fix, and add a doctor check that runs a flow twice and prints a verdict. Determinism is the claim, so a failed run has to say what to do next.
 
 Done when each known cause has a message, a docs page and a keystone test.
 
@@ -48,7 +48,7 @@ Done when a workspace records its browser build and a mismatch fails with both b
 
 Authoring is the slowest step. The plugin lets an agent write a flow from a prompt. Add a recorder: drive the app once in a headed browser (or hand over a browxai session), write the steps as a flow file with stable locators, and leave the agent to polish captions. This narrows the gap with Scribe and Tango on first-use effort and keeps replay deterministic.
 
-Done when `docsxai record <workspace> --url ...` writes a runnable `.flow.yaml` and `run` passes first try on the example app.
+Done when a new record command writes a runnable flow file from one session and `run` passes first try on the example app.
 
 ### 6. Viewer preview per pull request
 
