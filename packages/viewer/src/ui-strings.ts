@@ -130,7 +130,7 @@ const EN: UiStrings = {
   langLabel: "English",
   siteTitle: "Documentation",
   skipToContent: "Skip to content",
-  renderedBy: "Rendered by {stamp}. Hard-reload if this page looks stale.",
+  renderedBy: "Rendered by {stamp}.",
   copy: {
     idle: "Copy",
     done: "Copied",
@@ -217,7 +217,7 @@ const EN: UiStrings = {
   },
   site: {
     description: "Step-by-step flows with annotated screenshots.",
-    noFlows: "_(no flows yet: run `docsxai run`, then re-emit the site)_",
+    noFlows: "_(no flows yet: run `docsxai run`, then build the site again)_",
     flowsLabel: "Flows",
     missingWhy: "No screenshot for step {id}. The file was not found when this site was built.",
     missingHow: "Capture it with {command} then build the site again.",
@@ -236,7 +236,7 @@ const ES: UiStrings = {
   langLabel: "Español",
   siteTitle: "Documentación",
   skipToContent: "Saltar al contenido",
-  renderedBy: "Generado con {stamp}. Recarga sin caché si esta página parece desactualizada.",
+  renderedBy: "Generado con {stamp}.",
   copy: {
     idle: "Copiar",
     done: "Copiado",
