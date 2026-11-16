@@ -463,7 +463,6 @@ main:has(.docsx-404) > .content-panel {
 /* Links in the landing's prose blocks sit in .not-content, outside Starlight's link colour. */
 .docsx-install-note a,
 .docsx-card-text a,
-.docsx-section-sub a,
 .docsx-lede a {
   color: var(--sl-color-text-accent);
   text-underline-offset: 0.18em;
@@ -1079,7 +1078,6 @@ main:has(.docsx-404) > .content-panel {
 /* MDX wraps the multi-line text inside these <div>s in its own <p>. Neutralize
    that inner paragraph so only the container controls spacing. */
 .docsx-lede > p,
-.docsx-section-sub > p,
 .docsx-card-text > p,
 .docsx-404-code > p,
 .docsx-404-msg > p {
@@ -1142,12 +1140,7 @@ main:has(.docsx-404) > .content-panel {
   font-family: var(--docsx-font-display);
   font-size: clamp(1.35rem, 3.2vw, 1.75rem);
   letter-spacing: -0.02em;
-  margin: 0 0 0.5rem;
-}
-.docsx-section-sub {
-  color: var(--sl-color-gray-3);
-  max-width: 56ch;
-  margin: 0 auto 1.75rem;
+  margin: 0 0 1.75rem;
 }
 .docsx-section .docsx-grid {
   text-align: left;
