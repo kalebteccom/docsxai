@@ -6,7 +6,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Added
 
-- **`pack --check` says when the browser build changed.** When the committed manifest and the rebuilt pack both name a browser build and the names differ, the drift report adds one line naming both builds and telling you to rebuild the pack on the new build. The exit code follows the pixel comparison as before. A manifest with no build never triggers it. Third step of [browser-build-pin.md](docs/browser-build-pin.md).
+- **`pack --check` says when the browser build changed.** When the committed manifest and the rebuilt pack both name a browser build and the names differ, the drift report adds one line naming both builds and telling you to rebuild the pack on the new build. The exit code follows the pixel comparison as before. A manifest with no build never triggers it. Third step of [browser-build-pin.md](docs/browser-build-pin.md). Surface item PACK-23, experimental.
 - **The pack manifest records the browser build.** `docsxai pack` writes an optional top-level `browser_build` into `manifest.json` when every source `annotations.json` names the same build, and leaves it out when none does or they disagree. Validator, JSON Schema and `docs/pack-manifest.md` know the key. Second step of [browser-build-pin.md](docs/browser-build-pin.md). Surface item PACK-22, experimental.
 
 ## [0.3.0-rc.5] - 2026-11-16
