@@ -1055,3 +1055,22 @@ steps:
     expect(JSON.stringify(one.annotations)).toBe(JSON.stringify(plain.annotations));
   });
 });
+
+describe("runFlow, browserBuild", () => {
+  const FLOW = `name: bb
+steps:
+  - id: open
+    action: navigate
+    value: https://app.example/
+`;
+  it("records browser_build in annotations.json when given", async () => {
+    const r = await runFlow(parseFlowFile(FLOW), new FakeDriver(), {
+      browserBuild: "Chromium 140.0.7339.16",
+    });
+    expect(r.annotations.browser_build).toBe("Chromium 140.0.7339.16");
+  });
+  it("leaves the file exactly as before when not given", async () => {
+    const r = await runFlow(parseFlowFile(FLOW), new FakeDriver());
+    expect(r.annotations).not.toHaveProperty("browser_build");
+  });
+});

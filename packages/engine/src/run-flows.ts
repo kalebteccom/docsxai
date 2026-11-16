@@ -8,6 +8,7 @@ import { promises as fs } from "node:fs";
 import { writeFileAtomic } from "./atomic-write.js";
 import { waitForBrowserClose } from "./browser-wait.js";
 import { type StorageState } from "./auth.js";
+import { browserBuildOf } from "./browser-build.js";
 import { type FlowFile } from "./doc-pack.js";
 import { FlowExecutionError } from "./flow-halt.js";
 import { expandFlows, type FlowVariant } from "./flow-matrix.js";
@@ -156,6 +157,7 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
       return false;
     }
     try {
+      const browserBuild = browserBuildOf(session);
       const result = await runFlow(flow, session.driver, {
         resolveLocator: (n) => flow.locators[n],
         ...(unit.info ? { variant: unit.info } : {}),
@@ -165,6 +167,7 @@ export async function runFlowsInSessions(opts: RunFlowsOptions): Promise<RunFlow
         ...(opts.deviceScaleFactor !== undefined
           ? { deviceScaleFactor: opts.deviceScaleFactor }
           : {}),
+        ...(browserBuild ? { browserBuild } : {}),
       });
       const docSegments = ["docs", flow.name, ...(unit.id ? [unit.id] : [])];
       await fs.mkdir(resolveWorkspacePath(outputRoot, ...docSegments), { recursive: true });
