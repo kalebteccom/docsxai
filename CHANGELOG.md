@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.3.0-rc.5] - 2026-11-16
+
+Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds everything `0.3.0-rc.4` added (that tag was never published), the `add-flow` command, automatic caption placement at every width, themed burns at 2x, a hardened backend and a security pass.
+
 ### Added
 
 - **`annotations.json` records the browser build.** `docsxai run` writes an optional `browser_build` key (`Chromium <version>`, as the browser reports it) next to `device_scale_factor`. Older files have none and nothing treats a missing key as a mismatch. This is the first step of [browser-build-pin.md](docs/browser-build-pin.md); comparing builds in `diff` and `pack --check` follows. Surface item PACK-21, experimental.
@@ -12,18 +16,6 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **Drift-gate GitHub Action.** `action.yml` at the repo root installs a pinned docsxai, replays a workspace, diffs it against the committed baseline, writes the report to the job summary and comments it on the pull request. Inputs: `workspace`, `version`, `base-url`, `baseline`, `fail-on`, `comment`. Recipe in `docs/ci-recipes.md`.
 - Landing page rewrite: one purpose stated once (screenshot docs that never go stale), the stale prerelease version and unreleased-feature notes removed, five cards instead of six, shorter step text. Site meta description matches.
 - Contributor scripts: `scripts/pre-gate.mjs` runs prettier, eslint, per-package typecheck, single-file tests and the dash guard on changed files, and `scripts/new-wt.sh` creates a sibling worktree with an offline install.
-
-### Fixed
-
-- **Viewer footer and empty state copy.** The footer says `Rendered by <version>.` and no longer tells readers to hard-reload (English and Spanish). The empty site says to build the site again instead of "re-emit". The screenshot error overlay keeps its message and Retry button in view on short screenshots (`place-content: safe center`).
-- **Viewer step moves are announced every time.** Pressing End on the last step, or Home on the first, repeats the same message. The live region now clears first, so a screen reader reads it again instead of staying silent.
-
-## [0.3.0-rc.5] - 2026-10-27
-
-Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds everything `0.3.0-rc.4` added (that tag was never published), the `add-flow` command, automatic caption placement at every width, themed burns at 2x, a hardened backend and a security pass.
-
-### Added
-
 - **`scripts/layout-audit.mjs --engine chromium|webkit|firefox`.** Default `chromium`, exit 2 on any other value. Firefox has no mobile emulation, so below 768 px it gets touch without the mobile viewport. Centre pairs take an optional `maxViewport`, and hidden or 1 px clipped boxes no longer count as findings.
 - **`docsxai doctor` says when an emitted site needs `npm install`.** A workspace with a `site/` folder that has no astro installed gets one informational `site` row (never a failure) with `next: cd <dir> && npm install, then npm run build`. A workspace with no site folder, or astro installed, prints the same output as before, and `--format json` carries the row with the usual keys.
 - **Public copy lint: `packages/engine/test/public-copy-lint.test.ts`.** Fails on environment-variable-like tokens, internal hostnames, private IPs, `/srv` paths and ticket or spec ids (`DOC-`, `CLI-`, `PACK-` and kin) in the landing and getting-started pages, `llms.txt`, the viewer's emitted UI (en and es) and the string literals of CLI and MCP errors and help, read with the TypeScript parser. Documented `DOCSX_*` names are allowed in CLI and MCP messages only. A second pass over mirrored docs, this changelog and package READMEs reports secret names, hosting providers, server paths and `docs/ai-context` pointers without failing
@@ -76,6 +68,8 @@ Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0
 
 ### Fixed
 
+- **Viewer footer and empty state copy.** The footer says `Rendered by <version>.` and no longer tells readers to hard-reload (English and Spanish). The empty site says to build the site again instead of "re-emit". The screenshot error overlay keeps its message and Retry button in view on short screenshots (`place-content: safe center`).
+- **Viewer step moves are announced every time.** Pressing End on the last step, or Home on the first, repeats the same message. The live region now clears first, so a screen reader reads it again instead of staying silent.
 - **Screen reader pass over the site and the viewer.** Task-list checkboxes in the docs now carry their item text as a name. The viewer's back arrow keeps its space, the copied check mark is no longer read aloud, headings balance their lines and prose caps at 70ch. `docsxai-viewer` a11y-lint gains `labelledby-heading`, `glyph-hidden` and `badge-space`, and the site tests scan every built page for one h1, heading order and labelled controls.
 - **Docs site UI pass.** The skip link is 44px tall when focused, the footer credit links are 24px tall on desktop, the footer middots are hidden from screen readers and no longer fail contrast, and stacked tables on phones keep links and code inline inside a cell. Spacing in the site stylesheet sits on a 4px scale, three dead selectors are gone, and `:active` and `:disabled` states exist on the buttons. `scripts/rendered-check.mjs` checks contrast, target size, clipped text and horizontal scroll in a real browser, and `website/scripts/check-ui-classes.test.mjs` fails on layout-property transitions, missing control states, unbalanced headings, off-scale spacing, dead selectors, measure over 75ch, filled surfaces without a text colour and small skip or credit links.
 - **`docsxai init --example` then `run` works again.** example.com no longer has a heading, so the hello flow now points at its English paragraph (`p[lang="en"]`) with the copy "This is the page text". The keystone serves a page shaped like the live one. The missing-Chromium hint in `doctor`, `run` errors and `--help` no longer names the source-checkout command.
