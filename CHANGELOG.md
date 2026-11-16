@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Changed
+
+- **Warnings read `warning:` everywhere.** Three messages said `warning,` (`run` with a relative path and no `app_url`, `pull` with an unknown artifact, and an ignored config or auth file). They now use the same `warning:` prefix as the rest.
+
 ### Added
 
 - **`pack --check` says when the browser build changed.** When the committed manifest and the rebuilt pack both name a browser build and the names differ, the drift report adds one line naming both builds and telling you to rebuild the pack on the new build. The exit code follows the pixel comparison as before. A manifest with no build never triggers it. Third step of [browser-build-pin.md](docs/browser-build-pin.md). Surface item PACK-23, experimental.

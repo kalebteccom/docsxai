@@ -183,7 +183,7 @@ describe("run start-up", () => {
       await fs.chmod(file, 0o000);
       try {
         expect(await main(["run", ws])).toBe(1);
-        expect(err).toContain(`run: warning, ${file} was ignored (it cannot be read, EACCES)`);
+        expect(err).toContain(`run: warning: ${file} was ignored (it cannot be read, EACCES)`);
         expect(err).toContain(`next: fix ${file}, then docsxai run ${ws}`);
       } finally {
         await fs.chmod(file, 0o644);

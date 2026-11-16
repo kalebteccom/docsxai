@@ -255,7 +255,7 @@ export async function cmdRun(args: string[]): Promise<number> {
     );
     if (relative) {
       const note = withNext(
-        "warning, a flow navigates to a relative path and there is no app_url",
+        "warning: a flow navigates to a relative path and there is no app_url",
         `set app_url in ${path.join(projectDir, ".docsxai.json")} or pass --base-url <url>`,
       );
       process.stderr.write(`run: ${note}\n`);

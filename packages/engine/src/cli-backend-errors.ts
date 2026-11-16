@@ -104,7 +104,7 @@ export async function warnUnusableConfig(label: string, workspaceDir: string): P
   if (problem === "the file does not exist") return;
   const file = resolveWorkspacePath(workspaceDir, WORKSPACE_CONFIG_FILE);
   const note = withNext(
-    `warning, ${file} was ignored (${problem})`,
+    `warning: ${file} was ignored (${problem})`,
     `fix ${shellQuote(file)}, then docsxai ${label} ${shellQuote(workspaceDir)}`,
   );
   process.stderr.write(`${label}: ${note}\n`);

@@ -307,7 +307,7 @@ export async function cmdPull(args: string[]): Promise<number> {
     for (const artifact of rev.artifacts) {
       if (!KNOWN_ARTIFACTS.includes(artifact)) {
         process.stderr.write(
-          `pull: warning, revision lists the artifact ${JSON.stringify(sanitizeForTerminal(String(artifact)))}, which this docsxai does not know; skipped\n`,
+          `pull: warning: revision lists the artifact ${JSON.stringify(sanitizeForTerminal(String(artifact)))}, which this docsxai does not know; skipped\n`,
         );
         continue;
       }
