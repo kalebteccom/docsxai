@@ -1,6 +1,6 @@
 # Browser build pin
 
-Design for roadmap item 4. Status: proposed, not built.
+Design for roadmap item 4. Status: steps 1 and 2 shipped (`annotations.json` and the pack manifest record the build). `pack --check` prints a warn-only build line. The same for `diff` is open.
 
 ## Problem
 
