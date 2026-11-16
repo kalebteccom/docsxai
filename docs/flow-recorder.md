@@ -1,6 +1,6 @@
 # Flow recorder
 
-Design for roadmap item 5. Status: proposed, not built.
+Design for roadmap item 5. Status: build step 1 shipped (the pure event-to-step mapper in `packages/engine/src/record-map.ts`, not wired to any command). The rest is proposed.
 
 ## Problem
 
