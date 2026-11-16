@@ -73,6 +73,7 @@
             "strict": true
           }
         },
+        "browser_build?": "string[max:100,min:1]",
         "device_scale_factor?": "number[max:4,min:1]",
         "flow": "string[min:1]",
         "schema": "literal:docsxai/annotations@1",

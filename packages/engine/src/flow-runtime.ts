@@ -193,6 +193,11 @@ export interface RunFlowOptions {
    * and every box in it are that many times the CSS size. The driver already works in device pixels.
    */
   deviceScaleFactor?: number;
+  /**
+   * The browser build the driver runs in, as `Chromium <version>`. Recorded as `browser_build` in
+   * the returned annotations. Left out when the session cannot report one.
+   */
+  browserBuild?: string;
 }
 
 export interface ExecutedStep {
@@ -504,6 +509,7 @@ export async function runFlow(
       ...(opts.deviceScaleFactor !== undefined && opts.deviceScaleFactor > 1
         ? { device_scale_factor: opts.deviceScaleFactor }
         : {}),
+      ...(opts.browserBuild ? { browser_build: opts.browserBuild } : {}),
       annotations,
     },
   };

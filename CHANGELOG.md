@@ -6,6 +6,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Added
 
+- **`annotations.json` records the browser build.** `docsxai run` writes an optional `browser_build` key (`Chromium <version>`, as the browser reports it) next to `device_scale_factor`. Older files have none and nothing treats a missing key as a mismatch. This is the first step of [browser-build-pin.md](docs/browser-build-pin.md); comparing builds in `diff` and `pack --check` follows. Surface item PACK-21, experimental.
 - **CI recipe: viewer preview per pull request.** `docs/ci-recipes.md` shows a workflow that renders the viewer, deploys `.viewer/` under a per-pull-request name (Netlify, with a Cloudflare Pages swap) and links it in a pull request comment.
 - **`run --verify-determinism` prints a next step.** Under the first difference, the text report adds a `try:` line and the markdown report a `Try:` bullet: what to pin for that kind of difference (a changed image region, a size change, a time or id key, a text or binary file, a file in one run only). The JSON report keeps its shape.
 - **Drift-gate GitHub Action.** `action.yml` at the repo root installs a pinned docsxai, replays a workspace, diffs it against the committed baseline, writes the report to the job summary and comments it on the pull request. Inputs: `workspace`, `version`, `base-url`, `baseline`, `fail-on`, `comment`. Recipe in `docs/ci-recipes.md`.

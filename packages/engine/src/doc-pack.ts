@@ -413,6 +413,13 @@ export const AnnotationsFile = z
      * viewport. The burner reads it as its pixel ratio.
      */
     device_scale_factor: z.number().min(1).max(4).optional(),
+    /**
+     * The browser that captured the screenshots, as `Chromium <version>` (what the browser reports).
+     * Written by `docsxai run` when the session reports a version; absent in files from older
+     * releases and never a reason to fail a comparison. Screenshots are byte-identical per docsxai
+     * and browser build, so a reader can tell a build change from a UI change.
+     */
+    browser_build: z.string().min(1).max(100).optional(),
     annotations: z.array(AnnotationRecord),
   })
   .strict();
