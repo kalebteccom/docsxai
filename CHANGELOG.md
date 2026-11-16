@@ -6,6 +6,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Added
 
+- **Drift-gate GitHub Action.** `action.yml` at the repo root installs a pinned docsxai, replays a workspace, diffs it against the committed baseline, writes the report to the job summary and comments it on the pull request. Inputs: `workspace`, `version`, `base-url`, `baseline`, `fail-on`, `comment`. Recipe in `docs/ci-recipes.md`.
 - Landing page rewrite: one purpose stated once (screenshot docs that never go stale), the stale prerelease version and unreleased-feature notes removed, five cards instead of six, shorter step text. Site meta description matches.
 - Contributor scripts: `scripts/pre-gate.mjs` runs prettier, eslint, per-package typecheck, single-file tests and the dash guard on changed files, and `scripts/new-wt.sh` creates a sibling worktree with an offline install.
 

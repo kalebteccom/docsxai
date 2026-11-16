@@ -1,0 +1,79 @@
+name: docsxai drift gate
+description: Replay a docsxai workspace, fail on screenshot drift from the committed baseline, and comment the report on the pull request.
+branding:
+  icon: camera
+  color: purple
+
+inputs:
+  workspace:
+    description: Path to the docsxai workspace.
+    required: true
+  version:
+    description: docsxai version to install. Pin an exact version so replays stay byte-identical.
+    default: next
+  base-url:
+    description: App URL to replay against. Leave empty to use the workspace config.
+    default: ""
+  baseline:
+    description: Baseline directory, relative to the workspace.
+    default: .baseline
+  fail-on:
+    description: Lowest drift level that fails the job, warn or fail.
+    default: fail
+  comment:
+    description: Post the drift report as a pull request comment. Needs pull-requests write permission.
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 26
+    - name: Install docsxai
+      shell: bash
+      env:
+        DOCSXAI_VERSION: ${{ inputs.version }}
+      run: npm install --global "docsxai@${DOCSXAI_VERSION}"
+    - name: Install Chromium
+      shell: bash
+      run: npx playwright-core install --with-deps chromium
+    - name: Replay the flows
+      shell: bash
+      env:
+        WORKSPACE: ${{ inputs.workspace }}
+        BASE_URL: ${{ inputs.base-url }}
+      run: |
+        if [ -n "$BASE_URL" ]; then
+          docsxai run "$WORKSPACE" --base-url "$BASE_URL"
+        else
+          docsxai run "$WORKSPACE"
+        fi
+    - name: Compare with the baseline
+      id: diff
+      shell: bash
+      env:
+        WORKSPACE: ${{ inputs.workspace }}
+        BASELINE: ${{ inputs.baseline }}
+        FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        report="$RUNNER_TEMP/docsxai-drift.md"
+        code=0
+        docsxai diff "$WORKSPACE" --against "$WORKSPACE/$BASELINE" --format md --fail-on "$FAIL_ON" > "$report" || code=$?
+        cat "$report" >> "$GITHUB_STEP_SUMMARY"
+        echo "report=$report" >> "$GITHUB_OUTPUT"
+        echo "code=$code" >> "$GITHUB_OUTPUT"
+    - name: Comment on the pull request
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPORT: ${{ steps.diff.outputs.report }}
+      run: gh pr comment "$PR_NUMBER" --body-file "$REPORT" --edit-last --create-if-none
+    - name: Fail on drift
+      if: steps.diff.outputs.code != '0'
+      shell: bash
+      env:
+        CODE: ${{ steps.diff.outputs.code }}
+      run: exit "$CODE"
