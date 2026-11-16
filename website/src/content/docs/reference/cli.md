@@ -384,11 +384,10 @@ server with no display, it prints the path and still exits 0.
 ```text wrap preserveIndent=false hangingIndent=4
 $ docsxai render ~/docsxai/my-app
 viewer: wrote 2 page(s) to ~/docsxai/my-app/.viewer
-render: open ~/docsxai/my-app/.viewer/index.html  (the index links the flows; each flow page
-shows the screenshots, hover a pulsing halo to read its callout)
+render: open ~/docsxai/my-app/.viewer/index.html
 $ docsxai render ~/docsxai/my-app --open
 viewer: wrote 2 page(s) to ~/docsxai/my-app/.viewer
-render: open ~/docsxai/my-app/.viewer/index.html  (…)
+render: open ~/docsxai/my-app/.viewer/index.html
 render: opened it in your browser
 ```
 

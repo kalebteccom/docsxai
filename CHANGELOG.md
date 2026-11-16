@@ -10,6 +10,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 - **`diff` says when the browser build changed.** When both workspaces name one browser build each in `annotations.json` and the names differ, the text and markdown reports start with one line naming both builds, and the JSON report gains an optional `browser_build` (`{ a, b }`). Severity and exit codes are unchanged. Surface item PACK-24, experimental.
 - **The pack manifest records the browser build.** `docsxai pack` writes an optional top-level `browser_build` into `manifest.json` when every source `annotations.json` names the same build, and leaves it out when none does or they disagree. Validator, JSON Schema and `docs/pack-manifest.md` know the key. Second step of [browser-build-pin.md](docs/browser-build-pin.md). Surface item PACK-22, experimental.
 
+### Changed
+
+- **`docsxai render` prints only the path to open.** The success line was `render: open <index>` plus a parenthetical about halos and hovering; it is now `render: open <index>`. The viewer page explains its own halos.
+
 ## [0.3.0-rc.5] - 2026-11-16
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds everything `0.3.0-rc.4` added (that tag was never published), the `add-flow` command, automatic caption placement at every width, themed burns at 2x, a hardened backend and a security pass.

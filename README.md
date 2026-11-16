@@ -80,7 +80,7 @@ docsxai run ~/docsxai/hello
 docsxai render ~/docsxai/hello --open
 ```
 
-A good run prints `run: 1 of 1 flow ok, outputs in …/docs`. The screenshot and `annotations.json` are in `~/docsxai/hello/docs/hello/`. In the viewer, hover the pulsing halo to read the callout.
+A good run prints `run: 1 of 1 flow ok, outputs in …/docs`. The screenshot and `annotations.json` are in `~/docsxai/hello/docs/hello/`. In the viewer, hover, tap or tab to a halo to read the callout.
 
 The flow `init` wrote is `~/docsxai/hello/flows/hello.flow.yaml`. One step opens the home page and points at its text:
 

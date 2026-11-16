@@ -74,7 +74,7 @@ const SHAPES: Record<string, readonly Shape[]> = {
   ],
   render: [
     [/^viewer: wrote \d+ page\(s\) to \S+$/, "wrote ${"],
-    [/^render: open \S+ {2}\(.+\)?$/, "render: open "],
+    [/^render: open \S+$/, "render: open "],
     [/^render: opened it in your browser$/, "opened it in your browser"],
   ],
   burn: [
