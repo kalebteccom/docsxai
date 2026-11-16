@@ -136,7 +136,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           URL: ${{ steps.deploy.outputs.url }}
-        run: gh pr comment "$PR_NUMBER" --body "Docs preview: $URL" --edit-last --create-if-none
+        run: |
+          gh pr comment "$PR_NUMBER" --body "Docs preview: $URL" --edit-last --create-if-none
 ```
 
 The workspace needs committed output (`docs/`) for `render` to have something to show, so run it after a replay or against a committed pack. For Cloudflare Pages, swap the deploy step for `npx wrangler pages deploy ./docs-workspace/.viewer --project-name <project> --branch "pr-$PR_NUMBER"`.
