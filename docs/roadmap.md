@@ -54,6 +54,8 @@ Done when a workspace records its browser build and a mismatch fails with both b
 
 ### 5. Record a flow from a session
 
+Status: design written, no code. Design: [`flow-recorder.md`](flow-recorder.md).
+
 Authoring is the slowest step. The plugin lets an agent write a flow from a prompt. Add a recorder: drive the app once in a headed browser (or hand over a browxai session), write the steps as a flow file with stable locators, and leave the agent to polish captions. This narrows the gap with Scribe and Tango on first-use effort and keeps replay deterministic.
 
 Done when a new record command writes a runnable flow file from one session and `run` passes first try on the example app.
