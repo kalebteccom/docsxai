@@ -69,6 +69,7 @@ const SHAPES: Record<string, readonly Shape[]> = {
     [/^result: (?:IDENTICAL|DIFFERING|HALTED)$/, "result: "],
     [/^first differing artefact: .+ \(run \d+ vs run 1\)$/, "first differing artefact: "],
     [/^ {2}cause: .+$/, "cause: "],
+    [/^ {2}try: .+$/, "  try: "],
     [/^The workspace output was not touched$/, "The workspace output was not touched"],
   ],
   render: [
