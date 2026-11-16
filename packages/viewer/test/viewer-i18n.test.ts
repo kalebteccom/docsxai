@@ -80,9 +80,7 @@ describe("a Spanish page", () => {
     expect(html).toContain("Para capturarla de nuevo, ejecuta ");
     expect(html).toContain('data-kind="comando"');
     expect(html).toContain("y después <code>docsxai render &lt;workspace&gt;</code>.</p>");
-    expect(html).toContain(
-      'Generado con <span class="sd-id">@docsxai/viewer 1.2.3</span>. Recarga sin caché si esta página parece desactualizada.',
-    );
+    expect(html).toContain('Generado con <span class="sd-id">@docsxai/viewer 1.2.3</span>.');
     expect(html).toContain('data-kind="versión del visor"');
   });
 
@@ -168,7 +166,7 @@ describe("English output", () => {
     );
     expect(html).toContain("<summary>Step write-up</summary>");
     expect(html).toContain(
-      '<footer class="meta site-footer">Rendered by <span class="sd-id">@docsxai/viewer 1.2.3</span>. Hard-reload if this page looks stale. <button',
+      '<footer class="meta site-footer">Rendered by <span class="sd-id">@docsxai/viewer 1.2.3</span>. <button',
     );
     expect(html).toContain(
       '<div class="shot-missing" role="status"><p>No screenshot for this step. <code>screenshots/gone.png</code> was not found when this page was built.</p><p>Capture it again with <span class="sd-copyable"><code class="sd-id">docsxai run &lt;workspace&gt; --flow checkout --start-from gone</code> ',

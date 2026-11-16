@@ -75,7 +75,7 @@ describe("page landmarks and document outline", () => {
   });
 
   it("names the viewer build in the footer and carries no clock", () => {
-    expect(html).toContain(`Rendered by <span class="sd-id">${AT}</span>. Hard-reload`);
+    expect(html).toContain(`Rendered by <span class="sd-id">${AT}</span>.`);
     expect(html).not.toContain("<time");
     expect(html).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:/);
   });
