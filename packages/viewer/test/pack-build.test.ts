@@ -90,6 +90,31 @@ describe("buildPack", () => {
     expect(pack.generated_for).toBe("abc123");
   });
 
+  describe("browser_build", () => {
+    const variantsOf = (source: Awaited<ReturnType<typeof sourceOf>>) =>
+      source.flatMap((f) => f.steps.flatMap((st) => st.variants));
+    const build = async (builds: Array<string | undefined>) => {
+      const source = await sourceOf();
+      variantsOf(source).forEach((v, i) => {
+        const b = builds[i % builds.length];
+        if (b !== undefined) v.browserBuild = b;
+      });
+      return (await buildPack({ source, burn: markingBurner, warn: quiet })).pack;
+    };
+    it("is recorded when every source file names the same build", async () => {
+      expect((await build(["Chromium 140.0.1"])).browser_build).toBe("Chromium 140.0.1");
+    });
+    it("is left out when no file names one", async () => {
+      expect("browser_build" in (await build([undefined]))).toBe(false);
+    });
+    it("is left out when files disagree or some stay silent", async () => {
+      expect("browser_build" in (await build(["Chromium 140.0.1", "Chromium 141.0.2"]))).toBe(
+        false,
+      );
+      expect("browser_build" in (await build(["Chromium 140.0.1", undefined]))).toBe(false);
+    });
+  });
+
   it("gives the burner only the variants that have annotations, with the records it needs", async () => {
     const calls: Array<{ step: string; records: AnnotationRecord[] }> = [];
     const burn: Burner = (png, records, warn) => {

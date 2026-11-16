@@ -51,6 +51,8 @@ export interface PackFlow {
 export interface ScreensPack {
   schema: typeof SCREENS_PACK_SCHEMA;
   generated_for?: string;
+  /** The browser the screenshots were captured with, when every source file names the same one. */
+  browser_build?: string;
   flows: Record<string, PackFlow>;
 }
 

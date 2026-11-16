@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- **The pack manifest records the browser build.** `docsxai pack` writes an optional top-level `browser_build` into `manifest.json` when every source `annotations.json` names the same build, and leaves it out when none does or they disagree. Validator, JSON Schema and `docs/pack-manifest.md` know the key. Second step of [browser-build-pin.md](docs/browser-build-pin.md). Surface item PACK-22, experimental.
+
 ## [0.3.0-rc.5] - 2026-11-16
 
 Prerelease, published under the `next` dist-tag. `0.2.0` stays `latest`. Over `0.3.0-rc.3` it adds everything `0.3.0-rc.4` added (that tag was never published), the `add-flow` command, automatic caption placement at every width, themed burns at 2x, a hardened backend and a security pass.

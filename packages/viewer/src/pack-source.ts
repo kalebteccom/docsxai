@@ -27,6 +27,8 @@ export interface SourceVariant {
   callouts: PackCallout[];
   /** Device pixels per CSS pixel the screenshot was captured at; absent means 1. */
   pixelRatio?: number;
+  /** The browser the screenshot was captured with, as `annotations.json` names it; absent when it does not. */
+  browserBuild?: string;
 }
 
 export interface SourceStep {

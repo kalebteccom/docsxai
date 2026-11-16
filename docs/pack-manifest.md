@@ -51,23 +51,24 @@ Keys are sorted at every depth, callouts are in index order, there are no timest
 
 ## Fields
 
-| Path                            | Type                 | Required | Rule                                                                                                               |
-| ------------------------------- | -------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
-| `schema`                        | string               | yes      | Exactly `docsxai/screens-pack@2`.                                                                                  |
-| `generated_for`                 | string               | no       | Free text, 1 to 128 characters. Set by `--generated-for`; omitted otherwise.                                       |
-| `flows`                         | object               | yes      | 1 to 200 flows keyed by flow id.                                                                                   |
-| `flows.<flow>.title`            | `{ <locale>: text }` | no       | Each text up to 200 characters.                                                                                    |
-| `flows.<flow>.steps`            | object               | yes      | 1 to 500 steps keyed by step id.                                                                                   |
-| `...<step>.alt`                 | `{ <locale>: text }` | yes      | At least one locale, each text up to 1000 characters. Must have every locale that one of the step's variants uses. |
-| `...<step>.caption`             | `{ <locale>: text }` | no       | Each text up to 1000 characters. Not checked for locale coverage.                                                  |
-| `...<step>.variants`            | object               | yes      | 1 to 64 variants keyed `<locale>.<theme>.<viewport>`.                                                              |
-| `...<variant>.src`              | string               | yes      | `<public-prefix>/<flow>/<step>.<hash8>.png`. Default prefix `/screens`.                                            |
-| `...<variant>.width`, `.height` | integer              | yes      | 1 to 20000, the PNG's pixels.                                                                                      |
-| `...<variant>.bytes`            | integer              | yes      | Positive. Size of the file `src` names.                                                                            |
-| `...<variant>.callouts`         | array                | yes      | At most 50, may be empty.                                                                                          |
-| `...callouts[].index`           | integer              | yes      | 1 to 50, unique within the variant.                                                                                |
-| `...callouts[].copy`            | string               | yes      | 1 to 500 characters.                                                                                               |
-| `...callouts[].bbox`            | object               | no       | `{ x, y, width, height }` in the PNG's pixel space. `x` and `y` at least 0, `width` and `height` above 0.          |
+| Path                            | Type                 | Required | Rule                                                                                                                                                  |
+| ------------------------------- | -------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schema`                        | string               | yes      | Exactly `docsxai/screens-pack@2`.                                                                                                                     |
+| `generated_for`                 | string               | no       | Free text, 1 to 128 characters. Set by `--generated-for`; omitted otherwise.                                                                          |
+| `browser_build`                 | string               | no       | 1 to 128 characters. The browser every source file names, for example `Chromium 140.0.7339.16`. Omitted when no file names one or the files disagree. |
+| `flows`                         | object               | yes      | 1 to 200 flows keyed by flow id.                                                                                                                      |
+| `flows.<flow>.title`            | `{ <locale>: text }` | no       | Each text up to 200 characters.                                                                                                                       |
+| `flows.<flow>.steps`            | object               | yes      | 1 to 500 steps keyed by step id.                                                                                                                      |
+| `...<step>.alt`                 | `{ <locale>: text }` | yes      | At least one locale, each text up to 1000 characters. Must have every locale that one of the step's variants uses.                                    |
+| `...<step>.caption`             | `{ <locale>: text }` | no       | Each text up to 1000 characters. Not checked for locale coverage.                                                                                     |
+| `...<step>.variants`            | object               | yes      | 1 to 64 variants keyed `<locale>.<theme>.<viewport>`.                                                                                                 |
+| `...<variant>.src`              | string               | yes      | `<public-prefix>/<flow>/<step>.<hash8>.png`. Default prefix `/screens`.                                                                               |
+| `...<variant>.width`, `.height` | integer              | yes      | 1 to 20000, the PNG's pixels.                                                                                                                         |
+| `...<variant>.bytes`            | integer              | yes      | Positive. Size of the file `src` names.                                                                                                               |
+| `...<variant>.callouts`         | array                | yes      | At most 50, may be empty.                                                                                                                             |
+| `...callouts[].index`           | integer              | yes      | 1 to 50, unique within the variant.                                                                                                                   |
+| `...callouts[].copy`            | string               | yes      | 1 to 500 characters.                                                                                                                                  |
+| `...callouts[].bbox`            | object               | no       | `{ x, y, width, height }` in the PNG's pixel space. `x` and `y` at least 0, `width` and `height` above 0.                                             |
 
 Identifier grammar:
 

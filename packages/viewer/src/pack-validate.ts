@@ -205,11 +205,14 @@ function checkFlow(
 export function validatePack(value: unknown, opts: ValidatePackOptions = {}): PackValidation {
   const errors: Errors = [];
   if (!isObj(value)) return { ok: false, errors: ["pack: expected an object"] };
-  noUnknownKeys(value, ["schema", "generated_for", "flows"], "pack", errors);
+  noUnknownKeys(value, ["schema", "generated_for", "browser_build", "flows"], "pack", errors);
   if (value.schema !== SCREENS_PACK_SCHEMA)
     errors.push(`pack.schema: expected "${SCREENS_PACK_SCHEMA}"`);
   if (value.generated_for !== undefined && !isText(value.generated_for, 128)) {
     errors.push("pack.generated_for: expected a non-empty string of at most 128 characters");
+  }
+  if (value.browser_build !== undefined && !isText(value.browser_build, 128)) {
+    errors.push("pack.browser_build: expected a non-empty string of at most 128 characters");
   }
   if (!isObj(value.flows)) {
     errors.push("pack.flows: expected an object");
