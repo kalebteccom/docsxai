@@ -59,6 +59,30 @@ jobs:
           branch: docs/refresh
 ```
 
+### The drift-gate action
+
+The repository root holds a composite action that does the install, the replay, the baseline diff and the pull request comment in one step:
+
+```yaml
+name: docs-drift
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: kalebteccom/docsxai@main
+        with:
+          workspace: ./docs-workspace
+          version: 0.3.0-rc.5
+          base-url: ${{ vars.APP_URL }}
+```
+
+Pin `version` to an exact release. Screenshots are byte-identical per docsxai and Chromium build, so a floating tag shows a build change as drift. Inputs: `baseline` (default `.baseline`), `fail-on` (`warn` or `fail`, default `fail`) and `comment` (`"false"` skips the pull request comment). The report also lands in the job summary.
+
 A halt (non-zero exit) means **drift, not flake**: a locator or success
 criterion no longer holds. The failing step id + halt-cause prefix are in the
 log and `docs/<flow>/halts/<step>.png` is the moment of failure. Hand both to
