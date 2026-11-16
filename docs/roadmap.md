@@ -18,6 +18,8 @@ The edge: a written flow in your repo, a run that produces the same bytes every 
 
 ### 1. Drift gate as one CI step
 
+Status: shipped. `action.yml` at the repo root, recipe in `ci-recipes.md`. Not yet run in a real consumer workflow.
+
 `docs/ci-recipes.md` holds copy-paste workflows for GitHub Actions, GitLab CI and Woodpecker. There is no reusable action.
 
 Ship a GitHub Action that installs a pinned version, runs `run`, `diff --fail-on warn` and `pack --check`, and posts one pull request comment with the changed screenshots. It is the shortest path from "interesting" to "in my pipeline", and the click-recorder tools cannot copy it.
@@ -34,11 +36,15 @@ Done when `npm i -D @docsxai/plugin-notion` works and a CI recipe pushes a pack 
 
 ### 3. Determinism report
 
+Status: first slice shipped (a next step under the cause in the text and markdown reports). The doctor check that runs a flow twice is open.
+
 `run --verify-determinism` names the first artifact that differs. Extend it to name the cause (animation, font load, network timing, clock, random value) with the fix, and add a doctor check that runs a flow twice and prints a verdict. Determinism is the claim, so a failed run has to say what to do next.
 
 Done when each known cause has a message, a docs page and a keystone test.
 
 ### 4. Pin the browser build
+
+Status: design written, no code. The exit code on a build mismatch waits on the owner.
 
 Design: [`browser-build-pin.md`](browser-build-pin.md).
 
@@ -53,6 +59,8 @@ Authoring is the slowest step. The plugin lets an agent write a flow from a prom
 Done when a new record command writes a runnable flow file from one session and `run` passes first try on the example app.
 
 ### 6. Viewer preview per pull request
+
+Status: shipped as a recipe in `ci-recipes.md`. Not yet run in a real workflow.
 
 `render` builds a local viewer. Add a Netlify and Cloudflare Pages recipe that deploys the viewer per pull request. Cheap, and it makes the output linkable in review.
 
