@@ -6,6 +6,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Changed
 
+- **`run` errors that stopped with no next step now end with one.** `--cdp` with a matrix flow says to drop `--cdp` or pick a flow without a matrix, and an unknown `--variant` says to drop it or pick a listed one. The `--start-from` usage error no longer calls itself a calibration aid.
 - **Warnings read `warning:` everywhere.** Three messages said `warning,` (`run` with a relative path and no `app_url`, `pull` with an unknown artifact, and an ignored config or auth file). They now use the same `warning:` prefix as the rest.
 - **`doctor` says less about Node.** The passing row is `ok: node: v26.1.0`. A failing row says `v24.0.0, needs 26 or newer` and the fix is `install Node 26 or newer (https://nodejs.org)`, the same words the start-up message uses.
 
