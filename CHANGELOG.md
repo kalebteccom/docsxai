@@ -14,6 +14,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 ### Fixed
 
 - **Viewer footer and empty state copy.** The footer says `Rendered by <version>.` and no longer tells readers to hard-reload (English and Spanish). The empty site says to build the site again instead of "re-emit". The screenshot error overlay keeps its message and Retry button in view on short screenshots (`place-content: safe center`).
+- **Viewer step moves are announced every time.** Pressing End on the last step, or Home on the first, repeats the same message. The live region now clears first, so a screen reader reads it again instead of staying silent.
 
 ## [0.3.0-rc.5] - 2026-10-27
 

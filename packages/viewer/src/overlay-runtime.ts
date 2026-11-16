@@ -285,10 +285,8 @@ function moveTo(move: StepMove): boolean {
   if (!el) return false;
   el.focus({ preventScroll: true });
   el.scrollIntoView({ block: "start" });
-  const live = document.getElementById("sd-live");
   const heading = el.querySelector("h2");
-  if (live && heading)
-    live.textContent = stepAnnouncement(to, items.length, heading.textContent ?? "", ui);
+  if (heading) announce(stepAnnouncement(to, items.length, heading.textContent ?? "", ui));
   return true;
 }
 
