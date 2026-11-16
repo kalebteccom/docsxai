@@ -140,9 +140,12 @@ async function loadFlow(dir: string, name: string): Promise<FlowFile> {
   return parseFlowFile(await fs.readFile(p, "utf8"), p);
 }
 
-async function loadAnnotations(dir: string, flow: string): Promise<AnnotationRecord[]> {
+async function loadAnnotations(
+  dir: string,
+  flow: string,
+): Promise<{ records: AnnotationRecord[]; build: string | undefined }> {
   const raw = await readIfExists(resolveWorkspacePath(dir, "docs", flow, "annotations.json"));
-  if (raw === null) return [];
+  if (raw === null) return { records: [], build: undefined };
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw.toString("utf8"));
@@ -159,7 +162,7 @@ async function loadAnnotations(dir: string, flow: string): Promise<AnnotationRec
       `docs/${flow}/annotations.json: invalid annotations file (${issues.join("; ")}${more > 0 ? `; and ${more} more` : ""})`,
     );
   }
-  return result.data.annotations;
+  return { records: result.data.annotations, build: result.data.browser_build };
 }
 
 // ---------------------------------------------------------------------------
@@ -376,6 +379,8 @@ export async function diffDocPacks(
   const names = [...new Set([...aFlows, ...bFlows])].sort();
 
   const flows: FlowDrift[] = [];
+  const aBuilds = new Set<string>();
+  const bBuilds = new Set<string>();
   for (const name of names) {
     const inA = aFlows.includes(name);
     const inB = bFlows.includes(name);
@@ -399,11 +404,11 @@ export async function diffDocPacks(
     const bFlow = await loadFlow(bDir, name);
     const steps = diffSteps(aFlow, bFlow);
     const locators = diffLocators(aFlow, bFlow);
-    const annotationsMoved = diffAnnotationPositions(
-      await loadAnnotations(aDir, name),
-      await loadAnnotations(bDir, name),
-      tolerance,
-    );
+    const aNotes = await loadAnnotations(aDir, name);
+    const bNotes = await loadAnnotations(bDir, name);
+    if (aNotes.build !== undefined) aBuilds.add(aNotes.build);
+    if (bNotes.build !== undefined) bBuilds.add(bNotes.build);
+    const annotationsMoved = diffAnnotationPositions(aNotes.records, bNotes.records, tolerance);
     const screenshots = await diffScreenshots(aDir, bDir, name, policy, ignoreRegions);
     const prose = await diffProse(aDir, bDir, name);
 
@@ -448,6 +453,13 @@ export async function diffDocPacks(
     for (const s of f.screenshots) if (s.pct !== undefined && s.pct > maxPct) maxPct = s.pct;
   }
 
+  const [buildA] = aBuilds;
+  const [buildB] = bBuilds;
+  const buildChange =
+    aBuilds.size === 1 && bBuilds.size === 1 && buildA !== buildB
+      ? { browser_build: { a: buildA!, b: buildB! } }
+      : {};
+
   return {
     schema: "docsxai/drift@1",
     a: aDir,
@@ -460,5 +472,6 @@ export async function diffDocPacks(
       max_pixel_change_pct: maxPct,
       severity: summarySeverity,
     },
+    ...buildChange,
   };
 }
