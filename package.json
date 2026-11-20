@@ -54,7 +54,7 @@
     "jscpd": "^5.4.3",
     "license-checker-rseidelsohn": "^4.4.2",
     "lint-staged": "^17.6.1",
-    "prettier": "^3.9.10",
+    "prettier": "^3.10.1",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8.72.2",
     "vitest": "^4.1.12"
