@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { parseFlowFile } from "../src/doc-pack.js";
+import { parseFlowFile } from "../src/flow-file.js";
 import { findStaleVariants, formatStaleVariants } from "../src/variant-staleness.js";
 
 const FLOW = `name: tour
