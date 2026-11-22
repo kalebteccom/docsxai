@@ -191,7 +191,7 @@ the workspace:
 }
 ```
 
-`@docsxai/plugin-confluence` is repo-only (`private: true`, not on npm). Build it in a checkout (`pnpm -r build`) and wire it by path instead: `{ "path": "<checkout>/packages/plugin-confluence" }`. The `{ "package": ... }` form resolves only once the package is installed in the workspace.
+`@docsxai/plugin-confluence` is experimental and publishes on the `next` tag. Install it in the workspace with `npm i -D @docsxai/plugin-confluence@next` and wire it as `{ "package": "@docsxai/plugin-confluence" }`, or build it in a checkout (`pnpm -r build`) and wire it by path: `{ "path": "<checkout>/packages/plugin-confluence" }`. The `{ "package": ... }` form resolves only once the package is installed in the workspace.
 
 Then `docsxai plugins sync` (pin the lock) and invoke `confluence:push`, idempotent by
 content-sha. For agent-supervised publishing without any plugin, `docsxai export adf` writes

@@ -12,6 +12,10 @@ const PACKAGES = [
   "docsxai",
   "@docsxai/plugin",
   "@docsxai/plugin-sharepoint",
+  "@docsxai/plugin-notion",
+  "@docsxai/plugin-confluence",
+  "@docsxai/plugin-gitbook",
+  "@docsxai/plugin-guru",
   "@docsxai/skill",
   "@docsxai/backend",
 ];

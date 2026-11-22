@@ -28,6 +28,8 @@ Done when a pull request that moves a button gets a comment with before and afte
 
 ### 2. Put the publishers on npm
 
+Status: decided (owner, 2026-11-22): all four ship as experimental on `next`. The release prep makes them publishable; the first release needs the owner's 2FA like every other package.
+
 The Confluence, GitBook, Guru and Notion publishers are repo-only (`private: true`). SharePoint is the only one on npm, and it is experimental. Adopters who want Notion or Confluence have to wire a checkout by path.
 
 Promote Notion and Confluence first (largest audiences), each as `experimental` on the `next` tag, then GitBook and Guru. The first release of each package needs an owner decision.

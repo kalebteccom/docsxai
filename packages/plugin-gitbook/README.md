@@ -4,7 +4,7 @@ docsxai **publisher plugin** for GitBook. Registers `gitbook:push`, which takes 
 
 The engine emits projections only and performs no wiki egress. This plugin is the GitBook egress path. Its manifest declares exactly one capability, `egress:api.gitbook.com`, which the workspace's `plugin_capabilities` has to opt into. All HTTP uses the built-in `fetch`.
 
-> **Repo-only.** `@docsxai/plugin-gitbook` is not published to npm (`private: true`). Build it from a checkout (`pnpm -r build`) and wire it by path: `{ "path": "<checkout>/packages/plugin-gitbook" }` (relative paths resolve from the workspace directory).
+> **Experimental.** `@docsxai/plugin-gitbook` publishes to npm on the `next` tag. Install it with `npm i -D @docsxai/plugin-gitbook@next`, or build it from a checkout (`pnpm -r build`) and wire it by path: `{ "path": "<checkout>/packages/plugin-gitbook" }` (relative paths resolve from the workspace directory).
 
 ## Wiring
 

@@ -1,8 +1,11 @@
 {
   "name": "@docsxai/plugin-notion",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "description": "docsxai publisher plugin: pushes a doc pack to Notion as pages with images attached (Notion public API and file uploads), idempotently.",
   "license": "Apache-2.0",
   "repository": {
