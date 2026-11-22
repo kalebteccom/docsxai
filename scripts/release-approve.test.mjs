@@ -167,7 +167,7 @@ test("--otp codes are used in order; the last one is reused when there are fewer
   const h = harness(npm);
   assert.equal(await main([TAG, "--approve", "--otp", "111111", "--otp", "222222"], h.deps), 0);
   const codes = npm.calls.filter((c) => c.args[1] === "approve").map((c) => c.env.NPM_CONFIG_OTP);
-  assert.deepEqual(codes, ["111111", "222222", "222222", "222222", "222222", "222222", "222222"]);
+  assert.deepEqual(codes, ["111111", ...Array(PACKAGES.length - 1).fill("222222")]);
 });
 
 test("stops at the first failed approve and prints what is live and what is staged", async () => {
