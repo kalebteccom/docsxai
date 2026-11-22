@@ -70,6 +70,8 @@ Done when a recipe in `docs/ci-recipes.md` posts a preview URL on the pull reque
 
 ### 7. Variant coverage grid
 
+Status: first slice in `run` (owner, 2026-11-22: a variant is stale when it is older than its flow file). The viewer's variant picker with a missing marker is open.
+
 The matrix runs locale by scheme by viewport. Print a grid in the `run` output and the viewer that shows which variants exist for each flow and which are stale. Helps teams that ship in several languages see the gap at a glance.
 
 Done when `run` prints the grid and the viewer has a variant picker with a missing marker.

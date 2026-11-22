@@ -40,6 +40,7 @@ import { emitVerifyReport, parseVerifyArgs } from "./cli-verify.js";
 import { verifyDeterminism } from "./verify-determinism.js";
 import { VerifyTreeError } from "./verify-tree.js";
 import { describeFsError, shellQuote, usageError, withNext } from "./cli-messages.js";
+import { findStaleVariants, formatStaleVariants } from "./variant-staleness.js";
 import { reportRun } from "./cli-run-summary.js";
 import { warnStaleMatrixOutputs } from "./cli-run-stale.js";
 import { warnUnusableConfig } from "./cli-backend-errors.js";
@@ -158,6 +159,7 @@ export async function cmdRun(args: string[]): Promise<number> {
   const matrixFlows = new Set<string>();
   const knownFlows: string[] = [];
   const flowOwners = new Map<string, string>();
+  const flowEntries: Array<{ flow: FlowFile; filePath: string }> = [];
   let flowCount = 0;
   for (const fp of flowPaths) {
     let flow: FlowFile;
@@ -186,6 +188,7 @@ export async function cmdRun(args: string[]): Promise<number> {
     }
     flowCount++;
     flows.push(flow);
+    flowEntries.push({ flow, filePath: fp });
     if (flow.matrix) matrixFlows.add(flow.name);
     units.push(...variants);
   }
@@ -333,6 +336,11 @@ export async function cmdRun(args: string[]): Promise<number> {
   });
   const anyFailed = failures.length > 0;
   reportRun({ projectDir, noun, total: units.length, okCount, failures });
+  const staleText = formatStaleVariants(
+    await findStaleVariants(projectDir, flowEntries),
+    shellQuote(projectDir),
+  );
+  if (staleText) process.stdout.write(staleText);
 
   // Backend-bound workspaces get a run record appended; offline-tolerant (warn, never fail the run).
   const history = await recordRunHistory({

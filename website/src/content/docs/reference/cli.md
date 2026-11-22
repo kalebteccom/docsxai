@@ -293,6 +293,12 @@ run: publish-post, 5 step(s) executed, 4 annotation(s) written
 run: 1 of 1 flow ok, outputs in ~/docsxai/my-app/docs
 ```
 
+For a flow with a `matrix`, `run` then lists the variants whose output is
+older than the flow file or missing, one `run: <flow>: ...` line and one
+`next:` line per flow. It reads file times, so a fresh git checkout can hide
+a stale variant, and a change in a parent flow (`extends`) is not seen. The
+exit code does not change.
+
 A halted run names the step, the inferred cause, and the halt screenshot,
 then exits 1 - hand that to [`diagnose`](#docsxai-diagnose). Don't
 retry:
