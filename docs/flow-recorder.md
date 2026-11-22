@@ -27,9 +27,24 @@ Two choices.
 
 Recommendation: the engine command, with the event-to-step mapping as a pure function so a browxai importer can reuse it later.
 
+## Capture layer
+
+The command is named `record` (owner, 2026-11-22). It runs in the engine, next to the Playwright driver. This is how the capture layer works and what it may touch.
+
+- **Browser.** Headed Chromium launched with the workspace's auth state and environment (clock, locale, timezone, viewport), so the page matches the replay. One page, one context.
+- **Page-side script.** Injected with `context.addInitScript`. It listens for `click`, `change`, `input` (collapsed per field), `submit` and the keys Enter, Escape and Tab, and reports each event through one `exposeBinding` call. It makes no network request, writes nothing to storage and adds nothing to the page.
+- **What it reads.** For the element an event hit: tag name, the `data-testid` value, the accessible name (the `aria-label`, an associated label, or the visible text cut to 80 characters) and a short CSS path. It reads an input's value only when the field is not secret.
+- **Secret fields.** A password input, any field with `autocomplete` of `cc-*` or `one-time-code`, a hidden input, and any field whose name or label matches `pass`, `token`, `secret` or `otp` report no value at all. The mapper then writes an empty step value and a note.
+- **Frames and origins.** Events from the app's origin and its same-origin frames are recorded. Other origins are ignored, and a navigation away from the app origin is written as a note, never as a step.
+- **Stop.** The recording ends on a stop shortcut (a key chord the page cannot receive) or when the window closes. The recorder prints how many steps it wrote and which notes need attention.
+- **Output.** Events stay in memory until the stop, then pass through the mapper once and the flow file is written to `flows/` without overwriting an existing file. Nothing is logged while recording.
+- **After the stop.** The determinism comparison runs on the new flow, as in the proposal above.
+
+Security review before the first release of this layer: what the page-side script can read, what reaches the process, what is written to disk, and that a hostile page cannot call the binding with forged events to inject steps. The binding accepts only the event shape above and ignores anything else. A real-Chromium keystone test covers the secret-field and cross-origin rules.
+
 ## Open decisions
 
-- Command name and flags. Parked until the engine route is confirmed.
+- Flags of `record`. The name is decided (`record`, in the engine); the flags follow the build step that adds the command.
 - Whether recorded values may be literals when the app is a local demo with no real data. Safest default: literals only after the author confirms.
 - How much to clean up automatically: merging two `fill` events on one field is safe, dropping an accidental click is a guess.
 
