@@ -111,7 +111,7 @@ test("dry run prints the table and the approve commands in order, and approves n
   assert.equal(await main([TAG], h.deps), 0);
   const text = h.lines.join("\n");
   const cmds = h.lines.filter((l) => l.startsWith("npm stage approve"));
-  assert.equal(cmds.length, 7);
+  assert.equal(cmds.length, PACKAGES.length);
   PACKAGES.forEach((p, i) => assert.ok(cmds[i].includes(npm.idOf(p)), cmds[i]));
   assert.ok(cmds.every((c) => c.includes("--otp <code>")));
   assert.match(text, /package\s+version\s+stage id\s+status/);
@@ -154,7 +154,7 @@ test("--approve prompts per package, keeps the code off argv and verifies at the
   const h = harness(npm, { isTTY: true, prompt: async () => String(100000 + ++n) });
   assert.equal(await main([TAG, "--approve"], h.deps), 0);
   const approves = npm.calls.filter((c) => c.args[1] === "approve");
-  assert.equal(approves.length, 7);
+  assert.equal(approves.length, PACKAGES.length);
   approves.forEach((c, i) => {
     assert.equal(c.env.NPM_CONFIG_OTP, String(100001 + i));
     assert.ok(!c.args.some((a) => /\d{6}/.test(a) || a === "--otp"), c.args.join(" "));
@@ -189,6 +189,6 @@ test("a rerun skips packages that are already live", async () => {
   });
   const h = harness(npm);
   assert.equal(await main([TAG, "--approve", "--otp", "111111"], h.deps), 0);
-  assert.equal(npm.calls.filter((c) => c.args[1] === "approve").length, 5);
+  assert.equal(npm.calls.filter((c) => c.args[1] === "approve").length, PACKAGES.length - 2);
   assert.match(h.lines.join("\n"), /already live/);
 });
