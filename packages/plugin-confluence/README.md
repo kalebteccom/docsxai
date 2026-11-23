@@ -6,7 +6,7 @@ The engine emits projections only and performs no wiki egress; this plugin is th
 
 ## Wiring
 
-> **Repo-only.** `@docsxai/plugin-confluence` is not published to npm (`private: true`). Build it from a checkout (`pnpm -r build`) and wire it by path instead: `{ "path": "<checkout>/packages/plugin-confluence" }` (relative paths resolve from the workspace directory). The `{ "package": ... }` form below only resolves once the plugin is installed in the workspace's `node_modules`.
+> **Experimental.** `@docsxai/plugin-confluence` publishes to npm on the `next` tag. Install it with `npm i -D @docsxai/plugin-confluence@next`, or build it from a checkout (`pnpm -r build`) and wire it by path instead: `{ "path": "<checkout>/packages/plugin-confluence" }` (relative paths resolve from the workspace directory). The `{ "package": ... }` form below only resolves once the plugin is installed in the workspace's `node_modules`.
 
 `.docsxai.json`:
 

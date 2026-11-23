@@ -368,7 +368,7 @@ steps:
 - **Wiki push**: configure the workspace's publisher plugin
   (`.docsxai.json` → `plugins` + `plugin_capabilities`) and run the
   publisher after `run`, e.g. `@docsxai/plugin-confluence`
-  (repo-only, not on npm: wire it by `path` from a checkout; `confluence:push`) is idempotent by content-sha, so a no-change run mutates
+  (`@docsxai/plugin-confluence`, experimental on the `next` tag; `confluence:push`) is idempotent by content-sha, so a no-change run mutates
   nothing. Credentials via env (`CONFLUENCE_TOKEN`, `CONFLUENCE_EMAIL`).
 - **Backend persistence**: `DOCSX_TOKEN=… docsxai push ./docs-workspace
 --kind run` records the refreshed pack as a finalized revision; run history

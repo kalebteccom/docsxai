@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Approve the seven staged npm versions of one release with the owner's 2FA.
+// Approve the eleven staged npm versions of one release with the owner's 2FA.
 // See RELEASING.md, "Staged mode". Run by the owner on a machine logged into npm.
 //
 //   node scripts/release-approve.mjs v0.3.0-rc.4                  list + print the commands, change nothing

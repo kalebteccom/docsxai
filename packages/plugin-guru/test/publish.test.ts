@@ -389,7 +389,7 @@ describe("guru publisher: credentials", () => {
 });
 
 describe("guru plugin: manifest and runtime", () => {
-  it("declares exactly one capability, the Guru API host, and stays private", async () => {
+  it("declares exactly one capability, the Guru API host, and is publishable", async () => {
     const pkg = JSON.parse(await fs.readFile(path.join(PKG_ROOT, "package.json"), "utf8")) as {
       private?: boolean;
       docsxai: { namespace: string; kinds: string[]; capabilities: string[]; trust: string };
@@ -397,7 +397,7 @@ describe("guru plugin: manifest and runtime", () => {
     expect(pkg.docsxai.capabilities).toEqual(["egress:api.getguru.com"]);
     expect(pkg.docsxai.namespace).toBe("guru");
     expect(pkg.docsxai.kinds).toEqual(["publisher"]);
-    expect(pkg.private).toBe(true);
+    expect(pkg.private).toBeUndefined();
   });
 
   it("resolvePlugins loads guru:push from the built package and it refuses a non-Guru endpoint", async () => {
