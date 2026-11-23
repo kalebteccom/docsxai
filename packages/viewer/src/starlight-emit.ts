@@ -31,7 +31,7 @@ import {
 import { fmt, langFallbackWarning, uiStrings, type UiStrings } from "./ui-strings.js";
 
 /** Exact versions pinned into the emitted site's package.json, verified to install + build. */
-export const ASTRO_VERSION = "7.3.5";
+export const ASTRO_VERSION = "7.4.13";
 export const STARLIGHT_VERSION = "0.41.2";
 
 export interface StarlightSiteConfig {
