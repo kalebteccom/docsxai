@@ -14,7 +14,7 @@ the cross-repo contract is [`actionability-contract.md`](actionability-contract.
 `obstacles`, the badge) is in [`annotation-placement.md`](annotation-placement.md); the `manifest.json` that `pack` writes is in
 [`pack-manifest.md`](pack-manifest.md); the path from raw captures to a themed pack (sizes per width class, badge fallback, reading the burn report, a no-overlap check) is in [`themed-caption-packs.md`](themed-caption-packs.md). What counts as public surface, how
 stable each item is, and the deprecation policy are in
-[`public-surface.md`](public-surface.md). What to build next, ranked, is in [`roadmap.md`](roadmap.md). The browser build pin design is in [`browser-build-pin.md`](browser-build-pin.md). The flow recorder design is in [`flow-recorder.md`](flow-recorder.md).
+[`public-surface.md`](public-surface.md). What to build next, ranked, is in [`roadmap.md`](roadmap.md). The browser build pin design is in [`browser-build-pin.md`](browser-build-pin.md). The flow recorder design is in [`flow-recorder.md`](flow-recorder.md). How a dependency bump is checked is in [`bump-check.md`](bump-check.md).
 
 ## How these reach the docs site
 

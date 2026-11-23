@@ -10,6 +10,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Added
 
+- **A manual bump-check workflow.** `.woodpecker/bump-check.yaml` runs, on a dependency branch, the real-Chromium keystone suite (determinism), an emitted-site build and a social card render, as three independent steps. It unblocks the held astro, starlight and playwright-core bumps. The `release.yaml` comments now say eleven packages. See `docs/bump-check.md`.
 - **`run` says which matrix variants are stale or missing.** After its summary, `run` lists the variants of each matrix flow whose `annotations.json` is older than the flow file, or absent, with a `next:` line naming the command that refreshes them. It reads file times only (a fresh git checkout can hide a stale variant). The exit code does not change.
 
 ### Changed
