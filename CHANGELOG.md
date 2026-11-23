@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Changed
+
+- **Docs name the live prerelease.** The README, the install page and the release process notes now say `next` is `0.3.0-rc.5`, and that a release stages eleven packages.
+
 ### Added
 
 - **`run` says which matrix variants are stale or missing.** After its summary, `run` lists the variants of each matrix flow whose `annotations.json` is older than the flow file, or absent, with a `next:` line naming the command that refreshes them. It reads file times only (a fresh git checkout can hide a stale variant). The exit code does not change.
