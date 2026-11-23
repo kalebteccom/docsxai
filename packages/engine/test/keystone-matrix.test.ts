@@ -88,7 +88,13 @@ describe.skipIf(!chromiumAvailable)("keystone: flow matrix", () => {
         for (const id of IDS) {
           const ann = await readJson(path.join(docs1, id, "annotations.json"));
           const [locale, scheme] = id.split(".");
-          expect(Object.keys(ann)).toEqual(["schema", "flow", "variant", "annotations"]);
+          expect(Object.keys(ann)).toEqual([
+            "schema",
+            "flow",
+            "variant",
+            "browser_build",
+            "annotations",
+          ]);
           expect(ann.flow).toBe("matrix-2x2");
           expect(ann.variant).toEqual({
             id,
@@ -151,7 +157,7 @@ describe.skipIf(!chromiumAvailable)("keystone: flow matrix", () => {
         expect((await fs.readdir(flowDir)).sort()).toEqual(["annotations.json", "screenshots"]);
         expect(await fs.readdir(path.join(flowDir, "screenshots"))).toEqual(["shot.png"]);
         const ann = await readJson(path.join(flowDir, "annotations.json"));
-        expect(Object.keys(ann)).toEqual(["schema", "flow", "annotations"]);
+        expect(Object.keys(ann)).toEqual(["schema", "flow", "browser_build", "annotations"]);
         expect(await digest(path.join(ws2, "docs"))).toEqual(await digest(path.join(ws1, "docs")));
       } finally {
         await fs.rm(tmp, { recursive: true, force: true });
