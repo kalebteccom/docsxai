@@ -52,9 +52,11 @@ function resolvePackageDir(name: string): string {
   let entry: string;
   try {
     entry = require.resolve(name);
-  } catch {
+  } catch (e) {
     // An ESM-only export map (`import` condition, no `require` or `default`) fails under
-    // require.resolve; resolve it the way an import would.
+    // require.resolve with this code; resolve it the way an import would. Any other failure
+    // (the package is not installed) stays a failure.
+    if ((e as NodeJS.ErrnoException).code !== "ERR_PACKAGE_PATH_NOT_EXPORTED") throw e;
     entry = fileURLToPath(import.meta.resolve(name));
   }
   let dir = path.dirname(entry);
