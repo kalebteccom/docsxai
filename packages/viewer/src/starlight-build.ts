@@ -9,6 +9,7 @@ import { spawn } from "node:child_process";
 import { promises as fs, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { shellQuote, withNext } from "./cli-failure.js";
 import { exists } from "./starlight-emit.js";
 
@@ -48,7 +49,15 @@ function resolvePackageDir(name: string): string {
   } catch {
     // package.json not in the export map, resolve the entry and walk up to the package root.
   }
-  let dir = path.dirname(require.resolve(name));
+  let entry: string;
+  try {
+    entry = require.resolve(name);
+  } catch {
+    // An ESM-only export map (`import` condition, no `require` or `default`) fails under
+    // require.resolve; resolve it the way an import would.
+    entry = fileURLToPath(import.meta.resolve(name));
+  }
+  let dir = path.dirname(entry);
   for (;;) {
     try {
       const pkg = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8")) as {

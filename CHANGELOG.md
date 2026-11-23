@@ -6,6 +6,7 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ### Fixed
 
+- **Starlight 0.43 builds.** `site --build` finds `@astrojs/starlight` when its export map is ESM-only, as in 0.43. The pinned pair is now astro 7.4.13 and starlight 0.43.1.
 - **Bump-check fixes.** The matrix keystone tests expect `browser_build` in a real browser run's `annotations.json`, and the emitted-site step finds the viewer built in the checkout.
 
 ### Changed
