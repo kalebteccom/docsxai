@@ -4,6 +4,10 @@ All notable changes to this project. Format loosely follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Fixed
+
+- **Bump-check fixes.** The matrix keystone tests expect `browser_build` in a real browser run's `annotations.json`, and the emitted-site step finds the viewer built in the checkout.
+
 ### Changed
 
 - **Docs name the live prerelease.** The README, the install page and the release process notes now say `next` is `0.3.0-rc.5`, and that a release stages eleven packages.

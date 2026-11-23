@@ -40,6 +40,8 @@ steps:
   - name: emitted-site
     image: remotxai-ci:latest
     depends_on: [build]
+    environment:
+      DOCSX_VIEWER_BIN: packages/viewer/dist/index.js
     commands:
       - mkdir -p bump-work
       - timeout 900 node packages/engine/dist/cli.js site examples/ci/sample-repo/docs-workspace --out bump-work/site --build
