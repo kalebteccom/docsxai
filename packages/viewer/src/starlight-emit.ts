@@ -32,7 +32,7 @@ import { fmt, langFallbackWarning, uiStrings, type UiStrings } from "./ui-string
 
 /** Exact versions pinned into the emitted site's package.json, verified to install + build. */
 export const ASTRO_VERSION = "7.4.13";
-export const STARLIGHT_VERSION = "0.41.2";
+export const STARLIGHT_VERSION = "0.43.1";
 
 export interface StarlightSiteConfig {
   /** Site title. Default: `"Documentation"` (`"Documentación"` for a Spanish site). */
