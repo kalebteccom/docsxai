@@ -41,7 +41,7 @@ docsxai doctor
 ```
 
 - `docsxai` is the CLI plus the viewer, in one package.
-- `@next` is the 0.3 line, currently `0.3.0-rc.3` (`pack`, `--verify-determinism`, matrix flows). `latest` is `0.2.0`, which has none of those. `latest` moves when 0.3 ships stable, then the pin should move too.
+- `@next` is the 0.3 line, currently `0.3.0-rc.5` (`pack`, `--verify-determinism`, matrix flows). `latest` is `0.2.0`, which has none of those. `latest` moves when 0.3 ships stable, then the pin should move too.
 - With pnpm, run `pnpm setup` once first, or the global install has no bin directory on your PATH.
 - Chromium is a separate download. It never runs as an install script, so you fetch it once yourself.
 - `docsxai doctor` checks Node, Chromium and the viewer. Each failing row prints its fix.
@@ -142,7 +142,7 @@ Next: [quickstart on docsxai.dev](https://docsxai.dev/getting-started/quickstart
 | [`@docsxai/plugin-sharepoint`](packages/plugin-sharepoint/) | First-party publisher plugin. Markdown and images into a SharePoint Online document library through Microsoft Graph (`sharepoint:push`), capability-gated egress.                                          |
 | [`@docsxai/plugin-starlight`](packages/plugin-starlight/)   | First-party renderer plugin: Starlight site emission (`starlight:site`).                                                                                                                                   |
 
-`@docsxai/mcp` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (`@docsxai/plugin-sharepoint` since `0.3.0-rc.3`, the Notion, Confluence, GitBook and Guru publishers from their first release, all experimental): `0.2.0` is on `latest`, `0.3.0-rc.3` on `next`.
+`@docsxai/mcp` and `@docsxai/plugin-starlight` are repo-only (`private: true`, not on npm). The other packages, and the bare `docsxai`, are published (`@docsxai/plugin-sharepoint` since `0.3.0-rc.3`, the Notion, Confluence, GitBook and Guru publishers from their first release, all experimental): `0.2.0` is on `latest`, `0.3.0-rc.5` on `next`.
 
 ## Documentation
 
