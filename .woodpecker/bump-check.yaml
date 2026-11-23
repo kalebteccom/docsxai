@@ -1,0 +1,62 @@
+# ci-optimised: v1
+# Bump check for a dependency branch (astro, starlight, playwright-core and the like). Three independent steps, so a failure names which half broke:
+# determinism (the keystone tests against real Chromium, including the determinism comparison), emitted-site (a Starlight site emitted from the sample pack and built)
+# and og-card (renders the social card to a host folder). Read the result in the pipeline log.
+# INVARIANT: manual event only, never on push. Not a required check. This pipeline names no secrets and publishes nothing.
+# Start it from the Woodpecker UI on the branch to check (manual run, branch = the bump branch).
+
+# Only the browser runner takes this workflow, as design-audit.yaml does.
+labels:
+  browser: "true"
+
+when:
+  - event: manual
+
+steps:
+  - name: setup
+    image: remotxai-ci:latest
+    depends_on: []
+    commands:
+      - pnpm install --frozen-lockfile --ignore-scripts --store-dir /tmp/pnpm-store
+
+  - name: build
+    image: remotxai-ci:latest
+    depends_on: [setup]
+    commands:
+      - pnpm build
+
+  # Chromium goes into a per-pipeline directory in the container's /tmp, gone when the step ends, so the fetch and the tests share this step.
+  # The keystone suite skips itself without Chromium; here Chromium is fetched first, so it runs. The two timeouts are the time budget: 5 minutes to fetch, 15 to test.
+  - name: determinism
+    image: remotxai-ci:latest
+    depends_on: [build]
+    environment:
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/docsxai-pw-${CI_PIPELINE_NUMBER}
+    commands:
+      - timeout 300 pnpm -C packages/engine exec playwright-core install chromium
+      - timeout 900 pnpm -C packages/engine exec vitest run test/keystone --testTimeout=120000
+
+  # Emits the Starlight site for the sample pack and builds it, which installs the astro and starlight versions the emitted site pins. 15 minutes at most.
+  - name: emitted-site
+    image: remotxai-ci:latest
+    depends_on: [build]
+    commands:
+      - mkdir -p bump-work
+      - timeout 900 node packages/engine/dist/cli.js site examples/ci/sample-repo/docs-workspace --out bump-work/site --build
+
+  # Renders the social card with sharp into the visual host folder; the log prints the file name. Nothing is committed from here.
+  # The output folder is a host folder that must exist and be writable from the step. Shell variables are written $dest with no braces: Woodpecker substitutes the braced form before the shell runs.
+  - name: og-card
+    image: remotxai-ci:latest
+    depends_on: [setup]
+    failure: ignore
+    volumes:
+      - /srv/docsxai-visual:/srv/docsxai-visual
+    commands:
+      - timeout 120 pnpm -C website og
+      - |
+        dest=/srv/docsxai-visual/og-${CI_PIPELINE_NUMBER}.png
+        cp website/public/og.png "$dest"
+        chmod a+r "$dest"
+        echo "Social card for ${CI_COMMIT_BRANCH} at ${CI_COMMIT_SHA}"
+        echo "Rendered to $dest"
